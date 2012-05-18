@@ -30,7 +30,7 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.Median;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -169,7 +169,7 @@ public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
     public void onTraversalDone(Integer sum) {
         final GATKReport report = new GATKReport();
         report.addTable(TABLE_NAME, "Table of read group properties", 12);
-        GATKReportTableV2 table = report.getTable(TABLE_NAME);
+        GATKReportTable table = report.getTable(TABLE_NAME);
         DateFormat dateFormatter = DateFormat.getDateInstance(DateFormat.SHORT);
 
         table.addColumn("readgroup");
@@ -218,7 +218,7 @@ public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
         report.print(out);
     }
 
-    private final void setTableValue(GATKReportTableV2 table, final String rgID, final String key, final Object value) {
+    private final void setTableValue(GATKReportTable table, final String rgID, final String key, final Object value) {
         table.set(rgID, key, value == null ? "NA" : value);
     }
 }

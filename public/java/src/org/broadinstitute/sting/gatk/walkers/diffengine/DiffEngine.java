@@ -26,7 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -236,7 +236,7 @@ public class DiffEngine {
         GATKReport report = new GATKReport();
         final String tableName = "differences";
         report.addTable(tableName, "Summarized differences between the master and test files. See http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine for more information", 3);
-        final GATKReportTableV2 table = report.getTable(tableName);
+        final GATKReportTable table = report.getTable(tableName);
         table.addColumn("Difference");
         table.addColumn("NumberOfOccurrences");
         table.addColumn("ExampleDifference");

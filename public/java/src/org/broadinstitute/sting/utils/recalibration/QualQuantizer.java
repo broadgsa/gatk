@@ -29,7 +29,7 @@ import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -423,7 +423,7 @@ public class QualQuantizer {
 
     private final void addQualHistogramToReport(final GATKReport report) {
         report.addTable("QualHistogram", "Quality score histogram provided to report", 2);
-        GATKReportTableV2 table = report.getTable("QualHistogram");
+        GATKReportTable table = report.getTable("QualHistogram");
 
         table.addColumn("qual");
         table.addColumn("count");
@@ -437,7 +437,7 @@ public class QualQuantizer {
 
     private final void addIntervalsToReport(final GATKReport report) {
         report.addTable("QualQuantizerIntervals", "Table of QualQuantizer quantization intervals", 10);
-        GATKReportTableV2 table = report.getTable("QualQuantizerIntervals");
+        GATKReportTable table = report.getTable("QualQuantizerIntervals");
 
         table.addColumn("name");
         table.addColumn("qStart");
@@ -455,7 +455,7 @@ public class QualQuantizer {
             addIntervalToReport(table, interval, true);
     }
 
-    private final void addIntervalToReport(final GATKReportTableV2 table, final QualInterval interval, final boolean atRootP) {
+    private final void addIntervalToReport(final GATKReportTable table, final QualInterval interval, final boolean atRootP) {
         final String name = interval.getName();
         table.set(name, "name", name);
         table.set(name, "qStart", interval.qStart);

@@ -1,13 +1,12 @@
 package org.broadinstitute.sting.gatk.walkers.diagnostics;
 
-import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -75,7 +74,7 @@ public class ErrorRatePerCycle extends LocusWalker<Integer, Integer> {
     public Integer MIN_MAPPING_QUAL = 20;
 
     private GATKReport report;
-    private GATKReportTableV2 table;
+    private GATKReportTable table;
     private final static String reportName = "ErrorRatePerCycle";
     private final static String reportDescription = "The error rate per sequenced position in the reads";
 

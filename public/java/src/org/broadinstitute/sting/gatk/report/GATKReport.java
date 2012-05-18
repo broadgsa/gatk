@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.gatk.report;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.*;
@@ -43,7 +42,7 @@ public class GATKReport {
     private static final String SEPARATOR = ":";
     private GATKReportVersion version = LATEST_REPORT_VERSION;
 
-    private final TreeMap<String, GATKReportTableV2> tables = new TreeMap<String, GATKReportTableV2>();
+    private final TreeMap<String, GATKReportTable> tables = new TreeMap<String, GATKReportTable>();
 
     /**
      * Create a new, empty GATKReport.
@@ -73,8 +72,8 @@ public class GATKReport {
      * Create a new GATK report from GATK report tables
      * @param tables Any number of tables that you want to add to the report
      */
-    public GATKReport(GATKReportTableV2... tables) {
-        for( GATKReportTableV2 table: tables)
+    public GATKReport(GATKReportTable... tables) {
+        for( GATKReportTable table: tables)
             addTable(table);
     }
 
@@ -106,7 +105,7 @@ public class GATKReport {
 
         // Read each table according ot the number of tables
         for (int i = 0; i < nTables; i++) {
-            addTable(new GATKReportTableV2(reader, version));
+            addTable(new GATKReportTable(reader, version));
         }
     }
 
@@ -130,7 +129,7 @@ public class GATKReport {
      * @param sortByRowID      whether to sort the rows by the row ID
      */
     public void addTable(final String tableName, final String tableDescription, final int numColumns, final boolean sortByRowID) {
-        GATKReportTableV2 table = new GATKReportTableV2(tableName, tableDescription, numColumns, sortByRowID);
+        GATKReportTable table = new GATKReportTable(tableName, tableDescription, numColumns, sortByRowID);
         tables.put(tableName, table);
     }
 
@@ -139,12 +138,12 @@ public class GATKReport {
      *
      * @param table the table to add
      */
-    public void addTable(GATKReportTableV2 table) {
+    public void addTable(GATKReportTable table) {
         tables.put(table.getTableName(), table);
     }
 
-    public void addTables(List<GATKReportTableV2> gatkReportTableV2s) {
-        for ( GATKReportTableV2 table : gatkReportTableV2s )
+    public void addTables(List<GATKReportTable> gatkReportTableV2s) {
+        for ( GATKReportTable table : gatkReportTableV2s )
             addTable(table);
     }
 
@@ -164,8 +163,8 @@ public class GATKReport {
      * @param tableName the name of the table
      * @return the table object
      */
-    public GATKReportTableV2 getTable(String tableName) {
-        GATKReportTableV2 table = tables.get(tableName);
+    public GATKReportTable getTable(String tableName) {
+        GATKReportTable table = tables.get(tableName);
         if (table == null)
             throw new ReviewedStingException("Table is not in GATKReport: " + tableName);
         return table;
@@ -178,11 +177,11 @@ public class GATKReport {
      */
     public void print(PrintStream out) {
         out.println(GATKREPORT_HEADER_PREFIX + getVersion().toString() + SEPARATOR + getTables().size());
-        for (GATKReportTableV2 table : tables.values())
+        for (GATKReportTable table : tables.values())
             table.write(out);
     }
 
-    public Collection<GATKReportTableV2> getTables() {
+    public Collection<GATKReportTable> getTables() {
         return tables.values();
     }
 
@@ -198,7 +197,7 @@ public class GATKReport {
             throw new ReviewedStingException("Failed to combine GATKReport, format doesn't match!");
         }
 
-        for ( Map.Entry<String, GATKReportTableV2> table : tables.entrySet() ) {
+        for ( Map.Entry<String, GATKReportTable> table : tables.entrySet() ) {
             table.getValue().concat(input.getTable(table.getKey()));
         }
     }
@@ -272,7 +271,7 @@ public class GATKReport {
      * @return a simplified GATK report
      */
     public static GATKReport newSimpleReport(final String tableName, final String... columns) {
-        GATKReportTableV2 table = new GATKReportTableV2(tableName, "A simplified GATK table report", columns.length);
+        GATKReportTable table = new GATKReportTable(tableName, "A simplified GATK table report", columns.length);
 
         for (String column : columns) {
             table.addColumn(column, "");
@@ -296,7 +295,7 @@ public class GATKReport {
         if ( tables.size() != 1 )
             throw new ReviewedStingException("Cannot write a row to a complex GATK Report");
 
-        GATKReportTableV2 table = tables.firstEntry().getValue();
+        GATKReportTable table = tables.firstEntry().getValue();
         if ( table.getNumColumns() != values.length )
             throw new ReviewedStingException("The number of arguments in writeRow() must match the number of columns in the table");
 

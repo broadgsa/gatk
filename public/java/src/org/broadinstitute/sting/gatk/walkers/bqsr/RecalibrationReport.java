@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -21,7 +21,7 @@ public class RecalibrationReport {
     private final LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap;                                    // quick access reference to the read group table and its key manager
     private final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();                                      // list of all covariates to be used in this calculation
 
-    private final GATKReportTableV2 argumentTable;                                                                              // keep the argument table untouched just for output purposes
+    private final GATKReportTable argumentTable;                                                                              // keep the argument table untouched just for output purposes
     private final RecalibrationArgumentCollection RAC;                                                                        // necessary for quantizing qualities with the same parameter
 
     public RecalibrationReport(final File RECAL_FILE) {
@@ -30,7 +30,7 @@ public class RecalibrationReport {
         argumentTable = report.getTable(RecalDataManager.ARGUMENT_REPORT_TABLE_TITLE);
         RAC = initializeArgumentCollectionTable(argumentTable);
 
-        GATKReportTableV2 quantizedTable = report.getTable(RecalDataManager.QUANTIZED_REPORT_TABLE_TITLE);
+        GATKReportTable quantizedTable = report.getTable(RecalDataManager.QUANTIZED_REPORT_TABLE_TITLE);
         quantizationInfo = initializeQuantizationTable(quantizedTable);
 
         Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalDataManager.initializeCovariates(RAC);       // initialize the required and optional covariates
@@ -53,11 +53,11 @@ public class RecalibrationReport {
             int nRequiredCovariates = requiredCovariatesToAdd.size();                                                   // the number of required covariates defines which table we are looking at (RG, QUAL or ALL_COVARIATES)
             final String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check.";
             if (nRequiredCovariates == 1) {                                                                             // if there is only one required covariate, this is the read group table
-                final GATKReportTableV2 reportTable = report.getTable(RecalDataManager.READGROUP_REPORT_TABLE_TITLE);
+                final GATKReportTable reportTable = report.getTable(RecalDataManager.READGROUP_REPORT_TABLE_TITLE);
                 table = parseReadGroupTable(keyManager, reportTable);
             }
             else if (nRequiredCovariates == 2 && optionalCovariatesToAdd.isEmpty()) {                                   // when we have both required covariates and no optional covariates we're at the QUAL table
-                final GATKReportTableV2 reportTable = report.getTable(RecalDataManager.QUALITY_SCORE_REPORT_TABLE_TITLE);
+                final GATKReportTable reportTable = report.getTable(RecalDataManager.QUALITY_SCORE_REPORT_TABLE_TITLE);
                 table = parseQualityScoreTable(keyManager, reportTable);
             }
             else
@@ -68,12 +68,12 @@ public class RecalibrationReport {
 
 
         final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);                   // initializing it's corresponding key manager
-        final GATKReportTableV2 reportTable = report.getTable(RecalDataManager.ALL_COVARIATES_REPORT_TABLE_TITLE);
+        final GATKReportTable reportTable = report.getTable(RecalDataManager.ALL_COVARIATES_REPORT_TABLE_TITLE);
         final Map<BitSet, RecalDatum> table = parseAllCovariatesTable(keyManager, reportTable);
         keysAndTablesMap.put(keyManager, table);
     }
 
-    protected RecalibrationReport(QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap, GATKReportTableV2 argumentTable, RecalibrationArgumentCollection RAC) {
+    protected RecalibrationReport(QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap, GATKReportTable argumentTable, RecalibrationArgumentCollection RAC) {
         this.quantizationInfo = quantizationInfo;
         this.keysAndTablesMap = keysAndTablesMap;
         this.argumentTable = argumentTable;
@@ -138,7 +138,7 @@ public class RecalibrationReport {
      * @param reportTable            the GATKReport table containing data for this table
      * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key.
      */
-    private Map<BitSet, RecalDatum> parseAllCovariatesTable(BQSRKeyManager keyManager, GATKReportTableV2 reportTable) {
+    private Map<BitSet, RecalDatum> parseAllCovariatesTable(BQSRKeyManager keyManager, GATKReportTable reportTable) {
         ArrayList<String> columnNamesOrderedList = new ArrayList<String>(5);
         columnNamesOrderedList.add(RecalDataManager.READGROUP_COLUMN_NAME);
         columnNamesOrderedList.add(RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
@@ -155,7 +155,7 @@ public class RecalibrationReport {
      * @param reportTable            the GATKReport table containing data for this table
      * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key.
      */
-    private Map<BitSet, RecalDatum> parseQualityScoreTable(BQSRKeyManager keyManager, GATKReportTableV2 reportTable) {
+    private Map<BitSet, RecalDatum> parseQualityScoreTable(BQSRKeyManager keyManager, GATKReportTable reportTable) {
         ArrayList<String> columnNamesOrderedList = new ArrayList<String>(3);
         columnNamesOrderedList.add(RecalDataManager.READGROUP_COLUMN_NAME);
         columnNamesOrderedList.add(RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
@@ -170,7 +170,7 @@ public class RecalibrationReport {
      * @param reportTable            the GATKReport table containing data for this table
      * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key.
      */
-    private Map<BitSet, RecalDatum> parseReadGroupTable(BQSRKeyManager keyManager, GATKReportTableV2 reportTable) {
+    private Map<BitSet, RecalDatum> parseReadGroupTable(BQSRKeyManager keyManager, GATKReportTable reportTable) {
         ArrayList<String> columnNamesOrderedList = new ArrayList<String>(2);
         columnNamesOrderedList.add(RecalDataManager.READGROUP_COLUMN_NAME);
         columnNamesOrderedList.add(RecalDataManager.EVENT_TYPE_COLUMN_NAME);
@@ -185,7 +185,7 @@ public class RecalibrationReport {
      * @param columnNamesOrderedList a list of columns to read from the report table and build as key for this particular table
      * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key.
      */
-    private Map<BitSet, RecalDatum> genericRecalTableParsing(BQSRKeyManager keyManager, GATKReportTableV2 reportTable, ArrayList<String> columnNamesOrderedList, boolean hasEstimatedQReportedColumn) {
+    private Map<BitSet, RecalDatum> genericRecalTableParsing(BQSRKeyManager keyManager, GATKReportTable reportTable, ArrayList<String> columnNamesOrderedList, boolean hasEstimatedQReportedColumn) {
         Map<BitSet, RecalDatum> result = new HashMap<BitSet, RecalDatum>(reportTable.getNumRows()*2);
 
         for ( int i = 0; i < reportTable.getNumRows(); i++ ) {
@@ -216,7 +216,7 @@ public class RecalibrationReport {
      * @param table the GATKReportTable containing the quantization mappings
      * @return an ArrayList with the quantization mappings from 0 to MAX_QUAL_SCORE
      */
-    private QuantizationInfo initializeQuantizationTable(GATKReportTableV2 table) {
+    private QuantizationInfo initializeQuantizationTable(GATKReportTable table) {
         Byte[] quals  = new Byte[QualityUtils.MAX_QUAL_SCORE + 1];
         Long[] counts = new Long[QualityUtils.MAX_QUAL_SCORE + 1];
         for ( int i = 0; i < table.getNumRows(); i++ ) {
@@ -237,7 +237,7 @@ public class RecalibrationReport {
      * @param table the GATKReportTable containing the arguments and its corresponding values
      * @return a RAC object properly initialized with all the objects in the table
      */
-    private RecalibrationArgumentCollection initializeArgumentCollectionTable(GATKReportTableV2 table) {
+    private RecalibrationArgumentCollection initializeArgumentCollectionTable(GATKReportTable table) {
         RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
 
         for ( int i = 0; i < table.getNumRows(); i++ ) {

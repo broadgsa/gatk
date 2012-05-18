@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.R.RScriptExecutor;
 import org.broadinstitute.sting.utils.Utils;
@@ -223,8 +223,8 @@ public class RecalDataManager {
         logger.info("");
     }
 
-    private static List<GATKReportTableV2> generateReportTables(Map<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap) {
-        List<GATKReportTableV2> result = new LinkedList<GATKReportTableV2>();
+    private static List<GATKReportTable> generateReportTables(Map<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap) {
+        List<GATKReportTable> result = new LinkedList<GATKReportTable>();
         int tableIndex = 0;
 
         final Pair<String, String> covariateValue     = new Pair<String, String>(RecalDataManager.COVARIATE_VALUE_COLUMN_NAME, "%s");
@@ -263,7 +263,7 @@ public class RecalDataManager {
             columnNames.add(nObservations);
             columnNames.add(nErrors);
 
-            GATKReportTableV2 reportTable = new GATKReportTableV2("RecalTable" + tableIndex++, "", columnNames.size());
+            GATKReportTable reportTable = new GATKReportTable("RecalTable" + tableIndex++, "", columnNames.size());
             for (Pair<String, String> columnName : columnNames)
                 reportTable.addColumn(columnName.getFirst(), columnName.getSecond());                                   // every table must have the event type
 
@@ -300,11 +300,11 @@ public class RecalDataManager {
         outputRecalibrationReport(RAC.generateReportTable(), quantizationInfo.generateReportTable(), generateReportTables(keysAndTablesMap), outputFile);
     }
 
-    public static void outputRecalibrationReport(GATKReportTableV2 argumentTable, QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager,Map<BitSet, RecalDatum>> keysAndTablesMap, PrintStream outputFile) {
+    public static void outputRecalibrationReport(GATKReportTable argumentTable, QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager,Map<BitSet, RecalDatum>> keysAndTablesMap, PrintStream outputFile) {
         outputRecalibrationReport(argumentTable, quantizationInfo.generateReportTable(), generateReportTables(keysAndTablesMap), outputFile);
     }
 
-    private static void outputRecalibrationReport(GATKReportTableV2 argumentTable, GATKReportTableV2 quantizationTable, List<GATKReportTableV2> recalTables, PrintStream outputFile) {
+    private static void outputRecalibrationReport(GATKReportTable argumentTable, GATKReportTable quantizationTable, List<GATKReportTable> recalTables, PrintStream outputFile) {
         GATKReport report = new GATKReport();
         report.addTable(argumentTable);
         report.addTable(quantizationTable);

@@ -26,8 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportColumn;
-import org.broadinstitute.sting.gatk.report.GATKReportColumnV2;
-import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
 
 import java.io.File;
 import java.io.FileReader;
@@ -53,7 +52,7 @@ public class GATKReportDiffableReader implements DiffableReader {
             // one line reads the whole thing into memory
             GATKReport report = new GATKReport(file);
 
-            for (GATKReportTableV2 table : report.getTables()) {
+            for (GATKReportTable table : report.getTables()) {
                 root.add(tableToNode(table, root));
             }
 
@@ -63,13 +62,13 @@ public class GATKReportDiffableReader implements DiffableReader {
         }
     }
 
-    private DiffNode tableToNode(GATKReportTableV2 table, DiffNode root) {
+    private DiffNode tableToNode(GATKReportTable table, DiffNode root) {
         DiffNode tableRoot = DiffNode.empty(table.getTableName(), root);
 
         tableRoot.add("Description", table.getTableDescription());
         tableRoot.add("NumberOfRows", table.getNumRows());
 
-        for ( GATKReportColumnV2 column : table.getColumnInfo() ) {
+        for ( GATKReportColumn column : table.getColumnInfo() ) {
             DiffNode columnRoot = DiffNode.empty(column.getColumnName(), tableRoot);
 
             columnRoot.add("Width", column.getColumnFormat().getWidth());

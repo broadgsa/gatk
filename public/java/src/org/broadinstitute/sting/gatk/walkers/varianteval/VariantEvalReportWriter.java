@@ -25,7 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
@@ -75,7 +75,7 @@ public class VariantEvalReportWriter {
             final EvaluationContext nec = stratManager.get(key);
 
             for ( final VariantEvaluator ve : nec.getVariantEvaluators() ) {
-                final GATKReportTableV2 table = report.getTable(ve.getSimpleName());
+                final GATKReportTable table = report.getTable(ve.getSimpleName());
 
                 final AnalysisModuleScanner scanner = new AnalysisModuleScanner(ve);
                 final Map<Field, DataPoint> datamap = scanner.getData();
@@ -122,7 +122,7 @@ public class VariantEvalReportWriter {
      * @param primaryKey
      * @param stratsAndStates
      */
-    private static void setStratificationColumns(final GATKReportTableV2 table,
+    private static void setStratificationColumns(final GATKReportTable table,
                                                  final String primaryKey,
                                                  final List<Pair<VariantStratifier, Object>> stratsAndStates) {
         table.set(primaryKey, table.getTableName(), table.getTableName());
@@ -165,7 +165,7 @@ public class VariantEvalReportWriter {
             report.addTable(tableName, tableDesc, 1 + stratifiers.size() + (scanner.hasMoltenField() ? 2 : datamap.size()), true);
 
             // grab the table, and add the columns we need to it
-            final GATKReportTableV2 table = report.getTable(tableName);
+            final GATKReportTable table = report.getTable(tableName);
             table.addColumn(tableName, tableName);
 
             // first create a column to hold each stratifier state

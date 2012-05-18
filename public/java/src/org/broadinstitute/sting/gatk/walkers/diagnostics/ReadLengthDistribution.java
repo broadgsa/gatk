@@ -5,7 +5,7 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -57,7 +57,7 @@ public class ReadLengthDistribution extends ReadWalker<Integer, Integer> {
 
         report = new GATKReport();
         report.addTable("ReadLengthDistribution", "Table of read length distributions", 1 + (readGroups.isEmpty() ? 1 : readGroups.size()));
-        GATKReportTableV2 table = report.getTable("ReadLengthDistribution");
+        GATKReportTable table = report.getTable("ReadLengthDistribution");
 
         table.addColumn("readLength");
 
@@ -74,7 +74,7 @@ public class ReadLengthDistribution extends ReadWalker<Integer, Integer> {
 
     @Override
     public Integer map(ReferenceContext referenceContext, GATKSAMRecord samRecord, ReadMetaDataTracker readMetaDataTracker) {
-        GATKReportTableV2 table = report.getTable("ReadLengthDistribution");
+        GATKReportTable table = report.getTable("ReadLengthDistribution");
 
         int length = Math.abs(samRecord.getReadLength());
         String sample = samRecord.getReadGroup().getSample();

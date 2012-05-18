@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.gatk.report;
 
-import org.apache.commons.lang.ObjectUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
@@ -44,123 +43,162 @@ public class GATKReportTable {
     private static final String SEPARATOR = ":";
     private static final String ENDLINE = ":;";
 
-    private String tableName;
-    private String tableDescription;
+    private final String tableName;
+    private final String tableDescription;
 
+    private final boolean sortByRowID;
 
-    private String primaryKeyName;
-    private Collection<Object> primaryKeyColumn;
-    private boolean primaryKeyDisplay;
-    private boolean sortByPrimaryKey = true;
-
-    private GATKReportColumns columns;
+    private List<Object[]> underlyingData;
+    private final List<GATKReportColumn> columnInfo;
+    private final Map<Object, Integer> columnNameToIndex;
+    private final HashMap<Object, Integer> rowIdToIndex;
 
     private static final String COULD_NOT_READ_HEADER = "Could not read the header of this file -- ";
     private static final String COULD_NOT_READ_COLUMN_NAMES = "Could not read the column names of this file -- ";
     private static final String COULD_NOT_READ_DATA_LINE = "Could not read a data line of this table -- ";
     private static final String COULD_NOT_READ_EMPTY_LINE = "Could not read the last empty line of this table -- ";
     private static final String OLD_GATK_TABLE_VERSION = "We no longer support older versions of the GATK Tables";
-    
+
+    private static final int INITITAL_ARRAY_SIZE = 10000;
     private static final String NUMBER_CONVERSION_EXCEPTION = "String is a number but is not a long or a double: ";
 
-    public GATKReportTable(BufferedReader reader, GATKReportVersion version) {
-        int counter = 0;
+    protected enum TableDataHeaderFields {
+        COLS(2),
+        ROWS(3),
+        FORMAT_START(4);
 
-        switch (version) {
-            case V1_0:
-                int nHeaders = 2;
-                String[] tableHeaders = new String[nHeaders];
-    
-                // Read in the headers
-                for (int i = 0; i < nHeaders; i++) {
-                    try {
-                        tableHeaders[i] = reader.readLine();
-                    } catch (IOException e) {
-                        throw new ReviewedStingException(COULD_NOT_READ_HEADER + e.getMessage());
-                    }
-                }
-                String[] tableData = tableHeaders[0].split(":");
-                String[] userData = tableHeaders[1].split(":");
-    
-                // Fill in the fields
-                tableName = userData[2];
-                tableDescription = (userData.length <= 3) ? "" : userData[3];                                           // table may have no description! (and that's okay)
-                primaryKeyDisplay = Boolean.parseBoolean(tableData[2]);
-                columns = new GATKReportColumns();
-    
-                int nColumns = Integer.parseInt(tableData[3]);
-                int nRows = Integer.parseInt(tableData[4]);
-    
-    
-                // Read column names
-                String columnLine;
+        private final int index;
+        TableDataHeaderFields(int index) { this.index = index; }
+        public int index() { return index; }
+    }
+
+    protected enum TableNameHeaderFields {
+        NAME(2),
+        DESCRIPTION(3);
+
+        private final int index;
+        TableNameHeaderFields(int index) { this.index = index; }
+        public int index() { return index; }
+    }
+
+    public GATKReportTable(BufferedReader reader, GATKReportVersion version) {
+
+        switch ( version ) {
+            case V1_1:
+                // read in the header lines
+                final String[] tableData, tableNameData;
                 try {
-                columnLine = reader.readLine();
+                    tableData = reader.readLine().split(SEPARATOR);
+                    tableNameData = reader.readLine().split(SEPARATOR);
+                } catch (IOException e) {
+                    throw new ReviewedStingException(COULD_NOT_READ_HEADER + e.getMessage());
+                }
+
+                // parse the header fields
+                tableName = tableNameData[TableNameHeaderFields.NAME.index()];
+                tableDescription = (tableNameData.length <= TableNameHeaderFields.DESCRIPTION.index()) ? "" : tableNameData[TableNameHeaderFields.DESCRIPTION.index()];                                           // table may have no description! (and that's okay)
+
+                // when reading from a file, we do not re-sort the rows
+                sortByRowID = false;
+
+                // initialize the data
+                final int nColumns = Integer.parseInt(tableData[TableDataHeaderFields.COLS.index()]);
+                final int nRows = Integer.parseInt(tableData[TableDataHeaderFields.ROWS.index()]);
+                underlyingData = new ArrayList<Object[]>(nRows);
+                columnInfo = new ArrayList<GATKReportColumn>(nColumns);
+                columnNameToIndex = new HashMap<Object, Integer>(nColumns);
+
+                // when reading from a file, the row ID mapping is just the index
+                rowIdToIndex = new HashMap<Object, Integer>();
+                for ( int i = 0; i < nRows; i++ )
+                    rowIdToIndex.put(i, i);
+
+                // read the column names
+                final String columnLine;
+                try {
+                    columnLine = reader.readLine();
                 } catch (IOException e) {
                     throw new ReviewedStingException(COULD_NOT_READ_COLUMN_NAMES);
                 }
-    
-                List<Integer> columnStarts = TextFormattingUtils.getWordStarts(columnLine);
-                String[] columnNames = TextFormattingUtils.splitFixedWidth(columnLine, columnStarts);
-    
-                if (primaryKeyDisplay) {
-                    addPrimaryKey(columnNames[0]);
-    
-                } else {
-                    sortByPrimaryKey = true;
-                    addPrimaryKey("id", false);
-                    counter = 1;
-                }
+
+                final List<Integer> columnStarts = TextFormattingUtils.getWordStarts(columnLine);
+                final String[] columnNames = TextFormattingUtils.splitFixedWidth(columnLine, columnStarts);
+
                 // Put in columns using the format string from the header
-                for (int i = 0; i < nColumns; i++) {
-                    String format = tableData[5 + i];
-                    if (primaryKeyDisplay)
-                        addColumn(columnNames[i + 1], true, format);
-                    else
-                        addColumn(columnNames[i], true, format);
+                for ( int i = 0; i < nColumns; i++ ) {
+                    final String format = tableData[TableDataHeaderFields.FORMAT_START.index() + i];
+                    addColumn(columnNames[i], format);
                 }
-    
-                for (int i = 0; i < nRows; i++) {
-                    // read line
-                    String dataLine;
-                    try {
-                        dataLine = reader.readLine(); 
-                    } catch (IOException e) {
-                        throw new ReviewedStingException(COULD_NOT_READ_DATA_LINE + e.getMessage());
-                    }
-                    List<String> lineSplits = Arrays.asList(TextFormattingUtils.splitFixedWidth(dataLine, columnStarts));
-    
-                    for (int columnIndex = 0; columnIndex < nColumns; columnIndex++) {
-    
-                        //Input all the remaining values
-                        GATKReportDataType type = getColumns().getByIndex(columnIndex).getDataType();
-    
-                        if (primaryKeyDisplay) {
-                            String columnName = columnNames[columnIndex + 1];
-                            String primaryKey = lineSplits.get(0);
-                            set(primaryKey, columnName, type.Parse(lineSplits.get(columnIndex + 1)));
-                        } else {
-                            String columnName = columnNames[columnIndex];
-                            set(counter, columnName, type.Parse(lineSplits.get(columnIndex)));
+
+                // fill in the table
+                try {
+                    for ( int i = 0; i < nRows; i++ ) {
+                        // read a data line
+                        final String dataLine = reader.readLine();
+                        final List<String> lineSplits = Arrays.asList(TextFormattingUtils.splitFixedWidth(dataLine, columnStarts));
+
+                        underlyingData.add(new Object[nColumns]);
+                        for ( int columnIndex = 0; columnIndex < nColumns; columnIndex++ ) {
+
+                            final GATKReportDataType type = columnInfo.get(columnIndex).getDataType();
+                            final String columnName = columnNames[columnIndex];
+                            set(i, columnName, type.Parse(lineSplits.get(columnIndex)));
+
                         }
-    
                     }
-                    counter++;
+                } catch (IOException e) {
+                    throw new ReviewedStingException(COULD_NOT_READ_DATA_LINE + e.getMessage());
                 }
-    
-    
+
                 try {
                     reader.readLine();
                 } catch (IOException e) {
                     throw new ReviewedStingException(COULD_NOT_READ_EMPTY_LINE + e.getMessage());
-                }  
+                }
             break;
-            
-            default: 
+
+            default:
                 throw new ReviewedStingException(OLD_GATK_TABLE_VERSION);
         }
     }
 
+    /**
+     * Construct a new GATK report table with the specified name and description
+     *
+     * @param tableName        the name of the table
+     * @param tableDescription the description of the table
+     * @param numColumns       the number of columns in this table
+     */
+    public GATKReportTable(final String tableName, final String tableDescription, final int numColumns) {
+        this(tableName, tableDescription, numColumns, true);
+    }
+
+    /**
+     * Construct a new GATK report table with the specified name and description and whether to sort rows by the row ID.
+     *
+     * @param tableName          the name of the table
+     * @param tableDescription   the description of the table
+     * @param numColumns         the number of columns in this table
+     * @param sortByRowID        whether to sort rows by the row ID (instead of the order in which they were added)
+     */
+    public GATKReportTable(final String tableName, final String tableDescription, final int numColumns, final boolean sortByRowID) {
+        if ( !isValidName(tableName) ) {
+            throw new ReviewedStingException("Attempted to set a GATKReportTable name of '" + tableName + "'.  GATKReportTable names must be purely alphanumeric - no spaces or special characters are allowed.");
+        }
+
+        if ( !isValidDescription(tableDescription) ) {
+            throw new ReviewedStingException("Attempted to set a GATKReportTable description of '" + tableDescription + "'.  GATKReportTable descriptions must not contain newlines.");
+        }
+
+        this.tableName = tableName;
+        this.tableDescription = tableDescription;
+        this.sortByRowID = sortByRowID;
+
+        underlyingData = new ArrayList<Object[]>(INITITAL_ARRAY_SIZE);
+        columnInfo = new ArrayList<GATKReportColumn>(numColumns);
+        columnNameToIndex = new HashMap<Object, Integer>(numColumns);
+        rowIdToIndex = new HashMap<Object, Integer>();
+    }
 
     /**
      * Verifies that a table or column name has only alphanumeric characters - no spaces or special characters allowed
@@ -189,106 +227,50 @@ public class GATKReportTable {
     }
 
     /**
-     * Construct a new GATK report table with the specified name and description
+     * Add a mapping from ID to the index of a new row added to the table.
      *
-     * @param tableName        the name of the table
-     * @param tableDescription the description of the table
+     * @param ID                    the unique ID
      */
-    public GATKReportTable(String tableName, String tableDescription) {
-        this(tableName, tableDescription, true);
+    public void addRowID(final String ID) {
+        addRowID(ID, false);
     }
 
     /**
-     * Construct a new GATK report table with the specified name and description and whether to sort rows by the primary
-     * key
+     * Add a mapping from ID to the index of a new row added to the table.
      *
-     * @param tableName        the name of the table
-     * @param tableDescription the description of the table
-     * @param sortByPrimaryKey whether to sort rows by the primary key (instead of order added)
+     * @param ID                    the unique ID
+     * @param populateFirstColumn   should we automatically populate the first column with the row's ID?
      */
-    public GATKReportTable(String tableName, String tableDescription, boolean sortByPrimaryKey) {
-        if (!isValidName(tableName)) {
-            throw new ReviewedStingException("Attempted to set a GATKReportTable name of '" + tableName + "'.  GATKReportTable names must be purely alphanumeric - no spaces or special characters are allowed.");
-        }
-
-        if (!isValidDescription(tableDescription)) {
-            throw new ReviewedStingException("Attempted to set a GATKReportTable description of '" + tableDescription + "'.  GATKReportTable descriptions must not contain newlines.");
-        }
-
-        this.tableName = tableName;
-        this.tableDescription = tableDescription;
-        this.sortByPrimaryKey = sortByPrimaryKey;
-
-        columns = new GATKReportColumns();
+    public void addRowID(final String ID, final boolean populateFirstColumn) {
+        addRowIDMapping(ID, underlyingData.size(), populateFirstColumn);
     }
 
     /**
-     * Add a primary key column.  This becomes the unique identifier for every column in the table.
+     * Add a mapping from ID to row index.
      *
-     * @param primaryKeyName the name of the primary key column
+     * @param ID                    the unique ID
+     * @param index                 the index associated with the ID
      */
-    public void addPrimaryKey(String primaryKeyName) {
-        addPrimaryKey(primaryKeyName, true);
+    public void addRowIDMapping(final String ID, final int index) {
+        addRowIDMapping(ID, index, false);
     }
 
     /**
-     * Add an optionally visible primary key column.  This becomes the unique identifier for every column in the table,
-     * and will always be printed as the first column.
+     * Add a mapping from ID to row index.
      *
-     * @param primaryKeyName the name of the primary key column
-     * @param display        should this primary key be displayed?
+     * @param ID                    the unique ID
+     * @param index                 the index associated with the ID
+     * @param populateFirstColumn   should we automatically populate the first column with the row's ID?
      */
-    public void addPrimaryKey(String primaryKeyName, boolean display) {
-        if (!isValidName(primaryKeyName)) {
-            throw new ReviewedStingException("Attempted to set a GATKReportTable primary key name of '" + primaryKeyName + "'.  GATKReportTable primary key names must be purely alphanumeric - no spaces or special characters are allowed.");
-        }
+    public void addRowIDMapping(final Object ID, final int index, final boolean populateFirstColumn) {
+        if ( populateFirstColumn && !isValidName(ID.toString()) )
+            throw new ReviewedStingException("Attempted to set a GATKReportTable ID of '" + ID + "'; GATKReportTable IDs must be purely alphanumeric - no spaces or special characters are allowed.");
 
-        this.primaryKeyName = primaryKeyName;
+        expandTo(index, false);
+        rowIdToIndex.put(ID, index);
 
-        primaryKeyColumn = sortByPrimaryKey ? new TreeSet<Object>() : new LinkedList<Object>();
-        primaryKeyDisplay = display;
-    }
-
-    /**
-     * Returns the first primary key matching the column values.
-     * Ex: "CountVariants", "dbsnp", "eval", "called", "all", "novel", "all"
-     * @param columnValues column values.
-     * @return The first primary key matching the column values or throws an exception.
-     */
-    public Object getPrimaryKeyByData(Object... columnValues) {
-        Object key = findPrimaryKeyByData(columnValues);
-        if (key == null)
-            throw new ReviewedStingException("Attempted to get non-existent GATKReportTable key for values: " + Arrays.asList(columnValues));
-        return key;
-    }
-
-    /**
-     * Returns the first primary key matching the column values.
-     * Ex: "CountVariants", "dbsnp", "eval", "called", "all", "novel", "all"
-     *
-     * @param columnValues column values.
-     * @return The first primary key matching the column values or null if the key does not exist.
-     */
-    public Object findPrimaryKeyByData(Object... columnValues) {
-        if (columnValues == null)
-            throw new NullPointerException("Column values is null");
-        if (columnValues.length == 0)
-            throw new IllegalArgumentException("Column values is empty");
-        int columnCount = columns.size();
-        for (Object primaryKey : primaryKeyColumn) {
-            boolean matching = true;
-            // i --> index into columnValues parameter
-            // j --> index into columns collection
-            for (int i = 0, j = 0; matching && i < columnValues.length && j < columnCount; j++) {
-                if (!columns.getByIndex(j).isDisplayable())
-                    continue;
-                matching = ObjectUtils.equals(columnValues[i], get(primaryKey, i));
-                i++;
-            }
-            if (matching)
-                return primaryKey;
-        }
-        return null;
+        if ( populateFirstColumn )
+            set(index, 0, ID);
     }
 
     /**
@@ -296,49 +278,9 @@ public class GATKReportTable {
      * is never explicitly set.
      *
      * @param columnName   the name of the column
-     * @param defaultValue the default value for the column
      */
-    public void addColumn(String columnName, Object defaultValue) {
-        addColumn(columnName, defaultValue, true);
-    }
-
-    /**
-     * Add a column to the report, specify the default column value, and specify whether the column should be displayed
-     * in the final output (useful when intermediate columns are necessary for later calculations, but are not required
-     * to be in the output file.
-     *
-     * @param columnName   the name of the column
-     * @param defaultValue the default value of the column
-     * @param display      if true - the column will be displayed; if false - the column will be hidden
-     */
-    public void addColumn(String columnName, Object defaultValue, boolean display) {
-        addColumn(columnName, defaultValue, display, "");
-    }
-
-    /**
-     * Add a column to the report, specify the default column value, and specify whether the column should be displayed
-     * in the final output (useful when intermediate columns are necessary for later calculations, but are not required
-     * to be in the output file.
-     *
-     * @param columnName   the name of the column
-     * @param defaultValue the default value of the column
-     * @param format       the format string used to display data
-     */
-    public void addColumn(String columnName, Object defaultValue, String format) {
-        addColumn(columnName, defaultValue, true, format);
-    }
-
-    /**
-     * Add a column to the report, specify whether the column should be displayed in the final output (useful when
-     * intermediate columns are necessary for later calculations, but are not required to be in the output file), and the
-     * format string used to display the data.
-     *
-     * @param columnName the name of the column
-     * @param display    if true - the column will be displayed; if false - the column will be hidden
-     * @param format     the format string used to display data
-     */
-    public void addColumn(String columnName, boolean display, String format) {
-        addColumn(columnName, null, display, format);
+    public void addColumn(String columnName) {
+        addColumn(columnName, "");
     }
 
     /**
@@ -347,388 +289,200 @@ public class GATKReportTable {
      * output file), and the format string used to display the data.
      *
      * @param columnName   the name of the column
-     * @param defaultValue if true - the column will be displayed; if false - the column will be hidden
-     * @param display      display the column
      * @param format       the format string used to display data
      */
-    public void addColumn(String columnName, Object defaultValue, boolean display, String format) {
+    public void addColumn(String columnName, String format) {
         if (!isValidName(columnName)) {
             throw new ReviewedStingException("Attempted to set a GATKReportTable column name of '" + columnName + "'.  GATKReportTable column names must be purely alphanumeric - no spaces or special characters are allowed.");
         }
-        columns.put(columnName, new GATKReportColumn(columnName, defaultValue, display, format));
+        columnNameToIndex.put(columnName, columnInfo.size());
+        columnInfo.add(new GATKReportColumn(columnName, format));
     }
 
     /**
-     * Check if the requested element exists, and if not, create it.
+     * Check if the requested cell is valid and expand the table if necessary
      *
-     * @param primaryKey the primary key value
-     * @param columnName the name of the column
+     * @param rowIndex    the row index
+     * @param colIndex    the column index
      */
-    private void verifyEntry(Object primaryKey, String columnName) {
-        if (!columns.containsKey(columnName)) {
-            throw new ReviewedStingException("Attempted to access column '" + columnName + "' that does not exist in table '" + tableName + "'.");
-        }
-
-        primaryKeyColumn.add(primaryKey);
-
-        if (!columns.get(columnName).containsKey(primaryKey)) {
-            columns.get(columnName).initialize(primaryKey);
-        }
-    }
-
-    public boolean containsKey(Object primaryKey) {
-        return primaryKeyColumn.contains(primaryKey);
-    }
-
-    public Collection<Object> getPrimaryKeys() {
-        return Collections.unmodifiableCollection(primaryKeyColumn);
+    private void verifyEntry(final int rowIndex, final int colIndex) {
+        if ( rowIndex < 0 || colIndex < 0 || colIndex >= getNumColumns() )
+            throw new ReviewedStingException("attempted to access a cell that does not exist in table '" + tableName + "'");
     }
 
     /**
      * Set the value for a given position in the table
      *
-     * @param primaryKey the primary key value
-     * @param columnName the name of the column
-     * @param value      the value to set
+     * @param rowIndex        the row index
+     * @param updateRowIdMap  should we update the row ID map?
      */
-    public void set(Object primaryKey, String columnName, Object value) {
-        verifyEntry(primaryKey, columnName);
-        GATKReportColumn column = columns.get(columnName);
-        //todo -- Check if value is of same type as column
+    private void expandTo(final int rowIndex, final boolean updateRowIdMap) {
+        int currentSize = underlyingData.size();
+        if ( rowIndex >= currentSize ) {
+            final int numNewRows = rowIndex - currentSize + 1;
+            for ( int i = 0; i < numNewRows; i++ ) {
+                if ( updateRowIdMap )
+                    rowIdToIndex.put(currentSize, currentSize);
+                underlyingData.add(new Object[getNumColumns()]);
+                currentSize++;
+            }
+        }
+    }
+
+    /**
+     * Set the value for a given position in the table
+     *
+     * @param rowID        the row ID
+     * @param columnName   the name of the column
+     * @param value        the value to set
+     */
+    public void set(final Object rowID, final String columnName, final Object value) {
+        if ( !rowIdToIndex.containsKey(rowID) ) {
+            rowIdToIndex.put(rowID, underlyingData.size());
+            expandTo(underlyingData.size(), false);
+        }
+        set(rowIdToIndex.get(rowID), columnNameToIndex.get(columnName), value);
+    }
+
+    public void set(final int rowIndex, final int colIndex, Object value) {
+        expandTo(rowIndex, true);
+        verifyEntry(rowIndex, colIndex);
+        GATKReportColumn column = columnInfo.get(colIndex);
 
         // We do not accept internal null values
         if (value == null)
             value = "null";
+        else
+            value = fixType(value, column);
 
-        // This code below is bs. Why am do I have to conform to bad code
+        if ( column.getDataType().equals(GATKReportDataType.fromObject(value)) || column.getDataType().equals(GATKReportDataType.Unknown) ) {
+            underlyingData.get(rowIndex)[colIndex] = value;
+            column.updateFormatting(value);
+        } else {
+            throw new ReviewedStingException(String.format("Tried to add an object of type: %s to a column of type: %s", GATKReportDataType.fromObject(value).name(), column.getDataType().name()));
+        }
+    }
+
+    /**
+     * Returns true if the table contains a row mapping with the given ID
+     *
+     * @param rowID        the row ID
+     */
+    public boolean containsRowID(final Object rowID) {
+        return rowIdToIndex.containsKey(rowID);
+    }
+
+    /**
+     * Returns the row mapping IDs
+     *
+     */
+    public Collection<Object> getRowIDs() {
+        return rowIdToIndex.keySet();
+    }
+
+    /**
+        * Set the value for a given position in the table
+        *
+        * @param rowID        the row ID
+        * @param columnName   the name of the column
+        */
+    public void increment(final Object rowID, final String columnName) {
+        int prevValue;
+        if ( !rowIdToIndex.containsKey(rowID) ) {
+            rowIdToIndex.put(rowID, underlyingData.size());
+            underlyingData.add(new Object[getNumColumns()]);
+            prevValue = 0;
+        } else {
+            Object obj = get(rowID, columnName);
+            if ( !(obj instanceof Integer) )
+                throw new ReviewedStingException("Attempting to increment a value in a cell that is not an integer");
+            prevValue = (Integer)obj;
+        }
+
+        set(rowIdToIndex.get(rowID), columnNameToIndex.get(columnName), prevValue + 1);
+    }
+
+    /**
+     * Returns the index of the first row matching the column values.
+     * Ex: "CountVariants", "dbsnp", "eval", "called", "all", "novel", "all"
+     *
+     * @param columnValues column values.
+     * @return The index of the first row matching the column values or -1 if no such row exists.
+     */
+    public int findRowByData(final Object... columnValues) {
+        if ( columnValues == null || columnValues.length == 0 || columnValues.length > getNumColumns() )
+            return -1;
+
+        for ( int rowIndex = 0; rowIndex < underlyingData.size(); rowIndex++ ) {
+
+            final Object[] row = underlyingData.get(rowIndex);
+
+            boolean matches = true;
+            for ( int colIndex = 0; colIndex < columnValues.length; colIndex++ ) {
+                if ( !columnValues[colIndex].equals(row[colIndex]) ) {
+                    matches = false;
+                    break;
+                }
+            }
+
+            if ( matches )
+                return rowIndex;
+        }
+
+        return -1;
+    }
+
+    private Object fixType(final Object value, final GATKReportColumn column) {
         // Below is some code to convert a string into its appropriate type.
-        
-        // I second Roger's rant!
 
-        // If we got a string but the column is not a String type
+        // todo -- Types have to be more flexible. For example, %d should accept Integers, Shorts and Bytes.
+
         Object newValue = null;
-        if (value instanceof String && !column.getDataType().equals(GATKReportDataType.String)) {
+        if ( value instanceof String && !column.getDataType().equals(GATKReportDataType.String) ) {
             // Integer case
-            if (column.getDataType().equals(GATKReportDataType.Integer)) {
+            if ( column.getDataType().equals(GATKReportDataType.Integer) ) {
                 try {
                     newValue = Long.parseLong((String) value);
                 } catch (Exception e) {
                     /** do nothing */
                 }
             }
-            if (column.getDataType().equals(GATKReportDataType.Decimal)) {
+            if ( column.getDataType().equals(GATKReportDataType.Decimal) ) {
                 try {
                     newValue = Double.parseDouble((String) value);
                 } catch (Exception e) {
                     /** do nothing */
                 }
             }
-            if (column.getDataType().equals(GATKReportDataType.Character) && ((String) value).length() == 1) {
+            if ( column.getDataType().equals(GATKReportDataType.Character) && ((String) value).length() == 1 ) {
                 newValue = ((String) value).charAt(0);
             }
         }
 
-        if (newValue != null)
-            value = newValue;
-
-        // todo -- Types have to be more flexible. For example, %d should accept Integers, Shorts and Bytes.
-        if (column.getDataType().equals(GATKReportDataType.fromObject(value)) || column.getDataType().equals(GATKReportDataType.Unknown) )
-            columns.get(columnName).put(primaryKey, value);
-        else
-            throw new ReviewedStingException(String.format("Tried to add an object of type: %s to a column of type: %s", GATKReportDataType.fromObject(value).name(), column.getDataType().name()));
+        return  (newValue != null) ? newValue : value;
     }
 
     /**
      * Get a value from the given position in the table
      *
-     * @param primaryKey the primary key value
-     * @param columnName the name of the column
+     * @param rowID       the row ID
+     * @param columnName  the name of the column
      * @return the value stored at the specified position in the table
      */
-    public Object get(Object primaryKey, String columnName) {
-        verifyEntry(primaryKey, columnName);
-
-        return columns.get(columnName).get(primaryKey);
+    public Object get(final Object rowID, final String columnName) {
+        return get(rowIdToIndex.get(rowID), columnNameToIndex.get(columnName));
     }
 
     /**
      * Get a value from the given position in the table
      *
-     * @param primaryKey  the primary key value
+     * @param rowIndex    the index of the row
      * @param columnIndex the index of the column
      * @return the value stored at the specified position in the table
      */
-    private Object get(Object primaryKey, int columnIndex) {
-        return columns.getByIndex(columnIndex).get(primaryKey);
-    }
-
-    /**
-     * Increment an element in the table.  This implementation is awful - a functor would probably be better.
-     *
-     * @param primaryKey the primary key value
-     * @param columnName the name of the column
-     */
-    public void increment(Object primaryKey, String columnName) {
-        Object oldValue = get(primaryKey, columnName);
-        Object newValue;
-
-        if (oldValue instanceof Byte) {
-            newValue = ((Byte) oldValue) + 1;
-        } else if (oldValue instanceof Short) {
-            newValue = ((Short) oldValue) + 1;
-        } else if (oldValue instanceof Integer) {
-            newValue = ((Integer) oldValue) + 1;
-        } else if (oldValue instanceof Long) {
-            newValue = ((Long) oldValue) + 1L;
-        } else if (oldValue instanceof Float) {
-            newValue = ((Float) oldValue) + 1.0f;
-        } else if (oldValue instanceof Double) {
-            newValue = ((Double) oldValue) + 1.0d;
-        } else {
-            throw new UnsupportedOperationException("Can't increment value: object " + oldValue + " is not an instance of one of the numerical Java primitive wrapper classes (Byte, Short, Integer, Long, Float, Double)");
-        }
-
-        set(primaryKey, columnName, newValue);
-    }
-
-    /**
-     * Decrement an element in the table.  This implementation is awful - a functor would probably be better.
-     *
-     * @param primaryKey the primary key value
-     * @param columnName the name of the column
-     */
-    public void decrement(Object primaryKey, String columnName) {
-        Object oldValue = get(primaryKey, columnName);
-        Object newValue;
-
-        if (oldValue instanceof Byte) {
-            newValue = ((Byte) oldValue) - 1;
-        } else if (oldValue instanceof Short) {
-            newValue = ((Short) oldValue) - 1;
-        } else if (oldValue instanceof Integer) {
-            newValue = ((Integer) oldValue) - 1;
-        } else if (oldValue instanceof Long) {
-            newValue = ((Long) oldValue) - 1L;
-        } else if (oldValue instanceof Float) {
-            newValue = ((Float) oldValue) - 1.0f;
-        } else if (oldValue instanceof Double) {
-            newValue = ((Double) oldValue) - 1.0d;
-        } else {
-            throw new UnsupportedOperationException("Can't decrement value: object " + oldValue + " is not an instance of one of the numerical Java primitive wrapper classes (Byte, Short, Integer, Long, Float, Double)");
-        }
-
-        set(primaryKey, columnName, newValue);
-    }
-
-    /**
-     * Add the specified value to an element in the table
-     *
-     * @param primaryKey the primary key value
-     * @param columnName the name of the column
-     * @param valueToAdd the value to add
-     */
-    public void add(Object primaryKey, String columnName, Object valueToAdd) {
-        Object oldValue = get(primaryKey, columnName);
-        Object newValue;
-
-        if (oldValue instanceof Byte) {
-            newValue = ((Byte) oldValue) + ((Byte) valueToAdd);
-        } else if (oldValue instanceof Short) {
-            newValue = ((Short) oldValue) + ((Short) valueToAdd);
-        } else if (oldValue instanceof Integer) {
-            newValue = ((Integer) oldValue) + ((Integer) valueToAdd);
-        } else if (oldValue instanceof Long) {
-            newValue = ((Long) oldValue) + ((Long) valueToAdd);
-        } else if (oldValue instanceof Float) {
-            newValue = ((Float) oldValue) + ((Float) valueToAdd);
-        } else if (oldValue instanceof Double) {
-            newValue = ((Double) oldValue) + ((Double) valueToAdd);
-        } else {
-            throw new UnsupportedOperationException("Can't add values: object " + oldValue + " is not an instance of one of the numerical Java primitive wrapper classes (Byte, Short, Integer, Long, Float, Double)");
-        }
-
-        set(primaryKey, columnName, newValue);
-    }
-
-    /**
-     * Subtract the specified value from an element in the table
-     *
-     * @param primaryKey      the primary key value
-     * @param columnName      the name of the column
-     * @param valueToSubtract the value to subtract
-     */
-    public void subtract(Object primaryKey, String columnName, Object valueToSubtract) {
-        Object oldValue = get(primaryKey, columnName);
-        Object newValue;
-
-        if (oldValue instanceof Byte) {
-            newValue = ((Byte) oldValue) - ((Byte) valueToSubtract);
-        } else if (oldValue instanceof Short) {
-            newValue = ((Short) oldValue) - ((Short) valueToSubtract);
-        } else if (oldValue instanceof Integer) {
-            newValue = ((Integer) oldValue) - ((Integer) valueToSubtract);
-        } else if (oldValue instanceof Long) {
-            newValue = ((Long) oldValue) - ((Long) valueToSubtract);
-        } else if (oldValue instanceof Float) {
-            newValue = ((Float) oldValue) - ((Float) valueToSubtract);
-        } else if (oldValue instanceof Double) {
-            newValue = ((Double) oldValue) - ((Double) valueToSubtract);
-        } else {
-            throw new UnsupportedOperationException("Can't subtract values: object " + oldValue + " is not an instance of one of the numerical Java primitive wrapper classes (Byte, Short, Integer, Long, Float, Double)");
-        }
-
-        set(primaryKey, columnName, newValue);
-    }
-
-    /**
-     * Multiply the specified value to an element in the table
-     *
-     * @param primaryKey      the primary key value
-     * @param columnName      the name of the column
-     * @param valueToMultiply the value to multiply by
-     */
-    public void multiply(Object primaryKey, String columnName, Object valueToMultiply) {
-        Object oldValue = get(primaryKey, columnName);
-        Object newValue;
-
-        if (oldValue instanceof Byte) {
-            newValue = ((Byte) oldValue) * ((Byte) valueToMultiply);
-        } else if (oldValue instanceof Short) {
-            newValue = ((Short) oldValue) * ((Short) valueToMultiply);
-        } else if (oldValue instanceof Integer) {
-            newValue = ((Integer) oldValue) * ((Integer) valueToMultiply);
-        } else if (oldValue instanceof Long) {
-            newValue = ((Long) oldValue) * ((Long) valueToMultiply);
-        } else if (oldValue instanceof Float) {
-            newValue = ((Float) oldValue) * ((Float) valueToMultiply);
-        } else if (oldValue instanceof Double) {
-            newValue = ((Double) oldValue) * ((Double) valueToMultiply);
-        } else {
-            throw new UnsupportedOperationException("Can't multiply values: object " + oldValue + " is not an instance of one of the numerical Java primitive wrapper classes (Byte, Short, Integer, Long, Float, Double)");
-        }
-
-        set(primaryKey, columnName, newValue);
-    }
-
-    /**
-     * Divide the specified value from an element in the table
-     *
-     * @param primaryKey    the primary key value
-     * @param columnName    the name of the column
-     * @param valueToDivide the value to divide by
-     */
-    public void divide(Object primaryKey, String columnName, Object valueToDivide) {
-        Object oldValue = get(primaryKey, columnName);
-        Object newValue;
-
-        if (oldValue instanceof Byte) {
-            newValue = ((Byte) oldValue) * ((Byte) valueToDivide);
-        } else if (oldValue instanceof Short) {
-            newValue = ((Short) oldValue) * ((Short) valueToDivide);
-        } else if (oldValue instanceof Integer) {
-            newValue = ((Integer) oldValue) * ((Integer) valueToDivide);
-        } else if (oldValue instanceof Long) {
-            newValue = ((Long) oldValue) * ((Long) valueToDivide);
-        } else if (oldValue instanceof Float) {
-            newValue = ((Float) oldValue) * ((Float) valueToDivide);
-        } else if (oldValue instanceof Double) {
-            newValue = ((Double) oldValue) * ((Double) valueToDivide);
-        } else {
-            throw new UnsupportedOperationException("Can't divide values: object " + oldValue + " is not an instance of one of the numerical Java primitive wrapper classes (Byte, Short, Integer, Long, Float, Double)");
-        }
-
-        set(primaryKey, columnName, newValue);
-    }
-
-    /**
-     * Add two columns to each other and set the results to a third column
-     *
-     * @param columnToSet the column that should hold the results
-     * @param augend      the column that shall be the augend
-     * @param addend      the column that shall be the addend
-     */
-    public void addColumns(String columnToSet, String augend, String addend) {
-        for (Object primaryKey : primaryKeyColumn) {
-            Number firstColumnValue = (Number) get(primaryKey, augend);
-            Number secondColumnValue = (Number) get(primaryKey, addend);
-
-            Double value = firstColumnValue.doubleValue() + secondColumnValue.doubleValue();
-
-            set(primaryKey, columnToSet, value);
-        }
-    }
-
-    /**
-     * Subtract one column from another and set the results to a third column
-     *
-     * @param columnToSet the column that should hold the results
-     * @param minuend     the column that shall be the minuend (the a in a - b)
-     * @param subtrahend  the column that shall be the subtrahend (the b in a - b)
-     */
-    public void subtractColumns(String columnToSet, String minuend, String subtrahend) {
-        for (Object primaryKey : primaryKeyColumn) {
-            Number firstColumnValue = (Number) get(primaryKey, minuend);
-            Number secondColumnValue = (Number) get(primaryKey, subtrahend);
-
-            Double value = firstColumnValue.doubleValue() - secondColumnValue.doubleValue();
-
-            set(primaryKey, columnToSet, value);
-        }
-    }
-
-    /**
-     * Multiply two columns by each other and set the results to a third column
-     *
-     * @param columnToSet  the column that should hold the results
-     * @param multiplier   the column that shall be the multiplier
-     * @param multiplicand the column that shall be the multiplicand
-     */
-    public void multiplyColumns(String columnToSet, String multiplier, String multiplicand) {
-        for (Object primaryKey : primaryKeyColumn) {
-            Number firstColumnValue = (Number) get(primaryKey, multiplier);
-            Number secondColumnValue = (Number) get(primaryKey, multiplicand);
-
-            Double value = firstColumnValue.doubleValue() * secondColumnValue.doubleValue();
-
-            set(primaryKey, columnToSet, value);
-        }
-    }
-
-    /**
-     * Divide two columns by each other and set the results to a third column
-     *
-     * @param columnToSet       the column that should hold the results
-     * @param numeratorColumn   the column that shall be the numerator
-     * @param denominatorColumn the column that shall be the denominator
-     */
-    public void divideColumns(String columnToSet, String numeratorColumn, String denominatorColumn) {
-        for (Object primaryKey : primaryKeyColumn) {
-            Number firstColumnValue = (Number) get(primaryKey, numeratorColumn);
-            Number secondColumnValue = (Number) get(primaryKey, denominatorColumn);
-
-            Double value = firstColumnValue.doubleValue() / secondColumnValue.doubleValue();
-
-            set(primaryKey, columnToSet, value);
-        }
-    }
-
-    /**
-     * Return the print width of the primary key column
-     *
-     * @return the width of the primary key column
-     */
-    int getPrimaryKeyColumnWidth() {
-        int maxWidth = getPrimaryKeyName().length();
-
-        for (Object primaryKey : primaryKeyColumn) {
-            int width = primaryKey.toString().length();
-
-            if (width > maxWidth) {
-                maxWidth = width;
-            }
-        }
-
-        return maxWidth;
+    public Object get(int rowIndex, int columnIndex) {
+        verifyEntry(rowIndex, columnIndex);
+        return underlyingData.get(rowIndex)[columnIndex];
     }
 
     /**
@@ -736,82 +490,91 @@ public class GATKReportTable {
      *
      * @param out the PrintStream to which the table should be written
      */
-     void write(PrintStream out) {
+     void write(final PrintStream out) {
 
-        /*
-         * Table header:
-         * #:GATKTable:nColumns:nRows:(DataType for each column):;
-         * #:GATKTable:TableName:Description :;
-         * key   colA  colB
-         * row1  xxxx  xxxxx
-        */
+         /*
+          * Table header:
+          * #:GATKTable:nColumns:nRows:(DataType for each column):;
+          * #:GATKTable:TableName:Description :;
+          * key   colA  colB
+          * row1  xxxx  xxxxx
+         */
 
-        // Get the column widths for everything
-        String primaryKeyFormat = "%-" + getPrimaryKeyColumnWidth() + "s";
+         // write the table definition
+         out.printf(GATKTABLE_HEADER_PREFIX + ":%d:%d", getNumColumns(), getNumRows());
 
-        // Emit the table definition
-        String formatHeader = String.format(GATKTABLE_HEADER_PREFIX + ":%b:%d:%d", primaryKeyDisplay, getColumns().size(), getNumRows());
-        // Add all the formats for all the columns
-        for (GATKReportColumn column : getColumns()) {
-            if (column.isDisplayable())
-                formatHeader += (SEPARATOR + column.getFormat());
+         // write the formats for all the columns
+         for ( final GATKReportColumn column : columnInfo )
+             out.print(SEPARATOR + column.getFormat());
+         out.println(ENDLINE);
+
+         // write the table name & description
+         out.printf(GATKTABLE_HEADER_PREFIX + ":%s:%s\n", tableName, tableDescription);
+
+         // write the column names
+         boolean needsPadding = false;
+         for ( final GATKReportColumn column : columnInfo ) {
+             if ( needsPadding )
+                 out.printf("  ");
+             needsPadding = true;
+
+             out.printf(column.getColumnFormat().getNameFormat(), column.getColumnName());
         }
-        out.println(formatHeader + ENDLINE);
-        out.printf(GATKTABLE_HEADER_PREFIX + ":%s:%s\n", tableName, tableDescription);
+        out.println();
 
-        //out.printf("#:GATKTable:%s:%s", Algorithm);
+        // write the table body
+        if ( sortByRowID ) {
+            final TreeMap<Object, Integer> sortedMap;
+            try {
+                sortedMap = new TreeMap<Object, Integer>(rowIdToIndex);
+            } catch (ClassCastException e) {
+                throw new ReviewedStingException("Unable to sort the rows based on the row IDs because the ID Objects are of different types");
+            }
+            for ( final Map.Entry<Object, Integer> rowKey : sortedMap.entrySet() )
+                writeRow(out, underlyingData.get(rowKey.getValue()));
+        } else {
+            for ( final Object[] row : underlyingData )
+                writeRow(out, row);
+        }
 
+        out.println();
+    }
 
-        // Emit the table header, taking into account the padding requirement if the primary key is a hidden column
+    private void writeRow(final PrintStream out, final Object[] row) {
         boolean needsPadding = false;
-        if (primaryKeyDisplay) {
-            out.printf(primaryKeyFormat, getPrimaryKeyName());
+        for ( int i = 0; i < row.length; i++ ) {
+            if ( needsPadding )
+                out.printf("  ");
             needsPadding = true;
+
+            final Object obj = row[i];
+            final String value;
+
+            final GATKReportColumn info = columnInfo.get(i);
+
+            if ( obj == null )
+                value = "null";
+            else if ( info.getDataType().equals(GATKReportDataType.Unknown) && (obj instanceof Double || obj instanceof Float) )
+                value = String.format("%.8f", obj);
+            else
+                value = String.format(info.getFormat(), obj);
+
+            out.printf(info.getColumnFormat().getValueFormat(), value);
         }
 
-        for (String columnName : columns.keySet()) {
-            if (columns.get(columnName).isDisplayable()) {
-                if (needsPadding) {
-                    out.printf("  ");
-                }
-                out.printf(columns.get(columnName).getColumnFormat().getNameFormat(), columnName);
-
-                needsPadding = true;
-            }
-        }
-
-        out.printf("%n");
-
-        // Emit the table body
-        for (final Object primaryKey : primaryKeyColumn) {
-            needsPadding = false;
-            if (primaryKeyDisplay) {
-                out.printf(primaryKeyFormat, primaryKey);
-                needsPadding = true;
-            }
-
-            for (final Map.Entry<String, GATKReportColumn> entry : columns.entrySet()) {
-                final GATKReportColumn column = entry.getValue();
-                if (column.isDisplayable()) {
-                    if (needsPadding) {
-                        out.print("  ");
-                    }
-
-                    final String value = column.getStringValue(primaryKey);
-                    out.printf(column.getColumnFormat().getValueFormat(), value);
-
-                    needsPadding = true;
-                }
-            }
-
-            out.println();
-        }
-
-         out.println();
+        out.println();
     }
 
     public int getNumRows() {
-        return primaryKeyColumn.size();
+        return underlyingData.size();
+    }
+
+    public int getNumColumns() {
+        return columnInfo.size();
+    }
+
+    public List<GATKReportColumn> getColumnInfo() {
+        return columnInfo;
     }
 
     public String getTableName() {
@@ -822,63 +585,22 @@ public class GATKReportTable {
         return tableDescription;
     }
 
-    public GATKReportColumns getColumns() {
-        return columns;
-    }
-
     /**
-     * Combines two compatible GATK report tables. This is the general function which will call the different algorithms
-     * necessary to gather the tables. Every column's combine algorithm is read and treated accordingly.
+     * Concatenates the rows from the table to this one
      *
-     * @param input Another GATK table
+     * @param table another GATK table
      */
-    void combineWith(GATKReportTable input) {
-        /*
-         * This function is different from addRowsFrom because we will add the ability to sum,average, etc rows
-         * TODO: Add other combining algorithms
-         */
+    public void concat(final GATKReportTable table) {
+        if ( !isSameFormat(table) )
+            throw new ReviewedStingException("Error trying to concatenate tables with different formats");
 
-        // Make sure the columns match AND the Primary Key
-        if (input.getColumns().keySet().equals(this.getColumns().keySet()) &&
-                input.getPrimaryKeyName().equals(this.getPrimaryKeyName())) {
-            this.addRowsFrom(input);
-        } else
-            throw new ReviewedStingException("Failed to combine GATKReportTable, columns don't match!");
-    }
+        // add the data
+        underlyingData.addAll(table.underlyingData);
 
-    /**
-     * A gather algorithm that simply takes the rows from the argument, and adds them to the current table. This is the
-     * default gather algorithm.
-     *
-     * @param input Another GATK table to add rows from.
-     */
-    private void addRowsFrom(GATKReportTable input) {
-        // add column by column
-
-        // For every column
-        for (String columnKey : input.getColumns().keySet()) {
-            GATKReportColumn current = this.getColumns().get(columnKey);
-            GATKReportColumn toAdd = input.getColumns().get(columnKey);
-            // We want to take the current column and add all the values from input
-
-            // The column is a map of values <Key, Value>
-            for (Object rowKey : toAdd.keySet()) {
-                // We add every value from toAdd to the current
-                if (!current.containsKey(rowKey)) {
-                    this.set(rowKey, columnKey, toAdd.get(rowKey));
-                    //System.out.printf("Putting row with PK: %s \n", rowKey);
-                } else {
-                    this.set(rowKey, columnKey, toAdd.get(rowKey));
-
-                    System.out.printf("OVERWRITING Row with PK: %s \n", rowKey);
-                }
-            }
-        }
-
-    }
-
-    public String getPrimaryKeyName() {
-        return primaryKeyName;
+        // update the row index map
+        final int currentNumRows = getNumRows();
+        for ( Map.Entry<Object, Integer> entry : table.rowIdToIndex.entrySet() )
+            rowIdToIndex.put(entry.getKey(), entry.getValue() + currentNumRows);
     }
 
     /**
@@ -889,13 +611,19 @@ public class GATKReportTable {
      * @param table another GATK table
      * @return true if the the tables are gatherable
      */
-    public boolean isSameFormat(GATKReportTable table) {
-        //Should we add the sortByPrimaryKey as a check?
+    public boolean isSameFormat(final GATKReportTable table) {
+        if ( !tableName.equals(table.tableName) ||
+                !tableDescription.equals(table.tableDescription) ||
+                columnInfo.size() != table.columnInfo.size() )
+            return false;
 
-        return columns.isSameFormat(table.columns) &&
-               (primaryKeyDisplay == table.primaryKeyDisplay && primaryKeyName.equals(table.primaryKeyName) &&
-               tableName.equals(table.tableName) &&
-               tableDescription.equals(table.tableDescription));
+        for ( int i = 0; i < columnInfo.size(); i++ ) {
+            if ( !columnInfo.get(i).getFormat().equals(table.columnInfo.get(i).getFormat()) ||
+                    !columnInfo.get(i).getColumnName().equals(table.columnInfo.get(i).getColumnName()) )
+                return false;
+        }
+
+        return true;
     }
 
     /**
@@ -904,11 +632,41 @@ public class GATKReportTable {
      * @param table another GATK report
      * @return true if all field in the reports, tables, and columns are equal.
      */
-    public boolean equals(GATKReportTable table) {
-        return isSameFormat(table) &&
-               (columns.equals(table.columns) &&
-               primaryKeyColumn.equals(table.primaryKeyColumn) &&
-               sortByPrimaryKey == table.sortByPrimaryKey);
+    public boolean equals(final GATKReportTable table) {
+        if ( !isSameFormat(table) ||
+                underlyingData.size() != table.underlyingData.size() )
+            return false;
 
+        final List<Object[]> myOrderedRows = getOrderedRows();
+        final List<Object[]> otherOrderedRows = table.getOrderedRows();
+
+        for ( int i = 0; i < underlyingData.size(); i++ ) {
+            final Object[] myData = myOrderedRows.get(i);
+            final Object[] otherData = otherOrderedRows.get(i);
+            for ( int j = 0; j < myData.length; j++ ) {
+                if ( !myData[j].toString().equals(otherData[j].toString()) )       // need to deal with different typing (e.g. Long vs. Integer)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    private List<Object[]> getOrderedRows() {
+        if ( !sortByRowID )
+            return underlyingData;
+
+        final TreeMap<Object, Integer> sortedMap;
+        try {
+            sortedMap = new TreeMap<Object, Integer>(rowIdToIndex);
+        } catch (ClassCastException e) {
+            return underlyingData;
+        }
+
+        final List<Object[]> orderedData = new ArrayList<Object[]>(underlyingData.size());
+        for ( final int rowKey : sortedMap.values() )
+            orderedData.add(underlyingData.get(rowKey));
+
+        return orderedData;
     }
 }

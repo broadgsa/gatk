@@ -41,12 +41,12 @@ public class GATKReportUnitTest extends BaseTest {
         Assert.assertEquals(report.getVersion(), GATKReportVersion.V1_1);
         Assert.assertEquals(report.getTables().size(), 5);
 
-        GATKReportTableV2 countVariants = report.getTable("CountVariants");
+        GATKReportTable countVariants = report.getTable("CountVariants");
         Assert.assertEquals(countVariants.get(0, "nProcessedLoci"), "63025520");
         Assert.assertEquals(countVariants.get(0, "nNoCalls"), "0");
         Assert.assertEquals(countVariants.get(0, "heterozygosity"), 4.73e-06);
 
-        GATKReportTableV2 validationReport = report.getTable("ValidationReport");
+        GATKReportTable validationReport = report.getTable("ValidationReport");
         Assert.assertEquals(validationReport.get(2, "PPV"), Double.NaN);
     }
 
@@ -77,9 +77,9 @@ public class GATKReportUnitTest extends BaseTest {
         Assert.assertEquals(GATKReportColumn.isRightAlign(value), expected, "right align of '" + value + "'");
     }
 
-    private GATKReportTableV2 makeBasicTable() {
+    private GATKReportTable makeBasicTable() {
         GATKReport report = GATKReport.newSimpleReport("TableName", "sample", "value");
-        GATKReportTableV2 table = report.getTable("TableName");
+        GATKReportTable table = report.getTable("TableName");
         report.addRow("foo.1", "hello");
         report.addRow("foo.2", "world");
         return table;
@@ -87,7 +87,7 @@ public class GATKReportUnitTest extends BaseTest {
 
     @Test
     public void testDottedSampleName() {
-        GATKReportTableV2 table = makeBasicTable();
+        GATKReportTable table = makeBasicTable();
         Assert.assertEquals(table.get(0, "value"), "hello");
         Assert.assertEquals(table.get(1, "value"), "world");
     }
@@ -151,7 +151,7 @@ public class GATKReportUnitTest extends BaseTest {
         report1.concat(report3);
 
         report1.addTable("Table2", "To contain some more data types", 3);
-        GATKReportTableV2 table = report1.getTable("Table2");
+        GATKReportTable table = report1.getTable("Table2");
         table.addColumn("SomeInt", "%d");
         table.addColumn("SomeFloat", "%.16E");
         table.addColumn("TrueFalse", "%B");

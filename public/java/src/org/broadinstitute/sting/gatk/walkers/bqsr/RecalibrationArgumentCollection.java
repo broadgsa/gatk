@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.io.File;
@@ -172,8 +172,8 @@ public class RecalibrationArgumentCollection {
 
     public File recalibrationReport = null;
 
-    public GATKReportTableV2 generateReportTable() {
-        GATKReportTableV2 argumentsTable = new GATKReportTableV2("Arguments", "Recalibration argument collection values used in this run", 2);
+    public GATKReportTable generateReportTable() {
+        GATKReportTable argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run", 2);
         argumentsTable.addColumn("Argument");
         argumentsTable.addColumn(RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME);
         argumentsTable.addRowID("covariate", true);
