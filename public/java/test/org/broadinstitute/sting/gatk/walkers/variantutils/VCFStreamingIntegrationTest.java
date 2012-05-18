@@ -98,7 +98,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
             " -EV CompOverlap -noEV -noST" +
             " -o %s",
             1,
-            Arrays.asList("3212b375b8c440abe436be42ec7e1524")
+            Arrays.asList("6549744c12de7673fb7812142956c39e")
         );
         executeTest("testVCFStreamingChain", selectTestSpec);
 
