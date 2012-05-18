@@ -46,7 +46,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 @Invariant({
         "logger != null",
         "contigInfo != null"})
-public class GenomeLocParser {
+public final class GenomeLocParser {
     private static Logger logger = Logger.getLogger(GenomeLocParser.class);
 
     // --------------------------------------------------------------------------------------------------------------
@@ -86,12 +86,12 @@ public class GenomeLocParser {
         }
 
         @Requires("contig != null")
-        public synchronized boolean hasContig(final String contig) {
+        public final synchronized boolean hasContig(final String contig) {
             return contig.equals(lastContig) || dict.getSequence(contig) != null;
         }
 
         @Requires("index >= 0")
-        public synchronized boolean hasContig(final int index) {
+        public final synchronized boolean hasContig(final int index) {
             return lastIndex == index || dict.getSequence(index) != null;
         }
 
@@ -125,12 +125,12 @@ public class GenomeLocParser {
         }
 
         @Requires({"contig != null", "lastContig != null"})
-        private synchronized boolean isCached(final String contig) {
+        private final synchronized boolean isCached(final String contig) {
             return lastContig.equals(contig);
         }
 
         @Requires({"lastIndex != -1", "index >= 0"})
-        private synchronized boolean isCached(final int index) {
+        private final synchronized boolean isCached(final int index) {
             return lastIndex == index;
         }
 
@@ -144,7 +144,7 @@ public class GenomeLocParser {
          */
         @Requires("contig != null || index >= 0")
         @Ensures("result != null")
-        private synchronized SAMSequenceRecord updateCache(final String contig, int index ) {
+        private final synchronized SAMSequenceRecord updateCache(final String contig, int index ) {
             SAMSequenceRecord rec = contig == null ? dict.getSequence(index) : dict.getSequence(contig);
             if ( rec == null ) {
                 throw new ReviewedStingException("BUG: requested unknown contig=" + contig + " index=" + index);
@@ -187,11 +187,11 @@ public class GenomeLocParser {
      *
      * @return True if the contig is valid.  False otherwise.
      */
-    public boolean contigIsInDictionary(String contig) {
+    public final boolean contigIsInDictionary(String contig) {
         return contig != null && contigInfo.hasContig(contig);
     }
 
-    public boolean indexIsInDictionary(final int index) {
+    public final boolean indexIsInDictionary(final int index) {
         return index >= 0 && contigInfo.hasContig(index);
     }
 
@@ -205,7 +205,7 @@ public class GenomeLocParser {
      */
     @Ensures("result != null")
     @ThrowEnsures({"UserException.MalformedGenomeLoc", "!contigIsInDictionary(contig) || contig == null"})
-    public SAMSequenceRecord getContigInfo(final String contig) {
+    public final SAMSequenceRecord getContigInfo(final String contig) {
         if ( contig == null || ! contigIsInDictionary(contig) )
             throw new UserException.MalformedGenomeLoc(String.format("Contig %s given as location, but this contig isn't present in the Fasta sequence dictionary", contig));
         return contigInfo.getSequence(contig);
@@ -220,7 +220,7 @@ public class GenomeLocParser {
      */
     @Ensures("result >= 0")
     @ThrowEnsures({"UserException.MalformedGenomeLoc", "!contigIsInDictionary(contig) || contig == null"})
-    public int getContigIndex(final String contig) {
+    public final int getContigIndex(final String contig) {
         return getContigInfo(contig).getSequenceIndex();
     }
 
@@ -229,6 +229,14 @@ public class GenomeLocParser {
         if ( contig == null || ! contigInfo.hasContig(contig) )
             return -1;
         return contigInfo.getSequenceIndex(contig);
+    }
+
+    /**
+     * Return the master sequence dictionary used within this GenomeLocParser
+     * @return
+     */
+    public final SAMSequenceDictionary getContigs() {
+        return contigInfo.dict;
     }
 
     // --------------------------------------------------------------------------------------------------------------

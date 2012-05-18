@@ -24,12 +24,15 @@
 
 package org.broadinstitute.sting.utils.codecs.bcf2;
 
+import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.PositionalBufferedStream;
+import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -45,7 +48,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 
-public class BCF2Codec implements FeatureCodec<VariantContext> {
+public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDependentFeatureCodec {
     final protected static Logger logger = Logger.getLogger(BCF2Codec.class);
     private VCFHeader header = null;
     private final ArrayList<String> contigNames = new ArrayList<String>();
@@ -147,14 +150,18 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
         }
     }
 
-    private final ArrayList<String> parseDictionary(final VCFHeader header) {
-        final ArrayList<String> dict = BCF2Utils.makeDictionary(header);
+    // --------------------------------------------------------------------------------
+    //
+    // Reference dependence
+    //
+    // --------------------------------------------------------------------------------
 
-        // if we got here we never found a dictionary, or there are no elements in the dictionary
-        if ( dict.size() == 0 )
-            throw new UserException.MalformedBCF2("Dictionary header element was absent or empty");
 
-        return dict;
+    @Override
+    public void setGenomeLocParser(final GenomeLocParser genomeLocParser) {
+        // initialize contigNames to standard ones in reference
+        for ( final SAMSequenceRecord contig : genomeLocParser.getContigs().getSequences() )
+            contigNames.add(contig.getSequenceName());
     }
 
     public boolean isSkippingGenotypes() {
@@ -411,5 +418,15 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
         else {
             throw new UserException.MalformedBCF2(String.format("No contig at index %d present in the sequence dictionary from the BCF2 header (%s)", contigOffset, contigNames));
         }
+    }
+
+    private final ArrayList<String> parseDictionary(final VCFHeader header) {
+        final ArrayList<String> dict = BCF2Utils.makeDictionary(header);
+
+        // if we got here we never found a dictionary, or there are no elements in the dictionary
+        if ( dict.size() == 0 )
+            throw new UserException.MalformedBCF2("Dictionary header element was absent or empty");
+
+        return dict;
     }
 }

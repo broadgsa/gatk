@@ -60,11 +60,20 @@ class BCF2Writer extends IndexingVariantContextWriter {
     //
     // --------------------------------------------------------------------------------
 
+    private final void createContigDictionary(final Collection<VCFContigHeaderLine> contigLines) {
+        for ( final VCFContigHeaderLine contig : contigLines )
+            contigDictionary.put(contig.getID(), contig.getContigIndex());
+    }
+
     @Override
     public void writeHeader(final VCFHeader header) {
         // create the config offsets map
-        for ( final VCFContigHeaderLine contig : header.getContigLines())
-            contigDictionary.put(contig.getID(), contig.getContigIndex());
+        if ( header.getContigLines().isEmpty() ) {
+            logger.warn("No contig dictionary found in header, falling back to reference sequence dictionary");
+            createContigDictionary(VCFUtils.makeContigHeaderLines(getRefDict(), null));
+        } else {
+            createContigDictionary(header.getContigLines());
+        }
 
         // set up the map from dictionary string values -> offset
         final ArrayList<String> dict = BCF2Utils.makeDictionary(header);

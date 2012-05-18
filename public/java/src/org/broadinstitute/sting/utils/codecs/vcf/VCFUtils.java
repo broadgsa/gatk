@@ -257,15 +257,29 @@ public class VCFUtils {
             lines.add(line);
         }
 
-        final String assembly = getReferenceAssembly(referenceFile.getName());
-        for ( SAMSequenceRecord contig : refDict.getSequences() )
-            lines.add(getContigHeaderLine(contig, assembly));
+        for ( final VCFHeaderLine contigLine : makeContigHeaderLines(refDict, referenceFile) )
+            lines.add(contigLine);
 
         lines.add(new VCFHeaderLine(VCFHeader.REFERENCE_KEY, "file://" + referenceFile.getAbsolutePath()));
         return new VCFHeader(lines, oldHeader.getGenotypeSamples());
     }
 
-    private final static VCFHeaderLine getContigHeaderLine(final SAMSequenceRecord contig, final String assembly) {
+    /**
+     * Create VCFHeaderLines for each refDict entry, and optionally the assembly if referenceFile != null
+     * @param refDict
+     * @param referenceFile for assembly name.  May be null
+     * @return
+     */
+    public final static List<VCFContigHeaderLine> makeContigHeaderLines(final SAMSequenceDictionary refDict,
+                                                                  final File referenceFile) {
+        final List<VCFContigHeaderLine> lines = new ArrayList<VCFContigHeaderLine>();
+        final String assembly = referenceFile != null ? getReferenceAssembly(referenceFile.getName()) : null;
+        for ( SAMSequenceRecord contig : refDict.getSequences() )
+            lines.add(makeContigHeaderLine(contig, assembly));
+        return lines;
+    }
+
+    private final static VCFContigHeaderLine makeContigHeaderLine(final SAMSequenceRecord contig, final String assembly) {
         final Map<String, String> map = new LinkedHashMap<String, String>(3);
         map.put("ID", contig.getSequenceName());
         map.put("length", String.valueOf(contig.getSequenceLength()));

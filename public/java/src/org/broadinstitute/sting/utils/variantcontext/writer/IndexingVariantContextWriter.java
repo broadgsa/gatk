@@ -107,6 +107,13 @@ abstract class IndexingVariantContextWriter implements VariantContextWriter {
     }
 
     /**
+     * @return the reference sequence dictionary used for the variant contexts being written
+     */
+    public SAMSequenceDictionary getRefDict() {
+        return refDict;
+    }
+
+    /**
      * add a record to the file
      *
      * @param vc      the Variant Context object
