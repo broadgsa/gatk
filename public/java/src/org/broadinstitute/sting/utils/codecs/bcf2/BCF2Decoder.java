@@ -113,6 +113,8 @@ public class BCF2Decoder {
      * @param recordBytes
      */
     public void setRecordBytes(final byte[] recordBytes) {
+        assert recordBytes != null;
+
         this.recordBytes = recordBytes;
         this.recordStream = new ByteArrayInputStream(recordBytes);
     }
@@ -145,7 +147,7 @@ public class BCF2Decoder {
             for ( int i = 0; i < size; i++ ) {
                 ints.add(decodeSingleValue(type));
             }
-            return ints.get(0) == null ? null : ints;
+            return ints.get(0) == null ? null : ints; // return null when all of the values are null
         }
     }
 
@@ -175,6 +177,7 @@ public class BCF2Decoder {
 
     private final Object decodeLiteralString(final int size) {
         assert size > 0;
+
         // TODO -- assumes size > 0
         final byte[] bytes = new byte[size]; // TODO -- in principle should just grab bytes from underlying array
         try {
@@ -227,6 +230,8 @@ public class BCF2Decoder {
      * @return
      */
     private final static byte[] readRecordBytes(final int blockSizeInBytes, final InputStream inputStream) {
+        assert blockSizeInBytes >= 0;
+
         final byte[] record = new byte[blockSizeInBytes];
         try {
             final int bytesRead = inputStream.read(record);
@@ -239,6 +244,8 @@ public class BCF2Decoder {
     }
 
     private final static void validateReadBytes(final int actuallyRead, final int expected) {
+        assert expected >= 0;
+
         if ( actuallyRead < expected ) {
             throw new UserException.MalformedBCF2(String.format("Failed to read next complete record: %s",
                     actuallyRead == -1 ?

@@ -30,6 +30,7 @@ import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.PositionalBufferedStream;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -96,7 +97,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
         try {
             // note that this reads the magic as well, and so does double duty
             if ( ! BCF2Utils.startsWithBCF2Magic(inputStream) )
-                throw new IllegalArgumentException("Input stream does not begin with BCF2 magic");
+                throw new UserException.MalformedBCF2("Input stream does not begin with BCF2 magic");
 
             final int headerSizeInBytes = BCF2Utils.readInt(BCF2Type.INT32.getSizeInBytes(), inputStream);
 
@@ -224,15 +225,13 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
     private void decodeID( final VariantContextBuilder builder ) {
         final String id = (String)decoder.decodeTypedValue();
 
-        if ( id == null ) {
+        if ( id == null )
             builder.noID();
-        }
-        else {
+        else
             builder.id(id);
-        }
     }
 
-    public static ArrayList<Allele> clipAllelesIfNecessary(int position, String ref, ArrayList<Allele> unclippedAlleles) {
+    protected static ArrayList<Allele> clipAllelesIfNecessary(int position, String ref, ArrayList<Allele> unclippedAlleles) {
         if ( ! AbstractVCFCodec.isSingleNucleotideEvent(unclippedAlleles) ) {
             ArrayList<Allele> clippedAlleles = new ArrayList<Allele>(unclippedAlleles.size());
             AbstractVCFCodec.clipAlleles(position, ref, unclippedAlleles, clippedAlleles, -1);
@@ -298,15 +297,16 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
         final List<String> samples = new ArrayList<String>(header.getGenotypeSamples());
         final int nSamples = siteInfo.nSamples;
         final int nFields = siteInfo.nFormatFields;
-        final Map<String, List<Object>> fieldValues = decodeGenotypeFieldValues(nFields, nSamples);
 
         if ( samples.size() != nSamples )
             throw new UserException.MalformedBCF2("GATK currently doesn't support reading BCF2 files with " +
                     "different numbers of samples per record.  Saw " + samples.size() +
                     " samples in header but have a record with " + nSamples + " samples");
 
+        final Map<String, List<Object>> fieldValues = decodeGenotypeFieldValues(nFields, nSamples);
         final List<Genotype> genotypes = new ArrayList<Genotype>(nSamples);
         for ( int i = 0; i < nSamples; i++ ) {
+            // all of the information we need for each genotype, with default values
             final String sampleName = samples.get(i);
             List<Allele> alleles = null;
             boolean isPhased = false;
@@ -318,31 +318,37 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
             for ( final Map.Entry<String, List<Object>> entry : fieldValues.entrySet() ) {
                 final String field = entry.getKey();
                 final List<Object> values = entry.getValue();
-                if ( field.equals(VCFConstants.GENOTYPE_KEY) ) {
-                    alleles = decodeGenotypeAlleles(siteInfo.alleles, (List<Integer>)values.get(i));
-                } else if ( field.equals(VCFConstants.GENOTYPE_QUALITY_KEY) ) {
-                    final Integer value = (Integer)values.get(i);
-                    if ( value != BCF2Type.INT8.getMissingJavaValue() )
-                        log10PError = value / -10.0;
-                } else if ( field.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) ) {
-                    final List<Integer> pls = (List<Integer>)values.get(i);
-                    if ( pls != null ) { // we have a PL field
-                        log10Likelihoods = new double[pls.size()];
-                        for ( int j = 0; j < log10Likelihoods.length; j++ )
-                            log10Likelihoods[j] = pls.get(j) / -10.0;
+                try {
+                    if ( field.equals(VCFConstants.GENOTYPE_KEY) ) {
+                        alleles = decodeGenotypeAlleles(siteInfo.alleles, (List<Integer>)values.get(i));
+                    } else if ( field.equals(VCFConstants.GENOTYPE_QUALITY_KEY) ) {
+                        final Integer value = (Integer)values.get(i);
+                        if ( value != BCF2Type.INT8.getMissingJavaValue() )
+                            log10PError = value / -10.0;
+                    } else if ( field.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) ) {
+                        final List<Integer> pls = (List<Integer>)values.get(i);
+                        if ( pls != null ) { // we have a PL field
+                            log10Likelihoods = new double[pls.size()];
+                            for ( int j = 0; j < log10Likelihoods.length; j++ )
+                                log10Likelihoods[j] = pls.get(j) / -10.0;
+                        }
+                    } else if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
+                        throw new ReviewedStingException("Genotype filters not implemented in GATK BCF2");
+                        //filters = new HashSet<String>(values.get(i));
+                    } else { // add to attributes
+                        if ( values.get(i) != null ) { // don't add missing values
+                            if ( attributes == null ) attributes = new HashMap<String, Object>(nFields);
+                            attributes.put(field, values.get(i));
+                        }
                     }
-                } else if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
-                    throw new ReviewedStingException("Genotype filters not implemented in GATK BCF2");
-                    //filters = new HashSet<String>(values.get(i));
-                } else { // add to attributes
-                    if ( values.get(i) != null ) { // don't add missing values
-                        if ( attributes == null ) attributes = new HashMap<String, Object>(nFields);
-                        attributes.put(field, values.get(i));
-                    }
+                } catch ( ClassCastException e ) {
+                    throw new UserException.MalformedBCF2("BUG: expected encoding of field " + field
+                            + " inconsistent with the value observed in the decoded value in the "
+                            + " BCF file.  Value was " + Utils.join(",", values));
                 }
             }
 
-            if ( alleles == null ) throw new ReviewedStingException("BUG: no alleles found");
+            if ( alleles == null ) throw new UserException.MalformedBCF2("BUG: no alleles found");
 
             final Genotype g = new Genotype(sampleName, alleles, log10PError, filters, attributes, isPhased, log10Likelihoods);
             genotypes.add(g);
@@ -368,18 +374,24 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
     }
 
     private final Map<String, List<Object>> decodeGenotypeFieldValues(final int nFields, final int nSamples) {
-        final Map<String, List<Object>> map = new LinkedHashMap<String, List<Object>>(nFields);
+        assert (nFields > 0 && nSamples > 0) || (nFields == 0 && nSamples == 0);
 
-        for ( int i = 0; i < nFields; i++ ) {
-            final String field = getDictionaryString();
-            final byte typeDescriptor = decoder.readTypeDescriptor();
-            final List<Object> values = new ArrayList<Object>(nSamples);
-            for ( int j = 0; j < nSamples; j++ )
-                values.add(decoder.decodeTypedValue(typeDescriptor));
-            map.put(field, values);
+        if ( nFields == 0 ) // fast path exit for sites only file
+            return Collections.emptyMap();
+        else {
+            final Map<String, List<Object>> map = new LinkedHashMap<String, List<Object>>(nFields);
+
+            for ( int i = 0; i < nFields; i++ ) {
+                final String field = getDictionaryString();
+                final byte typeDescriptor = decoder.readTypeDescriptor();
+                final List<Object> values = new ArrayList<Object>(nSamples);
+                for ( int j = 0; j < nSamples; j++ )
+                    values.add(decoder.decodeTypedValue(typeDescriptor));
+                map.put(field, values);
+            }
+
+            return map;
         }
-
-        return map;
     }
 
     private final String getDictionaryString() {
@@ -387,6 +399,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext> {
     }
 
     private final String getDictionaryString(final int offset) {
+        if ( offset >= dictionary.size() ) throw new UserException.MalformedBCF2("BUG: no dictionary field found at offset " + offset);
         final String field = dictionary.get(offset);
         return field;
     }

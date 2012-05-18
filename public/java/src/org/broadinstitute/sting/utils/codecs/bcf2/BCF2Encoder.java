@@ -60,31 +60,6 @@ public class BCF2Encoder {
 
     // --------------------------------------------------------------------------------
     //
-    // Super-high level interface
-    //
-    // --------------------------------------------------------------------------------
-
-    /**
-     * Totally generic encoder that examines o, determines the best way to encode it, and encodes it
-     * @param o
-     * @return
-     */
-    public final BCF2Type encode(final Object o) throws IOException {
-        if ( o == null ) throw new ReviewedStingException("Generic encode cannot deal with null values");
-
-        if ( o instanceof List ) {
-            final BCF2Type type = determineBCFType(((List) o).get(0));
-            encodeTyped((List) o, type);
-            return type;
-        } else {
-            final BCF2Type type = determineBCFType(o);
-            encodeTyped(o, type);
-            return type;
-        }
-    }
-
-    // --------------------------------------------------------------------------------
-    //
     // Writing typed values (have type byte)
     //
     // --------------------------------------------------------------------------------
@@ -108,12 +83,6 @@ public class BCF2Encoder {
         encodeRawValues(v, type);
     }
 
-    public final BCF2Type encodeTypedIntOfBestSize(final int value) throws IOException {
-        final BCF2Type type = determineIntegerType(value);
-        encodeTyped(value, type);
-        return type;
-    }
-
     // --------------------------------------------------------------------------------
     //
     // Writing raw values (don't have a type byte)
@@ -127,17 +96,21 @@ public class BCF2Encoder {
     }
 
     public final <T extends Object> void encodeRawValue(final T value, final BCF2Type type) throws IOException {
-        if ( value == type.getMissingJavaValue() )
-            encodeRawMissingValue(type);
-        else {
-            switch (type) {
-                case INT8:
-                case INT16:
-                case INT32: encodePrimitive((Integer)value, type); break;
-                case FLOAT: encodeRawFloat((Double) value, type); break;
-                case CHAR:  encodeRawChar((Byte) value); break;
-                default:    throw new ReviewedStingException("Illegal type encountered " + type);
+        try {
+            if ( value == type.getMissingJavaValue() )
+                encodeRawMissingValue(type);
+            else {
+                switch (type) {
+                    case INT8:
+                    case INT16:
+                    case INT32: encodePrimitive((Integer)value, type); break;
+                    case FLOAT: encodeRawFloat((Double) value); break;
+                    case CHAR:  encodeRawChar((Byte) value); break;
+                    default:    throw new ReviewedStingException("Illegal type encountered " + type);
+                }
             }
+        } catch ( ClassCastException e ) {
+            throw new ReviewedStingException("BUG: invalid type cast to " + type + " from " + value);
         }
     }
 
@@ -146,6 +119,8 @@ public class BCF2Encoder {
     }
 
     public final void encodeRawMissingValues(final int size, final BCF2Type type) throws IOException {
+        if ( size <= 0 ) throw new ReviewedStingException("BUG: size <= 0");
+
         for ( int i = 0; i < size; i++ )
             encodeRawMissingValue(type);
     }
@@ -160,15 +135,19 @@ public class BCF2Encoder {
         encodeStream.write(c);
     }
 
-    public final void encodeRawFloat(final double value, final BCF2Type type) throws IOException {
-        encodePrimitive(Float.floatToIntBits((float)value), type);
+    public final void encodeRawFloat(final double value) throws IOException {
+        encodePrimitive(Float.floatToIntBits((float)value), BCF2Type.FLOAT);
     }
 
     public final void encodeType(final int size, final BCF2Type type) throws IOException {
+        if ( size < 0 ) throw new ReviewedStingException("BUG: size < 0");
+
         final byte typeByte = BCF2Utils.encodeTypeDescriptor(size, type);
         encodeStream.write(typeByte);
-        if ( BCF2Utils.willOverflow(size) )
-            encodeTypedIntOfBestSize(size);
+        if ( BCF2Utils.willOverflow(size) ) {
+            // write in the overflow size
+            encodeTyped(size, determineIntegerType(size));
+        }
     }
 
     public final void encodeRawInt(final int value, final BCF2Type type) throws IOException {
@@ -223,6 +202,28 @@ public class BCF2Encoder {
         throw new ReviewedStingException("Integer cannot be encoded in allowable range of even INT32: " + value);
     }
 
+    /**
+     * Totally generic encoder that examines o, determines the best way to encode it, and encodes it
+     *
+     * This method is incredibly slow, but it's only used for UnitTests so it doesn't matter
+     *
+     * @param o
+     * @return
+     */
+    protected final BCF2Type encode(final Object o) throws IOException {
+        if ( o == null ) throw new ReviewedStingException("Generic encode cannot deal with null values");
+
+        if ( o instanceof List ) {
+            final BCF2Type type = determineBCFType(((List) o).get(0));
+            encodeTyped((List) o, type);
+            return type;
+        } else {
+            final BCF2Type type = determineBCFType(o);
+            encodeTyped(o, type);
+            return type;
+        }
+    }
+
     private final BCF2Type determineBCFType(final Object arg) {
         final Object toType = arg instanceof List ? ((List)arg).get(0) : arg;
 
@@ -246,6 +247,8 @@ public class BCF2Encoder {
     }
 
     private final List<Byte> stringToBytes(final String v) throws IOException {
+        assert v != null && !v.equals("");
+
         // TODO -- this needs to be optimized away for efficiency
         final byte[] bytes = v.getBytes();
         final List<Byte> l = new ArrayList<Byte>(bytes.length);

@@ -33,6 +33,8 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import java.util.EnumMap;
 
 public class GenotypeLikelihoods {
+    public final static int MAX_PL = Short.MAX_VALUE;
+
     //
     // There are two objects here because we are lazy in creating both representations
     // for this object: a vector of log10 Probs and the PL phred-scaled string.  Supports
@@ -209,7 +211,7 @@ public class GenotypeLikelihoods {
         final double adjust = maxPL(GLs);
 
         for ( int i = 0; i < GLs.length; i++ ) {
-            pls[i] = (int)Math.round(-10 * (GLs[i] - adjust));
+            pls[i] = (int)Math.round(Math.min(-10 * (GLs[i] - adjust), MAX_PL));
         }
 
         return pls;

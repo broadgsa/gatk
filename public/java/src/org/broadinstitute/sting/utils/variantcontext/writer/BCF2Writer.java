@@ -146,7 +146,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
         // qual
         if ( vc.hasLog10PError() )
-            encoder.encodeRawFloat((float) vc.getPhredScaledQual(), BCF2Type.FLOAT);
+            encoder.encodeRawFloat((float) vc.getPhredScaledQual());
         else
             encoder.encodeRawMissingValue(BCF2Type.FLOAT);
 
@@ -183,7 +183,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
         if ( vc.isFiltered() ) {
             encodeStringsByRef(vc.getFilters());
         } else {
-            encoder.encodeTypedMissing(BCF2Type.INT32);
+            encoder.encodeTypedMissing(BCF2Type.INT8);
         }
     }
 
@@ -198,7 +198,6 @@ class BCF2Writer extends IndexingVariantContextWriter {
     }
 
     private byte[] buildSamplesData(final VariantContext vc) throws IOException {
-        // write size
         List<String> genotypeFields = VCFWriter.calcVCFGenotypeKeys(vc);
         for ( final String field : genotypeFields ) {
             if ( field.equals(VCFConstants.GENOTYPE_KEY) ) {
@@ -219,6 +218,8 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
     private final int getNGenotypeFieldValues(final String field, final VariantContext vc) {
         final VCFCompoundHeaderLine metaData = VariantContext.getMetaDataForField(header, field);
+        assert metaData != null; // field is supposed to be in header
+
         int nFields = metaData.getCount(vc.getNAlleles() - 1);
         if ( nFields == -1 ) { // unbounded, need to look at values
             return computeMaxSizeOfGenotypeFieldFromValues(field, vc);
@@ -266,7 +267,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
                     throw new ReviewedStingException("BUG: header for " + field +
                             " has inconsistent number of values " + numInFormatField +
                             " compared to values in VariantContext " + ((List) val).size());
-                final Collection<Object> vals = numInFormatField == 1 ? Collections.singleton(val) : (Collection)val;
+                final List<Object> vals = numInFormatField == 1 ? Collections.singletonList(val) : (List<Object>)val;
                 encoder.encodeRawValues(vals, encoding.BCF2Type);
             }
         }
@@ -275,12 +276,12 @@ class BCF2Writer extends IndexingVariantContextWriter {
     private final class VCFToBCFEncoding {
         VCFHeaderLineType vcfType;
         BCF2Type BCF2Type;
-        List<Object> valuesToEncode;
+        List<? extends Object> valuesToEncode;
 
         private VCFToBCFEncoding(final VCFHeaderLineType vcfType, final BCF2Type BCF2Type, final List<? extends Object> valuesToEncode) {
             this.vcfType = vcfType;
             this.BCF2Type = BCF2Type;
-            this.valuesToEncode = (List<Object>)valuesToEncode;
+            this.valuesToEncode = valuesToEncode;
         }
     }
 
@@ -292,33 +293,39 @@ class BCF2Writer extends IndexingVariantContextWriter {
         final boolean isList = value instanceof List;
         final Object toType = isList ? ((List)value).get(0) : value;
 
-        switch ( metaData.getType() ) {
-            case Character:
-                assert toType instanceof String;
-                return new VCFToBCFEncoding(metaData.getType(), BCF2Type.CHAR, Collections.singletonList(value));
-            case Flag:
-                return new VCFToBCFEncoding(metaData.getType(), BCF2Type.INT8, Collections.singletonList(1));
-            case String:
-                final List<String> s = isList ? (List<String>)value : Collections.singletonList((String) value);
-                return new VCFToBCFEncoding(metaData.getType(), BCF2Type.CHAR, s);
-            case Integer:   // note integer calculation is a bit complex because of the need to determine sizes
-                List<Integer> l;
-                BCF2Type intType;
-                if ( isList ) {
-                    l = (List<Integer>)value;
-                    intType = encoder.determineIntegerType(l);
-                } else if ( value != null ) {
-                    intType = encoder.determineIntegerType((Integer)value);
-                    l = Collections.singletonList((Integer)value);
-                } else {
-                    intType = BCF2Type.INT8;
-                    l = Collections.singletonList((Integer) null);
-                }
-                return new VCFToBCFEncoding(metaData.getType(), intType, l);
-            case Float:
-                return new VCFToBCFEncoding(metaData.getType(), BCF2Type.FLOAT, isList ? (List<Double>)value : Collections.singletonList(value));
-            default:
-                throw new ReviewedStingException("Unexpected type for field " + field);
+        try {
+            switch ( metaData.getType() ) {
+                case Character:
+                    assert toType instanceof String;
+                    return new VCFToBCFEncoding(metaData.getType(), BCF2Type.CHAR, Collections.singletonList(value));
+                case Flag:
+                    return new VCFToBCFEncoding(metaData.getType(), BCF2Type.INT8, Collections.singletonList(1));
+                case String:
+                    final List<String> s = isList ? (List<String>)value : Collections.singletonList((String) value);
+                    return new VCFToBCFEncoding(metaData.getType(), BCF2Type.CHAR, s);
+                case Integer:   // note integer calculation is a bit complex because of the need to determine sizes
+                    List<Integer> l;
+                    BCF2Type intType;
+                    if ( isList ) {
+                        l = (List<Integer>)value;
+                        intType = encoder.determineIntegerType(l);
+                    } else if ( value != null ) {
+                        intType = encoder.determineIntegerType((Integer)value);
+                        l = Collections.singletonList((Integer)value);
+                    } else {
+                        intType = BCF2Type.INT8;
+                        l = Collections.singletonList((Integer) null);
+                    }
+                    return new VCFToBCFEncoding(metaData.getType(), intType, l);
+                case Float:
+                    return new VCFToBCFEncoding(metaData.getType(), BCF2Type.FLOAT, isList ? (List<Double>)value : Collections.singletonList(value));
+                default:
+                    throw new ReviewedStingException("Unexpected type for field " + field);
+            }
+        } catch ( ClassCastException e ) {
+            throw new ReviewedStingException("Error computing VCF -> BCF encoding.  Received cast class exception"
+                    + " indicating that the VCF header for " + metaData + " is inconsistent with the" +
+                    " value seen in the VariantContext object = " + value, e);
         }
     }
 
@@ -404,17 +411,26 @@ class BCF2Writer extends IndexingVariantContextWriter {
      * @throws IOException
      */
     private void writeBlock(final byte[] infoBlock, final byte[] genotypesBlock) throws IOException {
+        assert infoBlock.length > 0;
+        assert genotypesBlock.length >= 0;
+
         BCF2Encoder.encodePrimitive(infoBlock.length, BCF2Type.INT32, outputStream);
         BCF2Encoder.encodePrimitive(genotypesBlock.length, BCF2Type.INT32, outputStream);
         outputStream.write(infoBlock);
         outputStream.write(genotypesBlock);
     }
 
-    public final BCF2Type encodeStringByRef(final String string) throws IOException {
-        return encodeStringsByRef(Collections.singleton(string));
+    // TODO -- obvious optimization case
+    private final BCF2Type encodeStringByRef(final String string) throws IOException {
+        assert string != null;
+
+        return encodeStringsByRef(Collections.singletonList(string));
     }
 
-    public final BCF2Type encodeStringsByRef(final Collection<String> strings) throws IOException {
+    // TODO -- in size == 1 case branch to singleoton fast-path
+    private final BCF2Type encodeStringsByRef(final Collection<String> strings) throws IOException {
+        assert ! strings.isEmpty();
+
         final List<Integer> offsets = new ArrayList<Integer>(strings.size());
         BCF2Type maxType = BCF2Type.INT8; // start with the smallest size
 
@@ -424,12 +440,15 @@ class BCF2Writer extends IndexingVariantContextWriter {
             if ( got == null ) throw new ReviewedStingException("Format error: could not find string " + string + " in header as required by BCF");
             final int offset = got;
             offsets.add(offset);
-            final BCF2Type type1 = encoder.determineIntegerType(offset);
-            switch ( type1 ) {
-                case INT8:  break;
-                case INT16: if ( maxType == BCF2Type.INT8 ) maxType = BCF2Type.INT16; break;
-                case INT32: maxType = BCF2Type.INT32; break;
-                default:    throw new ReviewedStingException("Unexpected type " + type1);
+
+            if ( maxType != BCF2Type.INT32) { // don't bother looking if we already are at 32 bit ints
+                final BCF2Type type1 = encoder.determineIntegerType(offset);
+                switch ( type1 ) {
+                    case INT8:  break;
+                    case INT16: if ( maxType == BCF2Type.INT8 ) maxType = BCF2Type.INT16; break;
+                    case INT32: maxType = BCF2Type.INT32; break;
+                    default:    throw new ReviewedStingException("Unexpected type " + type1);
+                }
             }
         }
 
@@ -438,7 +457,10 @@ class BCF2Writer extends IndexingVariantContextWriter {
         return maxType;
     }
 
-    public final void startGenotypeField(final String key, final int size, final BCF2Type valueType) throws IOException {
+    private final void startGenotypeField(final String key, final int size, final BCF2Type valueType) throws IOException {
+        assert key != null && ! key.equals("");
+        assert size >= 0;
+
         encodeStringByRef(key);
         encoder.encodeType(size, valueType);
     }
