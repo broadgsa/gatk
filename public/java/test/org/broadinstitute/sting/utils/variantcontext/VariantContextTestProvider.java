@@ -46,8 +46,8 @@ import java.util.*;
  * @since Date created
  */
 public class VariantContextTestProvider {
-    final private static boolean ENABLE_VARARRAY_TESTS = false;
-    final private static boolean ENABLE_PLOIDY_TESTS = false;
+    final private static boolean ENABLE_VARARRAY_TESTS = true;
+    final private static boolean ENABLE_PLOIDY_TESTS = true;
     final private static boolean ENABLE_PL_TESTS = true;
     private static VCFHeader syntheticHeader;
     final static List<VariantContextTestData> TEST_DATAs = new ArrayList<VariantContextTestData>();
@@ -282,6 +282,7 @@ public class VariantContextTestProvider {
             final Genotype homVar = new Genotype("homVar", Arrays.asList(alt1, alt1));
             addGenotypeTests(site, homRef, het);
             addGenotypeTests(site, homRef, het, homVar);
+            final List<Allele> noCall = new ArrayList<Allele>();
 
             // ploidy
             if ( ENABLE_PLOIDY_TESTS ) {
@@ -290,6 +291,11 @@ public class VariantContextTestProvider {
                         new Genotype("hap", Arrays.asList(ref)));
 
                 addGenotypeTests(site,
+                        new Genotype("dip", Arrays.asList(ref, alt1)),
+                        new Genotype("tet", Arrays.asList(ref, alt1, alt1)));
+
+                addGenotypeTests(site,
+                        new Genotype("nocall", noCall),
                         new Genotype("dip", Arrays.asList(ref, alt1)),
                         new Genotype("tet", Arrays.asList(ref, alt1, alt1)));
             }

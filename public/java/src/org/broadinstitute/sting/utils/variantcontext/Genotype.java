@@ -108,11 +108,9 @@ public class Genotype implements Comparable<Genotype> {
     public boolean isPhased() { return isPhased; }
 
     /**
-     * @return the ploidy of this genotype
+     * @return the ploidy of this genotype.  0 if the site is no-called.
      */
     public int getPloidy() {
-        if ( alleles.size() == 0 )
-            throw new ReviewedStingException("Requesting ploidy for an UNAVAILABLE genotype");
         return alleles.size();
     }
 

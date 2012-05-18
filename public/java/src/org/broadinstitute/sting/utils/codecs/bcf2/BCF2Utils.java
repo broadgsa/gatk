@@ -47,6 +47,8 @@ import java.util.List;
 public class BCF2Utils {
     public static final byte[] MAGIC_HEADER_LINE = "BCF\2".getBytes();
 
+    public static final int MAX_ALLELES_IN_GENOTYPES = 127;
+
     public static final int OVERFLOW_ELEMENT_MARKER = 15;
     public static final int MAX_INLINE_ELEMENTS = 14;
 

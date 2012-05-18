@@ -246,17 +246,9 @@ class BCF2Writer extends IndexingVariantContextWriter {
             if ( o == null ) continue;
             if ( o instanceof List ) {
                 // only do compute if first value is of type list
-                final List values = (List)g.getAttribute(field);
-                if ( values != null ) {
-                    if ( values.size() != size && size != -1 )
-                        throw new ReviewedStingException("BUG: BCF2 codec doesn't currently support padding " +
-                                "/ depadding of genotype fields with mixed length." +
-                                "Occurred in field " + field + " at " + vc.getChr() + ":" + vc.getStart());
-                    size = Math.max(size, values.size());
-                }
-            } else {
-                return 1;
-            }
+                size = Math.max(size, ((List)o).size());
+            } else if ( size == -1 )
+                size = 1;
         }
 
         return size;
@@ -268,18 +260,26 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
         startGenotypeField(field, numInFormatField, encoding.BCF2Type);
         for ( final Genotype g : vc.getGenotypes() ) {
-            if ( ! g.hasAttribute(field) ) {
-                encoder.encodeRawMissingValues(numInFormatField, encoding.BCF2Type);
+            final Object fieldValue = g.getAttribute(field);
+
+            if ( numInFormatField == 1 ) {
+                // we encode the actual allele, encodeRawValue handles the missing case where fieldValue == null
+                encoder.encodeRawValue(fieldValue, encoding.BCF2Type);
             } else {
-                final Object val = g.getAttribute(field);
-                if ( (val instanceof List) && (((List) val).size() != numInFormatField ))
-                    throw new ReviewedStingException("BUG: header for " + field +
-                            " has inconsistent number of values " + numInFormatField +
-                            " compared to values in VariantContext " + ((List) val).size());
-                final List<Object> vals = numInFormatField == 1 ? Collections.singletonList(val) : (List<Object>)val;
-                encoder.encodeRawValues(vals, encoding.BCF2Type);
+                // multiple values, need to handle general case
+                final List<Object> asList = toList(fieldValue);
+                final int nSampleValues = asList.size();
+                for ( int i = 0; i < numInFormatField; i++ ) {
+                    encoder.encodeRawValue(i < nSampleValues ? asList.get(i) : null, encoding.BCF2Type);
+                }
             }
         }
+    }
+
+    private final static List<Object> toList(final Object o) {
+        if ( o == null ) return Collections.emptyList();
+        else if ( o instanceof List ) return (List<Object>)o;
+        else return Collections.singletonList(o);
     }
 
     private final class VCFToBCFEncoding {
@@ -393,22 +393,29 @@ class BCF2Writer extends IndexingVariantContextWriter {
     }
 
     private final void addGenotypes(final VariantContext vc) throws IOException {
-        if ( vc.getNAlleles() > 127 )
+        if ( vc.getNAlleles() > BCF2Utils.MAX_ALLELES_IN_GENOTYPES )
             throw new ReviewedStingException("Current BCF2 encoder cannot handle sites " +
-                    "with > 127 alleles, but you have " + vc.getNAlleles() + " at "
-                    + vc.getChr() + ":" + vc.getStart());
+                    "with > " + BCF2Utils.MAX_ALLELES_IN_GENOTYPES + " alleles, but you have "
+                    + vc.getNAlleles() + " at " + vc.getChr() + ":" + vc.getStart());
 
         final Map<Allele, String> alleleMap = VCFWriter.buildAlleleMap(vc);
-        final int requiredPloidy = 2; // TODO -- handle ploidy, will need padding / depadding
-        startGenotypeField(VCFConstants.GENOTYPE_KEY, requiredPloidy, BCF2Type.INT8);
+        final int maxPloidy = vc.getMaxPloidy();
+        startGenotypeField(VCFConstants.GENOTYPE_KEY, maxPloidy, BCF2Type.INT8);
         for ( final Genotype g : vc.getGenotypes() ) {
-            if ( g.getPloidy() != requiredPloidy ) throw new ReviewedStingException("Cannot currently handle non-diploid calls!");
-            final List<Integer> encoding = new ArrayList<Integer>(requiredPloidy);
-            for ( final Allele a : g.getAlleles() ) {
-                final int offset = a.isNoCall() ? -1 : Integer.valueOf(alleleMap.get(a));
-                encoding.add(((offset+1) << 1) | (g.isPhased() ? 0x01 : 0x00));
+            final List<Allele> alleles = g.getAlleles();
+            final int samplePloidy = alleles.size();
+            for ( int i = 0; i < maxPloidy; i++ ) {
+                if ( i < samplePloidy ) {
+                    // we encode the actual allele
+                    final Allele a = alleles.get(i);
+                    final int offset = a.isNoCall() ? -1 : Integer.valueOf(alleleMap.get(a));
+                    final int encoded = ((offset+1) << 1) | (g.isPhased() ? 0x01 : 0x00);
+                    encoder.encodePrimitive(encoded, BCF2Type.INT8);
+                } else {
+                    // we need to pad with missing as we have ploidy < max for this sample
+                    encoder.encodePrimitive(BCF2Type.INT8.getMissingBytes(), BCF2Type.INT8);
+                }
             }
-            encoder.encodeRawValues(encoding, BCF2Type.INT8);
         }
     }
 

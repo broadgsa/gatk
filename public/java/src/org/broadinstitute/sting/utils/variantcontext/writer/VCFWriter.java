@@ -257,9 +257,6 @@ class VCFWriter extends IndexingVariantContextWriter {
                 List<String> genotypeAttributeKeys = new ArrayList<String>();
                 if ( vc.hasGenotypes() ) {
                     genotypeAttributeKeys.addAll(calcVCFGenotypeKeys(vc));
-                } else if ( mHeader.hasGenotypingData() ) {
-                    // this needs to be done in case all samples are no-calls
-                    genotypeAttributeKeys.add(VCFConstants.GENOTYPE_KEY);
                 }
 
                 if ( genotypeAttributeKeys.size() > 0 ) {
@@ -470,6 +467,11 @@ class VCFWriter extends IndexingVariantContextWriter {
         return result;
     }
 
+    /**
+     * Determine which genotype fields are in use in the genotypes in VC
+     * @param vc
+     * @return an ordered list of genotype fields in use in VC.  If vc has genotypes this will always include GT first
+     */
     public static List<String> calcVCFGenotypeKeys(VariantContext vc) {
         Set<String> keys = new HashSet<String>();
 
@@ -502,7 +504,12 @@ class VCFWriter extends IndexingVariantContextWriter {
             sortedList = newList;
         }
 
-        return sortedList;
+        if ( sortedList.isEmpty() && vc.hasGenotypes() ) {
+            // this needs to be done in case all samples are no-calls
+            return Collections.singletonList(VCFConstants.GENOTYPE_KEY);
+        } else {
+            return sortedList;
+        }
     }
 
 

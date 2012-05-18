@@ -587,6 +587,18 @@ public class VariantContext implements Feature { // to enable tribble integratio
     }
 
     /**
+     * Returns the maximum ploidy of all samples in this VC, or -1 if there are no genotypes
+     * @return -1, or the max ploidy
+     */
+    public int getMaxPloidy() {
+        int max = -1;
+        for ( final Genotype g : getGenotypes() ) {
+            max = Math.max(g.getPloidy(), max);
+        }
+        return max;
+    }
+
+    /**
      * @return The allele sharing the same bases as this String.  A convenience method; better to use byte[]
      */
     public Allele getAllele(String allele) {

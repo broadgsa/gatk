@@ -145,9 +145,11 @@ public class BCF2Decoder {
         } else {
             final ArrayList<Object> ints = new ArrayList<Object>(size);
             for ( int i = 0; i < size; i++ ) {
-                ints.add(decodeSingleValue(type));
+                final Object val = decodeSingleValue(type);
+                if ( val == null ) continue; // auto-pruning.  We remove trailing nulls
+                ints.add(val);
             }
-            return ints.get(0) == null ? null : ints; // return null when all of the values are null
+            return ints.isEmpty() ? null : ints; // return null when all of the values are null
         }
     }
 

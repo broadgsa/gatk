@@ -365,19 +365,26 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
     }
 
     private final List<Allele> decodeGenotypeAlleles(final ArrayList<Allele> siteAlleles, final List<Integer> encoded) {
-        final List<Allele> gt = new ArrayList<Allele>(encoded.size());
-        for ( final Integer encode : encoded ) {
-            if ( encode == null ) // absent, as are all following by definition
-                return gt;
-            else {
-                final int offset = encode >> 1;
-                if ( offset == 0 )
-                    gt.add(Allele.NO_CALL);
-                else
-                    gt.add(siteAlleles.get(offset - 1));
+        if ( encoded == null )
+            // no called sample GT = .
+            return Collections.emptyList();
+        else {
+            // we have at least some alleles to decode
+            final List<Allele> gt = new ArrayList<Allele>(encoded.size());
+            for ( final Integer encode : encoded ) {
+                if ( encode == null ) // absent, as are all following by definition
+                    return gt;
+                else {
+                    final int offset = encode >> 1;
+                    if ( offset == 0 )
+                        gt.add(Allele.NO_CALL);
+                    else
+                        gt.add(siteAlleles.get(offset - 1));
+                }
             }
+
+            return gt;
         }
-        return gt;
     }
 
     private final Map<String, List<Object>> decodeGenotypeFieldValues(final int nFields, final int nSamples) {
