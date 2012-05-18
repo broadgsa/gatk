@@ -92,7 +92,7 @@ import java.util.TreeSet;
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class PrintReadsWalker extends ReadWalker<GATKSAMRecord, SAMFileWriter> {
 
-    @Output(doc="Write output to this BAM filename instead of STDOUT")
+    @Output(doc="Write output to this BAM filename instead of STDOUT", required = true)
     SAMFileWriter out;
 
     @Argument(fullName = "readGroup", shortName = "readGroup", doc="Exclude all reads with this read group from the output", required = false)

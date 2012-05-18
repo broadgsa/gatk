@@ -116,9 +116,9 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
         String compressionLevelText = getArgumentValue( createBAMCompressionArgumentDefinition(source), matches );
         Integer compressionLevel = compressionLevelText != null ? Integer.valueOf(compressionLevelText) : null;
 
-        Boolean indexOnTheFly = !argumentIsPresent(disableWriteIndexArgumentDefinition(source),matches) ? true : null;
-        Boolean generateMD5 = argumentIsPresent(this.enableMD5GenerationArgumentDefinition(source),matches) ? true : null;
-        Boolean simplifyBAM = argumentIsPresent(createSimplifyBAMArgumentDefinition(source),matches);
+        boolean indexOnTheFly = !argumentIsPresent(disableWriteIndexArgumentDefinition(source),matches);
+        boolean generateMD5 = argumentIsPresent(this.enableMD5GenerationArgumentDefinition(source),matches);
+        boolean simplifyBAM = argumentIsPresent(createSimplifyBAMArgumentDefinition(source),matches);
 
         // Validate the combination of parameters passed in.
 
@@ -132,15 +132,19 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
         }
 
         // Create the stub and set parameters.
-        SAMFileWriterStub stub = new SAMFileWriterStub(engine, new File(writerFileName));
+        SAMFileWriterStub stub;
+        if ( writerFileName != null )
+            stub = new SAMFileWriterStub(engine, new File(writerFileName));
+        else
+            stub = new SAMFileWriterStub(engine, defaultOutputStream);
 
-        if( compressionLevel != null )
+        if ( compressionLevel != null )
             stub.setCompressionLevel(compressionLevel);
-        if(indexOnTheFly != null)
+        if ( indexOnTheFly )
             stub.setIndexOnTheFly(indexOnTheFly);
-        if(generateMD5 != null)
+        if ( generateMD5 )
             stub.setGenerateMD5(generateMD5);
-        if(simplifyBAM != null)
+        if ( simplifyBAM )
             stub.setSimplifyBAM(simplifyBAM);
 
         // WARNING: Side effects required by engine!
