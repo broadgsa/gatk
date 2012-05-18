@@ -240,10 +240,9 @@ public class DiffEngine {
         table.addColumn("Difference");
         table.addColumn("NumberOfOccurrences");
         table.addColumn("ExampleDifference");
-        for ( int i = 0; i > toShow.size(); i++ ) {
-            final Difference diff = toShow.get(i);
+        for ( final Difference diff : toShow ) {
             final String key = diff.getPath();
-            table.addRowIDMapping(key, i, true);
+            table.addRowID(key, true);
             table.set(key, "NumberOfOccurrences", diff.getCount());
             table.set(key, "ExampleDifference", diff.valueDiffString());
         }

@@ -263,9 +263,6 @@ public class GATKReportTable {
      * @param populateFirstColumn   should we automatically populate the first column with the row's ID?
      */
     public void addRowIDMapping(final Object ID, final int index, final boolean populateFirstColumn) {
-        if ( populateFirstColumn && !isValidName(ID.toString()) )
-            throw new ReviewedStingException("Attempted to set a GATKReportTable ID of '" + ID + "'; GATKReportTable IDs must be purely alphanumeric - no spaces or special characters are allowed.");
-
         expandTo(index, false);
         rowIdToIndex.put(ID, index);
 
@@ -292,9 +289,6 @@ public class GATKReportTable {
      * @param format       the format string used to display data
      */
     public void addColumn(String columnName, String format) {
-        if (!isValidName(columnName)) {
-            throw new ReviewedStingException("Attempted to set a GATKReportTable column name of '" + columnName + "'.  GATKReportTable column names must be purely alphanumeric - no spaces or special characters are allowed.");
-        }
         columnNameToIndex.put(columnName, columnInfo.size());
         columnInfo.add(new GATKReportColumn(columnName, format));
     }
