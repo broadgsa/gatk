@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -75,7 +75,7 @@ public class ErrorRatePerCycle extends LocusWalker<Integer, Integer> {
     public Integer MIN_MAPPING_QUAL = 20;
 
     private GATKReport report;
-    private GATKReportTable table;
+    private GATKReportTableV2 table;
     private final static String reportName = "ErrorRatePerCycle";
     private final static String reportDescription = "The error rate per sequenced position in the reads";
 
@@ -122,15 +122,14 @@ public class ErrorRatePerCycle extends LocusWalker<Integer, Integer> {
 
     public void initialize() {
         report = new GATKReport();
-        report.addTable(reportName, reportDescription);
+        report.addTable(reportName, reportDescription, 6, true);
         table = report.getTable(reportName);
-        table.addPrimaryKey("key", false);
-        table.addColumn("readgroup", 0);
-        table.addColumn("cycle", 0);
-        table.addColumn("mismatches", 0);
-        table.addColumn("counts", 0);
-        table.addColumn("qual", 0);
-        table.addColumn("errorrate", 0.0f, "%.2e");
+        table.addColumn("readgroup");
+        table.addColumn("cycle");
+        table.addColumn("mismatches");
+        table.addColumn("counts");
+        table.addColumn("qual");
+        table.addColumn("errorrate", "%.2e");
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -147,9 +146,11 @@ public class ErrorRatePerCycle extends LocusWalker<Integer, Integer> {
                 if ( BaseUtils.isRegularBase(readBase) && BaseUtils.isRegularBase(refBase) ) {
                     final TableKey key = new TableKey(read.getReadGroup().getReadGroupId(), cycle);
 
-                    if ( ! table.containsKey(key) ) {
+                    if ( ! table.containsRowID(key) ) {
                         table.set(key, "cycle", cycle);
                         table.set(key, "readgroup", read.getReadGroup().getReadGroupId());
+                        table.set(key, "counts", 0);
+                        table.set(key, "mismatches", 0);
                     }
 
                     table.increment(key, "counts");
@@ -167,7 +168,7 @@ public class ErrorRatePerCycle extends LocusWalker<Integer, Integer> {
     public Integer reduce(Integer value, Integer sum) { return null; }
 
     public void onTraversalDone(Integer sum) {
-        for ( final Object key : table.getPrimaryKeys() ) {
+        for ( Object key : table.getRowIDs() ) {
             final int mismatches = (Integer)table.get(key, "mismatches");
             final int count = (Integer)table.get(key, "counts");
             final double errorRate = (mismatches + 1) / (1.0*(count + 1));

@@ -26,7 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -235,14 +235,17 @@ public class DiffEngine {
         // now that we have a specific list of values we want to show, display them
         GATKReport report = new GATKReport();
         final String tableName = "differences";
-        report.addTable(tableName, "Summarized differences between the master and test files. See http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine for more information", false);
-        GATKReportTable table = report.getTable(tableName);
-        table.addPrimaryKey("Difference", true);
-        table.addColumn("NumberOfOccurrences", 0);
-        table.addColumn("ExampleDifference", 0);
-        for ( Difference diff : toShow ) {
-            table.set(diff.getPath(), "NumberOfOccurrences", diff.getCount());
-            table.set(diff.getPath(), "ExampleDifference", diff.valueDiffString());
+        report.addTable(tableName, "Summarized differences between the master and test files. See http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine for more information", 3);
+        final GATKReportTableV2 table = report.getTable(tableName);
+        table.addColumn("Difference");
+        table.addColumn("NumberOfOccurrences");
+        table.addColumn("ExampleDifference");
+        for ( int i = 0; i > toShow.size(); i++ ) {
+            final Difference diff = toShow.get(i);
+            final String key = diff.getPath();
+            table.addRowIDMapping(key, i, true);
+            table.set(key, "NumberOfOccurrences", diff.getCount());
+            table.set(key, "ExampleDifference", diff.valueDiffString());
         }
         GATKReport output = new GATKReport(table);
         output.print(params.out);

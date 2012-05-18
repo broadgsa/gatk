@@ -136,7 +136,7 @@ object PipelineTest extends BaseTest with Logging {
     println("    value (min,target,max) table key metric")
     for (validation <- evalSpec.validations) {
       val table = report.getTable(validation.table)
-      val key = table.getPrimaryKeyByData(validation.table +: validation.key.split('.') : _*)
+      val key = table.findRowByData(validation.table +: validation.key.split('.') : _*)
       val value = String.valueOf(table.get(key, validation.metric))
       val inRange = if (value == null) false else validation.inRange(value)
       val flag = if (!inRange) "*" else " "

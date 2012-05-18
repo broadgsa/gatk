@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.io.File;
@@ -172,26 +172,43 @@ public class RecalibrationArgumentCollection {
 
     public File recalibrationReport = null;
 
-    public GATKReportTable generateReportTable() {
-        GATKReportTable argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run");
-        argumentsTable.addPrimaryKey("Argument");
-        argumentsTable.addColumn(RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, "null");
+    public GATKReportTableV2 generateReportTable() {
+        GATKReportTableV2 argumentsTable = new GATKReportTableV2("Arguments", "Recalibration argument collection values used in this run", 2);
+        argumentsTable.addColumn("Argument");
+        argumentsTable.addColumn(RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME);
+        argumentsTable.addRowID("covariate", true);
         argumentsTable.set("covariate", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, (COVARIATES == null) ? "null" : Utils.join(",", COVARIATES));
+        argumentsTable.addRowID("standard_covs", true);
         argumentsTable.set("standard_covs", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, USE_STANDARD_COVARIATES);
+        argumentsTable.addRowID("run_without_dbsnp", true);
         argumentsTable.set("run_without_dbsnp", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, RUN_WITHOUT_DBSNP);
+        argumentsTable.addRowID("solid_recal_mode", true);
         argumentsTable.set("solid_recal_mode", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, SOLID_RECAL_MODE);
+        argumentsTable.addRowID("solid_nocall_strategy", true);
         argumentsTable.set("solid_nocall_strategy", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, SOLID_NOCALL_STRATEGY);
+        argumentsTable.addRowID("mismatches_context_size", true);
         argumentsTable.set("mismatches_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_CONTEXT_SIZE);
+        argumentsTable.addRowID("insertions_context_size", true);
         argumentsTable.set("insertions_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, INSERTIONS_CONTEXT_SIZE);
+        argumentsTable.addRowID("deletions_context_size", true);
         argumentsTable.set("deletions_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, DELETIONS_CONTEXT_SIZE);
+        argumentsTable.addRowID("mismatches_default_quality", true);
         argumentsTable.set("mismatches_default_quality", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_DEFAULT_QUALITY);
+        argumentsTable.addRowID("insertions_default_quality", true);
         argumentsTable.set("insertions_default_quality", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, INSERTIONS_DEFAULT_QUALITY);
+        argumentsTable.addRowID("low_quality_tail", true);
         argumentsTable.set("low_quality_tail", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, LOW_QUAL_TAIL);
+        argumentsTable.addRowID("default_platform", true);
         argumentsTable.set("default_platform", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, DEFAULT_PLATFORM);
+        argumentsTable.addRowID("force_platform", true);
         argumentsTable.set("force_platform", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, FORCE_PLATFORM);
+        argumentsTable.addRowID("quantizing_levels", true);
         argumentsTable.set("quantizing_levels", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, QUANTIZING_LEVELS);
+        argumentsTable.addRowID("keep_intermediate_files", true);
         argumentsTable.set("keep_intermediate_files", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, KEEP_INTERMEDIATE_FILES);
+        argumentsTable.addRowID("no_plots", true);
         argumentsTable.set("no_plots", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, NO_PLOTS);
+        argumentsTable.addRowID("recalibration_report", true);
         argumentsTable.set("recalibration_report", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, recalibrationReport == null ? "null" : recalibrationReport.getAbsolutePath());
         return argumentsTable;
     }

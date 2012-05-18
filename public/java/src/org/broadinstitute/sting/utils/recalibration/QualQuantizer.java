@@ -29,7 +29,7 @@ import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -422,40 +422,42 @@ public class QualQuantizer {
     }
 
     private final void addQualHistogramToReport(final GATKReport report) {
-        report.addTable("QualHistogram", "Quality score histogram provided to report");
-        GATKReportTable table = report.getTable("QualHistogram");
+        report.addTable("QualHistogram", "Quality score histogram provided to report", 2);
+        GATKReportTableV2 table = report.getTable("QualHistogram");
 
-        table.addPrimaryKey("qual");
-        table.addColumn("count", "NA");
+        table.addColumn("qual");
+        table.addColumn("count");
 
         for ( int q = 0; q < nObservationsPerQual.size(); q++ ) {
+            table.set(q, "qual", q);
             table.set(q, "count", nObservationsPerQual.get(q));
         }
     }
 
 
     private final void addIntervalsToReport(final GATKReport report) {
-        report.addTable("QualQuantizerIntervals", "Table of QualQuantizer quantization intervals");
-        GATKReportTable table = report.getTable("QualQuantizerIntervals");
+        report.addTable("QualQuantizerIntervals", "Table of QualQuantizer quantization intervals", 10);
+        GATKReportTableV2 table = report.getTable("QualQuantizerIntervals");
 
-        table.addPrimaryKey("name");
-        table.addColumn("qStart", "NA");
-        table.addColumn("qEnd", "NA");
-        table.addColumn("level", "NA");
-        table.addColumn("merge.order", "NA");
-        table.addColumn("nErrors", "NA");
-        table.addColumn("nObservations", "NA");
-        table.addColumn("qual", "NA");
-        table.addColumn("penalty", "NA");
-        table.addColumn("root.node", "NA");
+        table.addColumn("name");
+        table.addColumn("qStart");
+        table.addColumn("qEnd");
+        table.addColumn("level");
+        table.addColumn("merge.order");
+        table.addColumn("nErrors");
+        table.addColumn("nObservations");
+        table.addColumn("qual");
+        table.addColumn("penalty");
+        table.addColumn("root.node");
         //table.addColumn("subintervals", "NA");
 
-        for ( QualInterval interval : quantizedIntervals)
+        for ( QualInterval interval : quantizedIntervals )
             addIntervalToReport(table, interval, true);
     }
 
-    private final void addIntervalToReport(final GATKReportTable table, QualInterval interval, final boolean atRootP) {
+    private final void addIntervalToReport(final GATKReportTableV2 table, final QualInterval interval, final boolean atRootP) {
         final String name = interval.getName();
+        table.set(name, "name", name);
         table.set(name, "qStart", interval.qStart);
         table.set(name, "qEnd", interval.qEnd);
         table.set(name, "level", interval.level);

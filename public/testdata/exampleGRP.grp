@@ -1,5 +1,5 @@
-#:GATKReport.v1.0:5
-#:GATKTable:true:1:14::;
+#:GATKReport.v1.1:5
+#:GATKTable:2:14::;
 #:GATKTable:Arguments:Recalibration argument collection values used in this run
 Argument                    Value          
 covariate                   null           
@@ -17,7 +17,7 @@ solid_nocall_strategy       THROW_EXCEPTION
 solid_recal_mode            SET_Q_ZERO     
 standard_covs               true           
 
-#:GATKTable:true:2:94:::;
+#:GATKTable:3:94:::;
 #:GATKTable:Quantized:Quality quantization map
 QualityScore  Count  QuantizedScore
 0                20               3
@@ -115,14 +115,14 @@ QualityScore  Count  QuantizedScore
 92                0              92
 93                0              93
 
-#:GATKTable:false:6:3:%s:%s:%.4f:%.4f:%d:%d:;
+#:GATKTable:6:3:%s:%s:%.4f:%.4f:%d:%d:;
 #:GATKTable:RecalTable0:
 ReadGroup           EventType  EmpiricalQuality  EstimatedQReported  Observations  Errors
 exampleBAM.bam.bam  D                   25.8092             45.0000           380       0
 exampleBAM.bam.bam  M                   14.0483             15.4820           380      14
 exampleBAM.bam.bam  I                   25.8092             45.0000           380       0
 
-#:GATKTable:false:6:32:%s:%s:%s:%.4f:%d:%d:;
+#:GATKTable:6:32:%s:%s:%s:%.4f:%d:%d:;
 #:GATKTable:RecalTable1:
 ReadGroup           QualityScore  EventType  EmpiricalQuality  Observations  Errors
 exampleBAM.bam.bam            32  M                   15.1851            32       0
@@ -158,7 +158,7 @@ exampleBAM.bam.bam            45  D                   25.8092           380     
 exampleBAM.bam.bam            13  M                    6.0206             3       0
 exampleBAM.bam.bam            28  M                   12.0412            15       0
 
-#:GATKTable:false:8:1354:%s:%s:%s:%s:%s:%.4f:%d:%d:;
+#:GATKTable:8:1354:%s:%s:%s:%s:%s:%.4f:%d:%d:;
 #:GATKTable:RecalTable2:
 ReadGroup           QualityScore  CovariateValue  CovariateName  EventType  EmpiricalQuality  Observations  Errors
 exampleBAM.bam.bam            45  TGAAAGTG        Context        D                    3.0103             1       0

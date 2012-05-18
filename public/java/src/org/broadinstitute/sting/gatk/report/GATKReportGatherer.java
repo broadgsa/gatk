@@ -54,7 +54,7 @@ public class GATKReportGatherer extends Gatherer {
                 isFirst = false;
             } else {
                 GATKReport toAdd = new GATKReport(input);
-                current.combineWith(toAdd);
+                current.concat(toAdd);
             }
         }
 

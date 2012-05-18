@@ -25,7 +25,7 @@
 package org.broadinstitute.sting.queue.util
 
 import org.broadinstitute.sting.queue.function.QFunction
-import org.broadinstitute.sting.gatk.report.{GATKReportTable, GATKReport}
+import org.broadinstitute.sting.gatk.report.{GATKReportTableV2, GATKReport}
 import org.broadinstitute.sting.utils.exceptions.UserException
 import org.broadinstitute.sting.queue.engine.JobRunInfo
 import java.io.{PrintStream, File}
@@ -65,7 +65,7 @@ trait QJobReport extends Logging {
   }
 
   /** The report Group is the analysis name transform to only contain valid GATKReportTable characters */
-  def getReportGroup = self.analysisName.replaceAll(GATKReportTable.INVALID_TABLE_NAME_REGEX, "_")
+  def getReportGroup = self.analysisName.replaceAll(GATKReportTableV2.INVALID_TABLE_NAME_REGEX, "_")
   def getReportFeatures = reportFeatures
 
   def getReportFeatureNames: Seq[String] = getReportFeatures.keys.toSeq
@@ -139,13 +139,12 @@ object QJobReport {
 
     // create a table for each group of logs
     for ( (group, groupLogs) <- groupLogs(logs) ) {
-      report.addTable(group, "Job logs for " + group)
-      val table: GATKReportTable = report.getTable(group)
-      table.addPrimaryKey("jobName", false)
       val keys = logKeys(groupLogs)
+      report.addTable(group, "Job logs for " + group, keys.size)
+      val table: GATKReportTableV2 = report.getTable(group)
 
       // add the columns
-      keys.foreach(table.addColumn(_, 0))
+      keys.foreach(table.addColumn(_))
       for (log <- groupLogs) {
         for ( key <- keys )
           table.set(log.getReportName, key, log.getReportFeature(key))

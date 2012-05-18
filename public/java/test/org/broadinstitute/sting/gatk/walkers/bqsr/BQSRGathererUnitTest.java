@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -30,8 +30,8 @@ public class BQSRGathererUnitTest {
 
         GATKReport originalReport = new GATKReport(recal);
         GATKReport calculatedReport = new GATKReport(output);        
-        for (GATKReportTable originalTable : originalReport.getTables()) {
-            GATKReportTable calculatedTable = calculatedReport.getTable(originalTable.getTableName());
+        for (GATKReportTableV2 originalTable : originalReport.getTables()) {
+            GATKReportTableV2 calculatedTable = calculatedReport.getTable(originalTable.getTableName());
             List<String> columnsToTest = new LinkedList<String>();
             columnsToTest.add(RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME);
             columnsToTest.add(RecalDataManager.NUMBER_ERRORS_COLUMN_NAME);
@@ -59,11 +59,11 @@ public class BQSRGathererUnitTest {
      * @param columnsToTest list of columns to test. All columns will be tested with the same criteria (equality given factor)
      * @param factor 1 to test for equality, any other value to multiply the original value and match with the calculated
      */
-    private void testTablesWithColumnsAndFactor(GATKReportTable original, GATKReportTable calculated, List<String> columnsToTest, int factor) {
-        for (Object primaryKey : original.getPrimaryKeys()) {                                                           // tables don't necessarily have the same primary keys
+    private void testTablesWithColumnsAndFactor(GATKReportTableV2 original, GATKReportTableV2 calculated, List<String> columnsToTest, int factor) {
+        for (int row = 0; row < original.getNumRows(); row++ ) {
             for (String column : columnsToTest) {
-                Object actual = calculated.get(primaryKey, column);
-                Object expected = original.get(primaryKey, column);
+                Object actual = calculated.get(new Integer(row), column);
+                Object expected = original.get(row, column);
 
                 if (factor != 1) {
                     if (expected instanceof Double)
@@ -76,7 +76,7 @@ public class BQSRGathererUnitTest {
                         expected = (Byte) expected * factor;
                     }
                 }
-                Assert.assertEquals(actual, expected, "Primary key: " + primaryKey + " Original Table: " + original.getTableName() + " Calc Table: " + calculated.getTableName());
+                Assert.assertEquals(actual, expected, "Row: " + row + " Original Table: " + original.getTableName() + " Calc Table: " + calculated.getTableName());
             }
         }
         

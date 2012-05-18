@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.R.RScriptExecutor;
 import org.broadinstitute.sting.utils.Utils;
@@ -223,8 +223,8 @@ public class RecalDataManager {
         logger.info("");
     }
 
-    private static List<GATKReportTable> generateReportTables(Map<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap) {
-        List<GATKReportTable> result = new LinkedList<GATKReportTable>();
+    private static List<GATKReportTableV2> generateReportTables(Map<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap) {
+        List<GATKReportTableV2> result = new LinkedList<GATKReportTableV2>();
         int tableIndex = 0;
 
         final Pair<String, String> covariateValue     = new Pair<String, String>(RecalDataManager.COVARIATE_VALUE_COLUMN_NAME, "%s");
@@ -240,7 +240,6 @@ public class RecalDataManager {
             Map<BitSet, RecalDatum> recalTable = entry.getValue();
 
             boolean isReadGroupTable = tableIndex == 0;                                                                 // special case for the read group table so we can print the extra column it needs.
-            GATKReportTable reportTable = new GATKReportTable("RecalTable" + tableIndex++, "");
 
             List<Covariate> requiredList = keyManager.getRequiredCovariates();                                          // ask the key manager what required covariates were used in this recal table
             List<Covariate> optionalList = keyManager.getOptionalCovariates();                                          // ask the key manager what optional covariates were used in this recal table
@@ -264,11 +263,11 @@ public class RecalDataManager {
             columnNames.add(nObservations);
             columnNames.add(nErrors);
 
-            reportTable.addPrimaryKey("PrimaryKey", false);                                                             // every table must have a primary key (hidden)
+            GATKReportTableV2 reportTable = new GATKReportTableV2("RecalTable" + tableIndex++, "", columnNames.size());
             for (Pair<String, String> columnName : columnNames)
-                reportTable.addColumn(columnName.getFirst(), true, columnName.getSecond());                             // every table must have the event type
+                reportTable.addColumn(columnName.getFirst(), columnName.getSecond());                                   // every table must have the event type
 
-            long primaryKey = 0L;
+            int rowIndex = 0;
 
             for (Map.Entry<BitSet, RecalDatum> recalTableEntry : recalTable.entrySet()) {                               // create a map with column name => key value for all covariate keys
                 BitSet bitSetKey = recalTableEntry.getKey();
@@ -288,9 +287,9 @@ public class RecalDataManager {
                 for (Map.Entry<String, Object> dataEntry : columnData.entrySet()) {
                     String columnName = dataEntry.getKey();
                     Object value = dataEntry.getValue();
-                    reportTable.set(primaryKey, columnName, value.toString());
+                    reportTable.set(rowIndex, columnName, value.toString());
                 }
-                primaryKey++;
+                rowIndex++;
             }
             result.add(reportTable);
         }
@@ -301,11 +300,11 @@ public class RecalDataManager {
         outputRecalibrationReport(RAC.generateReportTable(), quantizationInfo.generateReportTable(), generateReportTables(keysAndTablesMap), outputFile);
     }
 
-    public static void outputRecalibrationReport(GATKReportTable argumentTable, QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager,Map<BitSet, RecalDatum>> keysAndTablesMap, PrintStream outputFile) {
+    public static void outputRecalibrationReport(GATKReportTableV2 argumentTable, QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager,Map<BitSet, RecalDatum>> keysAndTablesMap, PrintStream outputFile) {
         outputRecalibrationReport(argumentTable, quantizationInfo.generateReportTable(), generateReportTables(keysAndTablesMap), outputFile);
     }
 
-    private static void outputRecalibrationReport(GATKReportTable argumentTable, GATKReportTable quantizationTable, List<GATKReportTable> recalTables, PrintStream outputFile) {
+    private static void outputRecalibrationReport(GATKReportTableV2 argumentTable, GATKReportTableV2 quantizationTable, List<GATKReportTableV2> recalTables, PrintStream outputFile) {
         GATKReport report = new GATKReport();
         report.addTable(argumentTable);
         report.addTable(quantizationTable);

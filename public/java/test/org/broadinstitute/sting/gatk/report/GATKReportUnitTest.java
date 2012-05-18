@@ -36,20 +36,18 @@ import java.io.PrintStream;
 public class GATKReportUnitTest extends BaseTest {
     @Test
     public void testParse() throws Exception {
-        String reportPath = validationDataLocation + "exampleGATKReportv1.tbl";
+        String reportPath = validationDataLocation + "exampleGATKReportv2.tbl";
         GATKReport report = new GATKReport(reportPath);
-        Assert.assertEquals(report.getVersion(), GATKReportVersion.V1_0);
+        Assert.assertEquals(report.getVersion(), GATKReportVersion.V1_1);
         Assert.assertEquals(report.getTables().size(), 5);
 
-        GATKReportTable countVariants = report.getTable("CountVariants");
-        Object countVariantsPK = countVariants.getPrimaryKeyByData("CountVariants", "dbsnp", "eval", "none", "all");
-        Assert.assertEquals(countVariants.get(countVariantsPK, "nProcessedLoci"), "63025520");
-        Assert.assertEquals(countVariants.get(countVariantsPK, "nNoCalls"), "0");
-        Assert.assertEquals(countVariants.get(countVariantsPK, "heterozygosity"), 4.73e-06);
+        GATKReportTableV2 countVariants = report.getTable("CountVariants");
+        Assert.assertEquals(countVariants.get(0, "nProcessedLoci"), "63025520");
+        Assert.assertEquals(countVariants.get(0, "nNoCalls"), "0");
+        Assert.assertEquals(countVariants.get(0, "heterozygosity"), 4.73e-06);
 
-        GATKReportTable validationReport = report.getTable("ValidationReport");
-        Object validationReportPK = countVariants.getPrimaryKeyByData("CountVariants", "dbsnp", "eval", "none", "novel");
-        Assert.assertEquals(validationReport.get(validationReportPK, "PPV"), Double.NaN);
+        GATKReportTableV2 validationReport = report.getTable("ValidationReport");
+        Assert.assertEquals(validationReport.get(2, "PPV"), Double.NaN);
     }
 
     @DataProvider(name = "rightAlignValues")
@@ -79,9 +77,9 @@ public class GATKReportUnitTest extends BaseTest {
         Assert.assertEquals(GATKReportColumn.isRightAlign(value), expected, "right align of '" + value + "'");
     }
 
-    private GATKReportTable makeBasicTable() {
+    private GATKReportTableV2 makeBasicTable() {
         GATKReport report = GATKReport.newSimpleReport("TableName", "sample", "value");
-        GATKReportTable table = report.getTable("TableName");
+        GATKReportTableV2 table = report.getTable("TableName");
         report.addRow("foo.1", "hello");
         report.addRow("foo.2", "world");
         return table;
@@ -89,37 +87,9 @@ public class GATKReportUnitTest extends BaseTest {
 
     @Test
     public void testDottedSampleName() {
-        GATKReportTable table = makeBasicTable();
-        Object pk;
-
-        pk = table.getPrimaryKeyByData("foo.1");
-        Assert.assertEquals(table.get(pk, "value"), "hello");
-
-        pk = table.getPrimaryKeyByData("foo.2");
-        Assert.assertEquals(table.get(pk, "value"), "world");
-    }
-
-    @Test
-    public void testFindPrimaryKeyByData() {
-        GATKReportTable table = makeBasicTable();
-        Assert.assertNotNull(table.findPrimaryKeyByData("foo.1"));
-        Assert.assertNotNull(table.findPrimaryKeyByData("foo.1", "hello"));
-        Assert.assertNotNull(table.findPrimaryKeyByData("foo.2"));
-        Assert.assertNotNull(table.findPrimaryKeyByData("foo.2", "world"));
-        Assert.assertNull(table.findPrimaryKeyByData("list", "longer", "than", "column", "count"));
-        Assert.assertNull(table.findPrimaryKeyByData("short"));
-    }
-
-    @Test(expectedExceptions = IllegalArgumentException.class)
-    public void testEmptyFindPrimaryKeyByData() {
-        GATKReportTable table = makeBasicTable();
-        table.findPrimaryKeyByData();
-    }
-
-    @Test(expectedExceptions = NullPointerException.class)
-    public void testNullFindPrimaryKeyByData() {
-        GATKReportTable table = makeBasicTable();
-        table.findPrimaryKeyByData((Object[]) null);
+        GATKReportTableV2 table = makeBasicTable();
+        Assert.assertEquals(table.get(0, "value"), "hello");
+        Assert.assertEquals(table.get(1, "value"), "world");
     }
 
     @Test
@@ -128,7 +98,7 @@ public class GATKReportUnitTest extends BaseTest {
         GATKReport report = GATKReport.newSimpleReport("TableName", "Roger", "is", "Awesome");
 
         // Add data to simple GATK report
-        report.addRow( 12, 23.45, true);
+        report.addRow(12, 23.45, true);
         report.addRow("ans", '3', 24.5);
         report.addRow("hi", "", 2.3);
 
@@ -154,42 +124,40 @@ public class GATKReportUnitTest extends BaseTest {
 
     @Test
     public void testGATKReportGatherer() {
-        boolean displayPK = false;
 
         GATKReport report1, report2, report3;
         report1 = new GATKReport();
-        report1.addTable("TableName", "Description");
-        report1.getTable("TableName").addPrimaryKey("id", displayPK);
-        report1.getTable("TableName").addColumn("colA", GATKReportDataType.String.getDefaultValue(), "%s");
-        report1.getTable("TableName").addColumn("colB", GATKReportDataType.Character.getDefaultValue(), "%c");
-        report1.getTable("TableName").set(1, "colA", "NotNum");
-        report1.getTable("TableName").set(1, "colB", (char) 64);
+        report1.addTable("TableName", "Description", 2);
+        report1.getTable("TableName").addColumn("colA", "%s");
+        report1.getTable("TableName").addColumn("colB", "%c");
+        report1.getTable("TableName").set(0, "colA", "NotNum");
+        report1.getTable("TableName").set(0, "colB", (char) 64);
 
         report2 = new GATKReport();
-        report2.addTable("TableName", "Description");
-        report2.getTable("TableName").addPrimaryKey("id", displayPK);
-        report2.getTable("TableName").addColumn("colA", GATKReportDataType.String.getDefaultValue(), "%s");
-        report2.getTable("TableName").addColumn("colB", GATKReportDataType.Character.getDefaultValue(), "%c");
-        report2.getTable("TableName").set(2, "colA", "df3");
-        report2.getTable("TableName").set(2, "colB", 'A');
+        report2.addTable("TableName", "Description", 2);
+        report2.getTable("TableName").addColumn("colA", "%s");
+        report2.getTable("TableName").addColumn("colB", "%c");
+        report2.getTable("TableName").set(0, "colA", "df3");
+        report2.getTable("TableName").set(0, "colB", 'A');
 
         report3 = new GATKReport();
-        report3.addTable("TableName", "Description");
-        report3.getTable("TableName").addPrimaryKey("id", displayPK);
-        report3.getTable("TableName").addColumn("colA", GATKReportDataType.String.getDefaultValue(), "%s");
-        report3.getTable("TableName").addColumn("colB", GATKReportDataType.Character.getDefaultValue(), "%c");
-        report3.getTable("TableName").set(3, "colA", "df5f");
-        report3.getTable("TableName").set(3, "colB", 'c');
+        report3.addTable("TableName", "Description", 2);
+        report3.getTable("TableName").addColumn("colA", "%s");
+        report3.getTable("TableName").addColumn("colB", "%c");
+        report3.getTable("TableName").set(0, "colA", "df5f");
+        report3.getTable("TableName").set(0, "colB", 'c');
 
-        report1.combineWith(report2);
-        report1.combineWith(report3);
+        report1.concat(report2);
+        report1.concat(report3);
 
-        report1.addTable("Table2", "To contain some more data types");
-        GATKReportTable table = report1.getTable("Table2");
-        table.addPrimaryKey("KEY");
-        table.addColumn("SomeInt", GATKReportDataType.Integer.getDefaultValue(), true, "%d");
-        table.addColumn("SomeFloat", GATKReportDataType.Decimal.getDefaultValue(), true, "%.16E");
-        table.addColumn("TrueFalse", false, true, "%B");
+        report1.addTable("Table2", "To contain some more data types", 3);
+        GATKReportTableV2 table = report1.getTable("Table2");
+        table.addColumn("SomeInt", "%d");
+        table.addColumn("SomeFloat", "%.16E");
+        table.addColumn("TrueFalse", "%B");
+        table.addRowIDMapping("12df", 0);
+        table.addRowIDMapping("5f", 1);
+        table.addRowIDMapping("RZ", 2);
         table.set("12df", "SomeInt", Byte.MAX_VALUE);
         table.set("12df", "SomeFloat", 34.0);
         table.set("12df", "TrueFalse", true);
@@ -200,16 +168,16 @@ public class GATKReportUnitTest extends BaseTest {
         table.set("RZ", "SomeFloat", 535646345.657453464576);
         table.set("RZ", "TrueFalse", true);
 
-        report1.addTable("Table3", "blah");
-        report1.getTable("Table3").addPrimaryKey("HAI");
-        report1.getTable("Table3").addColumn("a", true, GATKReportDataType.String.getDefaultFormatString());
+        report1.addTable("Table3", "blah", 1, true);
+        report1.getTable("Table3").addColumn("a");
+        report1.getTable("Table3").addRowIDMapping("q", 2);
+        report1.getTable("Table3").addRowIDMapping("5", 3);
+        report1.getTable("Table3").addRowIDMapping("573s", 0);
+        report1.getTable("Table3").addRowIDMapping("ZZZ", 1);
         report1.getTable("Table3").set("q", "a", "34");
         report1.getTable("Table3").set("5", "a", "c4g34");
         report1.getTable("Table3").set("573s", "a", "fDlwueg");
         report1.getTable("Table3").set("ZZZ", "a", "Dfs");
-
-        //report1.print(System.out);
-
 
         try {
             File file = createTempFile("GATKReportGatherer-UnitTest", ".tbl");
@@ -226,8 +194,5 @@ public class GATKReportUnitTest extends BaseTest {
         } catch (IOException x) {
             System.err.format("IOException: %s%n", x);
         }
-
-        //Assert.assertEquals(1,1);
-
     }
 }

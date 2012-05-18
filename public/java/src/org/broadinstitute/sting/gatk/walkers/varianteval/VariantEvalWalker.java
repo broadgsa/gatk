@@ -555,8 +555,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             for ( final VariantEvaluator ve : nec.getVariantEvaluators() )
                 ve.finalizeEvaluation();
         
-        final VariantEvalReportWriter writer = new VariantEvalReportWriter(stratManager, stratManager.getStratifiers(), stratManager.get(0).getVariantEvaluators());
-        writer.writeReport(out);
+        VariantEvalReportWriter.writeReport(out, stratManager, stratManager.getStratifiers(), stratManager.get(0).getVariantEvaluators());
     }
 
     // Accessors

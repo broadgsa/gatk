@@ -26,7 +26,8 @@ package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportColumn;
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.gatk.report.GATKReportColumnV2;
+import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
 
 import java.io.File;
 import java.io.FileReader;
@@ -52,7 +53,7 @@ public class GATKReportDiffableReader implements DiffableReader {
             // one line reads the whole thing into memory
             GATKReport report = new GATKReport(file);
 
-            for (GATKReportTable table : report.getTables()) {
+            for (GATKReportTableV2 table : report.getTables()) {
                 root.add(tableToNode(table, root));
             }
 
@@ -62,23 +63,22 @@ public class GATKReportDiffableReader implements DiffableReader {
         }
     }
 
-    private DiffNode tableToNode(GATKReportTable table, DiffNode root) {
+    private DiffNode tableToNode(GATKReportTableV2 table, DiffNode root) {
         DiffNode tableRoot = DiffNode.empty(table.getTableName(), root);
 
         tableRoot.add("Description", table.getTableDescription());
         tableRoot.add("NumberOfRows", table.getNumRows());
 
-        for (GATKReportColumn column : table.getColumns().values()) {
+        for ( GATKReportColumnV2 column : table.getColumnInfo() ) {
             DiffNode columnRoot = DiffNode.empty(column.getColumnName(), tableRoot);
 
             columnRoot.add("Width", column.getColumnFormat().getWidth());
             // NOTE: as the values are trimmed during parsing left/right alignment is not currently preserved
-            columnRoot.add("Displayable", column.isDisplayable());
+            columnRoot.add("Displayable", true);
 
-            int n = 1;
-            for (Object elt : column.values()) {
-                String name = column.getColumnName() + n++;
-                columnRoot.add(name, elt.toString());
+            for ( int i = 0; i < table.getNumRows(); i++ ) {
+                String name = column.getColumnName() + (i+1);
+                columnRoot.add(name, table.get(i, column.getColumnName()).toString());
             }
 
             tableRoot.add(columnRoot);

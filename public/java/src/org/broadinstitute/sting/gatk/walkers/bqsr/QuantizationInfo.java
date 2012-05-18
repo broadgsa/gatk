@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.recalibration.QualQuantizer;
@@ -77,13 +77,14 @@ public class QuantizationInfo {
         return quantizationLevels;
     }
 
-    public GATKReportTable generateReportTable() {
-        GATKReportTable quantizedTable = new GATKReportTable(RecalDataManager.QUANTIZED_REPORT_TABLE_TITLE, "Quality quantization map");
-        quantizedTable.addPrimaryKey(RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
-        quantizedTable.addColumn(RecalDataManager.QUANTIZED_COUNT_COLUMN_NAME, 0L);
-        quantizedTable.addColumn(RecalDataManager.QUANTIZED_VALUE_COLUMN_NAME, (byte) 0);
+    public GATKReportTableV2 generateReportTable() {
+        GATKReportTableV2 quantizedTable = new GATKReportTableV2(RecalDataManager.QUANTIZED_REPORT_TABLE_TITLE, "Quality quantization map", 3);
+        quantizedTable.addColumn(RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
+        quantizedTable.addColumn(RecalDataManager.QUANTIZED_COUNT_COLUMN_NAME);
+        quantizedTable.addColumn(RecalDataManager.QUANTIZED_VALUE_COLUMN_NAME);
 
         for (int qual = 0; qual <= QualityUtils.MAX_QUAL_SCORE; qual++) {
+            quantizedTable.set(qual, RecalDataManager.QUALITY_SCORE_COLUMN_NAME, qual);
             quantizedTable.set(qual, RecalDataManager.QUANTIZED_COUNT_COLUMN_NAME, empiricalQualCounts.get(qual));
             quantizedTable.set(qual, RecalDataManager.QUANTIZED_VALUE_COLUMN_NAME, quantizedQuals.get(qual));
         }

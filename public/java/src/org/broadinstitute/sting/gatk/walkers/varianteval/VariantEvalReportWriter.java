@@ -25,7 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.gatk.report.GATKReportTableV2;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
@@ -50,30 +50,32 @@ import java.util.Map;
  * and supports writing out the data in these evaluators to a GATKReport.
  */
 public class VariantEvalReportWriter {
-    private final GATKReport report;
-    private final StratificationManager<VariantStratifier, EvaluationContext> stratManager;
 
-    public VariantEvalReportWriter(final StratificationManager<VariantStratifier, EvaluationContext> stratManager,
-                                   final Collection<VariantStratifier> stratifiers,
-                                   final Collection<VariantEvaluator> evaluators) {
-        this.stratManager = stratManager;
-        this.report = initializeGATKReport(stratifiers, evaluators);
-    }
+    protected VariantEvalReportWriter() {}  // no public access
 
     /**
      * The business end of the class.  Writes out the data in the provided stratManager
      * to the PrintStream out
      *
-     * @param out
+     * @param out            the output stream
+     * @param stratManager   the stratification manager
+     * @param stratifiers    the stratifiers
+     * @param evaluators     the evaluators
      */
-    public final void writeReport(final PrintStream out) {
+    public static void writeReport(final PrintStream out,
+                                   final StratificationManager<VariantStratifier, EvaluationContext> stratManager,
+                                   final Collection<VariantStratifier> stratifiers,
+                                   final Collection<VariantEvaluator> evaluators) {
+
+        final GATKReport report = initializeGATKReport(stratifiers, evaluators);
+
         for ( int key = 0; key < stratManager.size(); key++ ) {
             final String stratStateString = stratManager.getStratsAndStatesStringForKey(key);
             final List<Pair<VariantStratifier, Object>> stratsAndStates = stratManager.getStratsAndStatesForKey(key);
             final EvaluationContext nec = stratManager.get(key);
 
             for ( final VariantEvaluator ve : nec.getVariantEvaluators() ) {
-                final GATKReportTable table = report.getTable(ve.getSimpleName());
+                final GATKReportTableV2 table = report.getTable(ve.getSimpleName());
 
                 final AnalysisModuleScanner scanner = new AnalysisModuleScanner(ve);
                 final Map<Field, DataPoint> datamap = scanner.getData();
@@ -120,9 +122,10 @@ public class VariantEvalReportWriter {
      * @param primaryKey
      * @param stratsAndStates
      */
-    private void setStratificationColumns(final GATKReportTable table,
-                                                final String primaryKey,
-                                                final List<Pair<VariantStratifier, Object>> stratsAndStates) {
+    private static void setStratificationColumns(final GATKReportTableV2 table,
+                                                 final String primaryKey,
+                                                 final List<Pair<VariantStratifier, Object>> stratsAndStates) {
+        table.set(primaryKey, table.getTableName(), table.getTableName());
         for ( final Pair<VariantStratifier, Object> stratAndState : stratsAndStates ) {
             final VariantStratifier vs = stratAndState.getFirst();
             final String columnName = vs.getName();
@@ -148,34 +151,33 @@ public class VariantEvalReportWriter {
      *
      * @return an initialized report object
      */
-    private GATKReport initializeGATKReport(final Collection<VariantStratifier> stratifiers,
-                                           final Collection<VariantEvaluator> evaluators) {
+    private static GATKReport initializeGATKReport(final Collection<VariantStratifier> stratifiers,
+                                                   final Collection<VariantEvaluator> evaluators) {
         final GATKReport report = new GATKReport();
 
         for (final VariantEvaluator ve : evaluators) {
+            final AnalysisModuleScanner scanner = new AnalysisModuleScanner(ve);
+            final Map<Field, DataPoint> datamap = scanner.getData();
+
             // create the table
             final String tableName = ve.getSimpleName();
             final String tableDesc = ve.getClass().getAnnotation(Analysis.class).description();
-            report.addTable(tableName, tableDesc, true);
+            report.addTable(tableName, tableDesc, 1 + stratifiers.size() + (scanner.hasMoltenField() ? 2 : datamap.size()), true);
 
             // grab the table, and add the columns we need to it
-            final GATKReportTable table = report.getTable(tableName);
-            table.addPrimaryKey("entry", false);
+            final GATKReportTableV2 table = report.getTable(tableName);
             table.addColumn(tableName, tableName);
 
             // first create a column to hold each stratifier state
             for (final VariantStratifier vs : stratifiers) {
                 final String columnName = vs.getName();
-                table.addColumn(columnName, null, vs.getFormat());
+                table.addColumn(columnName, vs.getFormat());
             }
 
-            final AnalysisModuleScanner scanner = new AnalysisModuleScanner(ve);
-            final Map<Field, DataPoint> datamap = scanner.getData();
-            
             if ( scanner.hasMoltenField() ) {
                 // deal with molten data
-                table.addColumn(scanner.getMoltenAnnotation().variableName(), true, scanner.getMoltenAnnotation().variableFormat());
-                table.addColumn(scanner.getMoltenAnnotation().valueName(), true, scanner.getMoltenAnnotation().valueFormat());
+                table.addColumn(scanner.getMoltenAnnotation().variableName(), scanner.getMoltenAnnotation().variableFormat());
+                table.addColumn(scanner.getMoltenAnnotation().valueName(), scanner.getMoltenAnnotation().valueFormat());
             } else {
                 if ( datamap.isEmpty() )
                     throw new ReviewedStingException("Datamap is empty for analysis " + scanner.getAnalysis());
@@ -187,7 +189,7 @@ public class VariantEvalReportWriter {
 
                         // this is an atomic value, add a column for it
                         final String format = datamap.get(field).format();
-                        table.addColumn(field.getName(), true, format);
+                        table.addColumn(field.getName(), format);
                     } catch (SecurityException e) {
                         throw new StingException("SecurityException: " + e);
                     }
