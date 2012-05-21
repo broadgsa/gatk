@@ -249,6 +249,17 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
     }
 
     /**
+     * Should we also write a BCF file alongside our VCF file for testing
+     *
+     * TODO -- remove me when argument alsoGenerateBCF is removed
+     *
+     * @return
+     */
+    public boolean alsoWriteBCFForTest() {
+        return ! isCompressed() && getFile() != null && engine.getArguments().alsoGenerateBCF;
+    }
+
+    /**
      * Gets the appropriately formatted header for a VCF file
      * @return VCF file header.
      */

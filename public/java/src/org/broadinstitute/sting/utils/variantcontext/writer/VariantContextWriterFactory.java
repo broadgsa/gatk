@@ -70,7 +70,7 @@ public class VariantContextWriterFactory {
                                               final OutputStream output,
                                               final SAMSequenceDictionary refDict,
                                               final EnumSet<Options> options) {
-        final boolean enableBCF = options.contains(Options.FORCE_BCF) || (location != null && location.getName().contains(".bcf"));
+        final boolean enableBCF = isBCFOutput(location, options);
 
         if ( enableBCF )
             return new BCF2Writer(location, output, refDict,
@@ -81,6 +81,10 @@ public class VariantContextWriterFactory {
                     options.contains(Options.INDEX_ON_THE_FLY),
                     options.contains(Options.DO_NOT_WRITE_GENOTYPES));
         }
+    }
+
+    public static boolean isBCFOutput(final File location, final EnumSet<Options> options) {
+        return options.contains(Options.FORCE_BCF) || (location != null && location.getName().contains(".bcf"));
     }
 
     public static VariantContextWriter sortOnTheFly(final VariantContextWriter innerWriter, int maxCachingStartDistance) {

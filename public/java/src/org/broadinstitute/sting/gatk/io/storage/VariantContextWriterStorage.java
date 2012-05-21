@@ -33,6 +33,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.writer.Options;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
@@ -40,6 +41,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.List;
 
 /**
  * Provides temporary and permanent storage for genotypes in VCF format.
@@ -95,7 +99,41 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
         }
 
         // The GATK/Tribble can't currently index block-compressed files on the fly.  Disable OTF indexing even if the user explicitly asked for it.
-        return VariantContextWriterFactory.create(file, this.stream, stub.getMasterSequenceDictionary(), stub.getWriterOptions(indexOnTheFly));
+        EnumSet<Options> options = stub.getWriterOptions(indexOnTheFly);
+        VariantContextWriter writer = VariantContextWriterFactory.create(file, this.stream, stub.getMasterSequenceDictionary(), options);
+
+        // if the stub says to test BCF, create a secondary writer to BCF and an 2 way out writer to send to both
+        // TODO -- remove me when argument alsoGenerateBCF is removed
+        if ( stub.alsoWriteBCFForTest() && ! VariantContextWriterFactory.isBCFOutput(file, options)) {
+            final File bcfFile = new File(file.getAbsolutePath() + ".bcf");
+            VariantContextWriter bcfWriter = VariantContextWriterFactory.create(bcfFile, stub.getMasterSequenceDictionary(), options);
+            writer = new TestWriter(writer, bcfWriter);
+        }
+
+        return writer;
+    }
+
+    private final static class TestWriter implements VariantContextWriter {
+        final List<VariantContextWriter> writers;
+
+        private TestWriter(final VariantContextWriter ... writers) {
+            this.writers = Arrays.asList(writers);
+        }
+
+        @Override
+        public void writeHeader(final VCFHeader header) {
+            for ( final VariantContextWriter writer : writers ) writer.writeHeader(header);
+        }
+
+        @Override
+        public void close() {
+            for ( final VariantContextWriter writer : writers ) writer.close();
+        }
+
+        @Override
+        public void add(final VariantContext vc) {
+            for ( final VariantContextWriter writer : writers ) writer.add(vc);
+        }
     }
 
 

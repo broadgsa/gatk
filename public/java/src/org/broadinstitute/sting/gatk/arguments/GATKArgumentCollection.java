@@ -324,5 +324,16 @@ public class GATKArgumentCollection {
     @Argument(fullName="allow_intervals_with_unindexed_bam",doc="Allow interval processing with an unsupported BAM.  NO INTEGRATION TESTS are available.  Use at your own risk.",required=false)
     @Hidden
     public boolean allowIntervalsWithUnindexedBAM = false;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing BCF2
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    @Argument(fullName="also_generate_bcf",doc="If provided, whenever we create a VCFWriter we will also write out a BCF file alongside it, for testing purposes",required=false)
+    @Hidden
+    public boolean alsoGenerateBCF = false;
+    // TODO -- remove all code tagged with TODO -- remove me when argument alsoGenerateBCF is removed
 }
 
