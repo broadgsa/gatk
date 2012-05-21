@@ -38,13 +38,16 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextTestProvider;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class WalkerTest extends BaseTest {
+    private static final boolean GENERATE_SHADOW_BCF = false;
     private static final boolean ENABLE_PHONE_HOME_FOR_TESTS = false;
     private static final boolean ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX = false;
 
@@ -57,7 +60,19 @@ public class WalkerTest extends BaseTest {
         return MD5DB.assertMatchingMD5(name, resultsFile, expectedMD5, parameterize());
     }
 
-    public void maybeValidateSupplementaryFile(final String name, final File resultFile) {
+    public void validateOutputBCFIfPossible(final String name, final File resultFile) {
+        final File bcfFile = new File(resultFile.getAbsolutePath() + ".bcf");
+        if ( bcfFile.exists() ) {
+            logger.warn("Checking shadow BCF output file " + bcfFile + " against VCF file " + resultFile);
+            try {
+                VariantContextTestProvider.assertVCFandBCFFilesAreTheSame(resultFile, bcfFile);
+            } catch ( Exception e ) {
+                Assert.fail("Exception received reading shadow BCFFile " + bcfFile + " for test " + name, e);
+            }
+        }
+    }
+
+    public void validateOutputIndex(final String name, final File resultFile) {
         if ( !ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX )
             return;
 
@@ -69,20 +84,15 @@ public class WalkerTest extends BaseTest {
                 throw new StingException("Found an index created for file " + resultFile + " but we can only validate VCF files.  Extend this code!");
             }
 
-            assertOnDiskIndexEqualToNewlyCreatedIndex(indexFile, name, resultFile);
-        }
-    }
+            System.out.println("Verifying on-the-fly index " + indexFile + " for test " + name + " using file " + resultFile);
+            Index indexFromOutputFile = IndexFactory.createDynamicIndex(resultFile, new VCFCodec());
+            Index dynamicIndex = IndexFactory.loadIndex(indexFile.getAbsolutePath());
 
-
-    public static void assertOnDiskIndexEqualToNewlyCreatedIndex(final File indexFile, final String name, final File resultFile) {
-        System.out.println("Verifying on-the-fly index " + indexFile + " for test " + name + " using file " + resultFile);
-        Index indexFromOutputFile = IndexFactory.createDynamicIndex(resultFile, new VCFCodec());
-        Index dynamicIndex = IndexFactory.loadIndex(indexFile.getAbsolutePath());
-
-        if ( ! indexFromOutputFile.equalsIgnoreProperties(dynamicIndex) ) {
-            Assert.fail(String.format("Index on disk from indexing on the fly not equal to the index created after the run completed.  FileIndex %s vs. on-the-fly %s%n",
-                    indexFromOutputFile.getProperties(),
-                    dynamicIndex.getProperties()));
+            if ( ! indexFromOutputFile.equalsIgnoreProperties(dynamicIndex) ) {
+                Assert.fail(String.format("Index on disk from indexing on the fly not equal to the index created after the run completed.  FileIndex %s vs. on-the-fly %s%n",
+                        indexFromOutputFile.getProperties(),
+                        dynamicIndex.getProperties()));
+            }
         }
     }
 
@@ -93,7 +103,8 @@ public class WalkerTest extends BaseTest {
         for (int i = 0; i < resultFiles.size(); i++) {
             MD5DB.MD5Match result = assertMatchingMD5(name, resultFiles.get(i), expectedMD5s.get(i));
             if ( ! result.failed ) {
-                maybeValidateSupplementaryFile(name, resultFiles.get(i));
+                validateOutputIndex(name, resultFiles.get(i));
+                validateOutputBCFIfPossible(name, resultFiles.get(i));
                 md5s.add(result.md5);
             } else {
                 fails.add(result);
@@ -125,13 +136,8 @@ public class WalkerTest extends BaseTest {
     }
 
     public class WalkerTestSpec {
-
         // Arguments implicitly included in all Walker command lines, unless explicitly
         // disabled using the disableImplicitArgs() method below.
-        final String IMPLICIT_ARGS = ENABLE_PHONE_HOME_FOR_TESTS ?
-                                     String.format("-et %s", GATKRunReport.PhoneHomeOption.STANDARD) :
-                                     String.format("-et %s -K %s", GATKRunReport.PhoneHomeOption.NO_ET, gatkKeyFile);
-
         String args = "";
         int nOutputFiles = -1;
         List<String> md5s = null;
@@ -172,7 +178,16 @@ public class WalkerTest extends BaseTest {
         }
 
         public String getArgsWithImplicitArgs() {
-            return args + (includeImplicitArgs ? " " + IMPLICIT_ARGS : "");
+            String args = this.args;
+            if ( includeImplicitArgs ) {
+                args = args + (ENABLE_PHONE_HOME_FOR_TESTS ?
+                        String.format(" -et %s ", GATKRunReport.PhoneHomeOption.STANDARD) :
+                        String.format(" -et %s -K %s ", GATKRunReport.PhoneHomeOption.NO_ET, gatkKeyFile));
+                if ( GENERATE_SHADOW_BCF )
+                    args = args + " --generateShadowBCF ";
+            }
+
+            return args;
         }
 
         public void setOutputFileLocation(File outputFileLocation) {
