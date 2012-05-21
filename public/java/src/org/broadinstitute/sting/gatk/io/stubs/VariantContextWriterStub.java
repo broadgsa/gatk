@@ -87,7 +87,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
     /**
      * Should the header be written out?  A hidden argument.
      */
-    private final boolean skipWritingHeader;
+    private final boolean skipWritingCommandLineHeader;
 
     /**
      * Should we not write genotypes even when provided?
@@ -107,16 +107,16 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
      * @param genotypeFile  file to (ultimately) create.
      * @param isCompressed  should we compress the output stream?
      * @param argumentSources sources.
-     * @param skipWritingHeader skip writing header.
+     * @param skipWritingCommandLineHeader skip writing header.
      * @param doNotWriteGenotypes do not write genotypes.
      */
-    public VariantContextWriterStub(GenomeAnalysisEngine engine, File genotypeFile, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader, boolean doNotWriteGenotypes) {
+    public VariantContextWriterStub(GenomeAnalysisEngine engine, File genotypeFile, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingCommandLineHeader, boolean doNotWriteGenotypes) {
         this.engine = engine;
         this.genotypeFile = genotypeFile;
         this.genotypeStream = null;
         this.isCompressed = isCompressed;
         this.argumentSources = argumentSources;
-        this.skipWritingHeader = skipWritingHeader;
+        this.skipWritingCommandLineHeader = skipWritingCommandLineHeader;
         this.doNotWriteGenotypes = doNotWriteGenotypes;
     }
 
@@ -127,16 +127,16 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
      * @param genotypeStream  stream to (ultimately) write.
      * @param isCompressed  should we compress the output stream?
      * @param argumentSources sources.
-     * @param skipWritingHeader skip writing header.
+     * @param skipWritingCommandLineHeader skip writing header.
      * @param doNotWriteGenotypes do not write genotypes.
      */
-    public VariantContextWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader, boolean doNotWriteGenotypes) {
+    public VariantContextWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingCommandLineHeader, boolean doNotWriteGenotypes) {
         this.engine = engine;
         this.genotypeFile = null;
         this.genotypeStream = new PrintStream(genotypeStream);
         this.isCompressed = isCompressed;
         this.argumentSources = argumentSources;
-        this.skipWritingHeader = skipWritingHeader;
+        this.skipWritingCommandLineHeader = skipWritingCommandLineHeader;
         this.doNotWriteGenotypes = doNotWriteGenotypes;
     }
 
@@ -205,17 +205,13 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
     public void writeHeader(VCFHeader header) {
         vcfHeader = header;
 
-        // Check for the command-line argument header line.  If not present, add it in.
-        if (!skipWritingHeader && header.isWriteEngineHeaders()) {
-            
-            if (header.isWriteCommandLine()) {
-                VCFHeaderLine commandLineArgHeaderLine = getCommandLineArgumentHeaderLine();
-                boolean foundCommandLineHeaderLine = false;
-                for (VCFHeaderLine line: vcfHeader.getMetaData()) {
-                    if ( line.getKey().equals(commandLineArgHeaderLine.getKey()) )
-                        foundCommandLineHeaderLine = true;
-                }
-                if ( !foundCommandLineHeaderLine )
+        if ( header.isWriteEngineHeaders() ) {
+            // skip writing the command line header if requested
+            if ( ! skipWritingCommandLineHeader && header.isWriteCommandLine() ) {
+                // Check for the command-line argument header line.  If not present, add it in.
+                final VCFHeaderLine commandLineArgHeaderLine = getCommandLineArgumentHeaderLine();
+                final boolean foundCommandLineHeaderLine = vcfHeader.getMetaDataLine(commandLineArgHeaderLine.getKey()) != null;
+                if ( ! foundCommandLineHeaderLine )
                     vcfHeader.addMetaDataLine(commandLineArgHeaderLine);
             }
 
@@ -251,12 +247,12 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
     /**
      * Should we also write a BCF file alongside our VCF file for testing
      *
-     * TODO -- remove me when argument alsoGenerateBCF is removed
+     * TODO -- remove me when argument generateShadowBCF is removed
      *
      * @return
      */
     public boolean alsoWriteBCFForTest() {
-        return ! isCompressed() && getFile() != null && engine.getArguments().alsoGenerateBCF;
+        return ! isCompressed() && getFile() != null && engine.getArguments().generateShadowBCF;
     }
 
     /**

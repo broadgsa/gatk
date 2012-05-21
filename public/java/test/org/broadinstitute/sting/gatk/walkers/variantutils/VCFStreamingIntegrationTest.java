@@ -57,7 +57,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
             "-T SelectVariants" +
                     " -R " + b36KGReference +
                     " --variant:vcf3,storage=STREAM " + tmpFifo.getAbsolutePath() +
-                    " --NO_HEADER" +
+                    " ---no_cmdline_in_header" +
                     " -o %s",
             1,
             Arrays.asList("658f580f7a294fd334bd897102616fed")
@@ -81,7 +81,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
             "-T SelectVariants" +
             " -R " + b36KGReference +
             " --variant:vcf3,storage=STREAM " + testFile +
-            " --NO_HEADER" +
+            " ---no_cmdline_in_header" +
             " -select 'QD > 2.0'" +
             " -o " + tmpFifo.getAbsolutePath(),
             0,

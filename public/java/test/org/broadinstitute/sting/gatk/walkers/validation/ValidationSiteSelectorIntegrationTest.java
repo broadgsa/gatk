@@ -14,7 +14,7 @@ import java.util.Arrays;
  */
 public class ValidationSiteSelectorIntegrationTest extends WalkerTest {
     public static String baseTestString(String args) {
-        return "-T ValidationSiteSelector -R " + b36KGReference + " -L 1 -o %s -NO_HEADER -numSites 100 " + args;
+        return "-T ValidationSiteSelector -R " + b36KGReference + " -L 1 -o %s --no_cmdline_in_header -numSites 100 " + args;
     }
 
     private static String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";

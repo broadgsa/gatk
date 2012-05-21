@@ -199,6 +199,20 @@ public class VCFHeader {
     }
 
     /**
+     * Get the VCFHeaderLine whose key equals key.  Returns null if no such line exists
+     * @param key
+     * @return
+     */
+    public VCFHeaderLine getMetaDataLine(final String key) {
+        for (final VCFHeaderLine line: getMetaData()) {
+            if ( line.getKey().equals(key) )
+                return line;
+        }
+
+        return null;
+    }
+
+    /**
      * get the genotyping sample names
      *
      * @return a list of the genotype column names, which may be empty if hasGenotypingData() returns false

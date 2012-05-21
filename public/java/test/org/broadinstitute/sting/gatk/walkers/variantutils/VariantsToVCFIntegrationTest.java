@@ -27,7 +27,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                         " -T VariantsToVCF" +
                         " -L 1:1-30,000,000" +
                         " -o %s" +
-                        " -NO_HEADER",
+                        " --no_cmdline_in_header",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingDbsnpInput", spec).getFirst();
@@ -45,7 +45,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                         " -L 1:10,000,000-11,000,000" +
                         " -sample NA123AB" +
                         " -o %s" +
-                        " -NO_HEADER",
+                        " --no_cmdline_in_header",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingGeliInput - calls", spec).getFirst();
@@ -63,7 +63,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                         " -L 1:10,100,000-10,200,000" +
                         " -sample NA123AB" +
                         " -o %s" +
-                        " -NO_HEADER",
+                        " --no_cmdline_in_header",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingGeliInput - genotypes", spec).getFirst();
@@ -80,7 +80,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                         " -T VariantsToVCF" +
                         " -L 1:1-1,000,000" +
                         " -o %s" +
-                        " -NO_HEADER",
+                        " --no_cmdline_in_header",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingHapMapInput", spec).getFirst();
@@ -96,7 +96,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                         " --variant:VCF " + validationDataLocation + "complexExample.vcf4" +
                         " -T VariantsToVCF" +
                         " -o %s" +
-                        " -NO_HEADER",
+                        " --no_cmdline_in_header",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingVCFInput", spec).getFirst();

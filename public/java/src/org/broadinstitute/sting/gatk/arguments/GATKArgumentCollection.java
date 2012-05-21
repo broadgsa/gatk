@@ -331,9 +331,9 @@ public class GATKArgumentCollection {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    @Argument(fullName="also_generate_bcf",doc="If provided, whenever we create a VCFWriter we will also write out a BCF file alongside it, for testing purposes",required=false)
+    @Argument(fullName="generateShadowBCF",doc="If provided, whenever we create a VCFWriter we will also write out a BCF file alongside it, for testing purposes",required=false)
     @Hidden
-    public boolean alsoGenerateBCF = false;
-    // TODO -- remove all code tagged with TODO -- remove me when argument alsoGenerateBCF is removed
+    public boolean generateShadowBCF = false;
+    // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
 }
 

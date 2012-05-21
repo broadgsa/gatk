@@ -16,7 +16,7 @@ public class ReadBackedPhasingIntegrationTest extends WalkerTest {
                 " --maxPhaseSites " + maxPhaseSites +
                 " --phaseQualityThresh " + phaseQualityThresh +
                 " -o %s" +
-                " -NO_HEADER";
+                " --no_cmdline_in_header";
     }
 
 

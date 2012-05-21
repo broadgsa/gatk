@@ -20,7 +20,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
                         "-T PhaseByTransmission",
-                        "-NO_HEADER",
+                        "--no_cmdline_in_header",
                         "-R " + b37KGReference,
                         "--variant " + TNTest,
                         "-ped "+ goodFamilyFile,
@@ -39,7 +39,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
                         "-T PhaseByTransmission",
-                        "-NO_HEADER",
+                        "--no_cmdline_in_header",
                         "-R " + b37KGReference,
                         "--variant " + TPTest,
                         "-ped "+ goodFamilyFile,
@@ -58,7 +58,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
                         "-T PhaseByTransmission",
-                        "-NO_HEADER",
+                        "--no_cmdline_in_header",
                         "-R " + b37KGReference,
                         "--variant " + FPTest,
                         "-ped "+ goodFamilyFile,
@@ -77,7 +77,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
                         "-T PhaseByTransmission",
-                        "-NO_HEADER",
+                        "--no_cmdline_in_header",
                         "-R " + b37KGReference,
                         "--variant " + SpecialTest,
                         "-ped "+ goodFamilyFile,
@@ -98,7 +98,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
                         "-T PhaseByTransmission",
-                        "-NO_HEADER",
+                        "--no_cmdline_in_header",
                         "-R " + b37KGReference,
                         "--variant " + FPTest,
                         "-ped "+ goodFamilyFile,
@@ -120,7 +120,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
                         "-T PhaseByTransmission",
-                        "-NO_HEADER",
+                        "--no_cmdline_in_header",
                         "-R " + b37KGReference,
                         "--variant " + FPTest,
                         "-ped "+ goodFamilyFile,
@@ -139,7 +139,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
                         "-T PhaseByTransmission",
-                        "-NO_HEADER",
+                        "--no_cmdline_in_header",
                         "-R " + b37KGReference,
                         "--variant " + TPTest,
                         "-ped "+ goodFamilyFile,

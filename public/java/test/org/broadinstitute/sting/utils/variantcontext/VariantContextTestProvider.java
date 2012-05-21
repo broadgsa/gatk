@@ -28,6 +28,7 @@ import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Codec;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.variantcontext.writer.Options;
@@ -399,12 +400,18 @@ public class VariantContextTestProvider {
         writer.close();
 
         final List<VariantContext> actual = readAllVCs(tmpFile, tester.makeCodec()).getSecond();
-        Assert.assertEquals(actual.size(), expected.size());
+        assertEquals(actual, expected);
 
-        for ( int i = 0; i < expected.size(); i++ )
-            VariantContextTestProvider.assertEquals(actual.get(i), expected.get(i));
     }
 
+    /**
+     * Utility class to read all of the VC records from a file
+     *
+     * @param source
+     * @param codec
+     * @return
+     * @throws IOException
+     */
     private final static Pair<VCFHeader, List<VariantContext>> readAllVCs( final File source, final FeatureCodec<VariantContext> codec ) throws IOException {
         // read in the features
         PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(source));
@@ -423,11 +430,35 @@ public class VariantContextTestProvider {
         return new Pair<VCFHeader, List<VariantContext>>((VCFHeader)header.getHeaderValue(), read);
     }
 
+    public static void assertVCFandBCFFilesAreTheSame(final File vcfFile, final File bcfFile) throws IOException {
+        final Pair<VCFHeader, List<VariantContext>> vcfData = readAllVCs(vcfFile, new VCFCodec());
+        final Pair<VCFHeader, List<VariantContext>> bcfData = readAllVCs(bcfFile, new BCF2Codec());
+        assertEquals(bcfData.getFirst(), vcfData.getFirst());
+        assertEquals(bcfData.getSecond(), vcfData.getSecond());
+    }
+
+    public static void assertEquals(final List<VariantContext> actual, final List<VariantContext> expected) {
+        Assert.assertEquals(actual.size(), expected.size());
+
+        for ( int i = 0; i < expected.size(); i++ )
+            assertEquals(actual.get(i), expected.get(i));
+    }
+
+    /**
+     * Assert that two variant contexts are actually equal
+     * @param actual
+     * @param expected
+     */
     public static void assertEquals( final VariantContext actual, final VariantContext expected ) {
         Assert.assertNotNull(actual);
         Assert.assertEquals(actual.getChr(), expected.getChr());
         Assert.assertEquals(actual.getStart(), expected.getStart());
         Assert.assertEquals(actual.getEnd(), expected.getEnd());
         // TODO -- expand me
+    }
+
+    public static void assertEquals(final VCFHeader actual, final VCFHeader expected) {
+        Assert.assertEquals(actual.getMetaData().size(), expected.getMetaData().size());
+        Assert.assertEquals(actual.getMetaData(), expected.getMetaData());
     }
 }

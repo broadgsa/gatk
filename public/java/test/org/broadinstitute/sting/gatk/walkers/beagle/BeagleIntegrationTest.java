@@ -41,7 +41,7 @@ public class BeagleIntegrationTest extends WalkerTest {
                         "--beagleR2:BEAGLE " + beagleValidationDataLocation + "inttestbgl.r2 " +
                         "--beagleProbs:BEAGLE " + beagleValidationDataLocation + "inttestbgl.gprobs " +
                         "--beaglePhased:BEAGLE " + beagleValidationDataLocation + "inttestbgl.phased " +
-                        "-o %s -NO_HEADER", 1, Arrays.asList("6d0f213918e3b9ea33bc2f8a51a462f1"));
+                        "-o %s --no_cmdline_in_header", 1, Arrays.asList("6d0f213918e3b9ea33bc2f8a51a462f1"));
         executeTest("test BeagleOutputToVCF", spec);
     }
    
@@ -59,7 +59,7 @@ public class BeagleIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T ProduceBeagleInput --variant:VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878_HSQ_chr22_14-16m.vcf "+
                         "--validation:VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878_OMNI_chr22_14-16m.vcf "+
-                        "-L 22:14000000-16000000 -o %s -bvcf %s -bs 0.8 -valp 0.98 -R /humgen/1kg/reference/human_g1k_v37.fasta -NO_HEADER ",2,
+                        "-L 22:14000000-16000000 -o %s -bvcf %s -bs 0.8 -valp 0.98 -R /humgen/1kg/reference/human_g1k_v37.fasta --no_cmdline_in_header ",2,
                 Arrays.asList("660986891b30cdc937e0f2a3a5743faa","e96ddd51da9f4a797b2aa8c20e404166"));
         executeTest("test BeagleInputWithBootstrap",spec);
     }
@@ -72,7 +72,7 @@ public class BeagleIntegrationTest extends WalkerTest {
                 "--beagleR2:beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.r2 "+
                 "--beagleProbs:beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.gprobs.bgl "+
                 "--beaglePhased:beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.phased.bgl "+
-                "-L 20:1-70000 -o %s -NO_HEADER ",1,Arrays.asList("ddbf490f1d9f37cc79fe414c8d40886f"));
+                "-L 20:1-70000 -o %s --no_cmdline_in_header ",1,Arrays.asList("ddbf490f1d9f37cc79fe414c8d40886f"));
 
         executeTest("testBeagleChangesSitesToRef",spec);
     }

@@ -15,7 +15,7 @@ public class SymbolicAllelesIntegrationTest extends WalkerTest {
                 " -genotypeMergeOptions REQUIRE_UNIQUE" +
                 " -setKey null" +
                 " -o %s" +
-                " -NO_HEADER";
+                " --no_cmdline_in_header";
     }
 
 

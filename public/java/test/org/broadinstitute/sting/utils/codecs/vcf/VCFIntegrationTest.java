@@ -15,7 +15,7 @@ public class VCFIntegrationTest extends WalkerTest {
         String md5ofInputVCF = "a990ba187a69ca44cb9bc2bb44d00447";
         String testVCF = validationDataLocation + "vcf4.1.example.vcf";
 
-        String baseCommand = "-R " + b37KGReference + " -NO_HEADER -o %s ";
+        String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
 
         String test1 = baseCommand + "-T VariantAnnotator --variant " + testVCF + " -L " + testVCF;
         WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList(md5ofInputVCF));
@@ -32,7 +32,7 @@ public class VCFIntegrationTest extends WalkerTest {
         String testVCF = testDir + "breakpoint-example.vcf";
         //String testVCF = validationDataLocation + "multiallelic.vcf";
 
-        String baseCommand = "-R " + b37KGReference + " -NO_HEADER -o %s ";
+        String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
 
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
         WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("acee3b6bdb4b759992f54065c675a249"));
@@ -43,7 +43,7 @@ public class VCFIntegrationTest extends WalkerTest {
     public void testReadingAndWritingSamtools() {
         String testVCF = validationDataLocation + "samtools.vcf";
 
-        String baseCommand = "-R " + b37KGReference + " -NO_HEADER -o %s ";
+        String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
 
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
         WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("87d5b180ef5f9dc5aaee4b02601b43a2"));

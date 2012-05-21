@@ -63,7 +63,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                 "-R " + b37KGReference +
                         " -T ApplyRecalibration" +
                         " -L 20:12,000,000-30,000,000" +
-                        " -NO_HEADER" +
+                        " --no_cmdline_in_header" +
                         " -input " + params.inVCF +
                         " -o %s" +
                         " -tranchesFile " + MD5DB.getMD5FilePath(params.tranchesMD5, null) +
@@ -110,7 +110,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -T ApplyRecalibration" +
                         " -L 20:12,000,000-30,000,000" +
                         " -mode INDEL" +
-                        " -NO_HEADER" +
+                        " --no_cmdline_in_header" +
                         " -input " + params.inVCF +
                         " -o %s" +
                         " -tranchesFile " + MD5DB.getMD5FilePath(params.tranchesMD5, null) +
@@ -126,7 +126,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -T ApplyRecalibration" +
                         " -L 20:1000100-1000500" +
                         " -mode BOTH" +
-                        " -NO_HEADER" +
+                        " --no_cmdline_in_header" +
                         " -input " + validationDataLocation + "VQSR.mixedTest.input" +
                         " -o %s" +
                         " -tranchesFile " + validationDataLocation + "VQSR.mixedTest.tranches" +

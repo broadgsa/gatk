@@ -8,7 +8,7 @@ import java.util.Arrays;
 public class VariantFiltrationIntegrationTest extends WalkerTest {
 
     public static String baseTestString() {
-        return "-T VariantFiltration -o %s -NO_HEADER -R " + b36KGReference;
+        return "-T VariantFiltration -o %s --no_cmdline_in_header -R " + b36KGReference;
     }
 
 

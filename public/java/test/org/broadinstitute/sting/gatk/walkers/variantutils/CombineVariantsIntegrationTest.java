@@ -35,7 +35,7 @@ import java.util.Arrays;
  */
 public class CombineVariantsIntegrationTest extends WalkerTest {
     public static String baseTestString(String args) {
-        return "-T CombineVariants -NO_HEADER -L 1:1-50,000,000 -o %s -R " + b36KGReference + args;
+        return "-T CombineVariants --no_cmdline_in_header -L 1:1-50,000,000 -o %s -R " + b36KGReference + args;
     }
 
     public void test1InOut(String file, String md5) {
@@ -62,7 +62,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         String file1 = "1000G_omni2.5.b37.sites.vcf";
         String file2 = "hapmap_3.3.b37.sites.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T CombineVariants -NO_HEADER -o %s -R " + b37KGReference
+                "-T CombineVariants --no_cmdline_in_header -o %s -R " + b37KGReference
                         + " -L 1:1-10,000,000 -V:omni " + validationDataLocation + file1
                         + " -V:hm3 " + validationDataLocation + file2 + args,
                 1,
@@ -72,7 +72,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     public void combinePLs(String file1, String file2, String md5) {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 "-T CombineVariants -NO_HEADER -o %s -R " + b36KGReference + " -priority v1,v2 -V:v1 " + validationDataLocation + file1 + " -V:v2 " + validationDataLocation + file2,
+                 "-T CombineVariants --no_cmdline_in_header -o %s -R " + b36KGReference + " -priority v1,v2 -V:v1 " + validationDataLocation + file1 + " -V:v2 " + validationDataLocation + file2,
                  1,
                  Arrays.asList(md5));
          executeTest("combine PLs 1:" + new File(file1).getName() + " 2:" + new File(file2).getName(), spec);
@@ -119,7 +119,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         String file1 = "combine.1.vcf";
         String file2 = "combine.2.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T CombineVariants -NO_HEADER -o %s -R " + b37KGReference
+                "-T CombineVariants --no_cmdline_in_header -o %s -R " + b37KGReference
                         + " -V:one " + validationDataLocation + file1
                         + " -V:two " + validationDataLocation + file2 + args,
                 1,
@@ -135,7 +135,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
     @Test
     public void combineDBSNPDuplicateSites() {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 "-T CombineVariants -NO_HEADER -L 1:902000-903000 -o %s -R " + b37KGReference + " -V:v1 " + b37dbSNP132,
+                 "-T CombineVariants --no_cmdline_in_header -L 1:902000-903000 -o %s -R " + b37KGReference + " -V:v1 " + b37dbSNP132,
                  1,
                  Arrays.asList("a838dc241cf357466cd4331fd298c73a"));
          executeTest("combineDBSNPDuplicateSites:", spec);

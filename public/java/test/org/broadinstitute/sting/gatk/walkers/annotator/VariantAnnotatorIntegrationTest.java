@@ -9,7 +9,7 @@ import java.util.Arrays;
 public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
     public static String baseTestString() {
-        return "-T VariantAnnotator -R " + b36KGReference + " -NO_HEADER -o %s";
+        return "-T VariantAnnotator -R " + b36KGReference + " --no_cmdline_in_header -o %s";
     }
 
     @Test
@@ -155,7 +155,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         final String MD5 = "bb9a148716fc69d706c5be146c1afa00";
         for ( String file : Arrays.asList("CEU.exon.2010_03.sites.vcf", "CEU.exon.2010_03.sites.vcf.gz")) {
             WalkerTestSpec spec = new WalkerTestSpec(
-                    baseTestString() + " -A HomopolymerRun --variant:vcf " + validationDataLocation + file + " -L " + validationDataLocation + "CEU.exon.2010_03.sites.vcf -NO_HEADER", 1,
+                    baseTestString() + " -A HomopolymerRun --variant:vcf " + validationDataLocation + file + " -L " + validationDataLocation + "CEU.exon.2010_03.sites.vcf --no_cmdline_in_header", 1,
                     Arrays.asList(MD5));
             executeTest("Testing lookup vcf tabix vs. vcf tribble", spec);
         }
@@ -164,7 +164,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testSnpEffAnnotations() {
         WalkerTestSpec spec = new WalkerTestSpec(
-            "-T VariantAnnotator -R " + hg19Reference + " -NO_HEADER -o %s -A SnpEff --variant " +
+            "-T VariantAnnotator -R " + hg19Reference + " --no_cmdline_in_header -o %s -A SnpEff --variant " +
             validationDataLocation + "1kg_exomes_unfiltered.AFR.unfiltered.vcf --snpEffFile  " + validationDataLocation +
             "snpEff2.0.5.AFR.unfiltered.vcf -L 1:1-1,500,000 -L 2:232,325,429",
             1,
@@ -176,7 +176,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testSnpEffAnnotationsUnsupportedVersion() {
         WalkerTestSpec spec = new WalkerTestSpec(
-            "-T VariantAnnotator -R " + hg19Reference + " -NO_HEADER -o %s -A SnpEff --variant " +
+            "-T VariantAnnotator -R " + hg19Reference + " --no_cmdline_in_header -o %s -A SnpEff --variant " +
             validationDataLocation + "1kg_exomes_unfiltered.AFR.unfiltered.vcf --snpEffFile  " + validationDataLocation +
             "snpEff.AFR.unfiltered.unsupported.version.vcf -L 1:1-1,500,000",
             1,
@@ -190,7 +190,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         final String MD5 = "a78c1e950740d3c13c0258960c5fa8e1";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T VariantAnnotator -R " + b37KGReference + " -A TransmissionDisequilibriumTest --variant:vcf " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf" +
-                        " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf -NO_HEADER -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,
+                        " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf --no_cmdline_in_header -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,
                 Arrays.asList(MD5));
         executeTest("Testing TDT annotation ", spec);
     }
@@ -201,7 +201,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         final String MD5 = "32df3ceb63c277df442ed55fb8684933";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T VariantAnnotator -R " + b37KGReference + " -A ChromosomeCounts --variant:vcf " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf" +
-                        " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf -NO_HEADER -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,
+                        " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf --no_cmdline_in_header -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,
                 Arrays.asList(MD5));
         executeTest("Testing ChromosomeCounts annotation with PED file", spec);
     }
@@ -211,7 +211,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         final String MD5 = "7f1314fada5cb1f35ba1996f8a7a686b";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T VariantAnnotator -R " + b37KGReference + " -A InbreedingCoeff --variant:vcf " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf" +
-                        " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf -NO_HEADER -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,
+                        " -L " + validationDataLocation + "ug.random50000.subset300bp.chr1.family.vcf --no_cmdline_in_header -ped " + validationDataLocation + "ug.random50000.family.ped -o %s", 1,
                 Arrays.asList(MD5));
         executeTest("Testing InbreedingCoeff annotation with PED file", spec);
     }

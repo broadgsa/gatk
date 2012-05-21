@@ -50,7 +50,7 @@ class VcfGatherFunction extends CombineVariants with GatherFunction {
     // are added by the GATKExtensionsGenerator to the subclass of CommandLineGATK
 
     val noHeader = QFunction.findField(originalFunction.getClass, VCFWriterArgumentTypeDescriptor.NO_HEADER_ARG_NAME)
-    this.NO_HEADER = originalGATK.getFieldValue(noHeader).asInstanceOf[Boolean]
+    this.no_cmdline_in_header = originalGATK.getFieldValue(noHeader).asInstanceOf[Boolean]
 
     val sitesOnly = QFunction.findField(originalFunction.getClass, VCFWriterArgumentTypeDescriptor.SITES_ONLY_ARG_NAME)
     this.sites_only = originalGATK.getFieldValue(sitesOnly).asInstanceOf[Boolean]
