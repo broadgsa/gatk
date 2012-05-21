@@ -641,7 +641,7 @@
         <jar jarfile="${dist.dir}/vcf.jar">
             <fileset dir="${java.classes}">
               <include name="org/broadinstitute/sting/utils/codecs/vcf/**/*.class"/>
-              <include name="org/broadinstitute/sting/utils/codecs/bcf2/**/*.class"/>
+<!--               <include name="org/broadinstitute/sting/utils/codecs/bcf2/**/*.class"/> -->
               <include name="org/broadinstitute/sting/utils/variantcontext/**/*.class"/>
               <include name="org/broadinstitute/sting/utils/exceptions/**"/>
 	          <include name="org/broadinstitute/sting/utils/help/DocumentedGATKFeature.class"/>
