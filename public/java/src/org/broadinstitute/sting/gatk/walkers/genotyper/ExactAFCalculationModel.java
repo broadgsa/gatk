@@ -49,13 +49,15 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         GenotypesContext GLs = vc.getGenotypes();
         List<Allele> alleles = vc.getAlleles();
 
-        // don't try to genotype too many alternate alleles
-        if ( vc.getAlternateAlleles().size() > MAX_ALTERNATE_ALLELES_TO_GENOTYPE ) {
-            logger.warn("this tool is currently set to genotype at most " + MAX_ALTERNATE_ALLELES_TO_GENOTYPE + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + (vc.getAlternateAlleles().size()) + " alternate alleles so only the top alleles will be used; see the --max_alternate_alleles argument");
+        final int myMaxAltAllelesToGenotype = CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS && vc.getType().equals(VariantContext.Type.INDEL) ? 2 : MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
 
-            alleles = new ArrayList<Allele>(MAX_ALTERNATE_ALLELES_TO_GENOTYPE + 1);
+        // don't try to genotype too many alternate alleles
+        if ( vc.getAlternateAlleles().size() > myMaxAltAllelesToGenotype ) {
+            logger.warn("this tool is currently set to genotype at most " + myMaxAltAllelesToGenotype + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + (vc.getAlternateAlleles().size()) + " alternate alleles so only the top alleles will be used; see the --max_alternate_alleles argument");
+
+            alleles = new ArrayList<Allele>(myMaxAltAllelesToGenotype + 1);
             alleles.add(vc.getReference());
-            alleles.addAll(chooseMostLikelyAlternateAlleles(vc, MAX_ALTERNATE_ALLELES_TO_GENOTYPE));
+            alleles.addAll(chooseMostLikelyAlternateAlleles(vc, myMaxAltAllelesToGenotype));
             GLs = VariantContextUtils.subsetDiploidAlleles(vc, alleles, false);
         }
 

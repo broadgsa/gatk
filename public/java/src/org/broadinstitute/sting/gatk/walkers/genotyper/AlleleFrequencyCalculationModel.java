@@ -52,17 +52,17 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
     protected int N;
     protected int MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
+    protected boolean CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS;
 
     protected Logger logger;
     protected PrintStream verboseWriter;
-
-    protected enum GenotypeType { AA, AB, BB }
 
     protected static final double VALUE_NOT_CALCULATED = Double.NEGATIVE_INFINITY;
 
     protected AlleleFrequencyCalculationModel(final UnifiedArgumentCollection UAC, final int N, final Logger logger, final PrintStream verboseWriter) {
         this.N = N;
         this.MAX_ALTERNATE_ALLELES_TO_GENOTYPE = UAC.MAX_ALTERNATE_ALLELES;
+        this.CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS = UAC.CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS;
         this.logger = logger;
         this.verboseWriter = verboseWriter;
     }
