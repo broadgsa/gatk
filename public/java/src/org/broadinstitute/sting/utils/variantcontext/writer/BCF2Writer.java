@@ -162,7 +162,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
         // info fields
         final int nAlleles = vc.getNAlleles();
         final int nInfo = vc.getAttributes().size();
-        final int nGenotypeFormatFields = VCFWriter.calcVCFGenotypeKeys(vc).size();
+        final int nGenotypeFormatFields = VCFWriter.calcVCFGenotypeKeys(vc, header).size();
         final int nSamples = vc.getNSamples();
 
         encoder.encodeRawInt((nAlleles << 16) | (nInfo & 0x00FF), BCF2Type.INT32);
@@ -207,7 +207,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
     }
 
     private byte[] buildSamplesData(final VariantContext vc) throws IOException {
-        List<String> genotypeFields = VCFWriter.calcVCFGenotypeKeys(vc);
+        List<String> genotypeFields = VCFWriter.calcVCFGenotypeKeys(vc, header);
         for ( final String field : genotypeFields ) {
             if ( field.equals(VCFConstants.GENOTYPE_KEY) ) {
                 addGenotypes(vc);

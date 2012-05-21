@@ -254,13 +254,10 @@ class VCFWriter extends IndexingVariantContextWriter {
                 mWriter.write(VCFConstants.FIELD_SEPARATOR);
                 mWriter.write(((LazyGenotypesContext)gc).getUnparsedGenotypeData().toString());
             } else {
-                List<String> genotypeAttributeKeys = new ArrayList<String>();
-                if ( vc.hasGenotypes() ) {
-                    genotypeAttributeKeys.addAll(calcVCFGenotypeKeys(vc));
-                }
+                List<String> genotypeAttributeKeys = calcVCFGenotypeKeys(vc, mHeader);
+                if ( ! genotypeAttributeKeys.isEmpty() ) {
+                    final String genotypeFormatString = ParsingUtils.join(VCFConstants.GENOTYPE_FIELD_SEPARATOR, genotypeAttributeKeys);
 
-                if ( genotypeAttributeKeys.size() > 0 ) {
-                    String genotypeFormatString = ParsingUtils.join(VCFConstants.GENOTYPE_FIELD_SEPARATOR, genotypeAttributeKeys);
                     mWriter.write(VCFConstants.FIELD_SEPARATOR);
                     mWriter.write(genotypeFormatString);
 
@@ -472,7 +469,7 @@ class VCFWriter extends IndexingVariantContextWriter {
      * @param vc
      * @return an ordered list of genotype fields in use in VC.  If vc has genotypes this will always include GT first
      */
-    public static List<String> calcVCFGenotypeKeys(VariantContext vc) {
+    public static List<String> calcVCFGenotypeKeys(final VariantContext vc, final VCFHeader header) {
         Set<String> keys = new HashSet<String>();
 
         boolean sawGoodGT = false;
@@ -504,7 +501,7 @@ class VCFWriter extends IndexingVariantContextWriter {
             sortedList = newList;
         }
 
-        if ( sortedList.isEmpty() && vc.hasGenotypes() ) {
+        if ( sortedList.isEmpty() && header.hasGenotypingData() ) {
             // this needs to be done in case all samples are no-calls
             return Collections.singletonList(VCFConstants.GENOTYPE_KEY);
         } else {
