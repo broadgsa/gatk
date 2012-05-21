@@ -35,7 +35,6 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -186,7 +185,8 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
             case SYMBOLIC:
                 return Type.CNV;
             default:
-                throw new UserException.BadInput("Unexpected variant context type: " + vc);
+                //throw new UserException.BadInput("Unexpected variant context type: " + vc);
+                return null;
         }
     }
 
@@ -211,6 +211,8 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
             return;
 
         final Type type = getType(eval);
+        if ( type == null )
+            return;
 
         TypeSampleMap titvTable = null;
 
