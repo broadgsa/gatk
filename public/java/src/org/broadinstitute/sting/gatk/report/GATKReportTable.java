@@ -81,6 +81,13 @@ public class GATKReportTable {
         public int index() { return index; }
     }
 
+    /**
+     * Construct a new GATK report table from the reader
+     * Note that the row ID mappings are just the index -> index
+     *
+     * @param reader        the reader
+     * @param version       the GATK report version
+     */
     public GATKReportTable(BufferedReader reader, GATKReportVersion version) {
 
         switch ( version ) {
@@ -271,8 +278,16 @@ public class GATKReportTable {
     }
 
     /**
-     * Add a column to the report and specify the default value that should be supplied if a given position in the table
-     * is never explicitly set.
+     * Remove a mapping from ID to row index.
+     *
+     * @param ID   the row ID
+     */
+    public void removeRowIDMapping(final Object ID) {
+        rowIdToIndex.remove(ID);
+    }
+
+    /**
+     * Add a column to the report
      *
      * @param columnName   the name of the column
      */
@@ -281,9 +296,7 @@ public class GATKReportTable {
     }
 
     /**
-     * Add a column to the report, specify the default column value, whether the column should be displayed in the final
-     * output (useful when intermediate columns are necessary for later calculations, but are not required to be in the
-     * output file), and the format string used to display the data.
+     * Add a column to the report and the format string used to display the data.
      *
      * @param columnName   the name of the column
      * @param format       the format string used to display data
@@ -305,7 +318,7 @@ public class GATKReportTable {
     }
 
     /**
-     * Set the value for a given position in the table
+     * expand the underlying table if needed to include the given row index
      *
      * @param rowIndex        the row index
      * @param updateRowIdMap  should we update the row ID map?
@@ -324,7 +337,8 @@ public class GATKReportTable {
     }
 
     /**
-     * Set the value for a given position in the table
+     * Set the value for a given position in the table.
+     * If the row ID doesn't exist, it will create a new row in the table with the given ID.
      *
      * @param rowID        the row ID
      * @param columnName   the name of the column
@@ -338,6 +352,14 @@ public class GATKReportTable {
         set(rowIdToIndex.get(rowID), columnNameToIndex.get(columnName), value);
     }
 
+    /**
+     * Set the value for a given position in the table.
+     * If the row index doesn't exist, it will create new rows in the table accordingly.
+     *
+     * @param rowIndex     the row index
+     * @param colIndex     the column index
+     * @param value        the value to set
+     */
     public void set(final int rowIndex, final int colIndex, Object value) {
         expandTo(rowIndex, true);
         verifyEntry(rowIndex, colIndex);
@@ -375,11 +397,12 @@ public class GATKReportTable {
     }
 
     /**
-        * Set the value for a given position in the table
-        *
-        * @param rowID        the row ID
-        * @param columnName   the name of the column
-        */
+    * Increment the value for a given position in the table.
+    * Throws an exception if the value in the cell is not an integer.
+    *
+    * @param rowID        the row ID
+    * @param columnName   the name of the column
+    */
     public void increment(final Object rowID, final String columnName) {
         int prevValue;
         if ( !rowIdToIndex.containsKey(rowID) ) {
@@ -518,6 +541,10 @@ public class GATKReportTable {
 
         // write the table body
         if ( sortByRowID ) {
+            // make sure that there are exactly the correct number of ID mappings
+            if ( rowIdToIndex.size() != underlyingData.size() )
+                throw new ReviewedStingException("There isn't a 1-to-1 mapping from row ID to index; this can happen when rows are not created consistently");
+
             final TreeMap<Object, Integer> sortedMap;
             try {
                 sortedMap = new TreeMap<Object, Integer>(rowIdToIndex);
