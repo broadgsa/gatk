@@ -88,7 +88,7 @@ public class VCFCodec extends AbstractVCFCodec {
                         throw new TribbleException.InvalidHeader("We never saw a header line specifying VCF version");
                     }
                     headerStrings.add(line);
-                    this.header = super.parseHeaderFromLines(headerStrings, version);
+                    super.parseHeaderFromLines(headerStrings, version);
                     if ( headerForRepairs != null )
                         this.header = repairHeader(this.header, headerForRepairs);
                     return this.header;

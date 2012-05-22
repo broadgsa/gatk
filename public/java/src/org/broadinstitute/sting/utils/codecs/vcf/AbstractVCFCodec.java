@@ -176,7 +176,8 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
             }
         }
 
-        return new VCFHeader(metaData, sampleNames);
+        this.header = new VCFHeader(metaData, sampleNames);
+        return this.header;
     }
 
     /**
