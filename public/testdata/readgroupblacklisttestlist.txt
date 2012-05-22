@@ -1,0 +1,2 @@
+# see: /Users/kshakir/src/Sting/java/test/org/broadinstitute/sting/gatk/filters/ReadGroupBlackListFilterTest.java
+/humgen/gsa-hpprojects/GATK/data/Validation_Data/readgroupblacklisttest.txt

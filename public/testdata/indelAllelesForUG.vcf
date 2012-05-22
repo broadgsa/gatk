@@ -1,0 +1,43 @@
+##fileformat=VCFv4.0
+##FORMAT=<ID=AD,Number=.,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read Depth (only filtered reads used for calling)">
+##FORMAT=<ID=GQ,Number=1,Type=Float,Description="Genotype Quality">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=PL,Number=3,Type=Float,Description="Normalized, Phred-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic">
+##INFO=<ID=AC,Number=.,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">
+##INFO=<ID=AF,Number=.,Type=Float,Description="Allele Frequency, for each ALT allele, in the same order as listed">
+##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Total Depth">
+##INFO=<ID=DS,Number=0,Type=Flag,Description="Were any of the samples downsampled?">
+##INFO=<ID=Dels,Number=1,Type=Float,Description="Fraction of Reads Containing Spanning Deletions">
+##INFO=<ID=HRun,Number=1,Type=Integer,Description="Largest Contiguous Homopolymer Run of Variant Allele In Either Direction">
+##INFO=<ID=HaplotypeScore,Number=1,Type=Float,Description="Consistency of the site with two (and only two) segregating haplotypes">
+##INFO=<ID=MQ,Number=1,Type=Float,Description="RMS Mapping Quality">
+##INFO=<ID=MQ0,Number=1,Type=Integer,Description="Total Mapping Quality Zero Reads">
+##INFO=<ID=QD,Number=1,Type=Float,Description="Variant Confidence/Quality by Depth">
+##INFO=<ID=SB,Number=1,Type=Float,Description="Strand Bias">
+##UnifiedGenotyper="analysis_type=UnifiedGenotyper input_file=[/humgen/gsa-hpprojects/GATK/data/Validation_Data/pilot2_daughters.chr20.10k-11k.bam] sample_metadata=[] read_buffer_size=null phone_home=NO_ET read_filter=[] intervals=[20:10,000,000-10,100,000] excludeIntervals=null reference_sequence=/humgen/1kg/reference/human_b36_both.fasta rodBind=[] rodToIntervalTrackName=null BTI_merge_rule=UNION DBSNP=null downsampling_type=null downsample_to_fraction=null downsample_to_coverage=null baq=OFF baqGapOpenPenalty=40.0 performanceLog=null useOriginalQualities=false defaultBaseQualities=-1 validation_strictness=SILENT unsafe=null num_threads=1 interval_merging=ALL read_group_black_list=null processingTracker=null restartProcessingTracker=false processingTrackerStatusFile=null processingTrackerID=-1 allow_intervals_with_unindexed_bam=false enable_experimental_low_memory_sharding=false logging_level=INFO log_to_file=null quiet_output_mode=false debug_mode=false help=false genotype_likelihoods_model=DINDEL p_nonref_model=EXACT heterozygosity=0.0010 pcr_error_rate=1.0E-4 genotyping_mode=DISCOVERY output_mode=EMIT_VARIANTS_ONLY standard_min_confidence_threshold_for_calling=30.0 standard_min_confidence_threshold_for_emitting=30.0 noSLOD=false assume_single_sample_reads=null abort_at_too_much_coverage=-1 min_base_quality_score=17 min_mapping_quality_score=20 max_mismatches_in_40bp_window=3 use_reads_with_bad_mates=false max_deletion_fraction=0.05 min_indel_count_for_genotyping=5 indel_heterozygosity=1.25E-4 insertionStartProbability=0.0010 insertionEndProbability=0.5 alphaDeletionProbability=0.0010 indelGapContinuationPenalty=10.0 indelGapOpenPenalty=40.0 indelHaplotypeSize=80 indelDebug=true s1=null s2=null dovit=false newlike=false exactCalculation=LINEAR_EXPERIMENTAL output_all_callable_bases=false genotype=false out=org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub NO_HEADER=org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub sites_only=org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub verbose_mode=null metrics_file=null annotation=[]"
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	NA12878	NA19240
+20	10015049	.	TAAAAAAA	T	388.73	.	AC=3;AF=0.75;AN=4;DP=47;Dels=0.15;HRun=25;HaplotypeScore=18.5023;MQ=76.79;MQ0=9;QD=8.27;SB=-216.09;sumGLbyD=9.26	GT:AD:DP:GQ:PL	1/1:20,5:10:14.03:205,14,0	0/1:20,0:19:99:230,0,202
+20	10018938	.	G	GA	943.48	.	AC=3;AF=0.75;AN=4;DP=56;Dels=0.00;HRun=1;HaplotypeScore=8.3072;MQ=98.07;MQ0=0;QD=16.85;SB=-456.74;sumGLbyD=17.68	GT:AD:DP:GQ:PL	1/1:3,23:26:63.11:620,63,0	0/1:14,15:30:99:370,0,294
+20	10023508	.	GA	G	460.50	.	AC=2;AF=0.50;AN=4;DP=61;Dels=0.46;HRun=11;HaplotypeScore=9.7713;MQ=88.23;MQ0=1;QD=14.85;SB=-189.80;sumGLbyD=16.46	GT:AD:DP:GQ:PL	1/1:12,19:12:52.88:510,53,0	0/0:21,0:20:23.04:0,23,489
+20	10023669	.	GA	G	496.79	.	AC=2;AF=0.50;AN=4;DP=85;Dels=0.26;HRun=11;HaplotypeScore=15.0149;MQ=90.32;MQ0=0;QD=14.19;SB=-256.79;sumGLbyD=15.62	GT:AD:DP:GQ:PL	0/0:50,0:49:95.40:0,95,1160	1/1:13,22:13:61.87:547,62,0
+20	10025820	.	TC	T	381.82	.	AC=2;AF=0.50;AN=4;DP=65;Dels=0.25;HRun=1;HaplotypeScore=7.8208;MQ=83.23;MQ0=4;QD=20.10;SB=-190.53;sumGLbyD=22.72	GT:AD:DP:GQ:PL	0/0:46,0:44:99:0,120,2093	1/1:3,16:0:47.55:432,48,0
+20	10026897	.	T	TA	189.77	.	AC=2;AF=0.50;AN=4;DP=38;Dels=0.00;HRun=8;HaplotypeScore=5.5665;MQ=83.15;MQ0=0;QD=15.81;SB=-97.18;sumGLbyD=19.96	GT:AD:DP:GQ:PL	0/0:26,0:26:54.12:0,54,562	1/1:3,9:12:23:239,23,0
+20	10027761	.	T	TAA	1185.09	.	AC=2;AF=0.50;AN=4;DP=53;Dels=0.00;HRun=0;HaplotypeScore=7.3429;MQ=96.45;MQ0=0;QD=59.25;SB=-568.38;sumGLbyD=61.75	GT:AD:DP:GQ:PL	0/0:33,0:33:89.29:0,89,1077	1/1:1,16:20:54.58:1235,55,0
+20	10036968	.	C	CAAA	354.48	.	AC=3;AF=0.75;AN=4;DP=40;Dels=0.00;HRun=11;HaplotypeScore=4.0302;MQ=77.44;MQ0=1;QD=8.86;SB=-0.00;sumGLbyD=10.03	GT:AD:DP:GQ:PL	0/1:22,1:23:96.54:97,0,232	1/1:10,4:13:18.02:305,18,0
+20	10038289	.	CAA	C	229.65	.	AC=2;AF=0.50;AN=4;DP=44;Dels=0.23;HRun=16;HaplotypeScore=10.5739;MQ=86.96;MQ0=0;QD=5.22;SB=-82.31;sumGLbyD=6.21	GT:AD:DP:GQ:PL	0/1:19,3:19:42.22:42,0,276	0/1:15,5:14:24.06:231,0,24
+20	10041568	.	GT	G	32.14	.	AC=1;AF=0.25;AN=4;DP=178;Dels=0.03;HRun=13;HaplotypeScore=99.6777;MQ=38.37;MQ0=88;QD=0.64;SB=-15.66;sumGLbyD=1.43	GT:AD:DP:GQ:PL	0/1:43,6:20:71.38:71,0,253	0/0:126,0:20:2.40:1,0,250
+20	10044905	.	TA	T	684.30	.	AC=3;AF=0.75;AN=4;DP=49;Dels=0.55;HRun=2;HaplotypeScore=6.7735;MQ=82.97;MQ0=0;QD=13.97;SB=-102.02;sumGLbyD=14.92	GT:AD:DP:GQ:PL	0/1:22,10:22:99:217,0,579	1/1:0,17:0:51.04:514,51,0
+20	10045101	.	C	CTTTT	382.10	.	AC=3;AF=0.75;AN=4;DP=33;Dels=0.00;HRun=10;HaplotypeScore=4.5637;MQ=76.02;MQ0=0;QD=11.58;SB=-102.18;sumGLbyD=12.98	GT:AD:DP:GQ:PL	0/1:12,0:12:6.91:7,0,476	1/1:12,6:21:25.29:422,25,0
+20	10048539	.	CTTCTAG	C	2079.87	.	AC=3;AF=0.75;AN=4;DP=46;Dels=0.63;HRun=0;HaplotypeScore=3.9254;MQ=91.40;MQ0=0;QD=45.21;SB=-843.04;sumGLbyD=46.23	GT:AD:DP:GQ:PL	0/1:13,9:13:99:518,0,828	1/1:4,20:3:59.77:1608,60,0
+20	10049268	.	TAA	T	713.22	.	AC=3;AF=0.75;AN=4;DP=49;Dels=0.47;HRun=7;HaplotypeScore=8.7440;MQ=85.12;MQ0=1;QD=14.56;SB=-335.96;sumGLbyD=15.51	GT:AD:DP:GQ:PL	0/1:24,6:22:99:206,0,1109	1/1:2,17:1:49.97:554,50,0
+20	10049674	.	TTGTGTGTGTGTG	T	514.36	.	AC=1;AF=0.25;AN=4;DP=58;Dels=0.14;HRun=0;HaplotypeScore=12.9192;MQ=71.13;MQ0=10;QD=14.29;SB=-160.31;sumGLbyD=15.55	GT:AD:DP:GQ:PL	0/0:22,0:17:15.05:0,15,459	0/1:28,8:17:1.62:558,3,0
+20	10055047	.	AG	A	384.31	.	AC=1;AF=0.25;AN=4;DP=63;Dels=0.27;HRun=1;HaplotypeScore=6.3278;MQ=88.56;MQ0=0;QD=13.25;SB=-169.84;sumGLbyD=14.70	GT:AD:DP:GQ:PL	0/1:12,17:12:99:426,0,486	0/0:34,0:32:92.56:0,93,1711
+20	10055331	.	G	GTT	1154.63	.	AC=3;AF=0.75;AN=4;DP=59;Dels=0.00;HRun=12;HaplotypeScore=11.0007;MQ=93.08;MQ0=0;QD=19.57;SB=-596.65;sumGLbyD=20.36	GT:AD:DP:GQ:PL	0/1:22,3:26:99:157,0,321	1/1:11,20:31:57.17:1045,57,0
+20	10058726	.	GT	G	519.26	.	AC=3;AF=0.75;AN=4;DP=48;Dels=0.54;HRun=5;HaplotypeScore=3.4082;MQ=90.03;MQ0=0;QD=10.82;SB=-101.29;sumGLbyD=11.79	GT:AD:DP:GQ:PL	0/1:19,8:18:99:132,0,487	1/1:3,18:3:45.97:434,46,0
+20	10062705	.	CA	C	358.95	.	AC=2;AF=0.50;AN=4;DP=60;Dels=0.33;HRun=12;HaplotypeScore=11.1474;MQ=88.71;MQ0=0;QD=5.98;SB=-176.95;sumGLbyD=6.71	GT:AD:DP:GQ:PL	0/1:21,5:20:46.82:47,0,450	0/1:19,15:18:99:356,0,162
+20	10068207	.	C	CAGGCCACAA	477.12	.	AC=2;AF=0.50;AN=4;DP=54;Dels=0.00;HRun=0;HaplotypeScore=26.9189;MQ=93.42;MQ0=0;QD=8.84;SB=-243.75;sumGLbyD=9.65	GT:AD:DP:GQ:PL	0/1:20,1:26:99:245,0,1438	0/1:28,0:28:99:276,0,1441
+20	10069161	.	T	TA	75.14	.	AC=1;AF=0.25;AN=4;DP=73;Dels=0.03;HRun=10;HaplotypeScore=6.3510;MQ=92.42;MQ0=0;QD=2.59;SB=-46.22;sumGLbyD=4.04	GT:AD:DP:GQ:PL	0/0:42,0:42:97.19:0,97,941	0/1:22,6:28:99:117,0,324
+20	10076619	.	CTTTGT	C	980.18	.	AC=1;AF=0.25;AN=4;DP=54;Dels=0.26;HRun=0;HaplotypeScore=6.3555;MQ=89.08;MQ0=0;QD=35.01;SB=-226.12;sumGLbyD=36.51	GT:AD:DP:GQ:PL	0/0:26,0:26:63.22:0,63,1916	0/1:14,14:14:99:1022,0,1081
+20	10078345	.	G	GTA	764.75	.	AC=3;AF=0.75;AN=4;DP=38;Dels=0.00;HRun=0;HaplotypeScore=7.6113;MQ=83.32;MQ0=0;QD=20.13;SB=-141.91;sumGLbyD=21.36	GT:AD:DP:GQ:PL	0/1:14,3:17:99:125,0,213	1/1:8,10:19:30.10:687,30,0

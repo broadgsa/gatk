@@ -1,0 +1,36 @@
+##:GATKReport.v0.1 CompOverlap : The overlap between eval and comp sites
+CompOverlap  CompRod  EvalRod  JexlExpression  Novelty  nEvalVariants  nCompVariants  novelSites  nVariantsAtComp  compRate  nConcordant  concordantRate
+CompOverlap  none     eval     none            all      0              0              0           0                0.00000000  0            0.00000000    
+CompOverlap  none     eval     none            known    0              0              0           0                0.00000000  0            0.00000000    
+CompOverlap  none     eval     none            novel    0              0              0           0                0.00000000  0            0.00000000    
+
+##:GATKReport.v0.1 CountVariants : Counts different classes of variants in the sample
+CountVariants  CompRod  EvalRod  JexlExpression  Novelty  nProcessedLoci  nCalledLoci  nRefLoci  nVariantLoci  variantRate  variantRatePerBp  nSNPs  nMNPs  nInsertions  nDeletions  nComplex  nNoCalls  nHets  nHomRef  nHomVar  nSingletons  heterozygosity  heterozygosityPerBp  hetHomRatio  indelRate  indelRatePerBp  deletionInsertionRatio
+CountVariants  none     eval     none            all      100000          100000       100000    0             0.00000000   0.00000000        0      0      0            0           0         99872     0      128      0        0            0.00000000      0.00000000           0.00000000   0.00000000  0.00000000      0.00000000            
+CountVariants  none     eval     none            known    100000          0            0         0             0.00000000   0.00000000        0      0      0            0           0         0         0      0        0        0            0.00000000      0.00000000           0.00000000   0.00000000  0.00000000      0.00000000            
+CountVariants  none     eval     none            novel    100000          100000       100000    0             0.00000000   0.00000000        0      0      0            0           0         99872     0      128      0        0            0.00000000      0.00000000           0.00000000   0.00000000  0.00000000      0.00000000            
+
+##:GATKReport.v0.1 SimpleMetricsByAC.metrics : TiTv by allele count
+SimpleMetricsByAC.metrics  CompRod  EvalRod  JexlExpression  Novelty  row  AC  nTi  nTv  n  TiTv
+SimpleMetricsByAC.metrics  none     eval     none            all      ac0  0   0    0    0  0.0 
+SimpleMetricsByAC.metrics  none     eval     none            all      ac1  1   0    0    0  0.0 
+SimpleMetricsByAC.metrics  none     eval     none            all      ac2  2   0    0    0  0.0 
+SimpleMetricsByAC.metrics  none     eval     none            known    ac0  0   0    0    0  0.0 
+SimpleMetricsByAC.metrics  none     eval     none            known    ac1  1   0    0    0  0.0 
+SimpleMetricsByAC.metrics  none     eval     none            known    ac2  2   0    0    0  0.0 
+SimpleMetricsByAC.metrics  none     eval     none            novel    ac0  0   0    0    0  0.0 
+SimpleMetricsByAC.metrics  none     eval     none            novel    ac1  1   0    0    0  0.0 
+SimpleMetricsByAC.metrics  none     eval     none            novel    ac2  2   0    0    0  0.0 
+
+##:GATKReport.v0.1 TiTvVariantEvaluator : Ti/Tv Variant Evaluator
+TiTvVariantEvaluator  CompRod  EvalRod  JexlExpression  Novelty  nTi  nTv  tiTvRatio  nTiInComp  nTvInComp  TiTvRatioStandard
+TiTvVariantEvaluator  none     eval     none            all      0    0    0.00000000  0          0          0.00000000       
+TiTvVariantEvaluator  none     eval     none            known    0    0    0.00000000  0          0          0.00000000       
+TiTvVariantEvaluator  none     eval     none            novel    0    0    0.00000000  0          0          0.00000000       
+
+##:GATKReport.v0.1 ValidationReport : Assess site accuracy and sensitivity of callset against follow-up validation assay
+ValidationReport  CompRod  EvalRod  JexlExpression  Novelty  nComp  TP  FP  FN  TN  sensitivity  PPV  FDR  CompMonoEvalNoCall  CompMonoEvalFiltered  CompMonoEvalMono  CompMonoEvalPoly  CompPolyEvalNoCall  CompPolyEvalFiltered  CompPolyEvalMono  CompPolyEvalPoly  CompFiltered  nDifferentAlleleSites
+ValidationReport  none     eval     none            all      0      0   0   0   0   NaN          NaN  NaN  0                   0                     0                 0                 0                   0                     0                 0                 0             0                    
+ValidationReport  none     eval     none            known    0      0   0   0   0   NaN          NaN  NaN  0                   0                     0                 0                 0                   0                     0                 0                 0             0                    
+ValidationReport  none     eval     none            novel    0      0   0   0   0   NaN          NaN  NaN  0                   0                     0                 0                 0                   0                     0                 0                 0             0                    
+
