@@ -47,7 +47,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class WalkerTest extends BaseTest {
-    private static final boolean GENERATE_SHADOW_BCF = false;
+    private static final boolean GENERATE_SHADOW_BCF = true;
     private static final boolean ENABLE_PHONE_HOME_FOR_TESTS = false;
     private static final boolean ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX = false;
 
@@ -144,6 +144,7 @@ public class WalkerTest extends BaseTest {
         List<String> exts = null;
         Class expectedException = null;
         boolean includeImplicitArgs = true;
+        boolean includeShadowBCF = true;
 
         // the default output path for the integration test
         private File outputFileLocation = null;
@@ -183,13 +184,19 @@ public class WalkerTest extends BaseTest {
                 args = args + (ENABLE_PHONE_HOME_FOR_TESTS ?
                         String.format(" -et %s ", GATKRunReport.PhoneHomeOption.STANDARD) :
                         String.format(" -et %s -K %s ", GATKRunReport.PhoneHomeOption.NO_ET, gatkKeyFile));
-                if ( GENERATE_SHADOW_BCF )
+                if ( includeShadowBCF && GENERATE_SHADOW_BCF )
                     args = args + " --generateShadowBCF ";
             }
 
             return args;
         }
 
+        /**
+         * In the case where the input VCF files are malformed and cannot be fixed
+         * this function tells the engine to not try to generate a shadow BCF
+         * which will ultimately blow up...
+         */
+        public void disableShadowBCF() { this.includeShadowBCF = false; }
         public void setOutputFileLocation(File outputFileLocation) {
             this.outputFileLocation = outputFileLocation;
         }        

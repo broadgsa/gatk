@@ -49,6 +49,7 @@ public class VariantContextUtils {
 
     final public static JexlEngine engine = new JexlEngine();
     public static final int DEFAULT_PLOIDY = 2;
+    private final static boolean ASSUME_MISSING_FIELDS_ARE_STRINGS = true;
 
     static {
         engine.setSilent(false); // will throw errors now for selects that don't evaluate properly
@@ -266,6 +267,24 @@ public class VariantContextUtils {
         else
             return inputVC;
 
+    }
+
+    private static Set<String> MISSING_KEYS_WARNED_ABOUT = new HashSet<String>();
+    public final static VCFCompoundHeaderLine getMetaDataForField(final VCFHeader header, final String field) {
+        VCFCompoundHeaderLine metaData = header.getFormatHeaderLine(field);
+        if ( metaData == null ) metaData = header.getInfoHeaderLine(field);
+        if ( metaData == null ) {
+            if ( ASSUME_MISSING_FIELDS_ARE_STRINGS ) {
+                if ( ! MISSING_KEYS_WARNED_ABOUT.contains(field) ) {
+                    MISSING_KEYS_WARNED_ABOUT.add(field);
+                    logger.warn("Field " + field + " missing from VCF header, assuming it is an unbounded string type");
+                }
+                return new VCFInfoHeaderLine(field, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Auto-generated string header for " + field);
+            }
+            else
+                throw new UserException.MalformedVCF("Fully decoding VariantContext requires header line for all fields, but none was found for " + field);
+        }
+        return metaData;
     }
 
     /**

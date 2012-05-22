@@ -3,11 +3,8 @@ package org.broadinstitute.sting.utils.variantcontext;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFCompoundHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
 
@@ -1295,7 +1292,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
 
         for ( final Map.Entry<String, Object> attr : attributes.entrySet() ) {
             final String field = attr.getKey();
-            final VCFCompoundHeaderLine format = getMetaDataForField(header, field);
+            final VCFCompoundHeaderLine format = VariantContextUtils.getMetaDataForField(header, field);
             final Object decoded = decodeValue(field, attr.getValue(), format);
 
             if ( decoded != null )
@@ -1357,14 +1354,6 @@ public class VariantContext implements Feature { // to enable tribble integratio
     private final Genotype fullyDecodeGenotypes(final Genotype g, final VCFHeader header) {
         final Map<String, Object> map = fullyDecodeAttributes(g.getAttributes(), header);
         return new Genotype(g.getSampleName(), g.getAlleles(), g.getLog10PError(), g.getFilters(), map, g.isPhased());
-    }
-
-    public final static VCFCompoundHeaderLine getMetaDataForField(final VCFHeader header, final String field) {
-        VCFCompoundHeaderLine metaData = header.getFormatHeaderLine(field);
-        if ( metaData == null ) metaData = header.getInfoHeaderLine(field);
-        if ( metaData == null )
-            throw new UserException.MalformedVCF("Fully decoding VariantContext requires header line for all fields, but none was found for " + field);
-        return metaData;
     }
 
     // ---------------------------------------------------------------------------------------------------------

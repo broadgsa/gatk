@@ -226,7 +226,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
     }
 
     private final int getNGenotypeFieldValues(final String field, final VariantContext vc) {
-        final VCFCompoundHeaderLine metaData = VariantContext.getMetaDataForField(header, field);
+        final VCFCompoundHeaderLine metaData = VariantContextUtils.getMetaDataForField(header, field);
         assert metaData != null; // field is supposed to be in header
 
         int nFields = metaData.getCount(vc.getNAlleles() - 1);
@@ -298,7 +298,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
     // TODO -- need to generalize so we can enable vectors of compressed genotype ints
     // TODO -- no sense in allocating these over and over
     private final VCFToBCFEncoding prepFieldValueForEncoding(final String field, final Object value) {
-        final VCFCompoundHeaderLine metaData = VariantContext.getMetaDataForField(header, field);
+        final VCFCompoundHeaderLine metaData = VariantContextUtils.getMetaDataForField(header, field);
         final boolean isList = value instanceof List;
         final Object toType = isList ? ((List)value).get(0) : value;
 

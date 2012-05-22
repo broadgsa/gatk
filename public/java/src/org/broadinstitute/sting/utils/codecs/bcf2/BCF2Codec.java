@@ -37,10 +37,7 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
@@ -292,7 +289,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
         for ( int i = 0; i < numInfoFields; i++ ) {
             final String key = getDictionaryString();
             Object value = decoder.decodeTypedValue();
-            final VCFCompoundHeaderLine metaData = VariantContext.getMetaDataForField(header, key);
+            final VCFCompoundHeaderLine metaData = VariantContextUtils.getMetaDataForField(header, key);
             if ( metaData.getType() == VCFHeaderLineType.Flag ) value = true; // special case for flags
             infoFieldEntries.put(key, value);
         }
