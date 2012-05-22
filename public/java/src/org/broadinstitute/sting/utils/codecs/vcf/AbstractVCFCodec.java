@@ -10,10 +10,7 @@ import org.broad.tribble.util.BlockCompressedInputStream;
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.LazyGenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -52,11 +49,6 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
 
     // for performance we cache the hashmap of filter encodings for quick lookup
     protected HashMap<String,LinkedHashSet<String>> filterHash = new HashMap<String,LinkedHashSet<String>>();
-
-    // a mapping of the VCF fields to their type, filter fields, and format fields, for quick lookup to validate against
-    TreeMap<String, VCFHeaderLineType> infoFields = new TreeMap<String, VCFHeaderLineType>();
-    TreeMap<String, VCFHeaderLineType> formatFields = new TreeMap<String, VCFHeaderLineType>();
-    Set<String> filterFields = new HashSet<String>();
 
     // we store a name to give to each of the variant contexts we emit
     protected String name = "Unknown";
@@ -119,11 +111,12 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
     protected abstract Set<String> parseFilters(String filterString);
 
     /**
-     * create a VCF header
+     * create a VCF header from a set of header record lines
+     *
      * @param headerStrings a list of strings that represent all the ## and # entries
      * @return a VCFHeader object
      */
-    public static VCFHeader parseHeader(final List<String> headerStrings, final VCFHeaderVersion version) {
+    protected VCFHeader parseHeaderFromLines( final List<String> headerStrings, final VCFHeaderVersion version ) {
         Set<VCFHeaderLine> metaData = new TreeSet<VCFHeaderLine>();
         Set<String> sampleNames = new LinkedHashSet<String>();
         int contigCounter = 0;
@@ -184,12 +177,6 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
         }
 
         return new VCFHeader(metaData, sampleNames);
-    }
-
-    protected VCFHeader createAndSetVCFHeader(final List<String> headerStrings, final String line, final VCFHeaderVersion version) {
-        headerStrings.add(line);
-        header = parseHeader(headerStrings, version);
-        return header;
     }
 
     /**

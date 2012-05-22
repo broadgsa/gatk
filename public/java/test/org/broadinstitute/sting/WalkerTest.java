@@ -47,7 +47,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class WalkerTest extends BaseTest {
-    private static final boolean GENERATE_SHADOW_BCF = true;
+    private static final boolean GENERATE_SHADOW_BCF = false;
     private static final boolean ENABLE_PHONE_HOME_FOR_TESTS = false;
     private static final boolean ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX = false;
 
@@ -145,6 +145,7 @@ public class WalkerTest extends BaseTest {
         Class expectedException = null;
         boolean includeImplicitArgs = true;
         boolean includeShadowBCF = true;
+        boolean repairHeader = false;
 
         // the default output path for the integration test
         private File outputFileLocation = null;
@@ -186,6 +187,8 @@ public class WalkerTest extends BaseTest {
                         String.format(" -et %s -K %s ", GATKRunReport.PhoneHomeOption.NO_ET, gatkKeyFile));
                 if ( includeShadowBCF && GENERATE_SHADOW_BCF )
                     args = args + " --generateShadowBCF ";
+                if ( repairHeader )
+                    args = args + " --repairVCFHeader public/data/vcfHeaderForRepairs.vcf ";
             }
 
             return args;
@@ -197,6 +200,7 @@ public class WalkerTest extends BaseTest {
          * which will ultimately blow up...
          */
         public void disableShadowBCF() { this.includeShadowBCF = false; }
+        public void repairHeaders() { this.repairHeader = true; }
         public void setOutputFileLocation(File outputFileLocation) {
             this.outputFileLocation = outputFileLocation;
         }        

@@ -10,7 +10,7 @@ public class SymbolicAllelesIntegrationTest extends WalkerTest {
     public static String baseTestString(String reference, String VCF) {
         return "-T CombineVariants" +
                 " -R " + reference +
-                " --variant:vcf " + validationDataLocation + VCF +
+                " --variant:vcf " + testDir + VCF +
                 " -filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED" +
                 " -genotypeMergeOptions REQUIRE_UNIQUE" +
                 " -setKey null" +

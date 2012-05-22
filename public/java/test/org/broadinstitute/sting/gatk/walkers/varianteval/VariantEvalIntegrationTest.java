@@ -349,7 +349,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test
     public void testCompOverlap() {
-        String extraArgs = "-T VariantEval -R " + b37KGReference + " -L " + validationDataLocation + "VariantEval/pacbio.hg19.intervals --comp:comphapmap " + comparisonDataLocation + "Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf --eval " + validationDataLocation + "VariantEval/pacbio.ts.recalibrated.vcf -noEV -EV CompOverlap -sn NA12878 -noST -ST Novelty -o %s";
+        String extraArgs = "-T VariantEval -R " + b37KGReference + " -L " + variantEvalTestDataRoot + "pacbio.hg19.intervals --comp:comphapmap " + comparisonDataLocation + "Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf --eval " + variantEvalTestDataRoot + "pacbio.ts.recalibrated.vcf -noEV -EV CompOverlap -sn NA12878 -noST -ST Novelty -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("59ad39e03678011b5f62492fa83ede04"));
         executeTestParallel("testCompOverlap",spec);
     }
@@ -360,7 +360,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            b37KGReference +
                            " -L 20" +
                            " --dbsnp " + b37dbSNP132 +
-                           " --eval:evalBI " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
+                           " --eval:evalBI " + variantEvalTestDataRoot + "ALL.20100201.chr20.bi.sites.vcf" +
                            " -noST -ST Novelty -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("112bb3221688acad83f29542bfb33151"));
         executeTestParallel("testEvalTrackWithoutGenotypes",spec);
@@ -371,8 +371,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         String extraArgs = "-T VariantEval -R " + b37KGReference +
                 " -L 20" +
                 " --dbsnp " + b37dbSNP132 +
-                " --eval:evalBI " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
-                " --eval:evalBC " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bc.sites.vcf" +
+                " --eval:evalBI " + variantEvalTestDataRoot + "ALL.20100201.chr20.bi.sites.vcf" +
+                " --eval:evalBC " + variantEvalTestDataRoot + "ALL.20100201.chr20.bc.sites.vcf" +
                 " -noST -ST Novelty -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("81dcdde458c1ebb9aa35289ea8f12bc8"));
         executeTestParallel("testMultipleEvalTracksWithoutGenotypes",spec);
@@ -384,8 +384,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
         String extraArgs =  "-T VariantEval" +
                            " -R " + b37KGReference +
-                           " --comp " + validationDataLocation + "/VariantEval/ALL.phase1.chr20.broad.snps.genotypes.subset.vcf" +
-                           " --eval " + validationDataLocation + "/VariantEval/NA12878.hg19.HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.optimized.cut.subset.vcf" +
+                           " --comp " + variantEvalTestDataRoot + "ALL.phase1.chr20.broad.snps.genotypes.subset.vcf" +
+                           " --eval " + variantEvalTestDataRoot + "NA12878.hg19.HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.optimized.cut.subset.vcf" +
                            " --dbsnp " + dbsnp +
                            " -L 20:10000000-10100000" +
                            " -noST -noEV -ST Novelty -EV CompOverlap" +

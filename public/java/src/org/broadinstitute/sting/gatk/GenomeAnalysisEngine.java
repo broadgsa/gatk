@@ -31,6 +31,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
+import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -51,6 +52,8 @@ import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
@@ -58,6 +61,8 @@ import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -795,7 +800,17 @@ public class GenomeAnalysisEngine {
                                                                             SAMSequenceDictionary sequenceDictionary,
                                                                             GenomeLocParser genomeLocParser,
                                                                             ValidationExclusion.TYPE validationExclusionType) {
-        RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser,validationExclusionType);
+        VCFHeader header = null;
+        if ( getArguments().repairVCFHeader != null ) {
+            try {
+                final PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(getArguments().repairVCFHeader));
+                header = (VCFHeader)new VCFCodec().readHeader(pbs).getHeaderValue();
+                pbs.close();
+            } catch ( IOException e ) {
+                throw new UserException.CouldNotReadInputFile(getArguments().repairVCFHeader, e);
+            }
+        }
+        RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser,header,validationExclusionType);
 
         List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTriplet fileDescriptor : referenceMetaDataFiles)

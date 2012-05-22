@@ -49,7 +49,7 @@ public class VariantContextUtils {
 
     final public static JexlEngine engine = new JexlEngine();
     public static final int DEFAULT_PLOIDY = 2;
-    private final static boolean ASSUME_MISSING_FIELDS_ARE_STRINGS = true;
+    private final static boolean ASSUME_MISSING_FIELDS_ARE_STRINGS = false;
 
     static {
         engine.setSilent(false); // will throw errors now for selects that don't evaluate properly

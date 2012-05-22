@@ -93,7 +93,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " --variant:VCF " + validationDataLocation + "complexExample.vcf4" +
+                        " --variant:VCF " + testDir + "complexExample.vcf4" +
                         " -T VariantsToVCF" +
                         " -o %s" +
                         " --no_cmdline_in_header",

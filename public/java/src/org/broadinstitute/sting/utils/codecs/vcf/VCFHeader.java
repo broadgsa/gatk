@@ -245,19 +245,19 @@ public class VCFHeader {
     }
 
     /**
-     * @param key    the header key name
+     * @param id the header key name
      * @return the meta data line, or null if there is none
      */
-    public VCFInfoHeaderLine getInfoHeaderLine(String key) {
-        return mInfoMetaData.get(key);
+    public VCFInfoHeaderLine getInfoHeaderLine(String id) {
+        return mInfoMetaData.get(id);
     }
 
     /**
-     * @param key    the header key name
+     * @param id    the header key name
      * @return the meta data line, or null if there is none
      */
-    public VCFFormatHeaderLine getFormatHeaderLine(String key) {
-        return mFormatMetaData.get(key);
+    public VCFFormatHeaderLine getFormatHeaderLine(String id) {
+        return mFormatMetaData.get(id);
     }
 
     /**

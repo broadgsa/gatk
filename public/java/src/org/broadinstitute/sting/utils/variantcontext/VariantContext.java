@@ -5,6 +5,7 @@ import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
 
@@ -1329,17 +1330,21 @@ public class VariantContext implements Feature { // to enable tribble integratio
     }
 
     private final Object decodeOne(final String field, final String string, final VCFCompoundHeaderLine format) {
-        if ( string.equals(VCFConstants.MISSING_VALUE_v4) )
-            return null;
-        else {
-            switch ( format.getType() ) {
-                case Character: return string;
-                case Flag:      return Boolean.valueOf(string);
-                case String:    return string;
-                case Integer:   return Integer.valueOf(string);
-                case Float:     return Double.valueOf(string);
-                default: throw new ReviewedStingException("Unexpected type for field" + field);
+        try {
+            if ( string.equals(VCFConstants.MISSING_VALUE_v4) )
+                return null;
+            else {
+                switch ( format.getType() ) {
+                    case Character: return string;
+                    case Flag:      return Boolean.valueOf(string);
+                    case String:    return string;
+                    case Integer:   return Integer.valueOf(string);
+                    case Float:     return Double.valueOf(string);
+                    default: throw new ReviewedStingException("Unexpected type for field" + field);
+                }
             }
+        } catch (NumberFormatException e) {
+            throw new UserException.MalformedVCF("Could not decode field " + field + " with value " + string + " of declared type " + format.getType());
         }
     }
 

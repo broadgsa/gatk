@@ -252,7 +252,10 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
      * @return
      */
     public boolean alsoWriteBCFForTest() {
-        return ! isCompressed() && getFile() != null && engine.getArguments().generateShadowBCF;
+        return engine.getArguments().numberOfThreads == 1 && // only works single threaded
+                ! isCompressed() && // for non-compressed outputs
+                getFile() != null && // that are going to disk
+                engine.getArguments().generateShadowBCF; // and we actually want to do it
     }
 
     /**

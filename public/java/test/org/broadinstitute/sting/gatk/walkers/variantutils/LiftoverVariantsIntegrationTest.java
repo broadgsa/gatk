@@ -56,7 +56,7 @@ public class LiftoverVariantsIntegrationTest extends WalkerTest {
     @Test
     public void testhg18Tohg19Unsorted() {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 "-T LiftoverVariants -o %s -R " + hg18Reference + " --variant:vcf " + validationDataLocation + "liftover_test.vcf -chain " + validationDataLocation + "hg18ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
+                 "-T LiftoverVariants -o %s -R " + hg18Reference + " --variant:vcf " + testDir + "liftover_test.vcf -chain " + validationDataLocation + "hg18ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
                  1,
                  Arrays.asList("ab2c6254225d7e2ecf52eee604d5673b"));
          executeTest("test hg18 to hg19, unsorted", spec);

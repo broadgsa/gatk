@@ -188,7 +188,7 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
         }
 
         List<String> filterList = new ArrayList<String>();
-        filterList.add(validationDataLocation + "readgroupblacklisttest.txt");
+        filterList.add(testDir + "readgroupblacklisttest.txt");
 
         ReadGroupBlackListFilter filter = new ReadGroupBlackListFilter(filterList);
         int filtered = 0;
@@ -227,7 +227,7 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
         }
 
         List<String> filterList = new ArrayList<String>();
-        filterList.add(validationDataLocation + "readgroupblacklisttestlist.txt");
+        filterList.add(testDir + "readgroupblacklisttestlist.txt");
 
         ReadGroupBlackListFilter filter = new ReadGroupBlackListFilter(filterList);
         int filtered = 0;

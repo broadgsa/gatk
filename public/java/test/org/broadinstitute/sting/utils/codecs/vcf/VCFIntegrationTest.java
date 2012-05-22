@@ -13,7 +13,7 @@ public class VCFIntegrationTest extends WalkerTest {
     public void testReadingAndWritingWitHNoChanges() {
 
         String md5ofInputVCF = "a990ba187a69ca44cb9bc2bb44d00447";
-        String testVCF = validationDataLocation + "vcf4.1.example.vcf";
+        String testVCF = testDir + "vcf4.1.example.vcf";
 
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
 
@@ -41,7 +41,7 @@ public class VCFIntegrationTest extends WalkerTest {
 
     @Test
     public void testReadingAndWritingSamtools() {
-        String testVCF = validationDataLocation + "samtools.vcf";
+        String testVCF = testDir + "samtools.vcf";
 
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
 

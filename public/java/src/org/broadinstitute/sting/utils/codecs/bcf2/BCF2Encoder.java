@@ -110,7 +110,7 @@ public class BCF2Encoder {
                 }
             }
         } catch ( ClassCastException e ) {
-            throw new ReviewedStingException("BUG: invalid type cast to " + type + " from " + value);
+            throw new ClassCastException("BUG: invalid type cast to " + type + " from " + value);
         }
     }
 

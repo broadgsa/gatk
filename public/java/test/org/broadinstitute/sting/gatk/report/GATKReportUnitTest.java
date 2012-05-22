@@ -36,7 +36,7 @@ import java.io.PrintStream;
 public class GATKReportUnitTest extends BaseTest {
     @Test
     public void testParse() throws Exception {
-        String reportPath = validationDataLocation + "exampleGATKReportv2.tbl";
+        String reportPath = testDir + "exampleGATKReportv2.tbl";
         GATKReport report = new GATKReport(reportPath);
         Assert.assertEquals(report.getVersion(), GATKReportVersion.V1_1);
         Assert.assertEquals(report.getTables().size(), 5);

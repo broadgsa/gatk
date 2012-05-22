@@ -51,6 +51,13 @@ public class VCFCodec extends AbstractVCFCodec {
     private VCFHeaderVersion version = null;
 
     /**
+     * A VCF header the contains master info/filter/format records that we use to 'fill in'
+     * any missing records from our input VCF header.  This allows us to repair headers on
+     * the fly
+     */
+    private VCFHeader headerForRepairs = null;
+
+    /**
      * @param reader the line reader to take header lines from
      * @return the number of header lines
      */
@@ -80,7 +87,11 @@ public class VCFCodec extends AbstractVCFCodec {
                     if (!foundHeaderVersion) {
                         throw new TribbleException.InvalidHeader("We never saw a header line specifying VCF version");
                     }
-                    return createAndSetVCFHeader(headerStrings, line, version);
+                    headerStrings.add(line);
+                    this.header = super.parseHeaderFromLines(headerStrings, version);
+                    if ( headerForRepairs != null )
+                        this.header = repairHeader(this.header, headerForRepairs);
+                    return this.header;
                 }
                 else {
                     throw new TribbleException.InvalidHeader("We never saw the required CHROM header line (starting with one #) for the input VCF file");
@@ -92,6 +103,22 @@ public class VCFCodec extends AbstractVCFCodec {
         }
         throw new TribbleException.InvalidHeader("We never saw the required CHROM header line (starting with one #) for the input VCF file");
     }
+
+    private final VCFHeader repairHeader(final VCFHeader readHeader, final VCFHeader masterHeader) {
+        final Set<VCFHeaderLine> lines = VCFUtils.smartMergeHeaders(Arrays.asList(readHeader, masterHeader), log);
+        return new VCFHeader(lines, readHeader.getGenotypeSamples());
+    }
+
+    /**
+     * Tells this VCFCodec to repair the incoming header files with the information in masterHeader
+     *
+     * @param headerForRepairs
+     */
+    public void setHeaderForRepairs(final VCFHeader headerForRepairs) {
+        log.info("Using master VCF header to repair missing files from incoming VCFs");
+        this.headerForRepairs = headerForRepairs;
+    }
+
 
 
     /**

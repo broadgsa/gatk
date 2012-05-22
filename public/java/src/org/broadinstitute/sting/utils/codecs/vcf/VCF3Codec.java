@@ -58,7 +58,8 @@ public class VCF3Codec extends AbstractVCFCodec {
                     if (!foundHeaderVersion) {
                         throw new TribbleException.InvalidHeader("We never saw a header line specifying VCF version");
                     }
-                    return createAndSetVCFHeader(headerStrings, line, version);
+                    headerStrings.add(line);
+                    return super.parseHeaderFromLines(headerStrings, version);
                 }
                 else {
                     throw new TribbleException.InvalidHeader("We never saw the required CHROM header line (starting with one #) for the input VCF file");

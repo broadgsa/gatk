@@ -260,18 +260,22 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
         startGenotypeField(field, numInFormatField, encoding.BCF2Type);
         for ( final Genotype g : vc.getGenotypes() ) {
-            final Object fieldValue = g.getAttribute(field);
+            try {
+                final Object fieldValue = g.getAttribute(field);
 
-            if ( numInFormatField == 1 ) {
-                // we encode the actual allele, encodeRawValue handles the missing case where fieldValue == null
-                encoder.encodeRawValue(fieldValue, encoding.BCF2Type);
-            } else {
-                // multiple values, need to handle general case
-                final List<Object> asList = toList(fieldValue);
-                final int nSampleValues = asList.size();
-                for ( int i = 0; i < numInFormatField; i++ ) {
-                    encoder.encodeRawValue(i < nSampleValues ? asList.get(i) : null, encoding.BCF2Type);
+                if ( numInFormatField == 1 ) {
+                    // we encode the actual allele, encodeRawValue handles the missing case where fieldValue == null
+                    encoder.encodeRawValue(fieldValue, encoding.BCF2Type);
+                } else {
+                    // multiple values, need to handle general case
+                    final List<Object> asList = toList(fieldValue);
+                    final int nSampleValues = asList.size();
+                    for ( int i = 0; i < numInFormatField; i++ ) {
+                        encoder.encodeRawValue(i < nSampleValues ? asList.get(i) : null, encoding.BCF2Type);
+                    }
                 }
+            } catch ( ClassCastException e ) {
+                throw new ReviewedStingException("Value stored in VariantContext incompatible with VCF header type for field " + field, e);
             }
         }
     }

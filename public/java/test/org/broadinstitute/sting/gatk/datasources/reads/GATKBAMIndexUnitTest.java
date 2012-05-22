@@ -94,13 +94,13 @@ public class GATKBAMIndexUnitTest extends BaseTest {
 
     @Test( expectedExceptions = UserException.MalformedFile.class )
     public void testDetectTruncatedBamIndexWordBoundary() {
-        GATKBAMIndex index = new GATKBAMIndex(new File(validationDataLocation + "truncated_at_word_boundary.bai"));
+        GATKBAMIndex index = new GATKBAMIndex(new File(testDir + "truncated_at_word_boundary.bai"));
         index.readReferenceSequence(0);
     }
 
     @Test( expectedExceptions = UserException.MalformedFile.class )
     public void testDetectTruncatedBamIndexNonWordBoundary() {
-        GATKBAMIndex index = new GATKBAMIndex(new File(validationDataLocation + "truncated_at_non_word_boundary.bai"));
+        GATKBAMIndex index = new GATKBAMIndex(new File(testDir + "truncated_at_non_word_boundary.bai"));
         index.readReferenceSequence(0);
     }
 

@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -65,22 +66,21 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * our log, which we use to capture anything from this class
      */
     private final static Logger logger = Logger.getLogger(RMDTrackBuilder.class);
-    public final static boolean MEASURE_TRIBBLE_QUERY_PERFORMANCE = false;
 
     // private sequence dictionary we use to set our tracks with
-    private SAMSequenceDictionary dict = null;
+    private final SAMSequenceDictionary dict;
 
     /**
      * Private genome loc parser to use when building out new locs.
      */
-    private GenomeLocParser genomeLocParser;
+    private final GenomeLocParser genomeLocParser;
 
     /**
      * Validation exclusions, for validating the sequence dictionary.
      */
     private ValidationExclusion.TYPE validationExclusionType;
 
-    FeatureManager featureManager;
+    private final FeatureManager featureManager;
 
     /**
      * Construct an RMDTrackerBuilder, allowing the user to define tracks to build after-the-fact.  This is generally
@@ -88,19 +88,38 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * please talk through your approach with the SE team.
      * @param dict Sequence dictionary to use.
      * @param genomeLocParser Location parser to use.
+     * @param headerForRepairs a VCF header that should be used to repair VCF headers.  Can be null
      * @param validationExclusionType Types of validations to exclude, for sequence dictionary verification.
      */
-    public RMDTrackBuilder(SAMSequenceDictionary dict,
-                           GenomeLocParser genomeLocParser,
+    public RMDTrackBuilder(final SAMSequenceDictionary dict,
+                           final GenomeLocParser genomeLocParser,
+                           final VCFHeader headerForRepairs,
                            ValidationExclusion.TYPE validationExclusionType) {
         this.dict = dict;
         this.validationExclusionType = validationExclusionType;
         this.genomeLocParser = genomeLocParser;
-        featureManager = new FeatureManager();
+        this.featureManager = new FeatureManager(headerForRepairs);
     }
 
+    /**
+     * Return the feature manager this RMDTrackBuilder is using the create tribble tracks
+     *
+     * @return
+     */
     public FeatureManager getFeatureManager() {
         return featureManager;
+    }
+
+    /**
+     * Same as full constructor but makes one without a header for repairs
+     * @param dict
+     * @param genomeLocParser
+     * @param validationExclusionType
+     */
+    public RMDTrackBuilder(final SAMSequenceDictionary dict,
+                           final GenomeLocParser genomeLocParser,
+                           ValidationExclusion.TYPE validationExclusionType) {
+        this(dict, genomeLocParser, null, validationExclusionType);
     }
 
     /**

@@ -55,7 +55,7 @@ public class FastaSequenceIndexBuilderUnitTest extends BaseTest {
     public void unixFileTest() {
         logger.warn("Executing unixFileTest");
 
-        fastaFile = new File(validationDataLocation + "exampleFASTA.fasta");
+        fastaFile = new File(testDir + "exampleFASTA.fasta");
         builder = new FastaSequenceIndexBuilder(fastaFile, false);
         FastaSequenceIndex index = builder.createIndex();
         controlIndex.add(new FastaSequenceIndexEntry("chr1", 6, 100000, 60, 61,0));
@@ -72,7 +72,7 @@ public class FastaSequenceIndexBuilderUnitTest extends BaseTest {
     public void windowsFileTest() {
         logger.warn("Executing windowsFileTest");
 
-        fastaFile = new File(validationDataLocation + "exampleFASTA-windows.fasta");
+        fastaFile = new File(testDir + "exampleFASTA-windows.fasta");
         builder = new FastaSequenceIndexBuilder(fastaFile, false);
         FastaSequenceIndex index = builder.createIndex();
         controlIndex.add(new FastaSequenceIndexEntry("chr2", 7, 29, 7, 9,0));
@@ -88,7 +88,7 @@ public class FastaSequenceIndexBuilderUnitTest extends BaseTest {
     public void combinedWindowsUnix() {
         logger.warn("Executing combinedWindowsUnix");
 
-        fastaFile = new File(validationDataLocation + "exampleFASTA-combined.fasta");
+        fastaFile = new File(testDir + "exampleFASTA-combined.fasta");
         builder = new FastaSequenceIndexBuilder(fastaFile, false);
         FastaSequenceIndex index = builder.createIndex();
         controlIndex.add(new FastaSequenceIndexEntry("chr1", 6, 100000, 60, 61,0));
@@ -105,7 +105,7 @@ public class FastaSequenceIndexBuilderUnitTest extends BaseTest {
     public void threeVariableLengthContigs() {
         logger.warn("Executing threeVariableLengthContigs");
 
-        fastaFile = new File(validationDataLocation + "exampleFASTA-3contigs.fasta");
+        fastaFile = new File(testDir + "exampleFASTA-3contigs.fasta");
         builder = new FastaSequenceIndexBuilder(fastaFile, false);
         FastaSequenceIndex index = builder.createIndex();
         controlIndex.add(new FastaSequenceIndexEntry("chr1", 6, 17, 5, 6,0));

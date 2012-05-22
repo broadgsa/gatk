@@ -33,7 +33,7 @@ import java.util.*;
 public class VariantsToTableIntegrationTest extends WalkerTest {
     private String variantsToTableCmd(String moreArgs) {
         return "-R " + hg18Reference +
-                " --variant:vcf " + validationDataLocation + "/soap_gatk_annotated.vcf" +
+                " --variant:vcf " + testDir + "/soap_gatk_annotated.vcf" +
                 " -T VariantsToTable" +
                 " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F FILTER -F TRANSITION -F DP -F SB -F set -F RankSumP -F refseq.functionalClass*" +
                 " -L chr1 -o %s" + moreArgs;
@@ -41,7 +41,7 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
 
     private String variantsToTableMultiAllelicCmd(String moreArgs) {
         return "-R " + b37KGReference +
-                " --variant " + validationDataLocation + "/multiallelic.vcf" +
+                " --variant " + testDir + "/multiallelic.vcf" +
                 " -T VariantsToTable" +
                 " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F MULTI-ALLELIC -F AC -F AF" +
                 " -o %s" + moreArgs;

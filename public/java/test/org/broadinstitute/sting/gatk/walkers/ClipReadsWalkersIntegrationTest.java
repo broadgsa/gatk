@@ -36,7 +36,7 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-R " + hg18Reference +
                         " -T ClipReads " +
-                        "-I " + validationDataLocation + "clippingReadsTest.withRG.bam " +
+                        "-I " + testDir + "clippingReadsTest.withRG.bam " +
                         "-os %s " +
                         "-o %s " + args,
                 2, // just one output file
@@ -55,9 +55,9 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
     @Test public void testClipRange2() { testClipper("clipRange2", "-CT 1-5,11-15", "be4fcad5b666a5540028b774169cbad7", "3061cf742f9e5526a61130128ae761a3"); }
 
     @Test public void testClipSeq() { testClipper("clipSeqX", "-X CCCCC", "db199bd06561c9f2122f6ffb07941fbc", "b89459f373e40f0b835c1faff2208839"); }
-    @Test public void testClipSeqFile() { testClipper("clipSeqXF", "-XF " + validationDataLocation + "seqsToClip.fasta", "d011a3152b31822475afbe0281491f8d", "24e19116ef16a37a6d095ed5c22c2466"); }
+    @Test public void testClipSeqFile() { testClipper("clipSeqXF", "-XF " + testDir + "seqsToClip.fasta", "d011a3152b31822475afbe0281491f8d", "24e19116ef16a37a6d095ed5c22c2466"); }
 
-    @Test public void testClipMulti() { testClipper("clipSeqMulti", "-QT 10 -CT 1-5 -XF " + validationDataLocation + "seqsToClip.fasta -X CCCCC", "a23187bd9bfb06557f799706d98441de", "ad8d30300cb43d5e300fcc4d2450da8e"); }
+    @Test public void testClipMulti() { testClipper("clipSeqMulti", "-QT 10 -CT 1-5 -XF " + testDir + "seqsToClip.fasta -X CCCCC", "a23187bd9bfb06557f799706d98441de", "ad8d30300cb43d5e300fcc4d2450da8e"); }
 
     @Test public void testClipNs() { testClipper("testClipNs", "-QT 10 -CR WRITE_NS", Q10ClipOutput, "57c05b6241db7110148a91fde2d431d0"); }
     @Test public void testClipQ0s() { testClipper("testClipQs", "-QT 10 -CR WRITE_Q0S", Q10ClipOutput, "2a1a3153e0942ab355fd8a6e082b30e0"); }
@@ -68,7 +68,7 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + hg18Reference +
                         " -T ClipReads" +
-                        " -I " + validationDataLocation + "originalQuals.chr1.1-1K.bam" +
+                        " -I " + testDir + "originalQuals.chr1.1-1K.bam" +
                         " -L chr1:1-1,000" +
                         " -OQ -QT 4 -CR WRITE_Q0S" +
                         " -o %s -os %s",

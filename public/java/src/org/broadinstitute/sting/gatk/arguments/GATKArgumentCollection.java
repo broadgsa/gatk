@@ -331,9 +331,18 @@ public class GATKArgumentCollection {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    @Argument(fullName="generateShadowBCF",doc="If provided, whenever we create a VCFWriter we will also write out a BCF file alongside it, for testing purposes",required=false)
+    @Argument(fullName="generateShadowBCF",shortName = "generateShadowBCF",doc="If provided, whenever we create a VCFWriter we will also write out a BCF file alongside it, for testing purposes",required=false)
     @Hidden
     public boolean generateShadowBCF = false;
     // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
+
+    /**
+     * The file pointed to by this argument must be a VCF file. The GATK will read in just the header of this file
+     * and then use the INFO, FORMAT, and FILTER field values from this file to repair the header file of any other
+     * VCF file that GATK reads in.  This allows us to have in effect a master set of header records and use these
+     * to fill in any missing ones in input VCF files.
+     */
+    @Argument(fullName="repairVCFHeader", shortName = "repairVCFHeader", doc="If provided, whenever we read a VCF file we will use the header in this file to repair the header of the input VCF files", required=false)
+    public File repairVCFHeader = null;
 }
 

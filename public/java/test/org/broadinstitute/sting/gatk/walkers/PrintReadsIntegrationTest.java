@@ -47,7 +47,7 @@ public class PrintReadsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T PrintReads" +
                         " -R " + params.reference +
-                        " -I " + validationDataLocation + params.bam +
+                        " -I " + testDir + params.bam +
                         params.args +
                         " -o %s",
                 Arrays.asList(params.md5));
