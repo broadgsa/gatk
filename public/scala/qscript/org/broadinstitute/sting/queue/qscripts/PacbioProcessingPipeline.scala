@@ -130,6 +130,7 @@ class PacbioProcessingPipeline extends QScript {
   case class sortSam (inSam: File, outBam: File) extends SortSam with ExternalCommonArgs {
     this.input = List(inSam)
     this.output = outBam
+    this.memoryLimit = 8
     this.sortOrder = SortOrder.coordinate
     this.analysisName = queueLogDir + outBam + ".sortSam"
     this.jobName = queueLogDir + outBam + ".sortSam"
@@ -171,6 +172,7 @@ class PacbioProcessingPipeline extends QScript {
     this.analysisName = queueLogDir + outRecalFile + ".covariates"
     this.jobName = queueLogDir + outRecalFile + ".covariates"
     this.scatterCount = threads
+    this.read_filter :+= "BadCigar"
   }
 
   case class recal (inBam: File, inRecalFile: File, outBam: File) extends TableRecalibration with CommandLineGATKArgs {
@@ -182,6 +184,7 @@ class PacbioProcessingPipeline extends QScript {
     this.isIntermediate = false
     this.analysisName = queueLogDir + outBam + ".recalibration"
     this.jobName = queueLogDir + outBam + ".recalibration"
+    this.read_filter :+= "BadCigar"
     this.scatterCount = threads
   }
 
