@@ -47,7 +47,7 @@ import java.io.File;
 import java.util.*;
 
 public class WalkerTest extends BaseTest {
-    private static final boolean GENERATE_SHADOW_BCF = false;
+    private static final boolean GENERATE_SHADOW_BCF = true;
     private static final boolean ENABLE_PHONE_HOME_FOR_TESTS = false;
     private static final boolean ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX = false;
 
