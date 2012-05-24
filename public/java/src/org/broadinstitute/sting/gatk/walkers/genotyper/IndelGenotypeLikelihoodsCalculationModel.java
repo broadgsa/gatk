@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Haplotype;
+import org.broadinstitute.sting.utils.codecs.vcf.AbstractVCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -106,6 +107,8 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         Allele refAllele, altAllele;
         VariantContext vc = null;
 
+        boolean allelesArePadded = true;
+
         if (!ref.getLocus().equals(lastSiteVisited)) {
             // starting a new site: clear allele list
             alleleList.clear();
@@ -139,6 +142,8 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                     for (Allele a : vc.getAlleles())
                         alleleList.add(a);
                 }
+                if (vc.getReference().getBases().length == vc.getEnd()-vc.getStart()+1)
+                    allelesArePadded = false;
 
             } else {
                 alleleList = computeConsensusAlleles(ref, contexts, contextType, locParser);
@@ -184,7 +189,10 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                 ref, hsize, numPrefBases);
 
         // start making the VariantContext
-        final int endLoc = calculateEndPos(alleleList, refAllele, loc);
+        // For all non-snp VC types, VC end location is just startLocation + length of ref allele including padding base.
+        int endLoc = loc.getStart() + refAllele.length()-1;
+        if (allelesArePadded)
+            endLoc++;
         final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), endLoc, alleleList).referenceBaseForIndel(ref.getBase());
 
         // create the genotypes; no-call everyone for now
@@ -220,23 +228,6 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         }
 
         return builder.genotypes(genotypes).make();
-    }
-
-    private int calculateEndPos(Collection<Allele> alleles, Allele refAllele, GenomeLoc loc) {
-        // for indels, stop location is one more than ref allele length
-        boolean hasNullAltAllele = false;
-        for (Allele a : alleles) {
-            if (a.isNull()) {
-                hasNullAltAllele = true;
-                break;
-            }
-        }
-
-        int endLoc = loc.getStart() + refAllele.length();
-        if (!hasNullAltAllele)
-            endLoc--;
-
-        return endLoc;
     }
 
     public static HashMap<PileupElement, LinkedHashMap<Allele, Double>> getIndelLikelihoodMap() {
