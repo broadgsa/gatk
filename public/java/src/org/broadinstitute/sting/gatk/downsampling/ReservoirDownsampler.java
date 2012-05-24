@@ -48,6 +48,14 @@ public class ReservoirDownsampler<T extends SAMRecord> implements ReadsDownsampl
 
     private int totalReadsSeen;
 
+    private int numDiscardedItems;
+
+    /**
+     * Construct a ReservoirDownsampler
+     *
+     * @param targetSampleSize Size of the reservoir used by this downsampler. Number of items retained
+     *                         after downsampling will be min(totalReads, targetSampleSize)
+     */
     public ReservoirDownsampler ( int targetSampleSize ) {
         if ( targetSampleSize <= 0 ) {
             throw new ReviewedStingException("Cannot do reservoir downsampling with a sample size <= 0");
@@ -55,6 +63,7 @@ public class ReservoirDownsampler<T extends SAMRecord> implements ReadsDownsampl
 
         this.targetSampleSize = targetSampleSize;
         clear();
+        reset();
     }
 
     public void submit ( T newRead ) {
@@ -68,6 +77,7 @@ public class ReservoirDownsampler<T extends SAMRecord> implements ReadsDownsampl
             if ( randomSlot < targetSampleSize ) {
                 reservoir.set(randomSlot, newRead);
             }
+            numDiscardedItems++;
         }
     }
 
@@ -77,11 +87,12 @@ public class ReservoirDownsampler<T extends SAMRecord> implements ReadsDownsampl
         }
     }
 
-    public boolean hasDownsampledItems() {
+    public boolean hasFinalizedItems() {
         return reservoir.size() > 0;
     }
 
-    public List<T> consumeDownsampledItems() {
+    public List<T> consumeFinalizedItems() {
+        // pass by reference rather than make a copy, for speed
         List<T> downsampledItems = reservoir;
         clear();
         return downsampledItems;
@@ -91,16 +102,36 @@ public class ReservoirDownsampler<T extends SAMRecord> implements ReadsDownsampl
         return false;
     }
 
+    public T peekFinalized() {
+        return reservoir.isEmpty() ? null : reservoir.get(0);
+    }
+
+    public T peekPending() {
+        return null;
+    }
+
+    public int getNumberOfDiscardedItems() {
+        return numDiscardedItems;
+    }
+
     public void signalEndOfInput() {
         // NO-OP
     }
 
     public void clear() {
         reservoir = new ArrayList<T>(targetSampleSize);
-        totalReadsSeen = 0;
+        totalReadsSeen = 0;    // an internal stat used by the downsampling process, so not cleared by reset() below
+    }
+
+    public void reset() {
+        numDiscardedItems = 0;
     }
 
     public boolean requiresCoordinateSortOrder() {
         return false;
+    }
+
+    public void signalNoMoreReadsBefore( T read ) {
+        // NO-OP
     }
 }

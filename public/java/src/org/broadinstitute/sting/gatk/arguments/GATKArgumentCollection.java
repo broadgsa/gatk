@@ -31,8 +31,8 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.IntervalBinding;
-import org.broadinstitute.sting.gatk.DownsampleType;
-import org.broadinstitute.sting.gatk.DownsamplingMethod;
+import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
+import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -140,15 +140,11 @@ public class GATKArgumentCollection {
     @Argument(fullName = "nonDeterministicRandomSeed", shortName = "ndrs", doc = "Makes the GATK behave non deterministically, that is, the random numbers generated will be different in every run", required = false)
     public boolean nonDeterministicRandomSeed = false;
 
-    /**
-     * The override mechanism in the GATK, by default, populates the command-line arguments, then
-     * the defaults from the walker annotations.  Unfortunately, walker annotations should be trumped
-     * by a user explicitly specifying command-line arguments.
-     * TODO: Change the GATK so that walker defaults are loaded first, then command-line arguments.
-     */
-    private static DownsampleType DEFAULT_DOWNSAMPLING_TYPE = DownsampleType.BY_SAMPLE;
-    private static int DEFAULT_DOWNSAMPLING_COVERAGE = 1000;
-
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // Downsampling Arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
     @Argument(fullName = "downsampling_type", shortName="dt", doc="Type of reads downsampling to employ at a given locus.  Reads will be selected randomly to be removed from the pile based on the method described here", required = false)
     public DownsampleType downsamplingType = null;
 
@@ -158,17 +154,20 @@ public class GATKArgumentCollection {
     @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to at any given locus; note that downsampled reads are randomly selected from all possible reads at a locus", required = false)
     public Integer downsampleCoverage = null;
 
+    @Argument(fullName = "enable_experimental_downsampling", shortName = "enable_experimental_downsampling", doc = "Enable experimental engine-level downsampling", required = false)
+    @Hidden
+    public boolean enableExperimentalDownsampling = false;
+
     /**
      * Gets the downsampling method explicitly specified by the user.  If the user didn't specify
      * a default downsampling mechanism, return the default.
      * @return The explicitly specified downsampling mechanism, or the default if none exists.
      */
     public DownsamplingMethod getDownsamplingMethod() {
-        if(downsamplingType == null && downsampleFraction == null && downsampleCoverage == null)
+        if ( downsamplingType == null && downsampleFraction == null && downsampleCoverage == null )
             return null;
-        if(downsamplingType == null && downsampleCoverage != null)
-            return new DownsamplingMethod(DEFAULT_DOWNSAMPLING_TYPE,downsampleCoverage,null);
-        return new DownsamplingMethod(downsamplingType,downsampleCoverage,downsampleFraction);
+
+        return new DownsamplingMethod(downsamplingType, downsampleCoverage, downsampleFraction, enableExperimentalDownsampling);
     }
 
     /**
@@ -178,9 +177,11 @@ public class GATKArgumentCollection {
     public void setDownsamplingMethod(DownsamplingMethod method) {
         if (method == null)
             throw new IllegalArgumentException("method is null");
+
         downsamplingType = method.type;
         downsampleCoverage = method.toCoverage;
         downsampleFraction = method.toFraction;
+        enableExperimentalDownsampling = method.useExperimentalDownsampling;
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -207,15 +208,6 @@ public class GATKArgumentCollection {
      */
     @Argument(fullName = "performanceLog", shortName="PF", doc="If provided, a GATK runtime performance log will be written to this file", required = false)
     public File performanceLog = null;
-
-    /**
-     * Gets the default downsampling method, returned if the user didn't specify any downsampling
-     * method.
-     * @return The default downsampling mechanism, or null if none exists.
-     */
-    public static DownsamplingMethod getDefaultDownsamplingMethod() {
-        return new DownsamplingMethod(DEFAULT_DOWNSAMPLING_TYPE,DEFAULT_DOWNSAMPLING_COVERAGE,null);
-    }
 
     @Argument(fullName="useOriginalQualities", shortName = "OQ", doc = "If set, use the original base quality scores from the OQ tag when present instead of the standard scores", required=false)
     public Boolean useOriginalBaseQualities = false;

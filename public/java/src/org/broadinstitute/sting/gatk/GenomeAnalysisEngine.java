@@ -36,6 +36,7 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.*;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
@@ -441,14 +442,18 @@ public class GenomeAnalysisEngine {
 
     protected DownsamplingMethod getDownsamplingMethod() {
         GATKArgumentCollection argCollection = this.getArguments();
-        DownsamplingMethod method;
-        if(argCollection.getDownsamplingMethod() != null)
-            method = argCollection.getDownsamplingMethod();
-        else if(WalkerManager.getDownsamplingMethod(walker) != null)
-            method = WalkerManager.getDownsamplingMethod(walker);
-        else
-            method = GATKArgumentCollection.getDefaultDownsamplingMethod();
-        return method;
+        boolean useExperimentalDownsampling = argCollection.enableExperimentalDownsampling;
+
+        // until the file pointer bug with the experimental downsamplers is fixed, disallow running with experimental downsampling
+        if ( useExperimentalDownsampling ) {
+            throw new UserException("The experimental downsampling implementation is currently crippled by a file-pointer-related bug. Until this bug is fixed, it's not safe (or possible) for anyone to use the experimental implementation!");
+        }
+
+        DownsamplingMethod commandLineMethod = argCollection.getDownsamplingMethod();
+        DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker, useExperimentalDownsampling);
+        DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker, useExperimentalDownsampling);
+
+        return commandLineMethod != null ? commandLineMethod : (walkerMethod != null ? walkerMethod : defaultMethod);
     }
 
     protected void setDownsamplingMethod(DownsamplingMethod method) {
@@ -821,11 +826,13 @@ public class GenomeAnalysisEngine {
      * @return A data source for the given set of reads.
      */
     private SAMDataSource createReadsDataSource(GATKArgumentCollection argCollection, GenomeLocParser genomeLocParser, IndexedFastaSequenceFile refReader) {
-        DownsamplingMethod method = getDownsamplingMethod();
+        DownsamplingMethod downsamplingMethod = getDownsamplingMethod();
 
         // Synchronize the method back into the collection so that it shows up when
         // interrogating for the downsample method during command line recreation.
-        setDownsamplingMethod(method);
+        setDownsamplingMethod(downsamplingMethod);
+
+        logger.info(downsamplingMethod);
 
         if (argCollection.removeProgramRecords && argCollection.keepProgramRecords)
             throw new UserException.BadArgumentValue("rpr / kpr", "Cannot enable both options");
@@ -843,7 +850,7 @@ public class GenomeAnalysisEngine {
                 argCollection.useOriginalBaseQualities,
                 argCollection.strictnessLevel,
                 argCollection.readBufferSize,
-                method,
+                downsamplingMethod,
                 new ValidationExclusion(Arrays.asList(argCollection.unsafe)),
                 filters,
                 readTransformers,

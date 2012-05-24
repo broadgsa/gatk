@@ -6,13 +6,13 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import java.util.Iterator;
 
 
-public class DownsampleIterator implements StingSAMIterator {
+public class LegacyDownsampleIterator implements StingSAMIterator {
 
     StingSAMIterator it;
     int cutoff;
     SAMRecord next;
 
-    public DownsampleIterator(StingSAMIterator it, double fraction) {
+    public LegacyDownsampleIterator(StingSAMIterator it, double fraction) {
         this.it = it;
         cutoff = (int)(fraction * 10000);
         next = getNextRecord();

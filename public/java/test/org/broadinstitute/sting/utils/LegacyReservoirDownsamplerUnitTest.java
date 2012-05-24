@@ -17,7 +17,7 @@ import java.util.*;
  * @author mhanna
  * @version 0.1
  */
-public class ReservoirDownsamplerUnitTest {
+public class LegacyReservoirDownsamplerUnitTest {
     private static final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1,1,200);
 
 

@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk;
+package org.broadinstitute.sting.gatk.downsampling;
 
 /**
  * Type of downsampling method to invoke.

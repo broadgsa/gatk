@@ -30,7 +30,9 @@ import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.DownsamplingMethod;
+import org.broadinstitute.sting.gatk.downsampling.*;
+import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
+import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -151,6 +153,8 @@ public class SAMDataSource {
      * How are threads allocated.
      */
     private final ThreadAllocation threadAllocation;
+
+    private final boolean expandShardsForDownsampling;
 
     /**
      * Create a new SAM data source given the supplied read metadata.
@@ -301,6 +305,11 @@ public class SAMDataSource {
                 readTransformers,
                 includeReadsWithDeletionAtLoci,
                 defaultBaseQualities);
+
+        expandShardsForDownsampling = readProperties.getDownsamplingMethod() != null &&
+                                      readProperties.getDownsamplingMethod().useExperimentalDownsampling &&
+                                      readProperties.getDownsamplingMethod().type != DownsampleType.NONE &&
+                                      readProperties.getDownsamplingMethod().toCoverage != null;
 
         // cache the read group id (original) -> read group id (merged)
         // and read group id (merged) -> read group id (original) mappings.
@@ -458,6 +467,16 @@ public class SAMDataSource {
     }
 
     /**
+     * Are we expanding shards as necessary to prevent shard boundaries from occurring at improper places?
+     *
+     * @return true if we are using expanded shards, otherwise false
+     */
+    public boolean usingExpandedShards() {
+        return expandShardsForDownsampling;
+    }
+
+
+    /**
      * Fill the given buffering shard with reads.
      * @param shard Shard to fill.
      */
@@ -481,6 +500,31 @@ public class SAMDataSource {
                 noteFilePositionUpdate(positionUpdates,read);
             } else {
                 break;
+            }
+        }
+
+        // If the reads are sorted in coordinate order, ensure that all reads
+        // having the same alignment start become part of the same shard, to allow
+        // downsampling to work better across shard boundaries. Note that because our
+        // read stream has already been fed through the positional downsampler, which
+        // ensures that at each alignment start position there are no more than dcov
+        // reads, we're in no danger of accidentally creating a disproportionately huge
+        // shard
+        if ( expandShardsForDownsampling && sortOrder == SAMFileHeader.SortOrder.coordinate ) {
+            while ( iterator.hasNext() ) {
+                SAMRecord additionalRead = iterator.next();
+
+                // Stop filling the shard as soon as we encounter a read having a different
+                // alignment start or contig from the last read added in the earlier loop
+                // above, or an unmapped read
+                if ( read == null ||
+                     additionalRead.getReadUnmappedFlag() ||
+                     ! additionalRead.getReferenceIndex().equals(read.getReferenceIndex()) ||
+                     additionalRead.getAlignmentStart() != read.getAlignmentStart() ) {
+                    break;
+                }
+                shard.addRead(additionalRead);
+                noteFilePositionUpdate(positionUpdates, additionalRead);
             }
         }
 
@@ -578,6 +622,7 @@ public class SAMDataSource {
             iterator = new MalformedBAMErrorReformatingIterator(id.samFile, iterator);
             if(shard.getGenomeLocs().size() > 0)
                 iterator = new IntervalOverlapFilteringIterator(iterator,shard.getGenomeLocs());
+
             iteratorMap.put(readers.getReader(id), iterator);
         }
 
@@ -660,20 +705,25 @@ public class SAMDataSource {
                                                         List<ReadTransformer> readTransformers,
                                                         byte defaultBaseQualities) {
 
-        // *********************************************************************************** //
-        // *  NOTE: ALL FILTERING SHOULD BE DONE BEFORE ANY ITERATORS THAT MODIFY THE READS! * //
-        // *     (otherwise we will process something that we may end up throwing away)      * //
-        // *********************************************************************************** //
+        // ************************************************************************************************ //
+        // *  NOTE: ALL FILTERING/DOWNSAMPLING SHOULD BE DONE BEFORE ANY ITERATORS THAT MODIFY THE READS! * //
+        // *     (otherwise we will process something that we may end up throwing away)                   * //
+        // ************************************************************************************************ //
 
-        if (downsamplingFraction != null)
-            wrappedIterator = new DownsampleIterator(wrappedIterator, downsamplingFraction);
+        wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
+
+        if ( readProperties.getDownsamplingMethod().useExperimentalDownsampling ) {
+            wrappedIterator = applyDownsamplingIterator(wrappedIterator);
+        }
+
+        // Use the old fractional downsampler only if we're not using experimental downsampling:
+        if ( ! readProperties.getDownsamplingMethod().useExperimentalDownsampling && downsamplingFraction != null )
+            wrappedIterator = new LegacyDownsampleIterator(wrappedIterator, downsamplingFraction);
 
         // unless they've said not to validate read ordering (!noValidationOfReadOrder) and we've enabled verification,
         // verify the read ordering by applying a sort order iterator
         if (!noValidationOfReadOrder && enableVerification)
-            wrappedIterator = new VerifyingSamIterator(genomeLocParser,wrappedIterator);
-
-        wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
+            wrappedIterator = new VerifyingSamIterator(wrappedIterator);
 
         if (useOriginalBaseQualities || defaultBaseQualities >= 0)
             // only wrap if we are replacing the original qualities or using a default base quality
@@ -687,6 +737,26 @@ public class SAMDataSource {
 
         return wrappedIterator;
     }
+
+    protected StingSAMIterator applyDownsamplingIterator( StingSAMIterator wrappedIterator ) {
+        if ( readProperties.getDownsamplingMethod().type == DownsampleType.BY_SAMPLE ) {
+            ReadsDownsamplerFactory<SAMRecord> downsamplerFactory = readProperties.getDownsamplingMethod().toCoverage != null ?
+                                                                    new SimplePositionalDownsamplerFactory<SAMRecord>(readProperties.getDownsamplingMethod().toCoverage) :
+                                                                    new FractionalDownsamplerFactory<SAMRecord>(readProperties.getDownsamplingMethod().toFraction);
+
+            return new PerSampleDownsamplingReadsIterator(wrappedIterator, downsamplerFactory);
+        }
+        else if ( readProperties.getDownsamplingMethod().type == DownsampleType.ALL_READS ) {
+            ReadsDownsampler<SAMRecord> downsampler = readProperties.getDownsamplingMethod().toCoverage != null ?
+                                                      new SimplePositionalDownsampler<SAMRecord>(readProperties.getDownsamplingMethod().toCoverage) :
+                                                      new FractionalDownsampler<SAMRecord>(readProperties.getDownsamplingMethod().toFraction);
+
+            return new DownsamplingReadsIterator(wrappedIterator, downsampler);
+        }
+
+        return wrappedIterator;
+    }
+
 
     private class SAMResourcePool {
         /**

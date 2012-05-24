@@ -27,29 +27,19 @@ package org.broadinstitute.sting.gatk.downsampling;
 import net.sf.samtools.SAMRecord;
 
 /**
- * An extension of the basic downsampler API with reads-specific operations
+ * Factory for creating SimplePositionalDownsamplers on demand
  *
  * @author David Roazen
  */
-public interface ReadsDownsampler<T extends SAMRecord> extends Downsampler<T> {
+public class SimplePositionalDownsamplerFactory<T extends SAMRecord> implements ReadsDownsamplerFactory<T> {
 
-    /**
-     * Does this downsampler require that reads be fed to it in coordinate order?
-     *
-     * @return true if reads must be submitted to this downsampler in coordinate order, otherwise false
-     */
-    public boolean requiresCoordinateSortOrder();
+    private int targetCoverage;
 
-    /**
-     * Tell this downsampler that no more reads located before the provided read (according to
-     * the sort order of the read stream) will be fed to it.
-     *
-     * Allows position-aware downsamplers to finalize pending reads earlier than they would
-     * otherwise be able to, particularly when doing per-sample downsampling and reads for
-     * certain samples are sparser than average.
-     *
-     * @param read the downsampler will assume that no reads located before this read will ever
-     *             be submitted to it in the future
-     */
-    public void signalNoMoreReadsBefore( T read );
+    public SimplePositionalDownsamplerFactory( int targetCoverage ) {
+        this.targetCoverage = targetCoverage;
+    }
+
+    public ReadsDownsampler<T> newInstance() {
+        return new SimplePositionalDownsampler<T>(targetCoverage);
+    }
 }
