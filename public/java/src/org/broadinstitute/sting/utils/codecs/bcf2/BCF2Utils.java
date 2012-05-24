@@ -30,6 +30,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFIDHeaderLine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -188,5 +189,22 @@ public class BCF2Utils {
 
     public static final boolean isCollapsedString(final String s) {
         return s.charAt(0) == ',';
+    }
+
+    /**
+     * Returns a good name for a shadow BCF file for vcfFile.
+     *
+     * foo.vcf => foo.bcf
+     * foo.xxx => foo.xxx.bcf
+     *
+     * @param vcfFile
+     * @return
+     */
+    public static final File shadowBCF(final File vcfFile) {
+        final String path = vcfFile.getAbsolutePath();
+        if ( path.contains(".vcf") )
+            return new File(path.replace(".vcf", ".bcf"));
+        else
+            return new File( path + ".bcf" );
     }
 }

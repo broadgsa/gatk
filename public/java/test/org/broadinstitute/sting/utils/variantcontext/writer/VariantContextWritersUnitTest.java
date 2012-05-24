@@ -32,22 +32,22 @@ package org.broadinstitute.sting.utils.variantcontext.writer;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.FeatureCodec;
-import org.broad.tribble.FeatureCodecHeader;
-import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.codecs.bcf2.*;
+import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Codec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextTestProvider;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
 
 
 public class VariantContextWritersUnitTest extends BaseTest {

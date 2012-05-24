@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -60,7 +61,7 @@ public class WalkerTest extends BaseTest {
     }
 
     public void validateOutputBCFIfPossible(final String name, final File resultFile) {
-        final File bcfFile = new File(resultFile.getAbsolutePath().replace(".vcf", ".bcf"));
+        final File bcfFile = BCF2Utils.shadowBCF(resultFile);
         if ( bcfFile.exists() ) {
             logger.warn("Checking shadow BCF output file " + bcfFile + " against VCF file " + resultFile);
             try {

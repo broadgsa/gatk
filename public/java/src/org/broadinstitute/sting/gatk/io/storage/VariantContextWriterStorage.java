@@ -28,6 +28,7 @@ import net.sf.samtools.util.BlockCompressedOutputStream;
 import org.apache.log4j.Logger;
 import org.broad.tribble.AbstractFeatureReader;
 import org.broadinstitute.sting.gatk.io.stubs.VariantContextWriterStub;
+import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -105,7 +106,7 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
         // if the stub says to test BCF, create a secondary writer to BCF and an 2 way out writer to send to both
         // TODO -- remove me when argument generateShadowBCF is removed
         if ( stub.alsoWriteBCFForTest() && ! VariantContextWriterFactory.isBCFOutput(file, options)) {
-            final File bcfFile = new File(file.getAbsolutePath().replace(".vcf", ".bcf"));
+            final File bcfFile = BCF2Utils.shadowBCF(file);
             VariantContextWriter bcfWriter = VariantContextWriterFactory.create(bcfFile, stub.getMasterSequenceDictionary(), options);
             writer = new TestWriter(writer, bcfWriter);
         }

@@ -41,16 +41,17 @@ public class FeatureToGATKFeatureIteratorUnitTest extends BaseTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testCloseFilePointers() throws IOException {
+        final String chr = "20";
         IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(BaseTest.hg19Reference));
         GenomeLocParser parser = new GenomeLocParser(seq);
         File file = new File(validationDataLocation + "NA12878.hg19.example1.vcf");
         VCFCodec codec = new VCFCodec();
         TestFeatureReader reader = new TestFeatureReader(file.getAbsolutePath(), codec);
-        CheckableCloseableTribbleIterator<Feature> tribbleIterator = reader.query("20", 1, 100000);
+        CheckableCloseableTribbleIterator<Feature> tribbleIterator = reader.query(chr, 1, 100000);
         FeatureToGATKFeatureIterator gatkIterator = new FeatureToGATKFeatureIterator(parser, tribbleIterator, "test");
         Assert.assertTrue(gatkIterator.hasNext(), "GATK feature iterator does not have a next value.");
         GenomeLoc gatkLocation = gatkIterator.next().getLocation();
-        Assert.assertEquals(gatkLocation.getContig(), "20", "Instead of chr 20 rod iterator was at location " + gatkLocation);
+        Assert.assertEquals(gatkLocation.getContig(), chr, "Instead of chr 20 rod iterator was at location " + gatkLocation);
         Assert.assertFalse(tribbleIterator.isClosed(), "Tribble iterator is closed but should be still open.");
         gatkIterator.close();
         Assert.assertTrue(tribbleIterator.isClosed(), "Tribble iterator is open but should be now closed.");
