@@ -47,5 +47,12 @@
     <file name="public/testdata/exampleFASTA.fasta" />
     <file name="public/testdata/exampleFASTA.fasta.fai" />
     <file name="public/testdata/exampleFASTA.dict" />
+    <!-- GATK sample code and build scripts -->
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/coverage/DepthOfCoverageWalker.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/PileupWalker.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/PrintReadsWalker.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CountLociWalker.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CountReadsWalker.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/ValidatingPileupWalker.java" />
   </resources>
 </package>

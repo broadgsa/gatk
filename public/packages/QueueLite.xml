@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2011, The Broad Institute
+  ~ Copyright (c) 2012, The Broad Institute
   ~
   ~ Permission is hereby granted, free of charge, to any person
   ~ obtaining a copy of this software and associated documentation
@@ -23,10 +23,10 @@
   ~ OTHER DEALINGS IN THE SOFTWARE.
   -->
 
-<!-- The full release of Queue contains both public and protected tools (but nothing from private) -->
-<package name="Queue">
+<!-- The lite release of Queue contains only public tools (nothing from protected or private) -->
+<package name="QueueLite">
     <version file="StingText.properties" property="org.broadinstitute.sting.queue.version" />
-    <executable name="Queue">
+    <executable name="QueueLite">
         <main-class name="org.broadinstitute.sting.queue.QCommandLine" />
         <resource-bundle file="StingText.properties" />
         <modules>
@@ -36,8 +36,7 @@
         </modules>
     </executable>
     <release>
-        <!-- TODO: determine the real directory where the protected Queue release should go -->
-        <executable directory="/local/gsa-engineering/test_releases/queue" symlink="current" />
-        <archive directory="/local/gsa-engineering/test_releases/queue" symlink="Queue-latest.tar.bz2" />
+        <executable directory="/humgen/gsa-hpprojects/Queue/bin" symlink="current" />
+        <archive directory="/web/ftp/pub/gsa/Queue" symlink="QueueLite-latest.tar.bz2" />
     </release>
 </package>
