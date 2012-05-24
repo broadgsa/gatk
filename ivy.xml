@@ -96,7 +96,7 @@
     <!-- snpEff annotator for pipelines -->
     <dependency org="net.sf.snpeff" name="snpeff" rev="2.0.5" />
 
-    <!-- MongoDB for Nexus -->
+    <!-- MongoDB for the project to be named later (Bjorn/Nexus/Navel) -->
     <dependency org="org.mongodb" name="mongo-java-driver" rev="2.7.3"/>
 
     <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
