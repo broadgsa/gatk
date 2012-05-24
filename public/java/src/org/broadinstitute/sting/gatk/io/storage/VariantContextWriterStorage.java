@@ -105,7 +105,7 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
         // if the stub says to test BCF, create a secondary writer to BCF and an 2 way out writer to send to both
         // TODO -- remove me when argument generateShadowBCF is removed
         if ( stub.alsoWriteBCFForTest() && ! VariantContextWriterFactory.isBCFOutput(file, options)) {
-            final File bcfFile = new File(file.getAbsolutePath() + ".bcf");
+            final File bcfFile = new File(file.getAbsolutePath().replace(".vcf", ".bcf"));
             VariantContextWriter bcfWriter = VariantContextWriterFactory.create(bcfFile, stub.getMasterSequenceDictionary(), options);
             writer = new TestWriter(writer, bcfWriter);
         }

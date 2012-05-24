@@ -23,15 +23,14 @@
  */
 
 // our package
-package org.broadinstitute.sting;
+package org.broadinstitute.sting.utils;
 
 
 // the imports for unit testing.
 
 
-import org.broadinstitute.sting.utils.Median;
+import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
-import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 

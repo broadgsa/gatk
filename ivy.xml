@@ -83,6 +83,7 @@
 
     <!-- testing and evaluation dependencies -->
     <dependency org="org.testng" name="testng" rev="5.14.1" conf="test" />
+    <dependency org="org.uncommons" name="reportng" rev="1.1.2" conf="test" />
     <dependency org="com.google.code.caliper" name="caliper" rev="1.0-SNAPSHOT" conf="test" />
 
     <!-- Contracts for Java and dependencies -->

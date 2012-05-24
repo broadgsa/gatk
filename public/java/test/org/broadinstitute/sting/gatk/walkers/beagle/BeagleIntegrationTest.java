@@ -41,7 +41,7 @@ public class BeagleIntegrationTest extends WalkerTest {
                         "--beagleR2:BEAGLE " + beagleValidationDataLocation + "inttestbgl.r2 " +
                         "--beagleProbs:BEAGLE " + beagleValidationDataLocation + "inttestbgl.gprobs " +
                         "--beaglePhased:BEAGLE " + beagleValidationDataLocation + "inttestbgl.phased " +
-                        "-o %s --no_cmdline_in_header", 1, Arrays.asList("6d0f213918e3b9ea33bc2f8a51a462f1"));
+                        "-o %s --no_cmdline_in_header", 1, Arrays.asList("93962cac4c308908bd20df8c5763d5e2"));
         executeTest("test BeagleOutputToVCF", spec);
     }
    

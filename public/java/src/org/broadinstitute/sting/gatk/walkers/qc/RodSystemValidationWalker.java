@@ -87,7 +87,7 @@ public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
         rodList = this.getToolkit().getRodDataSources();
         for (ReferenceOrderedDataSource rod : rodList) {
             out.println(rod.getName() + DIVIDER + rod.getType());
-            out.println(rod.getName() + DIVIDER + rod.getFile());
+            out.println(rod.getName() + DIVIDER + rod.getFile().getName());
             out.println(rod.getName() + DIVIDER + md5sum(rod.getFile()));
         }
         out.println("Data:");

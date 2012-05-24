@@ -171,12 +171,13 @@ public class MD5DB {
     }
 
     public static class MD5Match {
-        final String md5;
+        final String actualMD5, expectedMD5;
         final String failMessage;
         boolean failed;
 
-        public MD5Match(final String md5, final String failMessage, final boolean failed) {
-            this.md5 = md5;
+        public MD5Match(final String actualMD5, final String expectedMD5, final String failMessage, final boolean failed) {
+            this.actualMD5 = actualMD5;
+            this.expectedMD5 = expectedMD5;
             this.failMessage = failMessage;
             this.failed = failed;
         }
@@ -191,20 +192,20 @@ public class MD5DB {
      * @return The calculated MD5.
      */
     public static MD5Match assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5, final boolean parameterize) {
-        final String filemd5sum = testFileMD5(name, resultsFile, expectedMD5, parameterize);
+        final String actualMD5 = testFileMD5(name, resultsFile, expectedMD5, parameterize);
         String failMessage = null;
         boolean failed = false;
 
         if (parameterize || expectedMD5.equals("")) {
             // Don't assert
-        } else if ( filemd5sum.equals(expectedMD5) ) {
-            System.out.println(String.format("  => %s PASSED (expected=%s)", name, expectedMD5));
+        } else if ( actualMD5.equals(expectedMD5) ) {
+            //BaseTest.log(String.format("  => %s PASSED (expected=%s)", name, expectedMD5));
         } else {
             failed = true;
-            failMessage = String.format("%s has mismatching MD5s: expected=%s observed=%s", name, expectedMD5, filemd5sum);
+            failMessage = String.format("%s has mismatching MD5s: expected=%s observed=%s", name, expectedMD5, actualMD5);
         }
 
-        return new MD5Match(filemd5sum, failMessage, failed);
+        return new MD5Match(actualMD5, expectedMD5, failMessage, failed);
     }
 
 
@@ -230,8 +231,7 @@ public class MD5DB {
             updateMD5Db(filemd5sum, resultsFile);
 
             if (parameterize || expectedMD5.equals("")) {
-                System.out.println(String.format("PARAMETERIZATION[%s]: file %s has md5 = %s, stated expectation is %s, equal? = %b",
-                        name, resultsFile, filemd5sum, expectedMD5, filemd5sum.equals(expectedMD5)));
+                BaseTest.log(String.format("PARAMETERIZATION: file %s has md5 = %s", resultsFile, filemd5sum));
             } else {
                 //System.out.println(String.format("Checking MD5 for %s [calculated=%s, expected=%s]", resultsFile, filemd5sum, expectedMD5));
                 //System.out.flush();
@@ -242,16 +242,23 @@ public class MD5DB {
                     System.out.printf("##### Test %s is going to fail #####%n", name);
                     String pathToExpectedMD5File = getMD5FilePath(expectedMD5, "[No DB file found]");
                     String pathToFileMD5File = getMD5FilePath(filemd5sum, "[No DB file found]");
-                    System.out.printf("##### Path to expected   file (MD5=%s): %s%n", expectedMD5, pathToExpectedMD5File);
-                    System.out.printf("##### Path to calculated file (MD5=%s): %s%n", filemd5sum, pathToFileMD5File);
-                    System.out.printf("##### Diff command: diff %s %s%n", pathToExpectedMD5File, pathToFileMD5File);
+                    BaseTest.log(String.format("expected   %s at %s", expectedMD5, pathToExpectedMD5File));
+                    BaseTest.log(String.format("calculated %s at %s", filemd5sum, pathToFileMD5File));
+                    BaseTest.log(String.format("diff %s %s", pathToExpectedMD5File, pathToFileMD5File));
 
                     // inline differences
-                    DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(System.out, 20, 10, 0);
+                    // TODO -- capture output and put in log
+                    final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    final PrintStream ps = new PrintStream(baos);
+                    DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(ps, 20, 10, 0);
                     boolean success = DiffEngine.simpleDiffFiles(new File(pathToExpectedMD5File), new File(pathToFileMD5File), MAX_RECORDS_TO_READ, params);
-                    if ( success )
+                    if ( success ) {
+                        final String content = baos.toString();
+                        BaseTest.log(content);
                         System.out.printf("Note that the above list is not comprehensive.  At most 20 lines of output, and 10 specific differences will be listed.  Please use -T DiffObjects -R public/testdata/exampleFASTA.fasta -m %s -t %s to explore the differences more freely%n",
                                 pathToExpectedMD5File, pathToFileMD5File);
+                    }
+                    ps.close();
                 }
             }
 

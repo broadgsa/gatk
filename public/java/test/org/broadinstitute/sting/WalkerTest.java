@@ -43,7 +43,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 public class WalkerTest extends BaseTest {
@@ -61,7 +60,7 @@ public class WalkerTest extends BaseTest {
     }
 
     public void validateOutputBCFIfPossible(final String name, final File resultFile) {
-        final File bcfFile = new File(resultFile.getAbsolutePath() + ".bcf");
+        final File bcfFile = new File(resultFile.getAbsolutePath().replace(".vcf", ".bcf"));
         if ( bcfFile.exists() ) {
             logger.warn("Checking shadow BCF output file " + bcfFile + " against VCF file " + resultFile);
             try {
@@ -105,17 +104,23 @@ public class WalkerTest extends BaseTest {
             if ( ! result.failed ) {
                 validateOutputIndex(name, resultFiles.get(i));
                 validateOutputBCFIfPossible(name, resultFiles.get(i));
-                md5s.add(result.md5);
+                md5s.add(result.expectedMD5);
             } else {
                 fails.add(result);
             }
         }
 
         if ( ! fails.isEmpty() ) {
+            List<String> actuals = new ArrayList<String>();
+            List<String> expecteds = new ArrayList<String>();
             for ( final MD5DB.MD5Match fail : fails ) {
+                actuals.add(fail.actualMD5);
+                expecteds.add(fail.expectedMD5);
                 logger.warn("Fail: " + fail.failMessage);
             }
-            Assert.fail("Test failed: " + name);
+
+            final MD5Mismatch failure = new MD5Mismatch(actuals, expecteds);
+            Assert.fail(failure.toString(), failure);
         }
 
         return md5s;
@@ -335,10 +340,10 @@ public class WalkerTest extends BaseTest {
             gotAnException = true;
             if ( expectedException != null ) {
                 // we expect an exception
-                System.out.println(String.format("Wanted exception %s, saw %s", expectedException, e.getClass()));
+                //System.out.println(String.format("Wanted exception %s, saw %s", expectedException, e.getClass()));
                 if ( expectedException.isInstance(e) ) {
                     // it's the type we expected
-                    System.out.println(String.format("  => %s PASSED", name));
+                    //System.out.println(String.format("  => %s PASSED", name));
                 } else {
                     if ( e.getCause() != null )
                         e.getCause().printStackTrace(System.out);  // must print to stdout to see the message
@@ -368,5 +373,5 @@ public class WalkerTest extends BaseTest {
         File fl = new File(name);
         fl.deleteOnExit();
         return fl;
-    }    
+    }
 }

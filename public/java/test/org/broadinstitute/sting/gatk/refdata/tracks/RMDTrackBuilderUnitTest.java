@@ -79,7 +79,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
     @Test
     // in this test, the index exists, but is out of date.
     public void testBuilderIndexUnwriteable() {
-        File vcfFile = new File(testDir + "/ROD_validation/read_only/relic.vcf");
+        File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/relic.vcf");
         try {
             builder.loadIndex(vcfFile, new VCF3Codec());
         } catch (IOException e) {
@@ -96,7 +96,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
     // sure we don't do this
     @Test
     public void testDirIsLockedIndexFromDisk() {
-        File vcfFile = new File(testDir + "/ROD_validation/read_only/good_index.vcf");
+        File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/good_index.vcf");
         File vcfFileIndex = Tribble.indexFile(vcfFile);
         Index ind = null;
         try {
@@ -112,7 +112,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
 
     @Test
     public void testBuilderIndexDirectoryUnwritable() {
-        File vcfFile = new File(testDir + "/ROD_validation/read_only/no_index.vcf");
+        File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/no_index.vcf");
         File vcfFileIndex = Tribble.indexFile(vcfFile);
 
         Index ind = null;
@@ -131,7 +131,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
 
     @Test
     public void testGenerateIndexForUnindexedFile() {
-        File vcfFile = new File(testDir + "/ROD_validation/always_reindex.vcf");
+        File vcfFile = new File(validationDataLocation + "/ROD_validation/always_reindex.vcf");
         File vcfFileIndex = Tribble.indexFile(vcfFile);
 
         // if we can't write to the directory, don't fault the tester, just pass
@@ -157,7 +157,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
     // test to make sure we get a full sequence dictionary from the VCF (when we set the dictionary in the builder)
     @Test
     public void testBuilderIndexSequenceDictionary() {
-        File vcfFile = createCorrectDateIndexFile(new File(testDir + "/ROD_validation/newerTribbleTrack.vcf"));
+        File vcfFile = createCorrectDateIndexFile(new File(validationDataLocation + "/ROD_validation/newerTribbleTrack.vcf"));
         Long indexTimeStamp = Tribble.indexFile(vcfFile).lastModified();
         try {
             Index idx = builder.loadIndex(vcfFile, new VCFCodec());

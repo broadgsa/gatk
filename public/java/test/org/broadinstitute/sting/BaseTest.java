@@ -9,6 +9,7 @@ import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.utils.crypt.CryptUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.io.IOUtils;
+import org.testng.Reporter;
 
 import java.io.File;
 import java.io.IOException;
@@ -253,5 +254,14 @@ public abstract class BaseTest {
         File file = new File(networkTempDirFile, name);
         file.deleteOnExit();
         return file;
+    }
+
+    /**
+     * Log this message so that it shows up inline during output as well as in html reports
+     *
+     * @param message
+     */
+    public static void log(final String message) {
+        Reporter.log(message, true);
     }
 }
