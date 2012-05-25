@@ -172,7 +172,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testOutputParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "-sites_only", "446ed9a72d210671ed48aa1f572b77e3" );
+        e.put( "-sites_only", "aed7ab38d4381e5e5eeee9f73bf4fd81" );
         e.put( "--output_mode EMIT_ALL_CONFIDENT_SITES", "dd956beb4bb377a9b28e5da78df5f2f3" );
         e.put( "--output_mode EMIT_ALL_SITES", "a088df1f161f732ff148bd7a48894251" );
 
