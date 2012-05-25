@@ -44,7 +44,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class TandemRepeatAnnotator extends InfoFieldAnnotation /*implements StandardAnnotation*/ {
+public class TandemRepeatAnnotator extends InfoFieldAnnotation implements StandardAnnotation {
     private static final String STR_PRESENT = "STR";
     private static final String REPEAT_UNIT_KEY = "RU";
     private static final String REPEATS_PER_ALLELE_KEY = "RPA";
