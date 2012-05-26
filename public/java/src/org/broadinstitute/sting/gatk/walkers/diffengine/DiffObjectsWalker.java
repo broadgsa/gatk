@@ -162,6 +162,10 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="maxObjectsToRead", shortName="motr", doc="Max. number of objects to read from the files.  -1 [default] means unlimited", required=false)
     int MAX_OBJECTS_TO_READ = -1;
 
+    @Argument(fullName="maxRawDiffsToSummary", shortName="maxRawDiffsToSummary", doc="Max. number of objects to read from the files.  -1 [default] means unlimited", required=false)
+    int maxRawDiffsToSummary = -1;
+
+
     /**
      * The max number of differences to display when summarizing.  For example, if there are 10M differences, but
      * maxDiffs is 10, then the comparison aborts after first ten summarized differences are shown.  Note that
@@ -232,13 +236,14 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
 //        out.println(test.toString());
 
         List<Difference> diffs = diffEngine.diff(master, test);
+        out.printf("  Done computing diff, n = %d%n", diffs.size());
         if ( showItemizedDifferences ) {
             out.printf("Itemized results%n");
             for ( Difference diff : diffs )
                 out.printf("DIFF: %s%n", diff.toString());
         }
 
-        DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(out, MAX_DIFFS, MAX_COUNT1_DIFFS, minCountForDiff);
+        DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(out, MAX_DIFFS, MAX_COUNT1_DIFFS, minCountForDiff, maxRawDiffsToSummary);
         params.setDescending(false);
         diffEngine.reportSummarizedDifferences(diffs, params);
     }

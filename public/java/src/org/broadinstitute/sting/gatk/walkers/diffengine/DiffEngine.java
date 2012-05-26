@@ -147,11 +147,7 @@ public class DiffEngine {
      * @param diffs the list of differences to summarize
      */
     public void reportSummarizedDifferences(List<Difference> diffs, SummaryReportParams params ) {
-        printSummaryReport(summarizeDifferences(diffs), params );
-    }
-
-    public List<Difference> summarizeDifferences(List<Difference> diffs) {
-        return summarizedDifferencesOfPaths(diffs);
+        printSummaryReport(summarizedDifferencesOfPaths(diffs, params.maxRawDiffsToSummarize), params );
     }
 
     final protected static String[] diffNameToPath(String diffName) {
@@ -165,10 +161,11 @@ public class DiffEngine {
             diffs.add(new Difference(diff));
         }
 
-        return summarizedDifferencesOfPaths(diffs);
+        return summarizedDifferencesOfPaths(diffs, -1);
     }
 
-    protected List<Difference> summarizedDifferencesOfPaths(List<? extends Difference> singletonDiffs) {
+    private Map<String, Difference> initialPairwiseSummaries(final List<? extends Difference> singletonDiffs,
+                                                             final int maxRawDiffsToSummarize) {
         Map<String, Difference> summaries = new HashMap<String, Difference>();
 
         // create the initial set of differences
@@ -184,9 +181,19 @@ public class DiffEngine {
                     Difference sumDiff = new Difference(path, diffPath2.getMaster(), diffPath2.getTest());
                     sumDiff.setCount(0);
                     addSummaryIfMissing(summaries, sumDiff);
+
+                    if ( maxRawDiffsToSummarize != -1 && summaries.size() > maxRawDiffsToSummarize)
+                        return summaries;
                 }
             }
         }
+
+        return summaries;
+    }
+
+    protected List<Difference> summarizedDifferencesOfPaths(final List<? extends Difference> singletonDiffs,
+                                                            final int maxRawDiffsToSummarize) {
+        Map<String, Difference> summaries = initialPairwiseSummaries(singletonDiffs, maxRawDiffsToSummarize);
 
         // count differences
         for ( Difference diffPath : singletonDiffs ) {
@@ -360,17 +367,23 @@ public class DiffEngine {
     }
 
     public static class SummaryReportParams {
-        PrintStream out = System.out;
-        int maxItemsToDisplay = 0;
-        int maxCountOneItems = 0;
-        int minSumDiffToShow = 0;
+        final PrintStream out;
+        final int maxItemsToDisplay;
+        final int maxCountOneItems;
+        final int minSumDiffToShow;
+        final int maxRawDiffsToSummarize;
         boolean descending = true;
 
-        public SummaryReportParams(PrintStream out, int maxItemsToDisplay, int maxCountOneItems, int minSumDiffToShow) {
+        public SummaryReportParams(PrintStream out,
+                                   int maxItemsToDisplay,
+                                   int maxCountOneItems,
+                                   int minSumDiffToShow,
+                                   int maxRawDiffsToSummarize) {
             this.out = out;
             this.maxItemsToDisplay = maxItemsToDisplay;
             this.maxCountOneItems = maxCountOneItems;
             this.minSumDiffToShow = minSumDiffToShow;
+            this.maxRawDiffsToSummarize = maxRawDiffsToSummarize;
         }
 
         public void setDescending(boolean descending) {

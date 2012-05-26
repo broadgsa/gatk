@@ -250,7 +250,7 @@ public class MD5DB {
                     // TODO -- capture output and put in log
                     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     final PrintStream ps = new PrintStream(baos);
-                    DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(ps, 20, 10, 0);
+                    DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(ps, 20, 10, 0, MAX_RECORDS_TO_READ);
                     boolean success = DiffEngine.simpleDiffFiles(new File(pathToExpectedMD5File), new File(pathToFileMD5File), MAX_RECORDS_TO_READ, params);
                     if ( success ) {
                         final String content = baos.toString();
