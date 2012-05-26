@@ -225,10 +225,10 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
     public void onTraversalDone(Integer sum) {
         //out.printf("Reading master file %s%n", masterFile);
         DiffElement master = diffEngine.createDiffableFromFile(masterFile, MAX_OBJECTS_TO_READ);
-        out.printf("  Read %d objects%n", master.size());
+        logger.info(String.format("Read %d objects", master.size()));
         //out.printf("Reading test file %s%n", testFile);
         DiffElement test = diffEngine.createDiffableFromFile(testFile, MAX_OBJECTS_TO_READ);
-        out.printf("  Read %d objects%n", test.size());
+        logger.info(String.format("Read %d objects", test.size()));
 
 //        out.printf("Master diff objects%n");
 //        out.println(master.toString());
@@ -236,7 +236,7 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
 //        out.println(test.toString());
 
         List<Difference> diffs = diffEngine.diff(master, test);
-        out.printf("  Done computing diff, n = %d%n", diffs.size());
+        logger.info(String.format("Done computing diff with %d differences found", diffs.size()));
         if ( showItemizedDifferences ) {
             out.printf("Itemized results%n");
             for ( Difference diff : diffs )
@@ -246,5 +246,6 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
         DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(out, MAX_DIFFS, MAX_COUNT1_DIFFS, minCountForDiff, maxRawDiffsToSummary);
         params.setDescending(false);
         diffEngine.reportSummarizedDifferences(diffs, params);
+        logger.info(String.format("Done summarizing differences"));
     }
 }
