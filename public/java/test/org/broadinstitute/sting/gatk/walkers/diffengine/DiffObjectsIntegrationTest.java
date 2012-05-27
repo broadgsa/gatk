@@ -50,8 +50,8 @@ public class DiffObjectsIntegrationTest extends WalkerTest {
 
     @DataProvider(name = "data")
     public Object[][] createData() {
-        new TestParams(testDir + "diffTestMaster.vcf", testDir + "diffTestTest.vcf", "aeb2283178d162555de18524fb127c84");
-        new TestParams(testDir + "exampleBAM.bam", testDir + "exampleBAM.simple.bam", "a43f6f2e209efe2d754c4d2104ca2156");
+        new TestParams(testDir + "diffTestMaster.vcf", testDir + "diffTestTest.vcf", "daead9bfab1a5df72c5e3a239366118e");
+        new TestParams(testDir + "exampleBAM.bam", testDir + "exampleBAM.simple.bam", "3f46f5a964f7c34015d972256fe49a35");
         return TestParams.getTests(TestParams.class);
     }
 
