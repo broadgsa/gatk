@@ -159,9 +159,24 @@ import java.util.*;
  * VariantContext vc1 = vc.subContextFromGenotypes(Arrays.asList(g1));
  * </pre>
  *
+ * <s3>
+ *     Fully decoding.  Currently VariantContexts support some fields, particularly those
+ *     stored as generic attributes, to be of any type.  For example, a field AB might
+ *     be naturally a floating point number, 0.51, but when it's read into a VC its
+ *     not decoded into the Java presentation but left as a string "0.51".  A fully
+ *     decoded VariantContext is one where all values have been converted to their
+ *     corresponding Java object types, based on the types declared in a VCFHeader.
+ *
+ *     The fullyDecode() takes a header object and creates a new fully decoded VariantContext
+ *     where all fields are converted to their true java representation.  The VCBuilder
+ *     can be told that all fields are fully decoded, in which case no work is done when
+ *     asking for a fully decoded version of the VC.
+ * </s3>
+ *
  * @author depristo
  */
 public class VariantContext implements Feature { // to enable tribble integration
+    private boolean fullyDecoded = false;
     protected CommonInfo commonInfo = null;
     public final static double NO_LOG10_PERROR = CommonInfo.NO_LOG10_PERROR;
 
@@ -213,7 +228,6 @@ public class VariantContext implements Feature { // to enable tribble integratio
         GENOTYPES
     }
 
-    private final static EnumSet<Validation> ALL_VALIDATION = EnumSet.allOf(Validation.class);
     private final static EnumSet<Validation> NO_VALIDATION = EnumSet.noneOf(Validation.class);
 
     // ---------------------------------------------------------------------------------------------------------
@@ -232,7 +246,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
                 other.getAlleles(), other.getGenotypes(), other.getLog10PError(),
                 other.getFiltersMaybeNull(),
                 other.getAttributes(), other.REFERENCE_BASE_FOR_INDEL,
-                NO_VALIDATION);
+                other.fullyDecoded, NO_VALIDATION);
     }
 
     /**
@@ -250,12 +264,19 @@ public class VariantContext implements Feature { // to enable tribble integratio
      * @param referenceBaseForIndel   padded reference base
      * @param validationToPerform     set of validation steps to take
      */
-    protected VariantContext(String source, String ID,
-                             String contig, long start, long stop,
-                             Collection<Allele> alleles, GenotypesContext genotypes,
-                             double log10PError, Set<String> filters, Map<String, Object> attributes,
-                             Byte referenceBaseForIndel,
-                             EnumSet<Validation> validationToPerform ) {
+    protected VariantContext(final String source,
+                             final String ID,
+                             final String contig,
+                             final long start,
+                             final long stop,
+                             final Collection<Allele> alleles,
+                             final GenotypesContext genotypes,
+                             final double log10PError,
+                             final Set<String> filters,
+                             final Map<String, Object> attributes,
+                             final Byte referenceBaseForIndel,
+                             final boolean fullyDecoded,
+                             final EnumSet<Validation> validationToPerform ) {
         if ( contig == null ) { throw new IllegalArgumentException("Contig cannot be null"); }
         this.contig = contig;
         this.start = start;
@@ -292,6 +313,8 @@ public class VariantContext implements Feature { // to enable tribble integratio
                 ALT = a;
             }
         }
+
+        this.fullyDecoded = fullyDecoded;
 
         if ( ! validationToPerform.isEmpty() ) {
             validate(validationToPerform);
@@ -1277,11 +1300,34 @@ public class VariantContext implements Feature { // to enable tribble integratio
     // Fully decode
     //
     // ---------------------------------------------------------------------------------------------------------
+
+    /**
+     * Return a VC equivalent to this one but where all fields are fully decoded
+     *
+     * See VariantContext document about fully decoded
+     *
+     * @param header containing types about all fields in this VC
+     * @return a fully decoded version of this VC
+     */
     public VariantContext fullyDecode(final VCFHeader header) {
-        final VariantContextBuilder builder = new VariantContextBuilder(this);
-        fullyDecodeInfo(builder, header);
-        fullyDecodeGenotypes(builder, header);
-        return builder.make();
+        if ( isFullyDecoded() )
+            return this;
+        else {
+            // TODO -- warning this is potentially very expensive as it creates copies over and over
+            final VariantContextBuilder builder = new VariantContextBuilder(this);
+            fullyDecodeInfo(builder, header);
+            fullyDecodeGenotypes(builder, header);
+            builder.fullyDecoded(true);
+            return builder.make();
+        }
+    }
+
+    /**
+     * See VariantContext document about fully decoded
+     * @return true if this is a fully decoded VC
+     */
+    public boolean isFullyDecoded() {
+        return fullyDecoded;
     }
 
     private final void fullyDecodeInfo(final VariantContextBuilder builder, final VCFHeader header) {

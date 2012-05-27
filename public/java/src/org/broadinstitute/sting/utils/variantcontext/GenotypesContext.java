@@ -88,7 +88,7 @@ public class GenotypesContext implements List<Genotype> {
     /**
      * Create an GenotypeContext containing genotypes
      */
-    @Requires({"genotypes != null", "noDups(genotypes)"})
+    @Requires("genotypes != null")
     protected GenotypesContext(final ArrayList<Genotype> genotypes) {
         this.notToBeDirectlyAccessedGenotypes = genotypes;
         this.sampleNameToOffset = null;
@@ -105,7 +105,7 @@ public class GenotypesContext implements List<Genotype> {
      * @param sampleNamesInOrder a list of sample names, one for each genotype in genotypes, sorted in alphabetical
      * order.
      */
-    @Requires({"genotypes != null", "noDups(genotypes)",
+    @Requires({"genotypes != null",
             "sampleNameToOffset != null",
             "sampleNamesInOrder != null",
             "genotypes.size() == sampleNameToOffset.size()",
@@ -157,9 +157,7 @@ public class GenotypesContext implements List<Genotype> {
      */
     @Requires({"genotypes != null",
             "sampleNameToOffset != null",
-            "sampleNamesInOrder != null",
-            "sameSamples(genotypes, sampleNamesInOrder)",
-            "sameSamples(genotypes, sampleNameToOffset.keySet())"})
+            "sampleNamesInOrder != null"})
     @Ensures({"result != null"})
     public static final GenotypesContext create(final ArrayList<Genotype> genotypes,
                                                 final Map<String, Integer> sampleNameToOffset,
@@ -251,8 +249,7 @@ public class GenotypesContext implements List<Genotype> {
         sampleNamesInOrder = null;
     }
 
-    @Ensures({"sampleNamesInOrder != null",
-            "sameSamples(notToBeDirectlyAccessedGenotypes, sampleNamesInOrder)"})
+    @Ensures({"sampleNamesInOrder != null"})
     protected void ensureSampleOrdering() {
         if ( sampleNamesInOrder == null ) {
             sampleNamesInOrder = new ArrayList<String>(size());
@@ -264,8 +261,7 @@ public class GenotypesContext implements List<Genotype> {
         }
     }
 
-    @Ensures({"sampleNameToOffset != null",
-            "sameSamples(notToBeDirectlyAccessedGenotypes, sampleNameToOffset.keySet())"})
+    @Ensures({"sampleNameToOffset != null"})
     protected void ensureSampleNameMap() {
         if ( sampleNameToOffset == null ) {
             sampleNameToOffset = new HashMap<String, Integer>(size());
@@ -274,12 +270,6 @@ public class GenotypesContext implements List<Genotype> {
                 sampleNameToOffset.put(getGenotypes().get(i).getSampleName(), i);
             }
         }
-    }
-
-    // for testing purposes
-    protected void ensureAll() {
-        ensureSampleNameMap();
-        ensureSampleOrdering();
     }
 
     // ---------------------------------------------------------------------------
@@ -336,7 +326,6 @@ public class GenotypesContext implements List<Genotype> {
      */
     @Override
     @Requires({"genotype != null", "get(genotype.getSampleName()) == null"})
-    @Ensures("noDups(getGenotypes())")
     public boolean add(final Genotype genotype) {
         checkImmutability();
         invalidateSampleOrdering();
@@ -351,7 +340,6 @@ public class GenotypesContext implements List<Genotype> {
 
     @Override
     @Requires("! contains(genotype)")
-    @Ensures("noDups(getGenotypes())")
     public void add(final int i, final Genotype genotype) {
         throw new UnsupportedOperationException();
     }
@@ -367,7 +355,6 @@ public class GenotypesContext implements List<Genotype> {
      */
     @Override
     @Requires("! containsAny(genotypes)")
-    @Ensures("noDups(getGenotypes())")
     public boolean addAll(final Collection<? extends Genotype> genotypes) {
         checkImmutability();
         invalidateSampleOrdering();
@@ -511,7 +498,6 @@ public class GenotypesContext implements List<Genotype> {
     }
 
     @Override
-    @Ensures("noDups(getGenotypes())")
     public Genotype set(final int i, final Genotype genotype) {
         checkImmutability();
         final Genotype prev = getGenotypes().set(i, genotype);
@@ -695,30 +681,5 @@ public class GenotypesContext implements List<Genotype> {
                 return ret.toString();
             }
         }
-    }
-
-    protected final static boolean noDups(Collection<Genotype> genotypes) {
-        Set<String> names = new HashSet<String>(genotypes.size());
-        for ( final Genotype g : genotypes ) {
-            if ( names.contains(g.getSampleName()) )
-                return false;
-            names.add(g.getSampleName());
-        }
-
-        return true;
-     }
-
-    protected final static boolean sameSamples(List<Genotype> genotypes, Collection<String> sampleNamesInOrder) {
-        Set<String> names = new HashSet<String>(sampleNamesInOrder);
-        if ( names.size() != sampleNamesInOrder.size() )
-            return false;
-        if ( genotypes.size() != names.size() )
-            return false;
-
-        for ( final Genotype g : genotypes )
-            if ( ! names.contains(g.getSampleName()) )
-                return false;
-
-        return true;
     }
 }

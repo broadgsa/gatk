@@ -247,12 +247,14 @@ public class BCF2Encoder {
     }
 
     private final List<Byte> stringToBytes(final String v) throws IOException {
-        assert v != null && !v.equals("");
-
-        // TODO -- this needs to be optimized away for efficiency
-        final byte[] bytes = v.getBytes();
-        final List<Byte> l = new ArrayList<Byte>(bytes.length);
-        for ( int i = 0; i < bytes.length; i++) l.add(bytes[i]);
-        return l;
+        if ( v == null || v.equals("") )
+            return Collections.emptyList();
+        else {
+            // TODO -- this needs to be optimized away for efficiency
+            final byte[] bytes = v.getBytes();
+            final List<Byte> l = new ArrayList<Byte>(bytes.length);
+            for ( int i = 0; i < bytes.length; i++) l.add(bytes[i]);
+            return l;
+        }
     }
 }

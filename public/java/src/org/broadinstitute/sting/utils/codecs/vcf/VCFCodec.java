@@ -217,9 +217,9 @@ public class VCFCodec extends AbstractVCFCodec {
                     } else if (gtKey.equals(VCFConstants.GENOTYPE_FILTER_KEY)) {
                         genotypeFilters = missing ? parseFilters(VCFConstants.MISSING_VALUE_v4) : parseFilters(getCachedString(GTValueArray[i]));
                     } else if ( missing ) {
-                        gtAttributes.put(gtKey, VCFConstants.MISSING_VALUE_v4);
+                        // if its truly missing (there no provided value) skip adding it to the attributes
                     } else {
-                        gtAttributes.put(gtKey, new String(GTValueArray[i]));
+                        gtAttributes.put(gtKey, GTValueArray[i]);
                     }
                 }
             }

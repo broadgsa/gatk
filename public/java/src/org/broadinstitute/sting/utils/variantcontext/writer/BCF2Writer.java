@@ -259,7 +259,8 @@ class BCF2Writer extends IndexingVariantContextWriter {
         final VCFToBCFEncoding encoding = prepFieldValueForEncoding(field, null);
 
         startGenotypeField(field, numInFormatField, encoding.BCF2Type);
-        for ( final Genotype g : vc.getGenotypes() ) {
+        for ( final String name : header.getGenotypeSamples() ) {
+            final Genotype g = vc.getGenotype(name); // todo -- can we optimize this?
             try {
                 final Object fieldValue = g.getAttribute(field);
 
@@ -357,9 +358,10 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
     private final void addGQ(final VariantContext vc) throws IOException {
         startGenotypeField(VCFConstants.GENOTYPE_QUALITY_KEY, 1, BCF2Type.INT8);
-        for ( final Genotype g : vc.getGenotypes() ) {
+        for ( final String name : header.getGenotypeSamples() ) {
+            final Genotype g = vc.getGenotype(name); // todo -- can we optimize this?
             if ( g.hasLog10PError() ) {
-                final int GQ = (int)Math.round(Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL));
+                final int GQ = Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL);
                 if ( GQ > VCFConstants.MAX_GENOTYPE_QUAL ) throw new ReviewedStingException("Unexpectedly large GQ " + GQ + " at " + vc);
                 encoder.encodeRawValue(GQ, BCF2Type.INT8);
             } else {
@@ -380,7 +382,8 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
         // collect all of the PLs into a single vector of values
         int i = 0;
-        for ( final Genotype g : vc.getGenotypes() ) {
+        for ( final String name : header.getGenotypeSamples() ) {
+            final Genotype g = vc.getGenotype(name); // todo -- can we optimize this?
             final GenotypeLikelihoods gls = g.getLikelihoods();
             final int[] pls = gls != null ? g.getLikelihoods().getAsPLs() : null;
             if ( pls == null )
@@ -405,7 +408,8 @@ class BCF2Writer extends IndexingVariantContextWriter {
         final Map<Allele, String> alleleMap = VCFWriter.buildAlleleMap(vc);
         final int maxPloidy = vc.getMaxPloidy();
         startGenotypeField(VCFConstants.GENOTYPE_KEY, maxPloidy, BCF2Type.INT8);
-        for ( final Genotype g : vc.getGenotypes() ) {
+        for ( final String name : header.getGenotypeSamples() ) {
+            final Genotype g = vc.getGenotype(name); // todo -- can we optimize this?
             final List<Allele> alleles = g.getAlleles();
             final int samplePloidy = alleles.size();
             for ( int i = 0; i < maxPloidy; i++ ) {

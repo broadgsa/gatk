@@ -388,15 +388,7 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
             final double valueFloat = (Double)tv.value;
             final double decodedFloat = (Double)decoded;
 
-            if ( Double.isNaN(valueFloat) ) // NaN == NaN => false unfortunately
-                Assert.assertTrue(Double.isNaN(decodedFloat));
-            else if ( Double.isInfinite(valueFloat) ) // NaN == NaN => false unfortunately
-                Assert.assertTrue(Double.isInfinite(decodedFloat));
-            else {
-                final double delta = Math.abs(decodedFloat - valueFloat);
-                final double ratio = Math.abs(decodedFloat / valueFloat - 1.0);
-                Assert.assertTrue(delta < FLOAT_TOLERANCE || ratio < FLOAT_TOLERANCE);
-            }
+            BaseTest.assertEqualsDoubleSmart(decodedFloat, valueFloat, FLOAT_TOLERANCE);
         } else
             Assert.assertEquals(decoded, tv.value);
     }

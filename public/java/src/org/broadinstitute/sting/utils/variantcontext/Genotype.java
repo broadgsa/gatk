@@ -268,13 +268,13 @@ public class Genotype implements Comparable<Genotype> {
     }
 
     public String toString() {
-        int Q = (int)Math.round(getPhredScaledQual());
+        int Q = getPhredScaledQual();
         return String.format("[%s %s Q%s %s]", getSampleName(), getGenotypeString(false),
-                Q == -10 ? "." : String.format("%2d",Q), sortedString(getAttributes()));
+                Q == -1 ? "." : String.format("%2d",Q), sortedString(getAttributes()));
     }
 
     public String toBriefString() {
-        return String.format("%s:Q%.2f", getGenotypeString(false), getPhredScaledQual());
+        return String.format("%s:Q%d", getGenotypeString(false), getPhredScaledQual());
     }
 
     public boolean sameGenotype(Genotype other) {
@@ -331,7 +331,15 @@ public class Genotype implements Comparable<Genotype> {
     public boolean filtersWereApplied() { return commonInfo.filtersWereApplied(); }
     public boolean hasLog10PError()     { return commonInfo.hasLog10PError(); }
     public double getLog10PError()      { return commonInfo.getLog10PError(); }
-    public double getPhredScaledQual()  { return commonInfo.getPhredScaledQual(); }
+
+    /**
+     * Returns a phred-scaled quality score, or -1 if none is available
+     * @return
+     */
+    public int getPhredScaledQual()  {
+        final int i = (int)Math.round(commonInfo.getPhredScaledQual());
+        return i < 0 ? -1 : i;
+    }
 
     public Map<String, Object> getAttributes()  { return commonInfo.getAttributes(); }
     public boolean hasAttribute(String key)     { return commonInfo.hasAttribute(key); }

@@ -30,6 +30,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
+import java.util.Arrays;
 import java.util.EnumMap;
 
 public class GenotypeLikelihoods {
@@ -105,6 +106,18 @@ public class GenotypeLikelihoods {
         }
 
         return likelihoodsAsString_PLs;
+    }
+
+    @Override public boolean equals(Object aThat) {
+        //check for self-comparison
+        if ( this == aThat ) return true;
+
+        if ( !(aThat instanceof GenotypeLikelihoods) ) return false;
+        GenotypeLikelihoods that = (GenotypeLikelihoods)aThat;
+
+        // now a proper field-by-field evaluation can be made.
+        // GLs are considered equal if the corresponding PLs are equal
+        return Arrays.equals(getAsPLs(), that.getAsPLs());
     }
 
     //Return genotype likelihoods as an EnumMap with Genotypes as keys and likelihoods as values
@@ -267,16 +280,16 @@ public class GenotypeLikelihoods {
 //    @Override public ListIterator<Double> listIterator(final int i) { notImplemented(); return null; }
 //    @Override public List<Double> subList(final int i, final int i1) { notImplemented(); return null; }
 
-    // -------------------------------------------------------------------------------------
-    //
-    // Static conversion utilities, going from GL/PL index to allele index and vice versa.
-    //
-    // -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
+//
+// Static conversion utilities, going from GL/PL index to allele index and vice versa.
+//
+// -------------------------------------------------------------------------------------
 
     /*
-     * Class representing the 2 alleles (or rather their indexes into VariantContext.getAllele()) corresponding to a specific PL index.
-     * Note that the reference allele is always index=0.
-     */
+    * Class representing the 2 alleles (or rather their indexes into VariantContext.getAllele()) corresponding to a specific PL index.
+    * Note that the reference allele is always index=0.
+    */
     public static class GenotypeLikelihoodsAllelePair {
         public final int alleleIndex1, alleleIndex2;
 
@@ -292,8 +305,8 @@ public class GenotypeLikelihoods {
     public final static int MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED = 50;
 
     /*
-     * a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
-     */
+    * a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
+    */
     private final static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex = calculatePLcache(MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
 
     private static GenotypeLikelihoodsAllelePair[] calculatePLcache(final int altAlleles) {
@@ -312,35 +325,35 @@ public class GenotypeLikelihoods {
             if ( cache[i] == null )
                 throw new ReviewedStingException("BUG: cache entry " + i + " is unexpected null");
         }
-            
+
         return cache;
     }
 
     /**
-    * Compute how many likelihood elements are associated with the given number of alleles
-    * Equivalent to asking in how many ways N non-negative integers can add up to P is S(N,P)
-    * where P = ploidy (number of chromosomes) and N = total # of alleles.
-    * Each chromosome can be in one single state (0,...,N-1) and there are P of them.
-    * Naive solution would be to store N*P likelihoods, but this is not necessary because we can't distinguish chromosome states, but rather
-    * only total number of alt allele counts in all chromosomes.
-    *
-    * For example, S(3,2) = 6: For alleles A,B,C, on a diploid organism we have six possible genotypes:
-    * AA,AB,BB,AC,BC,CC.
-    * Another way of expressing is with vector (#of A alleles, # of B alleles, # of C alleles)
-    * which is then, for ordering above, (2,0,0), (1,1,0), (0,2,0), (1,1,0), (0,1,1), (0,0,2)
-    * In general, for P=2 (regular biallelic), then S(N,2) = N*(N+1)/2
-    *
-    * Recursive implementation:
-    *   S(N,P) = sum_{k=0}^P S(N-1,P-k)
-    *  because if we have N integers, we can condition 1 integer to be = k, and then N-1 integers have to sum to P-K
-    * With initial conditions
-    *   S(N,1) = N  (only way to have N integers add up to 1 is all-zeros except one element with a one. There are N of these vectors)
-    *   S(1,P) = 1 (only way to have 1 integer add to P is with that integer P itself).
-    *
-    *   @param  numAlleles      Number of alleles (including ref)
-    *   @param  ploidy          Ploidy, or number of chromosomes in set
-    *   @return    Number of likelihood elements we need to hold.
-    */
+     * Compute how many likelihood elements are associated with the given number of alleles
+     * Equivalent to asking in how many ways N non-negative integers can add up to P is S(N,P)
+     * where P = ploidy (number of chromosomes) and N = total # of alleles.
+     * Each chromosome can be in one single state (0,...,N-1) and there are P of them.
+     * Naive solution would be to store N*P likelihoods, but this is not necessary because we can't distinguish chromosome states, but rather
+     * only total number of alt allele counts in all chromosomes.
+     *
+     * For example, S(3,2) = 6: For alleles A,B,C, on a diploid organism we have six possible genotypes:
+     * AA,AB,BB,AC,BC,CC.
+     * Another way of expressing is with vector (#of A alleles, # of B alleles, # of C alleles)
+     * which is then, for ordering above, (2,0,0), (1,1,0), (0,2,0), (1,1,0), (0,1,1), (0,0,2)
+     * In general, for P=2 (regular biallelic), then S(N,2) = N*(N+1)/2
+     *
+     * Recursive implementation:
+     *   S(N,P) = sum_{k=0}^P S(N-1,P-k)
+     *  because if we have N integers, we can condition 1 integer to be = k, and then N-1 integers have to sum to P-K
+     * With initial conditions
+     *   S(N,1) = N  (only way to have N integers add up to 1 is all-zeros except one element with a one. There are N of these vectors)
+     *   S(1,P) = 1 (only way to have 1 integer add to P is with that integer P itself).
+     *
+     *   @param  numAlleles      Number of alleles (including ref)
+     *   @param  ploidy          Ploidy, or number of chromosomes in set
+     *   @return    Number of likelihood elements we need to hold.
+     */
     public static int calculateNumLikelihoods(final int numAlleles, final int ploidy) {
 
         // fast, closed form solution for diploid samples (most common use case)
@@ -408,7 +421,7 @@ public class GenotypeLikelihoods {
      * @return the PL indexes
      */
     public static int[] getPLIndecesOfAlleles(final int allele1Index, final int allele2Index) {
-        
+
         final int[] indexes = new int[3];
         indexes[0] = calculatePLindex(allele1Index, allele1Index);
         indexes[1] = calculatePLindex(allele1Index, allele2Index);

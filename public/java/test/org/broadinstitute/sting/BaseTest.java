@@ -9,6 +9,7 @@ import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.utils.crypt.CryptUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.io.IOUtils;
+import org.testng.Assert;
 import org.testng.Reporter;
 
 import java.io.File;
@@ -263,5 +264,28 @@ public abstract class BaseTest {
      */
     public static void log(final String message) {
         Reporter.log(message, true);
+    }
+
+    private static final double DEFAULT_FLOAT_TOLERANCE = 1e-4;
+
+    public static final void assertEqualsDoubleSmart(final Object actual, final Double expected) {
+        Assert.assertTrue(actual instanceof Double);
+        assertEqualsDoubleSmart((double)(Double)actual, (double)expected);
+    }
+
+    public static final void assertEqualsDoubleSmart(final double actual, final double expected) {
+        assertEqualsDoubleSmart(actual, expected, DEFAULT_FLOAT_TOLERANCE);
+    }
+
+    public static final void assertEqualsDoubleSmart(final double actual, final double expected, final double tolerance) {
+        if ( Double.isNaN(expected) ) // NaN == NaN => false unfortunately
+            Assert.assertTrue(Double.isNaN(actual));
+        else if ( Double.isInfinite(expected) ) // NaN == NaN => false unfortunately
+            Assert.assertTrue(Double.isInfinite(actual));
+        else {
+            final double delta = Math.abs(actual - expected);
+            final double ratio = Math.abs(actual / expected - 1.0);
+            Assert.assertTrue(delta < tolerance || ratio < tolerance);
+        }
     }
 }

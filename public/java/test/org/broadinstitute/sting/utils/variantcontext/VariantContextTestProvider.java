@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.variantcontext;
 
+import org.apache.log4j.Logger;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.PositionalBufferedStream;
@@ -47,9 +48,12 @@ import java.util.*;
  * @since Date created
  */
 public class VariantContextTestProvider {
+    final protected static Logger logger = Logger.getLogger(VariantContextTestProvider.class);
+
     final private static boolean ENABLE_VARARRAY_TESTS = true;
     final private static boolean ENABLE_PLOIDY_TESTS = true;
     final private static boolean ENABLE_PL_TESTS = true;
+    final private static boolean ENABLE_SOURCE_VCF_TESTS = true;
     private static VCFHeader syntheticHeader;
     final static List<VariantContextTestData> TEST_DATAs = new ArrayList<VariantContextTestData>();
     private static VariantContext ROOT;
@@ -81,7 +85,7 @@ public class VariantContextTestProvider {
         public List<VariantContext> vcs;
 
         public VariantContextTestData(final VCFHeader header, final VariantContextBuilder builder) {
-            this(header, Collections.singletonList(builder.make()));
+            this(header, Collections.singletonList(builder.fullyDecoded(true).make()));
         }
 
         public VariantContextTestData(final VCFHeader header, final List<VariantContext> vcs) {
@@ -125,13 +129,20 @@ public class VariantContextTestProvider {
     }
 
     private static void makeEmpiricalTests() throws IOException {
-        for ( final File file : testSourceVCFs ) {
-            VCFCodec codec = new VCFCodec();
-            Pair<VCFHeader, List<VariantContext>> x = readAllVCs( file, codec );
-            List<VariantContext> fullyDecoded = new ArrayList<VariantContext>(x.getSecond().size());
-            for ( final VariantContext raw : x.getSecond() )
-                fullyDecoded.add(raw.fullyDecode(x.getFirst()));
-            TEST_DATAs.add(new VariantContextTestData(x.getFirst(), x.getSecond()));
+        if ( ENABLE_SOURCE_VCF_TESTS ) {
+            for ( final File file : testSourceVCFs ) {
+                VCFCodec codec = new VCFCodec();
+                Pair<VCFHeader, List<VariantContext>> x = readAllVCs( file, codec );
+                List<VariantContext> fullyDecoded = new ArrayList<VariantContext>(x.getSecond().size());
+                int i = 0;
+                logger.warn("Reading records from " + file);
+                for ( final VariantContext raw : x.getSecond() ) {
+                    fullyDecoded.add(raw.fullyDecode(x.getFirst()));
+                    logger.warn("\t" + i++);
+                }
+                logger.warn("Done reading " + file);
+                TEST_DATAs.add(new VariantContextTestData(x.getFirst(), x.getSecond()));
+            }
         }
     }
 
@@ -215,7 +226,7 @@ public class VariantContextTestProvider {
         add(builder().attribute("FLOAT3", null));
 
         add(builder().attribute("FLAG", true));
-        add(builder().attribute("FLAG", false));
+        //add(builder().attribute("FLAG", false)); // NOTE -- VCF doesn't allow false flags
 
         add(builder().attribute("STRING1", "s1"));
         add(builder().attribute("STRING1", null));
@@ -255,7 +266,7 @@ public class VariantContextTestProvider {
             // add all
             add(builder.genotypes(Arrays.asList(genotypes)));
 
-            // add all with the last replicated 10x, 100x, 1000x times
+            // add all with the last replicated 10x and 100x times
             for ( int nCopiesOfLast : Arrays.asList(10, 100, 1000) ) {
                 final GenotypesContext gc = new GenotypesContext();
                 final Genotype last = genotypes[genotypes.length-1];
@@ -424,7 +435,7 @@ public class VariantContextTestProvider {
         final List<VariantContext> read = new ArrayList<VariantContext>();
         while ( ! pbs.isDone() ) {
             final VariantContext vc = codec.decode(pbs);
-            if ( vc != null ) read.add(vc);
+            if ( vc != null ) read.add(vc.fullyDecode((VCFHeader)header.getHeaderValue()));
         };
 
         return new Pair<VCFHeader, List<VariantContext>>((VCFHeader)header.getHeaderValue(), read);
@@ -454,7 +465,70 @@ public class VariantContextTestProvider {
         Assert.assertEquals(actual.getChr(), expected.getChr());
         Assert.assertEquals(actual.getStart(), expected.getStart());
         Assert.assertEquals(actual.getEnd(), expected.getEnd());
-        // TODO -- expand me
+        Assert.assertEquals(actual.getID(), expected.getID());
+        Assert.assertEquals(actual.getAlleles(), expected.getAlleles());
+
+        assertAttributesEquals(actual.getAttributes(), expected.getAttributes());
+        Assert.assertEquals(actual.getFilters(), expected.getFilters());
+        BaseTest.assertEqualsDoubleSmart(actual.getPhredScaledQual(), expected.getPhredScaledQual());
+
+        Assert.assertEquals(actual.hasGenotypes(), expected.hasGenotypes());
+        if ( expected.hasGenotypes() ) {
+            Assert.assertEquals(actual.getSampleNames(), expected.getSampleNames());
+            final Set<String> samples = expected.getSampleNames();
+            for ( final String sample : samples ) {
+                assertEquals(actual.getGenotype(sample), expected.getGenotype(sample));
+            }
+        }
+    }
+
+    public static void assertEquals(final Genotype actual, final Genotype expected) {
+        Assert.assertEquals(actual.getSampleName(), expected.getSampleName());
+        Assert.assertEquals(actual.getAlleles(), expected.getAlleles());
+        Assert.assertEquals(actual.getGenotypeString(), expected.getGenotypeString());
+        Assert.assertEquals(actual.getFilters(), expected.getFilters());
+        Assert.assertEquals(actual.getPhredScaledQual(), expected.getPhredScaledQual());
+        assertAttributesEquals(actual.getAttributes(), expected.getAttributes());
+        Assert.assertEquals(actual.isPhased(), expected.isPhased());
+        Assert.assertEquals(actual.getPloidy(), expected.getPloidy());
+    }
+
+    private static void assertAttributesEquals(final Map<String, Object> actual, Map<String, Object> expected) {
+        final Set<String> expectedKeys = new HashSet<String>(expected.keySet());
+
+        for ( final Map.Entry<String, Object> act : actual.entrySet() ) {
+            final Object actualValue = act.getValue();
+            if ( expected.containsKey(act.getKey()) && expected.get(act.getKey()) != null ) {
+                final Object expectedValue = expected.get(act.getKey());
+                if ( expectedValue instanceof List ) {
+                    final List<Object> expectedList = (List<Object>)expectedValue;
+                    Assert.assertTrue(actualValue instanceof List);
+                    final List<Object> actualList = (List<Object>)actualValue;
+                    Assert.assertEquals(actualList.size(), expectedList.size());
+                    for ( int i = 0; i < expectedList.size(); i++ )
+                        assertAttributesEquals(actualList.get(i), expectedList.get(i));
+                } else
+                    assertAttributesEquals(actualValue, expectedValue);
+            } else {
+                // it's ok to have a binding in x -> null that's absent in y
+                Assert.assertNull(actualValue);
+            }
+            expectedKeys.remove(act.getKey());
+        }
+
+        // now expectedKeys contains only the keys found in expected but not in actual,
+        // and they must all be null
+        for ( final String missingExpected : expectedKeys ) {
+            final Object value = expected.get(missingExpected);
+            Assert.assertTrue(value == null || value.equals(VCFConstants.MISSING_VALUE_v4));
+        }
+    }
+
+    private static void assertAttributesEquals(final Object actual, final Object expected) {
+        if ( expected instanceof Double ) {
+            BaseTest.assertEqualsDoubleSmart(actual, (Double)expected);
+        } else
+            Assert.assertEquals(actual, expected);
     }
 
     public static void assertEquals(final VCFHeader actual, final VCFHeader expected) {

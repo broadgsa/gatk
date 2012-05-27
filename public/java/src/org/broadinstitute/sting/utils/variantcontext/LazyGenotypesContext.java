@@ -80,9 +80,7 @@ public class LazyGenotypesContext extends GenotypesContext {
         final Map<String, Integer> sampleNameToOffset;
         final List<String> sampleNamesInOrder;
 
-        @Requires({"genotypes != null", "sampleNamesInOrder != null", "sampleNameToOffset != null",
-                "sameSamples(genotypes, sampleNamesInOrder)",
-                "sameSamples(genotypes, sampleNameToOffset.keySet())"})
+        @Requires({"genotypes != null", "sampleNamesInOrder != null", "sampleNameToOffset != null"})
         public LazyData(final ArrayList<Genotype> genotypes,
                         final List<String> sampleNamesInOrder,
                         final Map<String, Integer> sampleNameToOffset) {

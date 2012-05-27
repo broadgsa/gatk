@@ -335,7 +335,9 @@ public class WalkerTest extends BaseTest {
         // run the executable
         boolean gotAnException = false;
         try {
-            System.out.println(String.format("Executing test %s with GATK arguments: %s", name, Utils.join(" ",command)));
+            final String now = new SimpleDateFormat("HH:mm:ss").format(new Date());
+            System.out.println(String.format("[%s] Executing test %s with GATK arguments: %s",
+                    now, name, Utils.join(" ",command)));
             CommandLineExecutable.start(instance, command);
         } catch (Exception e) {
             gotAnException = true;

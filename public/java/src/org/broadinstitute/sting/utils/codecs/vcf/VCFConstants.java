@@ -111,7 +111,7 @@ public final class VCFConstants {
     public static final String PER_GENOTYPE_COUNT = "G";
     public static final String EMPTY_ALLELE = ".";
     public static final String EMPTY_GENOTYPE = "./.";
-    public static final double MAX_GENOTYPE_QUAL = 99.0;
+    public static final int MAX_GENOTYPE_QUAL = 99;
 
     public static final String DOUBLE_PRECISION_FORMAT_STRING = "%.2f";
     public static final String DOUBLE_PRECISION_INT_SUFFIX = ".00";

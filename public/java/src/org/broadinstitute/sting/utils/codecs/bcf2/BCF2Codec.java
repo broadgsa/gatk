@@ -84,7 +84,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
             decodeGenotypes(info, builder);
         }
 
-        return builder.make();
+        return builder.fullyDecoded(true).make();
     }
 
     @Override
@@ -321,34 +321,37 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
 
             for ( final Map.Entry<String, List<Object>> entry : fieldValues.entrySet() ) {
                 final String field = entry.getKey();
-                final List<Object> values = entry.getValue();
+                Object value = entry.getValue().get(i);
                 try {
                     if ( field.equals(VCFConstants.GENOTYPE_KEY) ) {
-                        alleles = decodeGenotypeAlleles(siteInfo.alleles, (List<Integer>)values.get(i));
+                        alleles = decodeGenotypeAlleles(siteInfo.alleles, (List<Integer>)value);
                     } else if ( field.equals(VCFConstants.GENOTYPE_QUALITY_KEY) ) {
-                        final Integer value = (Integer)values.get(i);
                         if ( value != BCF2Type.INT8.getMissingJavaValue() )
-                            log10PError = value / -10.0;
+                            log10PError = ((Integer)value) / -10.0;
                     } else if ( field.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) ) {
-                        final List<Integer> pls = (List<Integer>)values.get(i);
+                        final List<Integer> pls = (List<Integer>)value;
                         if ( pls != null ) { // we have a PL field
                             log10Likelihoods = new double[pls.size()];
-                            for ( int j = 0; j < log10Likelihoods.length; j++ )
-                                log10Likelihoods[j] = pls.get(j) / -10.0;
+                            for ( int j = 0; j < log10Likelihoods.length; j++ ) {
+                                final double d = pls.get(j);
+                                log10Likelihoods[j] = d == -0.0 ? 0.0 : d / -10.0;
+                            }
                         }
                     } else if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
                         throw new ReviewedStingException("Genotype filters not implemented in GATK BCF2");
                         //filters = new HashSet<String>(values.get(i));
                     } else { // add to attributes
-                        if ( values.get(i) != null ) { // don't add missing values
+                        if ( value != null ) { // don't add missing values
                             if ( attributes == null ) attributes = new HashMap<String, Object>(nFields);
-                            attributes.put(field, values.get(i));
+                            if ( value instanceof List && ((List)value).size() == 1)
+                                value = ((List)value).get(0);
+                            attributes.put(field, value);
                         }
                     }
                 } catch ( ClassCastException e ) {
                     throw new UserException.MalformedBCF2("BUG: expected encoding of field " + field
                             + " inconsistent with the value observed in the decoded value in the "
-                            + " BCF file.  Value was " + Utils.join(",", values));
+                            + " BCF file.  Value was " + value);
                 }
             }
 

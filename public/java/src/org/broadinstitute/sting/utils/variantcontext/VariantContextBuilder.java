@@ -60,6 +60,7 @@ import java.util.*;
  */
 public class VariantContextBuilder {
     // required fields
+    private boolean fullyDecoded = false;
     private String source = null;
     private String contig = null;
     private long start = -1;
@@ -120,6 +121,7 @@ public class VariantContextBuilder {
         this.source = parent.getSource();
         this.start = parent.getStart();
         this.stop = parent.getEnd();
+        this.fullyDecoded = parent.isFullyDecoded();
     }
 
     public VariantContextBuilder(VariantContextBuilder parent) {
@@ -134,6 +136,7 @@ public class VariantContextBuilder {
         this.source = parent.source;
         this.start = parent.start;
         this.stop = parent.stop;
+        this.fullyDecoded = parent.fullyDecoded;
 
         this.attributes(parent.attributes);
         this.filters(parent.filters);
@@ -441,6 +444,30 @@ public class VariantContextBuilder {
     }
 
     /**
+     * @return true if this builder contains fully decoded data
+     *
+     * See VariantContext for more information
+     */
+    public boolean isFullyDecoded() {
+        return fullyDecoded;
+    }
+
+    /**
+     * Sets this builder's fully decoded state to true.
+     *
+     * A fully decoded builder indicates that all fields are represented by their
+     * proper java objects (e.g., Integer(10) not "10").
+     *
+     * See VariantContext for more information
+     *
+     * @param isFullyDecoded
+     */
+    public VariantContextBuilder fullyDecoded(boolean isFullyDecoded) {
+        this.fullyDecoded = isFullyDecoded;
+        return this;
+    }
+
+    /**
      * Takes all of the builder data provided up to this point, and instantiates
      * a freshly allocated VariantContext with all of the builder data.  This
      * VariantContext is validated as appropriate and if not failing QC (and
@@ -452,6 +479,6 @@ public class VariantContextBuilder {
     public VariantContext make() {
         return new VariantContext(source, ID, contig, start, stop, alleles,
                 genotypes, log10PError, filters, attributes,
-                referenceBaseForIndel, toValidate);
+                referenceBaseForIndel, fullyDecoded, toValidate);
     }
 }
