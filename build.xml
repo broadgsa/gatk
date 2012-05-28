@@ -976,6 +976,7 @@
     <property name="scala.protected.test.sources" value="${protected.dir}/scala/test"/>
     <property name="pipelinetest.dir" value="pipelinetests" />
     <property name="report" value="${build.dir}/report"/>
+    <property name="iwww.report.dir" value="${user.home}/private_html/report"/>
     <property name="test.output" value="${dist.dir}/test"/>
     <property name="testng.jar" value="${lib.dir}/testng-5.14.1.jar"/>
     <property name="test.maxmemory" value="4g"/>  <!-- provide a ceiling on the memory that unit/integration tests can consume. -->
@@ -1171,6 +1172,12 @@
                 </fileset>
                 <report format="noframes" todir="@{outputdir}"/>
             </junitreport>
+
+	    <!-- copy the report to our private_html directory for easy viewing in a broswer -->
+            <mkdir dir="${iwww.report.dir}/@{testtype}"/>
+            <copy todir="${iwww.report.dir}/@{testtype}" verbose="true">
+              <fileset dir="@{outputdir}"/>
+            </copy>
 
             <fail message="test failed" if="test.failure" />
         </sequential>
