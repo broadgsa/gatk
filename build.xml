@@ -1051,6 +1051,7 @@
             <include name="junit*.jar"/>
             <include name="bsh*.jar"/>
             <include name="snakeyaml*.jar"/>
+            <include name="reportng*.jar"/>
         </fileset>
     </path>
 
@@ -1065,38 +1066,6 @@
         <pathelement location="${key.dir}" />
         <path refid="external.dependencies" />
     </path>
-
-    <path id="gatk.binary.release.tests.classpath">
-        <path refid="testng.dependencies" />
-        <path>
-            <fileset dir="${package.output.dir}">
-                <include name="**/${executable}.jar" />
-            </fileset>
-        </path>
-        <pathelement location="${java.contracts.dir}" />
-        <pathelement location="${java.test.classes}" />
-        <pathelement location="${scala.test.classes}" />
-        <pathelement location="${scala.classes}" />
-        <path>
-            <fileset dir="${lib.dir}">
-                <include name="scala*.jar"/>
-                <include name="jna*.jar"/>
-            </fileset>
-        </path>
-    </path>
-
-    <path id="queue.binary.release.tests.classpath">
-        <path refid="testng.dependencies" />
-        <path>
-            <fileset dir="${package.output.dir}">
-                <include name="**/${executable}.jar" />
-            </fileset>
-        </path>
-        <pathelement location="${java.contracts.dir}" />
-        <pathelement location="${java.test.classes}" />
-        <pathelement location="${scala.test.classes}" />
-    </path>
-
 
     <!-- Test targets -->
 
@@ -1180,8 +1149,14 @@
             </condition>
 
             <mkdir dir="@{outputdir}"/>
+
+            <echo message="" />
+            <echo message="Test Classpath ID: ${testng.classpath}" />
+            <property name="test.classpath.display.string" refid="${testng.classpath}" />
+            <echo message="Test Classpath: ${test.classpath.display.string}" />
+            <echo message="" />
             <echo message="Sting: Running @{testtype} test cases!"/>
-            <echo message="Test classpath: ${testng.classpath}"/>
+
             <taskdef resource="testngtasks" classpath="${testng.jar}"/>
             <testng outputDir="@{outputdir}"
                     classpathref="${testng.classpath}"
@@ -1237,12 +1212,42 @@
     </target>
 
     <target name="init.testgatkjar">
+        <path id="gatk.binary.release.tests.classpath">
+            <path refid="testng.dependencies" />
+            <path>
+                <fileset dir="${package.output.dir}">
+                    <include name="**/${executable}.jar" />
+                </fileset>
+            </path>
+            <pathelement location="${java.contracts.dir}" />
+            <pathelement location="${java.test.classes}" />
+            <pathelement location="${scala.test.classes}" />
+            <pathelement location="${scala.classes}" />
+            <path>
+                <fileset dir="${lib.dir}">
+                    <include name="scala*.jar"/>
+                    <include name="jna*.jar"/>
+                </fileset>
+            </path>
+        </path>
         <property name="testng.classpath" value="gatk.binary.release.tests.classpath" />
     </target>
 
     <target name="init.testqueuejar">
+        <path id="queue.binary.release.tests.classpath">
+            <path refid="testng.dependencies" />
+            <path>
+                <fileset dir="${package.output.dir}">
+                    <include name="**/${executable}.jar" />
+                </fileset>
+            </path>
+            <pathelement location="${java.contracts.dir}" />
+            <pathelement location="${java.test.classes}" />
+            <pathelement location="${scala.test.classes}" />
+        </path>
         <property name="testng.classpath" value="queue.binary.release.tests.classpath" />
     </target>
+
 
     <target name="committests">
         <antcall target="unittest" inheritAll="false"/>
