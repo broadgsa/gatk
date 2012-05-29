@@ -34,8 +34,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -70,6 +69,7 @@ public class BeagleCodec extends AsciiFeatureCodec<BeagleFeature> implements Ref
     private int markerPosition;
     private ArrayList<String> sampleNames;
     private int expectedTokensPerLine;
+    private final static Set<String> HEADER_IDs = new HashSet<String>(Arrays.asList("marker", "I"));
 
     private static final String delimiterRegex = "\\s+";
 
@@ -180,7 +180,8 @@ public class BeagleCodec extends AsciiFeatureCodec<BeagleFeature> implements Ref
         if (tokens.length != expectedTokensPerLine)
             throw new CodecLineParsingException("Incorrect number of fields in Beagle input on line "+line);
 
-
+        if ( HEADER_IDs.contains(tokens[0]) )
+            return null;
 
         BeagleFeature bglFeature = new BeagleFeature();
 
