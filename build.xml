@@ -74,7 +74,7 @@
     <property name="package.xml.dir" value="${public.dir}/packages" />
     <property name="package.output.dir" value="${dist.dir}/packages" />
     <property name="staging.dir" value="staging" />
-    <property name="executable" value="GenomeAnalysisTK" />  <!-- If running the 'package' task, this property controls the name of the xml file to package -->
+    <property name="default.executable" value="none" />
 
     <!-- Javadoc/Scaladoc directories -->
     <property name="javadoc.dir" value="javadoc" />
@@ -326,6 +326,10 @@
         <property name="compile.scala" value="false" />
     </target>
 
+    <target name="init.javaandscala">
+        <property name="compile.scala" value="true" />
+    </target>
+
     <target name="init.usecontracts">
         <property name="use.contracts" value="true" />
     </target>
@@ -341,6 +345,7 @@
         <property name="build.target" value="${default.build.target}" />
         <property name="compile.scala" value="${compile.scala.by.default}" />
         <property name="use.contracts" value="${use.contracts.by.default}" />
+        <property name="executable" value="${default.executable}" />
 
         <!-- Determine what should be built -->
         <condition property="include.scala">
@@ -842,6 +847,32 @@
     <!-- Release-related tasks                                                            -->
     <!-- ******************************************************************************** -->
 
+    <target name="init.buildgatkfull" depends="init.publicprotectedonly, init.javaonly">
+        <property name="executable" value="GenomeAnalysisTK" />
+    </target>
+
+    <target name="init.buildgatklite" depends="init.publiconly, init.javaonly">
+        <property name="executable" value="GenomeAnalysisTKLite" />
+    </target>
+
+    <target name="init.buildqueuefull" depends="init.publicprotectedonly, init.javaandscala">
+        <property name="executable" value="Queue" />
+    </target>
+
+    <target name="init.buildqueuelite" depends="init.publiconly, init.javaandscala">
+        <property name="executable" value="QueueLite" />
+    </target>
+
+    <target name="require.executable">
+        <condition property="no.executable.defined">
+            <or>
+                <equals arg1="${executable}" arg2="none" />
+                <equals arg1="${executable}" arg2="$${executable}" />
+            </or>
+        </condition>
+        <fail message="No executable defined. Call a more specific packaging/release target, or define an executable manually" if="no.executable.defined" />
+    </target>
+
     <!-- Unzip all classes from their current locations and assemble them in a staging directory -->
     <target name="stage" description="stage files for distribution">
         <mkdir dir="${staging.dir}"/>
@@ -863,8 +894,9 @@
         </unjar>
     </target>
 
-    <!-- Build a package consisting of all supporting files -->
-    <target name="package" depends="dist,stage" description="bundle up an executable for distribution">
+
+    <!-- Build a package consisting of all supporting files. Don't call this target directly. Call one of the specific packaging targets below -->
+    <target name="package" depends="dist,stage,require.executable" description="bundle up an executable for distribution">
       <mkdir dir="${package.output.dir}" />
       <xslt destdir="${package.output.dir}" style="${package.xml.dir}/CreatePackager.xsl" useImplicitFileset="false">
           <flattenmapper/>
@@ -878,15 +910,30 @@
       <ant antfile="${package.output.dir}/${executable}.xml" target="package" />
     </target>
 
-    <target name="package.gatk" depends="init.javaonly, package" />
+    <!-- Package specific versions of the GATK/Queue. ALWAYS do an ant clean before invoking these! -->
+    <target name="package.gatk.full" depends="init.buildgatkfull,package" />
 
-    <target name="release" depends="package" description="release a build, putting each file in a location specified by the package">
-      <ant antfile="${package.output.dir}/${executable}.xml" target="release" />
+    <target name="package.gatk.lite" depends="init.buildgatklite,package" />
+
+    <target name="package.queue.full" depends="init.buildqueuefull,package" />
+
+    <target name="package.queue.lite" depends="init.buildqueuelite,package" />
+
+
+    <!-- Release a build. Don't call this target directly. Call one of the specific release targets below -->
+    <target name="release" depends="require.executable" description="release a build, putting each file in a location specified by the package">
+        <ant antfile="${package.output.dir}/${executable}.xml" target="release" />
     </target>
 
-    <target name="protected.release" depends="package" description="release a protected build, putting each file in a location specified by the package">
-      <ant antfile="${package.output.dir}/${executable}.xml" target="protectedrelease" />
-    </target>
+    <!-- Release specific versions of the GATK/Queue. ALWAYS do an ant clean before invoking these! -->
+    <target name="release.gatk.full" depends="package.gatk.full,release" />
+
+    <target name="release.gatk.lite" depends="package.gatk.lite,release" />
+
+    <target name="release.queue.full" depends="package.queue.full,release" />
+
+    <target name="release.queue.lite" depends="package.queue.lite,release" />
+
 
     <!-- Build a subset of picard with only those classes we need by completely abusing the packaging system -->
     <!-- TODO: Reuse as much as possible of the 'stage' and 'package' targets -->
@@ -1134,6 +1181,7 @@
 
             <mkdir dir="@{outputdir}"/>
             <echo message="Sting: Running @{testtype} test cases!"/>
+            <echo message="Test classpath: ${testng.classpath}"/>
             <taskdef resource="testngtasks" classpath="${testng.jar}"/>
             <testng outputDir="@{outputdir}"
                     classpathref="${testng.classpath}"
@@ -1188,30 +1236,28 @@
         <property name="testng.classpath" value="testng.default.classpath" />
     </target>
 
+    <target name="init.testgatkjar">
+        <property name="testng.classpath" value="gatk.binary.release.tests.classpath" />
+    </target>
+
+    <target name="init.testqueuejar">
+        <property name="testng.classpath" value="queue.binary.release.tests.classpath" />
+    </target>
+
     <target name="committests">
         <antcall target="unittest" inheritAll="false"/>
         <antcall target="integrationtest" inheritAll="false"/>
         <antcall target="pipelinetest" inheritAll="false"/>
     </target>
 
-    <target name="gatk.binary.release.tests" depends="package">
-        <antcall target="unittest" inheritAll="false">
-            <param name="testng.classpath" value="gatk.binary.release.tests.classpath" />
-        </antcall>
-        <antcall target="integrationtest" inheritAll="false">
-            <param name="testng.classpath" value="gatk.binary.release.tests.classpath" />
-        </antcall>
-    </target>
+    <target name="gatkfull.binary.release.tests" depends="package.gatk.full,init.testgatkjar,unittest,integrationtest" />
 
-    <target name="queue.binary.release.tests">
-        <antcall target="package" inheritAll="false">
-            <param name="executable" value="Queue" />
-        </antcall>
-        <antcall target="pipelinetest" inheritAll="false">
-            <param name="executable" value="Queue" />
-            <param name="testng.classpath" value="queue.binary.release.tests.classpath" />
-        </antcall>
-    </target>
+    <target name="gatklite.binary.release.tests" depends="package.gatk.lite,init.testgatkjar,unittest,integrationtest" />
+
+    <target name="queuefull.binary.release.tests" depends="package.queue.full,init.testqueuejar,pipelinetest" />
+
+    <target name="queuelite.binary.release.tests" depends="package.queue.lite,init.testqueuejar,pipelinetest" />
+
 
     <!-- Our four different test types: UnitTest, IntegrationTest, LargeScaleTest, PipelineTest -->
     <target name="unittest" depends="test.compile,test.init" description="Run unit tests">

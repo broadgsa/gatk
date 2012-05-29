@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2011, The Broad Institute
+  ~ Copyright (c) 2012, The Broad Institute
   ~
   ~ Permission is hereby granted, free of charge, to any person
   ~ obtaining a copy of this software and associated documentation
@@ -23,21 +23,21 @@
   ~ OTHER DEALINGS IN THE SOFTWARE.
   -->
 
-<!-- The full release of Queue contains both public and protected tools (but nothing from private) -->
-<package name="Queue">
-    <version file="StingText.properties" property="org.broadinstitute.sting.queue.version" />
-    <executable name="Queue">
-        <main-class name="org.broadinstitute.sting.queue.QCommandLine" />
-        <resource-bundle file="StingText.properties" />
-        <modules>
-            <module file="QueueEngine.xml"/>
-            <module file="GATKEngine.xml"/>
-            <module file="AnalyzeCovariates.xml"/>
-        </modules>
-    </executable>
-    <release>
-        <!-- TODO: determine the real directory where the protected Queue release should go -->
-        <executable directory="/local/gsa-engineering/test_releases/queue" symlink="current" />
-        <archive directory="/local/gsa-engineering/test_releases/queue" symlink="Queue-latest.tar.bz2" />
-    </release>
+<!-- The lite release of the GATK contains only public tools (nothing from protected or private) -->
+<package name="GenomeAnalysisTKLite">
+  <version file="StingText.properties" property="org.broadinstitute.sting.gatk.version" />
+  <executable name="GenomeAnalysisTKLite">
+    <main-class name="org.broadinstitute.sting.gatk.CommandLineGATK" />
+    <resource-bundle file="StingText.properties" />
+    <modules>
+      <module file="GATKEngine.xml"/>
+    </modules>
+  </executable>
+  <modules>
+    <module file="AnalyzeCovariates.xml"/>
+  </modules>
+  <release>
+    <executable directory="/humgen/gsa-hpprojects/GATK/bin" symlink="current" />
+    <archive directory="/web/ftp/pub/gsa/GenomeAnalysisTK" symlink="GenomeAnalysisTKLite-latest.tar.bz2" />
+  </release>
 </package>
