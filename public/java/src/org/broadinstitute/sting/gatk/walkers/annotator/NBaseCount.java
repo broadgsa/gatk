@@ -30,7 +30,8 @@ public class NBaseCount extends InfoFieldAnnotation {
         for( final AlignmentContext context : stratifiedContexts.values() ) {
             if ( context.hasBasePileup() ) { // must be called as getBasePileup may throw error when pileup has no bases
                 for( final PileupElement p : context.getBasePileup()) {
-                    if( p.getRead().getReadGroup().getPlatform().toUpperCase().contains("SOLID") ) {
+                    final String platform = p.getRead().getReadGroup().getPlatform();
+                    if( platform != null && platform.toUpperCase().contains("SOLID") ) {
                         if( BaseUtils.isNBase( p.getBase() ) ) {
                             countNBaseSolid++;
                         } else if( BaseUtils.isRegularBase( p.getBase() ) ) {
