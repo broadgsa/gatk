@@ -11,6 +11,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.io.IOUtils;
 import org.testng.Assert;
 import org.testng.Reporter;
+import org.testng.SkipException;
 
 import java.io.File;
 import java.io.IOException;
@@ -81,8 +82,10 @@ public abstract class BaseTest {
     public static final String hg19Chr20Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list";
 
     public static final boolean REQUIRE_NETWORK_CONNECTION = false;
-    public static final String networkTempDir;
-    public static final File networkTempDirFile;
+    private static final String networkTempDirRoot = "/broad/hptmp/";
+    private static final boolean networkTempDirRootExists = new File(networkTempDirRoot).exists();
+    private static final String networkTempDir;
+    private static final File networkTempDirFile;
 
     public static final File testDirFile = new File("public/testdata/");
     public static final String testDir = testDirFile.getAbsolutePath() + "/";
@@ -105,19 +108,22 @@ public abstract class BaseTest {
         // Set the Root logger to only output warnings.
         logger.setLevel(Level.WARN);
 
-        if ( REQUIRE_NETWORK_CONNECTION ) {
-            networkTempDirFile = IOUtils.tempDir("temp.", ".dir", new File("/broad/shptmp/" + System.getProperty("user.name")));
+        if (networkTempDirRootExists) {
+            networkTempDirFile = IOUtils.tempDir("temp.", ".dir", new File(networkTempDirRoot + System.getProperty("user.name")));
             networkTempDirFile.deleteOnExit();
             networkTempDir = networkTempDirFile.getAbsolutePath() + "/";
+        } else {
+            networkTempDir = null;
+            networkTempDirFile = null;
+        }
 
+
+        if ( REQUIRE_NETWORK_CONNECTION ) {
             // find our file sources
             if (!fileExist(hg18Reference) || !fileExist(hg19Reference) || !fileExist(b36KGReference)) {
                 logger.fatal("We can't locate the reference directories.  Aborting!");
                 throw new RuntimeException("BaseTest setup failed: unable to locate the reference directories");
             }
-        } else {
-            networkTempDir = null;
-            networkTempDirFile = null;
         }
     }
 
@@ -250,8 +256,11 @@ public abstract class BaseTest {
      * Creates a temp file that will be deleted on exit after tests are complete.
      * @param name Name of the file.
      * @return A file in the network temporary directory with name, which will be deleted after the program exits.
+     * @throws SkipException when the network is not available.
      */
-    public static File createNetworkTempFile(String name) {
+    public static File tryCreateNetworkTempFile(String name) {
+        if (!networkTempDirRootExists)
+            throw new SkipException("Network temporary directory does not exist: " + networkTempDirRoot);
         File file = new File(networkTempDirFile, name);
         file.deleteOnExit();
         return file;

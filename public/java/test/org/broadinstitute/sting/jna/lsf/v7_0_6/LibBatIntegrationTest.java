@@ -93,7 +93,7 @@ public class LibBatIntegrationTest extends BaseTest {
     @Test
     public void testSubmitEcho() throws Exception {
         String queue = "hour";
-        File outFile = createNetworkTempFile("LibBatIntegrationTest.out");
+        File outFile = tryCreateNetworkTempFile("LibBatIntegrationTest.out");
 
         submit req = new submit();
 

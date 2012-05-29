@@ -55,7 +55,7 @@ public class MathUtils {
     private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / 0.001;
     private static final double MAX_JACOBIAN_TOLERANCE = 8.0;
     private static final int JACOBIAN_LOG_TABLE_SIZE = (int) (MAX_JACOBIAN_TOLERANCE / JACOBIAN_LOG_TABLE_STEP) + 1;
-    private static final int MAXN = 11000;
+    private static final int MAXN = 50000;
     private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
 
     static {

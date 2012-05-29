@@ -101,7 +101,7 @@ public class LibDrmaaIntegrationTest extends BaseTest {
         Memory error = new Memory(LibDrmaa.DRMAA_ERROR_STRING_BUFFER);
         int errnum;
 
-        File outFile = createNetworkTempFile("LibDrmaaIntegrationTest.out");
+        File outFile = tryCreateNetworkTempFile("LibDrmaaIntegrationTest.out");
 
         errnum = LibDrmaa.drmaa_init(null, error, LibDrmaa.DRMAA_ERROR_STRING_BUFFER_LEN);
 
