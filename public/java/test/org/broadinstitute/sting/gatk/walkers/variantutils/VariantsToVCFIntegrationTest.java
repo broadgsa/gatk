@@ -89,7 +89,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingVCFInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("86f02e2e764ba35854cff2aa05a1fdd8");
+        md5.add("b1ddde7efff9c405f8f92f0a636cd919");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +

@@ -243,8 +243,8 @@ public class MD5DB {
                     System.out.printf("##### Test %s is going to fail #####%n", name);
                     String pathToExpectedMD5File = getMD5FilePath(expectedMD5, "[No DB file found]");
                     String pathToFileMD5File = getMD5FilePath(filemd5sum, "[No DB file found]");
-                    BaseTest.log(String.format("expected   %s at %s", expectedMD5, pathToExpectedMD5File));
-                    BaseTest.log(String.format("calculated %s at %s", filemd5sum, pathToFileMD5File));
+                    BaseTest.log(String.format("expected   %s", expectedMD5));
+                    BaseTest.log(String.format("calculated %s", filemd5sum));
                     BaseTest.log(String.format("diff %s %s", pathToExpectedMD5File, pathToFileMD5File));
 
                     // inline differences

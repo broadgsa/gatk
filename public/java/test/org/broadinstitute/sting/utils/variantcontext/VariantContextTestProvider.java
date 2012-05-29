@@ -294,7 +294,7 @@ public class VariantContextTestProvider {
             final Genotype homVar = new Genotype("homVar", Arrays.asList(alt1, alt1));
             addGenotypeTests(site, homRef, het);
             addGenotypeTests(site, homRef, het, homVar);
-            final List<Allele> noCall = new ArrayList<Allele>();
+            final List<Allele> noCall = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 
             // ploidy
             if ( ENABLE_PLOIDY_TESTS ) {
@@ -526,7 +526,8 @@ public class VariantContextTestProvider {
 
     private static void assertAttributesEquals(final Object actual, final Object expected) {
         if ( expected instanceof Double ) {
-            BaseTest.assertEqualsDoubleSmart(actual, (Double)expected);
+            // must be very tolerant because doubles are being rounded to 2 sig figs
+            BaseTest.assertEqualsDoubleSmart(actual, (Double)expected, 1e-2);
         } else
             Assert.assertEquals(actual, expected);
     }

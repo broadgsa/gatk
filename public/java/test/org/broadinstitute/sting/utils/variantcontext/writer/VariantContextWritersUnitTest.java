@@ -102,7 +102,7 @@ public class VariantContextWritersUnitTest extends BaseTest {
     //
     // --------------------------------------------------------------------------------
 
-    @Test(enabled = false, dataProvider = "VariantContextTest_SingleContexts")
+    @Test(enabled = true, dataProvider = "VariantContextTest_SingleContexts")
     public void testVCF4WriterReader(final VariantContextTestProvider.VariantContextTestData testData) throws IOException {
         VariantContextTestProvider.testReaderWriter(new VCFIOTester(), testData);
     }

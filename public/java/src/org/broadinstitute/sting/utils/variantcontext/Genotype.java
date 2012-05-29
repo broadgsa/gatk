@@ -205,6 +205,17 @@ public class Genotype implements Comparable<Genotype> {
         return (hasAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) && !getAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY).equals(VCFConstants.MISSING_VALUE_v4)) ||
                 (hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY) && !getAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY).equals(VCFConstants.MISSING_VALUE_v4));
     }
+
+    /**
+     * Convenience function that returns a string representation of the PL field of this
+     * genotype, or . if none is available.
+     *
+     * @return
+     */
+    public String getLikelihoodsString() {
+        GenotypeLikelihoods gl = getLikelihoods();
+        return gl == null ? VCFConstants.MISSING_VALUE_v4 : gl.toString();
+    }
     
     public GenotypeLikelihoods getLikelihoods() {
         GenotypeLikelihoods x = getLikelihoods(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, true);

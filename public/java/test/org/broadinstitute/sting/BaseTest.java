@@ -273,6 +273,11 @@ public abstract class BaseTest {
         assertEqualsDoubleSmart((double)(Double)actual, (double)expected);
     }
 
+    public static final void assertEqualsDoubleSmart(final Object actual, final Double expected, final double tolerance) {
+        Assert.assertTrue(actual instanceof Double);
+        assertEqualsDoubleSmart((double)(Double)actual, (double)expected, tolerance);
+    }
+
     public static final void assertEqualsDoubleSmart(final double actual, final double expected) {
         assertEqualsDoubleSmart(actual, expected, DEFAULT_FLOAT_TOLERANCE);
     }

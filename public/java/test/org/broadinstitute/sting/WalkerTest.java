@@ -44,6 +44,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class WalkerTest extends BaseTest {
