@@ -27,14 +27,12 @@ package org.broadinstitute.sting.utils.exceptions;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
-import java.util.Arrays;
 
 /**
  * Represents the common user errors detected by Sting / GATK
@@ -52,6 +50,11 @@ public class UserException extends ReviewedStingException {
     public UserException(String msg) { super(msg); }
     public UserException(String msg, Throwable e) { super(msg, e); }
     private UserException(Throwable e) { super("", e); } // cannot be called, private access
+
+    protected static String getMessage(Throwable t) {
+        String message = t.getMessage();
+        return message != null ? message : t.getClass().getName();
+    }
 
     public static class CommandLineException extends UserException {
         public CommandLineException(String message) {
@@ -121,7 +124,7 @@ public class UserException extends ReviewedStingException {
 
     public static class CouldNotReadInputFile extends UserException {
         public CouldNotReadInputFile(String message, Exception e) {
-            super(String.format("Couldn't read file because %s caused by %s", message, e.getMessage()));
+            super(String.format("Couldn't read file because %s caused by %s", message, getMessage(e)));
         }
 
         public CouldNotReadInputFile(File file) {
@@ -133,11 +136,11 @@ public class UserException extends ReviewedStingException {
         }
 
         public CouldNotReadInputFile(File file, String message, Exception e) {
-            super(String.format("Couldn't read file %s because %s with exception %s", file.getAbsolutePath(), message, e.getMessage()));
+            super(String.format("Couldn't read file %s because %s with exception %s", file.getAbsolutePath(), message, getMessage(e)));
         }
 
         public CouldNotReadInputFile(File file, Exception e) {
-            this(file, e.getMessage());
+            this(file, getMessage(e));
         }
 
         public CouldNotReadInputFile(String message) {
@@ -148,7 +151,7 @@ public class UserException extends ReviewedStingException {
 
     public static class CouldNotCreateOutputFile extends UserException {
         public CouldNotCreateOutputFile(File file, String message, Exception e) {
-            super(String.format("Couldn't write file %s because %s with exception %s", file.getAbsolutePath(), message, e.getMessage()));
+            super(String.format("Couldn't write file %s because %s with exception %s", file.getAbsolutePath(), message, getMessage(e)));
         }
 
         public CouldNotCreateOutputFile(File file, String message) {
@@ -156,11 +159,11 @@ public class UserException extends ReviewedStingException {
         }
 
         public CouldNotCreateOutputFile(String filename, String message, Exception e) {
-            super(String.format("Couldn't write file %s because %s with exception %s", filename, message, e.getMessage()));
+            super(String.format("Couldn't write file %s because %s with exception %s", filename, message, getMessage(e)));
         }
 
         public CouldNotCreateOutputFile(File file, Exception e) {
-            super(String.format("Couldn't write file %s because exception %s", file.getAbsolutePath(), e.getMessage()));
+            super(String.format("Couldn't write file %s because exception %s", file.getAbsolutePath(), getMessage(e)));
         }
 
         public CouldNotCreateOutputFile(String message, Exception e) {
@@ -241,7 +244,7 @@ public class UserException extends ReviewedStingException {
 
     public static class MissortedFile extends UserException {
         public MissortedFile(File file, String message, Exception e) {
-            super(String.format("Missorted Input file: %s is must be sorted in coordinate order. %s and got error %s", file, message, e.getMessage()));
+            super(String.format("Missorted Input file: %s is must be sorted in coordinate order. %s and got error %s", file, message, getMessage(e)));
         }
     }
 
@@ -251,7 +254,7 @@ public class UserException extends ReviewedStingException {
         }
 
         public MalformedFile(String message, Exception e) {
-            super(String.format("Unknown file is malformed: %s caused by %s", message, e.getMessage()));
+            super(String.format("Unknown file is malformed: %s caused by %s", message, getMessage(e)));
         }
 
         public MalformedFile(File f, String message) {
@@ -259,7 +262,7 @@ public class UserException extends ReviewedStingException {
         }
 
         public MalformedFile(File f, String message, Exception e) {
-            super(String.format("File %s is malformed: %s caused by %s", f.getAbsolutePath(), message, e.getMessage()));
+            super(String.format("File %s is malformed: %s caused by %s", f.getAbsolutePath(), message, getMessage(e)));
         }
 
         public MalformedFile(String name, String message) {
@@ -267,7 +270,7 @@ public class UserException extends ReviewedStingException {
         }
 
         public MalformedFile(String name, String message, Exception e) {
-            super(String.format("File associated with name %s is malformed: %s caused by %s", name, message, e.getMessage()));
+            super(String.format("File associated with name %s is malformed: %s caused by %s", name, message, getMessage(e)));
         }
      }
 
@@ -326,7 +329,7 @@ public class UserException extends ReviewedStingException {
 
         public CouldNotCreateReferenceIndexFile(File f, String message, Exception e) {
             super(String.format("Index file %s does not exist but could not be created because: %s. ", f, message)
-                    + (e == null ? "" : e.getMessage()));
+                    + (e == null ? "" : getMessage(e)));
         }
     }
 
@@ -343,11 +346,11 @@ public class UserException extends ReviewedStingException {
         public UnreadableKeyException ( File f, Exception e ) {
             super(String.format("Key file %s cannot be read (possibly the key file is corrupt?). Error was: %s. " +
                                 "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home for help.",
-                                f.getAbsolutePath(), e.getMessage()));
+                                f.getAbsolutePath(), getMessage(e)));
         }
 
         public UnreadableKeyException ( String message, Exception e ) {
-            this(String.format("%s. Error was: %s", message, e.getMessage()));
+            this(String.format("%s. Error was: %s", message, getMessage(e)));
         }
 
         public UnreadableKeyException ( String message ) {
