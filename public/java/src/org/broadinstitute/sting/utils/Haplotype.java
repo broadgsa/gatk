@@ -158,12 +158,12 @@ public class Haplotype {
     }
 
     @Requires({"refInsertLocation >= 0"})
-    public byte[] insertAllele( final Allele refAllele, final Allele altAllele, int refInsertLocation ) {
+    public Haplotype insertAllele( final Allele refAllele, final Allele altAllele, int refInsertLocation ) {
         
         if( refAllele.length() != altAllele.length() ) { refInsertLocation++; }
         int haplotypeInsertLocation = ReadUtils.getReadCoordinateForReferenceCoordinate(alignmentStartHapwrtRef, cigar, refInsertLocation, ReadUtils.ClippingTail.RIGHT_TAIL, true);
         if( haplotypeInsertLocation == -1 ) { // desired change falls inside deletion so don't bother creating a new haplotype
-            return bases.clone();
+            return new Haplotype(bases.clone());
         }
         byte[] newHaplotype;
 
@@ -196,10 +196,10 @@ public class Haplotype {
                 }
             }
         } catch (Exception e) { // event already on haplotype is too large/complex to insert another allele, most likely because of not enough reference padding
-            return bases.clone();
+            return new Haplotype(bases.clone());
         }
         
-        return newHaplotype;
+        return new Haplotype(newHaplotype);
     }
 
     public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(List<Allele> alleleList, int startPos, ReferenceContext ref,
