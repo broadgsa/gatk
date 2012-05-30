@@ -37,7 +37,8 @@ public class UnifiedArgumentCollection {
     /**
      * Controls the model used to calculate the probability that a site is variant plus the various sample genotypes in the data at a given locus.
      */
-    @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ -- EXACT is the default option, while GRID_SEARCH is also available.", required = false)
+    @Advanced
+    @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ", required = false)
     protected AlleleFrequencyCalculationModel.Model AFmodel = AlleleFrequencyCalculationModel.Model.EXACT;
 
     /**
