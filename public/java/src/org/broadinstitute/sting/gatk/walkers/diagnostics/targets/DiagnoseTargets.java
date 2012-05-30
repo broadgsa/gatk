@@ -102,10 +102,10 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
     private int maximumCoverage = 700;
 
     @Argument(fullName = "minimum_median_depth", shortName = "med", doc = "The minimum allowable median coverage, used for calling LOW_MEDIAN_DEPTH", required = false)
-    private int minMedianDepth = 20;
+    private int minMedianDepth = 10;
 
     @Argument(fullName = "maximum_insert_size", shortName = "ins", doc = "The maximum allowed distance between a read and its mate", required = false)
-    private int maxInsertSize = 50;
+    private int maxInsertSize = 500;
 
     @Argument(fullName = "voting_status_threshold", shortName = "stV", doc = "The needed percentage of samples containing a call for the interval to adopt the call ", required = false)
     private double votePercentage = 0.50;
