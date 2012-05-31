@@ -36,7 +36,7 @@
         </modules>
     </executable>
     <release>
-        <executable directory="/humgen/gsa-hpprojects/Queue/bin" symlink="current" />
-        <archive directory="/web/ftp/pub/gsa/Queue" symlink="QueueLite-latest.tar.bz2" />
+        <executable directory="/local/gsa-engineering/test_releases/queuelite" symlink="current" />
+        <archive directory="/local/gsa-engineering/test_releases/queuelite" symlink="QueueLite-latest.tar.bz2" />
     </release>
 </package>

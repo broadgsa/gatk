@@ -37,7 +37,7 @@
     <module file="AnalyzeCovariates.xml"/>
   </modules>
   <release>
-    <executable directory="/humgen/gsa-hpprojects/GATK/bin" symlink="current" />
-    <archive directory="/web/ftp/pub/gsa/GenomeAnalysisTK" symlink="GenomeAnalysisTKLite-latest.tar.bz2" />
+    <executable directory="/local/gsa-engineering/test_releases/gatklite" symlink="current" />
+    <archive directory="/local/gsa-engineering/test_releases/gatklite" symlink="GenomeAnalysisTKLite-latest.tar.bz2" />
   </release>
 </package>
