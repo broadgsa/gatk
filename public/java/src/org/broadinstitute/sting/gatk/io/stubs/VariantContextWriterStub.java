@@ -215,7 +215,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
                     vcfHeader.addMetaDataLine(commandLineArgHeaderLine);
             }
 
-            //vcfHeader = VCFUtils.withUpdatedContigs(vcfHeader, engine);
+            vcfHeader = VCFUtils.withUpdatedContigs(vcfHeader, engine);
         }
 
         outputTracker.getStorage(this).writeHeader(vcfHeader);
