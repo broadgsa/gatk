@@ -67,6 +67,7 @@ public class WalkerTest extends BaseTest {
             logger.warn("Checking shadow BCF output file " + bcfFile + " against VCF file " + resultFile);
             try {
                 VariantContextTestProvider.assertVCFandBCFFilesAreTheSame(resultFile, bcfFile);
+                logger.warn("  Shadow BCF PASSED!");
             } catch ( Exception e ) {
                 Assert.fail("Exception received reading shadow BCFFile " + bcfFile + " for test " + name, e);
             }
@@ -103,9 +104,9 @@ public class WalkerTest extends BaseTest {
 
         for (int i = 0; i < resultFiles.size(); i++) {
             MD5DB.MD5Match result = assertMatchingMD5(name, resultFiles.get(i), expectedMD5s.get(i));
+            validateOutputBCFIfPossible(name, resultFiles.get(i));
             if ( ! result.failed ) {
                 validateOutputIndex(name, resultFiles.get(i));
-                validateOutputBCFIfPossible(name, resultFiles.get(i));
                 md5s.add(result.expectedMD5);
             } else {
                 fails.add(result);
@@ -337,8 +338,9 @@ public class WalkerTest extends BaseTest {
         boolean gotAnException = false;
         try {
             final String now = new SimpleDateFormat("HH:mm:ss").format(new Date());
-            System.out.println(String.format("[%s] Executing test %s with GATK arguments: %s",
-                    now, name, Utils.join(" ",command)));
+            final String cmdline = Utils.join(" ",command);
+            System.out.println(String.format("[%s] Executing test %s with GATK arguments: %s", now, name, cmdline));
+            BaseTest.log(cmdline); // also write the command line to the HTML log for convenient follow-up
             CommandLineExecutable.start(instance, command);
         } catch (Exception e) {
             gotAnException = true;
