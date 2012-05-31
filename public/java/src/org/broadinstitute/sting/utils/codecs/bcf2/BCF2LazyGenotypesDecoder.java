@@ -28,10 +28,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.LazyGenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
 
@@ -41,8 +38,8 @@ import java.util.*;
  * @author Mark DePristo
  * @since 5/12
  */
-class LazyGenotypesDecoder implements LazyGenotypesContext.LazyParser {
-    final protected static Logger logger = Logger.getLogger(LazyGenotypesDecoder.class);
+class BCF2LazyGenotypesDecoder implements LazyGenotypesContext.LazyParser {
+    final protected static Logger logger = Logger.getLogger(BCF2LazyGenotypesDecoder.class);
 
     // the essential information for us to use to decode the genotypes data
     // initialized when this lazy decoder is created, as we know all of this from the BCF2Codec
@@ -52,7 +49,7 @@ class LazyGenotypesDecoder implements LazyGenotypesContext.LazyParser {
     private final int nSamples;
     private final int nFields;
 
-    LazyGenotypesDecoder(final BCF2Codec codec, final ArrayList<Allele> alleles, final int nSamples, final int nFields) {
+    BCF2LazyGenotypesDecoder(final BCF2Codec codec, final ArrayList<Allele> alleles, final int nSamples, final int nFields) {
         this.codec = codec;
         this.siteAlleles = alleles;
         this.nSamples = nSamples;
@@ -129,6 +126,84 @@ class LazyGenotypesDecoder implements LazyGenotypesContext.LazyParser {
         }
 
         return new LazyGenotypesContext.LazyData(genotypes, codec.getHeader().getSampleNamesInOrder(), codec.getHeader().getSampleNameToOffset());
+    }
+
+//    public LazyGenotypesContext.LazyData parse2(final Object data) {
+//        logger.info("Decoding BCF genotypes for " + nSamples + " samples with " + nFields + " fields each");
+//
+//        // load our bytep[] data into the decoder
+//        final BCF2Decoder decoder = new BCF2Decoder((byte[])data);
+//
+//        // go ahead and decode everyone
+//        final List<String> samples = new ArrayList<String>(codec.getHeader().getGenotypeSamples());
+//
+//        if ( samples.size() != nSamples )
+//            throw new UserException.MalformedBCF2("GATK currently doesn't support reading BCF2 files with " +
+//                    "different numbers of samples per record.  Saw " + samples.size() +
+//                    " samples in header but have a record with " + nSamples + " samples");
+//
+//        final Map<String, List<Object>> fieldValues = decodeGenotypeFieldValues(decoder, nFields, nSamples);
+//        final ArrayList<Genotype> genotypes = new ArrayList<Genotype>(nSamples);
+//        final GenotypeBuilder gb = new GenotypeBuilder();
+//        for ( int i = 0; i < nSamples; i++ ) {
+//            // all of the information we need for each genotype, with default values
+//            gb.reset();
+//            gb.name(samples.get(i));
+//
+//            for ( final Map.Entry<String, List<Object>> entry : fieldValues.entrySet() ) {
+//                final String field = entry.getKey();
+//                Object value = entry.getValue().get(i);
+//                try {
+//                    if ( field.equals(VCFConstants.GENOTYPE_KEY) ) {
+//                        gb.alleles(decodeGenotypeAlleles(siteAlleles, (List<Integer>)value));
+//                    } else if ( field.equals(VCFConstants.DEPTH_KEY) ) {
+//                        if ( value != BCF2Type.INT8.getMissingJavaValue() )
+//                            gb.DP((Integer)value);
+//                    } else if ( field.equals(VCFConstants.GENOTYPE_QUALITY_KEY) ) {
+//                        if ( value != BCF2Type.INT8.getMissingJavaValue() )
+//                            gb.GQ((Integer)value);
+//                    } else if ( field.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) ) {
+//                        final int[] PLs = decodeIntArray(value);
+//                        if ( PLs != null )
+//                            gb.PL(PLs);
+//                    } else if ( field.equals(VCFConstants.GENOTYPE_ALLELE_DEPTHS) ) {
+//                        final int[] AD = decodeIntArray(value);
+//                        if ( AD != null )
+//                            gb.AD(AD);
+//                    } else if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
+//                        throw new ReviewedStingException("Genotype filters not implemented in GATK BCF2");
+//                        //filters = new HashSet<String>(values.get(i));
+//                    } else { // add to attributes
+//                        if ( value != null ) { // don't add missing values
+//                            if ( value instanceof List && ((List)value).size() == 1)
+//                                value = ((List)value).get(0);
+//                            gb.attribute(field, value);
+//                        }
+//                    }
+//                } catch ( ClassCastException e ) {
+//                    throw new UserException.MalformedBCF2("BUG: expected encoding of field " + field
+//                            + " inconsistent with the value observed in the decoded value in the "
+//                            + " BCF file.  Value was " + value);
+//                }
+//            }
+//
+//            final Genotype g = gb.make();
+//            genotypes.add(g);
+//        }
+//
+//        return new LazyGenotypesContext.LazyData(genotypes, codec.getHeader().getSampleNamesInOrder(), codec.getHeader().getSampleNameToOffset());
+//    }
+
+    private final int[] decodeIntArray(final Object value) {
+        // todo -- decode directly into int[]
+        final List<Integer> pls = (List<Integer>)value;
+        if ( pls != null ) { // we have a PL field
+            final int[] x = new int[pls.size()];
+            for ( int j = 0; j < x.length; j++ )
+                x[j] = pls.get(j);
+            return x;
+        } else
+            return null;
     }
 
     private final List<Allele> decodeGenotypeAlleles(final ArrayList<Allele> siteAlleles, final List<Integer> encoded) {

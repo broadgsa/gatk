@@ -34,7 +34,6 @@ import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
@@ -313,7 +312,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
                                              final VariantContextBuilder builder ) {
         if (siteInfo.nSamples > 0) {
             final LazyGenotypesContext.LazyParser lazyParser =
-                    new LazyGenotypesDecoder(this, siteInfo.alleles, siteInfo.nSamples, siteInfo.nFormatFields);
+                    new BCF2LazyGenotypesDecoder(this, siteInfo.alleles, siteInfo.nSamples, siteInfo.nFormatFields);
             final int nGenotypes = header.getGenotypeSamples().size();
             LazyGenotypesContext lazy = new LazyGenotypesContext(lazyParser, decoder.getRecordBytes(), nGenotypes);
 

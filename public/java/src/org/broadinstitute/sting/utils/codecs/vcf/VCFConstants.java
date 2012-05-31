@@ -48,6 +48,7 @@ public final class VCFConstants {
     public static final String GENOTYPE_LIKELIHOODS_KEY = "GL";         // log10 scaled genotype likelihoods
     public static final String GENOTYPE_POSTERIORS_KEY = "GP";
     public static final String GENOTYPE_QUALITY_KEY = "GQ";
+    public static final String GENOTYPE_ALLELE_DEPTHS = "AD";
     public static final String HAPMAP2_KEY = "H2";
     public static final String HAPMAP3_KEY = "H3";
     public static final String HAPLOTYPE_QUALITY_KEY = "HQ";

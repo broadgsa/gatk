@@ -2144,7 +2144,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
 
 class VCFIndelAttributes {
-    public static String ALLELIC_DEPTH_KEY = "AD";
+    public static String ALLELIC_DEPTH_KEY = VCFConstants.GENOTYPE_ALLELE_DEPTHS;
     public static String DEPTH_TOTAL_KEY = VCFConstants.DEPTH_KEY;
 
     public static String MAPQ_KEY = "MQS";
