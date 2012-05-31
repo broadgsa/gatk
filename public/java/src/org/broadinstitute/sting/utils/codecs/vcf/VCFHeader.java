@@ -193,7 +193,7 @@ public class VCFHeader {
      */
     public Set<VCFHeaderLine> getMetaData() {
         Set<VCFHeaderLine> lines = new LinkedHashSet<VCFHeaderLine>();
-        lines.add(new VCFHeaderLine(VCFHeaderVersion.VCF4_0.getFormatString(), VCFHeaderVersion.VCF4_0.getVersionString()));
+        lines.add(new VCFHeaderLine(VCFHeaderVersion.VCF4_1.getFormatString(), VCFHeaderVersion.VCF4_1.getVersionString()));
         lines.addAll(mMetaData);
         return Collections.unmodifiableSet(lines);
     }
