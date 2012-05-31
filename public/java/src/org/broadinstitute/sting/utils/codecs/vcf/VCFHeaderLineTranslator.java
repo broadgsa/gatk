@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.codecs.vcf;
 
+import org.broadinstitute.sting.utils.exceptions.UserException;
+
 import java.util.*;
 
 /**
@@ -75,10 +77,10 @@ class VCF4Parser implements VCFLineParser {
         index = 0;
         if ( expectedTagOrder != null ) {
             if ( ret.size() > expectedTagOrder.size() )
-                throw new IllegalArgumentException("Unexpected tag count " + ret.size() + " in string " + expectedTagOrder.size());
+                throw new UserException.MalformedVCFHeader("unexpected tag count " + ret.size() + " in line " + valueLine);
             for ( String str : ret.keySet() ) {
                 if ( !expectedTagOrder.get(index).equals(str) )
-                    throw new IllegalArgumentException("Unexpected tag " + str + " in string " + valueLine);
+                    throw new UserException.MalformedVCFHeader("Unexpected tag " + str + " in line " + valueLine);
                 index++;
             }
         }
