@@ -68,8 +68,8 @@ public class VCFHeader {
     private boolean samplesWereAlreadySorted = true;
 
     // cache for efficient conversion of VCF -> VariantContext
-    protected ArrayList<String> sampleNamesInOrder = null;
-    protected HashMap<String, Integer> sampleNameToOffset = null;
+    private ArrayList<String> sampleNamesInOrder = null;
+    private HashMap<String, Integer> sampleNameToOffset = null;
 
     private boolean writeEngineHeaders = true;
     private boolean writeCommandLine = true;
@@ -298,5 +298,13 @@ public class VCFHeader {
      */
     public void setWriteCommandLine(boolean writeCommandLine) {
         this.writeCommandLine = writeCommandLine;
+    }
+
+    public ArrayList<String> getSampleNamesInOrder() {
+        return sampleNamesInOrder;
+    }
+
+    public HashMap<String, Integer> getSampleNameToOffset() {
+        return sampleNameToOffset;
     }
 }

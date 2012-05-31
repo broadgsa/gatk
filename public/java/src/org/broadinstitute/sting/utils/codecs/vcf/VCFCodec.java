@@ -241,7 +241,7 @@ public class VCFCodec extends AbstractVCFCodec {
             }
         }
 
-        return new LazyGenotypesContext.LazyData(genotypes, header.sampleNamesInOrder, header.sampleNameToOffset);
+        return new LazyGenotypesContext.LazyData(genotypes, header.getSampleNamesInOrder(), header.getSampleNameToOffset());
     }
 
     @Override
