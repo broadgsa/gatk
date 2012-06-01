@@ -538,7 +538,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if (!selectedTypes.contains(vc.getType()))
                 continue;
 
-            VariantContext sub = subsetRecord(vc, samples, EXCLUDE_NON_VARIANTS);
+            VariantContext sub = subsetRecord(vc, EXCLUDE_NON_VARIANTS);
 
             if ( REGENOTYPE && sub.isPolymorphicInSamples() && hasPLs(sub) ) {
                 final VariantContextBuilder builder = new VariantContextBuilder(UG_engine.calculateGenotypes(tracker, ref, context, sub)).filters(sub.getFiltersMaybeNull());
@@ -687,18 +687,14 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
      * Helper method to subset a VC record, modifying some metadata stored in the INFO field (i.e. AN, AC, AF).
      *
      * @param vc       the VariantContext record to subset
-     * @param samples  the samples to extract
      * @return the subsetted VariantContext
      */
-    private VariantContext subsetRecord(final VariantContext vc, final Set<String> samples, final boolean excludeNonVariants) {
-        if ( samples == null || samples.isEmpty() )
+    private VariantContext subsetRecord(final VariantContext vc, final boolean excludeNonVariants) {
+        if ( NO_SAMPLES_SPECIFIED || samples.isEmpty() )
             return vc;
 
-        final VariantContext sub;
-        if ( excludeNonVariants )
-            sub = vc.subContextFromSamples(samples); // strip out the alternate alleles that aren't being used
-        else
-            sub = vc.subContextFromSamples(samples, vc.getAlleles());
+        final VariantContext sub = vc.subContextFromSamples(samples, excludeNonVariants); // strip out the alternate alleles that aren't being used
+
         VariantContextBuilder builder = new VariantContextBuilder(sub);
 
         GenotypesContext newGC = sub.getGenotypes();
@@ -708,15 +704,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             newGC = VariantContextUtils.stripPLs(sub.getGenotypes());
 
         //Remove a fraction of the genotypes if needed
-        if(fractionGenotypes>0){
+        if ( fractionGenotypes > 0 ){
             ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
             for ( Genotype genotype : newGC ) {
                 //Set genotype to no call if it falls in the fraction.
                 if(fractionGenotypes>0 && randomGenotypes.nextDouble()<fractionGenotypes){
-                    ArrayList<Allele> alleles = new ArrayList<Allele>(2);
-                    alleles.add(Allele.create((byte)'.'));
-                    alleles.add(Allele.create((byte)'.'));
-                    genotypes.add(new Genotype(genotype.getSampleName(),alleles, Genotype.NO_LOG10_PERROR,genotype.getFilters(),new HashMap<String, Object>(),false));
+                    List<Allele> alleles = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
+                    genotypes.add(new GenotypeBuilder(genotype).alleles(alleles).GQ(-1).make());
                 }
                 else{
                     genotypes.add(genotype);
@@ -750,14 +744,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         for (String sample : originalVC.getSampleNames()) {
             Genotype g = originalVC.getGenotype(sample);
 
-            if ( g.isNotFiltered() ) {
-
-                String dp = (String) g.getAttribute("DP");
-                if (dp != null && ! dp.equals(VCFConstants.MISSING_DEPTH_v3) && ! dp.equals(VCFConstants.MISSING_VALUE_v4) ) {
-                    depth += Integer.valueOf(dp);
-                }
+            if ( ! g.isFiltered() ) {
+                if ( g.hasDP() )
+                    depth += g.getDP();
             }
         }
+
         builder.attribute("DP", depth);
     }
 

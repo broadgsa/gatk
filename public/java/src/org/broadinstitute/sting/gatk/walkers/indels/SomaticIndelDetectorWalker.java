@@ -1148,13 +1148,12 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
         GenotypesContext genotypes = GenotypesContext.create();
         for ( String sample : normalSamples ) {
-
-            Map<String,Object> attrs = call.makeStatsAttributes(null);
-
-            if ( ! discard_event ) // we made a call - put actual het genotype here:
-                genotypes.add(new Genotype(sample,alleles,Genotype.NO_LOG10_PERROR,null,attrs,false));
-            else // no call: genotype is ref/ref (but alleles still contain the alt if we observed anything at all) 
-                genotypes.add(new Genotype(sample, homref_alleles,Genotype.NO_LOG10_PERROR,null,attrs,false));
+            final GenotypeBuilder gb = new GenotypeBuilder(sample);
+            gb.attributes(call.makeStatsAttributes(null));
+            gb.alleles(! discard_event
+                ? alleles             // we made a call - put actual het genotype here:
+                : homref_alleles);    // no call: genotype is ref/ref (but alleles still contain the alt if we observed anything at all)
+            genotypes.add(gb.make());
 
         }
         Set<String> filters = null;
@@ -1238,11 +1237,11 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         GenotypesContext genotypes = GenotypesContext.create();
 
         for ( String sample : normalSamples ) {
-            genotypes.add(new Genotype(sample, homRefN ? homRefAlleles : alleles,Genotype.NO_LOG10_PERROR,null,attrsNormal,false));
+            genotypes.add(GenotypeBuilder.create(sample, homRefN ? homRefAlleles : alleles, attrsNormal));
         }
 
         for ( String sample : tumorSamples ) {
-            genotypes.add(new Genotype(sample, homRefT ? homRefAlleles : alleles,Genotype.NO_LOG10_PERROR,null,attrsTumor,false) );
+            genotypes.add(GenotypeBuilder.create(sample, homRefT ? homRefAlleles : alleles, attrsTumor));
         }
 
         Set<String> filters = null;

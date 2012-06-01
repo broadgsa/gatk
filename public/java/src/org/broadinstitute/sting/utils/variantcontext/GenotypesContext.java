@@ -274,6 +274,17 @@ public class GenotypesContext implements List<Genotype> {
 
     // ---------------------------------------------------------------------------
     //
+    // Lazy methods
+    //
+    // ---------------------------------------------------------------------------
+
+    public boolean isLazyWithData() {
+        return this instanceof LazyGenotypesContext &&
+                ((LazyGenotypesContext)this).getUnparsedGenotypeData() != null;
+    }
+
+    // ---------------------------------------------------------------------------
+    //
     // Map methods
     //
     // ---------------------------------------------------------------------------

@@ -204,8 +204,6 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         }
 
         for ( final Genotype g : vc_input.getGenotypes() ) {
-            Set<String> filters = new LinkedHashSet<String>(g.getFilters());
-
             boolean genotypeIsPhased = true;
             String sample = g.getSampleName();
 
@@ -271,7 +269,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             // Compute new GQ field = -10*log10Pr(Genotype call is wrong)
             // Beagle gives probability that genotype is AA, AB and BB.
             // Which, by definition, are prob of hom ref, het and hom var.
-            Double probWrongGenotype, genotypeQuality;
+            double probWrongGenotype, genotypeQuality;
             Double homRefProbability = Double.valueOf(beagleProbabilities.get(0));
             Double hetProbability = Double.valueOf(beagleProbabilities.get(1));
             Double homVarProbability = Double.valueOf(beagleProbabilities.get(2));
@@ -300,7 +298,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             else
                 genotypeQuality = log10(probWrongGenotype);
 
-            HashMap<String,Object> originalAttributes = new HashMap<String,Object>(g.getAttributes());
+            HashMap<String,Object> originalAttributes = new HashMap<String,Object>(g.getExtendedAttributes());
 
             // get original encoding and add to keynotype attributes
             String a1, a2, og;
@@ -328,7 +326,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             else {
                 originalAttributes.put("OG",".");
             }
-            Genotype imputedGenotype = new Genotype(g.getSampleName(), alleles, genotypeQuality, filters,originalAttributes , genotypeIsPhased);
+            Genotype imputedGenotype = new GenotypeBuilder(g.getSampleName(), alleles).GQ(genotypeQuality).attributes(originalAttributes).phased(genotypeIsPhased).make();
             if ( imputedGenotype.isHet() || imputedGenotype.isHomVar() ) {
                 beagleVarCounts++;
             }

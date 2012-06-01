@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,34 +22,25 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
+package org.broadinstitute.sting.utils.variantcontext;
 
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-
-
-public class GTBasedSampleSelector extends SampleSelector{
-    public GTBasedSampleSelector(TreeSet<String> sm) {
-        super(sm);
-    }
-
-    public boolean selectSiteInSamples(VariantContext vc) {
-        // Super class already defined initialization which filled data structure "samples" with desired samples.
-        // We only need to check if current vc if polymorphic in that set of samples
-
-        if ( samples == null || samples.isEmpty() )
-            return true;
-
-        VariantContext subContext =  vc.subContextFromSamples(samples, false);
-        if ( subContext.isPolymorphicInSamples() ) {
-            return true;
-        }
-
-        return false;
-    }
+/**
+ * Summary types for Genotype objects
+ *
+ * @author Your Name
+ * @since Date created
+ */
+public enum GenotypeType {
+    /** The sample is no-called (all alleles are NO_CALL */
+    NO_CALL,
+    /** The sample is homozygous reference */
+    HOM_REF,
+    /** The sample is heterozygous, with at least one ref and at least one one alt in any order */
+    HET,
+    /** All alleles are non-reference */
+    HOM_VAR,
+    /** There is no allele data availble for this sample (alleles.isEmpty) */
+    UNAVAILABLE,
+    /** Some chromosomes are NO_CALL and others are called */
+    MIXED  // no-call and call in the same genotype
 }

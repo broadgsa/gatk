@@ -158,12 +158,11 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                 myLikelihoods[i] = allLikelihoods[PLordering[i]];
 
             // normalize in log space so that max element is zero.
-            final GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(MathUtils.normalizeFromLog10(myLikelihoods, false, true));
-
-            final HashMap<String, Object> attributes = new HashMap<String, Object>();
-            attributes.put(VCFConstants.DEPTH_KEY, sampleData.depth);
-            attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
-            genotypes.add(new Genotype(sampleData.name, noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
+            final GenotypeBuilder gb = new GenotypeBuilder(sampleData.name);
+            final double[] genotypeLikelihoods = MathUtils.normalizeFromLog10(myLikelihoods, false, true);
+            gb.PL(genotypeLikelihoods);
+            gb.DP(sampleData.depth);
+            genotypes.add(gb.make());
         }
 
         return builder.genotypes(genotypes).make();

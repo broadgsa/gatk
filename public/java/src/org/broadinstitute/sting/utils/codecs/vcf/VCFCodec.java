@@ -127,38 +127,33 @@ public class VCFCodec extends AbstractVCFCodec {
      * @param filterString the string to parse
      * @return a set of the filters applied or null if filters were not applied to the record (e.g. as per the missing value in a VCF)
      */
-    protected Set<String> parseFilters(String filterString) {
-        return parseFilters(filterHash, lineNo, filterString);
-    }
-
-    public static Set<String> parseFilters(final Map<String, LinkedHashSet<String>> cache, final int lineNo, final String filterString) {
+    protected List<String> parseFilters(String filterString) {
         // null for unfiltered
         if ( filterString.equals(VCFConstants.UNFILTERED) )
             return null;
 
         if ( filterString.equals(VCFConstants.PASSES_FILTERS_v4) )
-            return Collections.emptySet();
+            return Collections.emptyList();
         if ( filterString.equals(VCFConstants.PASSES_FILTERS_v3) )
             generateException(VCFConstants.PASSES_FILTERS_v3 + " is an invalid filter name in vcf4", lineNo);
         if ( filterString.length() == 0 )
             generateException("The VCF specification requires a valid filter status: filter was " + filterString, lineNo);
 
         // do we have the filter string cached?
-        if ( cache != null && cache.containsKey(filterString) )
-            return Collections.unmodifiableSet(cache.get(filterString));
+        if ( filterHash.containsKey(filterString) )
+            return filterHash.get(filterString);
 
         // empty set for passes filters
-        LinkedHashSet<String> fFields = new LinkedHashSet<String>();
+        List<String> fFields = new LinkedList<String>();
         // otherwise we have to parse and cache the value
         if ( filterString.indexOf(VCFConstants.FILTER_CODE_SEPARATOR) == -1 )
             fFields.add(filterString);
         else
             fFields.addAll(Arrays.asList(filterString.split(VCFConstants.FILTER_CODE_SEPARATOR)));
 
-        fFields = fFields;
-        if ( cache != null ) cache.put(filterString, fFields);
+        filterHash.put(filterString, Collections.unmodifiableList(fFields));
 
-        return Collections.unmodifiableSet(fFields);
+        return fFields;
     }
 
 
@@ -192,10 +187,8 @@ public class VCFCodec extends AbstractVCFCodec {
         for (int genotypeOffset = 1; genotypeOffset < nParts; genotypeOffset++) {
             int GTValueSplitSize = ParsingUtils.split(genotypeParts[genotypeOffset], GTValueArray, VCFConstants.GENOTYPE_FIELD_SEPARATOR_CHAR);
 
-            double GTQual = VariantContext.NO_LOG10_PERROR;
-            Set<String> genotypeFilters = null;
-            Map<String, Object> gtAttributes = null;
-            String sampleName = sampleNameIterator.next();
+            final String sampleName = sampleNameIterator.next();
+            final GenotypeBuilder gb = new GenotypeBuilder(sampleName);
 
             // check to see if the value list is longer than the key list, which is a problem
             if (nGTKeys < GTValueSplitSize)
@@ -203,23 +196,34 @@ public class VCFCodec extends AbstractVCFCodec {
 
             int genotypeAlleleLocation = -1;
             if (nGTKeys >= 1) {
-                gtAttributes = new HashMap<String, Object>(nGTKeys - 1);
+                gb.maxAttributes(nGTKeys - 1);
 
                 for (int i = 0; i < nGTKeys; i++) {
-                    final String gtKey = new String(genotypeKeyArray[i]);
+                    final String gtKey = genotypeKeyArray[i];
                     boolean missing = i >= GTValueSplitSize;
 
                     // todo -- all of these on the fly parsing of the missing value should be static constants
                     if (gtKey.equals(VCFConstants.GENOTYPE_KEY)) {
                         genotypeAlleleLocation = i;
-                    } else if (gtKey.equals(VCFConstants.GENOTYPE_QUALITY_KEY)) {
-                        GTQual = missing ? parseQual(VCFConstants.MISSING_VALUE_v4) : parseQual(GTValueArray[i]);
                     } else if (gtKey.equals(VCFConstants.GENOTYPE_FILTER_KEY)) {
-                        genotypeFilters = missing ? parseFilters(VCFConstants.MISSING_VALUE_v4) : parseFilters(getCachedString(GTValueArray[i]));
+                        final List<String> filters = parseFilters(getCachedString(GTValueArray[i]));
+                        if ( filters != null ) gb.filters(filters);
                     } else if ( missing ) {
                         // if its truly missing (there no provided value) skip adding it to the attributes
+                    } else if ( GTValueArray[i].equals(VCFConstants.MISSING_VALUE_v4) ) {
+                        // don't add missing values to the map
                     } else {
-                        gtAttributes.put(gtKey, GTValueArray[i]);
+                        if (gtKey.equals(VCFConstants.GENOTYPE_QUALITY_KEY)) {
+                            gb.GQ(Double.valueOf(GTValueArray[i]));
+                        } else if (gtKey.equals(VCFConstants.GENOTYPE_ALLELE_DEPTHS)) {
+                            gb.AD(decodeInts(GTValueArray[i]));
+                        } else if (gtKey.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY)) {
+                            gb.PL(decodeInts(GTValueArray[i]));
+                        } else if (gtKey.equals(VCFConstants.DEPTH_KEY)) {
+                            gb.DP(Integer.valueOf(GTValueArray[i]));
+                        } else {
+                            gb.attribute(gtKey, GTValueArray[i]);
+                        }
                     }
                 }
             }
@@ -230,18 +234,27 @@ public class VCFCodec extends AbstractVCFCodec {
             if ( genotypeAlleleLocation > 0 )
                 generateException("Saw GT field at position " + genotypeAlleleLocation + ", but it must be at the first position for genotypes when present");
 
-            List<Allele> GTalleles = (genotypeAlleleLocation == -1 ? new ArrayList<Allele>(0) : parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], alleles, alleleMap));
-            boolean phased = genotypeAlleleLocation != -1 && GTValueArray[genotypeAlleleLocation].indexOf(VCFConstants.PHASED) != -1;
+            final List<Allele> GTalleles = (genotypeAlleleLocation == -1 ? new ArrayList<Allele>(0) : parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], alleles, alleleMap));
+            gb.alleles(GTalleles);
+            gb.phased(genotypeAlleleLocation != -1 && GTValueArray[genotypeAlleleLocation].indexOf(VCFConstants.PHASED) != -1);
 
             // add it to the list
             try {
-                genotypes.add(new Genotype(sampleName, GTalleles, GTQual, genotypeFilters, gtAttributes, phased));
+                genotypes.add(gb.make());
             } catch (TribbleException e) {
                 throw new TribbleException.InternalCodecException(e.getMessage() + ", at position " + chr+":"+pos);
             }
         }
 
         return new LazyGenotypesContext.LazyData(genotypes, header.getSampleNamesInOrder(), header.getSampleNameToOffset());
+    }
+
+    private final static int[] decodeInts(final String string) {
+        final String[] splits = string.split(",");
+        final int[] values = new int[splits.length];
+        for ( int i = 0; i < splits.length; i++ )
+            values[i] = Integer.valueOf(splits[i]);
+        return values;
     }
 
     @Override

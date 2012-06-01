@@ -59,6 +59,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -220,6 +221,10 @@ public class GenomeAnalysisEngine {
 
         if (this.getArguments().nonDeterministicRandomSeed)
             resetRandomGenerator(System.currentTimeMillis());
+
+        // TODO -- REMOVE ME WHEN WE STOP BCF testing
+        if ( this.getArguments().USE_FAST_GENOTYPES )
+            GenotypeBuilder.MAKE_FAST_BY_DEFAULT = true;
 
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
         if (this.getArguments().BQSR_RECAL_FILE != null)

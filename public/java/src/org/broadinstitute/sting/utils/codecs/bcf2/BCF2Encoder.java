@@ -58,6 +58,23 @@ public class BCF2Encoder {
         return bytes;
     }
 
+    /**
+     * Method for writing raw bytes to the encoder stream
+     *
+     * The purpuse this method exists is to allow lazy decoding of genotype data.  In that
+     * situation the reader has loaded a block of bytes, and never decoded it, so we
+     * are just writing it back out immediately as a raw stream of blocks.  Any
+     * bad low-level formatting or changes to that byte[] will result in a malformed
+     * BCF2 block.
+     *
+     * @param bytes a non-null byte array
+     * @throws IOException
+     */
+    public void writeRawBytes(final byte[] bytes) throws IOException {
+        assert bytes != null;
+        encodeStream.write(bytes);
+    }
+
     // --------------------------------------------------------------------------------
     //
     // Writing typed values (have type byte)

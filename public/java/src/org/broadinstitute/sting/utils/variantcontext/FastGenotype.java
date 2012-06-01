@@ -77,7 +77,7 @@ import java.util.*;
  * @author Mark DePristo
  * @since 05/12
  */
-public final class FastGenotype implements Comparable<FastGenotype> {
+public final class FastGenotype implements Genotype {
     private final String sampleName;
     private final List<Allele> alleles;
     private final boolean isPhased;
@@ -87,7 +87,7 @@ public final class FastGenotype implements Comparable<FastGenotype> {
     private final int[] PL;
     private final Map<String, Object> extendedAttributes;
 
-    private Type type = null;
+    private GenotypeType type = null;
 
     /**
      * The only way to make one of these, for use by GenotypeBuilder only
@@ -168,7 +168,7 @@ public final class FastGenotype implements Comparable<FastGenotype> {
     @Requires("i >=0 && i < getPloidy()")
     @Ensures("result != null")
     public Allele getAllele(int i) {
-        if ( getType() == Type.UNAVAILABLE )
+        if ( getType() == GenotypeType.UNAVAILABLE )
             throw new ReviewedStingException("Requesting alleles for an UNAVAILABLE genotype");
         return alleles.get(i);
     }
@@ -229,26 +229,11 @@ public final class FastGenotype implements Comparable<FastGenotype> {
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    public enum Type {
-        /** The sample is no-called (all alleles are NO_CALL */
-        NO_CALL,
-        /** The sample is homozygous reference */
-        HOM_REF,
-        /** The sample is heterozygous, with at least one ref and at least one one alt in any order */
-        HET,
-        /** All alleles are non-reference */
-        HOM_VAR,
-        /** There is no allele data availble for this sample (alleles.isEmpty) */
-        UNAVAILABLE,
-        /** Some chromosomes are NO_CALL and others are called */
-        MIXED  // no-call and call in the same genotype
-    }
-
     /**
      * @return the high-level type of this sample's genotype
      */
     @Ensures({"type != null", "result != null"})
-    public Type getType() {
+    public GenotypeType getType() {
         if ( type == null ) {
             type = determineType();
         }
@@ -259,10 +244,10 @@ public final class FastGenotype implements Comparable<FastGenotype> {
      * Internal code to determine the type of the genotype from the alleles vector
      * @return the type
      */
-    protected Type determineType() {
+    protected GenotypeType determineType() {
         // TODO -- this code is slow and could be optimized for the diploid case
         if ( alleles.isEmpty() )
-            return Type.UNAVAILABLE;
+            return GenotypeType.UNAVAILABLE;
 
         boolean sawNoCall = false, sawMultipleAlleles = false;
         Allele observedAllele = null;
@@ -278,14 +263,14 @@ public final class FastGenotype implements Comparable<FastGenotype> {
 
         if ( sawNoCall ) {
             if ( observedAllele == null )
-                return Type.NO_CALL;
-            return Type.MIXED;
+                return GenotypeType.NO_CALL;
+            return GenotypeType.MIXED;
         }
 
         if ( observedAllele == null )
             throw new ReviewedStingException("BUG: there are no alleles present in this genotype but the alleles list is not null");
 
-        return sawMultipleAlleles ? Type.HET : observedAllele.isReference() ? Type.HOM_REF : Type.HOM_VAR;
+        return sawMultipleAlleles ? GenotypeType.HET : observedAllele.isReference() ? GenotypeType.HOM_REF : GenotypeType.HOM_VAR;
     }
 
     /**
@@ -296,37 +281,37 @@ public final class FastGenotype implements Comparable<FastGenotype> {
     /**
      * @return true if all observed alleles are ref; if any alleles are no-calls, this method will return false.
      */
-    public boolean isHomRef() { return getType() == Type.HOM_REF; }
+    public boolean isHomRef() { return getType() == GenotypeType.HOM_REF; }
 
     /**
      * @return true if all observed alleles are alt; if any alleles are no-calls, this method will return false.
      */
-    public boolean isHomVar() { return getType() == Type.HOM_VAR; }
+    public boolean isHomVar() { return getType() == GenotypeType.HOM_VAR; }
     
     /**
      * @return true if we're het (observed alleles differ); if the ploidy is less than 2 or if any alleles are no-calls, this method will return false.
      */
-    public boolean isHet() { return getType() == Type.HET; }
+    public boolean isHet() { return getType() == GenotypeType.HET; }
 
     /**
      * @return true if this genotype is not actually a genotype but a "no call" (e.g. './.' in VCF); if any alleles are not no-calls (even if some are), this method will return false.
      */
-    public boolean isNoCall() { return getType() == Type.NO_CALL; }
+    public boolean isNoCall() { return getType() == GenotypeType.NO_CALL; }
 
     /**
      * @return true if this genotype is comprised of any alleles that are not no-calls (even if some are).
      */
-    public boolean isCalled() { return getType() != Type.NO_CALL && getType() != Type.UNAVAILABLE; }
+    public boolean isCalled() { return getType() != GenotypeType.NO_CALL && getType() != GenotypeType.UNAVAILABLE; }
 
     /**
      * @return true if this genotype is comprised of both calls and no-calls.
      */
-    public boolean isMixed() { return getType() == Type.MIXED; }
+    public boolean isMixed() { return getType() == GenotypeType.MIXED; }
 
     /**
      * @return true if the type of this genotype is set.
      */
-    public boolean isAvailable() { return getType() != Type.UNAVAILABLE; }
+    public boolean isAvailable() { return getType() != GenotypeType.UNAVAILABLE; }
 
     // ------------------------------------------------------------------------------
     //
@@ -450,15 +435,15 @@ public final class FastGenotype implements Comparable<FastGenotype> {
      * @return
      */
     @Override
-    public int compareTo(final FastGenotype genotype) {
+    public int compareTo(final Genotype genotype) {
         return getSampleName().compareTo(genotype.getSampleName());
     }
 
-    public boolean sameGenotype(final FastGenotype other) {
+    public boolean sameGenotype(final Genotype other) {
         return sameGenotype(other, true);
     }
 
-    public boolean sameGenotype(final FastGenotype other, boolean ignorePhase) {
+    public boolean sameGenotype(final Genotype other, boolean ignorePhase) {
         if (getPloidy() != other.getPloidy())
             return false; // gotta have the same number of allele to be equal
 
@@ -513,6 +498,11 @@ public final class FastGenotype implements Comparable<FastGenotype> {
     @Ensures("hasAttribute(key) || result == defaultValue")
     public Object getAttribute(final String key, final Object defaultValue) {
         return hasAttribute(key) ? extendedAttributes.get(key) : defaultValue;
+    }
+
+    @Override
+    public Object getAttribute(final String key) {
+        return getAttribute(key, null);
     }
 
     // TODO -- add getAttributesAsX interface here
@@ -584,7 +574,7 @@ public final class FastGenotype implements Comparable<FastGenotype> {
      * manage inline in the Genotype object.  They must not appear in the
      * extended attributes map
      */
-    private final static Collection<String> FORBIDDEN_KEYS = Arrays.asList(
+    public final static Collection<String> PRIMARY_KEYS = Arrays.asList(
             VCFConstants.GENOTYPE_KEY,
             VCFConstants.GENOTYPE_QUALITY_KEY,
             VCFConstants.DEPTH_KEY,
@@ -599,7 +589,7 @@ public final class FastGenotype implements Comparable<FastGenotype> {
      * @return
      */
     private final static boolean hasForbiddenKey(final Map<String, Object> attributes) {
-        for ( final String forbidden : FORBIDDEN_KEYS )
+        for ( final String forbidden : PRIMARY_KEYS)
             if ( attributes.containsKey(forbidden) )
                 return true;
         return false;
@@ -616,5 +606,45 @@ public final class FastGenotype implements Comparable<FastGenotype> {
                 if ( v < 0 )
                     return false;
         return true;
+    }
+
+    @Override public boolean hasPL() { return PL != null; }
+    @Override public boolean hasAD() { return AD != null; }
+    @Override public boolean hasGQ() { return GQ != -1; }
+    @Override public boolean hasDP() { return DP != -1; }
+
+    // TODO -- remove me
+    @Override public List<String> getFilters() {
+        return (List<String>)getAttribute(VCFConstants.GENOTYPE_FILTER_KEY, Collections.emptyList());
+    }
+    @Override public boolean isFiltered() { return false; }
+    @Override public boolean filtersWereApplied() { return false; }
+    @Override public boolean hasLog10PError() { return hasGQ(); }
+    @Override public double getLog10PError() { return getGQ() / -10.0; }
+
+    @Override public int getPhredScaledQual() { return getGQ(); }
+
+    @Override
+    public String getAttributeAsString(String key, String defaultValue) {
+        Object x = getAttribute(key);
+        if ( x == null ) return defaultValue;
+        if ( x instanceof String ) return (String)x;
+        return String.valueOf(x); // throws an exception if this isn't a string
+    }
+
+    @Override
+    public int getAttributeAsInt(String key, int defaultValue) {
+        Object x = getAttribute(key);
+        if ( x == null || x == VCFConstants.MISSING_VALUE_v4 ) return defaultValue;
+        if ( x instanceof Integer ) return (Integer)x;
+        return Integer.valueOf((String)x); // throws an exception if this isn't a string
+    }
+
+    @Override
+    public double getAttributeAsDouble(String key, double defaultValue) {
+        Object x = getAttribute(key);
+        if ( x == null ) return defaultValue;
+        if ( x instanceof Double ) return (Double)x;
+        return Double.valueOf((String)x); // throws an exception if this isn't a string
     }
 }

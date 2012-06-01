@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeType;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
@@ -30,7 +31,7 @@ public class MendelianViolation {
     private boolean allCalledOnly = true;
 
     //Stores occurrences of inheritance
-    private EnumMap<Genotype.Type, EnumMap<Genotype.Type,EnumMap<Genotype.Type,Integer>>> inheritance;
+    private EnumMap<GenotypeType, EnumMap<GenotypeType,EnumMap<GenotypeType,Integer>>> inheritance;
 
     private int violations_total=0;
 
@@ -74,119 +75,119 @@ public class MendelianViolation {
 
     //Count of HomRef/HomRef/HomRef trios
     public int getRefRefRef(){
-        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_REF);
+        return inheritance.get(GenotypeType.HOM_REF).get(GenotypeType.HOM_REF).get(GenotypeType.HOM_REF);
     }
 
     //Count of HomVar/HomVar/HomVar trios
     public int getVarVarVar(){
-        return inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_VAR);
+        return inheritance.get(GenotypeType.HOM_VAR).get(GenotypeType.HOM_VAR).get(GenotypeType.HOM_VAR);
     }
 
     //Count of HomRef/HomVar/Het trios
     public int getRefVarHet(){
-        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HET) +
-                inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_REF).get(Genotype.Type.HET);
+        return inheritance.get(GenotypeType.HOM_REF).get(GenotypeType.HOM_VAR).get(GenotypeType.HET) +
+                inheritance.get(GenotypeType.HOM_VAR).get(GenotypeType.HOM_REF).get(GenotypeType.HET);
     }
 
     //Count of Het/Het/Het trios
     public int getHetHetHet(){
-        return inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HET);
+        return inheritance.get(GenotypeType.HET).get(GenotypeType.HET).get(GenotypeType.HET);
     }
 
     //Count of Het/Het/HomRef trios
     public int getHetHetHomRef(){
-        return inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HOM_REF);
+        return inheritance.get(GenotypeType.HET).get(GenotypeType.HET).get(GenotypeType.HOM_REF);
     }
 
     //Count of Het/Het/HomVar trios
     public int getHetHetHomVar(){
-        return inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR);
+        return inheritance.get(GenotypeType.HET).get(GenotypeType.HET).get(GenotypeType.HOM_VAR);
     }
 
     //Count of ref alleles inherited from Het/Het parents (no violation)
     public int getParentsHetHetInheritedRef(){
-        return inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HET)
-               + 2*inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HOM_REF);
+        return inheritance.get(GenotypeType.HET).get(GenotypeType.HET).get(GenotypeType.HET)
+               + 2*inheritance.get(GenotypeType.HET).get(GenotypeType.HET).get(GenotypeType.HOM_REF);
         //return parentsHetHet_childRef;
     }
 
     //Count of var alleles inherited from Het/Het parents (no violation)
     public int getParentsHetHetInheritedVar(){
-        return inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HET)
-               + 2*inheritance.get(Genotype.Type.HET).get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR);
+        return inheritance.get(GenotypeType.HET).get(GenotypeType.HET).get(GenotypeType.HET)
+               + 2*inheritance.get(GenotypeType.HET).get(GenotypeType.HET).get(GenotypeType.HOM_VAR);
         //return parentsHetHet_childVar;
     }
 
     //Count of ref alleles inherited from HomRef/Het parents (no violation)
     public int getParentsRefHetInheritedRef(){
-        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HET).get(Genotype.Type.HOM_REF)
-               + inheritance.get(Genotype.Type.HET).get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_REF);
+        return inheritance.get(GenotypeType.HOM_REF).get(GenotypeType.HET).get(GenotypeType.HOM_REF)
+               + inheritance.get(GenotypeType.HET).get(GenotypeType.HOM_REF).get(GenotypeType.HOM_REF);
         //return parentsHomRefHet_childRef;
     }
 
     //Count of var alleles inherited from HomRef/Het parents (no violation)
     public int getParentsRefHetInheritedVar(){
-        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HET).get(Genotype.Type.HET)
-               + inheritance.get(Genotype.Type.HET).get(Genotype.Type.HOM_REF).get(Genotype.Type.HET);
+        return inheritance.get(GenotypeType.HOM_REF).get(GenotypeType.HET).get(GenotypeType.HET)
+               + inheritance.get(GenotypeType.HET).get(GenotypeType.HOM_REF).get(GenotypeType.HET);
         //return parentsHomRefHet_childVar;
     }
 
     //Count of ref alleles inherited from HomVar/Het parents (no violation)
     public int getParentsVarHetInheritedRef(){
-        return inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HET).get(Genotype.Type.HET)
-               + inheritance.get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HET);
+        return inheritance.get(GenotypeType.HOM_VAR).get(GenotypeType.HET).get(GenotypeType.HET)
+               + inheritance.get(GenotypeType.HET).get(GenotypeType.HOM_VAR).get(GenotypeType.HET);
         //return parentsHomVarHet_childRef;
     }
 
     //Count of var alleles inherited from HomVar/Het parents (no violation)
     public int getParentsVarHetInheritedVar(){
-        return inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR)
-               + inheritance.get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_VAR);
+        return inheritance.get(GenotypeType.HOM_VAR).get(GenotypeType.HET).get(GenotypeType.HOM_VAR)
+               + inheritance.get(GenotypeType.HET).get(GenotypeType.HOM_VAR).get(GenotypeType.HOM_VAR);
         //return parentsHomVarHet_childVar;
     }
 
     //Count of violations of the type HOM_REF/HOM_REF -> HOM_VAR
     public int getParentsRefRefChildVar(){
-        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_VAR);
+        return inheritance.get(GenotypeType.HOM_REF).get(GenotypeType.HOM_REF).get(GenotypeType.HOM_VAR);
     }
 
     //Count of violations of the type HOM_REF/HOM_REF -> HET
     public int getParentsRefRefChildHet(){
-        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_REF).get(Genotype.Type.HET);
+        return inheritance.get(GenotypeType.HOM_REF).get(GenotypeType.HOM_REF).get(GenotypeType.HET);
     }
 
     //Count of violations of the type HOM_REF/HET -> HOM_VAR
     public int getParentsRefHetChildVar(){
-        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR)
-                + inheritance.get(Genotype.Type.HET).get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_VAR);
+        return inheritance.get(GenotypeType.HOM_REF).get(GenotypeType.HET).get(GenotypeType.HOM_VAR)
+                + inheritance.get(GenotypeType.HET).get(GenotypeType.HOM_REF).get(GenotypeType.HOM_VAR);
     }
 
     //Count of violations of the type HOM_REF/HOM_VAR -> HOM_VAR
     public int getParentsRefVarChildVar(){
-        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_VAR)
-                + inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_VAR);
+        return inheritance.get(GenotypeType.HOM_REF).get(GenotypeType.HOM_VAR).get(GenotypeType.HOM_VAR)
+                + inheritance.get(GenotypeType.HOM_VAR).get(GenotypeType.HOM_REF).get(GenotypeType.HOM_VAR);
     }
 
     //Count of violations of the type HOM_REF/HOM_VAR -> HOM_REF
     public int getParentsRefVarChildRef(){
-        return inheritance.get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_REF)
-                + inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_REF).get(Genotype.Type.HOM_REF);
+        return inheritance.get(GenotypeType.HOM_REF).get(GenotypeType.HOM_VAR).get(GenotypeType.HOM_REF)
+                + inheritance.get(GenotypeType.HOM_VAR).get(GenotypeType.HOM_REF).get(GenotypeType.HOM_REF);
     }
 
     //Count of violations of the type HOM_VAR/HET -> HOM_REF
     public int getParentsVarHetChildRef(){
-        return inheritance.get(Genotype.Type.HET).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_REF)
-                + inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HET).get(Genotype.Type.HOM_REF);
+        return inheritance.get(GenotypeType.HET).get(GenotypeType.HOM_VAR).get(GenotypeType.HOM_REF)
+                + inheritance.get(GenotypeType.HOM_VAR).get(GenotypeType.HET).get(GenotypeType.HOM_REF);
     }
 
     //Count of violations of the type HOM_VAR/HOM_VAR -> HOM_REF
     public int getParentsVarVarChildRef(){
-        return inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_REF);
+        return inheritance.get(GenotypeType.HOM_VAR).get(GenotypeType.HOM_VAR).get(GenotypeType.HOM_REF);
     }
 
     //Count of violations of the type HOM_VAR/HOM_VAR -> HET
     public int getParentsVarVarChildHet(){
-        return inheritance.get(Genotype.Type.HOM_VAR).get(Genotype.Type.HOM_VAR).get(Genotype.Type.HET);
+        return inheritance.get(GenotypeType.HOM_VAR).get(GenotypeType.HOM_VAR).get(GenotypeType.HET);
     }
 
 
@@ -362,12 +363,12 @@ public class MendelianViolation {
 
     private void createInheritanceMap(){
 
-        inheritance = new EnumMap<Genotype.Type,EnumMap<Genotype.Type,EnumMap<Genotype.Type,Integer>>>(Genotype.Type.class);
-        for(Genotype.Type mType : Genotype.Type.values()){
-            inheritance.put(mType, new EnumMap<Genotype.Type,EnumMap<Genotype.Type,Integer>>(Genotype.Type.class));
-            for(Genotype.Type dType : Genotype.Type.values()){
-                inheritance.get(mType).put(dType, new EnumMap<Genotype.Type,Integer>(Genotype.Type.class));
-                for(Genotype.Type cType : Genotype.Type.values()){
+        inheritance = new EnumMap<GenotypeType,EnumMap<GenotypeType,EnumMap<GenotypeType,Integer>>>(GenotypeType.class);
+        for(GenotypeType mType : GenotypeType.values()){
+            inheritance.put(mType, new EnumMap<GenotypeType,EnumMap<GenotypeType,Integer>>(GenotypeType.class));
+            for(GenotypeType dType : GenotypeType.values()){
+                inheritance.get(mType).put(dType, new EnumMap<GenotypeType,Integer>(GenotypeType.class));
+                for(GenotypeType cType : GenotypeType.values()){
                     inheritance.get(mType).get(dType).put(cType, 0);
                 }
             }
@@ -376,9 +377,9 @@ public class MendelianViolation {
     }
 
     private void clearInheritanceMap(){
-        for(Genotype.Type mType : Genotype.Type.values()){
-            for(Genotype.Type dType : Genotype.Type.values()){
-                for(Genotype.Type cType : Genotype.Type.values()){
+        for(GenotypeType mType : GenotypeType.values()){
+            for(GenotypeType dType : GenotypeType.values()){
+                for(GenotypeType cType : GenotypeType.values()){
                     inheritance.get(mType).get(dType).put(cType, 0);
                 }
             }

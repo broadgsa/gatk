@@ -273,7 +273,7 @@ public class VariantContextTestProvider {
                 for ( int i = 0; i < genotypes.length - 1; i++ )
                     gc.add(genotypes[i]);
                 for ( int i = 0; i < nCopiesOfLast; i++ )
-                    gc.add(new Genotype("copy" + i, last));
+                    gc.add(new GenotypeBuilder(last).name("copy" + i).make());
                 add(builder.genotypes(gc));
             }
         }
@@ -286,12 +286,12 @@ public class VariantContextTestProvider {
         // test ref/ref
         final Allele ref = site.getReference();
         final Allele alt1 = site.getNAlleles() > 1 ? site.getAlternateAllele(0) : null;
-        final Genotype homRef = new Genotype("homRef", Arrays.asList(ref, ref));
+        final Genotype homRef = GenotypeBuilder.create("homRef", Arrays.asList(ref, ref));
         addGenotypeTests(site, homRef);
 
         if ( alt1 != null ) {
-            final Genotype het = new Genotype("het", Arrays.asList(ref, alt1));
-            final Genotype homVar = new Genotype("homVar", Arrays.asList(alt1, alt1));
+            final Genotype het = GenotypeBuilder.create("het", Arrays.asList(ref, alt1));
+            final Genotype homVar = GenotypeBuilder.create("homVar", Arrays.asList(alt1, alt1));
             addGenotypeTests(site, homRef, het);
             addGenotypeTests(site, homRef, het, homVar);
             final List<Allele> noCall = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
@@ -299,17 +299,17 @@ public class VariantContextTestProvider {
             // ploidy
             if ( ENABLE_PLOIDY_TESTS ) {
                 addGenotypeTests(site,
-                        new Genotype("dip", Arrays.asList(ref, alt1)),
-                        new Genotype("hap", Arrays.asList(ref)));
+                        GenotypeBuilder.create("dip", Arrays.asList(ref, alt1)),
+                        GenotypeBuilder.create("hap", Arrays.asList(ref)));
 
                 addGenotypeTests(site,
-                        new Genotype("dip", Arrays.asList(ref, alt1)),
-                        new Genotype("tet", Arrays.asList(ref, alt1, alt1)));
+                        GenotypeBuilder.create("dip", Arrays.asList(ref, alt1)),
+                        GenotypeBuilder.create("tet", Arrays.asList(ref, alt1, alt1)));
 
                 addGenotypeTests(site,
-                        new Genotype("nocall", noCall),
-                        new Genotype("dip", Arrays.asList(ref, alt1)),
-                        new Genotype("tet", Arrays.asList(ref, alt1, alt1)));
+                        GenotypeBuilder.create("nocall", noCall),
+                        GenotypeBuilder.create("dip", Arrays.asList(ref, alt1)),
+                        GenotypeBuilder.create("tet", Arrays.asList(ref, alt1, alt1)));
             }
         }
 
@@ -317,26 +317,26 @@ public class VariantContextTestProvider {
             if ( site.getNAlleles() == 2 ) {
                 // testing PLs
                 addGenotypeTests(site,
-                        new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{0, -1, -2}),
-                        new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2, -3}));
+                        GenotypeBuilder.create("g1", Arrays.asList(ref, ref), new double[]{0, -1, -2}),
+                        GenotypeBuilder.create("g2", Arrays.asList(ref, ref), new double[]{0, -2, -3}));
 
                 addGenotypeTests(site,
-                        new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{-1, 0, -2}),
-                        new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2, -3}));
+                        GenotypeBuilder.create("g1", Arrays.asList(ref, ref), new double[]{-1, 0, -2}),
+                        GenotypeBuilder.create("g2", Arrays.asList(ref, ref), new double[]{0, -2, -3}));
 
                 addGenotypeTests(site,
-                        new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{-1, 0, -2}),
-                        new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2000, -1000}));
+                        GenotypeBuilder.create("g1", Arrays.asList(ref, ref), new double[]{-1, 0, -2}),
+                        GenotypeBuilder.create("g2", Arrays.asList(ref, ref), new double[]{0, -2000, -1000}));
 
                 addGenotypeTests(site, // missing PLs
-                        new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{-1, 0, -2}),
-                        new Genotype("g2", Arrays.asList(ref, ref), -1));
+                        GenotypeBuilder.create("g1", Arrays.asList(ref, ref), new double[]{-1, 0, -2}),
+                        GenotypeBuilder.create("g2", Arrays.asList(ref, ref)));
             }
             else if ( site.getNAlleles() == 3 ) {
                 // testing PLs
                 addGenotypeTests(site,
-                        new Genotype("g1", Arrays.asList(ref, ref), -1, new double[]{0, -1, -2, -3, -4, -5}),
-                        new Genotype("g2", Arrays.asList(ref, ref), -1, new double[]{0, -2, -3, -4, -5, -6}));
+                        GenotypeBuilder.create("g1", Arrays.asList(ref, ref), new double[]{0, -1, -2, -3, -4, -5}),
+                        GenotypeBuilder.create("g2", Arrays.asList(ref, ref), new double[]{0, -2, -3, -4, -5, -6}));
             }
         }
 
@@ -383,11 +383,10 @@ public class VariantContextTestProvider {
 
     private static Genotype attr(final String name, final Allele ref, final String key, final Object ... value) {
         if ( value.length == 0 )
-            return new Genotype(name, Arrays.asList(ref, ref), -1);
+            return GenotypeBuilder.create(name, Arrays.asList(ref, ref));
         else {
             final Object toAdd = value.length == 1 ? value[0] : Arrays.asList(value);
-            Map<String, Object> attr = Collections.singletonMap(key, toAdd);
-            return new Genotype(name, Arrays.asList(ref, ref), -1, null, attr, false);
+            return new GenotypeBuilder(name, Arrays.asList(ref, ref)).attribute(key, toAdd).make();
         }
     }
 
@@ -488,7 +487,7 @@ public class VariantContextTestProvider {
         Assert.assertEquals(actual.getGenotypeString(), expected.getGenotypeString());
         Assert.assertEquals(actual.getFilters(), expected.getFilters());
         Assert.assertEquals(actual.getPhredScaledQual(), expected.getPhredScaledQual());
-        assertAttributesEquals(actual.getAttributes(), expected.getAttributes());
+        assertAttributesEquals(actual.getExtendedAttributes(), expected.getExtendedAttributes());
         Assert.assertEquals(actual.isPhased(), expected.isPhased());
         Assert.assertEquals(actual.getPloidy(), expected.getPloidy());
     }

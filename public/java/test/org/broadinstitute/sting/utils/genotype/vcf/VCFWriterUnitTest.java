@@ -120,12 +120,8 @@ public class VCFWriterUnitTest extends BaseTest {
 
         attributes.put("DP","50");
         for (String name : header.getGenotypeSamples()) {
-            Map<String, Object> gtattributes = new HashMap<String,Object>();
-            gtattributes.put("BB","1");
-            Genotype gt = new Genotype(name,alleles.subList(1,2),0,null,gtattributes,true);
-
+            Genotype gt = new GenotypeBuilder(name,alleles.subList(1,2)).GQ(0).attribute("BB", "1").phased(true).make();
             genotypes.add(gt);
-            
         }
         return new VariantContextBuilder("RANDOM", loc.getContig(), loc.getStart(), loc.getStop(), alleles)
                 .genotypes(genotypes).attributes(attributes).referenceBaseForIndel((byte)'A').make();

@@ -29,11 +29,13 @@ import org.broad.tribble.AbstractFeatureReader;
 import org.broad.tribble.FeatureReader;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.LineReader;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -109,9 +111,12 @@ public class VCFDiffableReader implements DiffableReader {
                 for (Genotype g : vc.getGenotypes() ) {
                     DiffNode gRoot = DiffNode.empty(g.getSampleName(), vcRoot);
                     gRoot.add("GT", g.getGenotypeString());
-                    gRoot.add("GQ", g.hasLog10PError() ? g.getLog10PError() * -10 : VCFConstants.MISSING_VALUE_v4 );
+                    if ( g.hasGQ() ) gRoot.add("GQ", g.getGQ() );
+                    if ( g.hasDP() ) gRoot.add("DP", g.getDP() );
+                    if ( g.hasAD() ) gRoot.add("AD", Utils.join(",", g.getAD()));
+                    if ( g.hasPL() ) gRoot.add("PL", Utils.join(",", g.getPL()));
 
-                    for (Map.Entry<String, Object> attribute : g.getAttributes().entrySet()) {
+                    for (Map.Entry<String, Object> attribute : g.getExtendedAttributes().entrySet()) {
                         if ( ! attribute.getKey().startsWith("_") )
                             gRoot.add(attribute.getKey(), attribute.getValue());
                     }

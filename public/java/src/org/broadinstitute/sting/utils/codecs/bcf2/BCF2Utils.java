@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.codecs.bcf2;
 
+import com.google.java.contract.Ensures;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
@@ -33,9 +34,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 /**
  * Common utilities for working with BCF2 files
@@ -77,11 +76,16 @@ public class BCF2Utils {
      * The dictionary is an ordered list of common VCF identifers (FILTER, INFO, and FORMAT)
      * fields.
      *
+     * Note that its critical that the list be dedupped and sorted in a consistent manner each time,
+     * as the BCF2 offsets are encoded relative to this dictionary, and if it isn't determined exactly
+     * the same way as in the header each time it's very bad
+     *
      * @param header the VCFHeader from which to build the dictionary
      * @return a non-null dictionary of elements, may be empty
      */
+    @Ensures("new HashSet(result).size() == result.size()")
     public final static ArrayList<String> makeDictionary(final VCFHeader header) {
-        final ArrayList<String> dict = new ArrayList<String>();
+        final Set<String> dict = new TreeSet<String>();
 
         // set up the strings dictionary
         dict.add(VCFConstants.PASSES_FILTERS_v4); // special case the special PASS field
@@ -92,7 +96,7 @@ public class BCF2Utils {
             }
         }
 
-        return dict;
+        return new ArrayList<String>(dict);
     }
 
     public final static byte encodeTypeDescriptor(final int nElements, final BCF2Type type ) {

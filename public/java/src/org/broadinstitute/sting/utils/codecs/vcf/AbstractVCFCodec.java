@@ -48,7 +48,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
     protected final String[] locParts = new String[6];
 
     // for performance we cache the hashmap of filter encodings for quick lookup
-    protected HashMap<String,LinkedHashSet<String>> filterHash = new HashMap<String,LinkedHashSet<String>>();
+    protected HashMap<String,List<String>> filterHash = new HashMap<String,List<String>>();
 
     // we store a name to give to each of the variant contexts we emit
     protected String name = "Unknown";
@@ -108,7 +108,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
      * @param filterString the string to parse
      * @return a set of the filters applied
      */
-    protected abstract Set<String> parseFilters(String filterString);
+    protected abstract List<String> parseFilters(String filterString);
 
     /**
      * create a VCF header from a set of header record lines
@@ -320,7 +320,9 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
         String ref = getCachedString(parts[3].toUpperCase());
         String alts = getCachedString(parts[4].toUpperCase());
         builder.log10PError(parseQual(parts[5]));
-        builder.filters(parseFilters(getCachedString(parts[6])));
+
+        final List<String> filters = parseFilters(getCachedString(parts[6]));
+        if ( filters != null ) builder.filters(new HashSet<String>(filters));
         final Map<String, Object> attrs = parseInfo(parts[7]);
         builder.attributes(attrs);
 

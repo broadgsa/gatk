@@ -53,28 +53,7 @@ class VCFWriter extends IndexingVariantContextWriter {
     // were filters applied?
     protected boolean filtersWereAppliedToContext = false;
 
-//    /**
-//     * create a VCF writer, given a file to write to
-//     *
-//     * @param location the file location to write to
-//     */
-//    public StandardVCFWriter(final File location, final SAMSequenceDictionary refDict) {
-//        this(location, openOutputStream(location), refDict, true, false);
-//    }
-//
-//    public StandardVCFWriter(File location, final SAMSequenceDictionary refDict, boolean enableOnTheFlyIndexing) {
-//        this(location, openOutputStream(location), refDict, enableOnTheFlyIndexing, false);
-//    }
-//
-//    /**
-//     * create a VCF writer, given a stream to write to
-//     *
-//     * @param output   the file location to write to
-//     * @param doNotWriteGenotypes   do not write genotypes
-//     */
-//    public StandardVCFWriter(final OutputStream output, final SAMSequenceDictionary refDict, final boolean doNotWriteGenotypes) {
-//        this(null, output, refDict, false, doNotWriteGenotypes);
-//    }
+    private IntGenotypeFieldAccessors intGenotypeFieldAccessors = new IntGenotypeFieldAccessors();
 
     public VCFWriter(final File location, final OutputStream output, final SAMSequenceDictionary refDict, final boolean enableOnTheFlyIndexing, boolean doNotWriteGenotypes) {
         super(writerName(location, output), location, output, refDict, enableOnTheFlyIndexing);
@@ -250,7 +229,7 @@ class VCFWriter extends IndexingVariantContextWriter {
 
             // FORMAT
             final GenotypesContext gc = vc.getGenotypes();
-            if ( gc instanceof LazyGenotypesContext && ((LazyGenotypesContext)gc).getUnparsedGenotypeData() != null) {
+            if ( gc.isLazyWithData() && ((LazyGenotypesContext)gc).getUnparsedGenotypeData() instanceof String ) {
                 mWriter.write(VCFConstants.FIELD_SEPARATOR);
                 mWriter.write(((LazyGenotypesContext)gc).getUnparsedGenotypeData().toString());
             } else {
@@ -360,9 +339,9 @@ class VCFWriter extends IndexingVariantContextWriter {
             }
 
             List<String> attrs = new ArrayList<String>(genotypeFormatKeys.size());
-            for ( String key : genotypeFormatKeys ) {
+            for ( String field : genotypeFormatKeys ) {
 
-                if ( key.equals(VCFConstants.GENOTYPE_KEY) ) {
+                if ( field.equals(VCFConstants.GENOTYPE_KEY) ) {
                     if ( !g.isAvailable() ) {
                         throw new ReviewedStingException("GTs cannot be missing for some samples if they are available for others in the record");
                     }
@@ -376,36 +355,50 @@ class VCFWriter extends IndexingVariantContextWriter {
                     continue;
                 }
 
-                Object val = g.hasAttribute(key) ? g.getAttribute(key) : VCFConstants.MISSING_VALUE_v4;
-
-                // some exceptions
-                if ( key.equals(VCFConstants.GENOTYPE_QUALITY_KEY) ) {
-                    if ( ! g.hasLog10PError() )
-                        val = VCFConstants.MISSING_VALUE_v4;
+                String outputValue;
+                final IntGenotypeFieldAccessors.Accessor accessor = intGenotypeFieldAccessors.getAccessor(field);
+                if ( accessor != null ) {
+                    final int[] intValues = accessor.getValues(g);
+                    if ( intValues == null )
+                        outputValue = VCFConstants.MISSING_VALUE_v4;
+                    else if ( intValues.length == 1 ) // fast path
+                        outputValue = Integer.toString(intValues[0]);
                     else {
-                        val = getQualValue(Math.min(g.getPhredScaledQual(), VCFConstants.MAX_GENOTYPE_QUAL));
-                    }
-                } else if ( key.equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
-                    val = g.isFiltered() ? ParsingUtils.join(";", ParsingUtils.sortList(g.getFilters())) : (g.filtersWereApplied() ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
-                }
-
-                VCFFormatHeaderLine metaData = mHeader.getFormatHeaderLine(key);
-                if ( metaData != null ) {
-                    int numInFormatField = metaData.getCount(vc.getAlternateAlleles().size());
-                    if ( numInFormatField > 1 && val.equals(VCFConstants.MISSING_VALUE_v4) ) {
-                        // If we have a missing field but multiple values are expected, we need to construct a new string with all fields.
-                        // For example, if Number=2, the string has to be ".,."
-                        StringBuilder sb = new StringBuilder(VCFConstants.MISSING_VALUE_v4);
-                        for ( int i = 1; i < numInFormatField; i++ ) {
+                        StringBuilder sb = new StringBuilder();
+                        sb.append(intValues[0]);
+                        for ( int i = 1; i < intValues.length; i++) {
                             sb.append(",");
-                            sb.append(VCFConstants.MISSING_VALUE_v4);
+                            sb.append(intValues[i]);
                         }
-                        val = sb.toString();
+                        outputValue = sb.toString();
                     }
+                } else {
+                    Object val = g.hasAttribute(field) ? g.getAttribute(field) : VCFConstants.MISSING_VALUE_v4;
+
+                    // some exceptions
+                    if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY ) ) {
+                        val = g.isFiltered() ? ParsingUtils.join(";", ParsingUtils.sortList(g.getFilters())) : (g.filtersWereApplied() ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
+                    }
+
+                    VCFFormatHeaderLine metaData = mHeader.getFormatHeaderLine(field);
+                    if ( metaData != null ) {
+                        int numInFormatField = metaData.getCount(vc.getAlternateAlleles().size());
+                        if ( numInFormatField > 1 && val.equals(VCFConstants.MISSING_VALUE_v4) ) {
+                            // If we have a missing field but multiple values are expected, we need to construct a new string with all fields.
+                            // For example, if Number=2, the string has to be ".,."
+                            StringBuilder sb = new StringBuilder(VCFConstants.MISSING_VALUE_v4);
+                            for ( int i = 1; i < numInFormatField; i++ ) {
+                                sb.append(",");
+                                sb.append(VCFConstants.MISSING_VALUE_v4);
+                            }
+                            val = sb.toString();
+                        }
+                    }
+
+                    // assume that if key is absent, then the given string encoding suffices
+                    outputValue = formatVCFField(val);
                 }
 
-                // assume that if key is absent, then the given string encoding suffices
-                String outputValue = formatVCFField(val);
                 if ( outputValue != null )
                     attrs.add(outputValue);
             }
@@ -475,21 +468,24 @@ class VCFWriter extends IndexingVariantContextWriter {
         boolean sawGoodGT = false;
         boolean sawGoodQual = false;
         boolean sawGenotypeFilter = false;
+        boolean sawDP = false;
+        boolean sawAD = false;
+        boolean sawPL = false;
         for ( final Genotype g : vc.getGenotypes() ) {
-            keys.addAll(g.getAttributes().keySet());
-            if ( g.isAvailable() )
-                sawGoodGT = true;
-            if ( g.hasLog10PError() )
-                sawGoodQual = true;
-            if (g.isFiltered() && g.isCalled())
-                sawGenotypeFilter = true;
+            keys.addAll(g.getExtendedAttributes().keySet());
+            if ( g.isAvailable() ) sawGoodGT = true;
+            if ( g.hasGQ() ) sawGoodQual = true;
+            if ( g.hasDP() ) sawDP = true;
+            if ( g.hasAD() ) sawAD = true;
+            if ( g.hasPL() ) sawPL = true;
+            if (g.isFiltered() && g.isCalled()) sawGenotypeFilter = true;
         }
 
-        if ( sawGoodQual )
-            keys.add(VCFConstants.GENOTYPE_QUALITY_KEY);
-
-        if (sawGenotypeFilter)
-            keys.add(VCFConstants.GENOTYPE_FILTER_KEY);
+        if ( sawGoodQual ) keys.add(VCFConstants.GENOTYPE_QUALITY_KEY);
+        if ( sawDP ) keys.add(VCFConstants.DEPTH_KEY);
+        if ( sawAD ) keys.add(VCFConstants.GENOTYPE_ALLELE_DEPTHS);
+        if ( sawPL ) keys.add(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
+        if ( sawGenotypeFilter ) keys.add(VCFConstants.GENOTYPE_FILTER_KEY);
 
         List<String> sortedList = ParsingUtils.sortList(new ArrayList<String>(keys));
 

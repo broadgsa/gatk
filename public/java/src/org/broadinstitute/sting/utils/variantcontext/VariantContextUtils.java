@@ -99,7 +99,7 @@ public class VariantContextUtils {
 
             // if there are alternate alleles, record the relevant tags
             if ( vc.getAlternateAlleles().size() > 0 ) {
-                ArrayList<String> alleleFreqs = new ArrayList<String>();
+                ArrayList<Double> alleleFreqs = new ArrayList<Double>();
                 ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
                 ArrayList<Integer> foundersAlleleCounts = new ArrayList<Integer>();
                 double totalFoundersChromosomes = (double)vc.getCalledChrCount(founderIds);
@@ -109,10 +109,10 @@ public class VariantContextUtils {
                     alleleCounts.add(vc.getCalledChrCount(allele));
                     foundersAlleleCounts.add(foundersAltChromosomes);
                     if ( AN == 0 ) {
-                        alleleFreqs.add("0.0");
+                        alleleFreqs.add(0.0);
                     } else {
                         // todo -- this is a performance problem
-                        final String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalFoundersChromosomes), ((double)foundersAltChromosomes / totalFoundersChromosomes));
+                        final Double freq = Double.valueOf(String.format(makePrecisionFormatStringFromDenominatorValue(totalFoundersChromosomes), ((double)foundersAltChromosomes / totalFoundersChromosomes)));
                         alleleFreqs.add(freq);
                     }
                 }
@@ -167,10 +167,10 @@ public class VariantContextUtils {
     }
 
     public static Genotype removePLs(Genotype g) {
-        Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
-        attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
-        attrs.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
-        return new Genotype(g.getSampleName(), g.getAlleles(), g.getLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attrs, g.isPhased());
+        if ( g.hasLikelihoods() )
+            return new GenotypeBuilder(g).noPL().make();
+        else
+            return g;
     }
 
     /**
@@ -257,8 +257,7 @@ public class VariantContextUtils {
                         newGenotypeAlleles.add(Allele.NO_CALL);
                     }
                 }
-                genotypes.add(new Genotype(g.getSampleName(), newGenotypeAlleles, g.getLog10PError(),
-                        g.getFilters(), g.getAttributes(), g.isPhased()));
+                genotypes.add(new GenotypeBuilder(g).alleles(newGenotypeAlleles).make());
 
             }
 
@@ -475,9 +474,9 @@ public class VariantContextUtils {
         // Genotypes
         final GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
         for ( final Genotype g : vc.getGenotypes() ) {
-            Map<String, Object> genotypeAttributes = subsetAttributes(g.commonInfo, keysToPreserve);
-            genotypes.add(new Genotype(g.getSampleName(), g.getAlleles(), g.getLog10PError(), g.getFilters(),
-                    genotypeAttributes, g.isPhased()));
+            // TODO -- fixme
+            //Map<String, Object> genotypeAttributes = subsetAttributes(g.commonInfo, keysToPreserve);
+            //genotypes.add(new GenotypeBuilder(g).attributes(genotypeAttributes).make());
         }
 
         return builder.genotypes(genotypes).attributes(attributes);
@@ -833,7 +832,7 @@ public class VariantContextUtils {
                     else
                         trimmedAlleles.add(Allele.NO_CALL);
                 }
-                genotypes.add(Genotype.modifyAlleles(genotype, trimmedAlleles));
+                genotypes.add(new GenotypeBuilder(genotype).alleles(trimmedAlleles).make());
 
             }
 
@@ -878,7 +877,7 @@ public class VariantContextUtils {
                 else
                     trimmedAlleles.add(Allele.NO_CALL);
             }
-            genotypes.add(Genotype.modifyAlleles(genotype, trimmedAlleles));
+            genotypes.add(new GenotypeBuilder(genotype).alleles(trimmedAlleles).make());
         }
 
         return new VariantContextBuilder(inputVC).stop(inputVC.getStart() + alleles.get(0).length() + (inputVC.isMixed() ? -1 : 0)).alleles(alleles).genotypes(genotypes).make();
@@ -1073,7 +1072,7 @@ public class VariantContextUtils {
 
                 if ( uniqifySamples || alleleMapping.needsRemapping() ) {
                     final List<Allele> alleles = alleleMapping.needsRemapping() ? alleleMapping.remap(g.getAlleles()) : g.getAlleles();
-                    newG = new Genotype(name, alleles, g.getLog10PError(), g.getFilters(), g.getAttributes(), g.isPhased());
+                    newG = new GenotypeBuilder(g).name(name).alleles(alleles).make();
                 }
 
                 mergedGenotypes.add(newG);
@@ -1113,7 +1112,7 @@ public class VariantContextUtils {
                     newAllele = Allele.NO_CALL;
                 newAlleles.add(newAllele);
             }
-            newGenotypes.add(Genotype.modifyAlleles(genotype, newAlleles));
+            newGenotypes.add(new GenotypeBuilder(genotype).alleles(newAlleles).make());
         }
 
         return new VariantContextBuilder(vc).alleles(alleleMap.values()).genotypes(newGenotypes).make();
@@ -1126,11 +1125,11 @@ public class VariantContextUtils {
         GenotypesContext newGenotypes = GenotypesContext.create(vc.getNSamples());
         for ( final Genotype genotype : vc.getGenotypes() ) {
             Map<String, Object> attrs = new HashMap<String, Object>();
-            for ( Map.Entry<String, Object> attr : genotype.getAttributes().entrySet() ) {
+            for ( Map.Entry<String, Object> attr : genotype.getExtendedAttributes().entrySet() ) {
                 if ( allowedAttributes.contains(attr.getKey()) )
                     attrs.put(attr.getKey(), attr.getValue());
             }
-            newGenotypes.add(Genotype.modifyAttributes(genotype, attrs));
+            newGenotypes.add(new GenotypeBuilder(genotype).attributes(attrs).make());
         }
 
         return new VariantContextBuilder(vc).genotypes(newGenotypes).make();
@@ -1247,7 +1246,7 @@ public class VariantContextUtils {
         for ( int k = 0; k < oldGTs.size(); k++ ) {
             final Genotype g = oldGTs.get(sampleIndices.get(k));
             if ( !g.hasLikelihoods() ) {
-                newGTs.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, Genotype.NO_LOG10_PERROR, null, null, false));
+                newGTs.add(GenotypeBuilder.create(g.getSampleName(), NO_CALL_ALLELES));
                 continue;
             }
 
@@ -1268,49 +1267,33 @@ public class VariantContextUtils {
 
             // if there is no mass on the (new) likelihoods, then just no-call the sample
             if ( MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL ) {
-                newGTs.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, Genotype.NO_LOG10_PERROR, null, null, false));
+                newGTs.add(GenotypeBuilder.create(g.getSampleName(), NO_CALL_ALLELES));
             }
             else {
-                Map<String, Object> attrs = new HashMap<String, Object>(g.getAttributes());
+                final GenotypeBuilder gb = new GenotypeBuilder(g);
+
                 if ( numNewAltAlleles == 0 )
-                    attrs.remove(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
+                    gb.noPL();
                 else
-                    attrs.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(newLikelihoods));
+                    gb.PL(newLikelihoods);
 
                 // if we weren't asked to assign a genotype, then just no-call the sample
-                if ( !assignGenotypes || MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL )
-                    newGTs.add(new Genotype(g.getSampleName(), NO_CALL_ALLELES, Genotype.NO_LOG10_PERROR, null, attrs, false));
-                else
-                    newGTs.add(assignDiploidGenotype(g, newLikelihoods, allelesToUse, attrs));
+                if ( !assignGenotypes || MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL ) {
+                    gb.alleles(NO_CALL_ALLELES);
+                }
+                else {
+                    // find the genotype with maximum likelihoods
+                    int PLindex = numNewAltAlleles == 0 ? 0 : MathUtils.maxElementIndex(newLikelihoods);
+                    GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(PLindex);
+
+                    gb.alleles(Arrays.asList(allelesToUse.get(alleles.alleleIndex1), allelesToUse.get(alleles.alleleIndex2)));
+                    if ( numNewAltAlleles != 0 ) gb.GQ(-10 * GenotypeLikelihoods.getGQLog10FromLikelihoods(PLindex, newLikelihoods));
+                }
+                newGTs.add(gb.make());
             }
         }
 
         return newGTs;
-    }
-
-    /**
-     * Assign genotypes (GTs) to the samples in the Variant Context greedily based on the PLs
-     *
-     * @param originalGT           the original genotype
-     * @param newLikelihoods       the PL array
-     * @param allelesToUse         the list of alleles to choose from (corresponding to the PLs)
-     * @param attrs                the annotations to use when creating the genotype
-     *
-     * @return genotype
-     */
-    private static Genotype assignDiploidGenotype(final Genotype originalGT, final double[] newLikelihoods, final List<Allele> allelesToUse, final Map<String, Object> attrs) {
-        final int numNewAltAlleles = allelesToUse.size() - 1;
-
-        // find the genotype with maximum likelihoods
-        int PLindex = numNewAltAlleles == 0 ? 0 : MathUtils.maxElementIndex(newLikelihoods);
-        GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(PLindex);
-
-        ArrayList<Allele> myAlleles = new ArrayList<Allele>();
-        myAlleles.add(allelesToUse.get(alleles.alleleIndex1));
-        myAlleles.add(allelesToUse.get(alleles.alleleIndex2));
-
-        final double qual = numNewAltAlleles == 0 ? Genotype.NO_LOG10_PERROR : GenotypeLikelihoods.getQualFromLikelihoods(PLindex, newLikelihoods);
-        return new Genotype(originalGT.getSampleName(), myAlleles, qual, null, attrs, false);
     }
 
     /**

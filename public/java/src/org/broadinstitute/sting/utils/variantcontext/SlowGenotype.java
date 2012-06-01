@@ -1,0 +1,445 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package org.broadinstitute.sting.utils.variantcontext;
+
+
+import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+
+import java.util.*;
+
+/**
+ * This class encompasses all the basic information about a genotype.  It is immutable.
+ *
+ * @author Mark DePristo
+ */
+public class SlowGenotype implements Genotype {
+    public final static String PHASED_ALLELE_SEPARATOR = "|";
+    public final static String UNPHASED_ALLELE_SEPARATOR = "/";
+
+    protected CommonInfo commonInfo;
+    public final static double NO_LOG10_PERROR = CommonInfo.NO_LOG10_PERROR;
+    protected List<Allele> alleles = null; // new ArrayList<Allele>();
+    protected GenotypeType type = null;
+
+    protected boolean isPhased = false;
+
+//    public SlowGenotype(String sampleName, List<Allele> alleles, double log10PError, Set<String> filters, Map<String, Object> attributes, boolean isPhased) {
+//        this(sampleName, alleles, log10PError, filters, attributes, isPhased, null);
+//    }
+
+    protected SlowGenotype(String sampleName, List<Allele> alleles, double log10PError, Set<String> filters, Map<String, Object> attributes, boolean isPhased, double[] log10Likelihoods) {
+        if ( alleles == null || alleles.isEmpty() )
+            this.alleles = Collections.emptyList();
+        else
+            this.alleles = Collections.unmodifiableList(alleles);
+        commonInfo = new CommonInfo(sampleName, log10PError, filters, attributes);
+        if ( log10Likelihoods != null )
+            commonInfo.putAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(log10Likelihoods));
+        this.isPhased = isPhased;
+        validate();
+    }
+
+//    /**
+//     * Creates a new Genotype for sampleName with genotype according to alleles.
+//     * @param sampleName
+//     * @param alleles
+//     * @param log10PError the confidence in these alleles
+//     * @param log10Likelihoods a log10 likelihoods for each of the genotype combinations possible for alleles, in the standard VCF ordering, or null if not known
+//     */
+//    public SlowGenotype(String sampleName, List<Allele> alleles, double log10PError, double[] log10Likelihoods) {
+//        this(sampleName, alleles, log10PError, null, null, false, log10Likelihoods);
+//    }
+//
+//    public SlowGenotype(String sampleName, List<Allele> alleles, double log10PError) {
+//        this(sampleName, alleles, log10PError, null, null, false);
+//    }
+//
+//    public SlowGenotype(String sampleName, List<Allele> alleles) {
+//        this(sampleName, alleles, NO_LOG10_PERROR, null, null, false);
+//    }
+//
+//    public SlowGenotype(String sampleName, SlowGenotype parent) {
+//        this(sampleName, parent.getAlleles(), parent.getLog10PError(), parent.getFilters(), parent.getAttributes(), parent.isPhased());
+//    }
+//
+//
+//
+//    // ---------------------------------------------------------------------------------------------------------
+//    //
+//    // Partial-cloning routines (because Genotype is immutable).
+//    //
+//    // ---------------------------------------------------------------------------------------------------------
+//
+//    public static SlowGenotype modifyName(SlowGenotype g, String name) {
+//        return new SlowGenotype(name, g.getAlleles(), g.getLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, g.getAttributes(), g.isPhased());
+//    }
+//
+//    public static SlowGenotype modifyAttributes(SlowGenotype g, Map<String, Object> attributes) {
+//        return new SlowGenotype(g.getSampleName(), g.getAlleles(), g.getLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attributes, g.isPhased());
+//    }
+//
+//    public static SlowGenotype modifyAlleles(SlowGenotype g, List<Allele> alleles) {
+//        return new SlowGenotype(g.getSampleName(), alleles, g.getLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, g.getAttributes(), g.isPhased());
+//    }
+
+    /**
+     * @return the alleles for this genotype
+     */
+    public List<Allele> getAlleles() {
+        return alleles;
+    }
+
+    public int countAllele(final Allele allele) {
+        int c = 0;
+        for ( final Allele a : alleles )
+            if ( a.equals(allele) )
+                c++;
+
+        return c;
+    }
+
+    public Allele getAllele(int i) {
+        if ( getType() == GenotypeType.UNAVAILABLE )
+            throw new ReviewedStingException("Requesting alleles for an UNAVAILABLE genotype");
+        return alleles.get(i);
+    }
+
+    public boolean isPhased() { return isPhased; }
+
+    /**
+     * @return the ploidy of this genotype.  0 if the site is no-called.
+     */
+    public int getPloidy() {
+        return alleles.size();
+    }
+
+    public GenotypeType getType() {
+        if ( type == null ) {
+            type = determineType();
+        }
+        return type;
+    }
+
+    protected GenotypeType determineType() {
+        if ( alleles.size() == 0 )
+            return GenotypeType.UNAVAILABLE;
+
+        boolean sawNoCall = false, sawMultipleAlleles = false;
+        Allele observedAllele = null;
+
+        for ( Allele allele : alleles ) {
+            if ( allele.isNoCall() )
+                sawNoCall = true;
+            else if ( observedAllele == null )
+                observedAllele = allele;
+            else if ( !allele.equals(observedAllele) )
+                sawMultipleAlleles = true;
+        }
+
+        if ( sawNoCall ) {
+            if ( observedAllele == null )
+                return GenotypeType.NO_CALL;
+            return GenotypeType.MIXED;
+        }
+
+        if ( observedAllele == null )
+            throw new ReviewedStingException("BUG: there are no alleles present in this genotype but the alleles list is not null");
+
+        return sawMultipleAlleles ? GenotypeType.HET : observedAllele.isReference() ? GenotypeType.HOM_REF : GenotypeType.HOM_VAR;
+    }
+
+    /**
+     * @return true if all observed alleles are the same (regardless of whether they are ref or alt); if any alleles are no-calls, this method will return false.
+     */
+    public boolean isHom()    { return isHomRef() || isHomVar(); }
+
+    /**
+     * @return true if all observed alleles are ref; if any alleles are no-calls, this method will return false.
+     */
+    public boolean isHomRef() { return getType() == GenotypeType.HOM_REF; }
+
+    /**
+     * @return true if all observed alleles are alt; if any alleles are no-calls, this method will return false.
+     */
+    public boolean isHomVar() { return getType() == GenotypeType.HOM_VAR; }
+    
+    /**
+     * @return true if we're het (observed alleles differ); if the ploidy is less than 2 or if any alleles are no-calls, this method will return false.
+     */
+    public boolean isHet() { return getType() == GenotypeType.HET; }
+
+    /**
+     * @return true if this genotype is not actually a genotype but a "no call" (e.g. './.' in VCF); if any alleles are not no-calls (even if some are), this method will return false.
+     */
+    public boolean isNoCall() { return getType() == GenotypeType.NO_CALL; }
+
+    /**
+     * @return true if this genotype is comprised of any alleles that are not no-calls (even if some are).
+     */
+    public boolean isCalled() { return getType() != GenotypeType.NO_CALL && getType() != GenotypeType.UNAVAILABLE; }
+
+    /**
+     * @return true if this genotype is comprised of both calls and no-calls.
+     */
+    public boolean isMixed() { return getType() == GenotypeType.MIXED; }
+
+    /**
+     * @return true if the type of this genotype is set.
+     */
+    public boolean isAvailable() { return getType() != GenotypeType.UNAVAILABLE; }
+
+    //
+    // Useful methods for getting genotype likelihoods for a genotype object, if present
+    //
+    public boolean hasLikelihoods() {
+        return (hasAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) && !getAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY).equals(VCFConstants.MISSING_VALUE_v4)) ||
+                (hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY) && !getAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY).equals(VCFConstants.MISSING_VALUE_v4));
+    }
+
+    /**
+     * Convenience function that returns a string representation of the PL field of this
+     * genotype, or . if none is available.
+     *
+     * @return
+     */
+    public String getLikelihoodsString() {
+        GenotypeLikelihoods gl = getLikelihoods();
+        return gl == null ? VCFConstants.MISSING_VALUE_v4 : gl.toString();
+    }
+    
+    public GenotypeLikelihoods getLikelihoods() {
+        GenotypeLikelihoods x = getLikelihoods(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, true);
+        if ( x != null )
+            return x;
+        else {
+            x = getLikelihoods(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, false);
+            return x;
+        }
+    }
+
+    private GenotypeLikelihoods getLikelihoods(String key, boolean asPL) {
+        Object x = getAttribute(key);
+        if ( x instanceof String ) {
+            if ( asPL )
+                return GenotypeLikelihoods.fromPLField((String)x);
+            else
+                return GenotypeLikelihoods.fromGLField((String)x);
+        }
+        else if ( x instanceof GenotypeLikelihoods ) return (GenotypeLikelihoods)x;
+        else return null;
+    }
+
+    public void validate() {
+        if ( alleles.size() == 0) return;
+
+        // int nNoCalls = 0;
+        for ( Allele allele : alleles ) {
+            if ( allele == null )
+                throw new IllegalArgumentException("BUG: allele cannot be null in Genotype");
+            // nNoCalls += allele.isNoCall() ? 1 : 0;
+        }
+
+        // Technically, the spec does allow for the below case so this is not an illegal state
+        //if ( nNoCalls > 0 && nNoCalls != alleles.size() )
+        //    throw new IllegalArgumentException("BUG: alleles include some No Calls and some Calls, an illegal state " + this);
+    }
+
+    public String getGenotypeString() {
+        return getGenotypeString(true);
+    }
+
+    public String getGenotypeString(boolean ignoreRefState) {
+        if ( alleles.size() == 0 )
+            return null;
+
+        // Notes:
+        // 1. Make sure to use the appropriate separator depending on whether the genotype is phased
+        // 2. If ignoreRefState is true, then we want just the bases of the Alleles (ignoring the '*' indicating a ref Allele)
+        // 3. So that everything is deterministic with regards to integration tests, we sort Alleles (when the genotype isn't phased, of course)
+        return ParsingUtils.join(isPhased() ? PHASED_ALLELE_SEPARATOR : UNPHASED_ALLELE_SEPARATOR,
+                ignoreRefState ? getAlleleStrings() : (isPhased() ? getAlleles() : ParsingUtils.sortList(getAlleles())));
+    }
+
+    private List<String> getAlleleStrings() {
+        List<String> al = new ArrayList<String>();
+        for ( Allele a : alleles )
+            al.add(a.getBaseString());
+
+        return al;
+    }
+
+    public String toString() {
+        int Q = getPhredScaledQual();
+        return String.format("[%s %s Q%s %s]", getSampleName(), getGenotypeString(false),
+                Q == -1 ? "." : String.format("%2d",Q), sortedString(getExtendedAttributes()));
+    }
+
+    public String toBriefString() {
+        return String.format("%s:Q%d", getGenotypeString(false), getPhredScaledQual());
+    }
+
+    public boolean sameGenotype(Genotype other) {
+        return sameGenotype(other, true);
+    }
+
+    public boolean sameGenotype(Genotype other, boolean ignorePhase) {
+        if (getPloidy() != other.getPloidy())
+            return false; // gotta have the same number of allele to be equal
+
+        // By default, compare the elements in the lists of alleles, element-by-element
+        Collection<Allele> thisAlleles = this.getAlleles();
+        Collection<Allele> otherAlleles = other.getAlleles();
+
+        if (ignorePhase) { // do not care about order, only identity of Alleles
+            thisAlleles = new TreeSet<Allele>(thisAlleles);   //implemented Allele.compareTo()
+            otherAlleles = new TreeSet<Allele>(otherAlleles);
+        }
+
+        return thisAlleles.equals(otherAlleles);
+    }
+
+    /**
+     * a utility method for generating sorted strings from a map key set.
+     * @param c the map
+     * @param <T> the key type
+     * @param <V> the value type
+     * @return a sting, enclosed in {}, with comma seperated key value pairs in order of the keys
+     */
+    private static <T extends Comparable<T>, V> String sortedString(Map<T, V> c) {
+        // NOTE -- THIS IS COPIED FROM GATK UTILS TO ALLOW US TO KEEP A SEPARATION BETWEEN THE GATK AND VCF CODECS
+        List<T> t = new ArrayList<T>(c.keySet());
+        Collections.sort(t);
+
+        List<String> pairs = new ArrayList<String>();
+        for (T k : t) {
+            pairs.add(k + "=" + c.get(k));
+        }
+
+        return "{" + ParsingUtils.join(", ", pairs.toArray(new String[pairs.size()])) + "}";
+    }
+
+
+    // ---------------------------------------------------------------------------------------------------------
+    // 
+    // get routines to access context info fields
+    //
+    // ---------------------------------------------------------------------------------------------------------
+    public String getSampleName()       { return commonInfo.getName(); }
+    public List<String> getFilters()    { return new ArrayList<String>(commonInfo.getFilters()); }
+    public boolean isFiltered()         { return commonInfo.isFiltered(); }
+    public boolean isNotFiltered()      { return commonInfo.isNotFiltered(); }
+    public boolean filtersWereApplied() { return commonInfo.filtersWereApplied(); }
+    public boolean hasLog10PError()     { return commonInfo.hasLog10PError(); }
+    public double getLog10PError()      { return commonInfo.getLog10PError(); }
+
+    /**
+     * Returns a phred-scaled quality score, or -1 if none is available
+     * @return
+     */
+    public int getPhredScaledQual()  {
+        if ( commonInfo.hasLog10PError() )
+            return (int)Math.round(commonInfo.getPhredScaledQual());
+        else
+            return -1;
+    }
+
+    @Override
+    public boolean hasAttribute(String key)     { return commonInfo.hasAttribute(key); }
+
+    @Override
+    public Object getAttribute(String key)      { return commonInfo.getAttribute(key); }
+    
+    public Object getAttribute(String key, Object defaultValue) {
+        return commonInfo.getAttribute(key, defaultValue); 
+    }
+
+    public String getAttributeAsString(String key, String defaultValue)   { return commonInfo.getAttributeAsString(key, defaultValue); }
+    public int getAttributeAsInt(String key, int defaultValue)            { return commonInfo.getAttributeAsInt(key, defaultValue); }
+    public double getAttributeAsDouble(String key, double  defaultValue)  { return commonInfo.getAttributeAsDouble(key, defaultValue); }
+    public boolean getAttributeAsBoolean(String key, boolean  defaultValue)  { return commonInfo.getAttributeAsBoolean(key, defaultValue); }
+
+    /**
+     * comparable genotypes -> compareTo on the sample names
+     * @param genotype
+     * @return
+     */
+    @Override
+    public int compareTo(final Genotype genotype) {
+        return getSampleName().compareTo(genotype.getSampleName());
+    }
+
+    @Override
+    public int[] getPL() {
+        return hasPL() ? getLikelihoods().getAsPLs() : null;
+    }
+
+    @Override
+    public boolean hasPL() {
+        return hasLikelihoods();
+    }
+
+    @Override
+    public int getDP() {
+        return getAttributeAsInt(VCFConstants.DEPTH_KEY, -1);
+    }
+
+    @Override
+    public boolean hasDP() {
+        return hasAttribute(VCFConstants.DEPTH_KEY);
+    }
+
+    @Override
+    public int[] getAD() {
+        if ( hasAD() ) {
+            return (int[])getAttribute(VCFConstants.GENOTYPE_ALLELE_DEPTHS);
+        } else
+            return null;
+    }
+
+    @Override
+    public boolean hasAD() {
+        return hasAttribute(VCFConstants.GENOTYPE_ALLELE_DEPTHS);
+    }
+
+    @Override
+    public int getGQ() {
+        return getPhredScaledQual();
+    }
+
+    @Override
+    public boolean hasGQ() {
+        return hasLikelihoods();
+    }
+
+    @Override
+    public Map<String, Object> getExtendedAttributes() {
+        final Map<String, Object> ea = new LinkedHashMap<String, Object>(commonInfo.getAttributes());
+        for ( final String primary : FastGenotype.PRIMARY_KEYS )
+            ea.remove(primary);
+        return ea;
+    }
+}

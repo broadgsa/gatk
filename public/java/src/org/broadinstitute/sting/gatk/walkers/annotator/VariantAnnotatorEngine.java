@@ -272,13 +272,13 @@ public class VariantAnnotatorEngine {
                 continue;
             }
 
-            Map<String, Object> genotypeAnnotations = new HashMap<String, Object>(genotype.getAttributes());
+            Map<String, Object> genotypeAnnotations = new HashMap<String, Object>(genotype.getExtendedAttributes());
             for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
                 Map<String, Object> result = annotation.annotate(tracker, walker, ref, context, vc, genotype);
                 if ( result != null )
                     genotypeAnnotations.putAll(result);
             }
-            genotypes.add(new Genotype(genotype.getSampleName(), genotype.getAlleles(), genotype.getLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.isPhased()));
+            genotypes.add(new GenotypeBuilder(genotype).attributes(genotypeAnnotations).make());
         }
 
         return genotypes;

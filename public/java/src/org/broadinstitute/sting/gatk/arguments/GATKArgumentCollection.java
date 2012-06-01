@@ -336,6 +336,11 @@ public class GATKArgumentCollection {
     public boolean generateShadowBCF = false;
     // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
 
+    @Argument(fullName="useFastGenotypes",shortName = "useFastGenotypes",doc="",required=false)
+    @Hidden
+    public boolean USE_FAST_GENOTYPES = false;
+    // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
+
     /**
      * The file pointed to by this argument must be a VCF file. The GATK will read in just the header of this file
      * and then use the INFO, FORMAT, and FILTER field values from this file to repair the header file of any other

@@ -78,24 +78,24 @@ public class VCF3Codec extends AbstractVCFCodec {
      * @param filterString the string to parse
      * @return a set of the filters applied
      */
-    protected Set<String> parseFilters(String filterString) {
+    protected List<String> parseFilters(String filterString) {
 
         // null for unfiltered
         if ( filterString.equals(VCFConstants.UNFILTERED) )
             return null;
 
         // empty set for passes filters
-        LinkedHashSet<String> fFields = new LinkedHashSet<String>();
+        List<String> fFields = new ArrayList<String>();
 
         if ( filterString.equals(VCFConstants.PASSES_FILTERS_v3) )
-            return fFields;
+            return new ArrayList<String>(fFields);
 
         if ( filterString.length() == 0 )
             generateException("The VCF specification requires a valid filter status");
 
         // do we have the filter string cached?
         if ( filterHash.containsKey(filterString) )
-            return filterHash.get(filterString);
+            return new ArrayList<String>(filterHash.get(filterString));
 
         // otherwise we have to parse and cache the value
         if ( filterString.indexOf(VCFConstants.FILTER_CODE_SEPARATOR) == -1 )
@@ -141,7 +141,7 @@ public class VCF3Codec extends AbstractVCFCodec {
             int GTValueSplitSize = ParsingUtils.split(genotypeParts[genotypeOffset], GTValueArray, VCFConstants.GENOTYPE_FIELD_SEPARATOR_CHAR);
 
             double GTQual = VariantContext.NO_LOG10_PERROR;
-            Set<String> genotypeFilters = null;
+            List<String> genotypeFilters = null;
             Map<String, Object> gtAttributes = null;
             String sampleName = sampleNameIterator.next();
 
@@ -181,12 +181,10 @@ public class VCF3Codec extends AbstractVCFCodec {
 
             // add it to the list
             try {
-                genotypes.add(new Genotype(sampleName,
-                        parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], alleles, alleleMap),
-                        GTQual,
-                        genotypeFilters,
-                        gtAttributes,
-                        phased));
+                final Genotype g = new GenotypeBuilder(sampleName)
+                        .alleles(parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], alleles, alleleMap))
+                        .GQ(GTQual).filters(genotypeFilters).attributes(gtAttributes).phased(phased).make();
+                genotypes.add(g);
             } catch (TribbleException e) {
                 throw new TribbleException.InternalCodecException(e.getMessage() + ", at position " + chr+":"+pos);
             }

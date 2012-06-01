@@ -314,13 +314,25 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
             final LazyGenotypesContext.LazyParser lazyParser =
                     new BCF2LazyGenotypesDecoder(this, siteInfo.alleles, siteInfo.nSamples, siteInfo.nFormatFields);
             final int nGenotypes = header.getGenotypeSamples().size();
-            LazyGenotypesContext lazy = new LazyGenotypesContext(lazyParser, decoder.getRecordBytes(), nGenotypes);
+            LazyGenotypesContext lazy = new LazyGenotypesContext(lazyParser,
+                    new LazyData(siteInfo.nFormatFields, decoder.getRecordBytes()),
+                    nGenotypes);
 
             // did we resort the sample names?  If so, we need to load the genotype data
             if ( !header.samplesWereAlreadySorted() )
                 lazy.decode();
 
             builder.genotypesNoValidation(lazy);
+        }
+    }
+
+    public static class LazyData {
+        final public int nGenotypeFields;
+        final public byte[] bytes;
+
+        public LazyData(final int nGenotypeFields, final byte[] bytes) {
+            this.nGenotypeFields = nGenotypeFields;
+            this.bytes = bytes;
         }
     }
 

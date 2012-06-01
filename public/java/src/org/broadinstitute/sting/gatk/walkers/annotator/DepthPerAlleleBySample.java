@@ -73,7 +73,7 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         }
 
         // we need to add counts in the correct order
-        Integer[] counts = new Integer[alleleCounts.size()];
+        int[] counts = new int[alleleCounts.size()];
         counts[0] = alleleCounts.get(vc.getReference().getBases()[0]);
         for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
             counts[i+1] = alleleCounts.get(vc.getAlternateAllele(i).getBases()[0]);
@@ -124,7 +124,7 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
             }
         }
 
-        Integer[] counts = new Integer[alleleCounts.size()];
+        int[] counts = new int[alleleCounts.size()];
         counts[0] = alleleCounts.get(REF_ALLELE);
         for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
             counts[i+1] = alleleCounts.get( getAlleleRepresentation(vc.getAlternateAllele(i)) );
@@ -132,8 +132,8 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         return toADAnnotation(counts);
     }
 
-    private final Map<String, Object> toADAnnotation(final Integer[] counts) {
-        return Collections.singletonMap(getKeyNames().get(0), (Object)Arrays.asList(counts));
+    private final Map<String, Object> toADAnnotation(final int[] counts) {
+        return Collections.singletonMap(getKeyNames().get(0), (Object)counts);
     }
 
     private String getAlleleRepresentation(Allele allele) {

@@ -122,25 +122,25 @@ public class GenotypeLikelihoods {
 
     //Return genotype likelihoods as an EnumMap with Genotypes as keys and likelihoods as values
     //Returns null in case of missing likelihoods
-    public EnumMap<Genotype.Type,Double> getAsMap(boolean normalizeFromLog10){
+    public EnumMap<GenotypeType,Double> getAsMap(boolean normalizeFromLog10){
         //Make sure that the log10likelihoods are set
         double[] likelihoods = normalizeFromLog10 ? MathUtils.normalizeFromLog10(getAsVector()) : getAsVector();
         if(likelihoods == null)
             return null;
-        EnumMap<Genotype.Type,Double> likelihoodsMap = new EnumMap<Genotype.Type, Double>(Genotype.Type.class);
-        likelihoodsMap.put(Genotype.Type.HOM_REF,likelihoods[Genotype.Type.HOM_REF.ordinal()-1]);
-        likelihoodsMap.put(Genotype.Type.HET,likelihoods[Genotype.Type.HET.ordinal()-1]);
-        likelihoodsMap.put(Genotype.Type.HOM_VAR, likelihoods[Genotype.Type.HOM_VAR.ordinal() - 1]);
+        EnumMap<GenotypeType,Double> likelihoodsMap = new EnumMap<GenotypeType, Double>(GenotypeType.class);
+        likelihoodsMap.put(GenotypeType.HOM_REF,likelihoods[GenotypeType.HOM_REF.ordinal()-1]);
+        likelihoodsMap.put(GenotypeType.HET,likelihoods[GenotypeType.HET.ordinal()-1]);
+        likelihoodsMap.put(GenotypeType.HOM_VAR, likelihoods[GenotypeType.HOM_VAR.ordinal() - 1]);
         return likelihoodsMap;
     }
 
     //Return the neg log10 Genotype Quality (GQ) for the given genotype
     //Returns Double.NEGATIVE_INFINITY in case of missing genotype
-    public double getLog10GQ(Genotype.Type genotype){
-        return getQualFromLikelihoods(genotype.ordinal() - 1 /* NO_CALL IS FIRST */, getAsVector());
+    public double getLog10GQ(GenotypeType genotype){
+        return getGQLog10FromLikelihoods(genotype.ordinal() - 1 /* NO_CALL IS FIRST */, getAsVector());
     }
 
-    public static double getQualFromLikelihoods(int iOfChoosenGenotype, double[] likelihoods){
+    public static double getGQLog10FromLikelihoods(int iOfChoosenGenotype, double[] likelihoods){
         if(likelihoods == null)
             return Double.NEGATIVE_INFINITY;
 

@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.variantcontext;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 
 import java.util.*;
 
@@ -36,6 +37,8 @@ import java.util.*;
  * @author Mark DePristo
  */
 public final class GenotypeBuilder {
+    public static boolean MAKE_FAST_BY_DEFAULT = false;
+
     private String sampleName = null;
     private List<Allele> alleles = null;
 
@@ -46,8 +49,41 @@ public final class GenotypeBuilder {
     private int[] PL = null;
     private Map<String, Object> extendedAttributes = null;
 
+    private boolean useFast = MAKE_FAST_BY_DEFAULT;
+
     private final static Map<String, Object> NO_ATTRIBUTES =
-            new HashMap<String, Object>(0);
+            Collections.unmodifiableMap(new HashMap<String, Object>(0));
+
+    // -----------------------------------------------------------------
+    //
+    // Factory methods
+    //
+    // -----------------------------------------------------------------
+
+    public final static Genotype create(final String sampleName, final List<Allele> alleles) {
+        return new GenotypeBuilder(sampleName, alleles).make();
+    }
+
+    public final static Genotype create(final String sampleName,
+                                        final List<Allele> alleles,
+                                        final Map<String, Object> attributes) {
+        return new GenotypeBuilder(sampleName, alleles).attributes(attributes).make();
+    }
+
+    protected final static Genotype create(final String sampleName,
+                                           final List<Allele> alleles,
+                                           final double[] gls) {
+        return new GenotypeBuilder(sampleName, alleles).PL(gls).make();
+    }
+
+    public final static Genotype create(final String sampleName,
+                                        final List<Allele> alleles,
+                                        final double log10Perror,
+                                        final Map<String, Object> attributes) {
+        return new GenotypeBuilder(sampleName, alleles)
+                .GQ(log10Perror == SlowGenotype.NO_LOG10_PERROR ? -1 : (int)(log10Perror * -10))
+                .attributes(attributes).make();
+    }
 
     /**
      * Create a empty builder.  Both a sampleName and alleles must be provided
@@ -78,7 +114,7 @@ public final class GenotypeBuilder {
      * Create a new builder starting with the values in Genotype g
      * @param g
      */
-    public GenotypeBuilder(final FastGenotype g) {
+    public GenotypeBuilder(final Genotype g) {
         copy(g);
     }
 
@@ -87,7 +123,7 @@ public final class GenotypeBuilder {
      * @param g
      * @return
      */
-    public GenotypeBuilder copy(final FastGenotype g) {
+    public GenotypeBuilder copy(final Genotype g) {
         name(g.getSampleName());
         alleles(g.getAlleles());
         phased(g.isPhased());
@@ -125,9 +161,31 @@ public final class GenotypeBuilder {
      * @return a newly minted Genotype object with values provided from this builder
      */
     @Ensures({"result != null"})
-    public FastGenotype make() {
-        final Map<String, Object> ea = extendedAttributes == null ? NO_ATTRIBUTES : extendedAttributes;
-        return new FastGenotype(sampleName, alleles, isPhased, GQ, DP, AD, PL, ea);
+    public Genotype make() {
+        if ( useFast ) {
+            final Map<String, Object> ea = extendedAttributes == null ? NO_ATTRIBUTES : extendedAttributes;
+            return new FastGenotype(sampleName, alleles, isPhased, GQ, DP, AD, PL, ea);
+        } else {
+            final Map<String, Object> attributes = new LinkedHashMap<String, Object>();
+            if ( extendedAttributes != null ) attributes.putAll(extendedAttributes);
+            final double log10PError = GQ != -1 ? GQ / -10.0 : SlowGenotype.NO_LOG10_PERROR;
+
+            Set<String> filters = Collections.emptySet();
+            if ( extendedAttributes != null && extendedAttributes.containsKey(VCFConstants.GENOTYPE_FILTER_KEY) ) {
+                filters = new LinkedHashSet<String>((List<String>)extendedAttributes.get(VCFConstants.GENOTYPE_FILTER_KEY));
+                attributes.remove(VCFConstants.GENOTYPE_FILTER_KEY);
+            }
+
+            if ( DP != -1 ) attributes.put(VCFConstants.DEPTH_KEY, DP);
+            if ( AD != null ) attributes.put(VCFConstants.GENOTYPE_ALLELE_DEPTHS, AD);
+            final double[] log10likelihoods = PL != null ? GenotypeLikelihoods.fromPLs(PL).getAsVector() : null;
+            return new SlowGenotype(sampleName, alleles, log10PError, filters, attributes, isPhased, log10likelihoods);
+        }
+    }
+
+    public GenotypeBuilder useFast(boolean useFast) {
+        this.useFast = useFast;
+        return this;
     }
 
     @Requires({"sampleName != null"})
@@ -152,11 +210,20 @@ public final class GenotypeBuilder {
     }
 
     @Requires({"GQ >= -1"})
-    @Ensures({"this.GQ == GQ"})
+    @Ensures({"this.GQ == GQ", "this.GQ >= -1"})
     public GenotypeBuilder GQ(final int GQ) {
         this.GQ = GQ;
         return this;
     }
+
+    public GenotypeBuilder GQ(final double GQ) {
+        return GQ((int)Math.round(GQ));
+    }
+
+    public GenotypeBuilder noGQ() { GQ = -1; return this; }
+    public GenotypeBuilder noAD() { AD = null; return this; }
+    public GenotypeBuilder noDP() { DP = -1; return this; }
+    public GenotypeBuilder noPL() { PL = null; return this; }
 
     @Requires({"DP >= -1"})
     @Ensures({"this.DP == DP"})
@@ -179,8 +246,15 @@ public final class GenotypeBuilder {
         return this;
     }
 
+    @Requires("PL == null || PL.length > 0")
+    @Ensures({"this.PL == PL"})
+    public GenotypeBuilder PL(final double[] GLs) {
+        this.PL = GenotypeLikelihoods.fromLog10Likelihoods(GLs).getAsPLs();
+        return this;
+    }
+
     @Requires("attributes != null")
-    @Ensures("extendedAttributes != null")
+    @Ensures("attributes.isEmpty() || extendedAttributes != null")
     public GenotypeBuilder attributes(final Map<String, Object> attributes) {
         for ( Map.Entry<String, Object> pair : attributes.entrySet() )
             attribute(pair.getKey(), pair.getValue());
@@ -193,6 +267,17 @@ public final class GenotypeBuilder {
         if ( extendedAttributes == null )
             extendedAttributes = new HashMap<String, Object>(5);
         extendedAttributes.put(key, value);
+        return this;
+    }
+
+    public GenotypeBuilder filters(final List<String> filters) {
+        attribute(VCFConstants.GENOTYPE_FILTER_KEY, filters);
+        // TODO
+        return this;
+    }
+
+    public GenotypeBuilder maxAttributes(final int i) {
+        // TODO
         return this;
     }
 }
