@@ -1255,13 +1255,14 @@
         <antcall target="pipelinetest" inheritAll="false"/>
     </target>
 
-    <target name="gatkfull.binary.release.tests" depends="package.gatk.full,init.testgatkjar,unittest,integrationtest" />
+    <!-- Order of the dependencies is significant in the *.release.tests targets -->
+    <target name="gatkfull.binary.release.tests" depends="init.usecontracts,package.gatk.full,init.testgatkjar,unittest,integrationtest" />
 
-    <target name="gatklite.binary.release.tests" depends="package.gatk.lite,init.testgatkjar,unittest,integrationtest" />
+    <target name="gatklite.binary.release.tests" depends="init.usecontracts,package.gatk.lite,init.testgatkjar,unittest,integrationtest" />
 
-    <target name="queuefull.binary.release.tests" depends="package.queue.full,init.testqueuejar,pipelinetest" />
+    <target name="queuefull.binary.release.tests" depends="init.usecontracts,package.queue.full,init.testqueuejar,pipelinetest" />
 
-    <target name="queuelite.binary.release.tests" depends="package.queue.lite,init.testqueuejar,pipelinetest" />
+    <target name="queuelite.binary.release.tests" depends="init.usecontracts,package.queue.lite,init.testqueuejar,pipelinetest" />
 
 
     <!-- Our four different test types: UnitTest, IntegrationTest, LargeScaleTest, PipelineTest -->
