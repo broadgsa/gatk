@@ -1321,4 +1321,41 @@
         <run-test testtype="${report}/*PipelineTest/testng-failed.xml" outputdir="${report}/failed_rerun" runfailed="true"/>
     </target>
 
+
+    <!-- Fast test target that cuts major corners for speed. Requires that a full build has been done first. Java-only, single test class only -->
+    <!-- Usage: ant fasttest -Dsingle=TestClass -->
+    <target name="fasttest" depends="init.javaonly,init,test.init">
+        <condition property="not.clean">
+            <and>
+                <available file="${build.dir}" />
+                <available file="${lib.dir}" />
+                <available file="${dist.dir}" />
+                <available file="${java.test.classes}" />
+                <available file="${testng.jar}" />
+            </and>
+        </condition>
+        <fail message="fasttest requires a NON-CLEAN working directory (INCLUDING test classes). Do a full test build using ant test.compile first." unless="not.clean" />
+
+        <condition property="no.single.test.specified">
+            <equals arg1="${single}" arg2="$${single}" />
+        </condition>
+        <fail message="Must specify a specific test. Usage: ant fasttest -Dsingle=TestClass" if="no.single.test.specified" />
+
+        <javac fork="true" memoryMaximumSize="512m" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
+            <src refid="java.source.path" />
+            <compilerarg value="-proc:none" />
+        </javac>
+
+        <javac fork="true" memoryMaximumSize="512m" destdir="${java.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}">
+            <src refid="java.test.source.path" />
+            <classpath>
+                <path refid="external.dependencies" />
+                <pathelement location="${java.classes}"/>
+                <pathelement location="${testng.jar}"/>
+            </classpath>
+            <compilerarg value="-proc:none"/>
+        </javac>
+
+        <run-test testtype="${single}" outputdir="${report}/${single}" runfailed="false"/>
+    </target>
 </project>
