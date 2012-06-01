@@ -158,7 +158,7 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
         addNewOverlappingIntervals(refLocus);                                                                           // add all new intervals that may overlap this reference locus    
 
         for (IntervalStatistics intervalStatistics : intervalMap.values())
-            intervalStatistics.addLocus(context, ref, thresholds);                                                                       // Add current locus to stats
+            intervalStatistics.addLocus(context, ref, thresholds);                                                      // Add current locus to stats
 
         return 1L;
     }
@@ -312,7 +312,7 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
 
         // FILTER fields
         for (CallableStatus stat : CallableStatus.values())
-            headerLines.add(new VCFHeaderLine(stat.name(), stat.description));
+            headerLines.add(new VCFFilterHeaderLine(stat.name(), stat.description));
 
         return headerLines;
     }
