@@ -116,8 +116,14 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
         }
 
         // create the config offsets
-        for ( final VCFContigHeaderLine contig : header.getContigLines())
-            contigNames.add(contig.getID());
+        if ( ! header.getContigLines().isEmpty() ) {
+            logger.info("Found contig lines in BCF2 file, using those");
+            contigNames.clear();
+            for ( final VCFContigHeaderLine contig : header.getContigLines())
+                contigNames.add(contig.getID());
+        } else {
+            logger.info("Didn't find any contig lines in BCF2 file, falling back (dangerously) to GATK reference dictionary");
+        }
 
         // create the string dictionary
         dictionary = parseDictionary(header);

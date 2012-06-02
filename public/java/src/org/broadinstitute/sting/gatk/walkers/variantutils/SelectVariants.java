@@ -396,7 +396,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         if ( samples.size() == 0 && !NO_SAMPLES_SPECIFIED )
             throw new UserException("All samples requested to be included were also requested to be excluded.");
 
-        for ( String sample : samples )
+        if ( ! NO_SAMPLES_SPECIFIED )
+            for ( String sample : samples )
             logger.info("Including sample '" + sample + "'");
 
         // if user specified types to include, add these, otherwise, add all possible variant context types to list of vc types to include

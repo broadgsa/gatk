@@ -64,8 +64,9 @@ class BCF2Writer extends IndexingVariantContextWriter {
     // --------------------------------------------------------------------------------
 
     private final void createContigDictionary(final Collection<VCFContigHeaderLine> contigLines) {
-        for ( final VCFContigHeaderLine contig : contigLines )
-            contigDictionary.put(contig.getID(), contig.getContigIndex());
+        int offset = 0;
+        for ( VCFContigHeaderLine contig : contigLines )
+            contigDictionary.put(contig.getID(), offset++);
     }
 
     @Override
