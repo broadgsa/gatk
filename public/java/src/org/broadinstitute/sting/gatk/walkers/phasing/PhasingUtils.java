@@ -115,7 +115,7 @@ class PhasingUtils {
             if (phaseQual.PQ != null)
                 mergedGtAttribs.put(ReadBackedPhasingWalker.PQ_KEY, phaseQual.PQ);
 
-            Genotype mergedGt = new GenotypeBuilder(gt1.getSampleName(), mergedAllelesForSample).GQ(mergedGQ).attributes(mergedGtAttribs).phased(phaseQual.isPhased).make();
+            Genotype mergedGt = new GenotypeBuilder(gt1.getSampleName(), mergedAllelesForSample).log10PError(mergedGQ).attributes(mergedGtAttribs).phased(phaseQual.isPhased).make();
             mergedGenotypes.add(mergedGt);
         }
 

@@ -378,7 +378,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                 log10Error = genotype.getLikelihoods().getLog10GQ(phasedGenotype.getType());
 
             return new GenotypeBuilder(genotype).alleles(phasedAlleles)
-                    .GQ(log10Error)
+                    .log10PError(log10Error)
                     .attributes(genotypeAttributes)
                     .phased(phasedGenotype.isPhased()).make();
         }

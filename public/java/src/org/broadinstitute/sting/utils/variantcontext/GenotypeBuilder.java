@@ -168,11 +168,14 @@ public final class GenotypeBuilder {
         } else {
             final Map<String, Object> attributes = new LinkedHashMap<String, Object>();
             if ( extendedAttributes != null ) attributes.putAll(extendedAttributes);
-            final double log10PError = GQ != -1 ? GQ / -10.0 : SlowGenotype.NO_LOG10_PERROR;
+            final double log10PError = GQ == -1 ? SlowGenotype.NO_LOG10_PERROR : (GQ == 0 ? 0 : GQ / -10.0);
 
-            Set<String> filters = Collections.emptySet();
-            if ( extendedAttributes != null && extendedAttributes.containsKey(VCFConstants.GENOTYPE_FILTER_KEY) ) {
-                filters = new LinkedHashSet<String>((List<String>)extendedAttributes.get(VCFConstants.GENOTYPE_FILTER_KEY));
+            Set<String> filters = null;
+            if ( extendedAttributes != null && extendedAttributes.containsKey(VCFConstants.GENOTYPE_FILTER_KEY) )
+            {
+                final Object f = extendedAttributes.get(VCFConstants.GENOTYPE_FILTER_KEY);
+                if ( f != null )
+                    filters = new LinkedHashSet<String>((List<String>)f);
                 attributes.remove(VCFConstants.GENOTYPE_FILTER_KEY);
             }
 
@@ -216,8 +219,20 @@ public final class GenotypeBuilder {
         return this;
     }
 
-    public GenotypeBuilder GQ(final double GQ) {
-        return GQ((int)Math.round(GQ));
+    /**
+     * Adaptor interface from the pLog10Error system.
+     *
+     * Will be retired when
+     *
+     * @param pLog10Error
+     * @return
+     */
+    @Deprecated
+    public GenotypeBuilder log10PError(final double pLog10Error) {
+        if ( pLog10Error == CommonInfo.NO_LOG10_PERROR )
+            return GQ(-1);
+        else
+            return GQ((int)Math.round(pLog10Error * -10));
     }
 
     public GenotypeBuilder noGQ() { GQ = -1; return this; }
@@ -270,9 +285,17 @@ public final class GenotypeBuilder {
         return this;
     }
 
+    /**
+     * Tells this builder to make a Genotype object that has had filters applied,
+     * which may be empty (passes) or have some value indicating the reasons
+     * why it's been filtered.
+     *
+     * @param filters non-null list of filters.  empty list => PASS
+     * @return this builder
+     */
+    @Requires("filters != null")
     public GenotypeBuilder filters(final List<String> filters) {
         attribute(VCFConstants.GENOTYPE_FILTER_KEY, filters);
-        // TODO
         return this;
     }
 

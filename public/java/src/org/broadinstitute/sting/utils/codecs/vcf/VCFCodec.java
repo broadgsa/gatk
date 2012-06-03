@@ -214,7 +214,7 @@ public class VCFCodec extends AbstractVCFCodec {
                         // don't add missing values to the map
                     } else {
                         if (gtKey.equals(VCFConstants.GENOTYPE_QUALITY_KEY)) {
-                            gb.GQ(Double.valueOf(GTValueArray[i]));
+                            gb.GQ((int)Math.round(Double.valueOf(GTValueArray[i])));
                         } else if (gtKey.equals(VCFConstants.GENOTYPE_ALLELE_DEPTHS)) {
                             gb.AD(decodeInts(GTValueArray[i]));
                         } else if (gtKey.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY)) {

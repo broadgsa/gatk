@@ -181,10 +181,12 @@ public class VCF3Codec extends AbstractVCFCodec {
 
             // add it to the list
             try {
-                final Genotype g = new GenotypeBuilder(sampleName)
-                        .alleles(parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], alleles, alleleMap))
-                        .GQ(GTQual).filters(genotypeFilters).attributes(gtAttributes).phased(phased).make();
-                genotypes.add(g);
+                final GenotypeBuilder gb = new GenotypeBuilder(sampleName);
+                gb.alleles(parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], alleles, alleleMap));
+                gb.log10PError(GTQual);
+                if ( genotypeFilters != null ) gb.filters(genotypeFilters);
+                gb.attributes(gtAttributes).phased(phased);
+                genotypes.add(gb.make());
             } catch (TribbleException e) {
                 throw new TribbleException.InternalCodecException(e.getMessage() + ", at position " + chr+":"+pos);
             }

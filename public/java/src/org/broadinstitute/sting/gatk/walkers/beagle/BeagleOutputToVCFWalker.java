@@ -326,7 +326,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             else {
                 originalAttributes.put("OG",".");
             }
-            Genotype imputedGenotype = new GenotypeBuilder(g.getSampleName(), alleles).GQ(genotypeQuality).attributes(originalAttributes).phased(genotypeIsPhased).make();
+            Genotype imputedGenotype = new GenotypeBuilder(g.getSampleName(), alleles).log10PError(genotypeQuality).attributes(originalAttributes).phased(genotypeIsPhased).make();
             if ( imputedGenotype.isHet() || imputedGenotype.isHomVar() ) {
                 beagleVarCounts++;
             }

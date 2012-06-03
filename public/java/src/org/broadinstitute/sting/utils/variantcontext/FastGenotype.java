@@ -77,8 +77,7 @@ import java.util.*;
  * @author Mark DePristo
  * @since 05/12
  */
-public final class FastGenotype implements Genotype {
-    private final String sampleName;
+public final class FastGenotype extends Genotype {
     private final List<Allele> alleles;
     private final boolean isPhased;
     private final int GQ;
@@ -86,8 +85,6 @@ public final class FastGenotype implements Genotype {
     private final int[] AD;
     private final int[] PL;
     private final Map<String, Object> extendedAttributes;
-
-    private GenotypeType type = null;
 
     /**
      * The only way to make one of these, for use by GenotypeBuilder only
@@ -118,7 +115,7 @@ public final class FastGenotype implements Genotype {
                            final int[] AD,
                            final int[] PL,
                            final Map<String, Object> extendedAttributes) {
-        this.sampleName = sampleName;
+        super(sampleName);
         this.alleles = alleles;
         this.isPhased = isPhased;
         this.GQ = GQ;
@@ -130,333 +127,45 @@ public final class FastGenotype implements Genotype {
 
     // ---------------------------------------------------------------------------------------------------------
     //
-    // Basic getters
+    // Implmenting the abstract methods
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    /**
-     * @return the alleles for this genotype.  Cannot be null.  May be empty
-     */
-    @Ensures("result != null")
-    public List<Allele> getAlleles() {
+    @Override public List<Allele> getAlleles() {
         return alleles;
     }
 
-    /**
-     * Returns how many times allele appears in this genotype object?
-     *
-     * @param allele
-     * @return a value >= 0 indicating how many times the allele occurred in this sample's genotype
-     */
-    @Requires("allele != null")
-    @Ensures("result >= 0")
-    public int countAllele(final Allele allele) {
-        int c = 0;
-        for ( final Allele a : alleles )
-            if ( a.equals(allele) )
-                c++;
-
-        return c;
-    }
-
-    /**
-     * Get the ith allele in this genotype
-     *
-     * @param i the ith allele, must be < the ploidy, starting with 0
-     * @return the allele at position i, which cannot be null
-     */
-    @Requires("i >=0 && i < getPloidy()")
-    @Ensures("result != null")
-    public Allele getAllele(int i) {
-        if ( getType() == GenotypeType.UNAVAILABLE )
-            throw new ReviewedStingException("Requesting alleles for an UNAVAILABLE genotype");
+    @Override public Allele getAllele(int i) {
         return alleles.get(i);
     }
 
-    /**
-     * Are the alleles phased w.r.t. the global phasing system?
-     *
-     * @return true if yes
-     */
-    public boolean isPhased() {
+    @Override public boolean isPhased() {
         return isPhased;
     }
 
-    /**
-     * What is the ploidy of this sample?
-     *
-     * @return the ploidy of this genotype.  0 if the site is no-called.
-     */
-    @Ensures("result >= 0")
-    public int getPloidy() {
-        return alleles.size();
-    }
-
-    /**
-     * @return the sequencing depth of this sample, or -1 if this value is missing
-     */
-    @Ensures("result >= -1")
-    public int getDP() {
+    @Override public int getDP() {
         return DP;
     }
 
-    /**
-     * @return the count of reads, one for each allele in the surrounding Variant context,
-     *      matching the corresponding allele, or null if this value is missing.  MUST
-     *      NOT BE MODIFIED!
-     */
-    public int[] getAD() {
+    @Override public int[] getAD() {
         return AD;
     }
 
-    @Ensures("result != null")
-    public String getSampleName() {
-        return sampleName;
-    }
-
-    /**
-     * Returns a phred-scaled quality score, or -1 if none is available
-     * @return
-     */
-    @Ensures("result >= -1")
-    public int getGQ()  {
+    @Override public int getGQ()  {
         return GQ;
     }
 
-    // ---------------------------------------------------------------------------------------------------------
-    //
-    // The type of this genotype
-    //
-    // ---------------------------------------------------------------------------------------------------------
-
-    /**
-     * @return the high-level type of this sample's genotype
-     */
-    @Ensures({"type != null", "result != null"})
-    public GenotypeType getType() {
-        if ( type == null ) {
-            type = determineType();
-        }
-        return type;
+    @Override public List<String> getFilters() {
+        return (List<String>)getAttribute(VCFConstants.GENOTYPE_FILTER_KEY, Collections.emptyList());
     }
 
-    /**
-     * Internal code to determine the type of the genotype from the alleles vector
-     * @return the type
-     */
-    protected GenotypeType determineType() {
-        // TODO -- this code is slow and could be optimized for the diploid case
-        if ( alleles.isEmpty() )
-            return GenotypeType.UNAVAILABLE;
-
-        boolean sawNoCall = false, sawMultipleAlleles = false;
-        Allele observedAllele = null;
-
-        for ( Allele allele : alleles ) {
-            if ( allele.isNoCall() )
-                sawNoCall = true;
-            else if ( observedAllele == null )
-                observedAllele = allele;
-            else if ( !allele.equals(observedAllele) )
-                sawMultipleAlleles = true;
-        }
-
-        if ( sawNoCall ) {
-            if ( observedAllele == null )
-                return GenotypeType.NO_CALL;
-            return GenotypeType.MIXED;
-        }
-
-        if ( observedAllele == null )
-            throw new ReviewedStingException("BUG: there are no alleles present in this genotype but the alleles list is not null");
-
-        return sawMultipleAlleles ? GenotypeType.HET : observedAllele.isReference() ? GenotypeType.HOM_REF : GenotypeType.HOM_VAR;
-    }
-
-    /**
-     * @return true if all observed alleles are the same (regardless of whether they are ref or alt); if any alleles are no-calls, this method will return false.
-     */
-    public boolean isHom()    { return isHomRef() || isHomVar(); }
-
-    /**
-     * @return true if all observed alleles are ref; if any alleles are no-calls, this method will return false.
-     */
-    public boolean isHomRef() { return getType() == GenotypeType.HOM_REF; }
-
-    /**
-     * @return true if all observed alleles are alt; if any alleles are no-calls, this method will return false.
-     */
-    public boolean isHomVar() { return getType() == GenotypeType.HOM_VAR; }
-    
-    /**
-     * @return true if we're het (observed alleles differ); if the ploidy is less than 2 or if any alleles are no-calls, this method will return false.
-     */
-    public boolean isHet() { return getType() == GenotypeType.HET; }
-
-    /**
-     * @return true if this genotype is not actually a genotype but a "no call" (e.g. './.' in VCF); if any alleles are not no-calls (even if some are), this method will return false.
-     */
-    public boolean isNoCall() { return getType() == GenotypeType.NO_CALL; }
-
-    /**
-     * @return true if this genotype is comprised of any alleles that are not no-calls (even if some are).
-     */
-    public boolean isCalled() { return getType() != GenotypeType.NO_CALL && getType() != GenotypeType.UNAVAILABLE; }
-
-    /**
-     * @return true if this genotype is comprised of both calls and no-calls.
-     */
-    public boolean isMixed() { return getType() == GenotypeType.MIXED; }
-
-    /**
-     * @return true if the type of this genotype is set.
-     */
-    public boolean isAvailable() { return getType() != GenotypeType.UNAVAILABLE; }
-
-    // ------------------------------------------------------------------------------
-    //
-    // methods for getting genotype likelihoods for a genotype object, if present
-    //
-    // ------------------------------------------------------------------------------
-
-    /**
-     * @return Returns true if this Genotype has PL field values
-     */
-    public boolean hasLikelihoods() {
-        return PL != null;
-    }
-
-    /**
-     * Convenience function that returns a string representation of the PL field of this
-     * genotype, or . if none is available.
-     *
-     * @return a non-null String representation for the PL of this sample
-     */
-    @Ensures("result != null")
-    public String getLikelihoodsString() {
-        return hasLikelihoods() ? getLikelihoods().toString() : VCFConstants.MISSING_VALUE_v4;
-    }
-
-    /**
-     * Returns the GenotypesLikelihoods data associated with this Genotype, or null if missing
-     * @return null or a GenotypesLikelihood object for this sample's PL field
-     */
-    @Ensures({"hasLikelihoods() && result != null", "! hasLikelihoods() && result == null"})
-    public GenotypeLikelihoods getLikelihoods() {
-        return hasLikelihoods() ? GenotypeLikelihoods.fromPLs(getPL()) : null;
-    }
-
-    /**
-     * Unsafe low-level accessor the PL field itself, may be null.
-     *
-     * @return a pointer to the underlying PL data.  MUST NOT BE MODIFIED!
-     */
-    public int[] getPL() {
-        return PL;
-    }
-
-    // ---------------------------------------------------------------------------------------------------------
-    //
-    // Many different string representations
-    //
-    // ---------------------------------------------------------------------------------------------------------
-
-    /**
-     * Return a VCF-like string representation for the alleles of this genotype.
-     *
-     * Does not append the reference * marker on the alleles.
-     *
-     * @return a string representing the genotypes, or null if the type is unavailable.
-     */
-    @Ensures("result != null || ! isAvailable()")
-    public String getGenotypeString() {
-        return getGenotypeString(true);
-    }
-
-    private final static String PHASED_ALLELE_SEPARATOR = "|";
-    private final static String UNPHASED_ALLELE_SEPARATOR = "/";
-
-    /**
-     * Return a VCF-like string representation for the alleles of this genotype.
-     *
-     * If ignoreRefState is true, will not append the reference * marker on the alleles.
-     *
-     * @return a string representing the genotypes, or null if the type is unavailable.
-     */
-    @Ensures("result != null || ! isAvailable()")
-    public String getGenotypeString(boolean ignoreRefState) {
-        if ( alleles.size() == 0 )
-            return null;
-
-        // Notes:
-        // 1. Make sure to use the appropriate separator depending on whether the genotype is phased
-        // 2. If ignoreRefState is true, then we want just the bases of the Alleles (ignoring the '*' indicating a ref Allele)
-        // 3. So that everything is deterministic with regards to integration tests, we sort Alleles (when the genotype isn't phased, of course)
-        return ParsingUtils.join(isPhased() ? PHASED_ALLELE_SEPARATOR : UNPHASED_ALLELE_SEPARATOR,
-                ignoreRefState ? getAlleleStrings() : (isPhased() ? getAlleles() : ParsingUtils.sortList(getAlleles())));
-    }
-
-    /**
-     * Utility that returns a list of allele strings corresponding to the alleles in this sample
-     * @return
-     */
-    private List<String> getAlleleStrings() {
-        List<String> al = new ArrayList<String>();
-        for ( Allele a : alleles )
-            al.add(a.getBaseString());
-
-        return al;
-    }
-
-    public String toString() {
-        return String.format("[%s %s%s%s%s%s%s]",
-                getSampleName(),
-                getGenotypeString(false),
-                toStringIfExists(VCFConstants.GENOTYPE_QUALITY_KEY, GQ),
-                toStringIfExists(VCFConstants.DEPTH_KEY, DP),
-                toStringIfExists(VCFConstants.GENOTYPE_ALLELE_DEPTHS, AD),
-                toStringIfExists(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, PL),
-                sortedString(getExtendedAttributes()));
-    }
-
-    public String toBriefString() {
-        return String.format("%s:Q%d", getGenotypeString(false), getGQ());
-    }
-
-    // ---------------------------------------------------------------------------------------------------------
-    //
-    // Comparison operations
-    //
-    // ---------------------------------------------------------------------------------------------------------
-
-    /**
-     * comparable genotypes -> compareTo on the sample names
-     * @param genotype
-     * @return
-     */
     @Override
-    public int compareTo(final Genotype genotype) {
-        return getSampleName().compareTo(genotype.getSampleName());
+    public boolean filtersWereApplied() {
+        return hasAttribute(VCFConstants.GENOTYPE_FILTER_KEY);
     }
 
-    public boolean sameGenotype(final Genotype other) {
-        return sameGenotype(other, true);
-    }
-
-    public boolean sameGenotype(final Genotype other, boolean ignorePhase) {
-        if (getPloidy() != other.getPloidy())
-            return false; // gotta have the same number of allele to be equal
-
-        // By default, compare the elements in the lists of alleles, element-by-element
-        Collection<Allele> thisAlleles = this.getAlleles();
-        Collection<Allele> otherAlleles = other.getAlleles();
-
-        if (ignorePhase) { // do not care about order, only identity of Alleles
-            thisAlleles = new TreeSet<Allele>(thisAlleles);   //implemented Allele.compareTo()
-            otherAlleles = new TreeSet<Allele>(otherAlleles);
-        }
-
-        return thisAlleles.equals(otherAlleles);
+    @Override public int[] getPL() {
+        return PL;
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -465,134 +174,8 @@ public final class FastGenotype implements Genotype {
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    /**
-     * Returns the extended attributes for this object
-     * @return is never null, but is often isEmpty()
-     */
-    @Ensures("result != null")
     public Map<String, Object> getExtendedAttributes() {
         return extendedAttributes;
-    }
-
-    /**
-     * Is key associated with a value (even a null one) in the extended attributes?
-     *
-     * Note this will not return true for the inline attributes DP, GQ, AD, or PL
-     *
-     * @param key a non-null string key to check for an association
-     * @return true if key has a value in the extendedAttributes
-     */
-    @Requires("key != null")
-    public boolean hasAttribute(final String key) {
-        return extendedAttributes.containsKey(key);
-    }
-
-    /**
-     * Get the extended attribute value associated with key, if possible
-     *
-     * @param key a non-null string key to fetch a value for
-     * @param defaultValue the value to return if key isn't in the extended attributes
-     * @return a value (potentially) null associated with key, or defaultValue if no association exists
-     */
-    @Requires("key != null")
-    @Ensures("hasAttribute(key) || result == defaultValue")
-    public Object getAttribute(final String key, final Object defaultValue) {
-        return hasAttribute(key) ? extendedAttributes.get(key) : defaultValue;
-    }
-
-    @Override
-    public Object getAttribute(final String key) {
-        return getAttribute(key, null);
-    }
-
-    // TODO -- add getAttributesAsX interface here
-
-    // ------------------------------------------------------------------------------
-    //
-    // private utilities
-    //
-    // ------------------------------------------------------------------------------
-
-    /**
-     * a utility method for generating sorted strings from a map key set.
-     * @param c the map
-     * @param <T> the key type
-     * @param <V> the value type
-     * @return a sting, enclosed in {}, with comma seperated key value pairs in order of the keys
-     */
-    @Requires("c != null")
-    private static <T extends Comparable<T>, V> String sortedString(Map<T, V> c) {
-
-        // NOTE -- THIS IS COPIED FROM GATK UTILS TO ALLOW US TO KEEP A SEPARATION BETWEEN THE GATK AND VCF CODECS
-        final List<T> t = new ArrayList<T>(c.keySet());
-        Collections.sort(t);
-
-        final List<String> pairs = new ArrayList<String>();
-        for (final T k : t) {
-            pairs.add(k + "=" + c.get(k));
-        }
-
-        return "{" + ParsingUtils.join(", ", pairs.toArray(new String[pairs.size()])) + "}";
-    }
-
-    /**
-     * Returns a display name for field name with value v if this isn't -1.  Otherwise returns ""
-     * @param name of the field ("AD")
-     * @param v the value of the field, or -1 if missing
-     * @return a non-null string for display if the field is not missing
-     */
-    @Requires("name != null")
-    @Ensures("result != null")
-    private final static String toStringIfExists(final String name, final int v) {
-        return v == -1 ? "" : " " + name + " " + v;
-    }
-
-    /**
-     * Returns a display name for field name with values vs if this isn't null.  Otherwise returns ""
-     * @param name of the field ("AD")
-     * @param vs the value of the field, or null if missing
-     * @return a non-null string for display if the field is not missing
-     */
-    @Requires("name != null")
-    @Ensures("result != null")
-    private final static String toStringIfExists(final String name, final int[] vs) {
-        if ( vs == null )
-            return "";
-        else {
-            StringBuilder b = new StringBuilder();
-            b.append(" ").append(name).append(" ");
-            for ( int i = 0; i < vs.length; i++ ) {
-                if ( i != 0 ) b.append(",");
-                b.append(vs[i]);
-            }
-            return b.toString();
-        }
-    }
-
-    /**
-     * A list of genotype field keys corresponding to values we
-     * manage inline in the Genotype object.  They must not appear in the
-     * extended attributes map
-     */
-    public final static Collection<String> PRIMARY_KEYS = Arrays.asList(
-            VCFConstants.GENOTYPE_KEY,
-            VCFConstants.GENOTYPE_QUALITY_KEY,
-            VCFConstants.DEPTH_KEY,
-            VCFConstants.GENOTYPE_ALLELE_DEPTHS,
-            VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
-
-    /**
-     * Does the attribute map have a mapping involving a forbidden key (i.e.,
-     * one that's managed inline by this Genotypes object?
-     *
-     * @param attributes the extended attributes key
-     * @return
-     */
-    private final static boolean hasForbiddenKey(final Map<String, Object> attributes) {
-        for ( final String forbidden : PRIMARY_KEYS)
-            if ( attributes.containsKey(forbidden) )
-                return true;
-        return false;
     }
 
     /**
@@ -606,45 +189,5 @@ public final class FastGenotype implements Genotype {
                 if ( v < 0 )
                     return false;
         return true;
-    }
-
-    @Override public boolean hasPL() { return PL != null; }
-    @Override public boolean hasAD() { return AD != null; }
-    @Override public boolean hasGQ() { return GQ != -1; }
-    @Override public boolean hasDP() { return DP != -1; }
-
-    // TODO -- remove me
-    @Override public List<String> getFilters() {
-        return (List<String>)getAttribute(VCFConstants.GENOTYPE_FILTER_KEY, Collections.emptyList());
-    }
-    @Override public boolean isFiltered() { return false; }
-    @Override public boolean filtersWereApplied() { return false; }
-    @Override public boolean hasLog10PError() { return hasGQ(); }
-    @Override public double getLog10PError() { return getGQ() / -10.0; }
-
-    @Override public int getPhredScaledQual() { return getGQ(); }
-
-    @Override
-    public String getAttributeAsString(String key, String defaultValue) {
-        Object x = getAttribute(key);
-        if ( x == null ) return defaultValue;
-        if ( x instanceof String ) return (String)x;
-        return String.valueOf(x); // throws an exception if this isn't a string
-    }
-
-    @Override
-    public int getAttributeAsInt(String key, int defaultValue) {
-        Object x = getAttribute(key);
-        if ( x == null || x == VCFConstants.MISSING_VALUE_v4 ) return defaultValue;
-        if ( x instanceof Integer ) return (Integer)x;
-        return Integer.valueOf((String)x); // throws an exception if this isn't a string
-    }
-
-    @Override
-    public double getAttributeAsDouble(String key, double defaultValue) {
-        Object x = getAttribute(key);
-        if ( x == null ) return defaultValue;
-        if ( x instanceof Double ) return (Double)x;
-        return Double.valueOf((String)x); // throws an exception if this isn't a string
     }
 }
