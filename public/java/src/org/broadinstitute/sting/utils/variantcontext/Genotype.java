@@ -265,6 +265,7 @@ public abstract class Genotype implements Comparable<Genotype> {
     /**
      * @return Returns true if this Genotype has PL field values
      */
+    @Ensures("(result && getLikelihoods() != null) || (! result && getLikelihoods() == null)")
     public boolean hasLikelihoods() {
         return getPL() != null;
     }
@@ -284,7 +285,7 @@ public abstract class Genotype implements Comparable<Genotype> {
      * Returns the GenotypesLikelihoods data associated with this Genotype, or null if missing
      * @return null or a GenotypesLikelihood object for this sample's PL field
      */
-    @Ensures({"hasLikelihoods() && result != null", "! hasLikelihoods() && result == null"})
+    @Ensures("(hasLikelihoods() && result != null) || (! hasLikelihoods() && result == null)")
     public GenotypeLikelihoods getLikelihoods() {
         return hasLikelihoods() ? GenotypeLikelihoods.fromPLs(getPL()) : null;
     }

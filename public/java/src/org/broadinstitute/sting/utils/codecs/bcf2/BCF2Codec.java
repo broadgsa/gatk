@@ -51,6 +51,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
     private final BCF2Decoder decoder = new BCF2Decoder();
     private boolean skipGenotypes = false;
     private final static int MAX_HEADER_SIZE = 0x08000000;
+    private BCF2GenotypeFieldDecoders gtFieldDecoders = null;
 
     // ----------------------------------------------------------------------
     //
@@ -127,6 +128,9 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
 
         // create the string dictionary
         dictionary = parseDictionary(header);
+
+        // prepare the genotype field decoders
+        gtFieldDecoders = new BCF2GenotypeFieldDecoders(header);
 
         // position right before next line (would be right before first real record byte at end of header)
         return new FeatureCodecHeader(header, inputStream.getPosition());
@@ -216,7 +220,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
         return new SitesInfoForDecoding(pos, nFormatFields, nSamples, alleles);
     }
 
-    private final static class SitesInfoForDecoding {
+    protected final static class SitesInfoForDecoding {
         final int pos;
         final int nFormatFields;
         final int nSamples;
@@ -361,6 +365,7 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
         }
     }
 
+
     private final ArrayList<String> parseDictionary(final VCFHeader header) {
         final ArrayList<String> dict = BCF2Utils.makeDictionary(header);
 
@@ -373,5 +378,9 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
 
     protected VCFHeader getHeader() {
         return header;
+    }
+
+    protected BCF2GenotypeFieldDecoders.Decoder getGenotypeFieldDecoder(final String field) {
+        return gtFieldDecoders.getDecoder(field);
     }
 }
