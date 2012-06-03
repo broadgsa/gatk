@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 
-import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
