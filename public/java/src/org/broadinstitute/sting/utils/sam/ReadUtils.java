@@ -447,7 +447,7 @@ public class ReadUtils {
 
             if (goalReached) {
                 // Is this base's reference position within this cigar element? Or did we use it all?
-                boolean endsWithinCigar = shift <= cigarElement.getLength();
+                boolean endsWithinCigar = shift < cigarElement.getLength();
 
                 // If it isn't, we need to check the next one. There should *ALWAYS* be a next one
                 // since we checked if the goal coordinate is within the read length, so this is just a sanity check.

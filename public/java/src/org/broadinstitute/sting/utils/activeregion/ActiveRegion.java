@@ -58,9 +58,9 @@ public class ActiveRegion implements HasGenomeLocation, Comparable<ActiveRegion>
     }
 
     public byte[] getActiveRegionReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
-        return referenceReader.getSubsequenceAt( activeRegionLoc.getContig(),
-                Math.max(1, activeRegionLoc.getStart() - padding),
-                Math.min(referenceReader.getSequenceDictionary().getSequence(activeRegionLoc.getContig()).getSequenceLength(), activeRegionLoc.getStop() + padding) ).getBases();
+        return referenceReader.getSubsequenceAt( extendedLoc.getContig(),
+                Math.max(1, extendedLoc.getStart() - padding),
+                Math.min(referenceReader.getSequenceDictionary().getSequence(extendedLoc.getContig()).getSequenceLength(), extendedLoc.getStop() + padding) ).getBases();
     }
 
     public byte[] getFullReference( final IndexedFastaSequenceFile referenceReader ) {
