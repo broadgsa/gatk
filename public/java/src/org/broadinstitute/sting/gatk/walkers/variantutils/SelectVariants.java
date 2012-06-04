@@ -315,6 +315,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(fullName="fullyDecode", doc="If true, the incoming VariantContext will be fully decoded", required=false)
     private boolean fullyDecode = false;
 
+    @Hidden
+    @Argument(fullName="forceGenotypesDecode", doc="If true, the incoming VariantContext will have its genotypes forcibly decoded by computing AC across all genotypes.  For efficiency testing only", required=false)
+    private boolean forceGenotypesDecode = false;
+
+
     /* Private class used to store the intermediate variants in the integer random selection process */
     private class RandomVariantStructure {
         private VariantContext vc;
@@ -495,7 +500,14 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         }
 
         for (VariantContext vc : vcs) {
-            if ( fullyDecode ) vc = vc.fullyDecode(vcfRods.get(vc.getSource()));
+            // an option for performance testing only
+            if ( fullyDecode )
+                vc = vc.fullyDecode(vcfRods.get(vc.getSource()));
+
+            // an option for performance testing only
+            if ( forceGenotypesDecode )
+                logger.info("forceGenotypesDecode with getCalledChrCount() = " + vc.getCalledChrCount());
+
             if ( IDsToKeep != null && ! IDsToKeep.contains(vc.getID()) )
                 continue;
 
