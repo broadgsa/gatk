@@ -208,9 +208,9 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
         final int nAlleleInfo = decoder.decodeInt(BCF2Type.INT32);
         final int nFormatSamples = decoder.decodeInt(BCF2Type.INT32);
         final int nAlleles = nAlleleInfo >> 16;
-        final int nInfo = nAlleleInfo & 0x00FF;
-        final int nFormatFields = nFormatSamples >>  24;
-        final int nSamples = nFormatSamples & 0x0FFF;
+        final int nInfo = nAlleleInfo & 0x0000FFFF;
+        final int nFormatFields = nFormatSamples >> 24;
+        final int nSamples = nFormatSamples & 0x00FFFFF;
 
         decodeID(builder);
         final ArrayList<Allele> alleles = decodeAlleles(builder, pos, nAlleles);

@@ -169,8 +169,8 @@ class BCF2Writer extends IndexingVariantContextWriter {
         final int nGenotypeFormatFields = getNGenotypeFormatFields(vc);
         final int nSamples = vc.getNSamples();
 
-        encoder.encodeRawInt((nAlleles << 16) | (nInfo & 0x00FF), BCF2Type.INT32);
-        encoder.encodeRawInt((nGenotypeFormatFields << 24) | (nSamples & 0x0FFF), BCF2Type.INT32);
+        encoder.encodeRawInt((nAlleles << 16) | (nInfo & 0x0000FFFF), BCF2Type.INT32);
+        encoder.encodeRawInt((nGenotypeFormatFields << 24) | (nSamples & 0x00FFFFF), BCF2Type.INT32);
 
         buildID(vc);
         buildAlleles(vc);
