@@ -191,12 +191,12 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
     // --------------------------------------------------------------------------------
 
     private final SitesInfoForDecoding decodeSitesBlock(final VariantContextBuilder builder) {
-        final int contigOffset = decoder.decodeInt(BCF2Type.INT32.getSizeInBytes());
+        final int contigOffset = decoder.decodeInt(BCF2Type.INT32);
         final String contig = lookupContigName(contigOffset);
         builder.chr(contig);
 
-        final int pos = decoder.decodeInt(BCF2Type.INT32.getSizeInBytes());
-        final int refLength = decoder.decodeInt(BCF2Type.INT32.getSizeInBytes());
+        final int pos = decoder.decodeInt(BCF2Type.INT32);
+        final int refLength = decoder.decodeInt(BCF2Type.INT32);
         builder.start((long)pos);
         builder.stop((long)(pos + refLength - 1)); // minus one because of our open intervals
 
@@ -205,8 +205,8 @@ public class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDepende
             builder.log10PError(((Double)qual) / -10.0);
         }
 
-        final int nAlleleInfo = decoder.decodeInt(BCF2Type.INT32.getSizeInBytes());
-        final int nFormatSamples = decoder.decodeInt(BCF2Type.INT32.getSizeInBytes());
+        final int nAlleleInfo = decoder.decodeInt(BCF2Type.INT32);
+        final int nFormatSamples = decoder.decodeInt(BCF2Type.INT32);
         final int nAlleles = nAlleleInfo >> 16;
         final int nInfo = nAlleleInfo & 0x00FF;
         final int nFormatFields = nFormatSamples >>  24;

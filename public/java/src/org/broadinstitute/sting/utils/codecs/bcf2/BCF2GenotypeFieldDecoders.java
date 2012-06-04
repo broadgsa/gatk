@@ -102,27 +102,29 @@ public class BCF2GenotypeFieldDecoders {
     private class GTDecoder implements Decoder {
         @Override
         public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final List<GenotypeBuilder> gbs) {
+            // we have to do a bit of low-level processing here as we want to know the size upfronta
+            final int size = decoder.decodeNumberOfElements(typeDescriptor);
+            final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
+
+            // a single cache for the encoded genotypes, since we don't actually need this vector
+            final int[] tmp = new int[size];
+
+            // TODO -- fast path for size == 2 (diploid) and many samples
+            // TODO -- by creating all 4 allele combinations and doing a straight lookup instead of allocations them
             for ( final GenotypeBuilder gb : gbs ) {
-                // TODO -- fast path for size == 2 (diploid)
-                final List<Integer> encoded = (List<Integer>)decoder.decodeTypedValue(typeDescriptor);
+                final int[] encoded = decoder.decodeIntArray(size, type, tmp);
                 if ( encoded == null )
                     // no called sample GT = .
                     gb.alleles(null);
                 else {
-                    // we have at least some alleles to decode
-                    final List<Allele> gt = new ArrayList<Allele>(encoded.size());
+                    assert encoded.length > 0;
 
-                    for ( final Integer encode : encoded ) {
-                        if ( encode == null ) {
-                            // absent, as are all following by definition
-                            break;
-                        } else {
-                            final int offset = encode >> 1;
-                            if ( offset == 0 )
-                                gt.add(Allele.NO_CALL);
-                            else
-                                gt.add(siteAlleles.get(offset - 1));
-                        }
+                    // we have at least some alleles to decode
+                    final List<Allele> gt = new ArrayList<Allele>(encoded.length);
+
+                    for ( final int encode : encoded ) {
+                        final int offset = encode >> 1;
+                        gt.add(offset == 0 ? Allele.NO_CALL : siteAlleles.get(offset - 1));
                     }
 
                     gb.alleles(gt);
@@ -135,9 +137,8 @@ public class BCF2GenotypeFieldDecoders {
         @Override
         public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final List<GenotypeBuilder> gbs) {
             for ( final GenotypeBuilder gb : gbs ) {
-                final Object value = decoder.decodeTypedValue(typeDescriptor);
-                if ( value != null )
-                    gb.DP((Integer)value);
+                // the -1 is for missing
+                gb.DP(decoder.decodeInt(typeDescriptor, -1));
             }
         }
     }
@@ -146,9 +147,8 @@ public class BCF2GenotypeFieldDecoders {
         @Override
         public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final List<GenotypeBuilder> gbs) {
             for ( final GenotypeBuilder gb : gbs ) {
-                final Object value = decoder.decodeTypedValue(typeDescriptor);
-                if ( value != null )
-                    gb.GQ((Integer)value);
+                // the -1 is for missing
+                gb.GQ(decoder.decodeInt(typeDescriptor, -1));
             }
         }
     }
@@ -157,9 +157,7 @@ public class BCF2GenotypeFieldDecoders {
         @Override
         public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final List<GenotypeBuilder> gbs) {
             for ( final GenotypeBuilder gb : gbs ) {
-                final int[] AD = decodeIntArray(decoder.decodeTypedValue(typeDescriptor));
-                if ( AD != null )
-                    gb.AD(AD);
+                gb.AD(decoder.decodeIntArray(typeDescriptor));
             }
         }
     }
@@ -168,9 +166,7 @@ public class BCF2GenotypeFieldDecoders {
         @Override
         public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final List<GenotypeBuilder> gbs) {
             for ( final GenotypeBuilder gb : gbs ) {
-                final int[] PL = decodeIntArray(decoder.decodeTypedValue(typeDescriptor));
-                if ( PL != null )
-                    gb.PL(PL);
+                gb.PL(decoder.decodeIntArray(typeDescriptor));
             }
         }
     }
@@ -188,8 +184,13 @@ public class BCF2GenotypeFieldDecoders {
             for ( final GenotypeBuilder gb : gbs ) {
                 Object value = decoder.decodeTypedValue(typeDescriptor);
                 if ( value != null ) { // don't add missing values
-                    if ( value instanceof List && ((List)value).size() == 1)
+                    if ( value instanceof List && ((List)value).size() == 1) {
+                        // todo -- I really hate this, and it suggests that the code isn't completely right
+                        // the reason it's here is that it's possible to prune down a vector to a singleton
+                        // value and there we have the contract that the value comes back as an atomic value
+                        // not a vector of size 1
                         value = ((List)value).get(0);
+                    }
                     gb.attribute(field, value);
                 }
             }

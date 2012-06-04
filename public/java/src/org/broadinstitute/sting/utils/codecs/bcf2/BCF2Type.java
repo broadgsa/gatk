@@ -24,6 +24,8 @@
 
 package org.broadinstitute.sting.utils.codecs.bcf2;
 
+import java.util.EnumSet;
+
 /**
  * BCF2 types and information
  *
@@ -67,4 +69,6 @@ public enum BCF2Type {
     public final boolean withinRange(final long v) { return v >= minValue && v <= maxValue; }
     public Object getMissingJavaValue() { return missingJavaValue; }
     public int getMissingBytes() { return missingBytes; }
+
+    public final static EnumSet<BCF2Type> INTEGERS = EnumSet.of(INT8, INT16, INT32);
 }

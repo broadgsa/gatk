@@ -56,7 +56,8 @@ class BCF2LazyGenotypesDecoder implements LazyGenotypesContext.LazyParser {
 
     @Override
     public LazyGenotypesContext.LazyData parse(final Object data) {
-        logger.info("Decoding BCF genotypes for " + nSamples + " samples with " + nFields + " fields each");
+        if ( logger.isDebugEnabled() )
+            logger.debug("Decoding BCF genotypes for " + nSamples + " samples with " + nFields + " fields each");
 
         // load our byte[] data into the decoder
         final BCF2Decoder decoder = new BCF2Decoder(((BCF2Codec.LazyData)data).bytes);
