@@ -198,8 +198,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             return 0;
 
         for ( VariantContext vc : tracker.getValues(variants, context.getLocation())) {
-            nRecords++;
             if ( showFiltered || vc.isNotFiltered() ) {
+                nRecords++;
                 for ( final List<String> record : extractFields(vc, fieldsToTake, genotypeFieldsToTake, samples, ALLOW_MISSING_DATA, splitMultiAllelic) ) {
                     if ( moltenizeOutput )
                         emitMoltenizedOutput(record);
