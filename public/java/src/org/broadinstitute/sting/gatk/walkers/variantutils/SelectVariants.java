@@ -319,6 +319,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(fullName="forceGenotypesDecode", doc="If true, the incoming VariantContext will have its genotypes forcibly decoded by computing AC across all genotypes.  For efficiency testing only", required=false)
     private boolean forceGenotypesDecode = false;
 
+    @Hidden
+    @Argument(fullName="justRead", doc="If true, we won't actually write the output file.  For efficiency testing only", required=false)
+    private boolean justRead = false;
+
 
     /* Private class used to store the intermediate variants in the integer random selection process */
     private class RandomVariantStructure {
@@ -505,8 +509,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                 vc = vc.fullyDecode(vcfRods.get(vc.getSource()));
 
             // an option for performance testing only
-            if ( forceGenotypesDecode )
-                logger.info("forceGenotypesDecode with getCalledChrCount() = " + vc.getCalledChrCount());
+            if ( forceGenotypesDecode ) {
+                final int x = vc.getCalledChrCount();
+                //logger.info("forceGenotypesDecode with getCalledChrCount() = " + );
+            }
 
             if ( IDsToKeep != null && ! IDsToKeep.contains(vc.getID()) )
                 continue;
@@ -572,7 +578,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                         randomlyAddVariant(++variantNumber, sub);
                     }
                     else if (!SELECT_RANDOM_FRACTION || ( GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
-                        vcfWriter.add(sub);
+                        if ( ! justRead )
+                            vcfWriter.add(sub);
                     }
                 }
             }
