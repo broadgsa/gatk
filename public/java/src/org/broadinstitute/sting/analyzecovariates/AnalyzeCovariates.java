@@ -193,7 +193,7 @@ public class AnalyzeCovariates extends CommandLineProgram {
         requestedCovariates = new ArrayList<Covariate>();
 
         try {
-            for ( String line : new XReadLines(new File( RECAL_FILE )) ) {
+            for ( final String line : new XReadLines(new File( RECAL_FILE )) ) {
                 lineNumber++;
                 if( COMMENT_PATTERN.matcher(line).matches() || OLD_RECALIBRATOR_HEADER.matcher(line).matches() || line.equals(EOF_MARKER) )  {
                     ; // Skip over the comment lines, (which start with '#')
@@ -271,7 +271,7 @@ public class AnalyzeCovariates extends CommandLineProgram {
             key[iii] = cov.getValue( vals[iii] );
         }
         // Create a new datum using the number of observations, number of mismatches, and reported quality score
-        RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ), 0.0 );
+        final RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ), 0.0 );
         // Add that datum to all the collapsed tables which will be used in the sequential calculation
         dataManager.addToAllTables( key, datum, IGNORE_QSCORES_LESS_THAN );
     }
@@ -281,11 +281,11 @@ public class AnalyzeCovariates extends CommandLineProgram {
         int numReadGroups = 0;
 
         // for each read group
-        for( Object readGroupKey : dataManager.getCollapsedTable(0).data.keySet() ) {
+        for( final Object readGroupKey : dataManager.getCollapsedTable(0).data.keySet() ) {
 
-            if(NUM_READ_GROUPS_TO_PROCESS == -1 || ++numReadGroups <= NUM_READ_GROUPS_TO_PROCESS) {
-                String readGroup = readGroupKey.toString();
-                RecalDatum readGroupDatum = (RecalDatum) dataManager.getCollapsedTable(0).data.get(readGroupKey);
+            if( NUM_READ_GROUPS_TO_PROCESS == -1 || ++numReadGroups <= NUM_READ_GROUPS_TO_PROCESS ) {
+                final String readGroup = readGroupKey.toString();
+                final RecalDatum readGroupDatum = (RecalDatum) dataManager.getCollapsedTable(0).data.get(readGroupKey);
                 logger.info(String.format(
                         "Writing out data tables for read group: %s\twith %s observations\tand aggregate residual error = %.3f",
                         readGroup, readGroupDatum.getNumObservations(),
@@ -308,9 +308,9 @@ public class AnalyzeCovariates extends CommandLineProgram {
                         // Output the header
                         output.println("Covariate\tQreported\tQempirical\tnMismatches\tnBases");
 
-                        for( Object covariateKey : ((Map)dataManager.getCollapsedTable(iii).data.get(readGroupKey)).keySet()) {
+                        for( final Object covariateKey : ((Map)dataManager.getCollapsedTable(iii).data.get(readGroupKey)).keySet() ) {
                             output.print( covariateKey.toString() + "\t" );                                                     // Covariate
-                            RecalDatum thisDatum = (RecalDatum)((Map)dataManager.getCollapsedTable(iii).data.get(readGroupKey)).get(covariateKey);
+                            final RecalDatum thisDatum = (RecalDatum)((Map)dataManager.getCollapsedTable(iii).data.get(readGroupKey)).get(covariateKey);
                             output.print( String.format("%.3f", thisDatum.getEstimatedQReported()) + "\t" );                    // Qreported
                             output.print( String.format("%.3f", thisDatum.empiricalQualDouble(0, MAX_QUALITY_SCORE)) + "\t" );  // Qempirical
                             output.print( thisDatum.getNumMismatches() + "\t" );                                                // nMismatches

@@ -63,7 +63,7 @@ public class AnalysisDataManager {
      */
     public final void addToAllTables( final Object[] key, final RecalDatum fullDatum, final int IGNORE_QSCORES_LESS_THAN ) {
 
-        int qscore = Integer.parseInt( key[1].toString() );
+        final int qscore = Integer.parseInt( key[1].toString() );
         RecalDatum collapsedDatum;
         final Object[] readGroupCollapsedKey = new Object[1];
         final Object[] covariateCollapsedKey = new Object[2];
