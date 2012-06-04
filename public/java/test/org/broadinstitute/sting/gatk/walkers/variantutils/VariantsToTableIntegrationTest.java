@@ -33,7 +33,7 @@ import java.util.*;
 public class VariantsToTableIntegrationTest extends WalkerTest {
     private String variantsToTableCmd(String moreArgs) {
         return "-R " + hg18Reference +
-                " --variant:vcf " + testDir + "/soap_gatk_annotated.vcf" +
+                " --variant:vcf " + testDir + "soap_gatk_annotated.vcf" +
                 " -T VariantsToTable" +
                 " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F FILTER -F TRANSITION -F DP -F SB -F set -F RankSumP -F refseq.functionalClass*" +
                 " -L chr1 -o %s" + moreArgs;
@@ -41,7 +41,7 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
 
     private String variantsToTableMultiAllelicCmd(String moreArgs) {
         return "-R " + b37KGReference +
-                " --variant " + testDir + "/multiallelic.vcf" +
+                " --variant " + testDir + "multiallelic.vcf" +
                 " -T VariantsToTable" +
                 " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F MULTI-ALLELIC -F AC -F AF" +
                 " -o %s" + moreArgs;
@@ -51,7 +51,7 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
     public void testComplexVariantsToTable() {
         WalkerTestSpec spec = new WalkerTestSpec(variantsToTableCmd(" -AMD"),
                 Arrays.asList("e8f771995127b727fb433da91dd4ee98"));
-        executeTest("testComplexVariantsToTable", spec).getFirst();
+        executeTest("testComplexVariantsToTable", spec);
     }
 
     @Test(enabled = true)
@@ -64,13 +64,68 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
     public void testMultiAllelicOneRecord() {
         WalkerTestSpec spec = new WalkerTestSpec(variantsToTableMultiAllelicCmd(""),
                 Arrays.asList("13dd36c08be6c800f23988e6000d963e"));
-        executeTest("testMultiAllelicOneRecord", spec).getFirst();
+        executeTest("testMultiAllelicOneRecord", spec);
     }
 
     @Test(enabled = true)
     public void testMultiAllelicSplitRecords() {
         WalkerTestSpec spec = new WalkerTestSpec(variantsToTableMultiAllelicCmd(" -SMA"),
                 Arrays.asList("17a0fc80409d2fc00ad2bbb94b3a346b"));
-        executeTest("testMultiAllelicSplitRecords", spec).getFirst();
+        executeTest("testMultiAllelicSplitRecords", spec);
+    }
+
+    @Test(enabled = true)
+    public void testGenotypeFields() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-R " + b36KGReference +
+                " --variant " + testDir + "vcfexample2.vcf" +
+                " -T VariantsToTable" +
+                " -GF RD" +
+                " -o %s",
+                1,
+                Arrays.asList("f80c4714d83226b6a6db8bf281b3bcba"));
+        executeTest("testGenotypeFields", spec);
+    }
+
+    @Test(enabled = true)
+    public void testMoltenOutput() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-R " + b36KGReference +
+                        " --variant " + testDir + "vcfexample2.vcf" +
+                        " -T VariantsToTable" +
+                        " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F FILTER" +
+                        " --moltenize" +
+                        " -o %s",
+                1,
+                Arrays.asList("30047a5e78a7f523bd2872ac8baccc0e"));
+        executeTest("testMoltenOutput", spec);
+    }
+
+    @Test(enabled = true)
+    public void testMoltenOutputWithGenotypeFields() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-R " + b36KGReference +
+                        " --variant " + testDir + "vcfexample2.vcf" +
+                        " -T VariantsToTable" +
+                        " -GF RD" +
+                        " --moltenize" +
+                        " -o %s",
+                1,
+                Arrays.asList("132890fd33d16946e04b41cfd7453c0e"));
+        executeTest("testMoltenOutputWithGenotypeFields", spec);
+    }
+
+    @Test(enabled = true)
+    public void testMoltenOutputWithMultipleAlleles() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-R " + b37KGReference +
+                        " --variant " + testDir + "multiallelic.vcf" +
+                        " -T VariantsToTable" +
+                        " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F MULTI-ALLELIC -F AC -F AF" +
+                        " --moltenize -SMA" +
+                        " -o %s",
+                1,
+                Arrays.asList("c131e2c3cfb673c456cb160bda476101"));
+        executeTest("testMoltenOutputWithMultipleAlleles", spec);
     }
 }

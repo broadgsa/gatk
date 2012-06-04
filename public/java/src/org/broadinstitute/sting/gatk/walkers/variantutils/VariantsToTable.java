@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
@@ -111,13 +110,16 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
     /**
      * -F NAME can be any standard VCF column (CHROM, ID, QUAL) or any binding in the INFO field (e.g., AC=10).
-     * Note that this tool does not support capturing any GENOTYPE field values.  Note this argument
-     * accepts any number of inputs.  So -F CHROM -F POS is allowed.
+     * Note that to capture GENOTYPE (FORMAT) field values, see the GF argument.  This argument accepts any number
+     * of inputs.  So -F CHROM -F POS is allowed.
      */
-    @Argument(fullName="fields", shortName="F", doc="The name of each field to capture for output in the table", required=true)
+    @Argument(fullName="fields", shortName="F", doc="The name of each field to capture for output in the table", required=false)
     public List<String> fieldsToTake = new ArrayList<String>();
 
-    @Hidden
+    /**
+     * -GF NAME can be any binding in the FORMAT field (e.g., GQ, PL).
+     * Note this argument accepts any number of inputs.  So -F GQ -F PL is allowed.
+     */
     @Argument(fullName="genotypeFields", shortName="GF", doc="The name of each genotype field to capture for output in the table", required=false)
     public List<String> genotypeFieldsToTake = new ArrayList<String>();
     
@@ -130,12 +132,11 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     public boolean showFiltered = false;
 
     /**
-     * If provided, then this tool will exit with success after this number of records have been emitted to the file.
+     * If provided, then this tool will exit with success after this number of VCF records have been emitted to the file.
      */
-    @Advanced
     @Argument(fullName="maxRecords", shortName="M", doc="If provided, we will emit at most maxRecord records to the table", required=false)
     public int MAX_RECORDS = -1;
-    int nRecords = 0;
+    long nRecords = 0L;
 
     /**
      * By default, records with multiple ALT alleles will comprise just one line of output; note that in general this can make your resulting file
@@ -145,6 +146,15 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
      */
     @Argument(fullName="splitMultiAllelic", shortName="SMA", doc="If provided, we will split multi-allelic records into multiple lines of output", required=false)
     public boolean splitMultiAllelic = false;
+
+    /**
+     * By default, this tool emits one line per usable VCF record (or per allele if the -SMA flag is provided).  Using the -moltenize flag
+     * will cause records to be split into multiple lines of output: one for each field provided with -F or one for each combination of sample
+     * and field provided with -GF.  Note that the "Sample" column for -F fields will always be "site".
+     */
+    @Advanced
+    @Argument(fullName="moltenize", shortName="moltenize", doc="If provided, we will produce molten output", required=false)
+    public boolean moltenizeOutput = false;
 
     /**
      * By default, this tool throws a UserException when it encounters a field without a value in some record.  This
@@ -158,27 +168,29 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     public boolean ALLOW_MISSING_DATA = false;
     private final static String MISSING_DATA = "NA";
 
-    private TreeSet<String> samples = new TreeSet<String>();
+    private final List<String> samples = new ArrayList<String>();
 
     public void initialize() {
 
-        String genotypeHeader = "";
-        if (!genotypeFieldsToTake.isEmpty()) {
+        if ( !genotypeFieldsToTake.isEmpty() ) {
             Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), variants);
             TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
             samples.addAll(vcfSamples);
-            
-            StringBuilder sb = new StringBuilder();
-            sb.append("\t");
-            for (final String sample : samples) {
-                for (final String gf : genotypeFieldsToTake) {
-                    sb.append(sample+"."+gf+"\t");
-                }
-            }
-            genotypeHeader = sb.toString();
+
+            // optimization: if there are no samples, we don't have to worry about any genotype fields
+            if ( samples.isEmpty() )
+                genotypeFieldsToTake.clear();
         }
+
         // print out the header
-        out.println(Utils.join("\t", fieldsToTake) + genotypeHeader);
+        if ( moltenizeOutput ) {
+            out.println("RecordID\tSample\tVariable\tValue");
+        } else {
+            final String baseHeader = Utils.join("\t", fieldsToTake);
+            final String genotypeHeader = createGenotypeHeader(genotypeFieldsToTake, samples);
+            final String separator = (!baseHeader.isEmpty() && !genotypeHeader.isEmpty()) ? "\t" : "";
+            out.println(baseHeader + separator + genotypeHeader);
+        }
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -186,10 +198,14 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             return 0;
 
         for ( VariantContext vc : tracker.getValues(variants, context.getLocation())) {
+            nRecords++;
             if ( showFiltered || vc.isNotFiltered() ) {
-                for ( final List<String> record : extractFields(vc, fieldsToTake, genotypeFieldsToTake, samples,
-                        ALLOW_MISSING_DATA, splitMultiAllelic) )
-                    out.println(Utils.join("\t", record));
+                for ( final List<String> record : extractFields(vc, fieldsToTake, genotypeFieldsToTake, samples, ALLOW_MISSING_DATA, splitMultiAllelic) ) {
+                    if ( moltenizeOutput )
+                        emitMoltenizedOutput(record);
+                    else
+                        out.println(Utils.join("\t", record));
+                }
             }
         }
         
@@ -198,36 +214,68 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
     @Override
     public boolean isDone() {
-        boolean done = MAX_RECORDS != -1 && nRecords >= MAX_RECORDS;
-        if ( done) logger.warn("isDone() will return true to leave after " + nRecords + " records");
-        return done ;
+        return (MAX_RECORDS != -1 && nRecords >= MAX_RECORDS);
     }
 
     private static final boolean isWildCard(String s) {
         return s.endsWith("*");
     }
 
+    private static String createGenotypeHeader(final List<String> genotypeFieldsToTake, final List<String> samples) {
+        boolean firstEntry = true;
+
+        final StringBuilder sb = new StringBuilder();
+        for ( final String sample : samples ) {
+            for ( final String gf : genotypeFieldsToTake ) {
+                if ( firstEntry )
+                    firstEntry = false;
+                else
+                    sb.append("\t");
+                sb.append(sample);
+                sb.append(".");
+                sb.append(gf);
+            }
+        }
+        return sb.toString();
+    }
+
+    private void emitMoltenizedOutput(final List<String> record) {
+        int index = 0;
+        for ( final String field : fieldsToTake ) {
+            out.println(String.format("%d\tsite\t%s\t%s", nRecords, field, record.get(index++)));
+        }
+        for ( final String sample : samples ) {
+            for ( final String gf : genotypeFieldsToTake ) {
+                out.println(String.format("%d\t%s\t%s\t%s", nRecords, sample, gf, record.get(index++)));
+            }
+        }
+    }
+
     /**
      * Utility function that returns the list of values for each field in fields from vc.
      *
-     * @param vc the VariantContext whose field values we can to capture
-     * @param fields a non-null list of fields to capture from VC
-     * @param genotypeFields a (possibly) null) list of fields to capture from each genotype
-     * @param samples set of samples in vc, can be null in case of sites-only file
-     * @param allowMissingData if false, then throws a UserException if any field isn't found in vc.  Otherwise provides a value of NA
-     * @param splitMultiAllelic  if true, multiallelic variants are to be split into multiple records
+     * @param vc                the VariantContext whose field values we can to capture
+     * @param fields            a non-null list of fields to capture from VC
+     * @param genotypeFields    a (possibly null) list of fields to capture from each genotype
+     * @param samples           list of samples in vc
+     * @param allowMissingData  if false, then throws a UserException if any field isn't found in vc.  Otherwise provides a value of NA
+     * @param splitMultiAllelic if true, multiallelic variants are to be split into multiple records
      * @return List of lists of field values
      */
-    private static List<List<String>> extractFields(VariantContext vc, List<String> fields, List<String> genotypeFields,
-                                                    Set<String> samples, boolean allowMissingData, boolean splitMultiAllelic) {
+    private static List<List<String>> extractFields(final VariantContext vc,
+                                                    final List<String> fields,
+                                                    final List<String> genotypeFields,
+                                                    final List<String> samples,
+                                                    final boolean allowMissingData,
+                                                    final boolean splitMultiAllelic) {
         
         final int numRecordsToProduce = splitMultiAllelic ? vc.getAlternateAlleles().size() : 1;
         final List<List<String>> records = new ArrayList<List<String>>(numRecordsToProduce);
 
         int numFields = fields.size();
-        final boolean addGenotypeFields = (genotypeFields != null && !genotypeFields.isEmpty() && samples != null && !samples.isEmpty());
-        if (addGenotypeFields)
-            numFields += genotypeFields.size()*samples.size();
+        final boolean addGenotypeFields = genotypeFields != null && !genotypeFields.isEmpty();
+        if ( addGenotypeFields )
+            numFields += genotypeFields.size() * samples.size();
 
         for ( int i = 0; i < numRecordsToProduce; i++ )
             records.add(new ArrayList<String>(numFields));
@@ -263,16 +311,17 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             }
         }
 
-        if (addGenotypeFields) {
-            for (final String sample : samples) {
-                for (final String gf : genotypeFields) {
-                    if (vc.hasGenotype(sample) && vc.getGenotype(sample).hasAttribute(gf))
-                        addFieldValue(vc.getGenotype(sample).getAttribute(gf),records);
+        if ( addGenotypeFields ) {
+            for ( final String sample : samples ) {
+                for ( final String gf : genotypeFields ) {
+                    if ( vc.hasGenotype(sample) && vc.getGenotype(sample).hasAttribute(gf) )
+                        addFieldValue(vc.getGenotype(sample).getAttribute(gf), records);
                     else
                         addFieldValue(MISSING_DATA, records);
                 }
             }
         }
+
         return records;
     }
 
