@@ -101,6 +101,7 @@ public class UnifiedArgumentCollection {
     /**
      * The minimum confidence needed in a given base for it to be used in variant calling.  Note that the base quality of a base
      * is capped by the mapping quality so that bases on reads with low mapping quality may get filtered out depending on this value.
+     * Note too that this argument is ignored in indel calling. In indel calling, low-quality ends of reads are clipped off (with fixed threshold of Q20).
      */
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
     public int MIN_BASE_QUALTY_SCORE = 17;
