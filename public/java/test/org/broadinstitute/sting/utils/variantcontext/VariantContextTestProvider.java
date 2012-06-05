@@ -29,6 +29,7 @@ import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Codec;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -107,7 +108,14 @@ public class VariantContextTestProvider {
             final VariantContext vc = vcs.get(0);
             final VariantContextBuilder builder = new VariantContextBuilder(vc);
             builder.noGenotypes();
-            b.append(builder.make().toString()).append(" nGenotypes = ").append(vc.getNSamples());
+            b.append(builder.make().toString());
+            if ( vc.getNSamples() < 5 ) {
+                for ( final Genotype g : vc.getGenotypes() )
+                    b.append(g.toString());
+            } else {
+                b.append(" nGenotypes = ").append(vc.getNSamples());
+            }
+
             if ( vcs.size() > 1 ) b.append(" ----- with another ").append(vcs.size() - 1).append(" VariantContext records");
             b.append("]");
             return b.toString();
@@ -235,6 +243,8 @@ public class VariantContextTestProvider {
         add(builder().attribute("STRING20", Arrays.asList("s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "s12", "s13", "s14", "s15", "s16", "s17", "s18", "s19", "s20")));
 
         addGenotypesToTestData();
+
+        addComplexGenotypesTest();
     }
 
     private static void addGenotypesToTestData() {
@@ -529,6 +539,72 @@ public class VariantContextTestProvider {
             BaseTest.assertEqualsDoubleSmart(actual, (Double)expected, 1e-2);
         } else
             Assert.assertEquals(actual, expected);
+    }
+
+    public static void addComplexGenotypesTest() {
+        final List<Allele> allAlleles = Arrays.asList(
+                Allele.create("A", true),
+                Allele.create("C", false),
+                Allele.create("G", false));
+
+        for ( int nAlleles : Arrays.asList(2, 3) ) {
+            for ( int highestPloidy : Arrays.asList(1, 2, 3) ) {
+                // site alleles
+                final List<Allele> siteAlleles = allAlleles.subList(0, nAlleles);
+
+                // possible alleles for genotypes
+                final List<Allele> possibleGenotypeAlleles = new ArrayList<Allele>(siteAlleles);
+                possibleGenotypeAlleles.add(Allele.NO_CALL);
+
+                // there are n^ploidy possible genotypes
+                final List<List<Allele>> possibleGenotypes = makeAllGenotypes(possibleGenotypeAlleles, highestPloidy);
+                final int nPossibleGenotypes = possibleGenotypes.size();
+
+                VariantContextBuilder vb = new VariantContextBuilder("unittest", "1", 1, 1, siteAlleles);
+
+                // first test -- create n copies of each genotype
+                for ( int i = 0; i < nPossibleGenotypes; i++ ) {
+                    final List<Genotype> samples = new ArrayList<Genotype>(3);
+                    samples.add(GenotypeBuilder.create("sample" + i, possibleGenotypes.get(i)));
+                    add(vb.genotypes(samples));
+                }
+
+                // second test -- create one sample with each genotype
+                {
+                    final List<Genotype> samples = new ArrayList<Genotype>(nPossibleGenotypes);
+                    for ( int i = 0; i < nPossibleGenotypes; i++ ) {
+                        samples.add(GenotypeBuilder.create("sample" + i, possibleGenotypes.get(i)));
+                    }
+                    add(vb.genotypes(samples));
+                }
+
+                // test mixed ploidy
+                for ( int i = 0; i < nPossibleGenotypes; i++ ) {
+                    for ( int ploidy = 1; ploidy < highestPloidy; ploidy++ ) {
+                        final List<Genotype> samples = new ArrayList<Genotype>(highestPloidy);
+                        final List<Allele> genotype = possibleGenotypes.get(i).subList(0, ploidy);
+                        samples.add(GenotypeBuilder.create("sample" + i, genotype));
+                        add(vb.genotypes(samples));
+                    }
+                }
+            }
+        }
+    }
+
+    private static final List<List<Allele>> makeAllGenotypes(final List<Allele> alleles, final int highestPloidy) {
+        final List<List<Allele>> combinations = new ArrayList<List<Allele>>();
+        if ( highestPloidy == 1 ) {
+            for ( final Allele a : alleles )
+                combinations.add(Collections.singletonList(a));
+        } else {
+            final List<List<Allele>> sub = makeAllGenotypes(alleles, highestPloidy - 1);
+            for ( List<Allele> subI : sub ) {
+                for ( final Allele a : alleles ) {
+                    combinations.add(Utils.cons(a, subI));
+                }
+            }
+        }
+        return combinations;
     }
 
     public static void assertEquals(final VCFHeader actual, final VCFHeader expected) {
