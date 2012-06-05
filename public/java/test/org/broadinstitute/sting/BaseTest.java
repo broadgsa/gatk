@@ -110,7 +110,7 @@ public abstract class BaseTest {
         logger.setLevel(Level.WARN);
 
         if ( REQUIRE_NETWORK_CONNECTION ) {
-            networkTempDirFile = IOUtils.tempDir("temp.", ".dir", new File("/broad/shptmp/" + System.getProperty("user.name")));
+            networkTempDirFile = IOUtils.tempDir("temp.", ".dir", new File("/broad/hptmp/" + System.getProperty("user.name")));
             networkTempDirFile.deleteOnExit();
             networkTempDir = networkTempDirFile.getAbsolutePath() + "/";
 
