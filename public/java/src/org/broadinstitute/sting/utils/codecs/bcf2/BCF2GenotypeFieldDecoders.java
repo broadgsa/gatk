@@ -109,8 +109,17 @@ public class BCF2GenotypeFieldDecoders {
             // a single cache for the encoded genotypes, since we don't actually need this vector
             final int[] tmp = new int[size];
 
-            // TODO -- fast path for size == 2 (diploid) and many samples
-            // TODO -- by creating all 4 allele combinations and doing a straight lookup instead of allocations them
+            // TODO -- fast path for many samples with diploid genotypes
+            //
+            // The way this would work is simple.  Create a List<Allele> diploidGenotypes[] object
+            // After decoding the offset, if that sample is diploid compute the
+            // offset into the alleles vector which is simply offset = allele0 * nAlleles + allele1
+            // if there's a value at diploidGenotypes[offset], use it, otherwise create the genotype
+            // cache it and use that
+            //
+            // Some notes.  If there are nAlleles at the site, there are implicitly actually
+            // n + 1 options including
+
             for ( final GenotypeBuilder gb : gbs ) {
                 final int[] encoded = decoder.decodeIntArray(size, type, tmp);
                 if ( encoded == null )
@@ -123,6 +132,7 @@ public class BCF2GenotypeFieldDecoders {
                     final List<Allele> gt = new ArrayList<Allele>(encoded.length);
 
                     for ( final int encode : encoded ) {
+                        // TODO -- handle padding!
                         final int offset = encode >> 1;
                         gt.add(offset == 0 ? Allele.NO_CALL : siteAlleles.get(offset - 1));
                     }
