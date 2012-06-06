@@ -37,7 +37,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class BCF2Decoder {
+public final class BCF2Decoder {
     final protected static Logger logger = Logger.getLogger(FeatureCodec.class);
 
     byte[] recordBytes;
@@ -242,7 +242,7 @@ public class BCF2Decoder {
      *                  int elements are still forced to do a fresh allocation as well.
      * @return see description
      */
-    @Requires({"BCF2Type.INTEGERS.contains(type)", "size >= 0"})
+    @Requires({"BCF2Type.INTEGERS.contains(type)", "size >= 0", "type != null"})
     public final int[] decodeIntArray(final int size, final BCF2Type type, int[] maybeDest) {
         if ( size == 0 ) {
             return null;
@@ -281,7 +281,7 @@ public class BCF2Decoder {
         return decodeIntArray(size, type, null);
     }
 
-        public final double rawFloatToFloat(final int rawFloat) {
+    public final double rawFloatToFloat(final int rawFloat) {
         return (double)Float.intBitsToFloat(rawFloat);
     }
 

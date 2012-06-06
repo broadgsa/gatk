@@ -37,7 +37,7 @@ import java.util.*;
  * @author depristo
  * @since 5/12
  */
-public class BCF2Encoder {
+public final class BCF2Encoder {
     // TODO -- increase default size?
     public static final int WRITE_BUFFER_INITIAL_SIZE = 16384;
     private ByteArrayOutputStream encodeStream = new ByteArrayOutputStream(WRITE_BUFFER_INITIAL_SIZE);

@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.utils.codecs.bcf2;
 
 import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
@@ -44,7 +45,7 @@ import java.util.*;
  * @author depristo
  * @since 5/12
  */
-public class BCF2Utils {
+public final class BCF2Utils {
     public static final byte[] MAGIC_HEADER_LINE = "BCF\2".getBytes();
 
     public static final int MAX_ALLELES_IN_GENOTYPES = 127;
@@ -83,7 +84,8 @@ public class BCF2Utils {
      * @param header the VCFHeader from which to build the dictionary
      * @return a non-null dictionary of elements, may be empty
      */
-    @Ensures("new HashSet(result).size() == result.size()")
+    @Requires("header != null")
+    @Ensures({"result != null", "new HashSet(result).size() == result.size()"})
     public final static ArrayList<String> makeDictionary(final VCFHeader header) {
         final Set<String> dict = new TreeSet<String>();
 
@@ -99,20 +101,24 @@ public class BCF2Utils {
         return new ArrayList<String>(dict);
     }
 
+    @Requires({"nElements >= 0", "type != null"})
     public final static byte encodeTypeDescriptor(final int nElements, final BCF2Type type ) {
         int encodeSize = Math.min(nElements, OVERFLOW_ELEMENT_MARKER);
         byte typeByte = (byte)((0x0F & encodeSize) << 4 | (type.getID() & 0x0F));
         return typeByte;
     }
 
+    @Ensures("result >= 0")
     public final static int decodeSize(final byte typeDescriptor) {
         return (0xF0 & typeDescriptor) >> 4;
     }
 
+    @Ensures("result >= 0")
     public final static int decodeTypeID(final byte typeDescriptor) {
         return typeDescriptor & 0x0F;
     }
 
+    @Ensures("result != null")
     public final static BCF2Type decodeType(final byte typeDescriptor) {
         return ID_TO_ENUM[decodeTypeID(typeDescriptor)];
     }
@@ -121,6 +127,7 @@ public class BCF2Utils {
         return decodeSize(typeDescriptor) == OVERFLOW_ELEMENT_MARKER;
     }
 
+    @Requires("nElements >= 0")
     public final static boolean willOverflow(final long nElements) {
         return nElements > MAX_INLINE_ELEMENTS;
     }
@@ -132,6 +139,7 @@ public class BCF2Utils {
     }
 
     public final static byte readByte(final InputStream stream) {
+        // TODO -- shouldn't be capturing error here
         try {
             return (byte)(stream.read() & 0xFF);
         } catch ( IOException e ) {
@@ -139,6 +147,7 @@ public class BCF2Utils {
         }
     }
 
+    @Requires({"stream != null", "bytesForEachInt > 0"})
     public final static int readInt(int bytesForEachInt, final InputStream stream) {
         switch ( bytesForEachInt ) {
             case 1: {
@@ -165,10 +174,10 @@ public class BCF2Utils {
      * @param strings size > 1 list of strings
      * @return
      */
+    @Requires({"strings != null", "strings.size() > 1"})
+    @Ensures("result != null")
     public static final String collapseStringList(final List<String> strings) {
-        assert strings.size() > 1;
-
-        StringBuilder b = new StringBuilder();
+        final StringBuilder b = new StringBuilder();
         for ( final String s : strings ) {
             assert s.indexOf(",") == -1; // no commas in individual strings
             b.append(",").append(s);
@@ -185,12 +194,15 @@ public class BCF2Utils {
      * @param collapsed
      * @return
      */
+    @Requires({"collapsed != null", "isCollapsedString(collapsed)"})
+    @Ensures("result != null")
     public static final List<String> exploreStringList(final String collapsed) {
         assert isCollapsedString(collapsed);
         final String[] exploded = collapsed.substring(1).split(",");
         return Arrays.asList(exploded);
     }
 
+    @Requires("s != null")
     public static final boolean isCollapsedString(final String s) {
         return s.charAt(0) == ',';
     }
@@ -204,6 +216,8 @@ public class BCF2Utils {
      * @param vcfFile
      * @return
      */
+    @Requires("vcfFile != null")
+    @Ensures("result != null")
     public static final File shadowBCF(final File vcfFile) {
         final String path = vcfFile.getAbsolutePath();
         if ( path.contains(".vcf") )

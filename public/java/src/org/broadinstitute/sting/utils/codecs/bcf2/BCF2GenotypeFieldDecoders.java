@@ -26,15 +26,14 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 /**
  * An efficient
@@ -43,6 +42,10 @@ import java.util.List;
  * @since Date created
  */
 public class BCF2GenotypeFieldDecoders {
+    final protected static Logger logger = Logger.getLogger(BCF2GenotypeFieldDecoders.class);
+    private final static boolean ENABLE_FASTPATH_GT = true;
+    private final static int MIN_SAMPLES_FOR_FASTPATH_GENOTYPES = 0; // TODO -- update to reasonable number
+
     // initialized once per writer to allow parallel writers to work
     private final HashMap<String, Decoder> genotypeFieldDecoder = new HashMap<String, Decoder>();
     private final Decoder defaultDecoder = new GenericDecoder();
@@ -92,6 +95,8 @@ public class BCF2GenotypeFieldDecoders {
      * the PL field into a int[] rather than the generic List of Integer
      */
     public interface Decoder {
+        @Requires({"siteAlleles != null", "! siteAlleles.isEmpty()",
+                "field != null", "decoder != null", "gbs != null", "! gbs.isEmpty()"})
         public void decode(final List<Allele> siteAlleles,
                            final String field,
                            final BCF2Decoder decoder,
@@ -103,25 +108,80 @@ public class BCF2GenotypeFieldDecoders {
         @Override
         public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final List<GenotypeBuilder> gbs) {
             // we have to do a bit of low-level processing here as we want to know the size upfronta
-            final int size = decoder.decodeNumberOfElements(typeDescriptor);
+            final int ploidy = decoder.decodeNumberOfElements(typeDescriptor);
+
+            if ( ENABLE_FASTPATH_GT && siteAlleles.size() == 2 && ploidy == 2 && gbs.size() >= MIN_SAMPLES_FOR_FASTPATH_GENOTYPES )
+                fastBiallelicDiploidDecode(siteAlleles, decoder, typeDescriptor, gbs);
+            else {
+                generalDecode(siteAlleles, ploidy, decoder, typeDescriptor, gbs);
+            }
+        }
+
+        /**
+         * fast path for many samples with diploid genotypes
+         *
+         * The way this would work is simple.  Create a List<Allele> diploidGenotypes[] object
+         * After decoding the offset, if that sample is diploid compute the
+         * offset into the alleles vector which is simply offset = allele0 * nAlleles + allele1
+         * if there's a value at diploidGenotypes[offset], use it, otherwise create the genotype
+         * cache it and use that
+         *
+         * Some notes.  If there are nAlleles at the site, there are implicitly actually
+         * n + 1 options including
+         */
+        @Requires("siteAlleles.size() == 2")
+        @SuppressWarnings({"unchecked"})
+        private final void fastBiallelicDiploidDecode(final List<Allele> siteAlleles,
+                                                      final BCF2Decoder decoder,
+                                                      final byte typeDescriptor,
+                                                      final List<GenotypeBuilder> gbs) {
+            logger.info("fastBiallelicDiploidDecode");
+            final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
+
+            final int nPossibleGenotypes = 3 * 3;
+            final Object allGenotypes[] = new Object[nPossibleGenotypes];
+
+            for ( final GenotypeBuilder gb : gbs ) {
+                final int a1 = decoder.decodeInt(type);
+                final int a2 = decoder.decodeInt(type);
+
+                if ( a1 == type.getMissingBytes() ) {
+                    assert a2 == type.getMissingBytes();
+                    // no called sample GT = .
+                    gb.alleles(null);
+                } else if ( a2 == type.getMissingBytes() ) {
+                    gb.alleles(Arrays.asList(getAlleleFromEncoded(siteAlleles, a1)));
+                } else {
+                    // downshift to remove phase
+                    final int offset = (a1 >> 1) * 3 + (a2 >> 1);
+                    assert offset < allGenotypes.length;
+
+                    // TODO -- how can I get rid of this cast?
+                    List<Allele> gt = (List<Allele>)allGenotypes[offset];
+                    if ( gt == null ) {
+                        final Allele allele1 = getAlleleFromEncoded(siteAlleles, a1);
+                        final Allele allele2 = getAlleleFromEncoded(siteAlleles, a2);
+                        gt = Arrays.asList(allele1, allele2);
+                        allGenotypes[offset] = gt;
+                    }
+
+                    gb.alleles(gt);
+                }
+            }
+        }
+
+        private final void generalDecode(final List<Allele> siteAlleles,
+                                         final int ploidy,
+                                         final BCF2Decoder decoder,
+                                         final byte typeDescriptor,
+                                         final List<GenotypeBuilder> gbs) {
             final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
 
             // a single cache for the encoded genotypes, since we don't actually need this vector
-            final int[] tmp = new int[size];
-
-            // TODO -- fast path for many samples with diploid genotypes
-            //
-            // The way this would work is simple.  Create a List<Allele> diploidGenotypes[] object
-            // After decoding the offset, if that sample is diploid compute the
-            // offset into the alleles vector which is simply offset = allele0 * nAlleles + allele1
-            // if there's a value at diploidGenotypes[offset], use it, otherwise create the genotype
-            // cache it and use that
-            //
-            // Some notes.  If there are nAlleles at the site, there are implicitly actually
-            // n + 1 options including
+            final int[] tmp = new int[ploidy];
 
             for ( final GenotypeBuilder gb : gbs ) {
-                final int[] encoded = decoder.decodeIntArray(size, type, tmp);
+                final int[] encoded = decoder.decodeIntArray(ploidy, type, tmp);
                 if ( encoded == null )
                     // no called sample GT = .
                     gb.alleles(null);
@@ -131,15 +191,21 @@ public class BCF2GenotypeFieldDecoders {
                     // we have at least some alleles to decode
                     final List<Allele> gt = new ArrayList<Allele>(encoded.length);
 
-                    for ( final int encode : encoded ) {
-                        // TODO -- handle padding!
-                        final int offset = encode >> 1;
-                        gt.add(offset == 0 ? Allele.NO_CALL : siteAlleles.get(offset - 1));
-                    }
+                    // note that the auto-pruning of fields magically handles different
+                    // ploidy per sample at a site
+                    for ( final int encode : encoded )
+                        gt.add(getAlleleFromEncoded(siteAlleles, encode));
 
                     gb.alleles(gt);
                 }
             }
+        }
+
+        @Requires({"siteAlleles != null && ! siteAlleles.isEmpty()", "encode >= 0"})
+        @Ensures("result != null")
+        private final Allele getAlleleFromEncoded(final List<Allele> siteAlleles, final int encode) {
+            final int offset = encode >> 1;
+            return offset == 0 ? Allele.NO_CALL : siteAlleles.get(offset - 1);
         }
     }
 
