@@ -291,8 +291,6 @@ public class VariantContextTestProvider {
 
 
     private static void addGenotypes( final VariantContext site) {
-        final GenotypesContext gc = new GenotypesContext();
-
         // test ref/ref
         final Allele ref = site.getReference();
         final Allele alt1 = site.getNAlleles() > 1 ? site.getAlternateAllele(0) : null;
