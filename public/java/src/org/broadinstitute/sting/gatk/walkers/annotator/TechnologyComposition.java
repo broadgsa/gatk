@@ -20,11 +20,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Counts of bases from SLX, 454, and SOLiD at this site
+ * Counts of bases from Illumina, 454, and SOLiD at this site
  */
 @Hidden
 public class TechnologyComposition extends InfoFieldAnnotation implements ExperimentalAnnotation {
-    private String nSLX = "NumSLX";
+    private String nIllumina = "NumIllumina";
     private String n454 ="Num454";
     private String nSolid = "NumSOLiD";
     private String nOther = "NumOther";
@@ -46,7 +46,7 @@ public class TechnologyComposition extends InfoFieldAnnotation implements Experi
                         reads454++;
                     else if (ReadUtils.isSOLiDRead(p.getRead()))
                         readsSolid++;
-                    else if (ReadUtils.isSLXRead(p.getRead()))
+                    else if (ReadUtils.isIlluminaRead(p.getRead()))
                         readsIllumina++;
                     else
                         readsOther++;
@@ -55,16 +55,16 @@ public class TechnologyComposition extends InfoFieldAnnotation implements Experi
         }
 
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(nSLX, String.format("%d", readsIllumina));
+        map.put(nIllumina, String.format("%d", readsIllumina));
         map.put(n454, String.format("%d", reads454));
         map.put(nSolid, String.format("%d", readsSolid));
         map.put(nOther, String.format("%d", readsOther));
             return map;
     }
 
-     public List<String> getKeyNames() { return Arrays.asList(nSLX,n454,nSolid,nOther); }
+     public List<String> getKeyNames() { return Arrays.asList(nIllumina,n454,nSolid,nOther); }
 
-     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(nSLX, 1, VCFHeaderLineType.Integer, "Number of SLX reads"),
+     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(nIllumina, 1, VCFHeaderLineType.Integer, "Number of Illumina reads"),
              new VCFInfoHeaderLine(n454, 1, VCFHeaderLineType.Integer, "Number of 454 reads"),
              new VCFInfoHeaderLine(nSolid, 1, VCFHeaderLineType.Integer, "Number of SOLiD reads"),
              new VCFInfoHeaderLine(nOther, 1, VCFHeaderLineType.Integer, "Number of Other technology reads")); }
