@@ -67,8 +67,8 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " --no_cmdline_in_header" +
                         " -input " + params.inVCF +
                         " -o %s" +
-                        " -tranchesFile " + MD5DB.getMD5FilePath(params.tranchesMD5, null) +
-                        " -recalFile " + MD5DB.getMD5FilePath(params.recalMD5, null),
+                        " -tranchesFile " + getMd5DB().getMD5FilePath(params.tranchesMD5, null) +
+                        " -recalFile " + getMd5DB().getMD5FilePath(params.recalMD5, null),
                 Arrays.asList(params.cutVCFMD5));
         executeTest("testApplyRecalibration-"+params.inVCF, spec);
     }
@@ -115,8 +115,8 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " --no_cmdline_in_header" +
                         " -input " + params.inVCF +
                         " -o %s" +
-                        " -tranchesFile " + MD5DB.getMD5FilePath(params.tranchesMD5, null) +
-                        " -recalFile " + MD5DB.getMD5FilePath(params.recalMD5, null),
+                        " -tranchesFile " + getMd5DB().getMD5FilePath(params.tranchesMD5, null) +
+                        " -recalFile " + getMd5DB().getMD5FilePath(params.recalMD5, null),
                 Arrays.asList(params.cutVCFMD5));
         executeTest("testApplyRecalibrationIndel-"+params.inVCF, spec);
     }
