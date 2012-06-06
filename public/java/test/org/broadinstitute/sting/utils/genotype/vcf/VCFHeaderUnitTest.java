@@ -33,13 +33,13 @@ public class VCFHeaderUnitTest extends BaseTest {
     @Test
     public void testVCF4ToVCF4() {
         VCFHeader header = createHeader(VCF4headerStrings);
-        checkMD5ofHeaderFile(header, "4648aa1169257e0a8a9d30131adb5f35");
+        checkMD5ofHeaderFile(header, "47d32e7901650ba69ed41322af638806");
     }
 
     @Test
     public void testVCF4ToVCF4_alternate() {
         VCFHeader header = createHeader(VCF4headerStrings_with_negativeOne);
-        checkMD5ofHeaderFile(header, "ad8c4cf85e868b0261ab49ee2c613088");
+        checkMD5ofHeaderFile(header, "954e9dd756d5f952cfb401a4db6bd145");
     }
 
         /**
@@ -101,7 +101,7 @@ public class VCFHeaderUnitTest extends BaseTest {
         for (VCFHeaderLine line : header.getMetaData())
             pw.println(line);
         pw.close();
-        Assert.assertTrue(md5sum.equals(md5SumFile(myTempFile)));
+        Assert.assertEquals(md5SumFile(myTempFile), md5sum);
     }
 
     public static int VCF4headerStringCount = 16;
