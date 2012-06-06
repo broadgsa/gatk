@@ -532,8 +532,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 read.getMappingQuality() == 0 ||
                 read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ||
                 ConstrainedMateFixingManager.iSizeTooBigToMove(read, MAX_ISIZE_FOR_MOVEMENT) ||
-                ReadUtils.is454Read(read);
-        // TODO -- it would be nice if we could use indels from 454 reads as alternate consenses
+                ReadUtils.is454Read(read) ||
+                ReadUtils.isIonRead(read);
+        // TODO -- it would be nice if we could use indels from 454/Ion reads as alternate consenses
     }
 
     private void cleanAndCallMap(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {

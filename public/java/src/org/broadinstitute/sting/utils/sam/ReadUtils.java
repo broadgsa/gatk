@@ -211,7 +211,7 @@ public class ReadUtils {
     }
 
     /**
-     * is the read a 454 read ?
+     * is the read a 454 read?
      *
      * @param read the read to test
      * @return checks the read group tag PL for the default 454 tag
@@ -221,7 +221,17 @@ public class ReadUtils {
     }
 
     /**
-     * is the read a SOLiD read ?
+     * is the read an IonTorrent read?
+     *
+     * @param read the read to test
+     * @return checks the read group tag PL for the default ion tag
+     */
+    public static boolean isIonRead(SAMRecord read) {
+        return isPlatformRead(read, "IONTORRENT");
+    }
+
+    /**
+     * is the read a SOLiD read?
      *
      * @param read the read to test
      * @return checks the read group tag PL for the default SOLiD tag
@@ -231,7 +241,7 @@ public class ReadUtils {
     }
 
     /**
-     * is the read a SLX read ?
+     * is the read a SLX read?
      *
      * @param read the read to test
      * @return checks the read group tag PL for the default SLX tag
@@ -241,10 +251,11 @@ public class ReadUtils {
     }
 
     /**
-     * checks if the read has a platform tag in the readgroup equal to 'name' ?
+     * checks if the read has a platform tag in the readgroup equal to 'name'.
+     * Assumes that 'name' is upper-cased.
      *
      * @param read the read to test
-     * @param name the platform name to test
+     * @param name the upper-cased platform name to test
      * @return whether or not name == PL tag in the read group of read
      */
     public static boolean isPlatformRead(SAMRecord read, String name) {
