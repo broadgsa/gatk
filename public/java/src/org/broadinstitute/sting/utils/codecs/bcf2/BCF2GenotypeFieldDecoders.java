@@ -135,7 +135,6 @@ public class BCF2GenotypeFieldDecoders {
                                                       final BCF2Decoder decoder,
                                                       final byte typeDescriptor,
                                                       final List<GenotypeBuilder> gbs) {
-            logger.info("fastBiallelicDiploidDecode");
             final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
 
             final int nPossibleGenotypes = 3 * 3;
