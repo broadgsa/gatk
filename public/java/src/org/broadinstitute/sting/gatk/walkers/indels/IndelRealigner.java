@@ -103,7 +103,7 @@ import java.util.*;
  *   -T IndelRealigner \
  *   -targetIntervals intervalListFromRTC.intervals \
  *   -o realignedBam.bam \
- *   [--known /path/to/indels.vcf] \
+ *   [-known /path/to/indels.vcf] \
  *   [-compress 0]    (this argument recommended to speed up the process *if* this is only a temporary file; otherwise, use the default value)
  * </pre>
  *
@@ -532,8 +532,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 read.getMappingQuality() == 0 ||
                 read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ||
                 ConstrainedMateFixingManager.iSizeTooBigToMove(read, MAX_ISIZE_FOR_MOVEMENT) ||
-                ReadUtils.is454Read(read);
-        // TODO -- it would be nice if we could use indels from 454 reads as alternate consenses
+                ReadUtils.is454Read(read) ||
+                ReadUtils.isIonRead(read);
+        // TODO -- it would be nice if we could use indels from 454/Ion reads as alternate consenses
     }
 
     private void cleanAndCallMap(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
