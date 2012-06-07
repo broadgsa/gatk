@@ -103,7 +103,7 @@ import java.util.*;
  *   -T IndelRealigner \
  *   -targetIntervals intervalListFromRTC.intervals \
  *   -o realignedBam.bam \
- *   [--known /path/to/indels.vcf] \
+ *   [-known /path/to/indels.vcf] \
  *   [-compress 0]    (this argument recommended to speed up the process *if* this is only a temporary file; otherwise, use the default value)
  * </pre>
  *
