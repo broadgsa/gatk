@@ -223,8 +223,8 @@ public class GenomeAnalysisEngine {
             resetRandomGenerator(System.currentTimeMillis());
 
         // TODO -- REMOVE ME WHEN WE STOP BCF testing
-        if ( this.getArguments().USE_FAST_GENOTYPES )
-            GenotypeBuilder.MAKE_FAST_BY_DEFAULT = true;
+        if ( this.getArguments().USE_SLOW_GENOTYPES )
+            GenotypeBuilder.MAKE_FAST_BY_DEFAULT = false;
 
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
         if (this.getArguments().BQSR_RECAL_FILE != null)

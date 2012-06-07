@@ -249,11 +249,12 @@ public class VCFCodec extends AbstractVCFCodec {
         return new LazyGenotypesContext.LazyData(genotypes, header.getSampleNamesInOrder(), header.getSampleNameToOffset());
     }
 
+    private final static String[] INT_DECODE_ARRAY = new String[10000];
     private final static int[] decodeInts(final String string) {
-        final String[] splits = string.split(",");
-        final int[] values = new int[splits.length];
-        for ( int i = 0; i < splits.length; i++ )
-            values[i] = Integer.valueOf(splits[i]);
+        final int nValues = ParsingUtils.split(string, INT_DECODE_ARRAY, ',');
+        final int[] values = new int[nValues];
+        for ( int i = 0; i < nValues; i++ )
+            values[i] = Integer.valueOf(INT_DECODE_ARRAY[i]);
         return values;
     }
 

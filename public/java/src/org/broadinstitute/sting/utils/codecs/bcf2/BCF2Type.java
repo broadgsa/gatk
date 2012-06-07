@@ -24,20 +24,22 @@
 
 package org.broadinstitute.sting.utils.codecs.bcf2;
 
+import com.google.java.contract.Requires;
+
 import java.util.EnumSet;
 
 /**
- * BCF2 types and information
+ * BCF2 types and associated information
  *
  * @author depristo
  * @since 05/12
  */
 public enum BCF2Type {
-    INT8(1, 1, BCF2Utils.INT8_MISSING_VALUE, -127, 127), // todo -- confirm range
-    INT16(2, 2, BCF2Utils.INT16_MISSING_VALUE, -32767, 32767),
-    INT32(3, 4, BCF2Utils.INT32_MISSING_VALUE, -2147483647, 2147483647),
-    FLOAT(5, 4, BCF2Utils.FLOAT_MISSING_VALUE),
-    CHAR(7);
+    INT8 (1, 1, 0xFFFFFF80,        -127,        127), // todo -- confirm range
+    INT16(2, 2, 0xFFFF8000,      -32767,      32767),
+    INT32(3, 4, 0x80000000, -2147483647, 2147483647),
+    FLOAT(5, 4, 0x7F800001),
+    CHAR (7);
 
     private final int id;
     private final Object missingJavaValue;
@@ -62,13 +64,49 @@ public enum BCF2Type {
         this.maxValue = maxValue;
     }
 
+    /**
+     * How many bytes are used to represent this type on disk?
+     * @return
+     */
     public int getSizeInBytes() {
         return sizeInBytes;
     }
+
+    /**
+     * The ID according to the BCF2 specification
+     * @return
+     */
     public int getID() { return id; }
+
+    /**
+     * Can we encode value v in this type, according to its declared range.
+     *
+     * Only makes sense for integer values
+     *
+     * @param v
+     * @return
+     */
+    @Requires("INTEGERS.contains(this)")
     public final boolean withinRange(final long v) { return v >= minValue && v <= maxValue; }
+
+    /**
+     * Return the java object (aka null) that is used to represent a missing value for this
+     * type in Java
+     *
+     * @return
+     */
     public Object getMissingJavaValue() { return missingJavaValue; }
+
+    /**
+     * The bytes (encoded as an int) that are used to represent a missing value
+     * for this type in BCF2
+     *
+     * @return
+     */
     public int getMissingBytes() { return missingBytes; }
 
+    /**
+     * An enum set of the types that might represent Integer values
+     */
     public final static EnumSet<BCF2Type> INTEGERS = EnumSet.of(INT8, INT16, INT32);
 }

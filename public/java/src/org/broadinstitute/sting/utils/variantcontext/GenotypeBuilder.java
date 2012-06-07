@@ -34,10 +34,23 @@ import java.util.*;
 /**
  * A builder class for genotypes
  *
+ * Provides convenience setter methods for all of the Genotype field
+ * values.  Setter methods can be used in any order, allowing you to
+ * pass through states that wouldn't be allowed in the highly regulated
+ * immutable Genotype class.
+ *
+ * All fields default to meaningful MISSING values.
+ *
+ * Call make() to actually create the corresponding Genotype object from
+ * this builder.  Can be called multiple times to create independent copies,
+ * or with intervening sets to conveniently make similar Genotypes with
+ * slight modifications.
+ *
  * @author Mark DePristo
+ * @since 06/12
  */
 public final class GenotypeBuilder {
-    public static boolean MAKE_FAST_BY_DEFAULT = false;
+    public static boolean MAKE_FAST_BY_DEFAULT = true;
 
     private String sampleName = null;
     private List<Allele> alleles = null;
@@ -48,6 +61,7 @@ public final class GenotypeBuilder {
     private int[] AD = null;
     private int[] PL = null;
     private Map<String, Object> extendedAttributes = null;
+    private int initialAttributeMapSize = 5;
 
     private boolean useFast = MAKE_FAST_BY_DEFAULT;
 
@@ -191,6 +205,11 @@ public final class GenotypeBuilder {
         return this;
     }
 
+    /**
+     * Set this genotype's name
+     * @param sampleName
+     * @return
+     */
     @Requires({"sampleName != null"})
     @Ensures({"this.sampleName != null"})
     public GenotypeBuilder name(final String sampleName) {
@@ -198,6 +217,11 @@ public final class GenotypeBuilder {
         return this;
     }
 
+    /**
+     * Set this genotype's alleles
+     * @param alleles
+     * @return
+     */
     @Ensures({"this.alleles != null"})
     public GenotypeBuilder alleles(final List<Allele> alleles) {
         if ( alleles == null )
@@ -207,6 +231,11 @@ public final class GenotypeBuilder {
         return this;
     }
 
+    /**
+     * Is this genotype phased?
+     * @param phased
+     * @return
+     */
     public GenotypeBuilder phased(final boolean phased) {
         isPhased = phased;
         return this;
@@ -235,11 +264,34 @@ public final class GenotypeBuilder {
             return GQ((int)Math.round(pLog10Error * -10));
     }
 
+    /**
+     * This genotype has no GQ value
+     * @return
+     */
     public GenotypeBuilder noGQ() { GQ = -1; return this; }
+
+    /**
+     * This genotype has no AD value
+     * @return
+     */
     public GenotypeBuilder noAD() { AD = null; return this; }
+
+    /**
+     * This genotype has no DP value
+     * @return
+     */
     public GenotypeBuilder noDP() { DP = -1; return this; }
+
+    /**
+     * This genotype has no PL value
+     * @return
+     */
     public GenotypeBuilder noPL() { PL = null; return this; }
 
+    /**
+     * This genotype has this DP value
+     * @return
+     */
     @Requires({"DP >= -1"})
     @Ensures({"this.DP == DP"})
     public GenotypeBuilder DP(final int DP) {
@@ -247,6 +299,10 @@ public final class GenotypeBuilder {
         return this;
     }
 
+    /**
+     * This genotype has this AD value
+     * @return
+     */
     @Requires({"AD == null || AD.length > 0"})
     @Ensures({"this.AD == AD"})
     public GenotypeBuilder AD(final int[] AD) {
@@ -254,6 +310,10 @@ public final class GenotypeBuilder {
         return this;
     }
 
+    /**
+     * This genotype has this PL value, as int[].  FAST
+     * @return
+     */
     @Requires("PL == null || PL.length > 0")
     @Ensures({"this.PL == PL"})
     public GenotypeBuilder PL(final int[] PL) {
@@ -261,6 +321,10 @@ public final class GenotypeBuilder {
         return this;
     }
 
+    /**
+     * This genotype has this PL value, converted from double[]. SLOW
+     * @return
+     */
     @Requires("PL == null || PL.length > 0")
     @Ensures({"this.PL == PL"})
     public GenotypeBuilder PL(final double[] GLs) {
@@ -268,6 +332,12 @@ public final class GenotypeBuilder {
         return this;
     }
 
+    /**
+     * This genotype has these attributes.
+     *
+     * Cannot contain inline attributes (DP, AD, GQ, PL)
+     * @return
+     */
     @Requires("attributes != null")
     @Ensures("attributes.isEmpty() || extendedAttributes != null")
     public GenotypeBuilder attributes(final Map<String, Object> attributes) {
@@ -276,11 +346,17 @@ public final class GenotypeBuilder {
         return this;
     }
 
+    /**
+     * This genotype has this attribute key / value pair.
+     *
+     * Cannot contain inline attributes (DP, AD, GQ, PL)
+     * @return
+     */
     @Requires({"key != null"})
     @Ensures({"extendedAttributes != null", "extendedAttributes.containsKey(key)"})
     public GenotypeBuilder attribute(final String key, final Object value) {
         if ( extendedAttributes == null )
-            extendedAttributes = new HashMap<String, Object>(5);
+            extendedAttributes = new HashMap<String, Object>(initialAttributeMapSize);
         extendedAttributes.put(key, value);
         return this;
     }
@@ -299,8 +375,34 @@ public final class GenotypeBuilder {
         return this;
     }
 
+    /**
+     * varargs version of #filters
+     * @param filters
+     * @return
+     */
+    @Requires("filters != null")
+    public GenotypeBuilder filters(final String ... filters) {
+        return filters(Arrays.asList(filters));
+    }
+
+    /**
+     * This genotype is unfiltered
+     *
+     * @return
+     */
+    @Requires("filters != null")
+    public GenotypeBuilder unfiltered() {
+        if ( extendedAttributes != null )
+            extendedAttributes.remove(VCFConstants.GENOTYPE_FILTER_KEY);
+        return this;
+    }
+
+    /**
+     * Tell's this builder that we have at most these number of attributes
+     * @return
+     */
     public GenotypeBuilder maxAttributes(final int i) {
-        // TODO
+        initialAttributeMapSize = i;
         return this;
     }
 }

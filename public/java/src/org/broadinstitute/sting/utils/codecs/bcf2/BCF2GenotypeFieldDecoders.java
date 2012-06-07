@@ -29,17 +29,22 @@ import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
 /**
- * An efficient
+ * An efficient scheme for building and obtaining specialized
+ * genotype field decoders.  Used by the BCFCodec to parse
+ * with little overhead the fields from BCF2 encoded genotype
+ * records
  *
- * @author Your Name
- * @since Date created
+ * @author Mark DePristo
+ * @since 6/12
  */
 public class BCF2GenotypeFieldDecoders {
     final protected static Logger logger = Logger.getLogger(BCF2GenotypeFieldDecoders.class);
@@ -54,7 +59,8 @@ public class BCF2GenotypeFieldDecoders {
         // TODO -- fill in appropriate decoders for each FORMAT field in the header
 
         genotypeFieldDecoder.put(VCFConstants.GENOTYPE_KEY, new GTDecoder());
-        genotypeFieldDecoder.put(VCFConstants.GENOTYPE_FILTER_KEY, new FLDecoder());
+        // currently the generic decoder handles FILTER values properly, in so far as we don't tolerate multiple filter field values per genotype
+        genotypeFieldDecoder.put(VCFConstants.GENOTYPE_FILTER_KEY, new GenericDecoder());
         genotypeFieldDecoder.put(VCFConstants.DEPTH_KEY, new DPDecoder());
         genotypeFieldDecoder.put(VCFConstants.GENOTYPE_ALLELE_DEPTHS, new ADDecoder());
         genotypeFieldDecoder.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, new PLDecoder());
@@ -246,13 +252,6 @@ public class BCF2GenotypeFieldDecoders {
         }
     }
 
-    private class FLDecoder implements Decoder {
-        @Override
-        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final List<GenotypeBuilder> gbs) {
-            throw new ReviewedStingException("Genotype filter not implemented in BCF2 yet");
-        }
-    }
-
     private class GenericDecoder implements Decoder {
         @Override
         public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final List<GenotypeBuilder> gbs) {
@@ -270,17 +269,5 @@ public class BCF2GenotypeFieldDecoders {
                 }
             }
         }
-    }
-
-    private static final int[] decodeIntArray(final Object value) {
-        // todo -- decode directly into int[]
-        final List<Integer> pls = (List<Integer>)value;
-        if ( pls != null ) { // we have a PL field
-            final int[] x = new int[pls.size()];
-            for ( int j = 0; j < x.length; j++ )
-                x[j] = pls.get(j);
-            return x;
-        } else
-            return null;
     }
 }

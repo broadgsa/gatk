@@ -32,7 +32,7 @@ import java.io.OutputStream;
 import java.util.*;
 
 /**
- * Simple BCF2 encoder
+ * BCF2 encoder
  *
  * @author depristo
  * @since 5/12
@@ -255,12 +255,30 @@ public final class BCF2Encoder {
     }
 
     public final static void encodePrimitive(final int value, final BCF2Type type, final OutputStream encodeStream) throws IOException {
-        for ( int i = type.getSizeInBytes() - 1; i >= 0; i-- ) {
-            final int shift = i * 8;
-            int mask = 0xFF << shift;
-            int byteValue = (mask & value) >> shift;
-            encodeStream.write(byteValue);
+        switch ( type.getSizeInBytes() ) {
+            case 1:
+                encodeStream.write(0xFF & value);
+                break;
+            case 2:
+                encodeStream.write((0xFF00 & value) >> 8);
+                encodeStream.write(0xFF & value);
+                break;
+            case 4:
+                encodeStream.write((0xFF000000 & value) >> 24);
+                encodeStream.write((0x00FF0000 & value) >> 16);
+                encodeStream.write((0x0000FF00 & value) >> 8);
+                encodeStream.write((0x000000FF & value));
+                break;
+            default:
+                throw new ReviewedStingException("BUG: unexpected type size " + type);
         }
+// general case for reference
+//        for ( int i = type.getSizeInBytes() - 1; i >= 0; i-- ) {
+//            final int shift = i * 8;
+//            int mask = 0xFF << shift;
+//            int byteValue = (mask & value) >> shift;
+//            encodeStream.write(byteValue);
+//        }
     }
 
     private final List<Byte> stringToBytes(final String v) throws IOException {

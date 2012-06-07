@@ -40,8 +40,8 @@ import java.util.Arrays;
 public final class BCF2Decoder {
     final protected static Logger logger = Logger.getLogger(FeatureCodec.class);
 
-    byte[] recordBytes;
-    ByteArrayInputStream recordStream;
+    byte[] recordBytes = null;
+    ByteArrayInputStream recordStream = null;
 
     public BCF2Decoder() {
         // nothing to do
@@ -69,6 +69,7 @@ public final class BCF2Decoder {
      * @return
      */
     public void readNextBlock(final int blockSizeInBytes, final InputStream stream) {
+        if ( blockSizeInBytes < 0 ) throw new UserException.MalformedBCF2("Invalid block size " + blockSizeInBytes);
         setRecordBytes(readRecordBytes(blockSizeInBytes, stream));
     }
 
@@ -115,9 +116,9 @@ public final class BCF2Decoder {
      *
      * @param recordBytes
      */
+    @Requires("recordBytes != null")
+    @Ensures({"this.recordBytes == recordBytes", "recordStream != null"})
     public void setRecordBytes(final byte[] recordBytes) {
-        assert recordBytes != null;
-
         this.recordBytes = recordBytes;
         this.recordStream = new ByteArrayInputStream(recordBytes);
     }

@@ -53,12 +53,6 @@ public final class BCF2Utils {
     public static final int OVERFLOW_ELEMENT_MARKER = 15;
     public static final int MAX_INLINE_ELEMENTS = 14;
 
-    // Note that these values are prefixed by FFFFFF for convenience
-    public static final int INT8_MISSING_VALUE  = 0xFFFFFF80;
-    public static final int INT16_MISSING_VALUE = 0xFFFF8000;
-    public static final int INT32_MISSING_VALUE = 0x80000000;
-    public static final int FLOAT_MISSING_VALUE = 0x7F800001;
-
     public final static BCF2Type[] INTEGER_TYPES_BY_SIZE = new BCF2Type[]{BCF2Type.INT8, BCF2Type.INT16, BCF2Type.INT32};
     public final static BCF2Type[] ID_TO_ENUM;
 

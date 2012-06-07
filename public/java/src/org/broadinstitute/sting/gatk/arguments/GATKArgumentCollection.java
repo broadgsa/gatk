@@ -336,9 +336,9 @@ public class GATKArgumentCollection {
     public boolean generateShadowBCF = false;
     // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
 
-    @Argument(fullName="useFastGenotypes",shortName = "useFastGenotypes",doc="",required=false)
+    @Argument(fullName="useSlowGenotypes",shortName = "useSlowGenotypes",doc="",required=false)
     @Hidden
-    public boolean USE_FAST_GENOTYPES = false;
+    public boolean USE_SLOW_GENOTYPES = false;
     // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
 
     /**

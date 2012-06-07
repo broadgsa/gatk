@@ -161,9 +161,13 @@ public class VariantContextTestProvider {
         metaData.add(new VCFInfoHeaderLine("STRING3", 3, VCFHeaderLineType.String, "x"));
         metaData.add(new VCFInfoHeaderLine("STRING20", 20, VCFHeaderLineType.String, "x"));
 
-        metaData.add(new VCFInfoHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"));
-        metaData.add(new VCFInfoHeaderLine("GQ", 1, VCFHeaderLineType.Integer, "Genotype Quality"));
-        metaData.add(new VCFInfoHeaderLine("PL", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
+        metaData.add(new VCFFormatHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"));
+        metaData.add(new VCFFormatHeaderLine("GQ", 1, VCFHeaderLineType.Integer, "Genotype Quality"));
+        metaData.add(new VCFFormatHeaderLine("PL", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
+        metaData.add(new VCFFormatHeaderLine("GS", 2, VCFHeaderLineType.String, "A doubleton list of strings"));
+        metaData.add(new VCFFormatHeaderLine("GV", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "A variable list of strings"));
+        metaData.add(new VCFFormatHeaderLine("FT", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Genotype filters"));
+
         // prep the header
         metaData.add(new VCFContigHeaderLine(VCFHeader.CONTIG_KEY, Collections.singletonMap("ID", "1"), 0));
 
@@ -386,7 +390,53 @@ public class VariantContextTestProvider {
                 attr("g1", ref, "FLOAT3", 1.0, 2.0, 3.0),
                 attr("g2", ref, "FLOAT3"));
 
-        // test test Integer, Float, Flag, String atomic, vector, and missing types of different lengths per sample
+        //
+        //
+        // TESTING MULTIPLE SIZED LISTS IN THE GENOTYPE FIELD
+        //
+        //
+        addGenotypeTests(site,
+                attr("g1", ref, "GS", Arrays.asList("S1", "S2")),
+                attr("g2", ref, "GS", Arrays.asList("S3", "S4")));
+
+        addGenotypeTests(site, // g1 is missing the string, and g2 is missing FLOAT1
+                attr("g1", ref, "FLOAT1", 1.0),
+                attr("g2", ref, "GS", Arrays.asList("S3", "S4")));
+
+        // variable sized lists
+        addGenotypeTests(site,
+                attr("g1", ref, "GV", Arrays.asList("S1")),
+                attr("g2", ref, "GV", Arrays.asList("S3", "S4")));
+
+        addGenotypeTests(site,
+                attr("g1", ref, "GV", Arrays.asList("S1", "S2")),
+                attr("g2", ref, "GV", Arrays.asList("S3", "S4", "S5")));
+
+        addGenotypeTests(site, // missing value in varlist of string
+                attr("g1", ref, "FLOAT1", 1.0),
+                attr("g2", ref, "GV", Arrays.asList("S3", "S4", "S5")));
+
+
+        //
+        //
+        // TESTING GENOTYPE FILTERS
+        //
+        //
+        addGenotypeTests(site,
+                new GenotypeBuilder("g1", Arrays.asList(ref, ref)).filters("X").make(),
+                new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X").make());
+        addGenotypeTests(site,
+                new GenotypeBuilder("g1", Arrays.asList(ref, ref)).unfiltered().make(),
+                new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X").make());
+        addGenotypeTests(site,
+                new GenotypeBuilder("g1", Arrays.asList(ref, ref)).unfiltered().make(),
+                new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X", "Y").make());
+        addGenotypeTests(site,
+                new GenotypeBuilder("g1", Arrays.asList(ref, ref)).unfiltered().make(),
+                new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X").make(),
+                new GenotypeBuilder("g3", Arrays.asList(ref, ref)).filters("X", "Y").make());
+
+        // TODO -- test test Integer, Float, Flag, String atomic, vector, and missing types of different lengths per sample
     }
 
     private static Genotype attr(final String name, final Allele ref, final String key, final Object ... value) {
@@ -493,7 +543,27 @@ public class VariantContextTestProvider {
         Assert.assertEquals(actual.getSampleName(), expected.getSampleName());
         Assert.assertEquals(actual.getAlleles(), expected.getAlleles());
         Assert.assertEquals(actual.getGenotypeString(), expected.getGenotypeString());
+        Assert.assertEquals(actual.getType(), expected.getType());
+
+        // filters are the same
         Assert.assertEquals(actual.getFilters(), expected.getFilters());
+        Assert.assertEquals(actual.isFiltered(), expected.isFiltered());
+        Assert.assertEquals(actual.filtersWereApplied(), expected.filtersWereApplied());
+
+        // inline attributes
+        Assert.assertEquals(actual.getDP(), expected.getDP());
+        Assert.assertEquals(actual.getAD(), expected.getAD());
+        Assert.assertEquals(actual.getGQ(), expected.getGQ());
+        Assert.assertEquals(actual.hasPL(), expected.hasPL());
+        Assert.assertEquals(actual.hasAD(), expected.hasAD());
+        Assert.assertEquals(actual.hasGQ(), expected.hasGQ());
+        Assert.assertEquals(actual.hasDP(), expected.hasDP());
+
+        Assert.assertEquals(actual.hasLikelihoods(), expected.hasLikelihoods());
+        Assert.assertEquals(actual.getLikelihoodsString(), expected.getLikelihoodsString());
+        Assert.assertEquals(actual.getLikelihoods(), expected.getLikelihoods());
+        Assert.assertEquals(actual.getPL(), expected.getPL());
+
         Assert.assertEquals(actual.getPhredScaledQual(), expected.getPhredScaledQual());
         assertAttributesEquals(actual.getExtendedAttributes(), expected.getExtendedAttributes());
         Assert.assertEquals(actual.isPhased(), expected.isPhased());

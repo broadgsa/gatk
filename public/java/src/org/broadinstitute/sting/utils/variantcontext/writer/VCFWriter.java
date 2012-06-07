@@ -251,7 +251,7 @@ class VCFWriter extends IndexingVariantContextWriter {
         }
     }
 
-    public static Map<Allele, String> buildAlleleMap(final VariantContext vc) {
+    private static Map<Allele, String> buildAlleleMap(final VariantContext vc) {
         final Map<Allele, String> alleleMap = new HashMap<Allele, String>(vc.getAlleles().size()+1);
         alleleMap.put(Allele.NO_CALL, VCFConstants.EMPTY_ALLELE); // convenience for lookup
 

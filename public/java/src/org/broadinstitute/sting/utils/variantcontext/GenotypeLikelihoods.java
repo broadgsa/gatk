@@ -48,6 +48,7 @@ public class GenotypeLikelihoods {
         return new GenotypeLikelihoods(PLs);
     }
 
+    @Deprecated
     public final static GenotypeLikelihoods fromGLField(String GLs) {
         return new GenotypeLikelihoods(parseDeprecatedGLString(GLs));
     }
