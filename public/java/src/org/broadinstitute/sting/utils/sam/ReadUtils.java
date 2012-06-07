@@ -553,7 +553,6 @@ public class ReadUtils {
         return true;
     }
 
-
     /**
      * Checks if a read starts with an insertion. It looks beyond Hard and Soft clips
      * if there are any.

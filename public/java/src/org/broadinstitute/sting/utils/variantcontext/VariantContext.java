@@ -1264,6 +1264,15 @@ public class VariantContext implements Feature { // to enable tribble integratio
                 this.getGenotypes());
     }
 
+    public String toStringWithoutGenotypes() {
+        return String.format("[VC %s @ %s Q%s of type=%s alleles=%s attr=%s",
+                getSource(), contig + ":" + (start - stop == 0 ? start : start + "-" + stop),
+                hasLog10PError() ? String.format("%.2f", getPhredScaledQual()) : ".",
+                this.getType(),
+                ParsingUtils.sortList(this.getAlleles()),
+                ParsingUtils.sortedString(this.getAttributes()));
+    }
+
     // protected basic manipulation routines
     private static List<Allele> makeAlleles(Collection<Allele> alleles) {
         final List<Allele> alleleList = new ArrayList<Allele>(alleles.size());
