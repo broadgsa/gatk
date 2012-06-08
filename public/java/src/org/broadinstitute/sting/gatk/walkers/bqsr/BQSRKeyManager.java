@@ -208,11 +208,6 @@ public class BQSRKeyManager {
         return objectKeys;
     }
 
-    /**
-     * Translates a masked bitset into a bitset starting at 0
-     *
-     * @return a list of the optional covariates
-     */
     public List<Covariate> getRequiredCovariates() {
         return requiredCovariates;
     }
