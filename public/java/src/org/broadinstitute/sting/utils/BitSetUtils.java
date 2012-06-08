@@ -5,6 +5,8 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Utilities for bitset conversion
@@ -71,8 +73,15 @@ public class BitSetUtils {
      * @return a bitset representation of the short
      */
     public static BitSet bitSetFrom(short number) {
-        return bitSetFrom(number, NBITS_SHORT_REPRESENTATION);
+        BitSet result = shortCache.get(number);
+        if (result == null) {
+            result = bitSetFrom(number, NBITS_SHORT_REPRESENTATION);
+            shortCache.put(number, result);
+        }
+        return result;
     }
+    // use a static cache for shorts (but not for longs, because there could be a lot of entries)
+    private static final Map<Short, BitSet> shortCache = new HashMap<Short, BitSet>(2 * Short.MAX_VALUE);
 
     /**
      * Creates a BitSet representation of an arbitrary integer (number of bits capped at 64 -- long precision)

@@ -66,7 +66,7 @@ public class BQSRKeyManager {
         for (Covariate optional : optionalCovariates) {
             int nBits = optional.numberOfBits();                                                                        // number of bits used by this covariate
             nOptionalBits = Math.max(nOptionalBits, nBits);                                                             // optional covariates are represented by the number of bits needed by biggest covariate
-            BitSet optionalID = BitSetUtils.bitSetFrom(id);                                                             // calculate the optional covariate ID for this covariate
+            BitSet optionalID = bitSetFromId(id);                                                                       // calculate the optional covariate ID for this covariate
             optionalCovariatesInfo.add(new OptionalCovariateInfo(optionalID, optional));                                // optional covariates have standardized mask and number of bits, so no need to store in the RequiredCovariateInfo object
             String covariateName = optional.getClass().getSimpleName().split("Covariate")[0];                           // get the name of the covariate (without the "covariate" part of it) so we can match with the GATKReport
             covariateNameToIDMap.put(covariateName, id);
@@ -100,7 +100,7 @@ public class BQSRKeyManager {
     public List<BitSet> bitSetsFromAllKeys(BitSet[] allKeys, EventType eventType) {
         List<BitSet> allBitSets = new ArrayList<BitSet>();                                                              // Generate one key per optional covariate
 
-        BitSet eventBitSet = BitSetUtils.bitSetFrom(eventType.index);                                                   // create a bitset with the event type
+        BitSet eventBitSet = bitSetFromEvent(eventType);                                                                // create a bitset with the event type
         int eventTypeBitIndex = nRequiredBits + nOptionalBits + nOptionalIDBits;                                        // Location in the bit set to add the event type bits
 
         int covariateIndex = 0;
@@ -257,9 +257,20 @@ public class BQSRKeyManager {
             eventKey.set(i - firstBitIndex);
         return EventType.eventFrom(BitSetUtils.shortFrom(eventKey));
     }
-    
-    private BitSet bitSetFromEvent(EventType eventType) {
-        return BitSetUtils.bitSetFrom(eventType.index);
+
+    // cache the BitSet representing an event since it's otherwise created a massive amount of times
+    private static final Map<EventType, BitSet> eventTypeCache = new HashMap<EventType, BitSet>(EventType.values().length);
+    static {
+        for (final EventType eventType : EventType.values())
+            eventTypeCache.put(eventType, BitSetUtils.bitSetFrom(eventType.index));
+    }
+
+    private BitSet bitSetFromEvent(final EventType eventType) {
+        return eventTypeCache.get(eventType);
+    }
+
+    private BitSet bitSetFromId(final short id) {
+        return BitSetUtils.bitSetFrom(id);
     }
 
     private int bitsInEventType() {
