@@ -47,6 +47,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -T VariantRecalibrator" +
                         " -input " + params.inVCF +
                         " -L 20:1,000,000-40,000,000" +
+                        " --no_cmdline_in_header" +
                         " -an QD -an HaplotypeScore -an HRun" +
                         " -percentBad 0.07" +
                         " --minNumBadVariants 0" +
@@ -92,6 +93,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -T VariantRecalibrator" +
                         " -input " + params.inVCF +
                         " -L 20:1,000,000-40,000,000" +
+                        " --no_cmdline_in_header" +
                         " -an QD -an ReadPosRankSum -an HaplotypeScore" +
                         " -percentBad 0.08" +
                         " -mode INDEL -mG 3" +
