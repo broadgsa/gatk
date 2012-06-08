@@ -82,7 +82,7 @@ public class BitSetUtils {
      * @return a bitset representation of the integer
      */
     public static BitSet bitSetFrom(long number, int nBits) {
-        BitSet bitSet = new BitSet();
+        BitSet bitSet = new BitSet(nBits);
         boolean isNegative = number < 0;
         int bitIndex = 0;
         while (number != 0) {

@@ -98,7 +98,7 @@ public class BQSRKeyManager {
      * @return one key in bitset representation per covariate
      */
     public List<BitSet> bitSetsFromAllKeys(BitSet[] allKeys, EventType eventType) {
-        List<BitSet> allBitSets = new LinkedList<BitSet>();                                                             // Generate one key per optional covariate
+        List<BitSet> allBitSets = new ArrayList<BitSet>();                                                              // Generate one key per optional covariate
 
         BitSet eventBitSet = BitSetUtils.bitSetFrom(eventType.index);                                                   // create a bitset with the event type
         int eventTypeBitIndex = nRequiredBits + nOptionalBits + nOptionalIDBits;                                        // Location in the bit set to add the event type bits
