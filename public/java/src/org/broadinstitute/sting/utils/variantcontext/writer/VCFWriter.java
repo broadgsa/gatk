@@ -209,7 +209,7 @@ class VCFWriter extends IndexingVariantContextWriter {
             if ( !vc.hasLog10PError() )
                 mWriter.write(VCFConstants.MISSING_VALUE_v4);
             else
-                mWriter.write(getQualValue(vc.getPhredScaledQual()));
+                mWriter.write(formatQualValue(vc.getPhredScaledQual()));
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // FILTER
@@ -277,10 +277,13 @@ class VCFWriter extends IndexingVariantContextWriter {
         return vc.isFiltered() ? ParsingUtils.join(";", ParsingUtils.sortList(vc.getFilters())) : (forcePASS || vc.filtersWereApplied() ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
     }
 
-    private String getQualValue(double qual) {
-        String s = String.format(VCFConstants.DOUBLE_PRECISION_FORMAT_STRING, qual);
-        if ( s.endsWith(VCFConstants.DOUBLE_PRECISION_INT_SUFFIX) )
-            s = s.substring(0, s.length() - VCFConstants.DOUBLE_PRECISION_INT_SUFFIX.length());
+    private static final String QUAL_FORMAT_STRING = "%.2f";
+    private static final String QUAL_FORMAT_EXTENSION_TO_TRIM = ".00";
+
+    private String formatQualValue(double qual) {
+        String s = String.format(QUAL_FORMAT_STRING, qual);
+        if ( s.endsWith(QUAL_FORMAT_EXTENSION_TO_TRIM) )
+            s = s.substring(0, s.length() - QUAL_FORMAT_EXTENSION_TO_TRIM.length());
         return s;
     }
 
@@ -431,12 +434,39 @@ class VCFWriter extends IndexingVariantContextWriter {
         mWriter.write(encoding);
     }
 
+    /**
+     * Takes a double value and pretty prints it to a String for display
+     *
+     * Large doubles => gets %.2f style formatting
+     * Doubles < 1 / 10 but > 1/100 </>=> get %.3f style formatting
+     * Double < 1/100 => %.3e formatting
+     * @param d
+     * @return
+     */
+    public static final String formatVCFDouble(final double d) {
+        String format = "%.2f";
+        if ( d < 0.1 ) {
+            if ( d < 0.01 ) {
+                if ( Math.abs(d) >= 1e-20 )
+                    format = "%.3e";
+                else {
+                    // return a zero format
+                    return "0.00";
+                }
+            } else {
+                format = "%.3f";
+            }
+        }
+
+        return String.format(format, d);
+    }
+
     public static String formatVCFField(Object val) {
         String result;
         if ( val == null )
             result = VCFConstants.MISSING_VALUE_v4;
         else if ( val instanceof Double )
-            result = String.format(VCFConstants.DOUBLE_PRECISION_FORMAT_STRING, (Double)val);
+            result = formatVCFDouble((Double) val);
         else if ( val instanceof Boolean )
             result = (Boolean)val ? "" : null; // empty string for true, null for false
         else if ( val instanceof List ) {

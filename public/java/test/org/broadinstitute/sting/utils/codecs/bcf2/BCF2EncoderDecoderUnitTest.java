@@ -317,8 +317,8 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
     @Test(dataProvider = "BestIntTypeTests")
     public void determineBestEncoding(final List<Integer> ints, final BCF2Type expectedType) throws IOException {
         BCF2Encoder encoder = new BCF2Encoder();
-        Assert.assertEquals(encoder.determineIntegerType(ints), expectedType);
-        Assert.assertEquals(encoder.determineIntegerType(ArrayUtils.toPrimitive(ints.toArray(new Integer[0]))), expectedType);
+        Assert.assertEquals(BCF2Utils.determineIntegerType(ints), expectedType);
+        Assert.assertEquals(BCF2Utils.determineIntegerType(ArrayUtils.toPrimitive(ints.toArray(new Integer[0]))), expectedType);
     }
 
     // -----------------------------------------------------------------

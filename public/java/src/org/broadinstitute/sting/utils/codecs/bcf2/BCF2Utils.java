@@ -219,4 +219,42 @@ public final class BCF2Utils {
         else
             return new File( path + ".bcf" );
     }
+
+    public final static BCF2Type determineIntegerType(final int value) {
+        for ( final BCF2Type potentialType : INTEGER_TYPES_BY_SIZE) {
+            if ( potentialType.withinRange(value) )
+                return potentialType;
+        }
+
+        throw new ReviewedStingException("Integer cannot be encoded in allowable range of even INT32: " + value);
+    }
+
+    public final static BCF2Type determineIntegerType(final int[] values) {
+        // literally a copy of the code below, but there's no general way to unify lists and arrays in java
+        BCF2Type maxType = BCF2Type.INT8;
+        for ( final int value : values ) {
+            final BCF2Type type1 = determineIntegerType(value);
+            switch ( type1 ) {
+                case INT8: break;
+                case INT16: maxType = BCF2Type.INT16; break;
+                case INT32: return BCF2Type.INT32; // fast path for largest possible value
+                default: throw new ReviewedStingException("Unexpected integer type " + type1 );
+            }
+        }
+        return maxType;
+    }
+
+    public final static BCF2Type determineIntegerType(final List<Integer> values) {
+        BCF2Type maxType = BCF2Type.INT8;
+        for ( final int value : values ) {
+            final BCF2Type type1 = determineIntegerType(value);
+            switch ( type1 ) {
+                case INT8: break;
+                case INT16: maxType = BCF2Type.INT16; break;
+                case INT32: return BCF2Type.INT32; // fast path for largest possible value
+                default: throw new ReviewedStingException("Unexpected integer type " + type1 );
+            }
+        }
+        return maxType;
+    }
 }

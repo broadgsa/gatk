@@ -111,8 +111,7 @@ public class VariantContextUtils {
                     if ( AN == 0 ) {
                         alleleFreqs.add(0.0);
                     } else {
-                        // todo -- this is a performance problem
-                        final Double freq = Double.valueOf(String.format(makePrecisionFormatStringFromDenominatorValue(totalFoundersChromosomes), ((double)foundersAltChromosomes / totalFoundersChromosomes)));
+                        final Double freq = (double)foundersAltChromosomes / totalFoundersChromosomes;
                         alleleFreqs.add(freq);
                     }
                 }
@@ -153,17 +152,6 @@ public class VariantContextUtils {
     public static void calculateChromosomeCounts(VariantContextBuilder builder, boolean removeStaleValues, final Set<String> founderIds) {
         VariantContext vc = builder.make();
         builder.attributes(calculateChromosomeCounts(vc, new HashMap<String, Object>(vc.getAttributes()), removeStaleValues, founderIds));
-    }
-
-    public static String makePrecisionFormatStringFromDenominatorValue(double maxValue) {
-        int precision = 1;
-
-        while ( maxValue > 1 ) {
-            precision++;
-            maxValue /= 10.0;
-        }
-
-        return "%." + precision + "f";
     }
 
     public static Genotype removePLs(Genotype g) {

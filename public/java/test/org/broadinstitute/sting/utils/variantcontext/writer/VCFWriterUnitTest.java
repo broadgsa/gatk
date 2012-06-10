@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.genotype.vcf;
+package org.broadinstitute.sting.utils.variantcontext.writer;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.AbstractFeatureReader;
@@ -15,10 +15,12 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.sting.utils.variantcontext.writer.VCFWriter;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -147,4 +149,37 @@ public class VCFWriterUnitTest extends BaseTest {
         }
         Assert.assertEquals(index, additionalColumns.size());
     }
+
+    @DataProvider(name = "VCFWriterDoubleFormatTestData")
+    public Object[][] makeVCFWriterDoubleFormatTestData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+        tests.add(new Object[]{1.0, "1.00"});
+        tests.add(new Object[]{10.1, "10.10"});
+        tests.add(new Object[]{10.01, "10.01"});
+        tests.add(new Object[]{10.012, "10.01"});
+        tests.add(new Object[]{10.015, "10.02"});
+        tests.add(new Object[]{0.0, "0.00"});
+        tests.add(new Object[]{0.5, "0.50"});
+        tests.add(new Object[]{0.55, "0.55"});
+        tests.add(new Object[]{0.555, "0.56"});
+        tests.add(new Object[]{0.1, "0.10"});
+        tests.add(new Object[]{0.050, "0.050"});
+        tests.add(new Object[]{0.010, "0.010"});
+        tests.add(new Object[]{0.012, "0.012"});
+        tests.add(new Object[]{0.0012, "1.200e-03"});
+        tests.add(new Object[]{1.2e-4, "1.200e-04"});
+        tests.add(new Object[]{1.21e-4, "1.210e-04"});
+        tests.add(new Object[]{1.212e-5, "1.212e-05"});
+        tests.add(new Object[]{1.2123e-6, "1.212e-06"});
+        tests.add(new Object[]{Double.POSITIVE_INFINITY, "Infinity"});
+        tests.add(new Object[]{Double.NEGATIVE_INFINITY, "-Infinity"});
+        tests.add(new Object[]{Double.NaN, "NaN"});
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "VCFWriterDoubleFormatTestData")
+    public void testVCFWriterDoubleFormatTestData(final double d, final String expected) {
+        Assert.assertEquals(VCFWriter.formatVCFDouble(d), expected, "Failed to pretty print double in VCFWriter");
+    }
 }
+

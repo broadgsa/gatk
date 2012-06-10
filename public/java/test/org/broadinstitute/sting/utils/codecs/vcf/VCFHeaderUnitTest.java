@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.genotype.vcf;
+package org.broadinstitute.sting.utils.codecs.vcf;
 
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.PositionalBufferedStream;

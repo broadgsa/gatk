@@ -163,7 +163,7 @@ public final class BCF2Encoder {
         encodeStream.write(typeByte);
         if ( BCF2Utils.willOverflow(size) ) {
             // write in the overflow size
-            encodeTyped(size, determineIntegerType(size));
+            encodeTyped(size, BCF2Utils.determineIntegerType(size));
         }
     }
 
@@ -181,42 +181,13 @@ public final class BCF2Encoder {
     //
     // --------------------------------------------------------------------------------
 
-    public final BCF2Type determineIntegerType(final int[] values) {
-        // literally a copy of the code below, but there's no general way to unify lists and arrays in java
-        BCF2Type maxType = BCF2Type.INT8;
-        for ( final int value : values ) {
-            final BCF2Type type1 = determineIntegerType(value);
-            switch ( type1 ) {
-                case INT8: break;
-                case INT16: maxType = BCF2Type.INT16; break;
-                case INT32: return BCF2Type.INT32; // fast path for largest possible value
-                default: throw new ReviewedStingException("Unexpected integer type " + type1 );
-            }
-        }
-        return maxType;
-    }
-
-    public final BCF2Type determineIntegerType(final List<Integer> values) {
-        BCF2Type maxType = BCF2Type.INT8;
-        for ( final int value : values ) {
-            final BCF2Type type1 = determineIntegerType(value);
-            switch ( type1 ) {
-                case INT8: break;
-                case INT16: maxType = BCF2Type.INT16; break;
-                case INT32: return BCF2Type.INT32; // fast path for largest possible value
-                default: throw new ReviewedStingException("Unexpected integer type " + type1 );
-            }
-        }
-        return maxType;
-    }
-
-    public final BCF2Type determineIntegerType(final int value) {
-        for ( final BCF2Type potentialType : BCF2Utils.INTEGER_TYPES_BY_SIZE ) {
-            if ( potentialType.withinRange(value) )
-                return potentialType;
-        }
-
-        throw new ReviewedStingException("Integer cannot be encoded in allowable range of even INT32: " + value);
+    public void encodeString(final String s, final int sizeToWrite) throws IOException {
+        final byte[] bytes = s.getBytes();
+        for ( int i = 0; i < sizeToWrite; i++ )
+            if ( i < bytes.length )
+                encodeRawChar(bytes[i]);
+            else
+                encodeRawMissingValue(BCF2Type.CHAR);
     }
 
     /**
@@ -245,7 +216,7 @@ public final class BCF2Encoder {
         final Object toType = arg instanceof List ? ((List)arg).get(0) : arg;
 
         if ( toType instanceof Integer )
-            return determineIntegerType((Integer)toType);
+            return BCF2Utils.determineIntegerType((Integer) toType);
         else if ( toType instanceof String )
             return BCF2Type.CHAR;
         else if ( toType instanceof Double )

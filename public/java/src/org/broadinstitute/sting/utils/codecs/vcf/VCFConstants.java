@@ -114,7 +114,5 @@ public final class VCFConstants {
     public static final String EMPTY_GENOTYPE = "./.";
     public static final int MAX_GENOTYPE_QUAL = 99;
 
-    public static final String DOUBLE_PRECISION_FORMAT_STRING = "%.2f";
-    public static final String DOUBLE_PRECISION_INT_SUFFIX = ".00";
     public static final Double VCF_ENCODING_EPSILON = 0.00005; // when we consider fields equal(), used in the Qual compare
 }

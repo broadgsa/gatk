@@ -390,7 +390,6 @@ public final class GenotypeBuilder {
      *
      * @return
      */
-    @Requires("filters != null")
     public GenotypeBuilder unfiltered() {
         if ( extendedAttributes != null )
             extendedAttributes.remove(VCFConstants.GENOTYPE_FILTER_KEY);

@@ -434,7 +434,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
         final public int nGenotypeFields;
         final public byte[] bytes;
 
-        @Requires({"nGenotypeField > 0", "bytes != null"})
+        @Requires({"nGenotypeFields > 0", "bytes != null"})
         public LazyData(final int nGenotypeFields, final byte[] bytes) {
             this.nGenotypeFields = nGenotypeFields;
             this.bytes = bytes;
@@ -446,7 +446,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
         return getDictionaryString((Integer) decoder.decodeTypedValue());
     }
 
-    @Requires("offset >= dictionary.size()")
+    @Requires("offset < dictionary.size()")
     @Ensures("result != null")
     protected final String getDictionaryString(final int offset) {
         return dictionary.get(offset);
