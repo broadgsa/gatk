@@ -462,9 +462,10 @@ public class VariantContextUtils {
         // Genotypes
         final GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
         for ( final Genotype g : vc.getGenotypes() ) {
-            // TODO -- fixme
-            //Map<String, Object> genotypeAttributes = subsetAttributes(g.commonInfo, keysToPreserve);
-            //genotypes.add(new GenotypeBuilder(g).attributes(genotypeAttributes).make());
+            final GenotypeBuilder gb = new GenotypeBuilder(g);
+            // remove AD, DP, PL, and all extended attributes, keeping just GT and GQ
+            gb.noAD().noDP().noPL().noAttributes();
+            genotypes.add(gb.make());
         }
 
         return builder.genotypes(genotypes).attributes(attributes);

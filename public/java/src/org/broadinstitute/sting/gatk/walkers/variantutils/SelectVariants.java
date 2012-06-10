@@ -730,7 +730,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                 //Set genotype to no call if it falls in the fraction.
                 if(fractionGenotypes>0 && randomGenotypes.nextDouble()<fractionGenotypes){
                     List<Allele> alleles = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
-                    genotypes.add(new GenotypeBuilder(genotype).alleles(alleles).GQ(-1).make());
+                    genotypes.add(new GenotypeBuilder(genotype).alleles(alleles).noGQ().make());
                 }
                 else{
                     genotypes.add(genotype);

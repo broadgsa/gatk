@@ -51,7 +51,7 @@ import java.util.List;
  * @version 0.1
  */
 public class VariantContextWriterStub implements Stub<VariantContextWriter>, VariantContextWriter {
-    public final static boolean UPDATE_CONTIG_HEADERS = false;
+    public final static boolean UPDATE_CONTIG_HEADERS = true;
 
     /**
      * The engine, central to the GATK's processing.

@@ -347,6 +347,16 @@ public final class GenotypeBuilder {
     }
 
     /**
+     * Tells this builder to remove all extended attributes
+     *
+     * @return
+     */
+    public GenotypeBuilder noAttributes() {
+        this.extendedAttributes = null;
+        return this;
+    }
+
+    /**
      * This genotype has this attribute key / value pair.
      *
      * Cannot contain inline attributes (DP, AD, GQ, PL)

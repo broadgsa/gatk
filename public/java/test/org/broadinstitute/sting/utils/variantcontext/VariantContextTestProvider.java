@@ -55,6 +55,8 @@ public class VariantContextTestProvider {
     final private static boolean ENABLE_PLOIDY_TESTS = true;
     final private static boolean ENABLE_PL_TESTS = true;
     final private static boolean ENABLE_SOURCE_VCF_TESTS = true;
+    final private static boolean ENABLE_VARIABLE_LENGTH_GENOTYPE_STRING_TESTS = false;
+
     private static VCFHeader syntheticHeader;
     final static List<VariantContextTestData> TEST_DATAs = new ArrayList<VariantContextTestData>();
     private static VariantContext ROOT;
@@ -160,6 +162,7 @@ public class VariantContextTestProvider {
         metaData.add(new VCFInfoHeaderLine("STRING1", 1, VCFHeaderLineType.String, "x"));
         metaData.add(new VCFInfoHeaderLine("STRING3", 3, VCFHeaderLineType.String, "x"));
         metaData.add(new VCFInfoHeaderLine("STRING20", 20, VCFHeaderLineType.String, "x"));
+        metaData.add(new VCFInfoHeaderLine("VAR.INFO.STRING", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "x"));
 
         metaData.add(new VCFFormatHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"));
         metaData.add(new VCFFormatHeaderLine("GQ", 1, VCFHeaderLineType.Integer, "Genotype Quality"));
@@ -180,7 +183,7 @@ public class VariantContextTestProvider {
         metaData.add(new VCFInfoHeaderLine("INT.VAR", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "x"));
         metaData.add(new VCFInfoHeaderLine("FLOAT1", 1, VCFHeaderLineType.Float, "x"));
         metaData.add(new VCFInfoHeaderLine("FLOAT3", 3, VCFHeaderLineType.Float, "x"));
-        metaData.add(new VCFInfoHeaderLine("FLAG", 1, VCFHeaderLineType.Flag, "x"));
+        metaData.add(new VCFInfoHeaderLine("FLAG", 0, VCFHeaderLineType.Flag, "x"));
 
         syntheticHeader = new VCFHeader(metaData);
     }
@@ -245,6 +248,11 @@ public class VariantContextTestProvider {
         add(builder().attribute("STRING3", Arrays.asList("s1", "s2", "s3")));
         add(builder().attribute("STRING3", null));
         add(builder().attribute("STRING20", Arrays.asList("s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "s12", "s13", "s14", "s15", "s16", "s17", "s18", "s19", "s20")));
+
+        add(builder().attribute("VAR.INFO.STRING", "s1"));
+        add(builder().attribute("VAR.INFO.STRING", Arrays.asList("s1", "s2")));
+        add(builder().attribute("VAR.INFO.STRING", Arrays.asList("s1", "s2", "s3")));
+        add(builder().attribute("VAR.INFO.STRING", null));
 
         addGenotypesToTestData();
 
@@ -390,51 +398,53 @@ public class VariantContextTestProvider {
                 attr("g1", ref, "FLOAT3", 1.0, 2.0, 3.0),
                 attr("g2", ref, "FLOAT3"));
 
-        //
-        //
-        // TESTING MULTIPLE SIZED LISTS IN THE GENOTYPE FIELD
-        //
-        //
-        addGenotypeTests(site,
-                attr("g1", ref, "GS", Arrays.asList("S1", "S2")),
-                attr("g2", ref, "GS", Arrays.asList("S3", "S4")));
+        if (ENABLE_VARIABLE_LENGTH_GENOTYPE_STRING_TESTS) {
+            //
+            //
+            // TESTING MULTIPLE SIZED LISTS IN THE GENOTYPE FIELD
+            //
+            //
+            addGenotypeTests(site,
+                    attr("g1", ref, "GS", Arrays.asList("S1", "S2")),
+                    attr("g2", ref, "GS", Arrays.asList("S3", "S4")));
 
-        addGenotypeTests(site, // g1 is missing the string, and g2 is missing FLOAT1
-                attr("g1", ref, "FLOAT1", 1.0),
-                attr("g2", ref, "GS", Arrays.asList("S3", "S4")));
+            addGenotypeTests(site, // g1 is missing the string, and g2 is missing FLOAT1
+                    attr("g1", ref, "FLOAT1", 1.0),
+                    attr("g2", ref, "GS", Arrays.asList("S3", "S4")));
 
-        // variable sized lists
-        addGenotypeTests(site,
-                attr("g1", ref, "GV", Arrays.asList("S1")),
-                attr("g2", ref, "GV", Arrays.asList("S3", "S4")));
+            // variable sized lists
+            addGenotypeTests(site,
+                    attr("g1", ref, "GV", Arrays.asList("S1")),
+                    attr("g2", ref, "GV", Arrays.asList("S3", "S4")));
 
-        addGenotypeTests(site,
-                attr("g1", ref, "GV", Arrays.asList("S1", "S2")),
-                attr("g2", ref, "GV", Arrays.asList("S3", "S4", "S5")));
+            addGenotypeTests(site,
+                    attr("g1", ref, "GV", Arrays.asList("S1", "S2")),
+                    attr("g2", ref, "GV", Arrays.asList("S3", "S4", "S5")));
 
-        addGenotypeTests(site, // missing value in varlist of string
-                attr("g1", ref, "FLOAT1", 1.0),
-                attr("g2", ref, "GV", Arrays.asList("S3", "S4", "S5")));
+            addGenotypeTests(site, // missing value in varlist of string
+                    attr("g1", ref, "FLOAT1", 1.0),
+                    attr("g2", ref, "GV", Arrays.asList("S3", "S4", "S5")));
 
 
-        //
-        //
-        // TESTING GENOTYPE FILTERS
-        //
-        //
-        addGenotypeTests(site,
-                new GenotypeBuilder("g1", Arrays.asList(ref, ref)).filters("X").make(),
-                new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X").make());
-        addGenotypeTests(site,
-                new GenotypeBuilder("g1", Arrays.asList(ref, ref)).unfiltered().make(),
-                new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X").make());
-        addGenotypeTests(site,
-                new GenotypeBuilder("g1", Arrays.asList(ref, ref)).unfiltered().make(),
-                new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X", "Y").make());
-        addGenotypeTests(site,
-                new GenotypeBuilder("g1", Arrays.asList(ref, ref)).unfiltered().make(),
-                new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X").make(),
-                new GenotypeBuilder("g3", Arrays.asList(ref, ref)).filters("X", "Y").make());
+            //
+            //
+            // TESTING GENOTYPE FILTERS
+            //
+            //
+            addGenotypeTests(site,
+                    new GenotypeBuilder("g1", Arrays.asList(ref, ref)).filters("X").make(),
+                    new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X").make());
+            addGenotypeTests(site,
+                    new GenotypeBuilder("g1", Arrays.asList(ref, ref)).unfiltered().make(),
+                    new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X").make());
+            addGenotypeTests(site,
+                    new GenotypeBuilder("g1", Arrays.asList(ref, ref)).unfiltered().make(),
+                    new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X", "Y").make());
+            addGenotypeTests(site,
+                    new GenotypeBuilder("g1", Arrays.asList(ref, ref)).unfiltered().make(),
+                    new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X").make(),
+                    new GenotypeBuilder("g3", Arrays.asList(ref, ref)).filters("X", "Y").make());
+        }
 
         // TODO -- test test Integer, Float, Flag, String atomic, vector, and missing types of different lengths per sample
     }

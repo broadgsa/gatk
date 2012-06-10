@@ -51,6 +51,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
     private final BCF2Encoder encoder = new BCF2Encoder(); // initialized after the header arrives
     IntGenotypeFieldAccessors intGenotypeFieldAccessors = new IntGenotypeFieldAccessors();
+    final BCF2FieldWriterManager fieldManager = new BCF2FieldWriterManager();
 
     public BCF2Writer(final File location, final OutputStream output, final SAMSequenceDictionary refDict, final boolean enableOnTheFlyIndexing, final boolean doNotWriteGenotypes) {
         super(writerName(location, output), location, output, refDict, enableOnTheFlyIndexing);
@@ -79,6 +80,9 @@ class BCF2Writer extends IndexingVariantContextWriter {
         for ( int i = 0; i < dict.size(); i++ ) {
             stringDictionaryMap.put(dict.get(i), i);
         }
+
+        // setup the field encodings
+        fieldManager.setup(header, encoder, stringDictionaryMap);
 
         try {
             // write out the header into a byte stream, get it's length, and write everything to the file
@@ -225,10 +229,15 @@ class BCF2Writer extends IndexingVariantContextWriter {
     private void buildInfo( VariantContext vc ) throws IOException {
         for ( Map.Entry<String, Object> infoFieldEntry : vc.getAttributes().entrySet() ) {
             final String key = infoFieldEntry.getKey();
-            final VCFToBCFEncoding encoding = prepFieldValueForEncoding(key, infoFieldEntry.getValue());
+            final BCF2FieldWriter.SiteWriter writer = fieldManager.getSiteFieldWriter(key);
+            writer.start(encoder, vc);
+            writer.site(encoder, vc);
+            writer.done(encoder, vc);
 
-            encodeStringByRef(key);
-            encoder.encodeTyped(encoding.valuesToEncode, encoding.BCF2Type);
+            // the old way of doing things
+//            final VCFToBCFEncoding encoding = prepFieldValueForEncoding(key, infoFieldEntry.getValue());
+//            encodeStringByRef(key);
+//            encoder.encodeTyped(encoding.valuesToEncode, encoding.BCF2Type);
         }
     }
 
@@ -278,9 +287,9 @@ class BCF2Writer extends IndexingVariantContextWriter {
                     BCF2Type intType;
                     if ( isList ) {
                         l = (List<Integer>)value;
-                        intType = encoder.determineIntegerType(l);
+                        intType = BCF2Utils.determineIntegerType(l);
                     } else if ( value != null ) {
-                        intType = encoder.determineIntegerType((Integer)value);
+                        intType = BCF2Utils.determineIntegerType((Integer) value);
                         l = Collections.singletonList((Integer)value);
                     } else {
                         intType = BCF2Type.INT8;
@@ -417,7 +426,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
         }
 
         // determine the best size
-        final BCF2Type type = encoder.determineIntegerType(allPLs);
+        final BCF2Type type = BCF2Utils.determineIntegerType(allPLs);
         startGenotypeField(field, numPLs, type);
         for ( int pl : allPLs )
             encoder.encodePrimitive(pl == -1 ? type.getMissingBytes() : pl, type);
@@ -495,7 +504,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
     private final BCF2Type encodeStringByRef(final String string) throws IOException {
         final Integer offset = stringDictionaryMap.get(string);
         if ( offset == null ) throw new ReviewedStingException("Format error: could not find string " + string + " in header as required by BCF");
-        final BCF2Type type = encoder.determineIntegerType(offset);
+        final BCF2Type type = BCF2Utils.determineIntegerType(offset);
         encoder.encodeTyped(offset, type);
         return type;
     }
@@ -516,7 +525,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
             offsets.add(offset);
 
             if ( maxType != BCF2Type.INT32) { // don't bother looking if we already are at 32 bit ints
-                final BCF2Type type1 = encoder.determineIntegerType(offset);
+                final BCF2Type type1 = BCF2Utils.determineIntegerType(offset);
                 switch ( type1 ) {
                     case INT8:  break;
                     case INT16: if ( maxType == BCF2Type.INT8 ) maxType = BCF2Type.INT16; break;
