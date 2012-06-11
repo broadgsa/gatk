@@ -11,6 +11,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
@@ -21,15 +22,12 @@ import java.util.*;
  */
 public class AlleleBalanceBySample extends GenotypeAnnotation implements ExperimentalAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+    public void annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g, final GenotypeBuilder gb) {
         Double ratio = annotateSNP(stratifiedContext, vc, g);
         if (ratio == null)
-            return null;
+            return;
 
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), String.format("%.2f", ratio.doubleValue()));
-        return map;
-
+        gb.attribute(getKeyNames().get(0), Double.valueOf(String.format("%.2f", ratio.doubleValue())));
     }
 
     private Double annotateSNP(AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {

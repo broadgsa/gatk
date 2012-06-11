@@ -15,6 +15,7 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
@@ -45,22 +46,20 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
 
     private static final String DEL = "DEL"; // constant, for speed: no need to create a key string for deletion allele every time
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+    public void annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g, GenotypeBuilder gb) {
         if ( g == null || !g.isCalled() )
-            return null;
+            return;
 
         if ( vc.isSNP() )
-            return annotateSNP(stratifiedContext, vc);
-        if ( vc.isIndel() )
-            return annotateIndel(stratifiedContext, vc);
-
-        return null;
+            annotateSNP(stratifiedContext, vc, gb);
+        else if ( vc.isIndel() )
+            annotateIndel(stratifiedContext, vc, gb);
     }
 
-    private Map<String,Object> annotateSNP(AlignmentContext stratifiedContext, VariantContext vc) {
+    private void annotateSNP(AlignmentContext stratifiedContext, VariantContext vc, GenotypeBuilder gb) {
 
         if ( ! stratifiedContext.hasBasePileup() )
-            return null;
+            return;
 
         HashMap<Byte, Integer> alleleCounts = new HashMap<Byte, Integer>();
         for ( Allele allele : vc.getAlleles() )
@@ -78,17 +77,16 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
             counts[i+1] = alleleCounts.get(vc.getAlternateAllele(i).getBases()[0]);
 
-        return toADAnnotation(counts);
+        gb.AD(counts);
     }
 
-    private Map<String,Object> annotateIndel(AlignmentContext stratifiedContext, VariantContext vc) {
-
+    private void annotateIndel(AlignmentContext stratifiedContext, VariantContext vc, GenotypeBuilder gb) {
         if ( ! stratifiedContext.hasBasePileup() )
-            return null;
+            return;
 
         ReadBackedPileup pileup = stratifiedContext.getBasePileup();
         if ( pileup == null )
-            return null;
+            return;
 
         final HashMap<String, Integer> alleleCounts = new HashMap<String, Integer>();
         alleleCounts.put(REF_ALLELE, 0);
@@ -129,11 +127,7 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
             counts[i+1] = alleleCounts.get( getAlleleRepresentation(vc.getAlternateAllele(i)) );
 
-        return toADAnnotation(counts);
-    }
-
-    private final Map<String, Object> toADAnnotation(final int[] counts) {
-        return Collections.singletonMap(getKeyNames().get(0), (Object)counts);
+        gb.AD(counts);
     }
 
     private String getAlleleRepresentation(Allele allele) {
