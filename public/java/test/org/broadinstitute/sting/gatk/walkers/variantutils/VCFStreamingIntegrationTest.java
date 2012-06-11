@@ -46,7 +46,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
 
 
         // Copy VCF data from the test file into the FIFO.
-        String testFile = validationDataLocation + "yri.trio.gatk.ug.head.vcf";
+        String testFile = testDir + "yri.trio.gatk.ug.head.vcf";
         FileInputStream inputStream = new FileInputStream(testFile);
         FileOutputStream outputStream = new FileOutputStream(tmpFifo);
         outputStream.getChannel().transferFrom(inputStream.getChannel(),0,inputStream.getChannel().size());
@@ -56,7 +56,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
             "-T SelectVariants" +
                     " -R " + b36KGReference +
-                    " --variant:vcf3,storage=STREAM " + tmpFifo.getAbsolutePath() +
+                    " --variant,storage=STREAM " + tmpFifo.getAbsolutePath() +
                     " --no_cmdline_in_header " +
                     " -o %s",
             1,
@@ -74,13 +74,13 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         File tmpFifo = File.createTempFile("vcfstreaming","");
         Runtime.getRuntime().exec(new String[] {"mkfifo",tmpFifo.getAbsolutePath()});
 
-        String testFile = validationDataLocation + "yri.trio.gatk.ug.head.vcf";
+        String testFile = testDir + "yri.trio.gatk.ug.head.vcf";
 
         // Output select to FIFO
         WalkerTestSpec selectTestSpec = new WalkerTestSpec(
             "-T SelectVariants" +
             " -R " + b36KGReference +
-            " --variant:vcf3,storage=STREAM " + testFile +
+            " --variant,storage=STREAM " + testFile +
             " --no_cmdline_in_header" +
             " -select 'QD > 2.0'" +
             " -o " + tmpFifo.getAbsolutePath(),
@@ -93,7 +93,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         selectTestSpec = new WalkerTestSpec(
             "-T VariantEval" +
             " -R " + b36KGReference +
-            " --eval:vcf3 " + testFile +
+            " --eval " + testFile +
             " --comp:vcf,storage=STREAM " + tmpFifo.getAbsolutePath() +
             " -EV CompOverlap -noEV -noST" +
             " -o %s",

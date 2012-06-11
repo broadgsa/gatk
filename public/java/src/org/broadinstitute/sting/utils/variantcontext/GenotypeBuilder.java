@@ -53,7 +53,7 @@ public final class GenotypeBuilder {
     public static boolean MAKE_FAST_BY_DEFAULT = true;
 
     private String sampleName = null;
-    private List<Allele> alleles = null;
+    private List<Allele> alleles = Collections.emptyList();
 
     private boolean isPhased = false;
     private int GQ = -1;

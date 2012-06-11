@@ -47,10 +47,6 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         testBadRODBindingInput("beagle", "BEAGLE input to VCF expecting walker", UserException.BadArgumentValue.class);
     }
 
-    @Test() private void testBadRODBindingInputType2() {
-        testBadRODBindingInput("vcf3", "VCF3 input to VCF expecting walker", UserException.class);
-    }
-
     @Test() private void testBadRODBindingInputType3() {
         testBadRODBindingInput("bed", "Bed input to VCF expecting walker", UserException.BadArgumentValue.class);
     }

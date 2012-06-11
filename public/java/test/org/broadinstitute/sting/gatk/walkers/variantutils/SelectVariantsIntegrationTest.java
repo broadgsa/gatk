@@ -160,7 +160,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         executeTest("testNoGTs--" + testFile, spec);
     }
 
-    @Test
+    @Test(enabled = false)
     public void testParallelization2() {
         String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
         String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
@@ -175,7 +175,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         executeTest("testParallelization (2 threads)--" + testfile, spec);
     }
 
-    @Test
+    @Test(enabled = false)
     public void testParallelization4() {
             String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
             String samplesFile = validationDataLocation + "SelectVariants.samples.txt";

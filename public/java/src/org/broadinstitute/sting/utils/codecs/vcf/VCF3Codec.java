@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.utils.codecs.vcf;
 
 import org.broad.tribble.TribbleException;
@@ -106,93 +130,6 @@ public class VCF3Codec extends AbstractVCFCodec {
         filterHash.put(filterString, fFields);
 
         return fFields;
-    }
-
-    /**
-     * create a genotype map
-     *
-     * @param str the string
-     * @param alleles the list of alleles
-     * @param chr chrom
-     * @param pos position
-     * @return a mapping of sample name to genotype object
-     */
-    public LazyGenotypesContext.LazyData createGenotypeMap(String str, List<Allele> alleles, String chr, int pos) {
-        if (genotypeParts == null)
-            genotypeParts = new String[header.getColumnCount() - NUM_STANDARD_FIELDS];
-
-        int nParts = ParsingUtils.split(str, genotypeParts, VCFConstants.FIELD_SEPARATOR_CHAR);
-        if ( nParts != genotypeParts.length )
-            generateException("there are " + (nParts-1) + " genotypes while the header requires that " + (genotypeParts.length-1) + " genotypes be present for all records", lineNo);
-
-        ArrayList<Genotype> genotypes = new ArrayList<Genotype>(nParts);
-
-        // get the format keys
-        int nGTKeys = ParsingUtils.split(genotypeParts[0], genotypeKeyArray, VCFConstants.GENOTYPE_FIELD_SEPARATOR_CHAR);
-
-        // cycle through the sample names
-        Iterator<String> sampleNameIterator = header.getGenotypeSamples().iterator();
-
-        // clear out our allele mapping
-        alleleMap.clear();
-
-        // cycle through the genotype strings
-        for (int genotypeOffset = 1; genotypeOffset < nParts; genotypeOffset++) {
-            int GTValueSplitSize = ParsingUtils.split(genotypeParts[genotypeOffset], GTValueArray, VCFConstants.GENOTYPE_FIELD_SEPARATOR_CHAR);
-
-            double GTQual = VariantContext.NO_LOG10_PERROR;
-            List<String> genotypeFilters = null;
-            Map<String, Object> gtAttributes = null;
-            String sampleName = sampleNameIterator.next();
-
-            // check to see if the value list is longer than the key list, which is a problem
-            if (nGTKeys < GTValueSplitSize)
-                generateException("There are too many keys for the sample " + sampleName + ", keys = " + parts[8] + ", values = " + parts[genotypeOffset]);
-
-            int genotypeAlleleLocation = -1;
-            if (nGTKeys >= 1) {
-                gtAttributes = new HashMap<String, Object>(nGTKeys - 1);
-
-                for (int i = 0; i < nGTKeys; i++) {
-                    final String gtKey = new String(genotypeKeyArray[i]);
-                    boolean missing = i >= GTValueSplitSize;
-
-                    if (gtKey.equals(VCFConstants.GENOTYPE_KEY)) {
-                        genotypeAlleleLocation = i;
-                    } else if (gtKey.equals(VCFConstants.GENOTYPE_QUALITY_KEY)) {
-                        GTQual = missing ? parseQual(VCFConstants.MISSING_VALUE_v4) : parseQual(GTValueArray[i]);
-                    } else if (gtKey.equals(VCFConstants.GENOTYPE_FILTER_KEY)) {
-                        genotypeFilters = missing ? parseFilters(VCFConstants.MISSING_VALUE_v4) : parseFilters(getCachedString(GTValueArray[i]));
-                    } else if ( missing || GTValueArray[i].equals(VCFConstants.MISSING_GENOTYPE_QUALITY_v3) ) {
-                        //gtAttributes.put(gtKey, VCFConstants.MISSING_VALUE_v4);
-                    } else {
-                        gtAttributes.put(gtKey, new String(GTValueArray[i]));
-                    }
-                }
-            }
-
-            // check to make sure we found a genotype field
-            if ( genotypeAlleleLocation < 0 )
-                generateException("Unable to find the GT field for the record; the GT field is required");
-            if ( genotypeAlleleLocation > 0 )
-                generateException("Saw GT field at position " + genotypeAlleleLocation + ", but it must be at the first position for genotypes");
-
-            boolean phased = GTValueArray[genotypeAlleleLocation].indexOf(VCFConstants.PHASED) != -1;
-
-            // add it to the list
-            try {
-                final GenotypeBuilder gb = new GenotypeBuilder(sampleName);
-                gb.alleles(parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], alleles, alleleMap));
-                gb.log10PError(GTQual);
-                if ( genotypeFilters != null ) gb.filters(genotypeFilters);
-                gb.attributes(gtAttributes).phased(phased);
-                genotypes.add(gb.make());
-            } catch (TribbleException e) {
-                throw new TribbleException.InternalCodecException(e.getMessage() + ", at position " + chr+":"+pos);
-            }
-        }
-
-        return new LazyGenotypesContext.LazyData(genotypes, header.getSampleNamesInOrder(), header.getSampleNameToOffset());
     }
 
     @Override
