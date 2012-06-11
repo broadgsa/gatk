@@ -111,21 +111,21 @@ import java.util.List;
  * <p>
  *
  * <pre>
-   [testng] path                                                             count
-   [testng] *.*.*.AC                                                         6
-   [testng] *.*.*.AF                                                         6
-   [testng] *.*.*.AN                                                         6
-   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000000.AC  1
-   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000000.AF  1
-   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000000.AN  1
-   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000117.AC  1
-   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000117.AF  1
-   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000117.AN  1
-   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000211.AC  1
-   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000211.AF  1
-   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000211.AN  1
-   [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000598.AC  1
-</pre>
+ [testng] path                                                             count
+ [testng] *.*.*.AC                                                         6
+ [testng] *.*.*.AF                                                         6
+ [testng] *.*.*.AN                                                         6
+ [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000000.AC  1
+ [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000000.AF  1
+ [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000000.AN  1
+ [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000117.AC  1
+ [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000117.AF  1
+ [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000117.AN  1
+ [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000211.AC  1
+ [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000211.AF  1
+ [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000211.AN  1
+ [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000598.AC  1
+ </pre>
  *
  * @author Mark DePristo
  * @since 7/4/11
@@ -201,11 +201,14 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="showItemizedDifferences", shortName="SID", doc="Should we enumerate all differences between the files?", required=false)
     boolean showItemizedDifferences = false;
 
+    @Argument(fullName="iterations", doc="Number of iterations to perform, should be 1 unless you are doing memory testing", required=false)
+    int iterations = 1;
+
     DiffEngine diffEngine;
 
     @Override
     public void initialize() {
-       this.diffEngine = new DiffEngine();
+        this.diffEngine = new DiffEngine();
     }
 
     @Override
@@ -225,31 +228,39 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
 
     @Override
     public void onTraversalDone(Integer sum) {
-        //out.printf("Reading master file %s%n", masterFile);
-        DiffElement master = diffEngine.createDiffableFromFile(masterFile, MAX_OBJECTS_TO_READ);
-        logger.info(String.format("Read %d objects", master.size()));
-        //out.printf("Reading test file %s%n", testFile);
-        DiffElement test = diffEngine.createDiffableFromFile(testFile, MAX_OBJECTS_TO_READ);
-        logger.info(String.format("Read %d objects", test.size()));
+        if ( iterations > 1 ) {
+            for ( int i = 0; i < iterations; i++ ) {
+                DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(out, 20, 10, 0, -1, false);
+                boolean success = DiffEngine.simpleDiffFiles(masterFile, testFile, MAX_OBJECTS_TO_READ, params);
+                logger.info("Iteration " + i + " success " + success);
+            }
+        } else {
+            //out.printf("Reading master file %s%n", masterFile);
+            DiffElement master = diffEngine.createDiffableFromFile(masterFile, MAX_OBJECTS_TO_READ);
+            logger.info(String.format("Read %d objects", master.size()));
+            //out.printf("Reading test file %s%n", testFile);
+            DiffElement test = diffEngine.createDiffableFromFile(testFile, MAX_OBJECTS_TO_READ);
+            logger.info(String.format("Read %d objects", test.size()));
 
 //        out.printf("Master diff objects%n");
 //        out.println(master.toString());
 //        out.printf("Test diff objects%n");
 //        out.println(test.toString());
 
-        List<Difference> diffs = diffEngine.diff(master, test);
-        logger.info(String.format("Done computing diff with %d differences found", diffs.size()));
-        if ( showItemizedDifferences ) {
-            out.printf("Itemized results%n");
-            for ( Difference diff : diffs )
-                out.printf("DIFF: %s%n", diff.toString());
-        }
+            List<Difference> diffs = diffEngine.diff(master, test);
+            logger.info(String.format("Done computing diff with %d differences found", diffs.size()));
+            if ( showItemizedDifferences ) {
+                out.printf("Itemized results%n");
+                for ( Difference diff : diffs )
+                    out.printf("DIFF: %s%n", diff.toString());
+            }
 
-        DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(out,
-                MAX_DIFFS, MAX_COUNT1_DIFFS, minCountForDiff,
-                maxRawDiffsToSummary, doPairwise);
-        params.setDescending(false);
-        diffEngine.reportSummarizedDifferences(diffs, params);
-        logger.info(String.format("Done summarizing differences"));
+            DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(out,
+                    MAX_DIFFS, MAX_COUNT1_DIFFS, minCountForDiff,
+                    maxRawDiffsToSummary, doPairwise);
+            params.setDescending(false);
+            diffEngine.reportSummarizedDifferences(diffs, params);
+            logger.info(String.format("Done summarizing differences"));
+        }
     }
 }
