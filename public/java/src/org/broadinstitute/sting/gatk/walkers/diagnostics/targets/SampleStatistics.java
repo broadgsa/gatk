@@ -146,7 +146,7 @@ class SampleStatistics {
             int locusIndex = locus.getStart() - interval.getStart();
 
             int rawCoverage = pileup.depthOfCoverage();
-            int coverage = pileup.getBaseAndMappingFilteredPileup(thresholds.getMinimumBaseQuality(), thresholds.getMinimumMappingQuality()).depthOfCoverage();
+            int coverage = thresholds.getFilteredCoverage(pileup);
 
             LocusStatistics locusData = new LocusStatistics(coverage, rawCoverage);
 

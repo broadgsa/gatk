@@ -33,7 +33,8 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
@@ -147,7 +148,7 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
         intervalListIterator = new PeekableIterator<GenomeLoc>(getToolkit().getIntervals().iterator());
 
         samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());                                       // get all of the unique sample names for the VCF Header
-        vcfWriter.writeHeader(new VCFHeader(getHeaderInfo(), samples));                                                 // initialize the VCF header
+        vcfWriter.writeHeader(new VCFHeader(ThresHolder.getHeaderInfo(), samples));                                                 // initialize the VCF header
     }
 
     @Override
@@ -287,34 +288,6 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
 
         vcfWriter.add(vcb.make());
 
-    }
-
-    /**
-     * Gets the header lines for the VCF writer
-     *
-     * @return A set of VCF header lines
-     */
-    private static Set<VCFHeaderLine> getHeaderInfo() {
-        Set<VCFHeaderLine> headerLines = new HashSet<VCFHeaderLine>();
-
-        // INFO fields for overall data
-        headerLines.add(new VCFInfoHeaderLine(VCFConstants.END_KEY, 1, VCFHeaderLineType.Integer, "Stop position of the interval"));
-        headerLines.add(new VCFInfoHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Float, "Average depth across the interval. Sum of the depth in a lci divided by interval size."));
-        headerLines.add(new VCFInfoHeaderLine("Diagnose Targets", 0, VCFHeaderLineType.Flag, "DiagnoseTargets mode"));
-
-        // FORMAT fields for each genotype
-        // todo -- find the appropriate VCF constants
-        headerLines.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Float, "Average depth across the interval. Sum of the depth in a lci divided by interval size."));
-        headerLines.add(new VCFFormatHeaderLine("Q1", 1, VCFHeaderLineType.Float, "Lower Quartile of depth distribution."));
-        headerLines.add(new VCFFormatHeaderLine("MED", 1, VCFHeaderLineType.Float, "Median of depth distribution."));
-        headerLines.add(new VCFFormatHeaderLine("Q3", 1, VCFHeaderLineType.Float, "Upper Quartile of depth Distribution."));
-
-
-        // FILTER fields
-        for (CallableStatus stat : CallableStatus.values())
-            headerLines.add(new VCFFilterHeaderLine(stat.name(), stat.description));
-
-        return headerLines;
     }
 
     /**

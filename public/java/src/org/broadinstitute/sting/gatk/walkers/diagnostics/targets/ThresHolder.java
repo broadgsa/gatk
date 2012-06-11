@@ -24,6 +24,12 @@
 
 package org.broadinstitute.sting.gatk.walkers.diagnostics.targets;
 
+import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+
+import java.util.HashSet;
+import java.util.Set;
+
 class ThresHolder {
     public static final ThresHolder DEFAULTS = new ThresHolder(20, 20, 5, 700, 20, 50, 0.5, 0.2, 0.5, 0.2, 0.2, 0.5);
 
@@ -69,14 +75,6 @@ class ThresHolder {
         this.qualityStatusThreshold = qualityStatusThreshold;
     }
 
-    public int getMinimumBaseQuality() {
-        return minimumBaseQuality;
-    }
-
-    public int getMinimumMappingQuality() {
-        return minimumMappingQuality;
-    }
-
     public int getMinimumCoverage() {
         return minimumCoverage;
     }
@@ -116,4 +114,37 @@ class ThresHolder {
     public double getQualityStatusThreshold() {
         return qualityStatusThreshold;
     }
+
+    public int getFilteredCoverage(ReadBackedPileup pileup) {
+        return pileup.getBaseAndMappingFilteredPileup(minimumBaseQuality, minimumMappingQuality).depthOfCoverage();
+    }
+
+    /**
+     * Gets the header lines for the VCF writer
+     *
+     * @return A set of VCF header lines
+     */
+    public static Set<VCFHeaderLine> getHeaderInfo() {
+        Set<VCFHeaderLine> headerLines = new HashSet<VCFHeaderLine>();
+
+        // INFO fields for overall data
+        headerLines.add(new VCFInfoHeaderLine(VCFConstants.END_KEY, 1, VCFHeaderLineType.Integer, "Stop position of the interval"));
+        headerLines.add(new VCFInfoHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Float, "Average depth across the interval. Sum of the depth in a lci divided by interval size."));
+        headerLines.add(new VCFInfoHeaderLine("Diagnose Targets", 0, VCFHeaderLineType.Flag, "DiagnoseTargets mode"));
+
+        // FORMAT fields for each genotype
+        // todo -- find the appropriate VCF constants
+        headerLines.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Float, "Average depth across the interval. Sum of the depth in a lci divided by interval size."));
+        headerLines.add(new VCFFormatHeaderLine("Q1", 1, VCFHeaderLineType.Float, "Lower Quartile of depth distribution."));
+        headerLines.add(new VCFFormatHeaderLine("MED", 1, VCFHeaderLineType.Float, "Median of depth distribution."));
+        headerLines.add(new VCFFormatHeaderLine("Q3", 1, VCFHeaderLineType.Float, "Upper Quartile of depth Distribution."));
+
+
+        // FILTER fields
+        for (CallableStatus stat : CallableStatus.values())
+            headerLines.add(new VCFFilterHeaderLine(stat.name(), stat.description));
+
+        return headerLines;
+    }
+
 }
