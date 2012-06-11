@@ -25,8 +25,11 @@ import java.util.*;
  * @since 3/6/12
  */
 public class BQSRKeyManager {
-    private final List<RequiredCovariateInfo> requiredCovariates;
-    private final List<OptionalCovariateInfo> optionalCovariates;
+
+    private final List<Covariate> requiredCovariates;
+    private final List<Covariate> optionalCovariates;
+    private final List<RequiredCovariateInfo> requiredCovariatesInfo;
+    private final List<OptionalCovariateInfo> optionalCovariatesInfo;
     private final Map<String, Short> covariateNameToIDMap;
 
     private int nRequiredBits;                                                                                          // Number of bits used to represent the required covariates
@@ -44,15 +47,17 @@ public class BQSRKeyManager {
      * @param optionalCovariates the ordered list of optional covariates
      */
     public BQSRKeyManager(List<Covariate> requiredCovariates, List<Covariate> optionalCovariates) {
-        this.requiredCovariates = new ArrayList<RequiredCovariateInfo>(requiredCovariates.size());                      // initialize the required covariates list
-        this.optionalCovariates = new ArrayList<OptionalCovariateInfo>(optionalCovariates.size());                      // initialize the optional covariates list (size may be 0, it's okay)
-        this.covariateNameToIDMap = new HashMap<String, Short>(optionalCovariates.size()*2);                            // the map from covariate name to covariate id (when reading GATK Reports, we get the IDs as names of covariates)
+        this.requiredCovariates = new ArrayList<Covariate>(requiredCovariates);
+        this.optionalCovariates = new ArrayList<Covariate>(optionalCovariates);
+        requiredCovariatesInfo = new ArrayList<RequiredCovariateInfo>(requiredCovariates.size());                       // initialize the required covariates list
+        optionalCovariatesInfo = new ArrayList<OptionalCovariateInfo>(optionalCovariates.size());                       // initialize the optional covariates list (size may be 0, it's okay)
+        covariateNameToIDMap = new HashMap<String, Short>(optionalCovariates.size()*2);                                 // the map from covariate name to covariate id (when reading GATK Reports, we get the IDs as names of covariates)
         
         nRequiredBits = 0;
         for (Covariate required : requiredCovariates) {                                                                 // create a list of required covariates with the extra information for key management
             int nBits = required.numberOfBits();                                                                        // number of bits used by this covariate
             BitSet mask = genericMask(nRequiredBits, nBits);                                                            // create a mask for this covariate
-            this.requiredCovariates.add(new RequiredCovariateInfo(nRequiredBits, mask, required));                      // Create an object for this required covariate
+            requiredCovariatesInfo.add(new RequiredCovariateInfo(nRequiredBits, mask, required));                       // Create an object for this required covariate
             nRequiredBits += nBits;
         }
 
@@ -61,10 +66,10 @@ public class BQSRKeyManager {
         for (Covariate optional : optionalCovariates) {
             int nBits = optional.numberOfBits();                                                                        // number of bits used by this covariate
             nOptionalBits = Math.max(nOptionalBits, nBits);                                                             // optional covariates are represented by the number of bits needed by biggest covariate
-            BitSet optionalID = BitSetUtils.bitSetFrom(id);                                                             // calculate the optional covariate ID for this covariate
-            this.optionalCovariates.add(new OptionalCovariateInfo(optionalID, optional));                               // optional covariates have standardized mask and number of bits, so no need to store in the RequiredCovariateInfo object
+            BitSet optionalID = bitSetFromId(id);                                                                       // calculate the optional covariate ID for this covariate
+            optionalCovariatesInfo.add(new OptionalCovariateInfo(optionalID, optional));                                // optional covariates have standardized mask and number of bits, so no need to store in the RequiredCovariateInfo object
             String covariateName = optional.getClass().getSimpleName().split("Covariate")[0];                           // get the name of the covariate (without the "covariate" part of it) so we can match with the GATKReport
-            this.covariateNameToIDMap.put(covariateName, id);
+            covariateNameToIDMap.put(covariateName, id);
             id++;
         }
 
@@ -93,17 +98,17 @@ public class BQSRKeyManager {
      * @return one key in bitset representation per covariate
      */
     public List<BitSet> bitSetsFromAllKeys(BitSet[] allKeys, EventType eventType) {
-        List<BitSet> allBitSets = new LinkedList<BitSet>();                                                             // Generate one key per optional covariate
+        List<BitSet> allBitSets = new ArrayList<BitSet>();                                                              // Generate one key per optional covariate
 
-        BitSet eventBitSet = BitSetUtils.bitSetFrom(eventType.index);                                                   // create a bitset with the event type
+        BitSet eventBitSet = bitSetFromEvent(eventType);                                                                // create a bitset with the event type
         int eventTypeBitIndex = nRequiredBits + nOptionalBits + nOptionalIDBits;                                        // Location in the bit set to add the event type bits
 
         int covariateIndex = 0;
         BitSet requiredKey = new BitSet(nRequiredBits);                                                                 // This will be a bitset holding all the required keys, to replicate later on
-        for (RequiredCovariateInfo infoRequired : requiredCovariates)
+        for (RequiredCovariateInfo infoRequired : requiredCovariatesInfo)
             addBitSetToKeyAtLocation(requiredKey, allKeys[covariateIndex++], infoRequired.bitsBefore);                  // Add all the required covariates to the key set
 
-        for (OptionalCovariateInfo infoOptional : optionalCovariates) {
+        for (OptionalCovariateInfo infoOptional : optionalCovariatesInfo) {
             BitSet covariateKey = allKeys[covariateIndex++];                                                            // get the bitset from all keys
             if (covariateKey == null)
                 continue;                                                                                               // do not add nulls to the final set of keys.
@@ -116,7 +121,7 @@ public class BQSRKeyManager {
             allBitSets.add(optionalKey);                                                                                // add this key to the list of keys
         }
 
-        if (optionalCovariates.size() == 0) {                                                                           // special case when we have no optional covariates, add the event type to the required key (our only key)
+        if (optionalCovariatesInfo.size() == 0) {                                                                       // special case when we have no optional covariates, add the event type to the required key (our only key)
             addBitSetToKeyAtLocation(requiredKey, eventBitSet, eventTypeBitIndex);                                      // Add the event type
             allBitSets.add(requiredKey);                                                                                // add this key to the list of keys
         }
@@ -140,16 +145,16 @@ public class BQSRKeyManager {
         BitSet bitSetKey = new BitSet(totalNumberOfBits);
         
         int requiredCovariate = 0;
-        for (RequiredCovariateInfo infoRequired : requiredCovariates) {             
+        for (RequiredCovariateInfo infoRequired : requiredCovariatesInfo) {
             BitSet covariateBitSet = infoRequired.covariate.bitSetFromKey(key[requiredCovariate++]);                    // create a bitset from the object key provided using the required covariate's interface
             addBitSetToKeyAtLocation(bitSetKey, covariateBitSet, infoRequired.bitsBefore);                              // add it to the bitset key
         }
         
-        if (optionalCovariates.size() > 0) {
-            int optionalCovariate = requiredCovariates.size();                                                          // the optional covariate index in the key array
+        if (optionalCovariatesInfo.size() > 0) {
+            int optionalCovariate = requiredCovariatesInfo.size();                                                      // the optional covariate index in the key array
             int covariateIDIndex = optionalCovariate + 1;                                                               // the optional covariate ID index is right after the optional covariate's
             int covariateID = parseCovariateID(key[covariateIDIndex]);                                                  // when reading the GATK Report the ID may come in a String instead of an index
-            OptionalCovariateInfo infoOptional = optionalCovariates.get(covariateID);                                   // so we can get the optional covariate information
+            OptionalCovariateInfo infoOptional = optionalCovariatesInfo.get(covariateID);                               // so we can get the optional covariate information
             
             BitSet covariateBitSet = infoOptional.covariate.bitSetFromKey(key[optionalCovariate]);                      // convert the optional covariate key into a bitset using the covariate's interface
             addBitSetToKeyAtLocation(bitSetKey, covariateBitSet, nRequiredBits);                                        // add the optional covariate right after the required covariates
@@ -185,16 +190,16 @@ public class BQSRKeyManager {
      */
     public List<Object> keySetFrom(BitSet key) {
         List<Object> objectKeys = new ArrayList<Object>();
-        for (RequiredCovariateInfo info : requiredCovariates) {
+        for (RequiredCovariateInfo info : requiredCovariatesInfo) {
             BitSet covariateBitSet = extractBitSetFromKey(key, info.mask, info.bitsBefore);                             // get the covariate's bitset
             objectKeys.add(info.covariate.keyFromBitSet(covariateBitSet));                                              // convert the bitset to object using covariate's interface
         }
 
-        if (optionalCovariates.size() > 0) {
+        if (optionalCovariatesInfo.size() > 0) {
             BitSet covBitSet = extractBitSetFromKey(key, optionalCovariateMask, nRequiredBits);                         // mask out the covariate bit set
             BitSet idbs = extractBitSetFromKey(key, optionalCovariateIDMask, nRequiredBits + nOptionalBits);            // mask out the covariate order (to identify which covariate this is)
             short id = BitSetUtils.shortFrom(idbs);                                                                     // covert the id bitset into a short
-            Covariate covariate = optionalCovariates.get(id).covariate;                                                 // get the corresponding optional covariate object
+            Covariate covariate = optionalCovariatesInfo.get(id).covariate;                                                 // get the corresponding optional covariate object
             objectKeys.add(covariate.keyFromBitSet(covBitSet));                                                         // add the optional covariate to the key set
             objectKeys.add(covariate.getClass().getSimpleName().split("Covariate")[0]);                                 // add the covariate name using the id
         }
@@ -204,17 +209,11 @@ public class BQSRKeyManager {
     }
 
     public List<Covariate> getRequiredCovariates() {
-        ArrayList<Covariate> list = new ArrayList<Covariate>(requiredCovariates.size());
-        for (RequiredCovariateInfo info : requiredCovariates) 
-            list.add(info.covariate);
-        return list;
+        return requiredCovariates;
     }
 
     public List<Covariate> getOptionalCovariates() {
-        ArrayList<Covariate> list = new ArrayList<Covariate>(optionalCovariates.size());
-        for (OptionalCovariateInfo info : optionalCovariates)
-            list.add(info.covariate);
-        return list;
+        return optionalCovariates;
     }
 
     /**
@@ -258,9 +257,20 @@ public class BQSRKeyManager {
             eventKey.set(i - firstBitIndex);
         return EventType.eventFrom(BitSetUtils.shortFrom(eventKey));
     }
-    
-    private BitSet bitSetFromEvent(EventType eventType) {
-        return BitSetUtils.bitSetFrom(eventType.index);
+
+    // cache the BitSet representing an event since it's otherwise created a massive amount of times
+    private static final Map<EventType, BitSet> eventTypeCache = new HashMap<EventType, BitSet>(EventType.values().length);
+    static {
+        for (final EventType eventType : EventType.values())
+            eventTypeCache.put(eventType, BitSetUtils.bitSetFrom(eventType.index));
+    }
+
+    private BitSet bitSetFromEvent(final EventType eventType) {
+        return eventTypeCache.get(eventType);
+    }
+
+    private BitSet bitSetFromId(final short id) {
+        return BitSetUtils.bitSetFrom(id);
     }
 
     private int bitsInEventType() {
@@ -287,24 +297,24 @@ public class BQSRKeyManager {
         if (this == other)
             return true;
 
-        if (requiredCovariates.size() != other.requiredCovariates.size() || optionalCovariates.size() != other.optionalCovariates.size())
+        if (requiredCovariatesInfo.size() != other.requiredCovariatesInfo.size() ||
+                optionalCovariatesInfo.size() != other.optionalCovariatesInfo.size())
             return false;
 
-        Iterator<RequiredCovariateInfo> otherRequiredIterator = other.requiredCovariates.iterator();
-        for (RequiredCovariateInfo thisInfo: requiredCovariates) {
-            RequiredCovariateInfo otherInfo = otherRequiredIterator.next();
-
-            String thisName = thisInfo.covariate.getClass().getSimpleName();
-            String otherName = otherInfo.covariate.getClass().getSimpleName();
+        for (int i = 0; i < requiredCovariates.size(); i++) {
+            Covariate myRequiredCovariate = requiredCovariates.get(i);
+            Covariate otherRequiredCovariate = other.requiredCovariates.get(i);
+            String thisName = myRequiredCovariate.getClass().getSimpleName();
+            String otherName = otherRequiredCovariate.getClass().getSimpleName();
             if (!thisName.equals(otherName))
                 return false;
         }
 
-        Iterator<OptionalCovariateInfo> otherOptionalIterator = other.optionalCovariates.iterator();
-        for (OptionalCovariateInfo thisInfo : optionalCovariates) {
-            OptionalCovariateInfo otherInfo = otherOptionalIterator.next();
-            String thisName = thisInfo.covariate.getClass().getSimpleName();
-            String otherName = otherInfo.covariate.getClass().getSimpleName();
+        for (int i = 0; i < optionalCovariates.size(); i++) {
+            Covariate myOptionalCovariate = optionalCovariates.get(i);
+            Covariate otherOptionalCovariate = other.optionalCovariates.get(i);
+            String thisName = myOptionalCovariate.getClass().getSimpleName();
+            String otherName = otherOptionalCovariate.getClass().getSimpleName();
             if (!thisName.equals(otherName))
                 return false;
         }

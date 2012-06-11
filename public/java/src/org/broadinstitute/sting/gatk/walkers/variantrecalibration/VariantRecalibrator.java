@@ -139,7 +139,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     // Outputs
     /////////////////////////////
     @Output(fullName="recal_file", shortName="recalFile", doc="The output recal file used by ApplyRecalibration", required=true)
-    protected File recalFile = null;
     protected VariantContextWriter recalWriter = null;
 
     @Output(fullName="tranches_file", shortName="tranchesFile", doc="The output tranches file used by ApplyRecalibration", required=true)
@@ -230,9 +229,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             throw new UserException.CommandLineException( "No truth set found! Please provide sets of known polymorphic loci marked with the truth=true ROD binding tag. For example, -B:hapmap,VCF,known=false,training=true,truth=true,prior=12.0 hapmapFile.vcf" );
         }
 
-        final VCFHeader vcfHeader = new VCFHeader();
-        recalWriter = VariantContextWriterFactory.create(recalFile, getMasterSequenceDictionary());
-        recalWriter.writeHeader(vcfHeader);
+        recalWriter.writeHeader( new VCFHeader() );
     }
 
     //---------------------------------------------------------------------------------------------------------------

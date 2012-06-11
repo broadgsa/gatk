@@ -88,19 +88,18 @@ public class BaseRecalibration {
     public void recalibrateRead(final GATKSAMRecord read) {
         final ReadCovariates readCovariates = RecalDataManager.computeCovariates(read, requestedCovariates);            // compute all covariates for the read
         for (final EventType errorModel : EventType.values()) {                                                         // recalibrate all three quality strings
-            final byte[] originalQuals = read.getBaseQualities(errorModel);
-            final byte[] recalQuals = originalQuals.clone();
+            final byte[] quals = read.getBaseQualities(errorModel);
 
             for (int offset = 0; offset < read.getReadLength(); offset++) {                                             // recalibrate all bases in the read
-                byte qualityScore = originalQuals[offset];
+                final byte originalQualityScore = quals[offset];
 
-                if (qualityScore >= QualityUtils.MIN_USABLE_Q_SCORE) {                                                  // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
+                if (originalQualityScore >= QualityUtils.MIN_USABLE_Q_SCORE) {                                          // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
                     final BitSet[] keySet = readCovariates.getKeySet(offset, errorModel);                               // get the keyset for this base using the error model
-                    qualityScore = performSequentialQualityCalculation(keySet, errorModel);                             // recalibrate the base
+                    final byte recalibratedQualityScore = performSequentialQualityCalculation(keySet, errorModel);      // recalibrate the base
+                    quals[offset] = recalibratedQualityScore;
                 }
-                recalQuals[offset] = qualityScore;
             }
-            read.setBaseQualities(recalQuals, errorModel);
+            read.setBaseQualities(quals, errorModel);
         }
     }
 

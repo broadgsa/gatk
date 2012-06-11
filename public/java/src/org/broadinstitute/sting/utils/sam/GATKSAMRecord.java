@@ -428,8 +428,8 @@ public class GATKSAMRecord extends BAMRecord {
      * Use this method if you want to create a new empty GATKSAMRecord based on
      * another GATKSAMRecord
      *
-     * @param read
-     * @return
+     * @param read a read to copy the header from
+     * @return a read with no bases but safe for the GATK
      */
     public static GATKSAMRecord emptyRead(GATKSAMRecord read) {
         GATKSAMRecord emptyRead = new GATKSAMRecord(read.getHeader(),

@@ -102,6 +102,17 @@ public class BaseUtils {
     }
 
     /**
+     * @return true iff the bases array contains at least one instance of base
+     */
+    static public boolean containsBase(final byte[] bases, final byte base) {
+        for ( final byte b : bases ) {
+            if ( b == base )
+                return true;
+        }
+        return false;
+    }
+
+    /**
      * Converts a IUPAC nucleotide code to a pair of bases
      *
      * @param code

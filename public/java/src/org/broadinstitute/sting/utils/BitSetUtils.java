@@ -5,6 +5,8 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Utilities for bitset conversion
@@ -71,8 +73,15 @@ public class BitSetUtils {
      * @return a bitset representation of the short
      */
     public static BitSet bitSetFrom(short number) {
-        return bitSetFrom(number, NBITS_SHORT_REPRESENTATION);
+        BitSet result = shortCache.get(number);
+        if (result == null) {
+            result = bitSetFrom(number, NBITS_SHORT_REPRESENTATION);
+            shortCache.put(number, result);
+        }
+        return result;
     }
+    // use a static cache for shorts (but not for longs, because there could be a lot of entries)
+    private static final Map<Short, BitSet> shortCache = new HashMap<Short, BitSet>(2 * Short.MAX_VALUE);
 
     /**
      * Creates a BitSet representation of an arbitrary integer (number of bits capped at 64 -- long precision)
@@ -82,7 +91,7 @@ public class BitSetUtils {
      * @return a bitset representation of the integer
      */
     public static BitSet bitSetFrom(long number, int nBits) {
-        BitSet bitSet = new BitSet();
+        BitSet bitSet = new BitSet(nBits);
         boolean isNegative = number < 0;
         int bitIndex = 0;
         while (number != 0) {
@@ -130,32 +139,32 @@ public class BitSetUtils {
         if (number < 0)
             throw new ReviewedStingException("dna conversion cannot handle negative numbers. Possible overflow?");
 
-        int length = contextLengthFor(number);  // the length of the context (the number of combinations is memoized, so costs zero to separate this into two method calls)
-        number -= combinationsFor(length - 1);  // subtract the the number of combinations of the preceding context from the number to get to the quasi-canonical representation
+        final int length = contextLengthFor(number);  // the length of the context (the number of combinations is memoized, so costs zero to separate this into two method calls)
+        number -= combinationsFor(length - 1);        // subtract the the number of combinations of the preceding context from the number to get to the quasi-canonical representation
 
-        String dna = "";
+        StringBuilder dna = new StringBuilder();
         while (number > 0) {                    // perform a simple base_10 to base_4 conversion (quasi-canonical)
             byte base = (byte) (number % 4);
             switch (base) {
                 case 0:
-                    dna = "A" + dna;
+                    dna.append('A');
                     break;
                 case 1:
-                    dna = "C" + dna;
+                    dna.append('C');
                     break;
                 case 2:
-                    dna = "G" + dna;
+                    dna.append('G');
                     break;
                 case 3:
-                    dna = "T" + dna;
+                    dna.append('T');
                     break;
             }
             number /= 4;
         }
         for (int j = dna.length(); j < length; j++)
-            dna = "A" + dna;                    // add leading A's as necessary (due to the "quasi" canonical status, see description above)
+            dna.append('A');                          // add leading A's as necessary (due to the "quasi" canonical status, see description above)
 
-        return dna;
+        return dna.reverse().toString();              // make sure to reverse the string since we should have been pre-pending all along
     }
 
     /**
@@ -178,27 +187,18 @@ public class BitSetUtils {
      * @return the bitset representing the dna sequence
      */
     public static BitSet bitSetFrom(String dna) {
-        if (dna.length() > MAX_DNA_CONTEXT)
-            throw new ReviewedStingException(String.format("DNA Length cannot be bigger than %d. dna: %s (%d)", MAX_DNA_CONTEXT, dna, dna.length()));
+        return bitSetFrom(dna.getBytes());
+    }
 
-        long baseTen = 0;                                       // the number in base_10 that we are going to use to generate the bit set
-        long preContext = combinationsFor(dna.length() - 1);    // the sum of all combinations that preceded the length of the dna string
-        for (int i = 0; i < dna.length(); i++) {
+    public static BitSet bitSetFrom(final byte[] dna) {
+        if (dna.length > MAX_DNA_CONTEXT)
+            throw new ReviewedStingException(String.format("DNA Length cannot be bigger than %d. dna: %s (%d)", MAX_DNA_CONTEXT, dna, dna.length));
+
+        final long preContext = combinationsFor(dna.length - 1);      // the sum of all combinations that preceded the length of the dna string
+        long baseTen = 0;                                             // the number in base_10 that we are going to use to generate the bit set
+        for (final byte base : dna) {
             baseTen *= 4;
-            switch (dna.charAt(i)) {
-                case 'A':
-                    baseTen += 0;
-                    break;
-                case 'C':
-                    baseTen += 1;
-                    break;
-                case 'G':
-                    baseTen += 2;
-                    break;
-                case 'T':
-                    baseTen += 3;
-                    break;
-            }
+            baseTen += BaseUtils.simpleBaseToBaseIndex(base);
         }
         return bitSetFrom(baseTen + preContext);                // the number representing this DNA string is the base_10 representation plus all combinations that preceded this string length.
     }
