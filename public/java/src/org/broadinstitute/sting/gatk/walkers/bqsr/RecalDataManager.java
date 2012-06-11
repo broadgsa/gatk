@@ -364,8 +364,9 @@ public class RecalDataManager {
 
             if (keyManager.getOptionalCovariates().size() > 0) {                                                        // initialize with the 'all covariates' table
                 // create a key manager for the delta table
-                List<Covariate> requiredCovariates = keyManager.getRequiredCovariates().subList(0, 1);                  // include the read group covariate as the only required covariate
-                List<Covariate> optionalCovariates = keyManager.getRequiredCovariates().subList(1, 2);                  // include the quality score covariate as an optional covariate
+                final List<Covariate> requiredCovariates = Arrays.asList(keyManager.getRequiredCovariates().get(0));    // include the read group covariate as the only required covariate
+                List<Covariate> optionalCovariates = new ArrayList<Covariate>();
+                optionalCovariates.add(keyManager.getRequiredCovariates().get(1));                                      // include the quality score covariate as an optional covariate
                 optionalCovariates.addAll(keyManager.getOptionalCovariates());                                          // include all optional covariates
                 deltaKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);                           // initialize the key manager
             }

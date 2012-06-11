@@ -44,7 +44,7 @@ import java.util.*;
 public class BaseRecalibration {
     private QuantizationInfo quantizationInfo;                                                                          // histogram containing the map for qual quantization (calculated after recalibration is done)
     private LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap;                                    // quick access reference to the read group table and its key manager
-    private ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();                                      // list of all covariates to be used in this calculation
+    private ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();                                              // list of all covariates to be used in this calculation
 
 
     /**
