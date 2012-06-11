@@ -135,7 +135,7 @@ public class FragmentUtils {
         GATKSAMRecord firstRead = overlappingPair.get(0);
         GATKSAMRecord secondRead = overlappingPair.get(1);
         if( !(secondRead.getUnclippedStart() <= firstRead.getUnclippedEnd() && secondRead.getUnclippedStart() >= firstRead.getUnclippedStart() && secondRead.getUnclippedEnd() >= firstRead.getUnclippedEnd()) ) {
-            firstRead = overlappingPair.get(1);
+            firstRead = overlappingPair.get(1); // swap them
             secondRead = overlappingPair.get(0);
         }
         if( !(secondRead.getUnclippedStart() <= firstRead.getUnclippedEnd() && secondRead.getUnclippedStart() >= firstRead.getUnclippedStart() && secondRead.getUnclippedEnd() >= firstRead.getUnclippedEnd()) ) {
@@ -177,12 +177,13 @@ public class FragmentUtils {
             quals[iii] = secondReadQuals[iii-firstReadStop];
         }
 
-        final GATKSAMRecord returnRead = new GATKSAMRecord(firstRead.getHeader());
-        returnRead.setAlignmentStart(firstRead.getUnclippedStart());
+        final GATKSAMRecord returnRead = new GATKSAMRecord( firstRead.getHeader() );
+        returnRead.setAlignmentStart( firstRead.getUnclippedStart() );
         returnRead.setReadBases( bases );
         returnRead.setBaseQualities( quals );
         returnRead.setReadGroup( firstRead.getReadGroup() );
         returnRead.setReferenceName( firstRead.getReferenceName() );
+        returnRead.setReadName( firstRead.getReadName() );
         final CigarElement c = new CigarElement(bases.length, CigarOperator.M);
         final ArrayList<CigarElement> cList = new ArrayList<CigarElement>();
         cList.add(c);

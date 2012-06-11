@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.clipping;
 import com.google.java.contract.Requires;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
+import org.broadinstitute.sting.gatk.walkers.bqsr.EventType;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -135,10 +136,9 @@ public class ReadClipper {
                 ops.clear();
                 if ( clippedRead.isEmpty() )
                     return GATKSAMRecord.emptyRead(clippedRead);
-//                    return new GATKSAMRecord( clippedRead.getHeader() );
                 return clippedRead;
             } catch (CloneNotSupportedException e) {
-                throw new RuntimeException(e); // this should never happen
+                throw new RuntimeException(e);                                                                          // this should never happen
             }
         }
     }
@@ -188,7 +188,6 @@ public class ReadClipper {
     private GATKSAMRecord hardClipByReadCoordinates(int start, int stop) {
         if (read.isEmpty() || (start == 0 && stop == read.getReadLength() - 1))
             return GATKSAMRecord.emptyRead(read);
-//            return new GATKSAMRecord(read.getHeader());
 
         this.addOp(new ClippingOp(start, stop));
         return clipRead(ClippingRepresentation.HARDCLIP_BASES);
@@ -213,14 +212,12 @@ public class ReadClipper {
     private GATKSAMRecord hardClipBothEndsByReferenceCoordinates(int left, int right) {
         if (read.isEmpty() || left == right)
             return GATKSAMRecord.emptyRead(read);
-//            return new GATKSAMRecord(read.getHeader());
         GATKSAMRecord leftTailRead = hardClipByReferenceCoordinates(right, -1);
 
         // after clipping one tail, it is possible that the consequent hard clipping of adjacent deletions
         // make the left cut index no longer part of the read. In that case, clip the read entirely.
         if (left > leftTailRead.getAlignmentEnd())
             return GATKSAMRecord.emptyRead(read);
-//            return new GATKSAMRecord(read.getHeader());
 
         ReadClipper clipper = new ReadClipper(leftTailRead);
         return clipper.hardClipByReferenceCoordinatesLeftTail(left);
@@ -402,15 +399,75 @@ public class ReadClipper {
 
     /**
      * Turns soft clipped bases into matches
-     *
      * @return a new read with every soft clip turned into a match
      */
     private GATKSAMRecord revertSoftClippedBases() {
-        this.addOp(new ClippingOp(0, 0));     // UNSOFTCLIP_BASES doesn't need coordinates
+        if (read.isEmpty())
+            return read;
+
+        this.addOp(new ClippingOp(0, 0));
         return this.clipRead(ClippingRepresentation.REVERT_SOFTCLIPPED_BASES);
     }
+
+    /**
+     * Reverts ALL soft-clipped bases
+     *
+     * @param read the read
+     * @return the read with all soft-clipped bases turned into matches
+     */
     public static GATKSAMRecord revertSoftClippedBases(GATKSAMRecord read) {
         return (new ReadClipper(read)).revertSoftClippedBases();
+    }
+
+    /**
+     * Reverts only soft clipped bases with quality score greater than or equal to minQual
+     *
+     * Note: Will write a temporary field with the number of soft clips that were undone on each side (left: 'SL', right: 'SR')
+     *
+     * @param read    the read
+     * @param minQual the mininum base quality score to revert the base (inclusive)
+     * @return the read with high quality soft clips reverted
+     */
+    public static GATKSAMRecord revertSoftClippedBases(GATKSAMRecord read, byte minQual) {
+        int nLeadingSoftClips = read.getAlignmentStart() - read.getSoftStart();
+        if (read.isEmpty() || nLeadingSoftClips > read.getReadLength())
+            return GATKSAMRecord.emptyRead(read);
+
+        byte [] quals = read.getBaseQualities(EventType.BASE_SUBSTITUTION);
+        int left = -1;
+
+        if (nLeadingSoftClips > 0) {
+            for (int i = nLeadingSoftClips - 1; i >= 0; i--) {
+                if (quals[i] >= minQual)
+                    left = i;
+                else
+                    break;
+            }
+        }
+
+        int right = -1;
+        int nTailingSoftClips = read.getSoftEnd() - read.getAlignmentEnd();
+        if (nTailingSoftClips > 0) {
+            for (int i = read.getReadLength() - nTailingSoftClips; i < read.getReadLength() ; i++) {
+                if (quals[i] >= minQual)
+                    right = i;
+                else
+                    break;
+            }
+        }
+
+        GATKSAMRecord clippedRead = read;
+        if (right >= 0) {
+            if (right + 1 < clippedRead.getReadLength())
+                clippedRead = hardClipByReadCoordinates(clippedRead, right+1, clippedRead.getReadLength()-1);           // first we hard clip the low quality soft clips on the left tail
+            clippedRead.setTemporaryAttribute("SR", nTailingSoftClips - (read.getReadLength() - right - 1));                // keep track of how may bases to 're-softclip' after processing
+        }
+        if (left >= 0) {
+            if (left - 1 > 0)
+                clippedRead = hardClipByReadCoordinates(clippedRead, 0, left-1);                                        // then we hard clip the low quality soft clips on the right tail
+            clippedRead.setTemporaryAttribute("SL", nLeadingSoftClips - left);                                          // keep track of how may bases to 're-softclip' after processing
+        }
+        return revertSoftClippedBases(clippedRead);                                                                     // now that we have only good bases in the soft clips, we can revert them all
     }
 
     /**
@@ -445,9 +502,6 @@ public class ReadClipper {
             start = ReadUtils.getReadCoordinateForReferenceCoordinate(read, refStart, ReadUtils.ClippingTail.RIGHT_TAIL);
             stop = read.getReadLength() - 1;
         }
-
-//        if ((start == 0 && stop == read.getReadLength() - 1))
-//            return GATKSAMRecord.emptyRead(read);
 
         if (start < 0 || stop > read.getReadLength() - 1)
             throw new ReviewedStingException("Trying to clip before the start or after the end of a read");
