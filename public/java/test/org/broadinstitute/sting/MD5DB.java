@@ -48,8 +48,8 @@ public class MD5DB {
     /**
      * Subdirectory under the ant build directory where we store integration test md5 results
      */
-    private static final int MAX_RECORDS_TO_READ = 1000;
-    private static final int MAX_RAW_DIFFS_TO_SUMMARIZE = 100;
+    private static final int MAX_RECORDS_TO_READ = 100000;
+    private static final int MAX_RAW_DIFFS_TO_SUMMARIZE = -1;
     public static final String LOCAL_MD5_DB_DIR = "integrationtests";
     public static final String GLOBAL_MD5_DB_DIR = "/humgen/gsa-hpprojects/GATK/data/integrationtests";
 
@@ -284,7 +284,7 @@ public class MD5DB {
                     // inline differences
                     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     final PrintStream ps = new PrintStream(baos);
-                    DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(ps, 20, 10, 0, MAX_RAW_DIFFS_TO_SUMMARIZE);
+                    DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(ps, 20, 10, 0, MAX_RAW_DIFFS_TO_SUMMARIZE, false);
                     boolean success = DiffEngine.simpleDiffFiles(new File(pathToExpectedMD5File), new File(pathToFileMD5File), MAX_RECORDS_TO_READ, params);
                     if ( success ) {
                         final String content = baos.toString();

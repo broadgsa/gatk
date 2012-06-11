@@ -81,9 +81,6 @@ public class VCFDiffableReader implements DiffableReader {
             String prevName = "";
             Iterator<VariantContext> it = reader.iterator();
             while ( it.hasNext() ) {
-                if ( count++ > maxElementsToRead && maxElementsToRead != -1)
-                    break;
-
                 VariantContext vc = it.next();
                 String name = vc.getChr() + ":" + vc.getStart();
                 if ( name.equals(prevName) ) {
@@ -125,6 +122,9 @@ public class VCFDiffableReader implements DiffableReader {
                 }
 
                 root.add(vcRoot);
+                count += vcRoot.size();
+                if ( count > maxElementsToRead && maxElementsToRead != -1)
+                    break;
             }
 
             reader.close();

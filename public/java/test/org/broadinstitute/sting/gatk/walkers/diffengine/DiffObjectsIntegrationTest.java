@@ -35,12 +35,14 @@ public class DiffObjectsIntegrationTest extends WalkerTest {
     private class TestParams extends TestDataProvider {
         public File master, test;
         public String MD5;
+        public boolean doPairwise;
 
-        private TestParams(String master, String test, String MD5) {
+        private TestParams(String master, String test, final boolean doPairwise, String MD5) {
             super(TestParams.class);
             this.master = new File(master);
             this.test = new File(test);
             this.MD5 = MD5;
+            this.doPairwise = doPairwise;
         }
 
         public String toString() {
@@ -50,8 +52,10 @@ public class DiffObjectsIntegrationTest extends WalkerTest {
 
     @DataProvider(name = "data")
     public Object[][] createData() {
-        new TestParams(testDir + "diffTestMaster.vcf", testDir + "diffTestTest.vcf", "daead9bfab1a5df72c5e3a239366118e");
-        new TestParams(testDir + "exampleBAM.bam", testDir + "exampleBAM.simple.bam", "3f46f5a964f7c34015d972256fe49a35");
+        new TestParams(testDir + "diffTestMaster.vcf", testDir + "diffTestTest.vcf", true, "fc06e758e5588a52d2dddafdff1665a4");
+        new TestParams(testDir + "exampleBAM.bam", testDir + "exampleBAM.simple.bam", true, "3f46f5a964f7c34015d972256fe49a35");
+        new TestParams(testDir + "diffTestMaster.vcf", testDir + "diffTestTest.vcf", false, "54dff80e3f9569146dd66d5369c82b48");
+        new TestParams(testDir + "exampleBAM.bam", testDir + "exampleBAM.simple.bam", false, "47bf16c27c9e2c657a7e1d13f20880c9");
         return TestParams.getTests(TestParams.class);
     }
 
@@ -61,6 +65,7 @@ public class DiffObjectsIntegrationTest extends WalkerTest {
                 "-T DiffObjects -R public/testdata/exampleFASTA.fasta "
                         + " -m " + params.master
                         + " -t " + params.test
+                        + (params.doPairwise ? " -doPairwise " : "")
                         + " -o %s",
                 Arrays.asList(params.MD5));
         executeTest("testDiffObjects:"+params, spec).getFirst();

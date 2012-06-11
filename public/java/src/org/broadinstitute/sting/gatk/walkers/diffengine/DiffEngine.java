@@ -147,7 +147,7 @@ public class DiffEngine {
      * @param diffs the list of differences to summarize
      */
     public void reportSummarizedDifferences(List<Difference> diffs, SummaryReportParams params ) {
-        printSummaryReport(summarizedDifferencesOfPaths(diffs, params.maxRawDiffsToSummarize), params );
+        printSummaryReport(summarizedDifferencesOfPaths(diffs, params.doPairwise, params.maxRawDiffsToSummarize), params );
     }
 
     final protected static String[] diffNameToPath(String diffName) {
@@ -161,9 +161,17 @@ public class DiffEngine {
             diffs.add(new Difference(diff));
         }
 
-        return summarizedDifferencesOfPaths(diffs, -1);
+        return summarizedDifferencesOfPaths(diffs, true, -1);
     }
 
+    /**
+     * Computes a minimum set of potential differences between all singleton differences
+     * in singletonDiffs.  Employs an expensive pairwise O(n^2) algorithm.
+     *
+     * @param singletonDiffs
+     * @param maxRawDiffsToSummarize
+     * @return
+     */
     private Map<String, Difference> initialPairwiseSummaries(final List<? extends Difference> singletonDiffs,
                                                              final int maxRawDiffsToSummarize) {
         Map<String, Difference> summaries = new HashMap<String, Difference>();
@@ -191,9 +199,41 @@ public class DiffEngine {
         return summaries;
     }
 
+    /**
+     * Computes the possible leaf differences among the singleton diffs.
+     *
+     * The leaf differences are all of the form *.*...*.X where all internal
+     * differences are wildcards and the only summarized difference considered
+     * interesting to compute is
+     *
+     * @param singletonDiffs
+     * @param maxRawDiffsToSummarize
+     * @return
+     */
+    private Map<String, Difference> initialLeafSummaries(final List<? extends Difference> singletonDiffs,
+                                                         final int maxRawDiffsToSummarize) {
+        Map<String, Difference> summaries = new HashMap<String, Difference>();
+
+        // create the initial set of differences
+        for ( final Difference d : singletonDiffs ) {
+            final String path = summarizedPath(d.getParts(), 1);
+            Difference sumDiff = new Difference(path, d.getMaster(), d.getTest());
+            sumDiff.setCount(0);
+            addSummaryIfMissing(summaries, sumDiff);
+
+            if ( maxRawDiffsToSummarize != -1 && summaries.size() > maxRawDiffsToSummarize)
+                return summaries;
+        }
+
+        return summaries;
+    }
+
     protected List<Difference> summarizedDifferencesOfPaths(final List<? extends Difference> singletonDiffs,
+                                                            final boolean doPairwise,
                                                             final int maxRawDiffsToSummarize) {
-        Map<String, Difference> summaries = initialPairwiseSummaries(singletonDiffs, maxRawDiffsToSummarize);
+        final Map<String, Difference> summaries = doPairwise
+                ? initialPairwiseSummaries(singletonDiffs, maxRawDiffsToSummarize)
+                : initialLeafSummaries(singletonDiffs, maxRawDiffsToSummarize);
 
         // count differences
         for ( Difference diffPath : singletonDiffs ) {
@@ -372,18 +412,21 @@ public class DiffEngine {
         final int maxCountOneItems;
         final int minSumDiffToShow;
         final int maxRawDiffsToSummarize;
+        final boolean doPairwise;
         boolean descending = true;
 
         public SummaryReportParams(PrintStream out,
                                    int maxItemsToDisplay,
                                    int maxCountOneItems,
                                    int minSumDiffToShow,
-                                   int maxRawDiffsToSummarize) {
+                                   int maxRawDiffsToSummarize,
+                                   final boolean doPairwise) {
             this.out = out;
             this.maxItemsToDisplay = maxItemsToDisplay;
             this.maxCountOneItems = maxCountOneItems;
             this.minSumDiffToShow = minSumDiffToShow;
             this.maxRawDiffsToSummarize = maxRawDiffsToSummarize;
+            this.doPairwise = doPairwise;
         }
 
         public void setDescending(boolean descending) {

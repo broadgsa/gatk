@@ -165,6 +165,8 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="maxRawDiffsToSummary", shortName="maxRawDiffsToSummary", doc="Max. number of objects to read from the files.  -1 [default] means unlimited", required=false)
     int maxRawDiffsToSummary = -1;
 
+    @Argument(fullName="doPairwise", shortName="doPairwise", doc="If provided, we will compute the minimum pairwise differences to summary, which can be extremely expensive", required=false)
+    boolean doPairwise = false;
 
     /**
      * The max number of differences to display when summarizing.  For example, if there are 10M differences, but
@@ -243,7 +245,9 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
                 out.printf("DIFF: %s%n", diff.toString());
         }
 
-        DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(out, MAX_DIFFS, MAX_COUNT1_DIFFS, minCountForDiff, maxRawDiffsToSummary);
+        DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(out,
+                MAX_DIFFS, MAX_COUNT1_DIFFS, minCountForDiff,
+                maxRawDiffsToSummary, doPairwise);
         params.setDescending(false);
         diffEngine.reportSummarizedDifferences(diffs, params);
         logger.info(String.format("Done summarizing differences"));

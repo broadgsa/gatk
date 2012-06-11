@@ -227,7 +227,8 @@ public class Utils {
         if ( ints == null || ints.length == 0)
             return "";
         else {
-            StringBuilder ret = new StringBuilder(ints[0]);
+            StringBuilder ret = new StringBuilder();
+            ret.append(ints[0]);
             for (int i = 1; i < ints.length; ++i) {
                 ret.append(separator);
                 ret.append(ints[i]);
