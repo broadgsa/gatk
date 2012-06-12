@@ -241,8 +241,8 @@ public class RecalDataManager {
 
             final boolean isReadGroupTable = tableIndex == 0;                                                           // special case for the read group table so we can print the extra column it needs.
 
-            final List<Covariate> requiredList = keyManager.getRequiredCovariates();                                    // ask the key manager what required covariates were used in this recal table
-            final List<Covariate> optionalList = keyManager.getOptionalCovariates();                                    // ask the key manager what optional covariates were used in this recal table
+            final Covariate[] requiredList = keyManager.getRequiredCovariates();                                    // ask the key manager what required covariates were used in this recal table
+            final Covariate[] optionalList = keyManager.getOptionalCovariates();                                    // ask the key manager what optional covariates were used in this recal table
 
             final ArrayList<Pair<String, String>> columnNames = new ArrayList<Pair<String, String>>();                                     // initialize the array to hold the column names
 
@@ -251,7 +251,7 @@ public class RecalDataManager {
                 columnNames.add(new Pair<String,String>(name, "%s"));                                                   // save the required covariate name so we can reference it in the future
             }
 
-            if (optionalList.size() > 0) {
+            if (optionalList.length > 0) {
                 columnNames.add(covariateValue);
                 columnNames.add(covariateName);
             }
@@ -362,12 +362,12 @@ public class RecalDataManager {
         for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> tableEntry : map.entrySet()) {
             final BQSRKeyManager keyManager = tableEntry.getKey();
 
-            if (keyManager.getOptionalCovariates().size() > 0) {                                                        // initialize with the 'all covariates' table
+            if (keyManager.getNumOptionalCovariates() > 0) {                                                            // initialize with the 'all covariates' table
                 // create a key manager for the delta table
-                final List<Covariate> requiredCovariates = Arrays.asList(keyManager.getRequiredCovariates().get(0));    // include the read group covariate as the only required covariate
+                final List<Covariate> requiredCovariates = Arrays.asList(keyManager.getRequiredCovariates()[0]);        // include the read group covariate as the only required covariate
                 final List<Covariate> optionalCovariates = new ArrayList<Covariate>();
-                optionalCovariates.add(keyManager.getRequiredCovariates().get(1));                                      // include the quality score covariate as an optional covariate
-                optionalCovariates.addAll(keyManager.getOptionalCovariates());                                          // include all optional covariates
+                optionalCovariates.add(keyManager.getRequiredCovariates()[1]);                                          // include the quality score covariate as an optional covariate
+                optionalCovariates.addAll(Arrays.asList(keyManager.getOptionalCovariates()));                           // include all optional covariates
                 deltaKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);                           // initialize the key manager
             }
         }
@@ -379,7 +379,7 @@ public class RecalDataManager {
         for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> tableEntry : map.entrySet()) {
             final BQSRKeyManager keyManager = tableEntry.getKey();
 
-            if (keyManager.getRequiredCovariates().size() == 2 && keyManager.getOptionalCovariates().isEmpty()) {       // look for the QualityScore table
+            if (keyManager.getNumRequiredCovariates() == 2 && keyManager.getNumOptionalCovariates() == 0) {             // look for the QualityScore table
                 final Map<Long, RecalDatum> table = tableEntry.getValue();
 
                 // add the quality score table to the delta table
@@ -397,7 +397,7 @@ public class RecalDataManager {
                 }
             }
 
-            else if (keyManager.getOptionalCovariates().size() > 0) {                                                   // look for the optional covariates table
+            else if (keyManager.getNumOptionalCovariates() > 0) {                                                       // look for the optional covariates table
                 final Map<Long, RecalDatum> table = tableEntry.getValue();
 
                 // add the optional covariates to the delta table

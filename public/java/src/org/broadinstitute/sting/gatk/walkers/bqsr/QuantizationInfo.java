@@ -38,7 +38,7 @@ public class QuantizationInfo {
         Map<Long, RecalDatum> qualTable = null;                                                                         // look for the quality score table
         for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> entry : keysAndTablesMap.entrySet()) {
             BQSRKeyManager keyManager = entry.getKey();
-            if (keyManager.getRequiredCovariates().size() == 2)                                                         // it should be the only one with 2 required covaraites
+            if (keyManager.getNumRequiredCovariates() == 2)                                                             // it should be the only one with 2 required covariates
                 qualTable = entry.getValue();
         }
 

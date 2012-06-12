@@ -41,10 +41,12 @@ import java.util.*;
  */
 
 public class BaseRecalibration {
+    private final static String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check that needs propagate through the code";
+    private final static String TOO_MANY_KEYS_EXCEPTION = "There should only be one key for the RG collapsed table, something went wrong here";
+
     private QuantizationInfo quantizationInfo;                                                                          // histogram containing the map for qual quantization (calculated after recalibration is done)
     private LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap;                                      // quick access reference to the read group table and its key manager
     private ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();                                              // list of all covariates to be used in this calculation
-
 
     /**
      * Constructor using a GATK Report file
@@ -121,9 +123,7 @@ public class BaseRecalibration {
      * @param errorModel the event type
      * @return A recalibrated quality score as a byte
      */
-    protected byte performSequentialQualityCalculation(Long[] key, EventType errorModel) {
-        final String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check that needs propagate through the code";
-        final String TOO_MANY_KEYS_EXCEPTION = "There should only be one key for the RG collapsed table, something went wrong here";
+    protected byte performSequentialQualityCalculation(final Long[] key, final EventType errorModel) {
 
         final byte qualFromRead = (byte)(long)key[1];
 
@@ -132,11 +132,11 @@ public class BaseRecalibration {
         double deltaQCovariates = 0.0;
 
         for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> mapEntry : keysAndTablesMap.entrySet()) {
-            BQSRKeyManager keyManager = mapEntry.getKey();
-            Map<Long, RecalDatum> table = mapEntry.getValue();
+            final BQSRKeyManager keyManager = mapEntry.getKey();
+            final Map<Long, RecalDatum> table = mapEntry.getValue();
 
             final List<Long> bitKeys = keyManager.longsFromAllKeys(key, errorModel);                                    // calculate the shift in quality due to the read group
-            switch(keyManager.getRequiredCovariates().size()) {
+            switch(keyManager.getNumRequiredCovariates()) {
                 case 1:                                                                                                 // this is the ReadGroup table                    
                     if (bitKeys.size() > 1)
                         throw new ReviewedStingException(TOO_MANY_KEYS_EXCEPTION);
@@ -149,7 +149,7 @@ public class BaseRecalibration {
                     }
                     break;
                 case 2:
-                    if (keyManager.getOptionalCovariates().isEmpty()) {                                                 // this is the QualityScore table
+                    if (keyManager.getNumOptionalCovariates() == 0) {                                               // this is the QualityScore table
                         if (bitKeys.size() > 1)
                             throw new ReviewedStingException(TOO_MANY_KEYS_EXCEPTION);
 
@@ -160,10 +160,10 @@ public class BaseRecalibration {
                         }
                     }
                     else {                                                                                              // this is the table with all the covariates                        
-                        for (Long k : bitKeys) {
+                        for (final Long k : bitKeys) {
                             final RecalDatum empiricalQualCO = table.get(k);
                             if (empiricalQualCO != null) {
-                                double deltaQCovariateEmpirical = empiricalQualCO.getEmpiricalQuality();
+                                final double deltaQCovariateEmpirical = empiricalQualCO.getEmpiricalQuality();
                                 deltaQCovariates += (deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported));
                             }
                         }
