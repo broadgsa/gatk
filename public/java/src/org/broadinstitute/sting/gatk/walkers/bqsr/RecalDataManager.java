@@ -611,13 +611,13 @@ public class RecalDataManager {
      * @param requestedCovariates The list of requested covariates.
      * @return a matrix with all the covariates calculated for every base in the read
      */
-    public static ReadCovariates computeCovariates(final GATKSAMRecord read, final List<Covariate> requestedCovariates) {
-        final int numRequestedCovariates = requestedCovariates.size();
+    public static ReadCovariates computeCovariates(final GATKSAMRecord read, final Covariate[] requestedCovariates) {
+        final int numRequestedCovariates = requestedCovariates.length;
         final int readLength = read.getReadLength();
         final ReadCovariates readCovariates = new ReadCovariates(readLength, numRequestedCovariates);
 
         // Loop through the list of requested covariates and compute the values of each covariate for all positions in this read
-        for (Covariate covariate : requestedCovariates)
+        for (final Covariate covariate : requestedCovariates)
             readCovariates.addCovariate(covariate.getValues(read));
 
         return readCovariates;
