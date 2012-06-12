@@ -50,7 +50,6 @@ class BCF2Writer extends IndexingVariantContextWriter {
     private final boolean doNotWriteGenotypes;
 
     private final BCF2Encoder encoder = new BCF2Encoder(); // initialized after the header arrives
-    IntGenotypeFieldAccessors intGenotypeFieldAccessors = new IntGenotypeFieldAccessors();
     final BCF2FieldWriterManager fieldManager = new BCF2FieldWriterManager();
 
     public BCF2Writer(final File location, final OutputStream output, final SAMSequenceDictionary refDict, final boolean enableOnTheFlyIndexing, final boolean doNotWriteGenotypes) {
@@ -233,249 +232,30 @@ class BCF2Writer extends IndexingVariantContextWriter {
             writer.start(encoder, vc);
             writer.site(encoder, vc);
             writer.done(encoder, vc);
-
-            // the old way of doing things
-//            final VCFToBCFEncoding encoding = prepFieldValueForEncoding(key, infoFieldEntry.getValue());
-//            encodeStringByRef(key);
-//            encoder.encodeTyped(encoding.valuesToEncode, encoding.BCF2Type);
         }
     }
-
-    // --------------------------------------------------------------------------------
-    //
-    // Type matching routines between VCF and BCF
-    //
-    // --------------------------------------------------------------------------------
-
-
-    private final class VCFToBCFEncoding {
-        VCFHeaderLineType vcfType;
-        BCF2Type BCF2Type;
-        List<? extends Object> valuesToEncode;
-
-        private VCFToBCFEncoding(final VCFHeaderLineType vcfType, final BCF2Type BCF2Type, final List<? extends Object> valuesToEncode) {
-            this.vcfType = vcfType;
-            this.BCF2Type = BCF2Type;
-            this.valuesToEncode = valuesToEncode;
-        }
-    }
-
-    // TODO TODO TODO TODO TODO
-    // TODO
-    // TODO -- we really need explicit converters as first class objects
-    // TODO -- need to generalize so we can enable vectors of compressed genotype ints
-    // TODO -- no sense in allocating these over and over
-    // TODO
-    // TODO TODO TODO TODO TODO
-    private final VCFToBCFEncoding prepFieldValueForEncoding(final String field, final Object value) {
-        final VCFCompoundHeaderLine metaData = VariantContextUtils.getMetaDataForField(header, field);
-        final boolean isList = value instanceof List;
-        final Object toType = isList ? ((List)value).get(0) : value;
-
-        try {
-            switch ( metaData.getType() ) {
-                case Character:
-                    assert toType instanceof String;
-                    return new VCFToBCFEncoding(metaData.getType(), BCF2Type.CHAR, Collections.singletonList(value));
-                case Flag:
-                    return new VCFToBCFEncoding(metaData.getType(), BCF2Type.INT8, Collections.singletonList(1));
-                case String:
-                    final String s = isList ? BCF2Utils.collapseStringList((List<String>)value) : (String)value;
-                    return new VCFToBCFEncoding(metaData.getType(), BCF2Type.CHAR, Collections.singletonList(s));
-                case Integer:   // note integer calculation is a bit complex because of the need to determine sizes
-                    List<Integer> l;
-                    BCF2Type intType;
-                    if ( isList ) {
-                        l = (List<Integer>)value;
-                        intType = BCF2Utils.determineIntegerType(l);
-                    } else if ( value != null ) {
-                        intType = BCF2Utils.determineIntegerType((Integer) value);
-                        l = Collections.singletonList((Integer)value);
-                    } else {
-                        intType = BCF2Type.INT8;
-                        l = Collections.singletonList((Integer) null);
-                    }
-                    return new VCFToBCFEncoding(metaData.getType(), intType, l);
-                case Float:
-                    return new VCFToBCFEncoding(metaData.getType(), BCF2Type.FLOAT, isList ? (List<Double>)value : Collections.singletonList(value));
-                default:
-                    throw new ReviewedStingException("Unexpected type for field " + field);
-            }
-        } catch ( ClassCastException e ) {
-            throw new ReviewedStingException("Error computing VCF -> BCF encoding.  Received cast class exception"
-                    + " indicating that the VCF header for " + metaData + " is inconsistent with the" +
-                    " value seen in the VariantContext object = " + value, e);
-        }
-    }
-
-    // --------------------------------------------------------------------------------
-    //
-    // Genotype field encoding
-    //
-    // --------------------------------------------------------------------------------
 
     private byte[] buildSamplesData(final VariantContext vc) throws IOException {
-        BCF2Codec.LazyData lazyData = getLazyData(vc);
+        final BCF2Codec.LazyData lazyData = getLazyData(vc);
         if ( lazyData != null ) {
+            // we never decoded any data from this BCF file, so just pass it back
             return lazyData.bytes;
         } else {
             // we have to do work to convert the VC into a BCF2 byte stream
-            List<String> genotypeFields = VCFWriter.calcVCFGenotypeKeys(vc, header);
+            final List<String> genotypeFields = VCFWriter.calcVCFGenotypeKeys(vc, header);
             for ( final String field : genotypeFields ) {
-                if ( field.equals(VCFConstants.GENOTYPE_KEY) ) {
-                    addGenotypes(vc);
-                } else if ( intGenotypeFieldAccessors.getAccessor(field) != null ) {
-                    addIntGenotypeField(field, intGenotypeFieldAccessors.getAccessor(field), vc);
-                } else {
-                    addGenericGenotypeField(vc, field);
+                final BCF2FieldWriter.GenotypesWriter writer = fieldManager.getGenotypeFieldWriter(field);
+
+                writer.start(encoder, vc);
+                for ( final String name : header.getGenotypeSamples() ) {
+                    // todo -- can we optimize this get (string -> genotype) which can be expensive
+                    final Genotype g = vc.getGenotype(name);
+                    writer.addGenotype(encoder, vc, g);
                 }
+                writer.done(encoder, vc);
             }
             return encoder.getRecordBytes();
         }
-    }
-
-    private final int getNGenotypeFieldValues(final String field, final VariantContext vc, final IntGenotypeFieldAccessors.Accessor ige) {
-        final VCFCompoundHeaderLine metaData = VariantContextUtils.getMetaDataForField(header, field);
-        assert metaData != null; // field is supposed to be in header
-
-        int nFields = metaData.getCount(vc.getNAlleles() - 1);
-        if ( nFields == -1 ) { // unbounded, need to look at values
-            return computeMaxSizeOfGenotypeFieldFromValues(field, vc, ige);
-        } else {
-            return nFields;
-        }
-    }
-
-    private final int computeMaxSizeOfGenotypeFieldFromValues(final String field, final VariantContext vc, final IntGenotypeFieldAccessors.Accessor ige) {
-        int size = -1;
-        final GenotypesContext gc = vc.getGenotypes();
-
-        if ( ige == null ) {
-            for ( final Genotype g : gc ) {
-                final Object o = g.getAttribute(field);
-                if ( o == null ) continue;
-                if ( o instanceof List ) {
-                    // only do compute if first value is of type list
-                    size = Math.max(size, ((List)o).size());
-                } else if ( size == -1 )
-                    size = 1;
-            }
-        } else {
-            for ( final Genotype g : gc ) {
-                size = Math.max(size, ige.getSize(g));
-            }
-        }
-
-        return size;
-    }
-
-    private final void addGenericGenotypeField(final VariantContext vc, final String field) throws IOException {
-        final int numInFormatField = getNGenotypeFieldValues(field, vc, null);
-        final VCFToBCFEncoding encoding = prepFieldValueForEncoding(field, null);
-
-        startGenotypeField(field, numInFormatField, encoding.BCF2Type);
-        for ( final String name : header.getGenotypeSamples() ) {
-            final Genotype g = vc.getGenotype(name); // todo -- can we optimize this?
-            try {
-                final Object fieldValue = g.getAttribute(field);
-
-                if ( numInFormatField == 1 ) {
-                    // we encode the actual allele, encodeRawValue handles the missing case where fieldValue == null
-                    encoder.encodeRawValue(fieldValue, encoding.BCF2Type);
-                } else if ( encoding.vcfType == VCFHeaderLineType.String ) {
-                    // we have multiple strings, so we need to collapse them
-                    throw new ReviewedStingException("LIMITATION: Cannot encode arrays of string values in genotypes");
-                } else {
-                    // multiple values, need to handle general case
-                    final List<Object> asList = toList(fieldValue);
-                    final int nSampleValues = asList.size();
-                    for ( int i = 0; i < numInFormatField; i++ ) {
-                        encoder.encodeRawValue(i < nSampleValues ? asList.get(i) : null, encoding.BCF2Type);
-                    }
-                }
-            } catch ( ClassCastException e ) {
-                throw new ReviewedStingException("Value stored in VariantContext incompatible with VCF header type for field " + field, e);
-            }
-        }
-    }
-
-    // TODO TODO TODO TODO TODO
-    // TODO
-    // TODO THIS ROUTINE NEEDS TO BE OPTIMIZED.  IT ACCOUNTS FOR A SIGNIFICANT AMOUNT OF THE
-    // TODO RUNTIME FOR WRITING OUT BCF FILES WITH MANY GENOTYPES
-    // TODO
-    // TODO TODO TODO TODO TODO
-    private final void addIntGenotypeField(final String field,
-                                           final IntGenotypeFieldAccessors.Accessor ige,
-                                           final VariantContext vc) throws IOException {
-        final int numPLs = getNGenotypeFieldValues(field, vc, ige);
-        final int[] allPLs = new int[numPLs * vc.getNSamples()];
-
-        // collect all of the PLs into a single vector of values
-        int i = 0;
-        for ( final String name : header.getGenotypeSamples() ) {
-            final Genotype g = vc.getGenotype(name); // todo -- can we optimize this?
-            final int[] pls = ige.getValues(g);
-
-            if ( pls == null )
-                for ( int j = 0; j < numPLs; j++) allPLs[i++] = -1;
-            else {
-                assert pls.length == numPLs;
-                for ( int pl : pls ) allPLs[i++] = pl;
-            }
-        }
-
-        // determine the best size
-        final BCF2Type type = BCF2Utils.determineIntegerType(allPLs);
-        startGenotypeField(field, numPLs, type);
-        for ( int pl : allPLs )
-            encoder.encodePrimitive(pl == -1 ? type.getMissingBytes() : pl, type);
-    }
-
-    // TODO TODO TODO TODO TODO
-    // TODO
-    // TODO we should really have a fast path for encoding diploid genotypes where
-    // TODO we don't pay the overhead of creating the allele maps
-    // TODO
-    // TODO TODO TODO TODO TODO
-    private final void addGenotypes(final VariantContext vc) throws IOException {
-        if ( vc.getNAlleles() > BCF2Utils.MAX_ALLELES_IN_GENOTYPES )
-            throw new ReviewedStingException("Current BCF2 encoder cannot handle sites " +
-                    "with > " + BCF2Utils.MAX_ALLELES_IN_GENOTYPES + " alleles, but you have "
-                    + vc.getNAlleles() + " at " + vc.getChr() + ":" + vc.getStart());
-
-        final Map<Allele, Integer> alleleMap = buildAlleleMap(vc);
-        final int maxPloidy = vc.getMaxPloidy();
-        startGenotypeField(VCFConstants.GENOTYPE_KEY, maxPloidy, BCF2Type.INT8);
-        for ( final String name : header.getGenotypeSamples() ) {
-            final Genotype g = vc.getGenotype(name); // todo -- can we optimize this?
-            final List<Allele> alleles = g.getAlleles();
-            final int samplePloidy = alleles.size();
-            for ( int i = 0; i < maxPloidy; i++ ) {
-                if ( i < samplePloidy ) {
-                    // we encode the actual allele
-                    final Allele a = alleles.get(i);
-                    final int offset = alleleMap.get(a);
-                    final int encoded = ((offset+1) << 1) | (g.isPhased() ? 0x01 : 0x00);
-                    encoder.encodePrimitive(encoded, BCF2Type.INT8);
-                } else {
-                    // we need to pad with missing as we have ploidy < max for this sample
-                    encoder.encodePrimitive(BCF2Type.INT8.getMissingBytes(), BCF2Type.INT8);
-                }
-            }
-        }
-    }
-
-    private final static Map<Allele, Integer> buildAlleleMap(final VariantContext vc) {
-        final Map<Allele, Integer> alleleMap = new HashMap<Allele, Integer>(vc.getAlleles().size()+1);
-        alleleMap.put(Allele.NO_CALL, -1); // convenience for lookup
-
-        final List<Allele> alleles = vc.getAlleles();
-        for ( int i = 0; i < alleles.size(); i++ ) {
-            alleleMap.put(alleles.get(i), i);
-        }
-
-        return alleleMap;
     }
 
     // --------------------------------------------------------------------------------
@@ -497,16 +277,6 @@ class BCF2Writer extends IndexingVariantContextWriter {
         BCF2Encoder.encodePrimitive(genotypesBlock.length, BCF2Type.INT32, outputStream);
         outputStream.write(infoBlock);
         outputStream.write(genotypesBlock);
-    }
-
-    @Requires("string != null")
-    @Ensures("BCF2Type.INTEGERS.contains(result)")
-    private final BCF2Type encodeStringByRef(final String string) throws IOException {
-        final Integer offset = stringDictionaryMap.get(string);
-        if ( offset == null ) throw new ReviewedStingException("Format error: could not find string " + string + " in header as required by BCF");
-        final BCF2Type type = BCF2Utils.determineIntegerType(offset);
-        encoder.encodeTyped(offset, type);
-        return type;
     }
 
     @Requires("! strings.isEmpty()")
@@ -538,29 +308,6 @@ class BCF2Writer extends IndexingVariantContextWriter {
         // we've checked the types for all strings, so write them out
         encoder.encodeTyped(offsets, maxType);
         return maxType;
-    }
-
-    @Requires({"key != null", "! key.equals(\"\")", "size >= 0"})
-    private final void startGenotypeField(final String key, final int size, final BCF2Type valueType) throws IOException {
-        encodeStringByRef(key);
-        encoder.encodeType(size, valueType);
-    }
-
-    /**
-     * Helper function that takes an object and returns a list representation
-     * of it:
-     *
-     * o == null => []
-     * o is a list => o
-     * else => [o]
-     *
-     * @param o
-     * @return
-     */
-    private final static List<Object> toList(final Object o) {
-        if ( o == null ) return Collections.emptyList();
-        else if ( o instanceof List ) return (List<Object>)o;
-        else return Collections.singletonList(o);
     }
 
     /**

@@ -24,6 +24,8 @@
 
 package org.broadinstitute.sting.utils.variantcontext.writer;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Encoder;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Type;
@@ -44,6 +46,11 @@ import java.util.Map;
  * @author Your Name
  * @since Date created
  */
+@Invariant({
+        "headerLine != null",
+        "BCF2Type.INTEGERS.contains(dictionaryOffsetType)",
+        "dictionaryOffset >= 0"
+})
 public abstract class BCF2FieldEncoder {
     final VCFCompoundHeaderLine headerLine;
     final BCF2Type fixedType;
@@ -72,16 +79,41 @@ public abstract class BCF2FieldEncoder {
     public boolean hasUnboundedCount() { return getCountType() == VCFHeaderLineCount.UNBOUNDED; }
     public boolean hasContextDeterminedCount() { return ! hasFixedCount() && ! hasUnboundedCount(); }
 
+    //
+    // TODO -- this class should own two clean methods
+    //
+    // Tell us whether the type and size are static, determined by from the VC itself,
+    // or from the actual encoded values.  If the last case, provide a function that tell us
+    // the encoding type and size of the underlying data, given a single value.
+    //
+
+    // TODO -- cleanup logic of counts
+    // todo -- differentiate between the VCF header declared size and the encoded size
+    // TODO -- for example, getUnboundedCount should be getCountFromSizeOfValue()
+    //
+    // GenotypeEncoders need to inspect the size properties of the underlying encoder
+    // and determine how (and whether) they need to iterate once through the data to
+    // determine max size (for padding)
+    //
+
     @Requires("hasFixedCount()")
-    public int getFixedCount() { return headerLine.getCount(); }
+    public int getFixedCount() {
+        return headerLine.getCount();
+    }
+
+    public int getUnboundedCount(final Object value) {
+        return value instanceof List ? ((List) value).size() : 1;
+    }
+
     public int getContextDeterminedCount(final VariantContext vc) {
         return headerLine.getCount(vc.getNAlleles() - 1);
     }
+
     public int getBCFFieldCount(final VariantContext vc, final Object value) {
         if ( hasFixedCount() )
             return getFixedCount();
         else if ( hasUnboundedCount() )
-            return value instanceof List ? ((List) value).size() : 1;
+            return getUnboundedCount(value);
         else
             return getContextDeterminedCount(vc);
     }
@@ -107,7 +139,11 @@ public abstract class BCF2FieldEncoder {
         return "BCF2FieldEncoder for " + getField() + " with count " + getCountType() + " encoded with " + getClass().getSimpleName();
     }
 
-    public abstract void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type) throws IOException;
+    public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type) throws IOException {
+        encodeValue(encoder, value, type, 0);
+    }
+
+    public abstract void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException;
 
 
     /**
@@ -133,10 +169,10 @@ public abstract class BCF2FieldEncoder {
         }
 
         @Override
-        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type) throws IOException {
+        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
             if ( value != null ) {
                 final String s = encodeString(value);
-                encoder.encodeString(s, s.length());
+                encoder.encodeString(s, Math.max(s.length(), minValues));
             }
         }
 
@@ -153,7 +189,7 @@ public abstract class BCF2FieldEncoder {
     public static class Flag extends BCF2FieldEncoder {
         public Flag(final VCFCompoundHeaderLine headerLine, final BCF2Encoder encoder, final Map<String, Integer> dict ) {
             super(headerLine, encoder, dict, BCF2Type.INT8);
-            if ( getHeaderLine().getCount() != 0 )
+            if ( ! headerLine.isFixedCount() || headerLine.getCount() != 0 )
                 throw new ReviewedStingException("Flag encoder only suppports atomic flags!");
         }
 
@@ -163,7 +199,8 @@ public abstract class BCF2FieldEncoder {
         }
 
         @Override
-        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type) throws IOException {
+        @Requires("minValues <= 1")
+        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
             encoder.encodePrimitive(1, getFixedType());
         }
     }
@@ -174,10 +211,14 @@ public abstract class BCF2FieldEncoder {
         }
 
         @Override
-        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type) throws IOException {
+        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
             final List<Double> doubles = toList(Double.class, value);
-            for ( final double d : doubles )
+            int count = 0;
+            for ( final double d : doubles ) {
                 encoder.encodeRawFloat(d);
+                count++;
+            }
+            for ( ; count < minValues; count++ ) encoder.encodeRawMissingValue(type);
         }
     }
 
@@ -187,14 +228,25 @@ public abstract class BCF2FieldEncoder {
         }
 
         @Override
+        public int getUnboundedCount(final Object value) {
+            return value == null ? 0 : ((int[])value).length;
+        }
+
+        @Override
         public BCF2Type getDynamicType(final Object value) {
             return value == null ? BCF2Type.INT8 : BCF2Utils.determineIntegerType((int[])value);
         }
 
         @Override
-        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type) throws IOException {
-            for ( final int i : (int[])value )
-                encoder.encodeRawInt(i, type);
+        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
+            int count = 0;
+            if ( value != null ) {
+                for ( final int i : (int[])value ) {
+                    encoder.encodeRawInt(i, type);
+                    count++;
+                }
+            }
+            for ( ; count < minValues; count++ ) encoder.encodeRawMissingValue(type);
         }
     }
 
@@ -209,9 +261,13 @@ public abstract class BCF2FieldEncoder {
         }
 
         @Override
-        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type) throws IOException {
-            for ( final int i : toList(Integer.class, value) )
+        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
+            int count = 0;
+            for ( final int i : toList(Integer.class, value) ) {
                 encoder.encodeRawInt(i, type);
+                count++;
+            }
+            for ( ; count < minValues; count++ ) encoder.encodeRawMissingValue(type);
         }
     }
 
@@ -226,8 +282,9 @@ public abstract class BCF2FieldEncoder {
         }
 
         @Override
-        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type) throws IOException {
-            encoder.encodeRawInt((Integer)value, type);
+        @Requires("minValues <= 1") // 0 is ok as this means no values need to be encoded
+        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
+            encoder.encodeRawInt(value == null ? type.getMissingBytes() : (Integer)value, type);
         }
     }
 }

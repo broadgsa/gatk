@@ -220,6 +220,7 @@ public final class BCF2Utils {
             return new File( path + ".bcf" );
     }
 
+    @Ensures("BCF2Type.INTEGERS.contains(result)")
     public final static BCF2Type determineIntegerType(final int value) {
         for ( final BCF2Type potentialType : INTEGER_TYPES_BY_SIZE) {
             if ( potentialType.withinRange(value) )
@@ -229,6 +230,7 @@ public final class BCF2Utils {
         throw new ReviewedStingException("Integer cannot be encoded in allowable range of even INT32: " + value);
     }
 
+    @Ensures("BCF2Type.INTEGERS.contains(result)")
     public final static BCF2Type determineIntegerType(final int[] values) {
         // literally a copy of the code below, but there's no general way to unify lists and arrays in java
         BCF2Type maxType = BCF2Type.INT8;
@@ -244,6 +246,27 @@ public final class BCF2Utils {
         return maxType;
     }
 
+    /**
+     * Returns the maximum BCF2 integer size of t1 and t2
+     *
+     * For example, if t1 == INT8 and t2 == INT16 returns INT16
+     *
+     * @param t1
+     * @param t2
+     * @return
+     */
+    @Requires({"BCF2Type.INTEGERS.contains(t1)","BCF2Type.INTEGERS.contains(t2)"})
+    @Ensures("BCF2Type.INTEGERS.contains(result)")
+    public final static BCF2Type maxIntegerType(final BCF2Type t1, final BCF2Type t2) {
+        switch ( t1 ) {
+            case INT8: return t2;
+            case INT16: return t2 == BCF2Type.INT32 ? t2 : t1;
+            case INT32: return t1;
+            default: throw new ReviewedStingException("BUG: unexpected BCF2Type " + t1);
+        }
+    }
+
+    @Ensures("BCF2Type.INTEGERS.contains(result)")
     public final static BCF2Type determineIntegerType(final List<Integer> values) {
         BCF2Type maxType = BCF2Type.INT8;
         for ( final int value : values ) {
@@ -256,5 +279,22 @@ public final class BCF2Utils {
             }
         }
         return maxType;
+    }
+
+    /**
+     * Helper function that takes an object and returns a list representation
+     * of it:
+     *
+     * o == null => []
+     * o is a list => o
+     * else => [o]
+     *
+     * @param o
+     * @return
+     */
+    public final static List<Object> toList(final Object o) {
+        if ( o == null ) return Collections.emptyList();
+        else if ( o instanceof List ) return (List<Object>)o;
+        else return Collections.singletonList(o);
     }
 }

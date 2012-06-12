@@ -56,8 +56,9 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
     public String getDescription() { return description; }
     public VCFHeaderLineType getType() { return type; }
     public VCFHeaderLineCount getCountType() { return countType; }
+    public boolean isFixedCount() { return countType == VCFHeaderLineCount.INTEGER; }
     public int getCount() {
-        if ( countType != VCFHeaderLineCount.INTEGER )
+        if ( ! isFixedCount() )
             throw new ReviewedStingException("Asking for header line count when type is not an integer");
         return count;
     }

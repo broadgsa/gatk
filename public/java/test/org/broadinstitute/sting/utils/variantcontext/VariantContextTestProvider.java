@@ -156,20 +156,32 @@ public class VariantContextTestProvider {
         }
     }
 
+    private final static void addHeaderLine(final Set<VCFHeaderLine> metaData, final String id, final int count, final VCFHeaderLineType type) {
+        metaData.add(new VCFInfoHeaderLine(id, count, type, "x"));
+        if ( type != VCFHeaderLineType.Flag )
+            metaData.add(new VCFFormatHeaderLine(id, count, type, "x"));
+    }
+
+    private final static void addHeaderLine(final Set<VCFHeaderLine> metaData, final String id, final VCFHeaderLineCount count, final VCFHeaderLineType type) {
+        metaData.add(new VCFInfoHeaderLine(id, count, type, "x"));
+        if ( type != VCFHeaderLineType.Flag )
+            metaData.add(new VCFFormatHeaderLine(id, count, type, "x"));
+    }
+
     private static void createSyntheticHeader() {
         Set<VCFHeaderLine> metaData = new TreeSet<VCFHeaderLine>();
 
-        metaData.add(new VCFInfoHeaderLine("STRING1", 1, VCFHeaderLineType.String, "x"));
-        metaData.add(new VCFInfoHeaderLine("STRING3", 3, VCFHeaderLineType.String, "x"));
-        metaData.add(new VCFInfoHeaderLine("STRING20", 20, VCFHeaderLineType.String, "x"));
-        metaData.add(new VCFInfoHeaderLine("VAR.INFO.STRING", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "x"));
+        addHeaderLine(metaData, "STRING1", 1, VCFHeaderLineType.String);
+        addHeaderLine(metaData, "STRING3", 3, VCFHeaderLineType.String);
+        addHeaderLine(metaData, "STRING20", 20, VCFHeaderLineType.String);
+        addHeaderLine(metaData, "VAR.INFO.STRING", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String);
 
-        metaData.add(new VCFFormatHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"));
-        metaData.add(new VCFFormatHeaderLine("GQ", 1, VCFHeaderLineType.Integer, "Genotype Quality"));
-        metaData.add(new VCFFormatHeaderLine("PL", VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
-        metaData.add(new VCFFormatHeaderLine("GS", 2, VCFHeaderLineType.String, "A doubleton list of strings"));
-        metaData.add(new VCFFormatHeaderLine("GV", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "A variable list of strings"));
-        metaData.add(new VCFFormatHeaderLine("FT", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Genotype filters"));
+        addHeaderLine(metaData, "GT", 1, VCFHeaderLineType.Integer);
+        addHeaderLine(metaData, "GQ", 1, VCFHeaderLineType.Integer);
+        addHeaderLine(metaData, "PL", VCFHeaderLineCount.G, VCFHeaderLineType.Integer);
+        addHeaderLine(metaData, "GS", 2, VCFHeaderLineType.String);
+        addHeaderLine(metaData, "GV", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String);
+        addHeaderLine(metaData, "FT", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String);
 
         // prep the header
         metaData.add(new VCFContigHeaderLine(VCFHeader.CONTIG_KEY, Collections.singletonMap("ID", "1"), 0));
@@ -177,13 +189,13 @@ public class VariantContextTestProvider {
         metaData.add(new VCFFilterHeaderLine("FILTER1"));
         metaData.add(new VCFFilterHeaderLine("FILTER2"));
 
-        metaData.add(new VCFInfoHeaderLine("INT1", 1, VCFHeaderLineType.Integer, "x"));
-        metaData.add(new VCFInfoHeaderLine("INT3", 3, VCFHeaderLineType.Integer, "x"));
-        metaData.add(new VCFInfoHeaderLine("INT20", 20, VCFHeaderLineType.Integer, "x"));
-        metaData.add(new VCFInfoHeaderLine("INT.VAR", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "x"));
-        metaData.add(new VCFInfoHeaderLine("FLOAT1", 1, VCFHeaderLineType.Float, "x"));
-        metaData.add(new VCFInfoHeaderLine("FLOAT3", 3, VCFHeaderLineType.Float, "x"));
-        metaData.add(new VCFInfoHeaderLine("FLAG", 0, VCFHeaderLineType.Flag, "x"));
+        addHeaderLine(metaData, "INT1", 1, VCFHeaderLineType.Integer);
+        addHeaderLine(metaData, "INT3", 3, VCFHeaderLineType.Integer);
+        addHeaderLine(metaData, "INT20", 20, VCFHeaderLineType.Integer);
+        addHeaderLine(metaData, "INT.VAR", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer);
+        addHeaderLine(metaData, "FLOAT1", 1, VCFHeaderLineType.Float);
+        addHeaderLine(metaData, "FLOAT3", 3, VCFHeaderLineType.Float);
+        addHeaderLine(metaData, "FLAG", 0, VCFHeaderLineType.Flag);
 
         syntheticHeader = new VCFHeader(metaData);
     }
