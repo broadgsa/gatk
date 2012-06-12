@@ -112,7 +112,7 @@ public class BaseRecalibrationUnitTest {
         }
         QuantizationInfo quantizationInfo = new QuantizationInfo(quantizedQuals, qualCounts);
         quantizationInfo.noQuantization();
-        baseRecalibration = new BaseRecalibration(quantizationInfo, keysAndTablesMap, requestedCovariates);
+        baseRecalibration = new BaseRecalibration(quantizationInfo, keysAndTablesMap, requestedCovariates.toArray());
 
     }
 

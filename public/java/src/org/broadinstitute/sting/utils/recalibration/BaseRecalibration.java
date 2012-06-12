@@ -44,9 +44,9 @@ public class BaseRecalibration {
     private final static String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check that needs propagate through the code";
     private final static String TOO_MANY_KEYS_EXCEPTION = "There should only be one key for the RG collapsed table, something went wrong here";
 
-    private QuantizationInfo quantizationInfo;                                                                          // histogram containing the map for qual quantization (calculated after recalibration is done)
-    private LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap;                                      // quick access reference to the read group table and its key manager
-    private ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();                                              // list of all covariates to be used in this calculation
+    private final QuantizationInfo quantizationInfo;                                                                    // histogram containing the map for qual quantization (calculated after recalibration is done)
+    private final LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap;                                // quick access reference to the read group table and its key manager
+    private final Covariate[] requestedCovariates;                                                                      // list of all covariates to be used in this calculation
 
     /**
      * Constructor using a GATK Report file
@@ -73,7 +73,7 @@ public class BaseRecalibration {
      * @param keysAndTablesMap the map of key managers and recalibration tables
      * @param requestedCovariates the list of requested covariates
      */
-    protected BaseRecalibration(QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap, ArrayList<Covariate> requestedCovariates) {
+    protected BaseRecalibration(final QuantizationInfo quantizationInfo, final LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap, final Covariate[] requestedCovariates) {
         this.quantizationInfo = quantizationInfo;
         this.keysAndTablesMap = keysAndTablesMap;
         this.requestedCovariates = requestedCovariates;

@@ -19,7 +19,7 @@ import java.util.*;
 public class RecalibrationReport {
     private QuantizationInfo quantizationInfo;                                                                          // histogram containing the counts for qual quantization (calculated after recalibration is done)
     private final LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap;                                // quick access reference to the read group table and its key manager
-    private final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();                                        // list of all covariates to be used in this calculation
+    private final Covariate[] requestedCovariates;                                                                      // list of all covariates to be used in this calculation
 
     private final GATKReportTable argumentTable;                                                                              // keep the argument table untouched just for output purposes
     private final RecalibrationArgumentCollection RAC;                                                                        // necessary for quantizing qualities with the same parameter
@@ -36,8 +36,12 @@ public class RecalibrationReport {
         Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalDataManager.initializeCovariates(RAC);       // initialize the required and optional covariates
         ArrayList<Covariate> requiredCovariates = covariates.getFirst();
         ArrayList<Covariate> optionalCovariates = covariates.getSecond();
-        requestedCovariates.addAll(requiredCovariates);                                                                 // add all required covariates to the list of requested covariates
-        requestedCovariates.addAll(optionalCovariates);                                                                 // add all optional covariates to the list of requested covariates
+        requestedCovariates = new Covariate[requiredCovariates.size() + optionalCovariates.size()];
+        int covariateIndex = 0;
+        for (final Covariate covariate : requiredCovariates)
+            requestedCovariates[covariateIndex++] = covariate;
+        for (final Covariate covariate : optionalCovariates)
+            requestedCovariates[covariateIndex++] = covariate;
 
         for (Covariate cov : requestedCovariates)
             cov.initialize(RAC);                                                                                        // initialize any covariate member variables using the shared argument collection
@@ -73,11 +77,12 @@ public class RecalibrationReport {
         keysAndTablesMap.put(keyManager, table);
     }
 
-    protected RecalibrationReport(QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap, GATKReportTable argumentTable, RecalibrationArgumentCollection RAC) {
+    protected RecalibrationReport(final QuantizationInfo quantizationInfo, final LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap, final GATKReportTable argumentTable, final RecalibrationArgumentCollection RAC) {
         this.quantizationInfo = quantizationInfo;
         this.keysAndTablesMap = keysAndTablesMap;
         this.argumentTable = argumentTable;
         this.RAC = RAC;
+        this.requestedCovariates = null;
     }
 
     /**
@@ -127,7 +132,7 @@ public class RecalibrationReport {
         return keysAndTablesMap;
     }
 
-    public ArrayList<Covariate> getRequestedCovariates() {
+    public Covariate[] getRequestedCovariates() {
         return requestedCovariates;
     }
 
