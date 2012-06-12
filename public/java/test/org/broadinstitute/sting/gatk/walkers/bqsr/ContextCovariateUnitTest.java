@@ -8,8 +8,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.BitSet;
-
 /**
  * @author Mauricio Carneiro
  * @since 3/1/12
@@ -36,9 +34,9 @@ public class ContextCovariateUnitTest {
         verifyCovariateArray(values.getDeletions(),  RAC.DELETIONS_CONTEXT_SIZE,  clippedRead, covariate);
     }
 
-    public static void verifyCovariateArray(BitSet[] values, int contextSize, GATKSAMRecord read, Covariate contextCovariate) {
+    public static void verifyCovariateArray(Long[] values, int contextSize, GATKSAMRecord read, Covariate contextCovariate) {
         for (int i = 0; i < values.length; i++)
-            Assert.assertEquals(contextCovariate.keyFromBitSet(values[i]), expectedContext(read, i, contextSize));
+            Assert.assertEquals(contextCovariate.formatKey(values[i]), expectedContext(read, i, contextSize));
 
     }
 

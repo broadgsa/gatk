@@ -81,7 +81,7 @@ public class BQSRKeyManagerUnitTest {
     }
 
     private void runTestOnRead(GATKSAMRecord read, List<Covariate> covariateList, int nRequired) {
-        final BitSet[][][] covariateKeys = new BitSet[covariateList.size()][EventType.values().length][];
+        final Long[][][] covariateKeys = new Long[covariateList.size()][EventType.values().length][];
         int i = 0;
         for (Covariate cov : covariateList) {
             cov.initialize(RAC);
@@ -103,7 +103,7 @@ public class BQSRKeyManagerUnitTest {
 
         for (int l = 0; l < read.getReadLength(); l++) {
             for (int eventType = 0; eventType < EventType.values().length; eventType++) {
-                BitSet[] keySet = new BitSet[covariateList.size()];
+                Long[] keySet = new Long[covariateList.size()];
                 Object[] expectedRequired = new Object[covariateList.size()];
                 Object[] expectedCovariate = new Object[covariateList.size()];
 
@@ -111,14 +111,14 @@ public class BQSRKeyManagerUnitTest {
                     keySet[j] = covariateKeys[j][eventType][l];
 
                     if (j < nRequired)
-                        expectedRequired[j] = covariateList.get(j).keyFromBitSet(keySet[j]);
+                        expectedRequired[j] = covariateList.get(j).formatKey(keySet[j]);
                     else
-                        expectedCovariate[j - nRequired] = covariateList.get(j).keyFromBitSet(keySet[j]);
+                        expectedCovariate[j - nRequired] = covariateList.get(j).formatKey(keySet[j]);
                 }
 
-                List<BitSet> hashKeys = keyManager.bitSetsFromAllKeys(keySet, EventType.eventFrom(eventType));
+                List<Long> hashKeys = keyManager.longsFromAllKeys(keySet, EventType.eventFrom(eventType));
                 short cov = 0;
-                for (BitSet key : hashKeys) {
+                for (Long key : hashKeys) {
                     Object[] actual = keyManager.keySetFrom(key).toArray();
 
                     // Build the expected array

@@ -1,11 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
-import org.broadinstitute.sting.utils.BitSetUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.HashMap;
 
 /*
@@ -43,22 +41,21 @@ import java.util.HashMap;
 
 public class ReadGroupCovariate implements RequiredCovariate {
 
-    private final HashMap<String, Short> readGroupLookupTable = new HashMap<String, Short>();
-    private final HashMap<Short, String> readGroupReverseLookupTable = new HashMap<Short, String>();
-    private short nextId = 0;
+    private final HashMap<String, Long> readGroupLookupTable = new HashMap<String, Long>();
+    private final HashMap<Long, String> readGroupReverseLookupTable = new HashMap<Long, String>();
+    private long nextId = 0L;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
-    public void initialize(final RecalibrationArgumentCollection RAC) {
-    }
+    public void initialize(final RecalibrationArgumentCollection RAC) {}
 
     @Override
     public CovariateValues getValues(final GATKSAMRecord read) {
         final int l = read.getReadLength();
         final String readGroupId = readGroupValueFromRG(read.getReadGroup());
-        BitSet rg = bitSetForReadGroup(readGroupId);                            // All objects must output a BitSet, so we convert the "compressed" representation of the Read Group into a bitset
-        BitSet[] readGroups = new BitSet[l];
-        Arrays.fill(readGroups, rg);
+        final long key = keyForReadGroup(readGroupId);
+        Long[] readGroups = new Long[l];
+        Arrays.fill(readGroups, key);
         return new CovariateValues(readGroups, readGroups, readGroups);
     }
 
@@ -68,35 +65,28 @@ public class ReadGroupCovariate implements RequiredCovariate {
     }
 
     @Override
-    public String keyFromBitSet(BitSet key) {
-        return decodeReadGroup((short) BitSetUtils.longFrom(key));
+    public String formatKey(final Long key) {
+        return readGroupReverseLookupTable.get(key);
     }
 
     @Override
-    public BitSet bitSetFromKey(Object key) {
-        return bitSetForReadGroup((String) key);
+    public Long longFromKey(Object key) {
+        return keyForReadGroup((String) key);
     }
 
     @Override
     public int numberOfBits() {
-        return BitSetUtils.numberOfBitsToRepresent(Short.MAX_VALUE);
+        return BQSRKeyManager.numberOfBitsToRepresent(Short.MAX_VALUE);
     }
 
-    private String decodeReadGroup(final short id) {
-        return readGroupReverseLookupTable.get(id);
-    }
-
-    private BitSet bitSetForReadGroup(String readGroupId) {
-        short shortId;
-        if (readGroupLookupTable.containsKey(readGroupId))
-            shortId = readGroupLookupTable.get(readGroupId);
-        else {
-            shortId = nextId;
+    private Long keyForReadGroup(final String readGroupId) {
+        if (!readGroupLookupTable.containsKey(readGroupId)) {
             readGroupLookupTable.put(readGroupId, nextId);
             readGroupReverseLookupTable.put(nextId, readGroupId);
             nextId++;
-        }        
-        return BitSetUtils.bitSetFrom(shortId);
+        }
+
+        return readGroupLookupTable.get(readGroupId);
     }
 
     /**
@@ -105,8 +95,8 @@ public class ReadGroupCovariate implements RequiredCovariate {
      * @param rg the read group record
      * @return platform unit or readgroup id
      */
-    private String readGroupValueFromRG(GATKSAMReadGroupRecord rg) {
-        String platformUnit = rg.getPlatformUnit();
+    private String readGroupValueFromRG(final GATKSAMReadGroupRecord rg) {
+        final String platformUnit = rg.getPlatformUnit();
         return platformUnit == null ? rg.getId() : platformUnit;
     }
     

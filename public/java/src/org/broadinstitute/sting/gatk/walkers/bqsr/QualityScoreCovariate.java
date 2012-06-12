@@ -1,10 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
-import org.broadinstitute.sting.utils.BitSetUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-
-import java.util.BitSet;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -50,18 +47,18 @@ public class QualityScoreCovariate implements RequiredCovariate {
     public CovariateValues getValues(final GATKSAMRecord read) {
         int readLength = read.getReadLength();
 
-        BitSet[] mismatches = new BitSet[readLength];
-        BitSet[] insertions = new BitSet[readLength];
-        BitSet[] deletions = new BitSet[readLength];
+        Long[] mismatches = new Long[readLength];
+        Long[] insertions = new Long[readLength];
+        Long[] deletions = new Long[readLength];
 
         byte[] baseQualities = read.getBaseQualities();
         byte[] baseInsertionQualities = read.getBaseInsertionQualities();
         byte[] baseDeletionQualities = read.getBaseDeletionQualities();
 
         for (int i = 0; i < baseQualities.length; i++) {
-            mismatches[i] = BitSetUtils.bitSetFrom(baseQualities[i]);
-            insertions[i] = BitSetUtils.bitSetFrom(baseInsertionQualities[i]);
-            deletions[i] = BitSetUtils.bitSetFrom(baseDeletionQualities[i]);
+            mismatches[i] = (long)baseQualities[i];
+            insertions[i] = (long)baseInsertionQualities[i];
+            deletions[i] = (long)baseDeletionQualities[i];
         }
 
         return new CovariateValues(mismatches, insertions, deletions);
@@ -74,17 +71,17 @@ public class QualityScoreCovariate implements RequiredCovariate {
     }
 
     @Override
-    public String keyFromBitSet(BitSet key) {
-        return String.format("%d", BitSetUtils.longFrom(key));
+    public String formatKey(final Long key) {
+        return String.format("%d", key);
     }
 
     @Override
-    public BitSet bitSetFromKey(Object key) {        
-        return (key instanceof String) ? BitSetUtils.bitSetFrom(Byte.parseByte((String) key)) : BitSetUtils.bitSetFrom((Byte) key);
+    public Long longFromKey(final Object key) {
+        return (key instanceof String) ? (long)Byte.parseByte((String) key) : (long)(Byte) key;
     }
 
     @Override
     public int numberOfBits() {
-        return BitSetUtils.numberOfBitsToRepresent(QualityUtils.MAX_QUAL_SCORE);
+        return BQSRKeyManager.numberOfBitsToRepresent(QualityUtils.MAX_QUAL_SCORE);
     }
 }

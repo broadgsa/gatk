@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
-import java.util.BitSet;
-
 /**
  * An object to hold the different covariate values for all bases in the read.
  *
@@ -14,25 +12,25 @@ import java.util.BitSet;
  * @since 2/8/12
  */
 public class CovariateValues {
-    private final BitSet[] mismatches;
-    private final BitSet[] insertions;
-    private final BitSet[] deletions;
+    private final Long[] mismatches;
+    private final Long[] insertions;
+    private final Long[] deletions;
 
-    public CovariateValues(BitSet[] mismatch, BitSet[] insertion, BitSet[] deletion) {
+    public CovariateValues(Long[] mismatch, Long[] insertion, Long[] deletion) {
         this.mismatches = mismatch;
         this.insertions = insertion;
         this.deletions = deletion;
     }
 
-    public BitSet[] getMismatches() {
+    public Long[] getMismatches() {
         return mismatches;
     }
 
-    public BitSet[] getInsertions() {
+    public Long[] getInsertions() {
         return insertions;
     }
 
-    public BitSet[] getDeletions() {
+    public Long[] getDeletions() {
         return deletions;
     }
 

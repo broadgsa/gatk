@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.utils.recalibration;
 
 import org.broadinstitute.sting.gatk.walkers.bqsr.*;
-import org.broadinstitute.sting.utils.BitSetUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -43,7 +42,7 @@ import java.util.*;
 
 public class BaseRecalibration {
     private QuantizationInfo quantizationInfo;                                                                          // histogram containing the map for qual quantization (calculated after recalibration is done)
-    private LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap;                                    // quick access reference to the read group table and its key manager
+    private LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap;                                      // quick access reference to the read group table and its key manager
     private ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();                                              // list of all covariates to be used in this calculation
 
 
@@ -72,7 +71,7 @@ public class BaseRecalibration {
      * @param keysAndTablesMap the map of key managers and recalibration tables
      * @param requestedCovariates the list of requested covariates
      */
-    protected BaseRecalibration(QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap, ArrayList<Covariate> requestedCovariates) {
+    protected BaseRecalibration(QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap, ArrayList<Covariate> requestedCovariates) {
         this.quantizationInfo = quantizationInfo;
         this.keysAndTablesMap = keysAndTablesMap;
         this.requestedCovariates = requestedCovariates;
@@ -94,7 +93,7 @@ public class BaseRecalibration {
                 final byte originalQualityScore = quals[offset];
 
                 if (originalQualityScore >= QualityUtils.MIN_USABLE_Q_SCORE) {                                          // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
-                    final BitSet[] keySet = readCovariates.getKeySet(offset, errorModel);                               // get the keyset for this base using the error model
+                    final Long[] keySet = readCovariates.getKeySet(offset, errorModel);                                 // get the keyset for this base using the error model
                     final byte recalibratedQualityScore = performSequentialQualityCalculation(keySet, errorModel);      // recalibrate the base
                     quals[offset] = recalibratedQualityScore;
                 }
@@ -122,23 +121,23 @@ public class BaseRecalibration {
      * @param errorModel the event type
      * @return A recalibrated quality score as a byte
      */
-    protected byte performSequentialQualityCalculation(BitSet[] key, EventType errorModel) {
+    protected byte performSequentialQualityCalculation(Long[] key, EventType errorModel) {
         final String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check that needs propagate through the code";
         final String TOO_MANY_KEYS_EXCEPTION = "There should only be one key for the RG collapsed table, something went wrong here";
 
-        final byte qualFromRead = (byte) BitSetUtils.shortFrom(key[1]);
+        final byte qualFromRead = (byte)(long)key[1];
 
         double globalDeltaQ = 0.0;
         double deltaQReported = 0.0;
         double deltaQCovariates = 0.0;
 
-        for (Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> mapEntry : keysAndTablesMap.entrySet()) {
+        for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> mapEntry : keysAndTablesMap.entrySet()) {
             BQSRKeyManager keyManager = mapEntry.getKey();
-            Map<BitSet, RecalDatum> table = mapEntry.getValue();
+            Map<Long, RecalDatum> table = mapEntry.getValue();
 
+            final List<Long> bitKeys = keyManager.longsFromAllKeys(key, errorModel);                                    // calculate the shift in quality due to the read group
             switch(keyManager.getRequiredCovariates().size()) {
                 case 1:                                                                                                 // this is the ReadGroup table                    
-                    List<BitSet> bitKeys = keyManager.bitSetsFromAllKeys(key, errorModel);                              // calculate the shift in quality due to the read group
                     if (bitKeys.size() > 1)
                         throw new ReviewedStingException(TOO_MANY_KEYS_EXCEPTION);
 
@@ -151,7 +150,6 @@ public class BaseRecalibration {
                     break;
                 case 2:
                     if (keyManager.getOptionalCovariates().isEmpty()) {                                                 // this is the QualityScore table
-                        bitKeys = keyManager.bitSetsFromAllKeys(key, errorModel);                                       // calculate the shift in quality due to the reported quality score
                         if (bitKeys.size() > 1)
                             throw new ReviewedStingException(TOO_MANY_KEYS_EXCEPTION);
 
@@ -162,8 +160,7 @@ public class BaseRecalibration {
                         }
                     }
                     else {                                                                                              // this is the table with all the covariates                        
-                        bitKeys = keyManager.bitSetsFromAllKeys(key, errorModel);                                       // calculate the shift in quality due to each covariate by itself in turn
-                        for (BitSet k : bitKeys) {
+                        for (Long k : bitKeys) {
                             final RecalDatum empiricalQualCO = table.get(k);
                             if (empiricalQualCO != null) {
                                 double deltaQCovariateEmpirical = empiricalQualCO.getEmpiricalQuality();

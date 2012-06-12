@@ -6,7 +6,6 @@ import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
-import java.util.BitSet;
 import java.util.EnumSet;
 
 /*
@@ -61,7 +60,7 @@ public class CycleCovariate implements StandardCovariate {
     // Used to pick out the covariate's value from attributes of the read
     @Override
     public CovariateValues getValues(final GATKSAMRecord read) {
-        BitSet[] cycles = new BitSet[read.getReadLength()];
+        Long[] cycles = new Long[read.getReadLength()];
         final NGSPlatform ngsPlatform = read.getNGSPlatform();
 
         // Discrete cycle platforms
@@ -81,7 +80,7 @@ public class CycleCovariate implements StandardCovariate {
             final int CUSHION = 4;
             final int MAX_CYCLE = read.getReadLength() - CUSHION - 1;
             for (int i = 0; i < MAX_CYCLE; i++) {
-                cycles[i] = (i<CUSHION || i>MAX_CYCLE) ? null : BitSetUtils.bitSetFrom(cycle);
+                cycles[i] = (i<CUSHION || i>MAX_CYCLE) ? null : keyFromCycle(cycle);
                 cycle += increment;
             }
         }
@@ -108,19 +107,19 @@ public class CycleCovariate implements StandardCovariate {
                 int iii = 0;
                 while (iii < readLength) {
                     while (iii < readLength && bases[iii] == (byte) 'T') {
-                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
+                        cycles[iii] = keyFromCycle(cycle);
                         iii++;
                     }
                     while (iii < readLength && bases[iii] == (byte) 'A') {
-                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
+                        cycles[iii] = keyFromCycle(cycle);
                         iii++;
                     }
                     while (iii < readLength && bases[iii] == (byte) 'C') {
-                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
+                        cycles[iii] = keyFromCycle(cycle);
                         iii++;
                     }
                     while (iii < readLength && bases[iii] == (byte) 'G') {
-                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
+                        cycles[iii] = keyFromCycle(cycle);
                         iii++;
                     }
                     if (iii < readLength) {
@@ -130,7 +129,7 @@ public class CycleCovariate implements StandardCovariate {
                             cycle++;
                     }
                     if (iii < readLength && !BaseUtils.isRegularBase(bases[iii])) {
-                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
+                        cycles[iii] = keyFromCycle(cycle);
                         iii++;
                     }
 
@@ -140,19 +139,19 @@ public class CycleCovariate implements StandardCovariate {
                 int iii = readLength - 1;
                 while (iii >= 0) {
                     while (iii >= 0 && bases[iii] == (byte) 'T') {
-                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
+                        cycles[iii] = keyFromCycle(cycle);
                         iii--;
                     }
                     while (iii >= 0 && bases[iii] == (byte) 'A') {
-                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
+                        cycles[iii] = keyFromCycle(cycle);
                         iii--;
                     }
                     while (iii >= 0 && bases[iii] == (byte) 'C') {
-                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
+                        cycles[iii] = keyFromCycle(cycle);
                         iii--;
                     }
                     while (iii >= 0 && bases[iii] == (byte) 'G') {
-                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
+                        cycles[iii] = keyFromCycle(cycle);
                         iii--;
                     }
                     if (iii >= 0) {
@@ -162,7 +161,7 @@ public class CycleCovariate implements StandardCovariate {
                             cycle++;
                     }
                     if (iii >= 0 && !BaseUtils.isRegularBase(bases[iii])) {
-                        cycles[iii] = BitSetUtils.bitSetFrom(cycle);
+                        cycles[iii] = keyFromCycle(cycle);
                         iii--;
                     }
                 }
@@ -184,17 +183,29 @@ public class CycleCovariate implements StandardCovariate {
     }
 
     @Override
-    public String keyFromBitSet(BitSet key) {
-        return String.format("%d", BitSetUtils.shortFrom(key));
+    public String formatKey(final Long key) {
+        long cycle = key >> 1;  // shift so we can remove the "sign" bit
+        if ( (key & 1) != 0 )   // is the last bit set?
+            cycle *= -1;        // then the cycle is negative
+        return String.format("%d", cycle);
     }
 
     @Override
-    public BitSet bitSetFromKey(Object key) {
-        return (key instanceof String) ? BitSetUtils.bitSetFrom(Short.parseShort((String) key)) : BitSetUtils.bitSetFrom((Short) key);
+    public Long longFromKey(final Object key) {
+        return (key instanceof String) ? keyFromCycle(Short.parseShort((String) key)) : keyFromCycle((Short) key);
     }
 
     @Override
     public int numberOfBits() {
-        return BitSetUtils.numberOfBitsToRepresent(2 * Short.MAX_VALUE); // positive and negative
+        return BQSRKeyManager.numberOfBitsToRepresent(2 * Short.MAX_VALUE); // positive and negative
+    }
+
+    private static Long keyFromCycle(final short cycle) {
+        // no negative values because
+        long result = Math.abs(cycle);
+        result = result << 1; // shift so we can add the "sign" bit
+        if ( cycle < 0 )
+            result++;    // negative cycles get the lower-most bit set
+        return result;
     }
 }
