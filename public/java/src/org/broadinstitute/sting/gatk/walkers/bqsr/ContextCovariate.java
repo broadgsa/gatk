@@ -122,10 +122,11 @@ public class ContextCovariate implements StandardCovariate {
      * @param contextSize context size to use building the context
      * @return the key representing the context
      */
-    private Long contextWith(byte[] bases, int offset, int contextSize) {
+    private Long contextWith(final byte[] bases, final int offset, final int contextSize) {
         Long result = null;
-        if (offset - contextSize + 1 >= 0) {
-            final byte[] context = Arrays.copyOfRange(bases, offset - contextSize + 1, offset + 1);
+        final int start = offset - contextSize + 1;
+        if (start >= 0) {
+            final byte[] context = Arrays.copyOfRange(bases, start, offset + 1);
             if (!BaseUtils.containsBase(context, BaseUtils.N))
                 result = keyFromContext(context);
         }
