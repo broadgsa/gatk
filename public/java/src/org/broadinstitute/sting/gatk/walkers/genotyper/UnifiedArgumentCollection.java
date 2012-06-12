@@ -65,18 +65,15 @@ public class UnifiedArgumentCollection {
     /**
      * The minimum phred-scaled Qscore threshold to separate high confidence from low confidence calls. Only genotypes with
      * confidence >= this threshold are emitted as called sites. A reasonable threshold is 30 for high-pass calling (this
-     * is the default). Note that the confidence (QUAL) values for multi-sample low-pass (e.g. 4x per sample) calling might
-     * be significantly smaller with the new EXACT model than with our older GRID_SEARCH model, as the latter tended to
-     * over-estimate the confidence; for low-pass calling we tend to use much smaller thresholds (e.g. 4).
+     * is the default).
      */
-    @Argument(fullName = "standard_min_confidence_threshold_for_calling", shortName = "stand_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be called", required = false)
+    @Argument(fullName = "standard_min_confidence_threshold_for_calling", shortName = "stand_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants should be called", required = false)
     public double STANDARD_CONFIDENCE_FOR_CALLING = 30.0;
 
     /**
-     * the minimum phred-scaled Qscore threshold to emit low confidence calls. Genotypes with confidence >= this but less
-     * than the calling threshold are emitted but marked as filtered.
+     * This argument allows you to emit low quality calls as filtered records.
      */
-    @Argument(fullName = "standard_min_confidence_threshold_for_emitting", shortName = "stand_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be emitted (and filtered if less than the calling threshold)", required = false)
+    @Argument(fullName = "standard_min_confidence_threshold_for_emitting", shortName = "stand_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants should be emitted (and filtered with LowQual if less than the calling threshold)", required = false)
     public double STANDARD_CONFIDENCE_FOR_EMITTING = 30.0;
 
     /**
