@@ -1,5 +1,15 @@
 package org.broadinstitute.sting;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -9,13 +19,6 @@ import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.utils.crypt.CryptUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.io.IOUtils;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  *
@@ -49,44 +52,45 @@ public abstract class BaseTest {
     /** our log, which we want to capture anything from org.broadinstitute.sting */
     public static final Logger logger = CommandLineUtils.getStingLogger();
 
-    public static final String hg18Reference = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
-    public static final String hg19Reference = "/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta";
-    public static final String b36KGReference = "/humgen/1kg/reference/human_b36_both.fasta";
-    //public static final String b37KGReference = "/Users/depristo/Desktop/broadLocal/localData/human_g1k_v37.fasta";
-    public static final String b37KGReference = "/humgen/1kg/reference/human_g1k_v37.fasta";
-    public static final String GATKDataLocation = "/humgen/gsa-hpprojects/GATK/data/";
-    public static final String validationDataLocation = GATKDataLocation + "Validation_Data/";
-    public static final String evaluationDataLocation = GATKDataLocation + "Evaluation_Data/";
-    public static final String comparisonDataLocation = GATKDataLocation + "Comparisons/";
-    public static final String annotationDataLocation = GATKDataLocation + "Annotations/";
+            
+    public static String hg18Reference;
+    public static String hg19Reference;
+    public static String b36KGReference;
+    public static String b37KGReference;
+    public static String GATKDataLocation;
+    public static String validationDataLocation;
+    public static String evaluationDataLocation;
+    public static String comparisonDataLocation;
+    public static String annotationDataLocation;
 
-    public static final String b37GoodBAM = validationDataLocation + "/CEUTrio.HiSeq.b37.chr20.10_11mb.bam";
-    public static final String b37GoodNA12878BAM = validationDataLocation + "/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam";
-    public static final String b37_NA12878_OMNI = validationDataLocation + "/NA12878.omni.vcf";
+    public static String b37GoodBAM;
+    public static String b37GoodNA12878BAM;
+    public static String b37_NA12878_OMNI;
 
-    public static final String refseqAnnotationLocation = annotationDataLocation + "refseq/";
-    public static final String hg18Refseq = refseqAnnotationLocation + "refGene-big-table-hg18.txt";
-    public static final String hg19Refseq = refseqAnnotationLocation + "refGene-big-table-hg19.txt";
-    public static final String b36Refseq = refseqAnnotationLocation + "refGene-big-table-b36.txt";
-    public static final String b37Refseq = refseqAnnotationLocation + "refGene-big-table-b37.txt";
+    public static String refseqAnnotationLocation;
+    public static String hg18Refseq;
+    public static String hg19Refseq;
+    public static String b36Refseq;
+    public static String b37Refseq;
 
-    public static final String dbsnpDataLocation = GATKDataLocation;
-    public static final String b36dbSNP129 = dbsnpDataLocation + "dbsnp_129_b36.vcf";
-    public static final String b37dbSNP129 = dbsnpDataLocation + "dbsnp_129_b37.vcf";
-    public static final String b37dbSNP132 = dbsnpDataLocation + "dbsnp_132_b37.vcf";
-    public static final String hg18dbSNP132 = dbsnpDataLocation + "dbsnp_132.hg18.vcf";
+    public static String dbsnpDataLocation;
+    public static String b36dbSNP129;
+    public static String b37dbSNP129;
+    public static String b37dbSNP132;
+    public static String hg18dbSNP132;
 
-    public static final String hapmapDataLocation = comparisonDataLocation + "Validated/HapMap/3.3/";
-    public static final String b37hapmapGenotypes = hapmapDataLocation + "genotypes_r27_nr.b37_fwd.vcf";
-    public static final String b37hapmapSites = hapmapDataLocation + "sites_r27_nr.b37_fwd.vcf";
+    public static String hapmapDataLocation;
+    public static String b37hapmapGenotypes;
+    public static String b37hapmapSites;
 
-    public static final String intervalsLocation = GATKDataLocation;
-    public static final String hg19Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list";
-    public static final String hg19Chr20Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list";
+    public static String intervalsLocation;
+    public static String hg19Intervals;
+    public static String hg19Chr20Intervals;
 
-    public static final boolean REQUIRE_NETWORK_CONNECTION = true;
-    public static final String networkTempDir;
-    public static final File networkTempDirFile;
+    public static boolean REQUIRE_NETWORK_CONNECTION;
+    public static String networkTempDirRoot;
+    public static String networkTempDir;
+    public static File networkTempDirFile;
 
     public static final File testDirFile = new File("public/testdata/");
     public static final String testDir = testDirFile.getAbsolutePath() + "/";
@@ -96,7 +100,8 @@ public abstract class BaseTest {
 
     /** before the class starts up */
     static {
-        // setup a basic log configuration
+       
+    	// setup a basic log configuration
         CommandLineUtils.configureConsoleLogging();
 
         // setup our log layout
@@ -107,10 +112,13 @@ public abstract class BaseTest {
         CommandLineUtils.setLayout(logger, layout);
 
         // Set the Root logger to only output warnings.
-        logger.setLevel(Level.WARN);
-
-        if ( REQUIRE_NETWORK_CONNECTION ) {
-            networkTempDirFile = IOUtils.tempDir("temp.", ".dir", new File("/broad/hptmp/" + System.getProperty("user.name")));
+        logger.setLevel(Level.WARN);        
+        
+        // Get and set all file paths from the config file.
+        setupResourcePaths();
+        
+        if ( REQUIRE_NETWORK_CONNECTION ) {        
+            networkTempDirFile = IOUtils.tempDir("temp.", ".dir", new File(networkTempDirRoot + System.getProperty("user.name")));
             networkTempDirFile.deleteOnExit();
             networkTempDir = networkTempDirFile.getAbsolutePath() + "/";
 
@@ -203,6 +211,68 @@ public abstract class BaseTest {
     }
     
     /**
+     * Setting up paths to all resources from the external test.conf file.
+     */
+    private static void setupResourcePaths() {
+    /** Load settings from external configuration file */
+    Properties properties = new Properties();
+
+    FileInputStream configFile;
+    try {
+        /** Get the settings file from the test.conf file in settings under the gatk root. */
+        configFile = new FileInputStream(new File("settings/test.conf"));
+        properties.load(configFile);
+        configFile.close();
+
+        hg18Reference = properties.getProperty("hg18Reference");
+        hg19Reference = properties.getProperty("hg19Reference");
+        b36KGReference = properties.getProperty("b36KGReference");	       
+        b37KGReference = properties.getProperty("b37KGReference");
+        GATKDataLocation = properties.getProperty("GATKDataLocation");
+        validationDataLocation = properties.getProperty("validationDataLocation");
+        evaluationDataLocation = properties.getProperty("evaluationDataLocation");
+        comparisonDataLocation = properties.getProperty("comparisonDataLocation");
+        annotationDataLocation = properties.getProperty("annotationDataLocation");
+
+        b37GoodBAM = properties.getProperty("b37GoodBAM");
+        b37GoodNA12878BAM = properties.getProperty("b37GoodNA12878BAM");
+        b37_NA12878_OMNI = properties.getProperty("b37_NA12878_OMNI");
+
+        refseqAnnotationLocation = properties.getProperty("refseqAnnotationLocation");
+        hg18Refseq = properties.getProperty("hg18Refseq");
+        hg19Refseq = properties.getProperty("hg19Refseq");
+        b36Refseq = properties.getProperty("b36Refseq");
+        b37Refseq = properties.getProperty("b37Refseq");
+
+        dbsnpDataLocation = properties.getProperty("dbsnpDataLocation");
+        b36dbSNP129 = properties.getProperty("b36dbSNP129");
+        b37dbSNP129 = properties.getProperty("b37dbSNP129");
+        b37dbSNP132 = properties.getProperty("b37dbSNP132");
+        hg18dbSNP132 = properties.getProperty("hg18dbSNP132");
+
+        hapmapDataLocation = properties.getProperty("hapmapDataLocatio");
+        b37hapmapGenotypes = properties.getProperty("b37hapmapGenotypes");
+        b37hapmapSites = properties.getProperty("b37hapmapSites");
+
+        intervalsLocation = properties.getProperty("intervalsLocation");
+        hg19Intervals = properties.getProperty("hg19Intervals");
+        hg19Chr20Intervals = properties.getProperty("hg19Chr20Intervals");
+
+        REQUIRE_NETWORK_CONNECTION = Boolean.getBoolean(properties.getProperty("REQUIRE_NETWORK_CONNECTION"));
+        networkTempDirRoot = properties.getProperty("networkTempDirRoot");
+
+    }
+    catch (FileNotFoundException e) {
+        logger.fatal("Could not find settings file \"test.conf\" in the settings directory.");
+        throw new RuntimeException("BaseTest setup failed: could not find \"test.conf\" file in the settings directory.");
+        } 
+    catch (IOException e) {
+        logger.fatal("Could not read \"test.conf\" file. Aborting!");
+        throw new RuntimeException("BaseTest setup failed: tried to get settings from test.conf, but could not read it.");
+        }		
+    }
+
+	/**
      * this appender looks for a specific message in the log4j stream.
      * It can be used to verify that a specific message was generated to the logging system.
      */
