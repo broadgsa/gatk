@@ -135,13 +135,13 @@ public class BaseRecalibration {
             final BQSRKeyManager keyManager = mapEntry.getKey();
             final Map<Long, RecalDatum> table = mapEntry.getValue();
 
-            final List<Long> bitKeys = keyManager.longsFromAllKeys(key, errorModel);                                    // calculate the shift in quality due to the read group
+            final Long[] bitKeys = keyManager.longsFromAllKeys(key, errorModel);                                    // calculate the shift in quality due to the read group
             switch(keyManager.getNumRequiredCovariates()) {
                 case 1:                                                                                                 // this is the ReadGroup table                    
-                    if (bitKeys.size() > 1)
+                    if (bitKeys.length > 1)
                         throw new ReviewedStingException(TOO_MANY_KEYS_EXCEPTION);
 
-                    final RecalDatum empiricalQualRG = table.get(bitKeys.get(0));
+                    final RecalDatum empiricalQualRG = table.get(bitKeys[0]);
                     if (empiricalQualRG != null) {
                         final double globalDeltaQEmpirical = empiricalQualRG.getEmpiricalQuality();
                         final double aggregrateQReported = empiricalQualRG.getEstimatedQReported();
@@ -150,10 +150,10 @@ public class BaseRecalibration {
                     break;
                 case 2:
                     if (keyManager.getNumOptionalCovariates() == 0) {                                               // this is the QualityScore table
-                        if (bitKeys.size() > 1)
+                        if (bitKeys.length > 1)
                             throw new ReviewedStingException(TOO_MANY_KEYS_EXCEPTION);
 
-                        final RecalDatum empiricalQualQS = table.get(bitKeys.get(0));
+                        final RecalDatum empiricalQualQS = table.get(bitKeys[0]);
                         if (empiricalQualQS != null) {
                             final double deltaQReportedEmpirical = empiricalQualQS.getEmpiricalQuality();
                             deltaQReported = deltaQReportedEmpirical - qualFromRead - globalDeltaQ;

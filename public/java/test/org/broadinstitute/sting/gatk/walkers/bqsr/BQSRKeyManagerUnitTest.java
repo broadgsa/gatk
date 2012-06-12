@@ -116,7 +116,7 @@ public class BQSRKeyManagerUnitTest {
                         expectedCovariate[j - nRequired] = covariateList.get(j).formatKey(keySet[j]);
                 }
 
-                List<Long> hashKeys = keyManager.longsFromAllKeys(keySet, EventType.eventFrom(eventType));
+                Long[] hashKeys = keyManager.longsFromAllKeys(keySet, EventType.eventFrom(eventType));
                 short cov = 0;
                 for (Long key : hashKeys) {
                     Object[] actual = keyManager.keySetFrom(key).toArray();

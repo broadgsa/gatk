@@ -74,7 +74,6 @@ public class BaseRecalibrationUnitTest {
         BQSRKeyManager cvKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
         keysAndTablesMap.put(cvKeyManager, new HashMap<Long, RecalDatum>());
 
-
         for (Covariate cov : requiredCovariates)
             requestedCovariates.add(cov);
         for (Covariate cov : optionalCovariates)
@@ -84,7 +83,6 @@ public class BaseRecalibrationUnitTest {
 
         for (int i=0; i<read.getReadLength(); i++) {
             Long[] bitKeys = readCovariates.getMismatchesKeySet(i);
-
 
             Object[] objKey = buildObjectKey(bitKeys);
 
@@ -99,7 +97,7 @@ public class BaseRecalibrationUnitTest {
 
             RecalDatum newDatum = new RecalDatum(nObservations, nErrors, estimatedQReported, empiricalQuality);
             for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> mapEntry : keysAndTablesMap.entrySet()) {
-                List<Long> keys = mapEntry.getKey().longsFromAllKeys(bitKeys, EventType.BASE_SUBSTITUTION);
+                Long[] keys = mapEntry.getKey().longsFromAllKeys(bitKeys, EventType.BASE_SUBSTITUTION);
                 for (Long key : keys)
                     updateCovariateWithKeySet(mapEntry.getValue(), key, newDatum);
             }
