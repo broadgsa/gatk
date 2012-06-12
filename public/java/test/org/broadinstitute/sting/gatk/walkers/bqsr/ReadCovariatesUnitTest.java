@@ -6,9 +6,6 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * @author carneiro
  * @since 4/21/12
@@ -38,11 +35,11 @@ public class ReadCovariatesUnitTest {
         coCov.initialize(RAC);
         cyCov.initialize(RAC);
 
-        List<Covariate> requestedCovariates = new ArrayList<Covariate>(4);
-        requestedCovariates.add(rgCov);
-        requestedCovariates.add(qsCov);
-        requestedCovariates.add(coCov);
-        requestedCovariates.add(cyCov);
+        Covariate[] requestedCovariates = new Covariate[4];
+        requestedCovariates[0] = rgCov;
+        requestedCovariates[1] = qsCov;
+        requestedCovariates[2] = coCov;
+        requestedCovariates[3] = cyCov;
 
         ReadCovariates rc = RecalDataManager.computeCovariates(read, requestedCovariates);
 

@@ -37,7 +37,6 @@ public class RecalibrationReportUnitTest {
         quantizationInfo.noQuantization();
         final List<Covariate> requiredCovariates = new LinkedList<Covariate>();
         final List<Covariate> optionalCovariates = new LinkedList<Covariate>();
-        final List<Covariate> requestedCovariates = new LinkedList<Covariate>();
 
         final ReadGroupCovariate rgCovariate = new ReadGroupCovariate();
         rgCovariate.initialize(RAC);
@@ -60,10 +59,12 @@ public class RecalibrationReportUnitTest {
         BQSRKeyManager cvKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
         keysAndTablesMap.put(cvKeyManager, new HashMap<Long, RecalDatum>());
 
-        for (Covariate cov : requiredCovariates)
-            requestedCovariates.add(cov);
-        for (Covariate cov : optionalCovariates)
-            requestedCovariates.add(cov);
+        final Covariate[] requestedCovariates = new Covariate[requiredCovariates.size() + optionalCovariates.size()];
+        int covariateIndex = 0;
+        for (final Covariate cov : requiredCovariates)
+            requestedCovariates[covariateIndex++] = cov;
+        for (final Covariate cov : optionalCovariates)
+            requestedCovariates[covariateIndex++] = cov;
 
         final GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord("id");
         rg.setPlatform("illumina");

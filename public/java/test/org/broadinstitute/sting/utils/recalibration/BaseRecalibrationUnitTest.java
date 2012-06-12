@@ -48,7 +48,6 @@ public class BaseRecalibrationUnitTest {
         RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
         List<Covariate> requiredCovariates = new ArrayList<Covariate>();
         List<Covariate> optionalCovariates = new ArrayList<Covariate>();
-        ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();
 
         dataManager = new org.broadinstitute.sting.gatk.walkers.recalibration.RecalDataManager(true, 4);
         keysAndTablesMap = new LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>>();
@@ -74,10 +73,12 @@ public class BaseRecalibrationUnitTest {
         BQSRKeyManager cvKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
         keysAndTablesMap.put(cvKeyManager, new HashMap<Long, RecalDatum>());
 
-        for (Covariate cov : requiredCovariates)
-            requestedCovariates.add(cov);
-        for (Covariate cov : optionalCovariates)
-            requestedCovariates.add(cov);
+        final Covariate[] requestedCovariates = new Covariate[requiredCovariates.size() + optionalCovariates.size()];
+        int covariateIndex = 0;
+        for (final Covariate cov : requiredCovariates)
+            requestedCovariates[covariateIndex++] = cov;
+        for (final Covariate cov : optionalCovariates)
+            requestedCovariates[covariateIndex++] = cov;
 
         readCovariates = RecalDataManager.computeCovariates(read, requestedCovariates);
 
@@ -112,7 +113,7 @@ public class BaseRecalibrationUnitTest {
         }
         QuantizationInfo quantizationInfo = new QuantizationInfo(quantizedQuals, qualCounts);
         quantizationInfo.noQuantization();
-        baseRecalibration = new BaseRecalibration(quantizationInfo, keysAndTablesMap, requestedCovariates.toArray());
+        baseRecalibration = new BaseRecalibration(quantizationInfo, keysAndTablesMap, requestedCovariates);
 
     }
 
