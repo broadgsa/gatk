@@ -250,6 +250,7 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
     private void outputStatsToVCF(IntervalStatistics stats, Allele refAllele) {
         GenomeLoc interval = stats.getInterval();
 
+
         List<Allele> alleles = new ArrayList<Allele>();
         Map<String, Object> attributes = new HashMap<String, Object>();
         ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
@@ -265,7 +266,9 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
         attributes.put(VCFConstants.DEPTH_KEY, stats.averageCoverage());
 
         vcb = vcb.attributes(attributes);
-
+        if (debug) {
+            System.out.printf("Output -- Interval: %s, Coverage: %.2f%n", stats.getInterval(), stats.averageCoverage());
+        }
         for (String sample : samples) {
             Map<String, Object> infos = new HashMap<String, Object>();
             SampleStatistics sampleStat = stats.getSample(sample);
@@ -277,14 +280,14 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
             Set<String> filters = new HashSet<String>();
             filters.addAll(statusesToStrings(stats.getSample(sample).getCallableStatuses(thresholds)));
 
+            if (debug) {
+                System.out.printf("Found %d bad mates out of %d reads %n", sampleStat.getnBadMates(), sampleStat.getnReads());
+            }
 
             genotypes.add(new Genotype(sample, null, VariantContext.NO_LOG10_PERROR, filters, infos, false));
         }
         vcb = vcb.genotypes(genotypes);
 
-        if (debug) {
-            System.out.printf("Output -- Interval: %s, Coverage: %.2f%n", stats.getInterval(), stats.averageCoverage());
-        }
 
         vcfWriter.add(vcb.make());
 
@@ -306,6 +309,6 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
     }
 
     private IntervalStatistics createIntervalStatistic(GenomeLoc interval) {
-        return new IntervalStatistics(samples, interval /*, minimumCoverage, maximumCoverage, minimumMappingQuality, minimumBaseQuality*/);
+        return new IntervalStatistics(samples, interval);
     }
 }
