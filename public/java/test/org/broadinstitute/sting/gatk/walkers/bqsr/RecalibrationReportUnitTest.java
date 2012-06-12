@@ -32,7 +32,7 @@ public class RecalibrationReportUnitTest {
 
         final QuantizationInfo quantizationInfo = new QuantizationInfo(quals, counts);
         final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
-        final LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap = new LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>>();
+        final LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap = new LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>>();
 
         quantizationInfo.noQuantization();
         final List<Covariate> requiredCovariates = new LinkedList<Covariate>();
@@ -43,13 +43,13 @@ public class RecalibrationReportUnitTest {
         rgCovariate.initialize(RAC);
         requiredCovariates.add(rgCovariate);
         final BQSRKeyManager rgKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
-        keysAndTablesMap.put(rgKeyManager, new HashMap<BitSet, RecalDatum>());
+        keysAndTablesMap.put(rgKeyManager, new HashMap<Long, RecalDatum>());
 
         final QualityScoreCovariate qsCovariate = new QualityScoreCovariate();
         qsCovariate.initialize(RAC);
         requiredCovariates.add(qsCovariate);
         final BQSRKeyManager qsKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
-        keysAndTablesMap.put(qsKeyManager, new HashMap<BitSet, RecalDatum>());
+        keysAndTablesMap.put(qsKeyManager, new HashMap<Long, RecalDatum>());
 
         final ContextCovariate cxCovariate = new ContextCovariate();
         cxCovariate.initialize(RAC);
@@ -58,7 +58,7 @@ public class RecalibrationReportUnitTest {
         cyCovariate.initialize(RAC);
         optionalCovariates.add(cyCovariate);
         BQSRKeyManager cvKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
-        keysAndTablesMap.put(cvKeyManager, new HashMap<BitSet, RecalDatum>());
+        keysAndTablesMap.put(cvKeyManager, new HashMap<Long, RecalDatum>());
 
         for (Covariate cov : requiredCovariates)
             requestedCovariates.add(cov);
@@ -79,22 +79,22 @@ public class RecalibrationReportUnitTest {
         int nKeys = 0;                                                                                                  // keep track of how many keys were produced
         final ReadCovariates rc = RecalDataManager.computeCovariates(read, requestedCovariates);
         for (int offset = 0; offset < length; offset++) {
-            for (Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> entry : keysAndTablesMap.entrySet()) {
+            for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> entry : keysAndTablesMap.entrySet()) {
                 BQSRKeyManager keyManager = entry.getKey();
-                Map<BitSet, RecalDatum> table = entry.getValue();
+                Map<Long, RecalDatum> table = entry.getValue();
 
-                for (BitSet key : keyManager.bitSetsFromAllKeys(rc.getMismatchesKeySet(offset), EventType.BASE_SUBSTITUTION)) {
+                for (Long key : keyManager.longsFromAllKeys(rc.getMismatchesKeySet(offset), EventType.BASE_SUBSTITUTION)) {
                     table.put(key, RecalDatum.createRandomRecalDatum(10000, 10));
                     nKeys++;
                 }
 
-                for (BitSet key : keyManager.bitSetsFromAllKeys(rc.getInsertionsKeySet(offset), EventType.BASE_INSERTION)) {
+                for (Long key : keyManager.longsFromAllKeys(rc.getInsertionsKeySet(offset), EventType.BASE_INSERTION)) {
                     table.put(key, RecalDatum.createRandomRecalDatum(100000, 10));
                     nKeys++;
                 }
 
 
-                for (BitSet key : keyManager.bitSetsFromAllKeys(rc.getDeletionsKeySet(offset), EventType.BASE_DELETION)) {
+                for (Long key : keyManager.longsFromAllKeys(rc.getDeletionsKeySet(offset), EventType.BASE_DELETION)) {
                     table.put(key,  RecalDatum.createRandomRecalDatum(100000, 10));
                     nKeys++;
                 }

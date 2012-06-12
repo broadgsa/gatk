@@ -47,9 +47,9 @@ public class ReadGroupCovariateUnitTest {
 
     }
 
-    private void verifyCovariateArray(BitSet[] values, String expected) {
-        for (BitSet value : values) {
-            String actual = covariate.keyFromBitSet(value);
+    private void verifyCovariateArray(Long[] values, String expected) {
+        for (Long value : values) {
+            String actual = covariate.formatKey(value);
             Assert.assertEquals(actual, expected);
         }
     }

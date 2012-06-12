@@ -22,7 +22,7 @@ import java.util.*;
 public class BaseRecalibrationUnitTest {
 
     private org.broadinstitute.sting.gatk.walkers.recalibration.RecalDataManager dataManager;
-    private LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap;
+    private LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap;
 
     private ReadGroupCovariate rgCovariate;
     private QualityScoreCovariate qsCovariate;
@@ -51,19 +51,19 @@ public class BaseRecalibrationUnitTest {
         ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();
 
         dataManager = new org.broadinstitute.sting.gatk.walkers.recalibration.RecalDataManager(true, 4);
-        keysAndTablesMap = new LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>>();
+        keysAndTablesMap = new LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>>();
 
         rgCovariate = new ReadGroupCovariate();
         rgCovariate.initialize(RAC);
         requiredCovariates.add(rgCovariate);
         BQSRKeyManager rgKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
-        keysAndTablesMap.put(rgKeyManager, new HashMap<BitSet, RecalDatum>());
+        keysAndTablesMap.put(rgKeyManager, new HashMap<Long, RecalDatum>());
 
         qsCovariate = new QualityScoreCovariate();
         qsCovariate.initialize(RAC);
         requiredCovariates.add(qsCovariate);
         BQSRKeyManager qsKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
-        keysAndTablesMap.put(qsKeyManager, new HashMap<BitSet, RecalDatum>());
+        keysAndTablesMap.put(qsKeyManager, new HashMap<Long, RecalDatum>());
 
         cxCovariate = new ContextCovariate();
         cxCovariate.initialize(RAC);
@@ -72,7 +72,7 @@ public class BaseRecalibrationUnitTest {
         cyCovariate.initialize(RAC);
         optionalCovariates.add(cyCovariate);
         BQSRKeyManager cvKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
-        keysAndTablesMap.put(cvKeyManager, new HashMap<BitSet, RecalDatum>());
+        keysAndTablesMap.put(cvKeyManager, new HashMap<Long, RecalDatum>());
 
 
         for (Covariate cov : requiredCovariates)
@@ -83,7 +83,7 @@ public class BaseRecalibrationUnitTest {
         readCovariates = RecalDataManager.computeCovariates(read, requestedCovariates);
 
         for (int i=0; i<read.getReadLength(); i++) {
-            BitSet[] bitKeys = readCovariates.getMismatchesKeySet(i);
+            Long[] bitKeys = readCovariates.getMismatchesKeySet(i);
 
 
             Object[] objKey = buildObjectKey(bitKeys);
@@ -98,9 +98,9 @@ public class BaseRecalibrationUnitTest {
             dataManager.addToAllTables(objKey, oldDatum, QualityUtils.MIN_USABLE_Q_SCORE);
 
             RecalDatum newDatum = new RecalDatum(nObservations, nErrors, estimatedQReported, empiricalQuality);
-            for (Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> mapEntry : keysAndTablesMap.entrySet()) {
-                List<BitSet> keys = mapEntry.getKey().bitSetsFromAllKeys(bitKeys, EventType.BASE_SUBSTITUTION);
-                for (BitSet key : keys)
+            for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> mapEntry : keysAndTablesMap.entrySet()) {
+                List<Long> keys = mapEntry.getKey().longsFromAllKeys(bitKeys, EventType.BASE_SUBSTITUTION);
+                for (Long key : keys)
                     updateCovariateWithKeySet(mapEntry.getValue(), key, newDatum);
             }
         }
@@ -123,7 +123,7 @@ public class BaseRecalibrationUnitTest {
     public void testGoldStandardComparison() {
         debugTables();
         for (int i = 0; i < read.getReadLength(); i++) {
-            BitSet [] bitKey = readCovariates.getKeySet(i, EventType.BASE_SUBSTITUTION);
+            Long [] bitKey = readCovariates.getKeySet(i, EventType.BASE_SUBSTITUTION);
             Object [] objKey = buildObjectKey(bitKey);
             byte v2 = baseRecalibration.performSequentialQualityCalculation(bitKey, EventType.BASE_SUBSTITUTION);
             byte v1 = goldStandardSequentialCalculation(objKey);
@@ -131,12 +131,12 @@ public class BaseRecalibrationUnitTest {
         }
     }
 
-    private Object[] buildObjectKey(BitSet[] bitKey) {
+    private Object[] buildObjectKey(Long[] bitKey) {
         Object[] key = new Object[bitKey.length];
-        key[0] = rgCovariate.keyFromBitSet(bitKey[0]);
-        key[1] = qsCovariate.keyFromBitSet(bitKey[1]);
-        key[2] = cxCovariate.keyFromBitSet(bitKey[2]);
-        key[3] = cyCovariate.keyFromBitSet(bitKey[3]);
+        key[0] = rgCovariate.formatKey(bitKey[0]);
+        key[1] = qsCovariate.formatKey(bitKey[1]);
+        key[2] = cxCovariate.formatKey(bitKey[2]);
+        key[3] = cyCovariate.formatKey(bitKey[3]);
         return key;
     }
 
@@ -157,9 +157,9 @@ public class BaseRecalibrationUnitTest {
 
         int i = 0;
         System.out.println("\nV2 Table\n");
-        for (Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> mapEntry : keysAndTablesMap.entrySet()) {
+        for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> mapEntry : keysAndTablesMap.entrySet()) {
             BQSRKeyManager keyManager = mapEntry.getKey();
-            Map<BitSet, RecalDatum> table = mapEntry.getValue();
+            Map<Long, RecalDatum> table = mapEntry.getValue();
             switch(i++) {
                 case 0 :
                     System.out.println("ReadGroup Table:");
@@ -171,8 +171,8 @@ public class BaseRecalibrationUnitTest {
                     System.out.println("Covariates Table:");
                     break;
             }
-            for (Map.Entry<BitSet, RecalDatum> entry : table.entrySet()) {
-                BitSet key = entry.getKey();
+            for (Map.Entry<Long, RecalDatum> entry : table.entrySet()) {
+                Long key = entry.getKey();
                 RecalDatum datum = entry.getValue();
                 List<Object> keySet = keyManager.keySetFrom(key);
                 System.out.println(String.format("%s => %s", Utils.join(",", keySet), datum) + "," + datum.getEstimatedQReported());
@@ -199,7 +199,7 @@ public class BaseRecalibrationUnitTest {
         }
     }
 
-    private void updateCovariateWithKeySet(final Map<BitSet, RecalDatum> recalTable, final BitSet hashKey, final RecalDatum datum) {
+    private void updateCovariateWithKeySet(final Map<Long, RecalDatum> recalTable, final Long hashKey, final RecalDatum datum) {
         RecalDatum previousDatum = recalTable.get(hashKey);                                                             // using the list of covariate values as a key, pick out the RecalDatum from the data HashMap
         if (previousDatum == null)                                                                                      // key doesn't exist yet in the map so make a new bucket and add it
             recalTable.put(hashKey, datum.copy());
