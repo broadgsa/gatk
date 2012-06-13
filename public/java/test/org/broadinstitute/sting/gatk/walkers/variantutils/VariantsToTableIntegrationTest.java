@@ -83,7 +83,7 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
                 " -GF RD" +
                 " -o %s",
                 1,
-                Arrays.asList("f80c4714d83226b6a6db8bf281b3bcba"));
+                Arrays.asList("d43562e9b94f0e8e337d38a6829671ee"));
         executeTest("testGenotypeFields", spec);
     }
 
@@ -124,7 +124,7 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
                         " --moltenize" +
                         " -o %s",
                 1,
-                Arrays.asList("132890fd33d16946e04b41cfd7453c0e"));
+                Arrays.asList("1d97fe63c249a995df4ce666382872d8"));
         executeTest("testMoltenOutputWithGenotypeFields", spec);
     }
 

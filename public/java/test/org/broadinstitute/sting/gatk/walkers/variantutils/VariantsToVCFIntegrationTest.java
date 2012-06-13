@@ -19,7 +19,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testVariantsToVCFUsingDbsnpInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("a26afcce2a89f905a49c3d09719586b2");
+        md5.add("268c116f825c2a4b5200a416ca587adc");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
@@ -36,7 +36,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testVariantsToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("4accae035d271b35ee2ec58f403c68c6");
+        md5.add("82ca5ecef2df5d64dee9ef5a4b14ef2f");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
@@ -54,7 +54,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("2413f036ec4100b8d5db179946159a82");
+        md5.add("90bc2e21d633fa6c3c47c6bd86c134a0");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
@@ -72,7 +72,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingHapMapInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("f343085305e80c7a2493422e4eaad983");
+        md5.add("bb71dabd072a679cc85fe8d3e130fb2b");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
@@ -89,7 +89,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingVCFInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("b1ddde7efff9c405f8f92f0a636cd919");
+        md5.add("ae39e2249bc20fcd0a668a7fe5fb84b0");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +

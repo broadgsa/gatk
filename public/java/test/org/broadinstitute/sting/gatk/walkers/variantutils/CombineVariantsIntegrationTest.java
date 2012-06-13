@@ -78,26 +78,26 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
          executeTest("combine PLs 1:" + new File(file1).getName() + " 2:" + new File(file2).getName(), spec);
     }
 
-    @Test public void test1SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "c1e82f0842ca721d10f21604f26a5248"); }
-    @Test public void test2SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "b2fcf3983cc9e667b9bbed8372080776", " -setKey foo"); }
-    @Test public void test3SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "98c0cbb94e5debf7545a656665a1b659", " -setKey null"); }
-    @Test public void testOfficialCEUPilotCalls() { test1InOut("CEU.trio.2010_03.genotypes.vcf.gz", "10170f9e72cc831a5820bd03e70fe46a"); } // official project VCF files in tabix format
+    @Test public void test1SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "d406bdc37f85d69cb3bf11a173399078"); }
+    @Test public void test2SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "f780b4f5b424d9c85fc923004ec830ef", " -setKey foo"); }
+    @Test public void test3SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "e93fdfaf8667b433dfe918ddc4134df2", " -setKey null"); }
+    @Test public void testOfficialCEUPilotCalls() { test1InOut("CEU.trio.2010_03.genotypes.vcf.gz", "253d44579b9d726c4700fd1f3a80b857"); } // official project VCF files in tabix format
 
-    @Test public void test1Indel1() { test1InOut("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "074e909f80ffcc9fddc3fac89ea36bef"); }
-    @Test public void test1Indel2() { test1InOut("CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "f26980af214011c0452b8ce843f3063b"); }
+    @Test public void test1Indel1() { test1InOut("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "adf8f5a11fe0dce021c32938ecc8125b"); }
+    @Test public void test1Indel2() { test1InOut("CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "8e5826184e4999f8639918b443e863ee"); }
 
-    @Test public void combineWithPLs() { combinePLs("combine.3.vcf", "combine.4.vcf", "5bc1de1197506aced0f9e7a08b572c44"); }
+    @Test public void combineWithPLs() { combinePLs("combine.3.vcf", "combine.4.vcf", "9596b94b3506923109d877b255be78c4"); }
 
-    @Test public void combineTrioCalls() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", "", "06e86711bcf0efc0f0c4a378f6147cf6"); } // official project VCF files in tabix format
-    @Test public void combineTrioCallsMin() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", " -minimalVCF", "03103f6b39e9fb7a396df0013f01fae6"); } // official project VCF files in tabix format
-    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "12fc1b8145f7884762f0c2cbbd319ae1"); }
+    @Test public void combineTrioCalls() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", "", "bc09ce3328339268838ec4e0819c940a"); } // official project VCF files in tabix format
+    @Test public void combineTrioCallsMin() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", " -minimalVCF", "848d4408ee953053d2307cefebc6bd6d"); } // official project VCF files in tabix format
+    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "06cd6666003cea545c21948bdec0ac39"); }
 
-    @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "7e2dba80ba38b2a86713f635d630eb59"); }
+    @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "a66fbe674c7de0ecaeb0d3062393bfae"); }
 
-    @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "", "3950392e1b8b53ae363e705185ad1da9"); }
+    @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "", "7f9272950475fe0c95c00752510456eb"); }
 
-    @Test public void omniHM3Union() { combineSites(" -filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED", "5c60eb8d5d4b957a0cf52ca008f021ba"); }
-    @Test public void omniHM3Intersect() { combineSites(" -filteredRecordsMergeType KEEP_IF_ALL_UNFILTERED", "774b43e69cc7ec93090b4f6e9f4a1079"); }
+    @Test public void omniHM3Union() { combineSites(" -filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED", "def52bcd3942bbe39cd7ebe845c4f206"); }
+    @Test public void omniHM3Intersect() { combineSites(" -filteredRecordsMergeType KEEP_IF_ALL_UNFILTERED", "5f61145949180bf2a0cd342d8e064860"); }
 
     @Test public void threeWayWithRefs() {
         WalkerTestSpec spec = new WalkerTestSpec(
@@ -110,7 +110,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
                         " -priority NA19240_BGI,NA19240_ILLUMINA,NA19240_WUGSC,denovoInfo" +
                         " -genotypeMergeOptions UNIQUIFY -L 1"),
                 1,
-                Arrays.asList("948291bbf47d1cec692d0fe4358ff92c"));
+                Arrays.asList("90fa9f9b73fd10291e8067ecf7757b8d"));
         executeTest("threeWayWithRefs", spec);
     }
 
@@ -127,17 +127,17 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         executeTest("combineComplexSites 1:" + new File(file1).getName() + " 2:" + new File(file2).getName() + " args = " + args, spec);
     }
 
-    @Test public void complexTestFull() { combineComplexSites("", "dd805f6edfc3cf724512dfbbe8df5183"); }
-    @Test public void complexTestMinimal() { combineComplexSites(" -minimalVCF", "14a205edb022f79abf1863588cfee56b"); }
-    @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "e118d04d1d47c02ad38c046561a9f616"); }
-    @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "e118d04d1d47c02ad38c046561a9f616"); }
+    @Test public void complexTestFull() { combineComplexSites("", "69da09747b0d02e516672dd1f36d9f2f"); }
+    @Test public void complexTestMinimal() { combineComplexSites(" -minimalVCF", "4d1e0c12d95f50e472493fc14af3cc06"); }
+    @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "9a98b01b9b2a28ae6af3125edc131dea"); }
+    @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "9a98b01b9b2a28ae6af3125edc131dea"); }
 
     @Test
     public void combineDBSNPDuplicateSites() {
          WalkerTestSpec spec = new WalkerTestSpec(
                  "-T CombineVariants --no_cmdline_in_header -L 1:902000-903000 -o %s -R " + b37KGReference + " -V:v1 " + b37dbSNP132,
                  1,
-                 Arrays.asList("a838dc241cf357466cd4331fd298c73a"));
+                 Arrays.asList("3d2a5a43db86e3f6217ed2a63251285b"));
          executeTest("combineDBSNPDuplicateSites:", spec);
     }
 }
