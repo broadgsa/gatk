@@ -110,7 +110,7 @@ public class BQSRKeyManager {
      * @return one key in long representation per covariate
      */
     public Long[] longsFromAllKeys(final Long[] allKeys, final EventType eventType) {
-        final Long[] allFinalKeys = new Long[optionalCovariatesInfo.length > 0 ? optionalCovariatesInfo.length : 1];    // Generate one key per optional covariate
+        final ArrayList<Long> allFinalKeys = new ArrayList<Long>();                                                     // Generate one key per optional covariate
 
         int covariateIndex = 0;
         long masterKey = 0L;                                                                                            // This will be a master key holding all the required keys, to replicate later on
@@ -128,13 +128,13 @@ public class BQSRKeyManager {
             long newKey = masterKey | (covariateKey << optionalCovariateOffset);
             newKey |= (optionalCovariatesInfo[i].covariateID << optionalCovariateIDOffset);
 
-            allFinalKeys[i] = newKey;                                                                                   // add this key to the list of keys
+            allFinalKeys.add(newKey);                                                                                   // add this key to the list of keys
         }
 
         if (optionalCovariatesInfo.length == 0)                                                                         // special case when we have no optional covariates
-            allFinalKeys[0] = masterKey;
+            allFinalKeys.add(masterKey);
 
-        return allFinalKeys;
+        return allFinalKeys.toArray(new Long[allFinalKeys.size()]);
     }
 
     /**
