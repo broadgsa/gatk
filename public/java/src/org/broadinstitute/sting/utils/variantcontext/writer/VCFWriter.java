@@ -329,6 +329,8 @@ class VCFWriter extends IndexingVariantContextWriter {
      */
     private void addGenotypeData(VariantContext vc, Map<Allele, String> alleleMap, List<String> genotypeFormatKeys)
     throws IOException {
+        if ( mHeader.getGenotypeSamples().size() != vc.getNSamples() )
+            throw new ReviewedStingException("BUG: number of VariantContext samples " + vc.getNSamples() + " != to the number of sample found in the VCF header" + mHeader.getGenotypeSamples().size());
 
         for ( String sample : mHeader.getGenotypeSamples() ) {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);

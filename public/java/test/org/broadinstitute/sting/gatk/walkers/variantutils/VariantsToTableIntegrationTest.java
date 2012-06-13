@@ -88,6 +88,19 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
     }
 
     @Test(enabled = true)
+    public void testGenotypeFieldsWithInline() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-R " + b36KGReference +
+                        " --variant " + testDir + "vcfexample2.vcf" +
+                        " -T VariantsToTable" +
+                        " -GF RD -GF GT -GF GQ" +
+                        " -o %s",
+                1,
+                Arrays.asList("29744059742ae71fd6aabd29e5c391fb"));
+        executeTest("testGenotypeFieldsWithInline", spec);
+    }
+
+    @Test(enabled = true)
     public void testMoltenOutput() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +

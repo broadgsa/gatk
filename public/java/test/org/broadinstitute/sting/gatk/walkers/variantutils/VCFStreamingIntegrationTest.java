@@ -56,7 +56,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
             "-T SelectVariants" +
                     " -R " + b36KGReference +
-                    " --variant,storage=STREAM " + tmpFifo.getAbsolutePath() +
+                    " --variant:VCF,storage=STREAM " + tmpFifo.getAbsolutePath() +
                     " --no_cmdline_in_header " +
                     " -o %s",
             1,
@@ -80,7 +80,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         WalkerTestSpec selectTestSpec = new WalkerTestSpec(
             "-T SelectVariants" +
             " -R " + b36KGReference +
-            " --variant,storage=STREAM " + testFile +
+            " --variant:VCF,storage=STREAM " + testFile +
             " --no_cmdline_in_header" +
             " -select 'QD > 2.0'" +
             " -o " + tmpFifo.getAbsolutePath(),

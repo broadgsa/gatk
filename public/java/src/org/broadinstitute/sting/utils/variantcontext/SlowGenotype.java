@@ -72,8 +72,8 @@ public class SlowGenotype extends Genotype {
     // Useful methods for getting genotype likelihoods for a genotype object, if present
     //
     @Override public boolean hasLikelihoods() {
-        return (hasAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) && !getAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY).equals(VCFConstants.MISSING_VALUE_v4)) ||
-                (hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY) && !getAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY).equals(VCFConstants.MISSING_VALUE_v4));
+        return (commonInfo.hasAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) && !commonInfo.getAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY).equals(VCFConstants.MISSING_VALUE_v4)) ||
+                (commonInfo.hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY) && !commonInfo.getAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY).equals(VCFConstants.MISSING_VALUE_v4));
     }
 
     @Override public GenotypeLikelihoods getLikelihoods() {
@@ -87,7 +87,7 @@ public class SlowGenotype extends Genotype {
     }
 
     private GenotypeLikelihoods getLikelihoods(String key, boolean asPL) {
-        Object x = getAttribute(key);
+        Object x = commonInfo.getAttribute(key);
         if ( x instanceof String ) {
             if ( asPL )
                 return GenotypeLikelihoods.fromPLField((String)x);
@@ -145,25 +145,25 @@ public class SlowGenotype extends Genotype {
 
     @Override
     public int getDP() {
-        return getAttributeAsInt(VCFConstants.DEPTH_KEY, -1);
+        return commonInfo.getAttributeAsInt(VCFConstants.DEPTH_KEY, -1);
     }
 
     @Override
     public boolean hasDP() {
-        return hasAttribute(VCFConstants.DEPTH_KEY);
+        return commonInfo.hasAttribute(VCFConstants.DEPTH_KEY);
     }
 
     @Override
     public int[] getAD() {
         if ( hasAD() ) {
-            return (int[])getAttribute(VCFConstants.GENOTYPE_ALLELE_DEPTHS);
+            return (int[])commonInfo.getAttribute(VCFConstants.GENOTYPE_ALLELE_DEPTHS);
         } else
             return null;
     }
 
     @Override
     public boolean hasAD() {
-        return hasAttribute(VCFConstants.GENOTYPE_ALLELE_DEPTHS);
+        return commonInfo.hasAttribute(VCFConstants.GENOTYPE_ALLELE_DEPTHS);
     }
 
     @Override

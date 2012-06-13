@@ -401,6 +401,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         Collection<String> XLsamplesFromFile = SampleUtils.getSamplesFromFiles(XLsampleFiles);
         samples.removeAll(XLsamplesFromFile);
         samples.removeAll(XLsampleNames);
+        NO_SAMPLES_SPECIFIED = NO_SAMPLES_SPECIFIED && XLsampleNames.isEmpty();
 
         if ( samples.size() == 0 && !NO_SAMPLES_SPECIFIED )
             throw new UserException("All samples requested to be included were also requested to be excluded.");

@@ -325,7 +325,7 @@ public abstract class Genotype implements Comparable<Genotype> {
     @Ensures("result != null || ! isAvailable()")
     public String getGenotypeString(boolean ignoreRefState) {
         if ( getPloidy() == 0 )
-            return null;
+            return "NA";
 
         // Notes:
         // 1. Make sure to use the appropriate separator depending on whether the genotype is phased
@@ -419,7 +419,7 @@ public abstract class Genotype implements Comparable<Genotype> {
      * @param key a non-null string key to check for an association
      * @return true if key has a value in the extendedAttributes
      */
-    @Requires("key != null")
+    @Requires({"key != null", "! isForbiddenKey(key)"})
     public boolean hasAttribute(final String key) {
         return getExtendedAttributes().containsKey(key);
     }
@@ -431,7 +431,7 @@ public abstract class Genotype implements Comparable<Genotype> {
      * @param defaultValue the value to return if key isn't in the extended attributes
      * @return a value (potentially) null associated with key, or defaultValue if no association exists
      */
-    @Requires("key != null")
+    @Requires({"key != null", "! isForbiddenKey(key)"})
     @Ensures("hasAttribute(key) || result == defaultValue")
     public Object getAttribute(final String key, final Object defaultValue) {
         return hasAttribute(key) ? getExtendedAttributes().get(key) : defaultValue;
@@ -488,6 +488,46 @@ public abstract class Genotype implements Comparable<Genotype> {
         if ( x == null ) return defaultValue;
         if ( x instanceof Double ) return (Double)x;
         return Double.valueOf((String)x); // throws an exception if this isn't a string
+    }
+
+    /**
+     * A totally generic getter, that allows you to specific keys that correspond
+     * to even inline values (GQ, for example).  Can be very expensive.  Additionally,
+     * all int[] are converted inline into List<Integer> for convenience.
+     *
+     * @param key
+     * @return
+     */
+    public Object getAnyAttribute(final String key) {
+        if (key.equals(VCFConstants.GENOTYPE_KEY)) {
+            return getAlleles();
+        } else if (key.equals(VCFConstants.GENOTYPE_QUALITY_KEY)) {
+            return getGQ();
+        } else if (key.equals(VCFConstants.GENOTYPE_ALLELE_DEPTHS)) {
+            return Arrays.asList(getAD());
+        } else if (key.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY)) {
+            return Arrays.asList(getPL());
+        } else if (key.equals(VCFConstants.DEPTH_KEY)) {
+            return getDP();
+        } else {
+            return getAttribute(key);
+        }
+    }
+
+    public boolean hasAnyAttribute(final String key) {
+        if (key.equals(VCFConstants.GENOTYPE_KEY)) {
+            return isAvailable();
+        } else if (key.equals(VCFConstants.GENOTYPE_QUALITY_KEY)) {
+            return hasGQ();
+        } else if (key.equals(VCFConstants.GENOTYPE_ALLELE_DEPTHS)) {
+            return hasAD();
+        } else if (key.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY)) {
+            return hasPL();
+        } else if (key.equals(VCFConstants.DEPTH_KEY)) {
+            return hasDP();
+        } else {
+            return hasAttribute(key);
+        }
     }
 
     // TODO -- add getAttributesAsX interface here
@@ -566,5 +606,9 @@ public abstract class Genotype implements Comparable<Genotype> {
             if ( attributes.containsKey(forbidden) )
                 return true;
         return false;
+    }
+
+    protected final static boolean isForbiddenKey(final String key) {
+        return PRIMARY_KEYS.contains(key);
     }
 }
