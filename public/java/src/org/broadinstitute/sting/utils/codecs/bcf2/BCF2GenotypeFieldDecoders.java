@@ -32,10 +32,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 /**
  * An efficient scheme for building and obtaining specialized
@@ -60,7 +57,7 @@ public class BCF2GenotypeFieldDecoders {
 
         genotypeFieldDecoder.put(VCFConstants.GENOTYPE_KEY, new GTDecoder());
         // currently the generic decoder handles FILTER values properly, in so far as we don't tolerate multiple filter field values per genotype
-        genotypeFieldDecoder.put(VCFConstants.GENOTYPE_FILTER_KEY, new GenericDecoder());
+        genotypeFieldDecoder.put(VCFConstants.GENOTYPE_FILTER_KEY, new FTDecoder());
         genotypeFieldDecoder.put(VCFConstants.DEPTH_KEY, new DPDecoder());
         genotypeFieldDecoder.put(VCFConstants.GENOTYPE_ALLELE_DEPTHS, new ADDecoder());
         genotypeFieldDecoder.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, new PLDecoder());
@@ -266,6 +263,18 @@ public class BCF2GenotypeFieldDecoders {
                         value = ((List)value).get(0);
                     }
                     gb.attribute(field, value);
+                }
+            }
+        }
+    }
+
+    private class FTDecoder implements Decoder {
+        @Override
+        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final List<GenotypeBuilder> gbs) {
+            for ( final GenotypeBuilder gb : gbs ) {
+                Object value = decoder.decodeTypedValue(typeDescriptor);
+                if ( value != null ) { // don't add missing values
+                    gb.filters(value instanceof String ? Collections.singletonList((String)value) : (List<String>)value);
                 }
             }
         }

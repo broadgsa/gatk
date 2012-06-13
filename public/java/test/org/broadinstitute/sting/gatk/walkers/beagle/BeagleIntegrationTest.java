@@ -41,7 +41,7 @@ public class BeagleIntegrationTest extends WalkerTest {
                         "--beagleR2:BEAGLE " + beagleValidationDataLocation + "inttestbgl.r2 " +
                         "--beagleProbs:BEAGLE " + beagleValidationDataLocation + "inttestbgl.gprobs " +
                         "--beaglePhased:BEAGLE " + beagleValidationDataLocation + "inttestbgl.phased " +
-                        "-o %s --no_cmdline_in_header", 1, Arrays.asList("74db5bb05f08f4c1dd5a7cf844c903b6"));
+                        "-o %s --no_cmdline_in_header", 1, Arrays.asList("0f7ffd3c9c8010e765c26fce994be389"));
         executeTest("test BeagleOutputToVCF", spec);
     }
    
@@ -50,7 +50,7 @@ public class BeagleIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T ProduceBeagleInput -R " + hg19Reference + " " +
                         "--variant:VCF3 " + beagleValidationDataLocation + "inttestbgl.input.vcf " +
-                         "-o %s", 1, Arrays.asList("689773807c87638de3a74564bd6cee2e"));
+                         "-o %s", 1, Arrays.asList("f301b089d21da259873f04bdc468835d"));
         executeTest("test BeagleInput", spec);
     }
 
@@ -72,7 +72,7 @@ public class BeagleIntegrationTest extends WalkerTest {
                 "--beagleR2:beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.r2 "+
                 "--beagleProbs:beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.gprobs.bgl "+
                 "--beaglePhased:beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.phased.bgl "+
-                "-L 20:1-70000 -o %s --no_cmdline_in_header ",1,Arrays.asList("22908352f0e476234706922d6bccdc91"));
+                "-L 20:1-70000 -o %s --no_cmdline_in_header ",1,Arrays.asList("c92561016b7d8bd1d5c107bce8386b33"));
 
         executeTest("testBeagleChangesSitesToRef",spec);
     }

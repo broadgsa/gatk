@@ -39,7 +39,7 @@ public enum BCF2Type {
     INT16(2, 2, 0xFFFF8000,      -32767,      32767),
     INT32(3, 4, 0x80000000, -2147483647, 2147483647),
     FLOAT(5, 4, 0x7F800001),
-    CHAR (7);
+    CHAR (7, 1, 0x00000000);
 
     private final int id;
     private final Object missingJavaValue;

@@ -765,11 +765,11 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
                     // todo -- all of these on the fly parsing of the missing value should be static constants
                     if (gtKey.equals(VCFConstants.GENOTYPE_KEY)) {
                         genotypeAlleleLocation = i;
+                    } else if ( missing ) {
+                        // if its truly missing (there no provided value) skip adding it to the attributes
                     } else if (gtKey.equals(VCFConstants.GENOTYPE_FILTER_KEY)) {
                         final List<String> filters = parseFilters(getCachedString(GTValueArray[i]));
                         if ( filters != null ) gb.filters(filters);
-                    } else if ( missing ) {
-                        // if its truly missing (there no provided value) skip adding it to the attributes
                     } else if ( GTValueArray[i].equals(VCFConstants.MISSING_VALUE_v4) ) {
                         // don't add missing values to the map
                     } else {

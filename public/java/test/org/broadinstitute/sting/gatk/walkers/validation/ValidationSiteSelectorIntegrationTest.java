@@ -81,7 +81,7 @@ public class ValidationSiteSelectorIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(sampleGL + freqAF + "--variant " + testfile),
                 1,
-                Arrays.asList("3bf094e1aef563daf7c936032259d490")
+                Arrays.asList("0ee4a565a0d4f6b6942abd72a373becd")
         );
 
         executeTest("testPolyGLFreqAF--" + testfile, spec);

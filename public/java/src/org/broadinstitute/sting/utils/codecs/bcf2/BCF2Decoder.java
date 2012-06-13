@@ -188,8 +188,17 @@ public final class BCF2Decoder {
         final byte[] bytes = new byte[size]; // TODO -- in principle should just grab bytes from underlying array
         try {
             recordStream.read(bytes);
-            final String s = new String(bytes);
-            return BCF2Utils.isCollapsedString(s) ? BCF2Utils.exploreStringList(s) : s;
+
+            int goodLength = 0;
+            for ( ; goodLength < bytes.length ; goodLength++ )
+                if ( bytes[goodLength] == 0 ) break;
+
+            if ( goodLength == 0 )
+                return null;
+            else {
+                final String s = new String(bytes, 0, goodLength);
+                return BCF2Utils.isCollapsedString(s) ? BCF2Utils.exploreStringList(s) : s;
+            }
         } catch ( IOException e ) {
             throw new ReviewedStingException("readByte failure", e);
         }
