@@ -84,7 +84,7 @@ public class BCF2FieldWriterManager {
     }
 
     private final void log(final String field, final BCF2FieldWriter writer) {
-        logger.info("Using writer " + writer);
+        logger.info(writer);
     }
 
     // -----------------------------------------------------------------
@@ -109,23 +109,20 @@ public class BCF2FieldWriterManager {
         if ( createGenotypesEncoders && intGenotypeFieldAccessors.getAccessor(line.getID()) != null ) {
             if ( line.getType() != VCFHeaderLineType.Integer )
                 logger.warn("Warning: field " + line.getID() + " expected to encode an integer but saw " + line.getType() + " for record " + line);
-            return new BCF2FieldEncoder.IntArray(line, encoder, dict);
+            return new BCF2FieldEncoder.IntArray(line, dict);
         } else if ( createGenotypesEncoders && line.getID().equals(VCFConstants.GENOTYPE_KEY) ) {
-            return new BCF2FieldEncoder.IntList(line, encoder, dict);
+            return new BCF2FieldEncoder.GenericInts(line, dict);
         } else {
             switch ( line.getType() ) {
                 case Character:
                 case String:
-                    return new BCF2FieldEncoder.StringOrCharacter(line, encoder, dict);
+                    return new BCF2FieldEncoder.StringOrCharacter(line, dict);
                 case Flag:
-                    return new BCF2FieldEncoder.Flag(line, encoder, dict);
+                    return new BCF2FieldEncoder.Flag(line, dict);
                 case Float:
-                    return new BCF2FieldEncoder.Float(line, encoder, dict);
+                    return new BCF2FieldEncoder.Float(line, dict);
                 case Integer:
-                    if ( line.getCountType() == VCFHeaderLineCount.INTEGER && line.getCount() == 1 )
-                        return new BCF2FieldEncoder.AtomicInt(line, encoder, dict);
-                    else
-                        return new BCF2FieldEncoder.IntList(line, encoder, dict);
+                    return new BCF2FieldEncoder.GenericInts(line, dict);
                 default:
                     throw new ReviewedStingException("Unexpected type for field " + line.getID());
             }
@@ -153,7 +150,7 @@ public class BCF2FieldWriterManager {
         } else if ( line.getType() == VCFHeaderLineType.Integer ) {
             return new BCF2FieldWriter.IntegerTypeGenotypesWriter(header, fieldEncoder);
         } else {
-            return new BCF2FieldWriter.FixedTypeGenotypesWriter(header, fieldEncoder);
+            return new BCF2FieldWriter.StaticallyTypeGenotypesWriter(header, fieldEncoder);
         }
     }
 

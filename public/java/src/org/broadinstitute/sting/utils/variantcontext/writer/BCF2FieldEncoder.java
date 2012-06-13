@@ -57,7 +57,13 @@ public abstract class BCF2FieldEncoder {
     final int dictionaryOffset;
     final BCF2Type dictionaryOffsetType;
 
-    public BCF2FieldEncoder(final VCFCompoundHeaderLine headerLine, final BCF2Encoder encoder, final Map<String, Integer> dict, final BCF2Type fixedType) {
+    // ----------------------------------------------------------------------
+    //
+    // Constructor
+    //
+    // ----------------------------------------------------------------------
+
+    public BCF2FieldEncoder(final VCFCompoundHeaderLine headerLine, final Map<String, Integer> dict, final BCF2Type fixedType) {
         this.headerLine = headerLine;
         this.fixedType = fixedType;
 
@@ -67,147 +73,218 @@ public abstract class BCF2FieldEncoder {
         dictionaryOffsetType = BCF2Utils.determineIntegerType(offset);
     }
 
-    public VCFHeaderLineCount getCountType() {
-        return headerLine.getCountType();
-    }
-
-    public VCFCompoundHeaderLine getHeaderLine() {
-        return headerLine;
-    }
-
-    public boolean hasFixedCount() { return getCountType() == VCFHeaderLineCount.INTEGER; }
-    public boolean hasUnboundedCount() { return getCountType() == VCFHeaderLineCount.UNBOUNDED; }
-    public boolean hasContextDeterminedCount() { return ! hasFixedCount() && ! hasUnboundedCount(); }
-
+    // ----------------------------------------------------------------------
     //
-    // TODO -- this class should own two clean methods
+    // Basic accessors
     //
-    // Tell us whether the type and size are static, determined by from the VC itself,
-    // or from the actual encoded values.  If the last case, provide a function that tell us
-    // the encoding type and size of the underlying data, given a single value.
-    //
+    // ----------------------------------------------------------------------
 
-    // TODO -- cleanup logic of counts
-    // todo -- differentiate between the VCF header declared size and the encoded size
-    // TODO -- for example, getUnboundedCount should be getCountFromSizeOfValue()
-    //
-    // GenotypeEncoders need to inspect the size properties of the underlying encoder
-    // and determine how (and whether) they need to iterate once through the data to
-    // determine max size (for padding)
-    //
+    public final String getField() { return headerLine.getID(); }
 
-    @Requires("hasFixedCount()")
-    public int getFixedCount() {
-        return headerLine.getCount();
+    /**
+     * Write the field key (dictionary offset and type) into the BCF2Encoder stream
+     *
+     * @param encoder where we write our dictionary offset
+     * @throws IOException
+     */
+    public final void writeFieldKey(final BCF2Encoder encoder) throws IOException {
+        encoder.encodeTyped(dictionaryOffset, dictionaryOffsetType);
     }
-
-    public int getUnboundedCount(final Object value) {
-        return value instanceof List ? ((List) value).size() : 1;
-    }
-
-    public int getContextDeterminedCount(final VariantContext vc) {
-        return headerLine.getCount(vc.getNAlleles() - 1);
-    }
-
-    public int getBCFFieldCount(final VariantContext vc, final Object value) {
-        if ( hasFixedCount() )
-            return getFixedCount();
-        else if ( hasUnboundedCount() )
-            return getUnboundedCount(value);
-        else
-            return getContextDeterminedCount(vc);
-    }
-
-    public String getField() { return headerLine.getID(); }
-
-    public int getDictionaryOffset() { return dictionaryOffset; }
-    public BCF2Type getDictionaryOffsetType() { return dictionaryOffsetType; }
-
-    public boolean isFixedTyped() { return ! isDynamicallyTyped(); }
-    public boolean isDynamicallyTyped() { return fixedType == null; }
-    public BCF2Type getType(final Object value) { return isDynamicallyTyped() ? getDynamicType(value) : getFixedType(); }
-    public BCF2Type getFixedType() {
-        if ( fixedType != null )
-            return fixedType;
-        else
-            throw new ReviewedStingException("Not a fixed type encoder: " + getField());
-    }
-    public BCF2Type getDynamicType(final Object value) { throw new ReviewedStingException("Function getDynamicType() not implemented"); }
 
     @Override
     public String toString() {
         return "BCF2FieldEncoder for " + getField() + " with count " + getCountType() + " encoded with " + getClass().getSimpleName();
     }
 
-    public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type) throws IOException {
+    // ----------------------------------------------------------------------
+    //
+    // methods to determine the number of encoded elements
+    //
+    // ----------------------------------------------------------------------
+
+    protected final VCFHeaderLineCount getCountType() {
+        return headerLine.getCountType();
+    }
+
+    @Ensures("result != (hasValueDeterminedNumElements() || hasContextDeterminedNumElements())")
+    public boolean hasConstantNumElements() {
+        return getCountType() == VCFHeaderLineCount.INTEGER;
+    }
+
+    @Ensures("result != (hasConstantNumElements() || hasContextDeterminedNumElements())")
+    public boolean hasValueDeterminedNumElements() {
+        return getCountType() == VCFHeaderLineCount.UNBOUNDED;
+    }
+
+    @Ensures("result != (hasValueDeterminedNumElements() || hasConstantNumElements())")
+    public boolean hasContextDeterminedNumElements() {
+        return ! hasConstantNumElements() && ! hasValueDeterminedNumElements();
+    }
+
+    @Requires("hasConstantNumElements()")
+    @Ensures("result >= 0")
+    public int numElements() {
+        return headerLine.getCount();
+    }
+
+    @Requires("hasValueDeterminedNumElements()")
+    @Ensures("result >= 0")
+    public int numElements(final Object value) {
+        return numElementsFromValue(value);
+        //return value instanceof List ? ((List) value).size() : 1;
+    }
+
+    @Requires("hasContextDeterminedNumElements()")
+    @Ensures("result >= 0")
+    public int numElements(final VariantContext vc) {
+        return headerLine.getCount(vc.getNAlleles() - 1);
+    }
+
+    @Ensures("result >= 0")
+    public final int numElements(final VariantContext vc, final Object value) {
+        if ( hasConstantNumElements() ) return numElements();
+        else if ( hasContextDeterminedNumElements() ) return numElements(vc);
+        else return numElements(value);
+    }
+
+    /**
+     * Given a value, return the number of elements we will encode for it.
+     *
+     * Assumes the value is encoded as a List
+     *
+     * @param value
+     * @return
+     */
+    @Requires("hasValueDeterminedNumElements()")
+    @Ensures("result >= 0")
+    protected int numElementsFromValue(final Object value) {
+        if ( value == null ) return 0;
+        else if ( value instanceof List ) return ((List) value).size();
+        else return 1;
+    }
+
+    // ----------------------------------------------------------------------
+    //
+    // methods to determine the BCF2 type of the encoded values
+    //
+    // ----------------------------------------------------------------------
+
+    @Ensures("result || isDynamicallyTyped()")
+    public final boolean isStaticallyTyped() { return ! isDynamicallyTyped(); }
+
+    @Ensures("result || isStaticallyTyped()")
+    public final boolean isDynamicallyTyped() { return fixedType == null; }
+
+    public final BCF2Type getType(final Object value) {
+        return isDynamicallyTyped() ? getDynamicType(value) : getStaticType();
+    }
+
+    @Requires("isStaticallyTyped()")
+    @Ensures("result != null")
+    public final BCF2Type getStaticType() {
+        return fixedType;
+    }
+
+    @Requires("isDynamicallyTyped()")
+    @Ensures("result != null")
+    public BCF2Type getDynamicType(final Object value) {
+        throw new ReviewedStingException("BUG: cannot get dynamic type for statically typed BCF2 field");
+    }
+
+    // ----------------------------------------------------------------------
+    //
+    // methods to encode values, including the key abstract method
+    //
+    // ----------------------------------------------------------------------
+
+    @Requires({"encoder != null", "isDynamicallyTyped() || type == getStaticType()"})
+    public void encodeOneValue(final BCF2Encoder encoder, final Object value, final BCF2Type type) throws IOException {
         encodeValue(encoder, value, type, 0);
     }
 
+    @Requires({"encoder != null", "isDynamicallyTyped() || type == getStaticType()", "minValues >= 0"})
     public abstract void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException;
 
-
-    /**
-     * Helper function that takes an object and returns a list representation
-     * of it:
-     *
-     * o == null => []
-     * o is a list => o
-     * else => [o]
-     *
-     * @param o
-     * @return
-     */
-    private final static <T> List<T> toList(final Class<T> c, final Object o) {
-        if ( o == null ) return Collections.emptyList();
-        else if ( o instanceof List ) return (List<T>)o;
-        else return Collections.singletonList((T)o);
-    }
+    // ----------------------------------------------------------------------
+    //
+    // Subclass to encode Strings
+    //
+    // ----------------------------------------------------------------------
 
     public static class StringOrCharacter extends BCF2FieldEncoder {
-        public StringOrCharacter(final VCFCompoundHeaderLine headerLine, final BCF2Encoder encoder, final Map<String, Integer> dict ) {
-            super(headerLine, encoder, dict, BCF2Type.CHAR);
+        public StringOrCharacter(final VCFCompoundHeaderLine headerLine, final Map<String, Integer> dict ) {
+            super(headerLine, dict, BCF2Type.CHAR);
         }
 
         @Override
         public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
-            if ( value != null ) {
-                final String s = encodeString(value);
-                encoder.encodeString(s, Math.max(s.length(), minValues));
-            }
+            final String s = javaStringToBCF2String(value);
+            encoder.encodeString(s, Math.max(s.length(), minValues));
         }
 
-        @Override
-        public int getBCFFieldCount(final VariantContext vc, final Object value) {
-            return value == null ? 0 : encodeString(value).length();
+        //
+        // Regardless of what the header says, BCF2 strings and characters are always encoded
+        // as arrays of CHAR type, which has a variable number of elements depending on the
+        // exact string being encoded
+        //
+        @Override public boolean hasConstantNumElements()          { return false; }
+        @Override public boolean hasContextDeterminedNumElements() { return false; }
+        @Override public boolean hasValueDeterminedNumElements()   { return true; }
+        @Override protected int numElementsFromValue(final Object value) {
+            return value == null ? 0 : javaStringToBCF2String(value).length();
         }
 
-        private String encodeString(final Object value) {
-            return value instanceof List ? BCF2Utils.collapseStringList((List<String>)value) : (String)value;
+        /**
+         * Recode the incoming object to a String, compacting it into a
+         * BCF2 string if the value is a list.
+         *
+         * @param value a String or List<String> to encode, or null
+         * @return a non-null string to encode
+         */
+        @Ensures("result != null")
+        private String javaStringToBCF2String(final Object value) {
+            return value == null
+                    ? ""
+                    : (value instanceof List
+                        ? BCF2Utils.collapseStringList((List<String>)value)
+                        : (String)value);
         }
     }
 
+    // ----------------------------------------------------------------------
+    //
+    // Subclass to encode FLAG
+    //
+    // ----------------------------------------------------------------------
+
     public static class Flag extends BCF2FieldEncoder {
-        public Flag(final VCFCompoundHeaderLine headerLine, final BCF2Encoder encoder, final Map<String, Integer> dict ) {
-            super(headerLine, encoder, dict, BCF2Type.INT8);
+        public Flag(final VCFCompoundHeaderLine headerLine, final Map<String, Integer> dict ) {
+            super(headerLine, dict, BCF2Type.INT8);
             if ( ! headerLine.isFixedCount() || headerLine.getCount() != 0 )
                 throw new ReviewedStingException("Flag encoder only suppports atomic flags!");
         }
 
         @Override
-        public int getFixedCount() {
+        public int numElements() {
             return 1; // the header says 0 but we will write 1 value
         }
 
         @Override
         @Requires("minValues <= 1")
         public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
-            encoder.encodePrimitive(1, getFixedType());
+            encoder.encodePrimitive(1, getStaticType());
         }
     }
 
+    // ----------------------------------------------------------------------
+    //
+    // Subclass to encode FLOAT
+    //
+    // ----------------------------------------------------------------------
+
     public static class Float extends BCF2FieldEncoder {
-        public Float(final VCFCompoundHeaderLine headerLine, final BCF2Encoder encoder, final Map<String, Integer> dict ) {
-            super(headerLine, encoder, dict, BCF2Type.FLOAT);
+        public Float(final VCFCompoundHeaderLine headerLine, final Map<String, Integer> dict ) {
+            super(headerLine, dict, BCF2Type.FLOAT);
         }
 
         @Override
@@ -222,13 +299,19 @@ public abstract class BCF2FieldEncoder {
         }
     }
 
+    // ----------------------------------------------------------------------
+    //
+    // Subclass to encode int[]
+    //
+    // ----------------------------------------------------------------------
+
     public static class IntArray extends BCF2FieldEncoder {
-        public IntArray(final VCFCompoundHeaderLine headerLine, final BCF2Encoder encoder, final Map<String, Integer> dict ) {
-            super(headerLine, encoder, dict, null);
+        public IntArray(final VCFCompoundHeaderLine headerLine, final Map<String, Integer> dict ) {
+            super(headerLine, dict, null);
         }
 
         @Override
-        public int getUnboundedCount(final Object value) {
+        protected int numElementsFromValue(final Object value) {
             return value == null ? 0 : ((int[])value).length;
         }
 
@@ -250,9 +333,15 @@ public abstract class BCF2FieldEncoder {
         }
     }
 
-    public static class IntList extends BCF2FieldEncoder {
-        public IntList(final VCFCompoundHeaderLine headerLine, final BCF2Encoder encoder, final Map<String, Integer> dict ) {
-            super(headerLine, encoder, dict, null);
+    // ----------------------------------------------------------------------
+    //
+    // Subclass to encode List<Integer>
+    //
+    // ----------------------------------------------------------------------
+
+    public static class GenericInts extends BCF2FieldEncoder {
+        public GenericInts(final VCFCompoundHeaderLine headerLine, final Map<String, Integer> dict ) {
+            super(headerLine, dict, null);
         }
 
         @Override
@@ -271,20 +360,27 @@ public abstract class BCF2FieldEncoder {
         }
     }
 
-    public static class AtomicInt extends BCF2FieldEncoder {
-        public AtomicInt(final VCFCompoundHeaderLine headerLine, final BCF2Encoder encoder, final Map<String, Integer> dict ) {
-            super(headerLine, encoder, dict, null);
-        }
 
-        @Override
-        public BCF2Type getDynamicType(final Object value) {
-            return value == null ? BCF2Type.INT8 : BCF2Utils.determineIntegerType((Integer)value);
-        }
+    // ----------------------------------------------------------------------
+    //
+    // Helper methods
+    //
+    // ----------------------------------------------------------------------
 
-        @Override
-        @Requires("minValues <= 1") // 0 is ok as this means no values need to be encoded
-        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
-            encoder.encodeRawInt(value == null ? type.getMissingBytes() : (Integer)value, type);
-        }
+    /**
+     * Helper function that takes an object and returns a list representation
+     * of it:
+     *
+     * o == null => []
+     * o is a list => o
+     * else => [o]
+     *
+     * @param o
+     * @return
+     */
+    private final static <T> List<T> toList(final Class<T> c, final Object o) {
+        if ( o == null ) return Collections.emptyList();
+        else if ( o instanceof List ) return (List<T>)o;
+        else return Collections.singletonList((T)o);
     }
 }

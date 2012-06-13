@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.codecs.bcf2;
 
+import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.ByteArrayOutputStream;
@@ -181,6 +182,7 @@ public final class BCF2Encoder {
     //
     // --------------------------------------------------------------------------------
 
+    @Requires({"s != null", "sizeToWrite >= 0"})
     public void encodeString(final String s, final int sizeToWrite) throws IOException {
         final byte[] bytes = s.getBytes();
         for ( int i = 0; i < sizeToWrite; i++ )

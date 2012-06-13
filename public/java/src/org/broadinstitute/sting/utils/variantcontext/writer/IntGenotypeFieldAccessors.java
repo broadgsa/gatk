@@ -39,8 +39,7 @@ import java.util.HashMap;
  */
 class IntGenotypeFieldAccessors {
     // initialized once per writer to allow parallel writers to work
-    private final HashMap<String, Accessor> intGenotypeFieldEncoders =
-            new HashMap<String, Accessor>();
+    private final HashMap<String, Accessor> intGenotypeFieldEncoders = new HashMap<String, Accessor>();
 
     public IntGenotypeFieldAccessors() {
         intGenotypeFieldEncoders.put(VCFConstants.DEPTH_KEY, new IntGenotypeFieldAccessors.DPAccessor());
@@ -61,7 +60,7 @@ class IntGenotypeFieldAccessors {
     public static abstract class Accessor {
         public abstract int[] getValues(final Genotype g);
 
-        public int getSize(final Genotype g) {
+        public final int getSize(final Genotype g) {
             final int[] v = getValues(g);
             return v == null ? 0 : v.length;
         }

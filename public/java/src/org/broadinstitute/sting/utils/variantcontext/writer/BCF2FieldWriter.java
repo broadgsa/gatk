@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.variantcontext.writer;
 
+import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Encoder;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Type;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
@@ -40,31 +41,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * [Short one sentence description of this walker]
- * <p/>
- * <p>
- * [Functionality of this walker]
- * </p>
- * <p/>
- * <h2>Input</h2>
- * <p>
- * [Input description]
- * </p>
- * <p/>
- * <h2>Output</h2>
- * <p>
- * [Output description]
- * </p>
- * <p/>
- * <h2>Examples</h2>
- * <pre>
- *    java
- *      -jar GenomeAnalysisTK.jar
- *      -T $WalkerName
- *  </pre>
  *
- * @author Your Name
- * @since Date created
+ *
+ * @author Mark DePristo
+ * @since 6/12
  */
 public abstract class BCF2FieldWriter {
     private final VCFHeader header;
@@ -82,7 +62,7 @@ public abstract class BCF2FieldWriter {
     protected String getField() { return getFieldEncoder().getField(); }
 
     public void start(final BCF2Encoder encoder, final VariantContext vc) throws IOException {
-        encoder.encodeTyped(fieldEncoder.getDictionaryOffset(), fieldEncoder.getDictionaryOffsetType());
+        fieldEncoder.writeFieldKey(encoder);
     }
 
     public void done(final BCF2Encoder encoder, final VariantContext vc) throws IOException { } // TODO -- overload done so that we null out values and test for correctness
@@ -119,9 +99,9 @@ public abstract class BCF2FieldWriter {
                 // the value is missing, just write in null
                 encoder.encodeType(0, type);
             } else {
-                final int valueCount = getFieldEncoder().getBCFFieldCount(vc, rawValue);
+                final int valueCount = getFieldEncoder().numElements(vc, rawValue);
                 encoder.encodeType(valueCount, type);
-                getFieldEncoder().encodeValue(encoder, rawValue, type);
+                getFieldEncoder().encodeOneValue(encoder, rawValue, type);
             }
         }
     }
@@ -139,8 +119,8 @@ public abstract class BCF2FieldWriter {
         protected GenotypesWriter(final VCFHeader header, final BCF2FieldEncoder fieldEncoder) {
             super(header, fieldEncoder);
 
-            if ( fieldEncoder.hasFixedCount() ) {
-                nValuesPerGenotype = getFieldEncoder().getFixedCount();
+            if ( fieldEncoder.hasConstantNumElements() ) {
+                nValuesPerGenotype = getFieldEncoder().numElements();
             }
         }
 
@@ -150,10 +130,10 @@ public abstract class BCF2FieldWriter {
             super.start(encoder, vc);
 
             // only update if we need to
-            if ( ! getFieldEncoder().hasFixedCount() ) {
-                if ( getFieldEncoder().hasContextDeterminedCount() )
+            if ( ! getFieldEncoder().hasConstantNumElements() ) {
+                if ( getFieldEncoder().hasContextDeterminedNumElements() )
                     // we are cheap -- just depends on genotype of allele counts
-                    nValuesPerGenotype = getFieldEncoder().getContextDeterminedCount(vc);
+                    nValuesPerGenotype = getFieldEncoder().numElements(vc);
                 else
                     // we have to go fishing through the values themselves (expensive)
                     nValuesPerGenotype = computeMaxSizeOfGenotypeFieldFromValues(vc);
@@ -167,27 +147,25 @@ public abstract class BCF2FieldWriter {
             getFieldEncoder().encodeValue(encoder, fieldValue, encodingType, nValuesPerGenotype);
         }
 
-        public Object getGenotypeValue(final Genotype g) {
-            return g.getAttribute(getField());
+        protected int numElements(final VariantContext vc, final Genotype g) {
+            return getFieldEncoder().numElements(vc, g.getAttribute(getField()));
         }
 
         private final int computeMaxSizeOfGenotypeFieldFromValues(final VariantContext vc) {
             int size = -1;
 
             for ( final Genotype g : vc.getGenotypes() ) {
-                final Object o = getGenotypeValue(g);
-                size = Math.max(size, getFieldEncoder().getBCFFieldCount(vc, o));
+                size = Math.max(size, numElements(vc, g));
             }
 
             return size;
         }
     }
 
-    public static class FixedTypeGenotypesWriter extends GenotypesWriter {
-        public FixedTypeGenotypesWriter(final VCFHeader header, final BCF2FieldEncoder fieldEncoder) {
+    public static class StaticallyTypeGenotypesWriter extends GenotypesWriter {
+        public StaticallyTypeGenotypesWriter(final VCFHeader header, final BCF2FieldEncoder fieldEncoder) {
             super(header, fieldEncoder);
-
-            encodingType = getFieldEncoder().getFixedType();
+            encodingType = getFieldEncoder().getStaticType();
         }
     }
 
@@ -211,12 +189,6 @@ public abstract class BCF2FieldWriter {
         }
     }
 
-    // TODO TODO TODO TODO TODO
-    // TODO
-    // TODO THIS ROUTINE NEEDS TO BE OPTIMIZED.  IT ACCOUNTS FOR A SIGNIFICANT AMOUNT OF THE
-    // TODO RUNTIME FOR WRITING OUT BCF FILES WITH MANY GENOTYPES
-    // TODO
-    // TODO TODO TODO TODO TODO
     public static class IGFGenotypesWriter extends GenotypesWriter {
         final IntGenotypeFieldAccessors.Accessor ige;
 
@@ -248,19 +220,14 @@ public abstract class BCF2FieldWriter {
         }
 
         @Override
-        public Object getGenotypeValue(final Genotype g) {
-            return ige.getValues(g);
+        protected int numElements(final VariantContext vc, final Genotype g) {
+            return ige.getSize(g);
         }
     }
 
-    // TODO TODO TODO TODO TODO
-    // TODO
-    // TODO we should really have a fast path for encoding diploid genotypes where
-    // TODO we don't pay the overhead of creating the allele maps
-    // TODO
-    // TODO TODO TODO TODO TODO
     public static class GTWriter extends GenotypesWriter {
-        Map<Allele, Integer> alleleMap = null;
+        final Map<Allele, Integer> alleleMapForTriPlus = new HashMap<Allele, Integer>(5);
+        Allele ref, alt1;
 
         public GTWriter(final VCFHeader header, final BCF2FieldEncoder fieldEncoder) {
             super(header, fieldEncoder);
@@ -274,20 +241,20 @@ public abstract class BCF2FieldWriter {
                         + vc.getNAlleles() + " at " + vc.getChr() + ":" + vc.getStart());
 
             encodingType = BCF2Type.INT8;
-            alleleMap = buildAlleleMap(vc);
+            buildAlleleMap(vc);
             nValuesPerGenotype = vc.getMaxPloidy();
-            super.start(encoder, vc);    //To change body of overridden methods use File | Settings | File Templates.
+
+            super.start(encoder, vc);
         }
 
         @Override
         public void addGenotype(final BCF2Encoder encoder, final VariantContext vc, final Genotype g) throws IOException {
-            final List<Allele> alleles = g.getAlleles();
-            final int samplePloidy = alleles.size();
+            final int samplePloidy = g.getPloidy();
             for ( int i = 0; i < nValuesPerGenotype; i++ ) {
                 if ( i < samplePloidy ) {
                     // we encode the actual allele
-                    final Allele a = alleles.get(i);
-                    final int offset = alleleMap.get(a);
+                    final Allele a = g.getAllele(i);
+                    final int offset = getAlleleOffset(a);
                     final int encoded = ((offset+1) << 1) | (g.isPhased() ? 0x01 : 0x00);
                     encoder.encodePrimitive(encoded, encodingType);
                 } else {
@@ -297,16 +264,44 @@ public abstract class BCF2FieldWriter {
             }
         }
 
-        private final static Map<Allele, Integer> buildAlleleMap(final VariantContext vc) {
-            final Map<Allele, Integer> alleleMap = new HashMap<Allele, Integer>(vc.getAlleles().size()+1);
-            alleleMap.put(Allele.NO_CALL, -1); // convenience for lookup
-
-            final List<Allele> alleles = vc.getAlleles();
-            for ( int i = 0; i < alleles.size(); i++ ) {
-                alleleMap.put(alleles.get(i), i);
+        /**
+         * Fast path code to determine the offset.
+         *
+         * Inline tests for == against ref (most common, first test)
+         * == alt1 (second most common, second test)
+         * == NO_CALL (third)
+         * and finally in the map from allele => offset for all alt 2+ alleles
+         *
+         * @param a the allele whose offset we wish to determine
+         * @return the offset (from 0) of the allele in the list of variant context alleles (-1 means NO_CALL)
+         */
+        @Requires("a != null")
+        private final int getAlleleOffset(final Allele a) {
+            if ( a == ref ) return 0;
+            else if ( a == alt1 ) return 1;
+            else if ( a == Allele.NO_CALL ) return -1;
+            else {
+                final Integer o = alleleMapForTriPlus.get(a);
+                if ( o == null ) throw new ReviewedStingException("BUG: Couldn't find allele offset for allele " + a);
+                return o;
             }
+        }
 
-            return alleleMap;
+        private final void buildAlleleMap(final VariantContext vc) {
+            // these are fast path options to determine the offsets for
+            final int nAlleles = vc.getNAlleles();
+            ref = vc.getReference();
+            alt1 = nAlleles > 1 ? vc.getAlternateAllele(0) : null;
+
+            if ( nAlleles > 2 ) {
+                // for multi-allelics we need to clear the map, and add additional looks
+                alleleMapForTriPlus.clear();
+                alleleMapForTriPlus.put(Allele.NO_CALL, -1); // convenience for lookup
+                final List<Allele> alleles = vc.getAlleles();
+                for ( int i = 2; i < alleles.size(); i++ ) {
+                    alleleMapForTriPlus.put(alleles.get(i), i);
+                }
+            }
         }
     }
 }
