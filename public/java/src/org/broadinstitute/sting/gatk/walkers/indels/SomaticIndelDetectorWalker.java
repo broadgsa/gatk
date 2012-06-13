@@ -617,7 +617,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
                     throw new StingException("Read "+read.getReadName()+" from "+getToolkit().getSourceFileForReaderID(getToolkit().getReaderIDForRead(read))+
                     "has no Normal/Tumor tag associated with it");
 
-//                String rg = (String)read.getAttribute("RG");
+//                String rg = (String)read.getExtendedAttribute("RG");
 //                if ( rg == null )
 //                    throw new UserException.MalformedBam(read, "Read "+read.getReadName()+" has no read group in merged stream. RG is required for somatic calls.");
 

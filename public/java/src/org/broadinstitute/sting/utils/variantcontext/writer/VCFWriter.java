@@ -378,7 +378,7 @@ class VCFWriter extends IndexingVariantContextWriter {
                         outputValue = sb.toString();
                     }
                 } else {
-                    Object val = g.hasAttribute(field) ? g.getAttribute(field) : VCFConstants.MISSING_VALUE_v4;
+                    Object val = g.hasExtendedAttribute(field) ? g.getExtendedAttribute(field) : VCFConstants.MISSING_VALUE_v4;
 
                     // some exceptions
                     if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY ) ) {

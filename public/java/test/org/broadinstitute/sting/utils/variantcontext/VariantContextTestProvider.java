@@ -335,6 +335,28 @@ public class VariantContextTestProvider {
                         GenotypeBuilder.create("hap", Arrays.asList(ref)));
 
                 addGenotypeTests(site,
+                        GenotypeBuilder.create("noCall", noCall),
+                        GenotypeBuilder.create("dip", Arrays.asList(ref, alt1)),
+                        GenotypeBuilder.create("hap", Arrays.asList(ref)));
+
+                addGenotypeTests(site,
+                        GenotypeBuilder.create("noCall",  noCall),
+                        GenotypeBuilder.create("noCall2", noCall),
+                        GenotypeBuilder.create("dip", Arrays.asList(ref, alt1)),
+                        GenotypeBuilder.create("hap", Arrays.asList(ref)));
+
+                addGenotypeTests(site,
+                        GenotypeBuilder.create("dip", Arrays.asList(ref, alt1)),
+                        GenotypeBuilder.create("tet", Arrays.asList(ref, alt1, alt1)));
+
+                addGenotypeTests(site,
+                        GenotypeBuilder.create("noCall", noCall),
+                        GenotypeBuilder.create("dip", Arrays.asList(ref, alt1)),
+                        GenotypeBuilder.create("tet", Arrays.asList(ref, alt1, alt1)));
+
+                addGenotypeTests(site,
+                        GenotypeBuilder.create("noCall", noCall),
+                        GenotypeBuilder.create("noCall2", noCall),
                         GenotypeBuilder.create("dip", Arrays.asList(ref, alt1)),
                         GenotypeBuilder.create("tet", Arrays.asList(ref, alt1, alt1)));
 

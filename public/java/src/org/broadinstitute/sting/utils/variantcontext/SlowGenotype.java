@@ -118,13 +118,13 @@ public class SlowGenotype extends Genotype {
     @Override public double getLog10PError()      { return commonInfo.getLog10PError(); }
 
     @Override
-    public boolean hasAttribute(String key)     { return commonInfo.hasAttribute(key); }
+    public boolean hasExtendedAttribute(String key)     { return commonInfo.hasAttribute(key); }
 
     @Override
-    public Object getAttribute(String key)      { return commonInfo.getAttribute(key); }
+    public Object getExtendedAttribute(String key)      { return commonInfo.getAttribute(key); }
 
     @Override
-    public Object getAttribute(String key, Object defaultValue) {
+    public Object getExtendedAttribute(String key, Object defaultValue) {
         return commonInfo.getAttribute(key, defaultValue); 
     }
 

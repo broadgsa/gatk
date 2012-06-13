@@ -420,7 +420,7 @@ public abstract class Genotype implements Comparable<Genotype> {
      * @return true if key has a value in the extendedAttributes
      */
     @Requires({"key != null", "! isForbiddenKey(key)"})
-    public boolean hasAttribute(final String key) {
+    public boolean hasExtendedAttribute(final String key) {
         return getExtendedAttributes().containsKey(key);
     }
 
@@ -432,19 +432,19 @@ public abstract class Genotype implements Comparable<Genotype> {
      * @return a value (potentially) null associated with key, or defaultValue if no association exists
      */
     @Requires({"key != null", "! isForbiddenKey(key)"})
-    @Ensures("hasAttribute(key) || result == defaultValue")
-    public Object getAttribute(final String key, final Object defaultValue) {
-        return hasAttribute(key) ? getExtendedAttributes().get(key) : defaultValue;
+    @Ensures("hasExtendedAttribute(key) || result == defaultValue")
+    public Object getExtendedAttribute(final String key, final Object defaultValue) {
+        return hasExtendedAttribute(key) ? getExtendedAttributes().get(key) : defaultValue;
     }
 
     /**
-     * Same as #getAttribute with a null default
+     * Same as #getExtendedAttribute with a null default
      *
      * @param key
      * @return
      */
-    public Object getAttribute(final String key) {
-        return getAttribute(key, null);
+    public Object getExtendedAttribute(final String key) {
+        return getExtendedAttribute(key, null);
     }
 
     /**
@@ -468,7 +468,7 @@ public abstract class Genotype implements Comparable<Genotype> {
 
     @Deprecated
     public String getAttributeAsString(String key, String defaultValue) {
-        Object x = getAttribute(key);
+        Object x = getExtendedAttribute(key);
         if ( x == null ) return defaultValue;
         if ( x instanceof String ) return (String)x;
         return String.valueOf(x); // throws an exception if this isn't a string
@@ -476,7 +476,7 @@ public abstract class Genotype implements Comparable<Genotype> {
 
     @Deprecated
     public int getAttributeAsInt(String key, int defaultValue) {
-        Object x = getAttribute(key);
+        Object x = getExtendedAttribute(key);
         if ( x == null || x == VCFConstants.MISSING_VALUE_v4 ) return defaultValue;
         if ( x instanceof Integer ) return (Integer)x;
         return Integer.valueOf((String)x); // throws an exception if this isn't a string
@@ -484,7 +484,7 @@ public abstract class Genotype implements Comparable<Genotype> {
 
     @Deprecated
     public double getAttributeAsDouble(String key, double defaultValue) {
-        Object x = getAttribute(key);
+        Object x = getExtendedAttribute(key);
         if ( x == null ) return defaultValue;
         if ( x instanceof Double ) return (Double)x;
         return Double.valueOf((String)x); // throws an exception if this isn't a string
@@ -510,7 +510,7 @@ public abstract class Genotype implements Comparable<Genotype> {
         } else if (key.equals(VCFConstants.DEPTH_KEY)) {
             return getDP();
         } else {
-            return getAttribute(key);
+            return getExtendedAttribute(key);
         }
     }
 
@@ -526,7 +526,7 @@ public abstract class Genotype implements Comparable<Genotype> {
         } else if (key.equals(VCFConstants.DEPTH_KEY)) {
             return hasDP();
         } else {
-            return hasAttribute(key);
+            return hasExtendedAttribute(key);
         }
     }
 

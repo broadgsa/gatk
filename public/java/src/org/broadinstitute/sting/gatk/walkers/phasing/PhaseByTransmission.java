@@ -807,7 +807,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                     updateTrioMetricsCounters(phasedMother,phasedFather,phasedChild,mvCount,metricsCounters);
                     mvfLine = String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s:%s:%s:%s\t%s:%s:%s:%s\t%s:%s:%s:%s",
                             vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),
-                            phasedMother.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getDP(),Arrays.asList(phasedMother.getAD()),
+                            phasedMother.getExtendedAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getDP(),Arrays.asList(phasedMother.getAD()),
                             phasedMother.getLikelihoodsString(), phasedFather.getGenotypeString(),phasedFather.getDP(),Arrays.asList(phasedFather.getAD()),phasedFather.getLikelihoodsString(),
                             phasedChild.getGenotypeString(),Arrays.asList(phasedChild.getDP()),phasedChild.getAD(),phasedChild.getLikelihoodsString());
                     if(!(phasedMother.getType()==mother.getType() && phasedFather.getType()==father.getType() && phasedChild.getType()==child.getType()))
@@ -819,7 +819,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                         metricsCounters.put(NUM_GENOTYPES_MODIFIED,metricsCounters.get(NUM_GENOTYPES_MODIFIED)+1);
                     mvfLine = String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s:%s:%s:%s\t.:.:.:.\t%s:%s:%s:%s",
                             vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),
-                            phasedMother.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getDP(),Arrays.asList(phasedMother.getAD()),phasedMother.getLikelihoodsString(),
+                            phasedMother.getExtendedAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getDP(),Arrays.asList(phasedMother.getAD()),phasedMother.getLikelihoodsString(),
                             phasedChild.getGenotypeString(),phasedChild.getDP(),Arrays.asList(phasedChild.getAD()),phasedChild.getLikelihoodsString());
                 }
             }
@@ -830,7 +830,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                     metricsCounters.put(NUM_GENOTYPES_MODIFIED,metricsCounters.get(NUM_GENOTYPES_MODIFIED)+1);
                 mvfLine =   String.format("%s\t%d\t%s\t%s\t%s\t%s\t.:.:.:.\t%s:%s:%s:%s\t%s:%s:%s:%s",
                         vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),
-                        phasedFather.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedFather.getGenotypeString(),phasedFather.getDP(),Arrays.asList(phasedFather.getAD()),phasedFather.getLikelihoodsString(),
+                        phasedFather.getExtendedAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedFather.getGenotypeString(),phasedFather.getDP(),Arrays.asList(phasedFather.getAD()),phasedFather.getLikelihoodsString(),
                         phasedChild.getGenotypeString(),phasedChild.getDP(),Arrays.asList(phasedChild.getAD()),phasedChild.getLikelihoodsString());
             }
 

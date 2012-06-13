@@ -315,7 +315,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
 //            case GET_ATTRIBUTE_STRING:
 //                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
 //                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
-//                        vc.getAttribute("AN", null);
+//                        vc.getExtendedAttribute("AN", null);
 //                    }
 //                };
 //

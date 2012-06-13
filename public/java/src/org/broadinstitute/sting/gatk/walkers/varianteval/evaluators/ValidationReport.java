@@ -121,9 +121,9 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
             int ac = 0;
             if ( vc.getNAlleles() > 2 ) {
                 return SiteStatus.POLY;
-////                System.out.printf("multiple alleles %s = %s%n", vc.getAlleles(), vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY));
+////                System.out.printf("multiple alleles %s = %s%n", vc.getAlleles(), vc.getExtendedAttribute(VCFConstants.ALLELE_COUNT_KEY));
 //                // todo -- omg this is painful.  We need a better approach to dealing with multi-valued attributes
-//                for ( String v : (List<String>)vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY) )
+//                for ( String v : (List<String>)vc.getExtendedAttribute(VCFConstants.ALLELE_COUNT_KEY) )
 //                    ac += Integer.valueOf(v);
 ////                System.out.printf("  ac = %d%n", ac);
             }

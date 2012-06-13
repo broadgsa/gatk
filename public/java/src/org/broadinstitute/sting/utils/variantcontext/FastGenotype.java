@@ -25,11 +25,8 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 
-import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
 
@@ -156,12 +153,12 @@ public final class FastGenotype extends Genotype {
     }
 
     @Override public List<String> getFilters() {
-        return (List<String>)getAttribute(VCFConstants.GENOTYPE_FILTER_KEY, Collections.emptyList());
+        return (List<String>) getExtendedAttribute(VCFConstants.GENOTYPE_FILTER_KEY, Collections.emptyList());
     }
 
     @Override
     public boolean filtersWereApplied() {
-        return hasAttribute(VCFConstants.GENOTYPE_FILTER_KEY);
+        return hasExtendedAttribute(VCFConstants.GENOTYPE_FILTER_KEY);
     }
 
     @Override public int[] getPL() {

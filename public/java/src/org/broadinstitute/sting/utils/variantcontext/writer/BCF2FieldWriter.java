@@ -143,12 +143,12 @@ public abstract class BCF2FieldWriter {
         }
 
         public void addGenotype(final BCF2Encoder encoder, final VariantContext vc, final Genotype g) throws IOException {
-            final Object fieldValue = g.getAttribute(getField(), null);
+            final Object fieldValue = g.getExtendedAttribute(getField(), null);
             getFieldEncoder().encodeValue(encoder, fieldValue, encodingType, nValuesPerGenotype);
         }
 
         protected int numElements(final VariantContext vc, final Genotype g) {
-            return getFieldEncoder().numElements(vc, g.getAttribute(getField()));
+            return getFieldEncoder().numElements(vc, g.getExtendedAttribute(getField()));
         }
 
         private final int computeMaxSizeOfGenotypeFieldFromValues(final VariantContext vc) {
@@ -179,7 +179,7 @@ public abstract class BCF2FieldWriter {
             // the only value that is dynamic are integers
             final List<Integer> values = new ArrayList<Integer>(vc.getNSamples());
             for ( final Genotype g : vc.getGenotypes() ) {
-                for ( final Object i : BCF2Utils.toList(g.getAttribute(getField(), null)) ) {
+                for ( final Object i : BCF2Utils.toList(g.getExtendedAttribute(getField(), null)) ) {
                     values.add((Integer)i); // we know they are all integers
                 }
             }

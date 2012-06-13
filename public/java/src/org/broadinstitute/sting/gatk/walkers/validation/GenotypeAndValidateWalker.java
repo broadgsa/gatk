@@ -423,7 +423,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             }
         }
         else {
-//            if (!vcComp.hasAttribute("GV"))
+//            if (!vcComp.hasExtendedAttribute("GV"))
 //                throw new UserException.BadInput("Variant has no GV annotation in the INFO field. " + vcComp.getChr() + ":" + vcComp.getStart());
 
             if (call.isCalledAlt(callConf)) {
