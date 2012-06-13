@@ -89,7 +89,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
       * @param ref                   reference context
       * @param contexts              stratified alignment contexts
       * @param contextType           stratified context type
-      * @param alternateAllelesToUse the alternate allele to use, null if not set
+      * @param allAllelesToUse the alternate allele to use, null if not set
       * @param useBAQedPileup        should we use the BAQed pileup or the raw one?
       * @param locParser             Genome Loc Parser
       * @return variant context where genotypes are no-called but with GLs
@@ -98,7 +98,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
                                                    final ReferenceContext ref,
                                                    final Map<String, AlignmentContext> contexts,
                                                    final AlignmentContextUtils.ReadOrientation contextType,
-                                                   final List<Allele> alternateAllelesToUse,
+                                                   final List<Allele> allAllelesToUse,
                                                    final boolean useBAQedPileup,
                                                    final GenomeLocParser locParser);
 
