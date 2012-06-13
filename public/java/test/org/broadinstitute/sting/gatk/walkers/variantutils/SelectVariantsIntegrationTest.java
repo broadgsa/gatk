@@ -31,7 +31,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(" -sn A -sn B -sn C --variant " + testfile),
                 1,
-                Arrays.asList("1024d7d1e563c56c2c667f98b1b81028")
+                Arrays.asList("6c1a9e64a00a5b312531729bc73b5183")
         );
 
         executeTest("testRepeatedLineSelection--" + testfile, spec);
@@ -59,7 +59,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
             baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile),
             1,
-            Arrays.asList("357c26f0a57f9d59a3bfca168af4fe42")
+            Arrays.asList("eb1d0ff1db27413c14ea1af52b2f74c8")
         );
         spec.disableShadowBCF();
         executeTest("testComplexSelection--" + testfile, spec);
@@ -73,7 +73,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
             "-T SelectVariants -R " + b36KGReference + " -L 1:1-1000000 -o %s --no_cmdline_in_header -xl_sn A -xl_sf " + samplesFile + " --variant " + testfile,
             1,
-            Arrays.asList("34e714c7469b3cf5bf910222baff4cd0")
+            Arrays.asList("ed0f40334a82aa8e4698d5bfd8ed4d52")
         );
         spec.disableShadowBCF();
 
@@ -169,7 +169,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         spec = new WalkerTestSpec(
             baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 2"),
             1,
-            Arrays.asList("357c26f0a57f9d59a3bfca168af4fe42")
+            Arrays.asList("eb1d0ff1db27413c14ea1af52b2f74c8")
         );
         spec.disableShadowBCF();
         executeTest("testParallelization (2 threads)--" + testfile, spec);
@@ -183,7 +183,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
             spec = new WalkerTestSpec(
             baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 4"),
             1,
-            Arrays.asList("357c26f0a57f9d59a3bfca168af4fe42")
+            Arrays.asList("eb1d0ff1db27413c14ea1af52b2f74c8")
         );
         spec.disableShadowBCF();
 

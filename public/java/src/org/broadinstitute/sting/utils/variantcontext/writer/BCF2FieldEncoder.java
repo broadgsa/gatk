@@ -27,7 +27,6 @@ package org.broadinstitute.sting.utils.variantcontext.writer;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
-import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Encoder;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Type;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCompoundHeaderLine;
@@ -41,10 +40,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * See #BCFWriter for documentation on this classes role in encoding BCF2 files
  *
- *
- * @author Your Name
- * @since Date created
+ * @author Mark DePristo
+ * @since 06/12
  */
 @Invariant({
         "headerLine != null",
@@ -52,9 +51,26 @@ import java.util.Map;
         "dictionaryOffset >= 0"
 })
 public abstract class BCF2FieldEncoder {
+    /**
+     * The header line describing the field we will encode values of
+     */
     final VCFCompoundHeaderLine headerLine;
-    final BCF2Type fixedType;
+
+    /**
+     * The BCF2 type we'll use to encoder this field, if it can be determined statically.
+     * If not, this variable must be null
+     */
+    final BCF2Type staticType;
+
+    /**
+     * The integer offset into the strings map of the BCF2 file corresponding to this
+     * field.
+     */
     final int dictionaryOffset;
+
+    /**
+     * The integer type we use to encode our dictionary offset in the BCF2 file
+     */
     final BCF2Type dictionaryOffsetType;
 
     // ----------------------------------------------------------------------
@@ -63,9 +79,10 @@ public abstract class BCF2FieldEncoder {
     //
     // ----------------------------------------------------------------------
 
-    public BCF2FieldEncoder(final VCFCompoundHeaderLine headerLine, final Map<String, Integer> dict, final BCF2Type fixedType) {
+    @Requires({"headerLine != null", "dict != null"})
+    private BCF2FieldEncoder(final VCFCompoundHeaderLine headerLine, final Map<String, Integer> dict, final BCF2Type staticType) {
         this.headerLine = headerLine;
-        this.fixedType = fixedType;
+        this.staticType = staticType;
 
         final Integer offset = dict.get(getField());
         if ( offset == null ) throw new ReviewedStingException("Format error: could not find string " + getField() + " in header as required by BCF");
@@ -79,6 +96,7 @@ public abstract class BCF2FieldEncoder {
     //
     // ----------------------------------------------------------------------
 
+    @Ensures("result != null")
     public final String getField() { return headerLine.getID(); }
 
     /**
@@ -87,6 +105,7 @@ public abstract class BCF2FieldEncoder {
      * @param encoder where we write our dictionary offset
      * @throws IOException
      */
+    @Requires("encoder != null")
     public final void writeFieldKey(final BCF2Encoder encoder) throws IOException {
         encoder.encodeTyped(dictionaryOffset, dictionaryOffsetType);
     }
@@ -102,44 +121,81 @@ public abstract class BCF2FieldEncoder {
     //
     // ----------------------------------------------------------------------
 
+    @Ensures("result != null")
     protected final VCFHeaderLineCount getCountType() {
         return headerLine.getCountType();
     }
 
+    /**
+     * True if this field has a constant, fixed number of elements (such as 1 for an atomic integer)
+     *
+     * @return
+     */
     @Ensures("result != (hasValueDeterminedNumElements() || hasContextDeterminedNumElements())")
     public boolean hasConstantNumElements() {
         return getCountType() == VCFHeaderLineCount.INTEGER;
     }
 
+    /**
+     * True if the only way to determine how many elements this field contains is by
+     * inspecting the actual value directly, such as when the number of elements
+     * is a variable length list per site or per genotype.
+     * @return
+     */
     @Ensures("result != (hasConstantNumElements() || hasContextDeterminedNumElements())")
     public boolean hasValueDeterminedNumElements() {
         return getCountType() == VCFHeaderLineCount.UNBOUNDED;
     }
 
+    /**
+     * True if this field has a non-fixed number of elements that depends only on the properties
+     * of the current VariantContext, such as one value per Allele or per genotype configuration.
+     *
+     * @return
+     */
     @Ensures("result != (hasValueDeterminedNumElements() || hasConstantNumElements())")
     public boolean hasContextDeterminedNumElements() {
         return ! hasConstantNumElements() && ! hasValueDeterminedNumElements();
     }
 
+    /**
+     * Get the number of elements, assuming this field has a constant number of elements.
+     * @return
+     */
     @Requires("hasConstantNumElements()")
     @Ensures("result >= 0")
     public int numElements() {
         return headerLine.getCount();
     }
 
+    /**
+     * Get the number of elements by looking at the actual value provided
+     * @return
+     */
     @Requires("hasValueDeterminedNumElements()")
     @Ensures("result >= 0")
     public int numElements(final Object value) {
         return numElementsFromValue(value);
-        //return value instanceof List ? ((List) value).size() : 1;
     }
 
+    /**
+     * Get the number of elements, assuming this field has context-determined number of elements.
+     * @return
+     */
     @Requires("hasContextDeterminedNumElements()")
     @Ensures("result >= 0")
     public int numElements(final VariantContext vc) {
         return headerLine.getCount(vc.getNAlleles() - 1);
     }
 
+    /**
+     * A convenience access for the number of elements, returning
+     * the number of encoded elements, either from the fixed number
+     * it has, from the VC, or from the value itself.
+     * @param vc
+     * @param value
+     * @return
+     */
     @Ensures("result >= 0")
     public final int numElements(final VariantContext vc, final Object value) {
         if ( hasConstantNumElements() ) return numElements();
@@ -169,12 +225,28 @@ public abstract class BCF2FieldEncoder {
     //
     // ----------------------------------------------------------------------
 
+    /**
+     * Is the BCF2 type of this field static, or does it have to be determine from
+     * the actual field value itself?
+     * @return
+     */
     @Ensures("result || isDynamicallyTyped()")
     public final boolean isStaticallyTyped() { return ! isDynamicallyTyped(); }
 
+    /**
+     * Is the BCF2 type of this field static, or does it have to be determine from
+     * the actual field value itself?
+     * @return
+     */
     @Ensures("result || isStaticallyTyped()")
-    public final boolean isDynamicallyTyped() { return fixedType == null; }
+    public final boolean isDynamicallyTyped() { return staticType == null; }
 
+    /**
+     * Get the BCF2 type for this field, either from the static type of the
+     * field itself or by inspecting the value itself.
+     *
+     * @return
+     */
     public final BCF2Type getType(final Object value) {
         return isDynamicallyTyped() ? getDynamicType(value) : getStaticType();
     }
@@ -182,7 +254,7 @@ public abstract class BCF2FieldEncoder {
     @Requires("isStaticallyTyped()")
     @Ensures("result != null")
     public final BCF2Type getStaticType() {
-        return fixedType;
+        return staticType;
     }
 
     @Requires("isDynamicallyTyped()")
@@ -197,11 +269,41 @@ public abstract class BCF2FieldEncoder {
     //
     // ----------------------------------------------------------------------
 
+    /**
+     * Convenience method that just called encodeValue with a no minimum for the number of values.
+     *
+     * Primarily useful for encoding site values
+     *
+     * @param encoder
+     * @param value
+     * @param type
+     * @throws IOException
+     */
     @Requires({"encoder != null", "isDynamicallyTyped() || type == getStaticType()"})
     public void encodeOneValue(final BCF2Encoder encoder, final Object value, final BCF2Type type) throws IOException {
         encodeValue(encoder, value, type, 0);
     }
 
+    /**
+     * Key abstract method that should encode a value of the given type into the encoder.
+     *
+     * Value will be of a type appropriate to the underlying encoder.  If the genotype field is represented as
+     * an int[], this will be value, and the encoder needs to handle encoding all of the values in the int[].
+     *
+     * The argument should be used, not the getType() method in the superclass as an outer loop might have
+     * decided a more general type (int16) to use, even through this encoder could have been done with int8.
+     *
+     * If minValues > 0, then encodeValue must write in at least minValues items from value.  If value is atomic,
+     * this means that minValues - 1 MISSING values should be added to the encoder.  If minValues is a collection
+     * type (int[]) then minValues - values.length should be added.  This argument is intended to handle padding
+     * of values in genotype fields.
+     *
+     * @param encoder
+     * @param value
+     * @param type
+     * @param minValues
+     * @throws IOException
+     */
     @Requires({"encoder != null", "isDynamicallyTyped() || type == getStaticType()", "minValues >= 0"})
     public abstract void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException;
 
@@ -243,11 +345,15 @@ public abstract class BCF2FieldEncoder {
          */
         @Ensures("result != null")
         private String javaStringToBCF2String(final Object value) {
-            return value == null
-                    ? ""
-                    : (value instanceof List
-                        ? BCF2Utils.collapseStringList((List<String>)value)
-                        : (String)value);
+            if ( value == null )
+                return "";
+            else if (value instanceof List) {
+                if ( ((List) value).size() == 1 )
+                    return (String)((List) value).get(0);
+                else
+                    return BCF2Utils.collapseStringList((List<String>)value);
+            } else
+                return (String)value;
         }
     }
 

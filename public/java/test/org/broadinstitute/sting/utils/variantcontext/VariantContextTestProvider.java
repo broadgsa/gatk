@@ -55,7 +55,7 @@ public class VariantContextTestProvider {
     final private static boolean ENABLE_PLOIDY_TESTS = true;
     final private static boolean ENABLE_PL_TESTS = true;
     final private static boolean ENABLE_SOURCE_VCF_TESTS = true;
-    final private static boolean ENABLE_VARIABLE_LENGTH_GENOTYPE_STRING_TESTS = false;
+    final private static boolean ENABLE_VARIABLE_LENGTH_GENOTYPE_STRING_TESTS = true;
 
     private static VCFHeader syntheticHeader;
     final static List<VariantContextTestData> TEST_DATAs = new ArrayList<VariantContextTestData>();
@@ -448,7 +448,7 @@ public class VariantContextTestProvider {
 
             // variable sized lists
             addGenotypeTests(site,
-                    attr("g1", ref, "GV", Arrays.asList("S1")),
+                    attr("g1", ref, "GV", "S1"),
                     attr("g2", ref, "GV", Arrays.asList("S3", "S4")));
 
             addGenotypeTests(site,
@@ -466,18 +466,18 @@ public class VariantContextTestProvider {
             //
             //
             addGenotypeTests(site,
-                    new GenotypeBuilder("g1", Arrays.asList(ref, ref)).filters("X").make(),
-                    new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X").make());
+                    new GenotypeBuilder("g1-x", Arrays.asList(ref, ref)).filters("X").make(),
+                    new GenotypeBuilder("g2-x", Arrays.asList(ref, ref)).filters("X").make());
             addGenotypeTests(site,
-                    new GenotypeBuilder("g1", Arrays.asList(ref, ref)).unfiltered().make(),
-                    new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X").make());
+                    new GenotypeBuilder("g1-unft", Arrays.asList(ref, ref)).unfiltered().make(),
+                    new GenotypeBuilder("g2-x", Arrays.asList(ref, ref)).filters("X").make());
             addGenotypeTests(site,
-                    new GenotypeBuilder("g1", Arrays.asList(ref, ref)).unfiltered().make(),
-                    new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X", "Y").make());
+                    new GenotypeBuilder("g1-unft", Arrays.asList(ref, ref)).unfiltered().make(),
+                    new GenotypeBuilder("g2-xy", Arrays.asList(ref, ref)).filters("X", "Y").make());
             addGenotypeTests(site,
-                    new GenotypeBuilder("g1", Arrays.asList(ref, ref)).unfiltered().make(),
-                    new GenotypeBuilder("g2", Arrays.asList(ref, ref)).filters("X").make(),
-                    new GenotypeBuilder("g3", Arrays.asList(ref, ref)).filters("X", "Y").make());
+                    new GenotypeBuilder("g1-unft", Arrays.asList(ref, ref)).unfiltered().make(),
+                    new GenotypeBuilder("g2-x", Arrays.asList(ref, ref)).filters("X").make(),
+                    new GenotypeBuilder("g3-xy", Arrays.asList(ref, ref)).filters("X", "Y").make());
         }
 
         // TODO -- test test Integer, Float, Flag, String atomic, vector, and missing types of different lengths per sample

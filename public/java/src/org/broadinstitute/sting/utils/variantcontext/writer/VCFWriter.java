@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.variantcontext.writer;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -329,8 +330,13 @@ class VCFWriter extends IndexingVariantContextWriter {
      */
     private void addGenotypeData(VariantContext vc, Map<Allele, String> alleleMap, List<String> genotypeFormatKeys)
     throws IOException {
-        if ( mHeader.getGenotypeSamples().size() != vc.getNSamples() )
-            throw new ReviewedStingException("BUG: number of VariantContext samples " + vc.getNSamples() + " != to the number of sample found in the VCF header" + mHeader.getGenotypeSamples().size());
+        if ( ! mHeader.getGenotypeSamples().containsAll(vc.getSampleNames()) ) {
+            final List<String> badSampleNames = new ArrayList<String>();
+            for ( final Genotype g : vc.getGenotypes() )
+                if ( ! mHeader.getGenotypeSamples().contains(g.getSampleName()) )
+                    badSampleNames.add(g.getSampleName());
+            throw new ReviewedStingException("BUG: VariantContext contains some samples not in the VCF header: bad samples are " + Utils.join(",",badSampleNames));
+        }
 
         for ( String sample : mHeader.getGenotypeSamples() ) {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);

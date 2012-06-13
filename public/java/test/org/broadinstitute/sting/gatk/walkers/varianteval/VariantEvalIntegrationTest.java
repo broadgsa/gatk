@@ -304,7 +304,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " --eval " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
                 " --comp:comp_genotypes " + testDir + "yri.trio.gatk.ug.head.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
-                1, Arrays.asList("3cf734416452d953d433da6a3f418c3c"));
+                1, Arrays.asList("4b9dcbce0717285e3c0c736c1bed744c"));
         executeTestParallel("testSelect1", spec);
     }
 
@@ -332,7 +332,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testCompVsEvalAC() {
         String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance --eval:evalYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.very.few.lines.vcf --comp:compYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.fake.genotypes.ac.test.vcf";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("722ef452dede5d23038d10eca89d4f31"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("659a15cc842f0310106fa595a26da71d"));
         executeTestParallel("testCompVsEvalAC",spec);
     }
 
@@ -535,7 +535,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                         "-o %s"
                                 ),
                                 1,
-                                Arrays.asList("9236930cb26b01a9b9d770b0f048b182")
+                                Arrays.asList("f8460af997436a5ce4407fefb0e2724d")
                               );
         executeTest("testModernVCFWithLargeIndels", spec);
     }

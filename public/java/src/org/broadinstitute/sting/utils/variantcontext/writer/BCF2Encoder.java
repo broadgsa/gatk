@@ -22,9 +22,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.codecs.bcf2;
+package org.broadinstitute.sting.utils.variantcontext.writer;
 
 import com.google.java.contract.Requires;
+import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Type;
+import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.ByteArrayOutputStream;
@@ -33,10 +35,10 @@ import java.io.OutputStream;
 import java.util.*;
 
 /**
- * BCF2 encoder
+ * See #BCFWriter for documentation on this classes role in encoding BCF2 files
  *
- * @author depristo
- * @since 5/12
+ * @author Mark DePristo
+ * @since 06/12
  */
 public final class BCF2Encoder {
     // TODO -- increase default size?
@@ -62,7 +64,7 @@ public final class BCF2Encoder {
     /**
      * Method for writing raw bytes to the encoder stream
      *
-     * The purpuse this method exists is to allow lazy decoding of genotype data.  In that
+     * The purpose this method exists is to allow lazy decoding of genotype data.  In that
      * situation the reader has loaded a block of bytes, and never decoded it, so we
      * are just writing it back out immediately as a raw stream of blocks.  Any
      * bad low-level formatting or changes to that byte[] will result in a malformed
@@ -93,7 +95,7 @@ public final class BCF2Encoder {
 
     public final void encodeTyped(List<? extends Object> v, final BCF2Type type) throws IOException {
         if ( type == BCF2Type.CHAR && v.size() != 0 ) {
-            final String s = v.size() > 1 ? BCF2Utils.collapseStringList((List<String>)v) : (String)v.get(0);
+            final String s = v.size() > 1 ? BCF2Utils.collapseStringList((List<String>) v) : (String)v.get(0);
             v = stringToBytes(s);
         }
 
@@ -200,7 +202,7 @@ public final class BCF2Encoder {
      * @param o
      * @return
      */
-    protected final BCF2Type encode(final Object o) throws IOException {
+    public final BCF2Type encode(final Object o) throws IOException {
         if ( o == null ) throw new ReviewedStingException("Generic encode cannot deal with null values");
 
         if ( o instanceof List ) {

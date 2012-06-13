@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.utils.variantcontext.writer;
 
 import com.google.java.contract.Requires;
-import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Encoder;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Type;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
@@ -41,10 +40,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *
+ * See #BCFWriter for documentation on this classes role in encoding BCF2 files
  *
  * @author Mark DePristo
- * @since 6/12
+ * @since 06/12
  */
 public abstract class BCF2FieldWriter {
     private final VCFHeader header;

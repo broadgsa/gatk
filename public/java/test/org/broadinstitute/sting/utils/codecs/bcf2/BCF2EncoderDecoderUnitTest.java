@@ -31,6 +31,7 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.variantcontext.writer.BCF2Encoder;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;

@@ -24,8 +24,9 @@
 
 package org.broadinstitute.sting.utils.variantcontext.writer;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Encoder;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -33,31 +34,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * [Short one sentence description of this walker]
- * <p/>
- * <p>
- * [Functionality of this walker]
- * </p>
- * <p/>
- * <h2>Input</h2>
- * <p>
- * [Input description]
- * </p>
- * <p/>
- * <h2>Output</h2>
- * <p>
- * [Output description]
- * </p>
- * <p/>
- * <h2>Examples</h2>
- * <pre>
- *    java
- *      -jar GenomeAnalysisTK.jar
- *      -T $WalkerName
- *  </pre>
+ * See #BCFWriter for documentation on this classes role in encoding BCF2 files
  *
- * @author Your Name
- * @since Date created
+ * @author Mark DePristo
+ * @since 06/12
  */
 public class BCF2FieldWriterManager {
     final protected static Logger logger = Logger.getLogger(BCF2FieldWriterManager.class);
@@ -67,23 +47,35 @@ public class BCF2FieldWriterManager {
 
     public BCF2FieldWriterManager() { }
 
-    public void setup(final VCFHeader header, final BCF2Encoder encoder, final Map<String, Integer> dictionary) {
+    /**
+     * Setup the FieldWriters appropriate to each INFO and FORMAT in the VCF header
+     *
+     * Must be called before any of the getter methods will work
+     *
+     * @param header a VCFHeader containing description for every INFO and FORMAT field we'll attempt to write out to BCF
+     * @param encoder the encoder we are going to use to write out the BCF2 data
+     * @param stringDictionary a map from VCFHeader strings to their offsets for encoding
+     */
+    public void setup(final VCFHeader header, final BCF2Encoder encoder, final Map<String, Integer> stringDictionary) {
         for (final VCFHeaderLine line : header.getMetaData()) {
             if ( line instanceof VCFInfoHeaderLine ) {
                 final String field = ((VCFInfoHeaderLine) line).getID();
-                final BCF2FieldWriter.SiteWriter writer = createInfoWriter(header, (VCFInfoHeaderLine)line, encoder, dictionary);
-                log(field, writer);
-                siteWriters.put(field, writer);
+                final BCF2FieldWriter.SiteWriter writer = createInfoWriter(header, (VCFInfoHeaderLine)line, encoder, stringDictionary);
+                add(siteWriters, field, writer);
             } else if ( line instanceof VCFFormatHeaderLine ) {
                 final String field = ((VCFFormatHeaderLine) line).getID();
-                final BCF2FieldWriter.GenotypesWriter writer = createGenotypesWriter(header, (VCFFormatHeaderLine)line, encoder, dictionary);
-                log(field, writer);
-                genotypesWriters.put(field, writer);
+                final BCF2FieldWriter.GenotypesWriter writer = createGenotypesWriter(header, (VCFFormatHeaderLine)line, encoder, stringDictionary);
+                add(genotypesWriters, field, writer);
             }
         }
     }
 
-    private final void log(final String field, final BCF2FieldWriter writer) {
+    @Requires({"field != null", "writer != null"})
+    @Ensures("map.containsKey(field)")
+    private final <T> void add(final Map<String, T> map, final String field, final T writer) {
+        if ( map.containsKey(field) )
+            throw new ReviewedStingException("BUG: field " + field + " already seen in VCFHeader while building BCF2 field encoders");
+        map.put(field, writer);
         logger.info(writer);
     }
 
@@ -160,14 +152,26 @@ public class BCF2FieldWriterManager {
     //
     // -----------------------------------------------------------------
 
-    public BCF2FieldWriter.SiteWriter getSiteFieldWriter(final String key) {
-        return getWriter(key, siteWriters);
+    /**
+     * Get a site writer specialized to encode values for site info field
+     * @param field key found in the VCF header INFO records
+     * @return
+     */
+    public BCF2FieldWriter.SiteWriter getSiteFieldWriter(final String field) {
+        return getWriter(field, siteWriters);
     }
 
-    public BCF2FieldWriter.GenotypesWriter getGenotypeFieldWriter(final String key) {
-        return getWriter(key, genotypesWriters);
+    /**
+     * Get a genotypes writer specialized to encode values for genotypes field
+     * @param field key found in the VCF header FORMAT records
+     * @return
+     */
+    public BCF2FieldWriter.GenotypesWriter getGenotypeFieldWriter(final String field) {
+        return getWriter(field, genotypesWriters);
     }
 
+    @Requires({"map != null", "key != null"})
+    @Ensures("result != null")
     public <T> T getWriter(final String key, final Map<String, T> map) {
         final T writer = map.get(key);
         if ( writer == null ) throw new ReviewedStingException("BUG: no writer found for " + key);

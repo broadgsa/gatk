@@ -29,7 +29,6 @@ import com.google.java.contract.Requires;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Codec;
-import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Encoder;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Type;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
@@ -40,6 +39,49 @@ import org.broadinstitute.sting.utils.variantcontext.*;
 import java.io.*;
 import java.util.*;
 
+/**
+ * VariantContextWriter that emits BCF2 binary encoding
+ *
+ * Overall structure of this writer is complex for efficiency reasons
+ *
+ * -- The BCF2Writer manages the low-level BCF2 encoder, the mappings
+ * from contigs and strings to offsets, the VCF header, and holds the
+ * lower-level encoders that map from VC and Genotype fields to their
+ * specific encoders.  This class also writes out the standard BCF2 fields
+ * like POS, contig, the size of info and genotype data, QUAL, etc.  It
+ * has loops over the INFO and GENOTYPES to encode each individual datum
+ * with the generic field encoders, but the actual encoding work is
+ * done with by the FieldWriters classes themselves
+ *
+ * -- BCF2FieldWriter are specialized classes for writing out SITE and
+ * genotype information for specific SITE/GENOTYPE fields (like AC for
+ * sites and GQ for genotypes).  These are objects in themselves because
+ * the manage all of the complexity of relating the types in the VCF header
+ * with the proper encoding in BCF as well as the type representing this
+ * in java.  Relating all three of these pieces of information together
+ * is the main complexity challenge in the encoder.  The piece of code
+ * that determines which FieldWriters to associate with each SITE and
+ * GENOTYPE field is the BCF2FieldWriterManager.  These FieldWriters
+ * are specialized for specific combinations of encoders (see below)
+ * and contexts (genotypes) for efficiency, so they smartly manage
+ * the writing of PLs (encoded as int[]) directly into the lowest
+ * level BCFEncoder.
+ *
+ * -- At the third level is the BCF2FieldEncoder, relatively simple
+ * pieces of code that handle the task of determining the right
+ * BCF2 type for specific field values, as well as reporting back
+ * information such as the number of elements used to encode it
+ * (simple for atomic values like Integer but complex for PLs
+ * or lists of strings)
+ *
+ * -- At the lowest level is the BCF2Encoder itself.  This provides
+ * just the limited encoding methods specified by the BCF2 specification.  This encoder
+ * doesn't do anything but make it possible to conveniently write out valid low-level
+ * BCF2 constructs.
+ *
+ * @author Mark DePristo
+ * @since 06/12
+ */
 class BCF2Writer extends IndexingVariantContextWriter {
     final protected static Logger logger = Logger.getLogger(BCF2Writer.class);
 
