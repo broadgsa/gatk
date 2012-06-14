@@ -336,9 +336,18 @@ public class GATKSAMRecord extends BAMRecord {
      * Clears all attributes except ReadGroup of the read.
      */
     public GATKSAMRecord simplify () {
-        GATKSAMReadGroupRecord rg = getReadGroup();
-        this.clearAttributes();
-        setReadGroup(rg);
+        GATKSAMReadGroupRecord rg = getReadGroup();                                                                     // save the read group information
+        byte [] insertionQuals = getBaseInsertionQualities();                                                           // save the insertion quality score
+        byte [] deletionQualities = getBaseDeletionQualities();                                                         // save the deletion quality score
+
+        this.clearAttributes();                                                                                         // clear all attributes from the read
+
+        this.setReadGroup(rg);                                                                                          // restore read group
+        if (insertionQuals != null)
+           this.setBaseQualities(insertionQuals, EventType.BASE_INSERTION);                                             // restore base insertion if we had any
+        if (deletionQualities != null)
+            this.setBaseQualities(deletionQualities, EventType.BASE_DELETION);                                          // restore base deletion if we had any
+
         return this;
     }
 
