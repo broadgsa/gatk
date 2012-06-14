@@ -337,17 +337,14 @@ public class GATKSAMRecord extends BAMRecord {
      */
     public GATKSAMRecord simplify () {
         GATKSAMReadGroupRecord rg = getReadGroup();                                                                     // save the read group information
-        byte [] insertionQuals = getBaseInsertionQualities();                                                           // save the insertion quality score
-        byte [] deletionQualities = getBaseDeletionQualities();                                                         // save the deletion quality score
-
+        byte[] insQuals = (this.getAttribute(BQSR_BASE_INSERTION_QUALITIES) == null) ? null : getBaseInsertionQualities();
+        byte[] delQuals = (this.getAttribute(BQSR_BASE_DELETION_QUALITIES)  == null) ? null : getBaseDeletionQualities();
         this.clearAttributes();                                                                                         // clear all attributes from the read
-
         this.setReadGroup(rg);                                                                                          // restore read group
-        if (insertionQuals != null)
-           this.setBaseQualities(insertionQuals, EventType.BASE_INSERTION);                                             // restore base insertion if we had any
-        if (deletionQualities != null)
-            this.setBaseQualities(deletionQualities, EventType.BASE_DELETION);                                          // restore base deletion if we had any
-
+        if (insQuals != null)
+           this.setBaseQualities(insQuals, EventType.BASE_INSERTION);                                                   // restore base insertion if we had any
+        if (delQuals != null)
+            this.setBaseQualities(delQuals, EventType.BASE_DELETION);                                                   // restore base deletion if we had any
         return this;
     }
 
