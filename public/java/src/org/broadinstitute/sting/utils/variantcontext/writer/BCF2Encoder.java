@@ -159,9 +159,8 @@ public final class BCF2Encoder {
         encodePrimitive(Float.floatToIntBits((float)value), BCF2Type.FLOAT);
     }
 
+    @Requires("size >= 0")
     public final void encodeType(final int size, final BCF2Type type) throws IOException {
-        if ( size < 0 ) throw new ReviewedStingException("BUG: size < 0");
-
         final byte typeByte = BCF2Utils.encodeTypeDescriptor(size, type);
         encodeStream.write(typeByte);
         if ( BCF2Utils.willOverflow(size) ) {

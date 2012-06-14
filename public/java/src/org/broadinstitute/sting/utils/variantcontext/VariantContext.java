@@ -866,7 +866,8 @@ public class VariantContext implements Feature { // to enable tribble integratio
      * @return chromosome count
      */
     public int getCalledChrCount() {
-        return  getCalledChrCount(new HashSet<String>(0));
+        final Set<String> noSamples = Collections.emptySet();
+        return  getCalledChrCount(noSamples);
     }
 
     /**

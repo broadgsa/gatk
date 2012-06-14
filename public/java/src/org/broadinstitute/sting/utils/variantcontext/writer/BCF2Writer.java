@@ -90,6 +90,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
     private final Map<String, Integer> contigDictionary = new HashMap<String, Integer>();
     private final Map<String, Integer> stringDictionaryMap = new LinkedHashMap<String, Integer>();
     private final boolean doNotWriteGenotypes;
+    private String[] sampleNames = null;
 
     private final BCF2Encoder encoder = new BCF2Encoder(); // initialized after the header arrives
     final BCF2FieldWriterManager fieldManager = new BCF2FieldWriterManager();
@@ -121,6 +122,8 @@ class BCF2Writer extends IndexingVariantContextWriter {
         for ( int i = 0; i < dict.size(); i++ ) {
             stringDictionaryMap.put(dict.get(i), i);
         }
+
+        sampleNames = header.getGenotypeSamples().toArray(new String[header.getNGenotypeSamples()]);
 
         // setup the field encodings
         fieldManager.setup(header, encoder, stringDictionaryMap);
@@ -289,8 +292,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
                 final BCF2FieldWriter.GenotypesWriter writer = fieldManager.getGenotypeFieldWriter(field);
 
                 writer.start(encoder, vc);
-                for ( final String name : header.getGenotypeSamples() ) {
-                    // todo -- can we optimize this get (string -> genotype) which can be expensive
+                for ( final String name : sampleNames ) {
                     Genotype g = vc.getGenotype(name);
                     if ( g == null )
                         // we don't have any data about g at all
@@ -327,8 +329,6 @@ class BCF2Writer extends IndexingVariantContextWriter {
     @Requires("! strings.isEmpty()")
     @Ensures("BCF2Type.INTEGERS.contains(result)")
     private final BCF2Type encodeStringsByRef(final Collection<String> strings) throws IOException {
-        assert ! strings.isEmpty();
-
         final List<Integer> offsets = new ArrayList<Integer>(strings.size());
         BCF2Type maxType = BCF2Type.INT8; // start with the smallest size
 

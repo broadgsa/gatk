@@ -57,16 +57,16 @@ public class BCF2FieldWriterManager {
      * @param stringDictionary a map from VCFHeader strings to their offsets for encoding
      */
     public void setup(final VCFHeader header, final BCF2Encoder encoder, final Map<String, Integer> stringDictionary) {
-        for (final VCFHeaderLine line : header.getMetaData()) {
-            if ( line instanceof VCFInfoHeaderLine ) {
-                final String field = ((VCFInfoHeaderLine) line).getID();
-                final BCF2FieldWriter.SiteWriter writer = createInfoWriter(header, (VCFInfoHeaderLine)line, encoder, stringDictionary);
-                add(siteWriters, field, writer);
-            } else if ( line instanceof VCFFormatHeaderLine ) {
-                final String field = ((VCFFormatHeaderLine) line).getID();
-                final BCF2FieldWriter.GenotypesWriter writer = createGenotypesWriter(header, (VCFFormatHeaderLine)line, encoder, stringDictionary);
-                add(genotypesWriters, field, writer);
-            }
+        for (final VCFInfoHeaderLine line : header.getInfoHeaderLines()) {
+            final String field = line.getID();
+            final BCF2FieldWriter.SiteWriter writer = createInfoWriter(header, line, encoder, stringDictionary);
+            add(siteWriters, field, writer);
+        }
+
+        for (final VCFFormatHeaderLine line : header.getFormatHeaderLines()) {
+            final String field = line.getID();
+            final BCF2FieldWriter.GenotypesWriter writer = createGenotypesWriter(header, line, encoder, stringDictionary);
+            add(genotypesWriters, field, writer);
         }
     }
 
