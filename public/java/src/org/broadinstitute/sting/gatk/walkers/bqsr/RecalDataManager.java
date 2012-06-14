@@ -392,7 +392,7 @@ public class RecalDataManager {
                     newCovs.add(1, covs.get(1));
                     newCovs.add(2, "QualityScore");                                                                     // replace the covariate name with QualityScore (for the QualityScore covariate)
                     newCovs.add(3, covs.get(2));
-                    final Long deltaKey = deltaKeyManager.longFromKey(newCovs.toArray());                               // create a new bitset key for the delta table
+                    final long deltaKey = deltaKeyManager.longFromKey(newCovs.toArray());                               // create a new bitset key for the delta table
                     addToDeltaTable(deltaTable, deltaKey, recalDatum);                                                  // add this covariate to the delta table
                 }
             }
@@ -406,7 +406,7 @@ public class RecalDataManager {
 
                     final List<Object> covs = keyManager.keySetFrom(entry.getKey());                                    // extract the key objects from the bitset key
                     covs.remove(QUALITY_SCORE_COVARIATE_INDEX);                                                         // reset the quality score covariate to 0 from the keyset (so we aggregate all rows regardless of QS)
-                    final Long deltaKey = deltaKeyManager.longFromKey(covs.toArray());                                  // create a new bitset key for the delta table
+                    final long deltaKey = deltaKeyManager.longFromKey(covs.toArray());                                  // create a new bitset key for the delta table
                     addToDeltaTable(deltaTable, deltaKey, recalDatum);                                                  // add this covariate to the delta table
                 }
                 readyToPrint = true;

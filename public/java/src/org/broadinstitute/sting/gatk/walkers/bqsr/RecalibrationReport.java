@@ -113,7 +113,7 @@ public class RecalibrationReport {
                 final Long otherBitKey = otherTableEntry.getKey();
                 final List<Object> otherObjectKey = otherKeyManager.keySetFrom(otherBitKey);
                 
-                final Long thisKey = thisKeyManager.longFromKey(otherObjectKey.toArray());
+                final long thisKey = thisKeyManager.longFromKey(otherObjectKey.toArray());
                 final RecalDatum thisDatum = thisTable.get(thisKey);
                 
                 if (thisDatum == null)
@@ -199,7 +199,7 @@ public class RecalibrationReport {
             for (int j = 0; j < nKeys; j++)
                 keySet[j] = reportTable.get(i, columnNamesOrderedList.get(j));                                          // all these objects are okay in String format, the key manager will handle them correctly (except for the event type (see below)
             keySet[keySet.length-1] = EventType.eventFrom((String) keySet[keySet.length-1]);                            // the last key is always the event type. We convert the string ("M", "I" or "D") to an enum object (necessary for the key manager).
-            final Long bitKey = keyManager.longFromKey(keySet);
+            final long bitKey = keyManager.longFromKey(keySet);
 
             final long nObservations = (Long) reportTable.get(i, RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME);
             final long nErrors = (Long) reportTable.get(i, RecalDataManager.NUMBER_ERRORS_COLUMN_NAME);

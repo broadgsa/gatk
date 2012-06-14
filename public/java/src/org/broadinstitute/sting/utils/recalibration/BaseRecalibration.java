@@ -165,6 +165,8 @@ public class BaseRecalibration {
                     else {                                                                                              // this is the table with all the covariates                        
                         for (int i = 0; i < numOptionalCovariates; i++) {
                             masterKey = keyManager.createMasterKey(key, errorModel, i);
+                            if (masterKey < 0)
+                                continue;
                             final RecalDatum empiricalQualCO = table.get(masterKey);
                             if (empiricalQualCO != null) {
                                 final double deltaQCovariateEmpirical = empiricalQualCO.getEmpiricalQuality();

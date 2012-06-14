@@ -88,7 +88,7 @@ public class BQSRKeyManager {
 
         final int totalNumberOfBits = optionalCovariateIDOffset + nOptionalIDBits;                                      // total number of bits used in the final key
         if ( totalNumberOfBits > 64 )
-            throw new UserException.BadInput("The total number of bits used for the master BQSR key is greater than 64 and cannot be represented in a Long");
+            throw new UserException.BadInput("The total number of bits used for the master BQSR key is greater than 64 and cannot be represented in a long");
     }
 
     /**
@@ -98,7 +98,7 @@ public class BQSRKeyManager {
      *
      * @param allKeys      The keys in long representation for each covariate (includes all optional covariates, not just the one requested)
      * @param eventType    The type of event described by this keyset (e.g. mismatches, insertions, deletions)
-     * @return one key in long representation
+     * @return one key in long representation (non-negative) or -1 for a bad key
      */
     public long createMasterKey(final long[] allKeys, final EventType eventType, final int optionalCovariateIndex) {
 
@@ -111,11 +111,12 @@ public class BQSRKeyManager {
         masterKey |= (eventKey << nRequiredBits);
 
         if (optionalCovariateIndex >= 0 && optionalCovariateIndex < optionalCovariates.length) {
-            final Long covariateKey = allKeys[keyIndex + optionalCovariateIndex];
-            if (covariateKey != null) {                                                                                 // do not add nulls to the final set of keys
-                masterKey |= (covariateKey << optionalCovariateOffset);
-                masterKey |= (optionalCovariatesInfo[optionalCovariateIndex].covariateID << optionalCovariateIDOffset);
-            }
+            final long covariateKey = allKeys[keyIndex + optionalCovariateIndex];
+            if (covariateKey < 0)                                                                                       // do not add "nulls" to the final set of keys
+                return -1;
+
+            masterKey |= (covariateKey << optionalCovariateOffset);
+            masterKey |= (optionalCovariatesInfo[optionalCovariateIndex].covariateID << optionalCovariateIDOffset);
         }
 
         return masterKey;
@@ -133,7 +134,7 @@ public class BQSRKeyManager {
      * @param key list of objects produced by the required covariates followed by one or zero optional covariates.
      * @return a key representing these objects.
      */
-    public Long longFromKey(Object[] key) {
+    public long longFromKey(Object[] key) {
         int requiredCovariate = 0;
         long masterKey = 0L;                                                                                            // This will be a master key holding all the required keys, to replicate later on
         for (RequiredCovariateInfo infoRequired : requiredCovariatesInfo)
@@ -176,15 +177,15 @@ public class BQSRKeyManager {
      * @param master the master representation of the keys
      * @return an object array with the values for each key
      */
-    public List<Object> keySetFrom(final Long master) {
+    public List<Object> keySetFrom(final long master) {
         final List<Object> objectKeys = new ArrayList<Object>();
         for (RequiredCovariateInfo info : requiredCovariatesInfo) {
-            final Long covariateKey = extractKeyFromMaster(master, info.mask, info.offset);                             // get the covariate's key
+            final long covariateKey = extractKeyFromMaster(master, info.mask, info.offset);                             // get the covariate's key
             objectKeys.add(info.covariate.formatKey(covariateKey));                                                     // convert the key to object using covariate's interface
         }
 
         if (optionalCovariatesInfo.length > 0) {
-            final Long covKey = extractKeyFromMaster(master, optionalCovariateMask, optionalCovariateOffset);           // get the covariate's key
+            final long covKey = extractKeyFromMaster(master, optionalCovariateMask, optionalCovariateOffset);           // get the covariate's key
             final int covIDKey = (int)extractKeyFromMaster(master, optionalCovariateIDMask, optionalCovariateIDOffset); // get the covariate's id (to identify which covariate this is)
             Covariate covariate = optionalCovariatesInfo[(short)covIDKey].covariate;                                    // get the corresponding optional covariate object
             objectKeys.add(covariate.formatKey(covKey));                                                                // add the optional covariate key to the key set
