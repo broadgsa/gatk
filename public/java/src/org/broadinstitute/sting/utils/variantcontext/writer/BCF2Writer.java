@@ -291,7 +291,10 @@ class BCF2Writer extends IndexingVariantContextWriter {
                 writer.start(encoder, vc);
                 for ( final String name : header.getGenotypeSamples() ) {
                     // todo -- can we optimize this get (string -> genotype) which can be expensive
-                    final Genotype g = vc.getGenotype(name);
+                    Genotype g = vc.getGenotype(name);
+                    if ( g == null )
+                        // we don't have any data about g at all
+                        g = new GenotypeBuilder(name).make();
                     writer.addGenotype(encoder, vc, g);
                 }
                 writer.done(encoder, vc);
