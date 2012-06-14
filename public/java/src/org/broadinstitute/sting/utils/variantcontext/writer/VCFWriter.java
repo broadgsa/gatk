@@ -452,8 +452,8 @@ class VCFWriter extends IndexingVariantContextWriter {
      * @return
      */
     public static final String formatVCFDouble(final double d) {
-        String format = "%.2f";
-        if ( d < 0.1 ) {
+        String format;
+        if ( d < 1 ) {
             if ( d < 0.01 ) {
                 if ( Math.abs(d) >= 1e-20 )
                     format = "%.3e";
@@ -464,6 +464,8 @@ class VCFWriter extends IndexingVariantContextWriter {
             } else {
                 format = "%.3f";
             }
+        } else {
+            format = "%.2f";
         }
 
         return String.format(format, d);
