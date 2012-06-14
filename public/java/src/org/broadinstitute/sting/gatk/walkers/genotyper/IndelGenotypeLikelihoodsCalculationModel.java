@@ -30,12 +30,14 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.indels.PairHMMIndelErrorModel;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -48,7 +50,8 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     private boolean DEBUG = false;
     private boolean ignoreSNPAllelesWhenGenotypingIndels = false;
     private PairHMMIndelErrorModel pairModel;
-
+    private boolean allelesArePadded;
+    
     private static ThreadLocal<HashMap<PileupElement, LinkedHashMap<Allele, Double>>> indelLikelihoodMap =
             new ThreadLocal<HashMap<PileupElement, LinkedHashMap<Allele, Double>>>() {
                 protected synchronized HashMap<PileupElement, LinkedHashMap<Allele, Double>> initialValue() {
@@ -87,6 +90,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
     private final static EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.INDEL, VariantContext.Type.MIXED);
 
+
     public VariantContext getLikelihoods(final RefMetaDataTracker tracker,
                                          final ReferenceContext ref,
                                          final Map<String, AlignmentContext> contexts,
@@ -95,28 +99,30 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                                          final boolean useBAQedPileup,
                                          final GenomeLocParser locParser) {
 
-        if (tracker == null)
-            return null;
-
         GenomeLoc loc = ref.getLocus();
-        if (!ref.getLocus().equals(lastSiteVisited)) {
+//        if (!ref.getLocus().equals(lastSiteVisited)) {
+        if (contextType == AlignmentContextUtils.ReadOrientation.COMPLETE) {
             // starting a new site: clear allele list
             lastSiteVisited = ref.getLocus();
             indelLikelihoodMap.set(new HashMap<PileupElement, LinkedHashMap<Allele, Double>>());
             haplotypeMap.clear();
 
-            alleleList = getInitialAlleleList(tracker, ref, contexts, contextType, locParser, UAC, ignoreSNPAllelesWhenGenotypingIndels);
+            Pair<List<Allele>,Boolean> pair = getInitialAlleleList(tracker, ref, contexts, contextType, locParser, UAC, ignoreSNPAllelesWhenGenotypingIndels);
+            alleleList = pair.first;
+            allelesArePadded = pair.second;
             if (alleleList.isEmpty())
                 return null;
         }
-        getHaplotypeMapFromAlleles(alleleList, ref, loc, haplotypeMap);
+
+
+        getHaplotypeMapFromAlleles(alleleList, ref, loc, haplotypeMap); // will update haplotypeMap adding elements
         if (haplotypeMap == null || haplotypeMap.isEmpty())
             return null;
 
         // start making the VariantContext
         // For all non-snp VC types, VC end location is just startLocation + length of ref allele including padding base.
         
-        final int endLoc = computeEndLocation(alleleList, loc);
+        final int endLoc = computeEndLocation(alleleList, loc,allelesArePadded);
         final int eventLength = getEventLength(alleleList);
 
         final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), endLoc, alleleList).referenceBaseForIndel(ref.getBase());
@@ -160,14 +166,9 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         return indelLikelihoodMap.get();
     }
 
-    public static int computeEndLocation(final List<Allele> alleles, final GenomeLoc loc) {
+    public static int computeEndLocation(final List<Allele> alleles, final GenomeLoc loc, final boolean allelesArePadded) {
         Allele refAllele = alleles.get(0);
-        boolean allelesArePadded  = true;
         int endLoc = loc.getStart() + refAllele.length()-1;
-/*        if (refAllele.getBases().length == vc.getEnd()-vc.getStart()+1)
-            allelesArePadded = false;
-  */
-        // todo FIXME!
         if (allelesArePadded)
             endLoc++;
 
@@ -215,7 +216,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
     }
     
-    public static List<Allele> getInitialAlleleList(final RefMetaDataTracker tracker,
+    public static Pair<List<Allele>,Boolean> getInitialAlleleList(final RefMetaDataTracker tracker,
                                                     final ReferenceContext ref,
                                                     final Map<String, AlignmentContext> contexts,
                                                     final AlignmentContextUtils.ReadOrientation contextType,
@@ -224,6 +225,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                                                     final boolean ignoreSNPAllelesWhenGenotypingIndels) {
         
         List<Allele> alleles = new ArrayList<Allele>();
+        boolean allelesArePadded = true;
         if (UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES) {
             VariantContext vc = null;
             for (final VariantContext vc_input : tracker.getValues(UAC.alleles, ref.getLocus())) {
@@ -234,10 +236,9 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                     break;
                 }
             }
-            // ignore places where we don't have a variant
+           // ignore places where we don't have a variant
             if (vc == null)
-                return alleles;
-
+                return new Pair<List<Allele>,Boolean>(alleles,false);
 
             if (ignoreSNPAllelesWhenGenotypingIndels) {
                 // if there's an allele that has same length as the reference (i.e. a SNP or MNP), ignore it and don't genotype it
@@ -250,11 +251,15 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             } else {
                 alleles.addAll(vc.getAlleles());
             }
+            if ( vc.getReference().getBases().length == vc.getEnd()-vc.getStart()+1)
+                allelesArePadded = false;
+
+
 
         } else {
             alleles = IndelGenotypeLikelihoodsCalculationModel.computeConsensusAlleles(ref, contexts, contextType, locParser, UAC);
         }
-        return alleles;
+        return new Pair<List<Allele>,Boolean> (alleles,allelesArePadded);
     }
 
     // Overload function in GenotypeLikelihoodsCalculationModel so that, for an indel case, we consider a deletion as part of the pileup,
