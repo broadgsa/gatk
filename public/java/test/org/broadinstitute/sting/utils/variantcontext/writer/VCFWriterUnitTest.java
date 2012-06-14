@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2012, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.utils.variantcontext.writer;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
@@ -159,10 +183,11 @@ public class VCFWriterUnitTest extends BaseTest {
         tests.add(new Object[]{10.012, "10.01"});
         tests.add(new Object[]{10.015, "10.02"});
         tests.add(new Object[]{0.0, "0.00"});
-        tests.add(new Object[]{0.5, "0.50"});
-        tests.add(new Object[]{0.55, "0.55"});
-        tests.add(new Object[]{0.555, "0.56"});
-        tests.add(new Object[]{0.1, "0.10"});
+        tests.add(new Object[]{0.5, "0.500"});
+        tests.add(new Object[]{0.55, "0.550"});
+        tests.add(new Object[]{0.555, "0.555"});
+        tests.add(new Object[]{0.5555, "0.556"});
+        tests.add(new Object[]{0.1, "0.100"});
         tests.add(new Object[]{0.050, "0.050"});
         tests.add(new Object[]{0.010, "0.010"});
         tests.add(new Object[]{0.012, "0.012"});
