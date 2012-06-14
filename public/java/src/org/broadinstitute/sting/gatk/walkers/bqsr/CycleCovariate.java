@@ -59,17 +59,18 @@ public class CycleCovariate implements StandardCovariate {
     // Used to pick out the covariate's value from attributes of the read
     @Override
     public CovariateValues getValues(final GATKSAMRecord read) {
-        long[] cycles = new long[read.getReadLength()];
+        final int readLength = read.getReadLength();
+        final long[] cycles = new long[readLength];
         final NGSPlatform ngsPlatform = read.getNGSPlatform();
 
         // Discrete cycle platforms
         if (DISCRETE_CYCLE_PLATFORMS.contains(ngsPlatform)) {
-            final short readOrderFactor = read.getReadPairedFlag() && read.getSecondOfPairFlag() ? (short) -1 : 1;
-            final short increment;
-            short cycle;
+            final int readOrderFactor = read.getReadPairedFlag() && read.getSecondOfPairFlag() ? -1 : 1;
+            final int increment;
+            int cycle;
             if (read.getReadNegativeStrandFlag()) {
-                cycle = (short) (read.getReadLength() * readOrderFactor);
-                increment = (short) (-1 * readOrderFactor);
+                cycle = readLength * readOrderFactor;
+                increment = -1 * readOrderFactor;
             }
             else {
                 cycle = readOrderFactor;
@@ -77,17 +78,18 @@ public class CycleCovariate implements StandardCovariate {
             }
 
             final int CUSHION = 4;
-            final int MAX_CYCLE = read.getReadLength() - CUSHION - 1;
+            final int MAX_CYCLE = readLength - CUSHION - 1;
             for (int i = 0; i < MAX_CYCLE; i++) {
-                cycles[i] = (i<CUSHION || i>MAX_CYCLE) ? -1 : keyFromCycle(cycle);
+                cycles[i] = (i<CUSHION || i>MAX_CYCLE) ? -1L : keyFromCycle(cycle);
                 cycle += increment;
             }
+            for (int i = MAX_CYCLE; i < readLength; i++)
+                cycles[i] = -1L;
         }
 
         // Flow cycle platforms
         else if (FLOW_CYCLE_PLATFORMS.contains(ngsPlatform)) {
 
-            final int readLength = read.getReadLength();
             final byte[] bases = read.getReadBases();
 
             // Differentiate between first and second of pair.
@@ -98,7 +100,7 @@ public class CycleCovariate implements StandardCovariate {
             //   the current sequential model would consider the effects independently instead of jointly.
             final boolean multiplyByNegative1 = read.getReadPairedFlag() && read.getSecondOfPairFlag();
 
-            short cycle = multiplyByNegative1 ? (short) -1 : 1;     // todo -- check if this is the right behavior for mate paired reads in flow cycle platforms.
+            int cycle = multiplyByNegative1 ? -1 : 1;     // todo -- check if this is the right behavior for mate paired reads in flow cycle platforms.
 
             // BUGBUG: Consider looking at degradation of base quality scores in homopolymer runs to detect when the cycle incremented even though the nucleotide didn't change
             // For example, AAAAAAA was probably read in two flow cycles but here we count it as one
@@ -178,7 +180,7 @@ public class CycleCovariate implements StandardCovariate {
     // Used to get the covariate's value from input csv file during on-the-fly recalibration
     @Override
     public final Object getValue(final String str) {
-        return Short.parseShort(str);
+        return Integer.parseInt(str);
     }
 
     @Override
@@ -191,16 +193,16 @@ public class CycleCovariate implements StandardCovariate {
 
     @Override
     public long longFromKey(final Object key) {
-        return (key instanceof String) ? keyFromCycle(Short.parseShort((String) key)) : keyFromCycle((Short) key);
+        return (key instanceof String) ? keyFromCycle(Integer.parseInt((String) key)) : keyFromCycle((Integer) key);
     }
 
     @Override
     public int numberOfBits() {
-        return BQSRKeyManager.numberOfBitsToRepresent(2 * Short.MAX_VALUE); // positive and negative
+        return Integer.bitCount(Integer.MAX_VALUE);
     }
 
-    private static long keyFromCycle(final short cycle) {
-        // no negative values because
+    private static long keyFromCycle(final int cycle) {
+        // no negative values because values must fit into the first few bits of the long
         long result = Math.abs(cycle);
         result = result << 1; // shift so we can add the "sign" bit
         if ( cycle < 0 )

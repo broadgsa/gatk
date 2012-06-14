@@ -111,7 +111,7 @@ public class ContextCovariate implements StandardCovariate {
 
     @Override
     public int numberOfBits() {
-        return Integer.bitCount(1);
+        return Integer.bitCount(Integer.MAX_VALUE);
     }
 
     /**
