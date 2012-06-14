@@ -189,6 +189,70 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
+    private interface EncodeMe {
+        public void encode(final BCF2Encoder encoder, final BCF2TypedValue tv) throws IOException;
+    }
+
+
+    @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")
+    public void testBCF2BasicTypesWithStaticCalls(final List<BCF2TypedValue> toEncode) throws IOException {
+        testBCF2BasicTypesWithEncodeMe(toEncode,
+                new EncodeMe() {
+                    @Override
+                    public void encode(final BCF2Encoder encoder, final BCF2TypedValue tv) throws IOException {
+                        switch ( tv.type ) {
+                            case INT8:
+                            case INT16:
+                            case INT32:
+                                encoder.encodeTypedInt((Integer)tv.value, tv.type);
+                                break;
+                            case FLOAT:
+                                encoder.encodeTypedFloat((Double)tv.value);
+                                break;
+                            case CHAR:
+                                encoder.encodeTypedString((String)tv.value);
+                                break;
+                        }
+                    }
+                });
+    }
+
+    @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")
+    public void testBCF2BasicTypesWithObjectType(final List<BCF2TypedValue> toEncode) throws IOException {
+        testBCF2BasicTypesWithEncodeMe(toEncode,
+                new EncodeMe() {
+                    @Override
+                    public void encode(final BCF2Encoder encoder, final BCF2TypedValue tv) throws IOException {
+                        encoder.encodeTyped(tv.value, tv.type);
+                    }
+                });
+    }
+
+    @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")
+    public void testBCF2BasicTypesWithObjectNoType(final List<BCF2TypedValue> toEncode) throws IOException {
+        testBCF2BasicTypesWithEncodeMe(toEncode,
+                new EncodeMe() {
+                    @Override
+                    public void encode(final BCF2Encoder encoder, final BCF2TypedValue tv) throws IOException {
+                        encoder.encode(tv.value);
+                    }
+                });
+    }
+
+    public void testBCF2BasicTypesWithEncodeMe(final List<BCF2TypedValue> toEncode, final EncodeMe func) throws IOException {
+        for ( final BCF2TypedValue tv : toEncode ) {
+            BCF2Encoder encoder = new BCF2Encoder();
+            func.encode(encoder, tv);
+
+            BCF2Decoder decoder = new BCF2Decoder(encoder.getRecordBytes());
+            final Object decoded = decoder.decodeTypedValue();
+
+            Assert.assertNotNull(decoded);
+            Assert.assertFalse(decoded instanceof List);
+            myAssertEquals(tv, decoded);
+        }
+    }
+
     @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")
     public void testBCF2EncodingVectors(final List<BCF2TypedValue> toEncode) throws IOException {
         for ( final BCF2TypedValue tv : toEncode ) {

@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.variantcontext.writer;
 
+import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Type;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
@@ -31,7 +32,6 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.*;
 
 /**
@@ -51,31 +51,11 @@ public final class BCF2Encoder {
     //
     // --------------------------------------------------------------------------------
 
-    public int getRecordSizeInBytes() {
-        return encodeStream.size();
-    }
-
+    @Ensures("result != null")
     public byte[] getRecordBytes() {
         byte[] bytes = encodeStream.toByteArray();
         encodeStream.reset();
         return bytes;
-    }
-
-    /**
-     * Method for writing raw bytes to the encoder stream
-     *
-     * The purpose this method exists is to allow lazy decoding of genotype data.  In that
-     * situation the reader has loaded a block of bytes, and never decoded it, so we
-     * are just writing it back out immediately as a raw stream of blocks.  Any
-     * bad low-level formatting or changes to that byte[] will result in a malformed
-     * BCF2 block.
-     *
-     * @param bytes a non-null byte array
-     * @throws IOException
-     */
-    public void writeRawBytes(final byte[] bytes) throws IOException {
-        assert bytes != null;
-        encodeStream.write(bytes);
     }
 
     // --------------------------------------------------------------------------------
@@ -84,15 +64,60 @@ public final class BCF2Encoder {
     //
     // --------------------------------------------------------------------------------
 
+    @Ensures("encodeStream.size() > old(encodeStream.size())")
     public final void encodeTypedMissing(final BCF2Type type) throws IOException {
-        encodeTyped(Collections.emptyList(), type);
+        encodeType(0, type);
     }
 
-    // todo -- should be specialized for each object type for efficiency
-    public final void encodeTyped(final Object v, final BCF2Type type) throws IOException {
-        encodeTyped(Collections.singletonList(v), type);
+    @Ensures("encodeStream.size() > old(encodeStream.size())")
+    public final void encodeTyped(final Object value, final BCF2Type type) throws IOException {
+        if ( value == null )
+            encodeTypedMissing(type);
+        else {
+            switch ( type ) {
+                case INT8:
+                case INT16:
+                case INT32: encodeTypedInt((Integer)value, type); break;
+                case FLOAT: encodeTypedFloat((Double) value); break;
+                case CHAR:  encodeTypedString((String) value); break;
+                default:    throw new ReviewedStingException("Illegal type encountered " + type);
+            }
+        }
     }
 
+    @Ensures("encodeStream.size() > old(encodeStream.size())")
+    public final void encodeTypedInt(final int v) throws IOException {
+        final BCF2Type type = BCF2Utils.determineIntegerType(v);
+        encodeTypedInt(v, type);
+    }
+
+    @Requires("type.isIntegerType()")
+    @Ensures("encodeStream.size() > old(encodeStream.size())")
+    public final void encodeTypedInt(final int v, final BCF2Type type) throws IOException {
+        encodeType(1, type);
+        encodeRawInt(v, type);
+    }
+
+    @Ensures("encodeStream.size() > old(encodeStream.size())")
+    public final void encodeTypedString(final String s) throws IOException {
+        if ( s == null )
+            encodeType(0, BCF2Type.CHAR);
+        else {
+            encodeType(s.length(), BCF2Type.CHAR);
+            for ( int i = 0; i < s.length(); i++ ) {
+                final byte c = (byte)s.charAt(i);
+                encodeRawChar(c);
+            }
+        }
+    }
+
+    @Ensures("encodeStream.size() > old(encodeStream.size())")
+    public final void encodeTypedFloat(final double d) throws IOException {
+        encodeType(1, BCF2Type.FLOAT);
+        encodeRawFloat(d);
+    }
+
+    @Ensures("encodeStream.size() > old(encodeStream.size())")
     public final void encodeTyped(List<? extends Object> v, final BCF2Type type) throws IOException {
         if ( type == BCF2Type.CHAR && v.size() != 0 ) {
             final String s = v.size() > 1 ? BCF2Utils.collapseStringList((List<String>) v) : (String)v.get(0);
@@ -123,7 +148,7 @@ public final class BCF2Encoder {
                 switch (type) {
                     case INT8:
                     case INT16:
-                    case INT32: encodePrimitive((Integer)value, type); break;
+                    case INT32: encodeRawBytes((Integer) value, type); break;
                     case FLOAT: encodeRawFloat((Double) value); break;
                     case CHAR:  encodeRawChar((Byte) value); break;
                     default:    throw new ReviewedStingException("Illegal type encountered " + type);
@@ -134,13 +159,13 @@ public final class BCF2Encoder {
         }
     }
 
+    @Ensures("encodeStream.size() > old(encodeStream.size())")
     public final void encodeRawMissingValue(final BCF2Type type) throws IOException {
-        encodePrimitive(type.getMissingBytes(), type);
+        encodeRawBytes(type.getMissingBytes(), type);
     }
 
+    @Requires("size >= 0")
     public final void encodeRawMissingValues(final int size, final BCF2Type type) throws IOException {
-        if ( size <= 0 ) throw new ReviewedStingException("BUG: size <= 0");
-
         for ( int i = 0; i < size; i++ )
             encodeRawMissingValue(type);
     }
@@ -156,25 +181,28 @@ public final class BCF2Encoder {
     }
 
     public final void encodeRawFloat(final double value) throws IOException {
-        encodePrimitive(Float.floatToIntBits((float)value), BCF2Type.FLOAT);
+        encodeRawBytes(Float.floatToIntBits((float) value), BCF2Type.FLOAT);
     }
 
     @Requires("size >= 0")
+    @Ensures("encodeStream.size() > old(encodeStream.size())")
     public final void encodeType(final int size, final BCF2Type type) throws IOException {
         final byte typeByte = BCF2Utils.encodeTypeDescriptor(size, type);
         encodeStream.write(typeByte);
         if ( BCF2Utils.willOverflow(size) ) {
             // write in the overflow size
-            encodeTyped(size, BCF2Utils.determineIntegerType(size));
+            encodeTypedInt(size);
         }
     }
 
+    @Ensures("encodeStream.size() > old(encodeStream.size())")
     public final void encodeRawInt(final int value, final BCF2Type type) throws IOException {
-        encodePrimitive(value, type, encodeStream);
+        BCF2Utils.encodeRawBytes(value, type, encodeStream);
     }
 
-    public final void encodePrimitive(final int value, final BCF2Type type) throws IOException {
-        encodePrimitive(value, type, encodeStream);
+    @Ensures("encodeStream.size() > old(encodeStream.size())")
+    public final void encodeRawBytes(final int value, final BCF2Type type) throws IOException {
+        BCF2Utils.encodeRawBytes(value, type, encodeStream);
     }
 
     // --------------------------------------------------------------------------------
@@ -184,7 +212,7 @@ public final class BCF2Encoder {
     // --------------------------------------------------------------------------------
 
     @Requires({"s != null", "sizeToWrite >= 0"})
-    public void encodeString(final String s, final int sizeToWrite) throws IOException {
+    public void encodeRawString(final String s, final int sizeToWrite) throws IOException {
         final byte[] bytes = s.getBytes();
         for ( int i = 0; i < sizeToWrite; i++ )
             if ( i < bytes.length )
@@ -201,6 +229,7 @@ public final class BCF2Encoder {
      * @param o
      * @return
      */
+    @Requires("o != null")
     public final BCF2Type encode(final Object o) throws IOException {
         if ( o == null ) throw new ReviewedStingException("Generic encode cannot deal with null values");
 
@@ -215,6 +244,7 @@ public final class BCF2Encoder {
         }
     }
 
+    @Requires("arg != null")
     private final BCF2Type determineBCFType(final Object arg) {
         final Object toType = arg instanceof List ? ((List)arg).get(0) : arg;
 
@@ -226,33 +256,6 @@ public final class BCF2Encoder {
             return BCF2Type.FLOAT;
         else
             throw new ReviewedStingException("No native encoding for Object of type " + arg.getClass().getSimpleName());
-    }
-
-    public final static void encodePrimitive(final int value, final BCF2Type type, final OutputStream encodeStream) throws IOException {
-        switch ( type.getSizeInBytes() ) {
-            case 1:
-                encodeStream.write(0xFF & value);
-                break;
-            case 2:
-                encodeStream.write((0xFF00 & value) >> 8);
-                encodeStream.write(0xFF & value);
-                break;
-            case 4:
-                encodeStream.write((0xFF000000 & value) >> 24);
-                encodeStream.write((0x00FF0000 & value) >> 16);
-                encodeStream.write((0x0000FF00 & value) >> 8);
-                encodeStream.write((0x000000FF & value));
-                break;
-            default:
-                throw new ReviewedStingException("BUG: unexpected type size " + type);
-        }
-// general case for reference
-//        for ( int i = type.getSizeInBytes() - 1; i >= 0; i-- ) {
-//            final int shift = i * 8;
-//            int mask = 0xFF << shift;
-//            int byteValue = (mask & value) >> shift;
-//            encodeStream.write(byteValue);
-//        }
     }
 
     private final List<Byte> stringToBytes(final String v) throws IOException {

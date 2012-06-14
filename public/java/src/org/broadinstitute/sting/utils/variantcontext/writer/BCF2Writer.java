@@ -138,7 +138,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
             final byte[] headerBytes = capture.toByteArray();
             outputStream.write(BCF2Utils.MAGIC_HEADER_LINE);
-            BCF2Encoder.encodePrimitive(headerBytes.length, BCF2Type.INT32, outputStream);
+            BCF2Utils.encodeRawBytes(headerBytes.length, BCF2Type.INT32, outputStream);
             outputStream.write(headerBytes);
         } catch (IOException e) {
             throw new UserException.CouldNotCreateOutputFile("BCF2 stream", "Got IOException while trying to write BCF2 header", e);
@@ -251,14 +251,14 @@ class BCF2Writer extends IndexingVariantContextWriter {
     }
 
     private void buildID( VariantContext vc ) throws IOException {
-        encoder.encodeTyped(vc.getID(), BCF2Type.CHAR);
+        encoder.encodeTypedString(vc.getID());
     }
 
     private void buildAlleles( VariantContext vc ) throws IOException {
         final boolean needsPadding = VariantContextUtils.needsPadding(vc);
         for ( final Allele allele : vc.getAlleles() ) {
             final String s = needsPadding ? VariantContextUtils.padAllele(vc,allele) : allele.getDisplayString();
-            encoder.encodeTyped(s, BCF2Type.CHAR);
+            encoder.encodeTypedString(s);
         }
     }
 
@@ -320,8 +320,8 @@ class BCF2Writer extends IndexingVariantContextWriter {
      */
     @Requires({"infoBlock.length > 0", "genotypesBlock.length >= 0"})
     private void writeBlock(final byte[] infoBlock, final byte[] genotypesBlock) throws IOException {
-        BCF2Encoder.encodePrimitive(infoBlock.length, BCF2Type.INT32, outputStream);
-        BCF2Encoder.encodePrimitive(genotypesBlock.length, BCF2Type.INT32, outputStream);
+        BCF2Utils.encodeRawBytes(infoBlock.length, BCF2Type.INT32, outputStream);
+        BCF2Utils.encodeRawBytes(genotypesBlock.length, BCF2Type.INT32, outputStream);
         outputStream.write(infoBlock);
         outputStream.write(genotypesBlock);
     }
@@ -330,7 +330,6 @@ class BCF2Writer extends IndexingVariantContextWriter {
     @Ensures("BCF2Type.INTEGERS.contains(result)")
     private final BCF2Type encodeStringsByRef(final Collection<String> strings) throws IOException {
         final List<Integer> offsets = new ArrayList<Integer>(strings.size());
-        BCF2Type maxType = BCF2Type.INT8; // start with the smallest size
 
         // iterate over strings until we find one that needs 16 bits, and break
         for ( final String string : strings ) {
@@ -338,21 +337,11 @@ class BCF2Writer extends IndexingVariantContextWriter {
             if ( got == null ) throw new ReviewedStingException("Format error: could not find string " + string + " in header as required by BCF");
             final int offset = got;
             offsets.add(offset);
-
-            if ( maxType != BCF2Type.INT32) { // don't bother looking if we already are at 32 bit ints
-                final BCF2Type type1 = BCF2Utils.determineIntegerType(offset);
-                switch ( type1 ) {
-                    case INT8:  break;
-                    case INT16: if ( maxType == BCF2Type.INT8 ) maxType = BCF2Type.INT16; break;
-                    case INT32: maxType = BCF2Type.INT32; break;
-                    default:    throw new ReviewedStingException("Unexpected type " + type1);
-                }
-            }
         }
 
-        // we've checked the types for all strings, so write them out
-        encoder.encodeTyped(offsets, maxType);
-        return maxType;
+        final BCF2Type type = BCF2Utils.determineIntegerType(offsets);
+        encoder.encodeTyped(offsets, type);
+        return type;
     }
 
     /**

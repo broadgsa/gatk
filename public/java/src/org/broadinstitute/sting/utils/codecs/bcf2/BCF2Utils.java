@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.*;
 
 /**
@@ -296,5 +297,32 @@ public final class BCF2Utils {
         if ( o == null ) return Collections.emptyList();
         else if ( o instanceof List ) return (List<Object>)o;
         else return Collections.singletonList(o);
+    }
+
+    public final static void encodeRawBytes(final int value, final BCF2Type type, final OutputStream encodeStream) throws IOException {
+        switch ( type.getSizeInBytes() ) {
+            case 1:
+                encodeStream.write(0xFF & value);
+                break;
+            case 2:
+                encodeStream.write((0xFF00 & value) >> 8);
+                encodeStream.write(0xFF & value);
+                break;
+            case 4:
+                encodeStream.write((0xFF000000 & value) >> 24);
+                encodeStream.write((0x00FF0000 & value) >> 16);
+                encodeStream.write((0x0000FF00 & value) >> 8);
+                encodeStream.write((0x000000FF & value));
+                break;
+            default:
+                throw new ReviewedStingException("BUG: unexpected type size " + type);
+        }
+// general case for reference
+//        for ( int i = type.getSizeInBytes() - 1; i >= 0; i-- ) {
+//            final int shift = i * 8;
+//            int mask = 0xFF << shift;
+//            int byteValue = (mask & value) >> shift;
+//            encodeStream.write(byteValue);
+//        }
     }
 }

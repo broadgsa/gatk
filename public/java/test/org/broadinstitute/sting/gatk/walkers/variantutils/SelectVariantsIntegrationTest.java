@@ -31,7 +31,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(" -sn A -sn B -sn C --variant " + testfile),
                 1,
-                Arrays.asList("6c1a9e64a00a5b312531729bc73b5183")
+                Arrays.asList("b2ee12588ebda200727762a903b8c972")
         );
 
         executeTest("testRepeatedLineSelection--" + testfile, spec);
@@ -59,7 +59,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
             baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile),
             1,
-            Arrays.asList("eb1d0ff1db27413c14ea1af52b2f74c8")
+            Arrays.asList("446eea62630bc5325ffab30b9b9fbfe4")
         );
         spec.disableShadowBCF();
         executeTest("testComplexSelection--" + testfile, spec);
@@ -73,7 +73,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
             "-T SelectVariants -R " + b36KGReference + " -L 1:1-1000000 -o %s --no_cmdline_in_header -xl_sn A -xl_sf " + samplesFile + " --variant " + testfile,
             1,
-            Arrays.asList("ed0f40334a82aa8e4698d5bfd8ed4d52")
+            Arrays.asList("b24f31db48d254d8fe15295955173486")
         );
         spec.disableShadowBCF();
 
@@ -115,7 +115,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -sn NA12892 --variant:dbsnp " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("4eeab0dd18712d0ca5ebe77c24ec989f")
+                Arrays.asList("8bf557aaa07eccb294c81f491225bf9e")
         );
 
         executeTest("testUsingDbsnpName--" + testFile, spec);
@@ -169,7 +169,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         spec = new WalkerTestSpec(
             baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 2"),
             1,
-            Arrays.asList("eb1d0ff1db27413c14ea1af52b2f74c8")
+            Arrays.asList("446eea62630bc5325ffab30b9b9fbfe4")
         );
         spec.disableShadowBCF();
         executeTest("testParallelization (2 threads)--" + testfile, spec);
@@ -183,7 +183,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
             spec = new WalkerTestSpec(
             baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 4"),
             1,
-            Arrays.asList("eb1d0ff1db27413c14ea1af52b2f74c8")
+            Arrays.asList("446eea62630bc5325ffab30b9b9fbfe4")
         );
         spec.disableShadowBCF();
 
@@ -197,7 +197,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b37KGReference + " -o %s --no_cmdline_in_header -sf " + samplesFile + " --excludeNonVariants --variant " + testfile,
                 1,
-                Arrays.asList("e3d2e00dc7bfff85b87f78b6162ad333")
+                Arrays.asList("2f2a342812ba914bcce666e42ef761d7")
         );
         executeTest("test select from multi allelic with excludeNonVariants --" + testfile, spec);
     }

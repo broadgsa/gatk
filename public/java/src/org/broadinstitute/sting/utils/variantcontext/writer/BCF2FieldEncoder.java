@@ -107,7 +107,7 @@ public abstract class BCF2FieldEncoder {
      */
     @Requires("encoder != null")
     public final void writeFieldKey(final BCF2Encoder encoder) throws IOException {
-        encoder.encodeTyped(dictionaryOffset, dictionaryOffsetType);
+        encoder.encodeTypedInt(dictionaryOffset, dictionaryOffsetType);
     }
 
     @Override
@@ -321,7 +321,7 @@ public abstract class BCF2FieldEncoder {
         @Override
         public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
             final String s = javaStringToBCF2String(value);
-            encoder.encodeString(s, Math.max(s.length(), minValues));
+            encoder.encodeRawString(s, Math.max(s.length(), minValues));
         }
 
         //
@@ -378,7 +378,7 @@ public abstract class BCF2FieldEncoder {
         @Override
         @Requires("minValues <= 1")
         public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
-            encoder.encodePrimitive(1, getStaticType());
+            encoder.encodeRawBytes(1, getStaticType());
         }
     }
 

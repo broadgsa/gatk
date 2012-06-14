@@ -109,4 +109,8 @@ public enum BCF2Type {
      * An enum set of the types that might represent Integer values
      */
     public final static EnumSet<BCF2Type> INTEGERS = EnumSet.of(INT8, INT16, INT32);
+
+    public boolean isIntegerType() {
+        return INTEGERS.contains(this);
+    }
 }
