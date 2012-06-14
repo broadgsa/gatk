@@ -100,13 +100,17 @@ public final class BCF2Encoder {
 
     @Ensures("encodeStream.size() > old(encodeStream.size())")
     public final void encodeTypedString(final String s) throws IOException {
+        encodeTypedString(s.getBytes());
+    }
+
+    @Ensures("encodeStream.size() > old(encodeStream.size())")
+    public final void encodeTypedString(final byte[] s) throws IOException {
         if ( s == null )
             encodeType(0, BCF2Type.CHAR);
         else {
-            encodeType(s.length(), BCF2Type.CHAR);
-            for ( int i = 0; i < s.length(); i++ ) {
-                final byte c = (byte)s.charAt(i);
-                encodeRawChar(c);
+            encodeType(s.length, BCF2Type.CHAR);
+            for ( int i = 0; i < s.length; i++ ) {
+                encodeRawChar(s[i]);
             }
         }
     }

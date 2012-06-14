@@ -389,17 +389,30 @@ public abstract class BCF2FieldEncoder {
     // ----------------------------------------------------------------------
 
     public static class Float extends BCF2FieldEncoder {
+        final boolean isAtomic;
+
         public Float(final VCFCompoundHeaderLine headerLine, final Map<String, Integer> dict ) {
             super(headerLine, dict, BCF2Type.FLOAT);
+            isAtomic = hasConstantNumElements() && numElements() == 1;
         }
 
         @Override
         public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
-            final List<Double> doubles = toList(Double.class, value);
             int count = 0;
-            for ( final double d : doubles ) {
-                encoder.encodeRawFloat(d);
-                count++;
+            // TODO -- can be restructured to avoid toList operation
+            if ( isAtomic ) {
+                // fast path for fields with 1 fixed float value
+                if ( value != null ) {
+                    encoder.encodeRawFloat((Double)value);
+                    count++;
+                }
+            } else {
+                // handle generic case
+                final List<Double> doubles = toList(Double.class, value);
+                for ( final double d : doubles ) {
+                    encoder.encodeRawFloat(d);
+                    count++;
+                }
             }
             for ( ; count < minValues; count++ ) encoder.encodeRawMissingValue(type);
         }
@@ -444,6 +457,30 @@ public abstract class BCF2FieldEncoder {
     // Subclass to encode List<Integer>
     //
     // ----------------------------------------------------------------------
+
+    /**
+     * Specialized int encoder for atomic (non-list) integers
+     */
+    public static class AtomicInt extends BCF2FieldEncoder {
+        public AtomicInt(final VCFCompoundHeaderLine headerLine, final Map<String, Integer> dict ) {
+            super(headerLine, dict, null);
+        }
+
+        @Override
+        public BCF2Type getDynamicType(final Object value) {
+            return value == null ? BCF2Type.INT8 : BCF2Utils.determineIntegerType((Integer)value);
+        }
+
+        @Override
+        public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
+            int count = 0;
+            if ( value != null ) {
+                encoder.encodeRawInt((Integer)value, type);
+                count++;
+            }
+            for ( ; count < minValues; count++ ) encoder.encodeRawMissingValue(type);
+        }
+    }
 
     public static class GenericInts extends BCF2FieldEncoder {
         public GenericInts(final VCFCompoundHeaderLine headerLine, final Map<String, Integer> dict ) {

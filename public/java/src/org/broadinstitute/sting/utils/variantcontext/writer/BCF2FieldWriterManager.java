@@ -114,7 +114,10 @@ public class BCF2FieldWriterManager {
                 case Float:
                     return new BCF2FieldEncoder.Float(line, dict);
                 case Integer:
-                    return new BCF2FieldEncoder.GenericInts(line, dict);
+                    if ( line.isFixedCount() && line.getCount() == 1 )
+                        return new BCF2FieldEncoder.AtomicInt(line, dict);
+                    else
+                        return new BCF2FieldEncoder.GenericInts(line, dict);
                 default:
                     throw new ReviewedStingException("Unexpected type for field " + line.getID());
             }

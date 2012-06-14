@@ -201,6 +201,9 @@ public abstract class BCF2FieldWriter {
 
         @Override
         public void start(final BCF2Encoder encoder, final VariantContext vc) throws IOException {
+            // TODO
+            // TODO this piece of code consumes like 10% of the runtime alone because fo the vc.getGenotypes() iteration
+            // TODO
             encodingType = BCF2Type.INT8;
             for ( final Genotype g : vc.getGenotypes() ) {
                 final int[] pls = ige.getValues(g);
