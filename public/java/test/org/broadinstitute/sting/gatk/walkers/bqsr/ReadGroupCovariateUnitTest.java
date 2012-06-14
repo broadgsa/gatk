@@ -7,8 +7,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.BitSet;
-
 /**
  * @author Mauricio Carneiro
  * @since 3/1/12
@@ -47,7 +45,7 @@ public class ReadGroupCovariateUnitTest {
 
     }
 
-    private void verifyCovariateArray(Long[] values, String expected) {
+    private void verifyCovariateArray(long[] values, String expected) {
         for (Long value : values) {
             String actual = covariate.formatKey(value);
             Assert.assertEquals(actual, expected);
