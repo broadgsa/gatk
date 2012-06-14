@@ -7,8 +7,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.BitSet;
-
 /**
  * @author Mauricio Carneiro
  * @since 3/1/12
@@ -33,22 +31,22 @@ public class CycleCovariateUnitTest {
         read.getReadGroup().setPlatform("illumina");
 
         CovariateValues values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), (short) 1, (short) 1);
+        verifyCovariateArray(values.getMismatches(), 1, (short) 1);
 
         read.setReadNegativeStrandFlag(true);
         values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), readLength, (short) -1);
+        verifyCovariateArray(values.getMismatches(), readLength, -1);
 
         read.setSecondOfPairFlag(true);
         values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), (short) -readLength, (short) 1);
+        verifyCovariateArray(values.getMismatches(), -readLength, 1);
 
         read.setReadNegativeStrandFlag(false);
         values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), (short) -1, (short) -1);
+        verifyCovariateArray(values.getMismatches(), -1, -1);
     }
 
-    private void verifyCovariateArray(Long[] values, short init, short increment) {
+    private void verifyCovariateArray(long[] values, int init, int increment) {
         for (short i = 0; i < values.length; i++) {
             short actual = Short.decode(covariate.formatKey(values[i]));
             int expected = init + (increment * i);
