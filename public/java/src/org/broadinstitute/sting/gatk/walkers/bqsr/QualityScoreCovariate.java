@@ -47,9 +47,9 @@ public class QualityScoreCovariate implements RequiredCovariate {
     public CovariateValues getValues(final GATKSAMRecord read) {
         int readLength = read.getReadLength();
 
-        Long[] mismatches = new Long[readLength];
-        Long[] insertions = new Long[readLength];
-        Long[] deletions = new Long[readLength];
+        long[] mismatches = new long[readLength];
+        long[] insertions = new long[readLength];
+        long[] deletions = new long[readLength];
 
         byte[] baseQualities = read.getBaseQualities();
         byte[] baseInsertionQualities = read.getBaseInsertionQualities();
@@ -71,12 +71,12 @@ public class QualityScoreCovariate implements RequiredCovariate {
     }
 
     @Override
-    public String formatKey(final Long key) {
+    public String formatKey(final long key) {
         return String.format("%d", key);
     }
 
     @Override
-    public Long longFromKey(final Object key) {
+    public long longFromKey(final Object key) {
         return (key instanceof String) ? (long)Byte.parseByte((String) key) : (long)(Byte) key;
     }
 

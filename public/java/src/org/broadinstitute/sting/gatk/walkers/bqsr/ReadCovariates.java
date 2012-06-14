@@ -11,17 +11,21 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
  * @since 2/8/12
  */
 public class ReadCovariates {
-    private final Long[][] mismatchesKeySet;
-    private final Long[][] insertionsKeySet;
-    private final Long[][] deletionsKeySet;
+    private final long[][] mismatchesKeySet;
+    private final long[][] insertionsKeySet;
+    private final long[][] deletionsKeySet;
 
     private int nextCovariateIndex;
 
     public ReadCovariates(int readLength, int numberOfCovariates) {
-        this.mismatchesKeySet = new Long[readLength][numberOfCovariates];
-        this.insertionsKeySet = new Long[readLength][numberOfCovariates];
-        this.deletionsKeySet = new Long[readLength][numberOfCovariates];
+        this.mismatchesKeySet = new long[readLength][numberOfCovariates];
+        this.insertionsKeySet = new long[readLength][numberOfCovariates];
+        this.deletionsKeySet = new long[readLength][numberOfCovariates];
         this.nextCovariateIndex = 0;
+    }
+
+    public void reset() {
+        nextCovariateIndex = 0;
     }
 
     public void addCovariate(CovariateValues covariate) {
@@ -31,7 +35,7 @@ public class ReadCovariates {
         nextCovariateIndex++;
     }
 
-    public Long[] getKeySet(final int readPosition, final EventType errorModel) {
+    public long[] getKeySet(final int readPosition, final EventType errorModel) {
         switch (errorModel) {
             case BASE_SUBSTITUTION:
                 return getMismatchesKeySet(readPosition);
@@ -44,19 +48,19 @@ public class ReadCovariates {
         }
     }
 
-    public Long[] getMismatchesKeySet(int readPosition) {
+    public long[] getMismatchesKeySet(final int readPosition) {
         return mismatchesKeySet[readPosition];
     }
 
-    public Long[] getInsertionsKeySet(int readPosition) {
+    public long[] getInsertionsKeySet(final int readPosition) {
         return insertionsKeySet[readPosition];
     }
 
-    public Long[] getDeletionsKeySet(int readPosition) {
+    public long[] getDeletionsKeySet(final int readPosition) {
         return deletionsKeySet[readPosition];
     }
 
-    private void transposeCovariateValues(Long[][] keySet, Long[] covariateValues) {
+    private void transposeCovariateValues(final long[][] keySet, final long[] covariateValues) {
         for (int i = 0; i < covariateValues.length; i++)
             keySet[i][nextCovariateIndex] = covariateValues[i];
     }
@@ -64,15 +68,15 @@ public class ReadCovariates {
     /**
      * Testing routines
      */
-    protected Long[][] getMismatchesKeySet() {
+    protected long[][] getMismatchesKeySet() {
         return mismatchesKeySet;
     }
 
-    protected Long[][] getInsertionsKeySet() {
+    protected long[][] getInsertionsKeySet() {
         return insertionsKeySet;
     }
 
-    protected Long[][] getDeletionsKeySet() {
+    protected long[][] getDeletionsKeySet() {
         return deletionsKeySet;
     }
 }

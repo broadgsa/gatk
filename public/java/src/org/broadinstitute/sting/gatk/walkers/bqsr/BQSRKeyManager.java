@@ -92,49 +92,33 @@ public class BQSRKeyManager {
     }
 
     /**
-     * Generates one key per optional covariate.
+     * Generates one key given the optional covariate (or none if it is null)
      * 
      * Keys include all required covariates, the standard covariate and the event type.
      *
-     * Example allKeys:
-     * RG, QUAL, CYCLE, CONTEXT
-     *
-     * List of BitSets returned by this example (given eventType):
-     * RG, QUAL, CYCLE, EVENT
-     * RG, QUAL, CONTEXT, EVENT
-     *
-     * Note: If there are no optional covariates, only one bitset key will be returned with all the required covariates and the event type
-     *
-     * @param allKeys      The keys in long representation for each covariate
-     * @param eventType The type of event described by this keyset (e.g. mismatches, insertions, deletions)
-     * @return one key in long representation per covariate
+     * @param allKeys      The keys in long representation for each covariate (includes all optional covariates, not just the one requested)
+     * @param eventType    The type of event described by this keyset (e.g. mismatches, insertions, deletions)
+     * @return one key in long representation
      */
-    public Long[] longsFromAllKeys(final Long[] allKeys, final EventType eventType) {
-        final ArrayList<Long> allFinalKeys = new ArrayList<Long>();                                                     // Generate one key per optional covariate
+    public long createMasterKey(final long[] allKeys, final EventType eventType, final int optionalCovariateIndex) {
 
-        int covariateIndex = 0;
+        int keyIndex = 0;
         long masterKey = 0L;                                                                                            // This will be a master key holding all the required keys, to replicate later on
         for (RequiredCovariateInfo infoRequired : requiredCovariatesInfo)
-            masterKey |= (allKeys[covariateIndex++] << infoRequired.offset);
+            masterKey |= (allKeys[keyIndex++] << infoRequired.offset);
 
         final long eventKey = keyFromEvent(eventType);                                                                  // create a key for the event type
         masterKey |= (eventKey << nRequiredBits);
 
-        for (int i = 0; i < optionalCovariatesInfo.length; i++) {
-            final Long covariateKey = allKeys[covariateIndex++];
-            if (covariateKey == null)
-                continue;                                                                                               // do not add nulls to the final set of keys.
-
-            long newKey = masterKey | (covariateKey << optionalCovariateOffset);
-            newKey |= (optionalCovariatesInfo[i].covariateID << optionalCovariateIDOffset);
-
-            allFinalKeys.add(newKey);                                                                                   // add this key to the list of keys
+        if (optionalCovariateIndex >= 0 && optionalCovariateIndex < optionalCovariates.length) {
+            final Long covariateKey = allKeys[keyIndex + optionalCovariateIndex];
+            if (covariateKey != null) {                                                                                 // do not add nulls to the final set of keys
+                masterKey |= (covariateKey << optionalCovariateOffset);
+                masterKey |= (optionalCovariatesInfo[optionalCovariateIndex].covariateID << optionalCovariateIDOffset);
+            }
         }
 
-        if (optionalCovariatesInfo.length == 0)                                                                         // special case when we have no optional covariates
-            allFinalKeys.add(masterKey);
-
-        return allFinalKeys.toArray(new Long[allFinalKeys.size()]);
+        return masterKey;
     }
 
     /**
@@ -248,14 +232,14 @@ public class BQSRKeyManager {
     }
 
     // cache the key representing an event since it's otherwise created a massive amount of times
-    private static final Map<EventType, Long> eventTypeCache = new HashMap<EventType, Long>(EventType.values().length); // event IDs must be longs so that bit-fiddling works
+    private static final long[] eventTypeCache = new long[EventType.values().length]; // event IDs must be longs so that bit-fiddling works
     static {
         for (final EventType eventType : EventType.values())
-            eventTypeCache.put(eventType, (long)eventType.index);
+            eventTypeCache[eventType.index] = (long)eventType.index;
     }
 
-    private Long keyFromEvent(final EventType eventType) {
-        return eventTypeCache.get(eventType);
+    private long keyFromEvent(final EventType eventType) {
+        return eventTypeCache[eventType.index];
     }
 
     @Override

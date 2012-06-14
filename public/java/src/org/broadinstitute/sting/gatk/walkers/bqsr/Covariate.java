@@ -64,21 +64,21 @@ public interface Covariate {
     /**
      * Converts the internal representation of the key to String format for file output.
      *
-     * @param key the Long representation of the key
+     * @param key the long representation of the key
      * @return a string representation of the key
      */
-    public String formatKey(final Long key);
+    public String formatKey(final long key);
 
     /**
-     * Converts an Object key into a Long key using only the lowest numberOfBits() bits
+     * Converts an Object key into a long key using only the lowest numberOfBits() bits
      *
      * Only necessary for on-the-fly recalibration when you have the object, but need to store it in memory in long format. For counting covariates
-     * the getValues method already returns all values in Long format.
+     * the getValues method already returns all values in long format.
      *
      * @param key the object corresponding to the covariate
      * @return a long representation of the object
      */
-    public Long longFromKey(final Object key);
+    public long longFromKey(final Object key);
 
     /**
      * Each covariate should determine how many bits are necessary to encode it's data

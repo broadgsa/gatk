@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.BitSetUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -60,7 +59,7 @@ public class CycleCovariate implements StandardCovariate {
     // Used to pick out the covariate's value from attributes of the read
     @Override
     public CovariateValues getValues(final GATKSAMRecord read) {
-        Long[] cycles = new Long[read.getReadLength()];
+        long[] cycles = new long[read.getReadLength()];
         final NGSPlatform ngsPlatform = read.getNGSPlatform();
 
         // Discrete cycle platforms
@@ -80,7 +79,7 @@ public class CycleCovariate implements StandardCovariate {
             final int CUSHION = 4;
             final int MAX_CYCLE = read.getReadLength() - CUSHION - 1;
             for (int i = 0; i < MAX_CYCLE; i++) {
-                cycles[i] = (i<CUSHION || i>MAX_CYCLE) ? null : keyFromCycle(cycle);
+                cycles[i] = (i<CUSHION || i>MAX_CYCLE) ? -1 : keyFromCycle(cycle);
                 cycle += increment;
             }
         }
@@ -183,7 +182,7 @@ public class CycleCovariate implements StandardCovariate {
     }
 
     @Override
-    public String formatKey(final Long key) {
+    public String formatKey(final long key) {
         long cycle = key >> 1;  // shift so we can remove the "sign" bit
         if ( (key & 1) != 0 )   // is the last bit set?
             cycle *= -1;        // then the cycle is negative
@@ -191,7 +190,7 @@ public class CycleCovariate implements StandardCovariate {
     }
 
     @Override
-    public Long longFromKey(final Object key) {
+    public long longFromKey(final Object key) {
         return (key instanceof String) ? keyFromCycle(Short.parseShort((String) key)) : keyFromCycle((Short) key);
     }
 
@@ -200,7 +199,7 @@ public class CycleCovariate implements StandardCovariate {
         return BQSRKeyManager.numberOfBitsToRepresent(2 * Short.MAX_VALUE); // positive and negative
     }
 
-    private static Long keyFromCycle(final short cycle) {
+    private static long keyFromCycle(final short cycle) {
         // no negative values because
         long result = Math.abs(cycle);
         result = result << 1; // shift so we can add the "sign" bit

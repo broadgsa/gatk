@@ -84,22 +84,20 @@ public class RecalibrationReportUnitTest {
                 BQSRKeyManager keyManager = entry.getKey();
                 Map<Long, RecalDatum> table = entry.getValue();
 
-                for (Long key : keyManager.longsFromAllKeys(rc.getMismatchesKeySet(offset), EventType.BASE_SUBSTITUTION)) {
-                    table.put(key, RecalDatum.createRandomRecalDatum(10000, 10));
-                    nKeys++;
+                final int numOptionalCovariates = keyManager.getNumOptionalCovariates();
+                if (numOptionalCovariates == 0) {
+                    table.put(keyManager.createMasterKey(rc.getMismatchesKeySet(offset), EventType.BASE_SUBSTITUTION, -1), RecalDatum.createRandomRecalDatum(10000, 10));
+                    table.put(keyManager.createMasterKey(rc.getMismatchesKeySet(offset), EventType.BASE_INSERTION, -1), RecalDatum.createRandomRecalDatum(100000, 10));
+                    table.put(keyManager.createMasterKey(rc.getMismatchesKeySet(offset), EventType.BASE_DELETION, -1), RecalDatum.createRandomRecalDatum(100000, 10));
+                    nKeys += 3;
+                } else {
+                    for (int j = 0; j < numOptionalCovariates; j++) {
+                        table.put(keyManager.createMasterKey(rc.getMismatchesKeySet(offset), EventType.BASE_SUBSTITUTION, j), RecalDatum.createRandomRecalDatum(10000, 10));
+                        table.put(keyManager.createMasterKey(rc.getMismatchesKeySet(offset), EventType.BASE_INSERTION, j), RecalDatum.createRandomRecalDatum(100000, 10));
+                        table.put(keyManager.createMasterKey(rc.getMismatchesKeySet(offset), EventType.BASE_DELETION, j), RecalDatum.createRandomRecalDatum(100000, 10));
+                        nKeys += 3;
+                    }
                 }
-
-                for (Long key : keyManager.longsFromAllKeys(rc.getInsertionsKeySet(offset), EventType.BASE_INSERTION)) {
-                    table.put(key, RecalDatum.createRandomRecalDatum(100000, 10));
-                    nKeys++;
-                }
-
-
-                for (Long key : keyManager.longsFromAllKeys(rc.getDeletionsKeySet(offset), EventType.BASE_DELETION)) {
-                    table.put(key,  RecalDatum.createRandomRecalDatum(100000, 10));
-                    nKeys++;
-                }
-
             }
         }
         Assert.assertEquals(nKeys, expectedKeys);

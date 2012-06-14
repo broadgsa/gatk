@@ -612,15 +612,27 @@ public class RecalDataManager {
      * @return a matrix with all the covariates calculated for every base in the read
      */
     public static ReadCovariates computeCovariates(final GATKSAMRecord read, final Covariate[] requestedCovariates) {
-        final int numRequestedCovariates = requestedCovariates.length;
-        final int readLength = read.getReadLength();
-        final ReadCovariates readCovariates = new ReadCovariates(readLength, numRequestedCovariates);
+        final ReadCovariates readCovariates = new ReadCovariates(read.getReadLength(), requestedCovariates.length);
+        computeCovariates(read, requestedCovariates, readCovariates);
+        return readCovariates;
+    }
 
+    /**
+     * Computes all requested covariates for every offset in the given read
+     * by calling covariate.getValues(..).
+     *
+     * It populates an array of covariate values where result[i][j] is the covariate
+     * value for the ith position in the read and the jth covariate in
+     * reqeustedCovariates list.
+     *
+     * @param read                The read for which to compute covariate values.
+     * @param requestedCovariates The list of requested covariates.
+     * @param readCovariates      The object to store the covariate values
+     */
+    public static void computeCovariates(final GATKSAMRecord read, final Covariate[] requestedCovariates, final ReadCovariates readCovariates) {
         // Loop through the list of requested covariates and compute the values of each covariate for all positions in this read
         for (final Covariate covariate : requestedCovariates)
             readCovariates.addCovariate(covariate.getValues(read));
-
-        return readCovariates;
     }
 
     /**

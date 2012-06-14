@@ -65,9 +65,9 @@ public class ContextCovariate implements StandardCovariate {
     @Override
     public CovariateValues getValues(final GATKSAMRecord read) {
         final int l = read.getReadLength();
-        final Long[] mismatches = new Long[l];
-        final Long[] insertions = new Long[l];
-        final Long[] deletions = new Long[l];
+        final long[] mismatches = new long[l];
+        final long[] insertions = new long[l];
+        final long[] deletions = new long[l];
 
         final GATKSAMRecord clippedRead = ReadClipper.clipLowQualEnds(read, LOW_QUAL_TAIL, ClippingRepresentation.WRITE_NS);   // Write N's over the low quality tail of the reads to avoid adding them into the context
         
@@ -97,15 +97,15 @@ public class ContextCovariate implements StandardCovariate {
     }
 
     @Override
-    public String formatKey(final Long key) {
-        if (key == null)    // this can only happen in test routines because we do not propagate null keys to the csv file
+    public String formatKey(final long key) {
+        if (key == -1)    // this can only happen in test routines because we do not propagate null keys to the csv file
             return null;
 
         return contextFromKey(key);
     }
 
     @Override
-    public Long longFromKey(Object key) {
+    public long longFromKey(Object key) {
         return longFrom((String) key);
     }
 
@@ -122,8 +122,8 @@ public class ContextCovariate implements StandardCovariate {
      * @param contextSize context size to use building the context
      * @return the key representing the context
      */
-    private Long contextWith(final byte[] bases, final int offset, final int contextSize) {
-        Long result = null;
+    private long contextWith(final byte[] bases, final int offset, final int contextSize) {
+        long result = -1;
         final int start = offset - contextSize + 1;
         if (start >= 0) {
             final byte[] context = Arrays.copyOfRange(bases, start, offset + 1);
@@ -138,10 +138,10 @@ public class ContextCovariate implements StandardCovariate {
      *
      * @param array any array
      */
-    private static void reverse(final Object[] array) {
+    private static void reverse(final long[] array) {
         final int arrayLength = array.length;
         for (int l = 0, r = arrayLength - 1; l < r; l++, r--) {
-            final Object temp = array[l];
+            final long temp = array[l];
             array[l] = array[r];
             array[r] = temp;
         }
@@ -150,12 +150,12 @@ public class ContextCovariate implements StandardCovariate {
     static final private int MAX_DNA_CONTEXT = 31;                              // the maximum context size (number of bases) permitted in the "long bitset" implementation of the DNA <=> BitSet conversion.
     static final long[] combinationsPerLength = new long[MAX_DNA_CONTEXT + 1];  // keeps the memoized table with the number of combinations for each given DNA context length
 
-    public static Long longFrom(final String dna) {
+    public static long longFrom(final String dna) {
         return keyFromContext(dna.getBytes());
     }
 
     /**
-     * Creates a Long representation of a given dna string.
+     * Creates a long representation of a given dna string.
      *
      * Warning: This conversion is limited to long precision, therefore the dna sequence cannot
      * be longer than 31 bases.
@@ -172,7 +172,7 @@ public class ContextCovariate implements StandardCovariate {
      * @param dna the dna sequence
      * @return the key representing the dna sequence
      */
-    public static Long keyFromContext(final byte[] dna) {
+    public static long keyFromContext(final byte[] dna) {
         if (dna.length > MAX_DNA_CONTEXT)
             throw new ReviewedStingException(String.format("DNA Length cannot be bigger than %d. dna: %s (%d)", MAX_DNA_CONTEXT, dna, dna.length));
 
@@ -227,7 +227,7 @@ public class ContextCovariate implements StandardCovariate {
      * @param key    the key representing the dna sequence
      * @return the dna sequence represented by the key
      */
-    public static String contextFromKey(Long key) {
+    public static String contextFromKey(long key) {
         if (key < 0)
             throw new ReviewedStingException("dna conversion cannot handle negative numbers. Possible overflow?");
 

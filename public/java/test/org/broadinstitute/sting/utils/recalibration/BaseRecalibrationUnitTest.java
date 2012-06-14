@@ -83,7 +83,7 @@ public class BaseRecalibrationUnitTest {
         readCovariates = RecalDataManager.computeCovariates(read, requestedCovariates);
 
         for (int i=0; i<read.getReadLength(); i++) {
-            Long[] bitKeys = readCovariates.getMismatchesKeySet(i);
+            long[] bitKeys = readCovariates.getMismatchesKeySet(i);
 
             Object[] objKey = buildObjectKey(bitKeys);
 
@@ -98,9 +98,17 @@ public class BaseRecalibrationUnitTest {
 
             RecalDatum newDatum = new RecalDatum(nObservations, nErrors, estimatedQReported, empiricalQuality);
             for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> mapEntry : keysAndTablesMap.entrySet()) {
-                Long[] keys = mapEntry.getKey().longsFromAllKeys(bitKeys, EventType.BASE_SUBSTITUTION);
-                for (Long key : keys)
-                    updateCovariateWithKeySet(mapEntry.getValue(), key, newDatum);
+                final BQSRKeyManager keyManager = mapEntry.getKey();
+                final int numOptionalCovariates = keyManager.getNumOptionalCovariates();
+                if (numOptionalCovariates == 0) {
+                    final long masterKey = keyManager.createMasterKey(bitKeys, EventType.BASE_SUBSTITUTION, -1);
+                    updateCovariateWithKeySet(mapEntry.getValue(), masterKey, newDatum);
+                } else {
+                    for (int j = 0; j < numOptionalCovariates; j++) {
+                        final long masterKey = keyManager.createMasterKey(bitKeys, EventType.BASE_SUBSTITUTION, j);
+                        updateCovariateWithKeySet(mapEntry.getValue(), masterKey, newDatum);
+                    }
+                }
             }
         }
         dataManager.generateEmpiricalQualities(1, QualityUtils.MAX_RECALIBRATED_Q_SCORE);
@@ -122,7 +130,7 @@ public class BaseRecalibrationUnitTest {
     public void testGoldStandardComparison() {
         debugTables();
         for (int i = 0; i < read.getReadLength(); i++) {
-            Long [] bitKey = readCovariates.getKeySet(i, EventType.BASE_SUBSTITUTION);
+            long [] bitKey = readCovariates.getKeySet(i, EventType.BASE_SUBSTITUTION);
             Object [] objKey = buildObjectKey(bitKey);
             byte v2 = baseRecalibration.performSequentialQualityCalculation(bitKey, EventType.BASE_SUBSTITUTION);
             byte v1 = goldStandardSequentialCalculation(objKey);
@@ -130,7 +138,7 @@ public class BaseRecalibrationUnitTest {
         }
     }
 
-    private Object[] buildObjectKey(Long[] bitKey) {
+    private Object[] buildObjectKey(long[] bitKey) {
         Object[] key = new Object[bitKey.length];
         key[0] = rgCovariate.formatKey(bitKey[0]);
         key[1] = qsCovariate.formatKey(bitKey[1]);

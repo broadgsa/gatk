@@ -9,7 +9,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -81,7 +80,7 @@ public class BQSRKeyManagerUnitTest {
     }
 
     private void runTestOnRead(GATKSAMRecord read, List<Covariate> covariateList, int nRequired) {
-        final Long[][][] covariateKeys = new Long[covariateList.size()][EventType.values().length][];
+        final long[][][] covariateKeys = new long[covariateList.size()][EventType.values().length][];
         int i = 0;
         for (Covariate cov : covariateList) {
             cov.initialize(RAC);
@@ -102,13 +101,13 @@ public class BQSRKeyManagerUnitTest {
         BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
 
         for (int l = 0; l < read.getReadLength(); l++) {
-            for (int eventType = 0; eventType < EventType.values().length; eventType++) {
-                Long[] keySet = new Long[covariateList.size()];
+            for (EventType eventType : EventType.values()) {
+                long[] keySet = new long[covariateList.size()];
                 Object[] expectedRequired = new Object[covariateList.size()];
                 Object[] expectedCovariate = new Object[covariateList.size()];
 
                 for (int j = 0; j < covariateList.size(); j++) {
-                    keySet[j] = covariateKeys[j][eventType][l];
+                    keySet[j] = covariateKeys[j][eventType.index][l];
 
                     if (j < nRequired)
                         expectedRequired[j] = covariateList.get(j).formatKey(keySet[j]);
@@ -116,28 +115,38 @@ public class BQSRKeyManagerUnitTest {
                         expectedCovariate[j - nRequired] = covariateList.get(j).formatKey(keySet[j]);
                 }
 
-                Long[] hashKeys = keyManager.longsFromAllKeys(keySet, EventType.eventFrom(eventType));
-                short cov = 0;
-                for (Long key : hashKeys) {
-                    Object[] actual = keyManager.keySetFrom(key).toArray();
-
-                    // Build the expected array
-                    Object[] expected = new Object[nRequired + (optionalCovariates.size() > 0 ? 3 : 1)];
-                    System.arraycopy(expectedRequired, 0, expected, 0, nRequired);
-                    if (optionalCovariates.size() > 0) {
-                        expected[expected.length-3] = expectedCovariate[cov];
-                        expected[expected.length-2] = optionalCovariates.get(cov++).getClass().getSimpleName().split("Covariate")[0];
+                if (optionalCovariates.size() == 0) {
+                    final long masterKey = keyManager.createMasterKey(keySet, eventType, -1);
+                    testKeys(keyManager, masterKey, nRequired, optionalCovariates, expectedRequired, expectedCovariate, eventType, -1);
+                } else {
+                    for (int j = 0; j < optionalCovariates.size(); j++) {
+                        final long masterKey = keyManager.createMasterKey(keySet, eventType, j);
+                        testKeys(keyManager, masterKey, nRequired, optionalCovariates, expectedRequired, expectedCovariate, eventType, j);
                     }
-                    expected[expected.length-1] = EventType.eventFrom(eventType);
+                }
+            }
+        }
+    }
+
+    private void testKeys(final BQSRKeyManager keyManager, final long key, final int nRequired, final List<Covariate> optionalCovariates,
+                          final Object[] expectedRequired, final Object[] expectedCovariate, final EventType eventType, final int index) {
+
+        Object[] actual = keyManager.keySetFrom(key).toArray();
+
+        // Build the expected array
+        Object[] expected = new Object[nRequired + (optionalCovariates.size() > 0 ? 3 : 1)];
+        System.arraycopy(expectedRequired, 0, expected, 0, nRequired);
+        if (optionalCovariates.size() > 0) {
+            expected[expected.length-3] = expectedCovariate[index];
+            expected[expected.length-2] = optionalCovariates.get(index).getClass().getSimpleName().split("Covariate")[0];
+        }
+        expected[expected.length-1] = eventType;
 
 //                    System.out.println("Actual  : " + Utils.join(",", Arrays.asList(actual)));
 //                    System.out.println("Expected: " + Utils.join(",", Arrays.asList(expected)));
 //                    System.out.println();
 
-                    for (int k = 0; k < expected.length; k++)
-                        Assert.assertEquals(actual[k], expected[k]);
-                }
-            }
-        }
+        for (int k = 0; k < expected.length; k++)
+            Assert.assertEquals(actual[k], expected[k]);
     }
 }

@@ -54,7 +54,7 @@ public class ReadGroupCovariate implements RequiredCovariate {
         final int l = read.getReadLength();
         final String readGroupId = readGroupValueFromRG(read.getReadGroup());
         final long key = keyForReadGroup(readGroupId);
-        Long[] readGroups = new Long[l];
+        long[] readGroups = new long[l];
         Arrays.fill(readGroups, key);
         return new CovariateValues(readGroups, readGroups, readGroups);
     }
@@ -65,12 +65,12 @@ public class ReadGroupCovariate implements RequiredCovariate {
     }
 
     @Override
-    public String formatKey(final Long key) {
+    public String formatKey(final long key) {
         return readGroupReverseLookupTable.get(key);
     }
 
     @Override
-    public Long longFromKey(Object key) {
+    public long longFromKey(Object key) {
         return keyForReadGroup((String) key);
     }
 
@@ -79,7 +79,7 @@ public class ReadGroupCovariate implements RequiredCovariate {
         return BQSRKeyManager.numberOfBitsToRepresent(Short.MAX_VALUE);
     }
 
-    private Long keyForReadGroup(final String readGroupId) {
+    private long keyForReadGroup(final String readGroupId) {
         if (!readGroupLookupTable.containsKey(readGroupId)) {
             readGroupLookupTable.put(readGroupId, nextId);
             readGroupReverseLookupTable.put(nextId, readGroupId);
