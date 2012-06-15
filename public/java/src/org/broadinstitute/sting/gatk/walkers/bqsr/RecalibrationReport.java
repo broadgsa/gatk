@@ -266,11 +266,8 @@ public class RecalibrationReport {
             else if (argument.equals("mismatches_context_size"))
                 RAC.MISMATCHES_CONTEXT_SIZE = Integer.parseInt((String) value);
 
-            else if (argument.equals("insertions_context_size"))
-                RAC.INSERTIONS_CONTEXT_SIZE = Integer.parseInt((String) value);
-
-            else if (argument.equals("deletions_context_size"))
-                RAC.DELETIONS_CONTEXT_SIZE = Integer.parseInt((String) value);
+            else if (argument.equals("indels_context_size"))
+                RAC.INDELS_CONTEXT_SIZE = Integer.parseInt((String) value);
 
             else if (argument.equals("mismatches_default_quality"))
                 RAC.MISMATCHES_DEFAULT_QUALITY = Byte.parseByte((String) value);

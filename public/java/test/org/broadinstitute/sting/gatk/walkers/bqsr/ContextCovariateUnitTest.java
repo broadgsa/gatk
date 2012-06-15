@@ -32,8 +32,8 @@ public class ContextCovariateUnitTest {
         covariate.recordValues(read, readCovariates);
 
         verifyCovariateArray(readCovariates.getMismatchesKeySet(), RAC.MISMATCHES_CONTEXT_SIZE, clippedRead, covariate);
-        verifyCovariateArray(readCovariates.getInsertionsKeySet(), RAC.INSERTIONS_CONTEXT_SIZE, clippedRead, covariate);
-        verifyCovariateArray(readCovariates.getDeletionsKeySet(),  RAC.DELETIONS_CONTEXT_SIZE,  clippedRead, covariate);
+        verifyCovariateArray(readCovariates.getInsertionsKeySet(), RAC.INDELS_CONTEXT_SIZE, clippedRead, covariate);
+        verifyCovariateArray(readCovariates.getDeletionsKeySet(),  RAC.INDELS_CONTEXT_SIZE,  clippedRead, covariate);
     }
 
     public static void verifyCovariateArray(long[][] values, int contextSize, GATKSAMRecord read, Covariate contextCovariate) {

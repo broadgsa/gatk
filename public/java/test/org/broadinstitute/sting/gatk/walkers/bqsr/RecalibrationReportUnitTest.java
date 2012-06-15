@@ -76,7 +76,7 @@ public class RecalibrationReportUnitTest {
         read.setBaseQualities(readQuals);
 
 
-        final int expectedKeys = expectedNumberOfKeys(4, length, RAC.INSERTIONS_CONTEXT_SIZE, RAC.MISMATCHES_CONTEXT_SIZE);
+        final int expectedKeys = expectedNumberOfKeys(4, length, RAC.INDELS_CONTEXT_SIZE, RAC.MISMATCHES_CONTEXT_SIZE);
         int nKeys = 0;                                                                                                  // keep track of how many keys were produced
         final ReadCovariates rc = RecalDataManager.computeCovariates(read, requestedCovariates);
         for (int offset = 0; offset < length; offset++) {

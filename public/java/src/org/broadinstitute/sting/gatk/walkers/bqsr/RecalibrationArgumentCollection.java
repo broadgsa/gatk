@@ -114,16 +114,10 @@ public class RecalibrationArgumentCollection {
     public int MISMATCHES_CONTEXT_SIZE = 2;
 
     /**
-     * The context covariate will use a context of this size to calculate it's covariate value for base insertions
+     * The context covariate will use a context of this size to calculate it's covariate value for base insertions and deletions
      */
-    @Argument(fullName = "insertions_context_size", shortName = "ics", doc = "size of the k-mer context to be used for base insertions", required = false)
-    public int INSERTIONS_CONTEXT_SIZE = 8;
-
-    /**
-     * The context covariate will use a context of this size to calculate it's covariate value for base deletions
-     */
-    @Argument(fullName = "deletions_context_size", shortName = "dcs", doc = "size of the k-mer context to be used for base deletions", required = false)
-    public int DELETIONS_CONTEXT_SIZE = 8;
+    @Argument(fullName = "indels_context_size", shortName = "ics", doc = "size of the k-mer context to be used for base insertions and deletions", required = false)
+    public int INDELS_CONTEXT_SIZE = 8;
 
     /**
      * A default base qualities to use as a prior (reported quality) in the mismatch covariate model. This value will replace all base qualities in the read for this default value. Negative value turns it off (default is off)
@@ -188,10 +182,8 @@ public class RecalibrationArgumentCollection {
         argumentsTable.set("solid_nocall_strategy", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, SOLID_NOCALL_STRATEGY);
         argumentsTable.addRowID("mismatches_context_size", true);
         argumentsTable.set("mismatches_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_CONTEXT_SIZE);
-        argumentsTable.addRowID("insertions_context_size", true);
-        argumentsTable.set("insertions_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, INSERTIONS_CONTEXT_SIZE);
-        argumentsTable.addRowID("deletions_context_size", true);
-        argumentsTable.set("deletions_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, DELETIONS_CONTEXT_SIZE);
+        argumentsTable.addRowID("indels_context_size", true);
+        argumentsTable.set("indels_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, INDELS_CONTEXT_SIZE);
         argumentsTable.addRowID("mismatches_default_quality", true);
         argumentsTable.set("mismatches_default_quality", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_DEFAULT_QUALITY);
         argumentsTable.addRowID("insertions_default_quality", true);

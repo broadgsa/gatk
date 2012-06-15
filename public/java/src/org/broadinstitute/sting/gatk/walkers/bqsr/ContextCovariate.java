@@ -41,8 +41,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 public class ContextCovariate implements StandardCovariate {
 
     private int mismatchesContextSize;
-    private int insertionsContextSize;
-    private int deletionsContextSize;
+    private int indelsContextSize;
 
     private byte LOW_QUAL_TAIL;
 
@@ -50,19 +49,16 @@ public class ContextCovariate implements StandardCovariate {
     @Override
     public void initialize(final RecalibrationArgumentCollection RAC) {
         mismatchesContextSize = RAC.MISMATCHES_CONTEXT_SIZE;
-        insertionsContextSize = RAC.INSERTIONS_CONTEXT_SIZE;
-        deletionsContextSize = RAC.DELETIONS_CONTEXT_SIZE;
+        indelsContextSize = RAC.INDELS_CONTEXT_SIZE;
         if (mismatchesContextSize > MAX_DNA_CONTEXT)
             throw new UserException.BadArgumentValue("mismatches_context_size", String.format("context size cannot be bigger than %d, but was %d", MAX_DNA_CONTEXT, mismatchesContextSize));
-        if (insertionsContextSize > MAX_DNA_CONTEXT)
-            throw new UserException.BadArgumentValue("insertions_context_size", String.format("context size cannot be bigger than %d, but was %d", MAX_DNA_CONTEXT, insertionsContextSize));
-        if (deletionsContextSize > MAX_DNA_CONTEXT)
-            throw new UserException.BadArgumentValue("deletions_context_size", String.format("context size cannot be bigger than %d, but was %d", MAX_DNA_CONTEXT, deletionsContextSize));
+        if (indelsContextSize > MAX_DNA_CONTEXT)
+            throw new UserException.BadArgumentValue("indels_context_size", String.format("context size cannot be bigger than %d, but was %d", MAX_DNA_CONTEXT, indelsContextSize));
 
         LOW_QUAL_TAIL = RAC.LOW_QUAL_TAIL;
         
-        if (mismatchesContextSize <= 0 || insertionsContextSize <= 0 || deletionsContextSize <= 0)
-            throw new UserException(String.format("Context Size must be positive, if you don't want to use the context covariate, just turn it off instead. Mismatches: %d Insertions: %d Deletions:%d", mismatchesContextSize, insertionsContextSize, deletionsContextSize));
+        if (mismatchesContextSize <= 0 || indelsContextSize <= 0)
+            throw new UserException(String.format("Context size must be positive, if you don't want to use the context covariate, just turn it off instead. Mismatches: %d Indels: %d", mismatchesContextSize, indelsContextSize));
     }
 
     @Override
@@ -77,7 +73,8 @@ public class ContextCovariate implements StandardCovariate {
 
         final int readLength = clippedRead.getReadLength();
         for (int i = 0; i < readLength; i++) {
-            values.addCovariate(contextWith(bases, i, mismatchesContextSize), contextWith(bases, i, insertionsContextSize), contextWith(bases, i, deletionsContextSize), (negativeStrand ? readLength - i - 1 : i));
+            final long indelKey = contextWith(bases, i, indelsContextSize);
+            values.addCovariate(contextWith(bases, i, mismatchesContextSize), indelKey, indelKey, (negativeStrand ? readLength - i - 1 : i));
         }
     }
 
