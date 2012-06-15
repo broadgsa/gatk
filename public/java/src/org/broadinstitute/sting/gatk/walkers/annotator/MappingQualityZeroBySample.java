@@ -40,9 +40,7 @@ import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Count for each sample of mapping quality zero reads
@@ -55,12 +53,10 @@ public class MappingQualityZeroBySample extends GenotypeAnnotation {
             return;
 
         int mq0 = 0;
-        if ( context.hasBasePileup() ) {
-            final ReadBackedPileup pileup = context.getBasePileup();
-            for (PileupElement p : pileup ) {
-                if ( p.getMappingQual() == 0 )
-                    mq0++;
-            }
+        final ReadBackedPileup pileup = context.getBasePileup();
+        for (PileupElement p : pileup ) {
+            if ( p.getMappingQual() == 0 )
+                mq0++;
         }
 
         gb.attribute(getKeyNames().get(0), mq0);

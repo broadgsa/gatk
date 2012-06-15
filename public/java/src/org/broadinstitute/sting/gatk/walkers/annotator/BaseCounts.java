@@ -59,8 +59,6 @@ public class BaseCounts extends InfoFieldAnnotation {
         int[] counts = new int[4];
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
-            if ( !sample.getValue().hasBasePileup() )
-                continue;
             for (byte base : sample.getValue().getBasePileup().getBases() ) {
                 int index = BaseUtils.simpleBaseToBaseIndex(base);
                 if ( index != -1 )

@@ -51,11 +51,6 @@ public class ReadProperties {
         return includeReadsWithDeletionAtLoci;
     }
 
-    @Deprecated
-    public boolean generateExtendedEvents() {
-        return false;
-    }
-
     /**
      * Gets a list of the files acting as sources of reads.
      * @return A list of files storing reads data.

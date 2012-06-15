@@ -365,7 +365,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             return counter;
 
         // Do not operate on variants that are not covered to the optional minimum depth
-        if (!context.hasReads() || !context.hasBasePileup() || (minDepth > 0 && context.getBasePileup().getBases().length < minDepth)) {
+        if (!context.hasReads() || (minDepth > 0 && context.getBasePileup().getBases().length < minDepth)) {
             counter.nUncovered = 1L;
             if (vcComp.getAttribute("GV").equals("T"))
                 counter.nAltNotCalled = 1L;

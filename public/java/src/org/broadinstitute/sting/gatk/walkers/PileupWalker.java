@@ -34,9 +34,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.io.PrintStream;
@@ -79,13 +77,11 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
 
         String rods = getReferenceOrderedData( tracker );
 
-        if ( context.hasBasePileup() ) {
-            ReadBackedPileup basePileup = context.getBasePileup();
-            out.printf("%s %s", basePileup.getPileupString((char)ref.getBase()), rods);
-            if ( SHOW_VERBOSE )
-                out.printf(" %s", createVerboseOutput(basePileup));
-            out.println();
-        }
+        ReadBackedPileup basePileup = context.getBasePileup();
+        out.printf("%s %s", basePileup.getPileupString((char)ref.getBase()), rods);
+        if ( SHOW_VERBOSE )
+            out.printf(" %s", createVerboseOutput(basePileup));
+        out.println();
 
         return 1;
     }

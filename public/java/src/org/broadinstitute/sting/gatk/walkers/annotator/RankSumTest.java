@@ -63,9 +63,6 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements Standar
                     continue;
                 }
 
-                if (!context.hasBasePileup())
-                    continue;
-
                 final ReadBackedPileup pileup = context.getBasePileup();
                 if (pileup == null)
                     continue;

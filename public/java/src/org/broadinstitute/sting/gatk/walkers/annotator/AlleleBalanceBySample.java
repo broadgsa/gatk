@@ -49,9 +49,6 @@ public class AlleleBalanceBySample extends GenotypeAnnotation implements Experim
         if ( altAlleles.size() == 0 )
             return null;
 
-        if ( !stratifiedContext.hasBasePileup() )
-            return null;
-
         final String bases = new String(stratifiedContext.getBasePileup().getBases());
         if ( bases.length() == 0 )
             return null;

@@ -269,10 +269,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     logger.debug("Unprocessed variant = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
             }
 
-            int numReads = 0;
-            if (context.hasBasePileup()) {
-                numReads = context.getBasePileup().getNumberOfElements();
-            }
+            int numReads = context.getBasePileup().getNumberOfElements();
             PhasingStats addInPhaseStats = new PhasingStats(numReads, 1);
             phaseStats.addIn(addInPhaseStats);
         }
@@ -1107,10 +1104,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             this.sampleReadBases = new HashMap<String, ReadBasesAtPosition>();
 
             if (alignment != null) {
-                ReadBackedPileup pileup = null;
-                if (alignment.hasBasePileup()) {
-                    pileup = alignment.getBasePileup();
-                }
+                ReadBackedPileup pileup = alignment.getBasePileup();
                 if (pileup != null) {
                     // filter the read-base pileup based on min base and mapping qualities:
                     pileup = pileup.getBaseAndMappingFilteredPileup(MIN_BASE_QUALITY_SCORE, MIN_MAPPING_QUALITY_SCORE);

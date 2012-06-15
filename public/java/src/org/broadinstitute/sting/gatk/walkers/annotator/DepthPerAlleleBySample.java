@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -58,9 +57,6 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
 
     private void annotateSNP(AlignmentContext stratifiedContext, VariantContext vc, GenotypeBuilder gb) {
 
-        if ( ! stratifiedContext.hasBasePileup() )
-            return;
-
         HashMap<Byte, Integer> alleleCounts = new HashMap<Byte, Integer>();
         for ( Allele allele : vc.getAlleles() )
             alleleCounts.put(allele.getBases()[0], 0);
@@ -81,9 +77,6 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
     }
 
     private void annotateIndel(AlignmentContext stratifiedContext, VariantContext vc, GenotypeBuilder gb) {
-        if ( ! stratifiedContext.hasBasePileup() )
-            return;
-
         ReadBackedPileup pileup = stratifiedContext.getBasePileup();
         if ( pileup == null )
             return;

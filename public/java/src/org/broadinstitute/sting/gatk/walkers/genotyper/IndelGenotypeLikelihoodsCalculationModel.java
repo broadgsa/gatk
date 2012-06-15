@@ -30,13 +30,11 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.indels.PairHMMIndelErrorModel;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Haplotype;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -138,21 +136,19 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         for (Map.Entry<String, AlignmentContext> sample : contexts.entrySet()) {
             AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
-            if (context.hasBasePileup()) {
-                final ReadBackedPileup pileup = context.getBasePileup();
-                if (pileup != null) {
-                    final GenotypeBuilder b = new GenotypeBuilder(sample.getKey());
-                    final double[] genotypeLikelihoods = pairModel.computeDiploidReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
-                    b.PL(genotypeLikelihoods);
-                    b.DP(getFilteredDepth(pileup));
-                    genotypes.add(b.make());
+            final ReadBackedPileup pileup = context.getBasePileup();
+            if (pileup != null) {
+                final GenotypeBuilder b = new GenotypeBuilder(sample.getKey());
+                final double[] genotypeLikelihoods = pairModel.computeDiploidReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
+                b.PL(genotypeLikelihoods);
+                b.DP(getFilteredDepth(pileup));
+                genotypes.add(b.make());
 
-                    if (DEBUG) {
-                        System.out.format("Sample:%s Alleles:%s GL:", sample.getKey(), alleleList.toString());
-                        for (int k = 0; k < genotypeLikelihoods.length; k++)
-                            System.out.format("%1.4f ", genotypeLikelihoods[k]);
-                        System.out.println();
-                    }
+                if (DEBUG) {
+                    System.out.format("Sample:%s Alleles:%s GL:", sample.getKey(), alleleList.toString());
+                    for (int k = 0; k < genotypeLikelihoods.length; k++)
+                        System.out.format("%1.4f ", genotypeLikelihoods[k]);
+                    System.out.println();
                 }
             }
         }

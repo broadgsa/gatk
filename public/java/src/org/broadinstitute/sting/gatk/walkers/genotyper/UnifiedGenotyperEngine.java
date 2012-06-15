@@ -252,7 +252,7 @@ public class UnifiedGenotyperEngine {
             vc = new VariantContextBuilder("UG_call", ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStart(), alleles).make();
         }
         
-        if ( annotationEngine != null && rawContext.hasBasePileup() ) {
+        if ( annotationEngine != null ) {
             // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
             final ReadBackedPileup pileup = rawContext.getBasePileup();
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
@@ -422,7 +422,7 @@ public class UnifiedGenotyperEngine {
         if ( myAlleles.size() != vc.getAlleles().size() && !limitedContext ) // TODO - this function doesn't work with mixed records or records that started as mixed and then became non-mixed
             vcCall = VariantContextUtils.reverseTrimAlleles(vcCall);
 
-        if ( annotationEngine != null && !limitedContext && rawContext.hasBasePileup() ) {
+        if ( annotationEngine != null && !limitedContext ) {
             // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
             final ReadBackedPileup pileup = rawContext.getBasePileup();
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
@@ -441,7 +441,7 @@ public class UnifiedGenotyperEngine {
 
     private Map<String, AlignmentContext> getFilteredAndStratifiedContexts(UnifiedArgumentCollection UAC, ReferenceContext refContext, AlignmentContext rawContext, final GenotypeLikelihoodsCalculationModel.Model model) {
 
-        if ( !BaseUtils.isRegularBase(refContext.getBase()) || !rawContext.hasBasePileup() )
+        if ( !BaseUtils.isRegularBase(refContext.getBase()) )
             return null;
 
         Map<String, AlignmentContext> stratifiedContexts = null;
@@ -507,9 +507,7 @@ public class UnifiedGenotyperEngine {
             int depth = 0;
 
             if ( isCovered ) {
-                AlignmentContext context =  contexts.get(sample);
-                if ( context.hasBasePileup() )
-                    depth = context.getBasePileup().depthOfCoverage();
+                depth = contexts.get(sample).getBasePileup().depthOfCoverage();
             }
 
             P_of_ref *= 1.0 - (theta / 2.0) * getRefBinomialProb(depth);
@@ -571,37 +569,35 @@ public class UnifiedGenotyperEngine {
 
         final List<GenotypeLikelihoodsCalculationModel.Model> models = new ArrayList<GenotypeLikelihoodsCalculationModel.Model>(2);
 
-        if ( rawContext.hasBasePileup() ) {
-            // if we're genotyping given alleles and we have a requested SNP at this position, do SNP
-            if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
-                final VariantContext vcInput = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, refContext, rawContext.getLocation(), false, logger, UAC.alleles);
-                if ( vcInput == null )
-                    return models;
+        // if we're genotyping given alleles and we have a requested SNP at this position, do SNP
+        if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
+            final VariantContext vcInput = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, refContext, rawContext.getLocation(), false, logger, UAC.alleles);
+            if ( vcInput == null )
+                return models;
 
-                if ( vcInput.isSNP() )  {
-                    // ignore SNPs if the user chose INDEL mode only
-                    if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
-                        models.add(GenotypeLikelihoodsCalculationModel.Model.SNP);
-                    else if ( UAC.GLmodel.name().toUpperCase().contains("SNP") )
-                        models.add(UAC.GLmodel);
-                }
-                else if ( vcInput.isIndel() || vcInput.isMixed() ) {
-                    // ignore INDELs if the user chose SNP mode only
-                    if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
-                        models.add(GenotypeLikelihoodsCalculationModel.Model.INDEL);
-                    else if (UAC.GLmodel.name().toUpperCase().contains("INDEL"))
-                        models.add(UAC.GLmodel);
-                }
-                // No support for other types yet
+            if ( vcInput.isSNP() )  {
+                // ignore SNPs if the user chose INDEL mode only
+                if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
+                    models.add(GenotypeLikelihoodsCalculationModel.Model.SNP);
+                else if ( UAC.GLmodel.name().toUpperCase().contains("SNP") )
+                    models.add(UAC.GLmodel);
+            }
+            else if ( vcInput.isIndel() || vcInput.isMixed() ) {
+                // ignore INDELs if the user chose SNP mode only
+                if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
+                    models.add(GenotypeLikelihoodsCalculationModel.Model.INDEL);
+                else if (UAC.GLmodel.name().toUpperCase().contains("INDEL"))
+                    models.add(UAC.GLmodel);
+            }
+            // No support for other types yet
+        }
+        else {
+            if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH ) {
+                models.add(GenotypeLikelihoodsCalculationModel.Model.SNP);
+                models.add(GenotypeLikelihoodsCalculationModel.Model.INDEL);
             }
             else {
-                if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH ) {
-                    models.add(GenotypeLikelihoodsCalculationModel.Model.SNP);
-                    models.add(GenotypeLikelihoodsCalculationModel.Model.INDEL);
-                }
-                else {
-                    models.add(UAC.GLmodel);
-                }
+                models.add(UAC.GLmodel);
             }
         }
 
