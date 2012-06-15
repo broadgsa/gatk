@@ -126,7 +126,7 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
     @Argument(fullName = "print_debug_log", shortName = "dl", doc = "Used only for debugging the walker. Prints extra info to screen", required = false)
     private boolean debug = false;
 
-    private HashMap<GenomeLoc, IntervalStatistics> intervalMap = null;                                                  // interval => statistics
+    private HashMap<GenomeLoc, IntervalStatistics> intervalMap = null;                                                  // maps each interval => statistics
     private PeekableIterator<GenomeLoc> intervalListIterator;                                                           // an iterator to go over all the intervals provided as we traverse the genome
     private Set<String> samples = null;                                                                                 // all the samples being processed
     private final Allele SYMBOLIC_ALLELE = Allele.create("<DT>", false);                                                // avoid creating the symbolic allele multiple times
@@ -137,7 +137,7 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
         super.initialize();
 
         if (getToolkit().getIntervals() == null)
-            throw new UserException("This tool currently only works if you provide one or more interval");
+            throw new UserException("This tool only works if you provide one or more intervals. ( Use the -L argument )");
 
         thresholds = new ThresHolder(minimumBaseQuality, minimumMappingQuality, minimumCoverage, maximumCoverage, minMedianDepth, maxInsertSize, votePercentage, lowMedianDepthPercentage, badMateStatusThreshold, coverageStatusThreshold, excessiveCoverageThreshold, qualityStatusThreshold);
 
@@ -201,6 +201,20 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
         return loc;
     }
 
+    private GenomeLoc getFinishedIntervalSpan(GenomeLoc pos) {
+        GenomeLoc loc = null;
+        for (GenomeLoc interval : intervalMap.keySet()) {
+            if (interval.isBefore(pos)) {
+                if (loc == null)
+                    loc = interval;
+                else
+                    loc = interval.union(loc);
+            }
+        }
+
+        return loc;
+    }
+
     /**
      * Removes all intervals that are behind the current reference locus from the intervalMap
      *
@@ -208,19 +222,17 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
      * @param refBase  the reference allele
      */
     private void removePastIntervals(GenomeLoc refLocus, byte refBase) {
-        // if all intervals are safe
-        if (getIntervalMapSpan() != null && getIntervalMapSpan().isBefore(refLocus)) {
-            for (GenomeLoc interval : intervalMap.keySet()) {
-                outputStatsToVCF(intervalMap.get(interval), Allele.create(refBase, true));
-                intervalMap.remove(interval);
-            }
-        }
+        // if there are statistics to output/ check to see that we can output them in order
+        if (getFinishedIntervalSpan(refLocus) != null &&
+                getIntervalMapSpan().getStart() == getFinishedIntervalSpan(refLocus).getStart()) {
 
-        GenomeLoc interval = intervalListIterator.peek();                                                               // clean up all intervals that we might have skipped because there was no data
-        while (interval != null && interval.isBefore(refLocus)) {
-            interval = intervalListIterator.next();
-            outputStatsToVCF(createIntervalStatistic(interval), Allele.create(refBase, true));
-            interval = intervalListIterator.peek();
+            for (GenomeLoc interval : intervalMap.keySet()) {
+                if (interval.isBefore(refLocus)) {
+                    outputStatsToVCF(intervalMap.get(interval), Allele.create(refBase, true));
+                    intervalMap.remove(interval);
+                }
+            }
+
         }
     }
 

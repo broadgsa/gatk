@@ -280,7 +280,7 @@ class SampleStatistics {
                 read.getAlignmentStart() < read.getMateAlignmentStart())
             return false;
 
-        // TODO note: IGV uses a different alorithm for insert size, there should be a common util class that does this for you
+        // TODO note: IGV uses a different algorithm for insert size, there should be a common util class that does this for you
         // mates are too far apart
         if (Math.abs(read.getAlignmentStart() - read.getMateAlignmentStart()) > thresholds.getMaximumInsertSize())
             return false;
