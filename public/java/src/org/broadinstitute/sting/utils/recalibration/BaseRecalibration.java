@@ -44,9 +44,7 @@ public class BaseRecalibration {
     private final static int MAXIMUM_RECALIBRATED_READ_LENGTH = 5000;
     private final ReadCovariates readCovariates;
 
-
     private final QuantizationInfo quantizationInfo;                                                                    // histogram containing the map for qual quantization (calculated after recalibration is done)
-    private final LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap;                                // quick access reference to the read group table and its key manager
     private final KeysAndTables keysAndTables;
     private final Covariate[] requestedCovariates;                                                                      // list of all covariates to be used in this calculation
 
@@ -80,7 +78,6 @@ public class BaseRecalibration {
                 tables[type.index] = mapEntry.getValue();
             }
         }
-
     }
 
     /**
@@ -92,8 +89,7 @@ public class BaseRecalibration {
     public BaseRecalibration(final File RECAL_FILE, int quantizationLevels) {
         RecalibrationReport recalibrationReport = new RecalibrationReport(RECAL_FILE);
 
-        keysAndTablesMap = recalibrationReport.getKeysAndTablesMap();
-        keysAndTables = new KeysAndTables(keysAndTablesMap);
+        keysAndTables = new KeysAndTables(recalibrationReport.getKeysAndTablesMap());
         requestedCovariates = recalibrationReport.getRequestedCovariates();
         quantizationInfo = recalibrationReport.getQuantizationInfo();
         if (quantizationLevels == 0)                                                                                    // quantizationLevels == 0 means no quantization, preserve the quality scores
@@ -113,7 +109,6 @@ public class BaseRecalibration {
      */
     protected BaseRecalibration(final QuantizationInfo quantizationInfo, final LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap, final Covariate[] requestedCovariates) {
         this.quantizationInfo = quantizationInfo;
-        this.keysAndTablesMap = keysAndTablesMap;
         keysAndTables = new KeysAndTables(keysAndTablesMap);
         this.requestedCovariates = requestedCovariates;
         readCovariates = new ReadCovariates(MAXIMUM_RECALIBRATED_READ_LENGTH, requestedCovariates.length);
