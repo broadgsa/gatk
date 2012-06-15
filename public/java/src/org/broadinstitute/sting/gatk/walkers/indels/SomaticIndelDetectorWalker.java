@@ -617,7 +617,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
                     throw new StingException("Read "+read.getReadName()+" from "+getToolkit().getSourceFileForReaderID(getToolkit().getReaderIDForRead(read))+
                     "has no Normal/Tumor tag associated with it");
 
-//                String rg = (String)read.getAttribute("RG");
+//                String rg = (String)read.getExtendedAttribute("RG");
 //                if ( rg == null )
 //                    throw new UserException.MalformedBam(read, "Read "+read.getReadName()+" has no read group in merged stream. RG is required for somatic calls.");
 
@@ -1148,13 +1148,12 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
         GenotypesContext genotypes = GenotypesContext.create();
         for ( String sample : normalSamples ) {
-
-            Map<String,Object> attrs = call.makeStatsAttributes(null);
-
-            if ( ! discard_event ) // we made a call - put actual het genotype here:
-                genotypes.add(new Genotype(sample,alleles,Genotype.NO_LOG10_PERROR,null,attrs,false));
-            else // no call: genotype is ref/ref (but alleles still contain the alt if we observed anything at all) 
-                genotypes.add(new Genotype(sample, homref_alleles,Genotype.NO_LOG10_PERROR,null,attrs,false));
+            final GenotypeBuilder gb = new GenotypeBuilder(sample);
+            gb.attributes(call.makeStatsAttributes(null));
+            gb.alleles(! discard_event
+                ? alleles             // we made a call - put actual het genotype here:
+                : homref_alleles);    // no call: genotype is ref/ref (but alleles still contain the alt if we observed anything at all)
+            genotypes.add(gb.make());
 
         }
         Set<String> filters = null;
@@ -1238,11 +1237,11 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         GenotypesContext genotypes = GenotypesContext.create();
 
         for ( String sample : normalSamples ) {
-            genotypes.add(new Genotype(sample, homRefN ? homRefAlleles : alleles,Genotype.NO_LOG10_PERROR,null,attrsNormal,false));
+            genotypes.add(GenotypeBuilder.create(sample, homRefN ? homRefAlleles : alleles, attrsNormal));
         }
 
         for ( String sample : tumorSamples ) {
-            genotypes.add(new Genotype(sample, homRefT ? homRefAlleles : alleles,Genotype.NO_LOG10_PERROR,null,attrsTumor,false) );
+            genotypes.add(GenotypeBuilder.create(sample, homRefT ? homRefAlleles : alleles, attrsTumor));
         }
 
         Set<String> filters = null;
@@ -2144,7 +2143,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 
 
 class VCFIndelAttributes {
-    public static String ALLELIC_DEPTH_KEY = "AD";
+    public static String ALLELIC_DEPTH_KEY = VCFConstants.GENOTYPE_ALLELE_DEPTHS;
     public static String DEPTH_TOTAL_KEY = VCFConstants.DEPTH_KEY;
 
     public static String MAPQ_KEY = "MQS";

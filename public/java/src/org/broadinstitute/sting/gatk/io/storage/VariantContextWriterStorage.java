@@ -38,10 +38,7 @@ import org.broadinstitute.sting.utils.variantcontext.writer.Options;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
@@ -57,6 +54,8 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
      * our log, which we want to capture anything from this class
      */
     private static Logger logger = Logger.getLogger(VariantContextWriterStorage.class);
+
+    private final static int BUFFER_SIZE = 1048576;
 
     protected final File file;
     protected OutputStream stream;
@@ -93,7 +92,7 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
             if ( stub.isCompressed() )
                 stream = new BlockCompressedOutputStream(file);
             else
-                stream = new PrintStream(file);
+                stream = new PrintStream(new BufferedOutputStream(new FileOutputStream(file), BUFFER_SIZE));
         }
         catch(IOException ex) {
             throw new UserException.CouldNotCreateOutputFile(file, "Unable to open target output stream", ex);

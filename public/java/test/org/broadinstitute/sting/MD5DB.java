@@ -25,14 +25,13 @@
 package org.broadinstitute.sting;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.walkers.diffengine.DiffEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.testng.Assert;
 
 import java.io.*;
 import java.math.BigInteger;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 /**
@@ -44,13 +43,45 @@ import java.util.Arrays;
  * Utilities for manipulating the MD5 database of previous results
  */
 public class MD5DB {
+    public static final Logger logger = Logger.getLogger(MD5DB.class);
+
     /**
      * Subdirectory under the ant build directory where we store integration test md5 results
      */
-    private static final int MAX_RECORDS_TO_READ = 10000;
-    private static final int MAX_RAW_DIFFS_TO_SUMMARIZE = 1000;
+    private static final int MAX_RECORDS_TO_READ = 100000;
+    private static final int MAX_RAW_DIFFS_TO_SUMMARIZE = -1;
     public static final String LOCAL_MD5_DB_DIR = "integrationtests";
     public static final String GLOBAL_MD5_DB_DIR = "/humgen/gsa-hpprojects/GATK/data/integrationtests";
+
+    // tracking and emitting a data file of origina and new md5s
+    private final File MD5MismatchesFile;
+    private final PrintStream md5MismatchStream;
+
+    public MD5DB() {
+        this(new File(MD5DB.LOCAL_MD5_DB_DIR + "/md5mismatches.txt"));
+    }
+
+    public MD5DB(final File MD5MismatchesFile) {
+        this.MD5MismatchesFile = MD5MismatchesFile;
+
+        ensureMd5DbDirectory();
+
+        logger.debug("Creating md5 mismatch db at " + MD5MismatchesFile);
+        try {
+            md5MismatchStream = new PrintStream(new FileOutputStream(MD5MismatchesFile));
+            md5MismatchStream.printf("%s\t%s\t%s%n", "expected", "observed", "test");
+        } catch ( FileNotFoundException e ) {
+            throw new ReviewedStingException("Failed to open md5 mismatch file", e);
+        }
+
+    }
+
+    public void close() {
+        if ( md5MismatchStream != null ) {
+            logger.debug("Closeing md5 mismatch db at " + MD5MismatchesFile);
+            md5MismatchStream.close();
+        }
+    }
 
     // ----------------------------------------------------------------------
     //
@@ -61,7 +92,7 @@ public class MD5DB {
     /**
      * Create the MD5 file directories if necessary
      */
-    protected static void ensureMd5DbDirectory() {
+    private void ensureMd5DbDirectory() {
         File dir = new File(LOCAL_MD5_DB_DIR);
         if ( ! dir.exists() ) {
             System.out.printf("##### Creating MD5 db %s%n", LOCAL_MD5_DB_DIR);
@@ -79,7 +110,7 @@ public class MD5DB {
      * @param valueIfNotFound
      * @return
      */
-    public static String getMD5FilePath(final String md5, final String valueIfNotFound) {
+    public String getMD5FilePath(final String md5, final String valueIfNotFound) {
         // we prefer the global db to the local DB, so match it first
         for ( String dir : Arrays.asList(GLOBAL_MD5_DB_DIR, LOCAL_MD5_DB_DIR)) {
             File f = getFileForMD5(md5, dir);
@@ -99,7 +130,7 @@ public class MD5DB {
      * @param dbPath
      * @return
      */
-    private static File getFileForMD5(final String md5, final String dbPath) {
+    private File getFileForMD5(final String md5, final String dbPath) {
         final String basename = String.format("%s.integrationtest", md5);
         return new File(dbPath + "/" + basename);
     }
@@ -110,7 +141,7 @@ public class MD5DB {
      * @param md5
      * @param resultsFile
      */
-    private static void updateMD5Db(final String md5, final File resultsFile) {
+    private void updateMD5Db(final String md5, final File resultsFile) {
         copyFileToDB(getFileForMD5(md5, LOCAL_MD5_DB_DIR), resultsFile);
         copyFileToDB(getFileForMD5(md5, GLOBAL_MD5_DB_DIR), resultsFile);
     }
@@ -120,7 +151,7 @@ public class MD5DB {
      * @param dbFile
      * @param resultsFile
      */
-    private static void copyFileToDB(File dbFile, final File resultsFile) {
+    private void copyFileToDB(File dbFile, final File resultsFile) {
         if ( ! dbFile.exists() ) {
             // the file isn't already in the db, copy it over
             System.out.printf("##### Updating MD5 file: %s%n", dbFile.getPath());
@@ -192,7 +223,7 @@ public class MD5DB {
      * @param parameterize If true or if expectedMD5 is an empty string, will print out the calculated MD5 instead of error text.
      * @return The calculated MD5.
      */
-    public static MD5Match assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5, final boolean parameterize) {
+    public MD5Match assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5, final boolean parameterize) {
         final String actualMD5 = testFileMD5(name, resultsFile, expectedMD5, parameterize);
         String failMessage = null;
         boolean failed = false;
@@ -218,7 +249,7 @@ public class MD5DB {
      * @param parameterize If true or if expectedMD5 is an empty string, will print out the calculated MD5 instead of error text.
      * @return The calculated MD5.
      */
-    public static String testFileMD5(final String name, final File resultsFile, final String expectedMD5, final boolean parameterize) {
+    public String testFileMD5(final String name, final File resultsFile, final String expectedMD5, final boolean parameterize) {
         try {
             byte[] bytesOfMessage = getBytesFromFile(resultsFile);
             byte[] thedigest = MessageDigest.getInstance("MD5").digest(bytesOfMessage);
@@ -247,11 +278,13 @@ public class MD5DB {
                     BaseTest.log(String.format("calculated %s", filemd5sum));
                     BaseTest.log(String.format("diff %s %s", pathToExpectedMD5File, pathToFileMD5File));
 
+                    md5MismatchStream.printf("%s\t%s\t%s%n", expectedMD5, filemd5sum, name);
+                    md5MismatchStream.flush();
+
                     // inline differences
-                    // TODO -- capture output and put in log
                     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     final PrintStream ps = new PrintStream(baos);
-                    DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(ps, 20, 10, 0, MAX_RAW_DIFFS_TO_SUMMARIZE);
+                    DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(ps, 20, 10, 0, MAX_RAW_DIFFS_TO_SUMMARIZE, false);
                     boolean success = DiffEngine.simpleDiffFiles(new File(pathToExpectedMD5File), new File(pathToFileMD5File), MAX_RECORDS_TO_READ, params);
                     if ( success ) {
                         final String content = baos.toString();

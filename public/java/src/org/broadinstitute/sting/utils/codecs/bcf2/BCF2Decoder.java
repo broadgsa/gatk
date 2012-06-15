@@ -24,6 +24,8 @@
 
 package org.broadinstitute.sting.utils.codecs.bcf2;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broad.tribble.FeatureCodec;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -33,12 +35,13 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 
-public class BCF2Decoder {
+public final class BCF2Decoder {
     final protected static Logger logger = Logger.getLogger(FeatureCodec.class);
 
-    byte[] recordBytes;
-    ByteArrayInputStream recordStream;
+    byte[] recordBytes = null;
+    ByteArrayInputStream recordStream = null;
 
     public BCF2Decoder() {
         // nothing to do
@@ -66,6 +69,7 @@ public class BCF2Decoder {
      * @return
      */
     public void readNextBlock(final int blockSizeInBytes, final InputStream stream) {
+        if ( blockSizeInBytes < 0 ) throw new UserException.MalformedBCF2("Invalid block size " + blockSizeInBytes);
         setRecordBytes(readRecordBytes(blockSizeInBytes, stream));
     }
 
@@ -112,9 +116,9 @@ public class BCF2Decoder {
      *
      * @param recordBytes
      */
+    @Requires("recordBytes != null")
+    @Ensures({"this.recordBytes == recordBytes", "recordStream != null"})
     public void setRecordBytes(final byte[] recordBytes) {
-        assert recordBytes != null;
-
         this.recordBytes = recordBytes;
         this.recordStream = new ByteArrayInputStream(recordBytes);
     }
@@ -131,7 +135,7 @@ public class BCF2Decoder {
     }
 
     public final Object decodeTypedValue(final byte typeDescriptor) {
-        final int size = BCF2Utils.sizeIsOverflow(typeDescriptor) ? decodeVectorSize() : BCF2Utils.decodeSize(typeDescriptor);
+        final int size = decodeNumberOfElements(typeDescriptor);
         final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
 
         assert size >= 0;
@@ -155,7 +159,7 @@ public class BCF2Decoder {
 
     public final Object decodeSingleValue(final BCF2Type type) {
         // TODO -- decodeTypedValue should integrate this routine
-        final int value = BCF2Utils.readInt(type.getSizeInBytes(), recordStream);
+        final int value = decodeInt(type);
 
         if ( value == type.getMissingBytes() )
             return null;
@@ -184,26 +188,107 @@ public class BCF2Decoder {
         final byte[] bytes = new byte[size]; // TODO -- in principle should just grab bytes from underlying array
         try {
             recordStream.read(bytes);
-            final String s = new String(bytes);
-            return BCF2Utils.isCollapsedString(s) ? BCF2Utils.exploreStringList(s) : s;
+
+            int goodLength = 0;
+            for ( ; goodLength < bytes.length ; goodLength++ )
+                if ( bytes[goodLength] == 0 ) break;
+
+            if ( goodLength == 0 )
+                return null;
+            else {
+                final String s = new String(bytes, 0, goodLength);
+                return BCF2Utils.isCollapsedString(s) ? BCF2Utils.exploreStringList(s) : s;
+            }
         } catch ( IOException e ) {
             throw new ReviewedStingException("readByte failure", e);
         }
     }
 
-    private final int decodeVectorSize() {
-        final byte typeDescriptor = readTypeDescriptor();
-        final int size = BCF2Utils.decodeSize(typeDescriptor);
-        final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
-
-        assert size == 1;
-        assert type == BCF2Type.INT8 || type == BCF2Type.INT16 || type == BCF2Type.INT32;
-
-        return decodeInt(type.getSizeInBytes());
+    @Ensures("result >= 0")
+    public final int decodeNumberOfElements(final byte typeDescriptor) {
+        if ( BCF2Utils.sizeIsOverflow(typeDescriptor) )
+            // -1 ensures we explode immediately with a bad size if the result is missing
+            return decodeInt(readTypeDescriptor(), -1);
+        else
+            // the size is inline, so just decode it
+            return BCF2Utils.decodeSize(typeDescriptor);
     }
 
-    public final int decodeInt(int bytesForEachInt) {
-        return BCF2Utils.readInt(bytesForEachInt, recordStream);
+    /**
+     * Decode an int from the stream.  If the value in the stream is missing,
+     * returns missingValue.  Requires the typeDescriptor indicate an inline
+     * single element event
+     *
+     * @param typeDescriptor
+     * @return
+     */
+    @Requires("BCF2Utils.decodeSize(typeDescriptor) == 1")
+    public final int decodeInt(final byte typeDescriptor, final int missingValue) {
+        final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
+        final int i = decodeInt(type);
+        return i == type.getMissingBytes() ? missingValue : i;
+    }
+
+    @Requires("type != null")
+    public final int decodeInt(final BCF2Type type) {
+        return BCF2Utils.readInt(type.getSizeInBytes(), recordStream);
+    }
+
+    /**
+     * Low-level reader for int[]
+     *
+     * Requires a typeDescriptor so the function knows how many elements to read,
+     * and how they are encoded.
+     *
+     * If size == 0 => result is null
+     * If size > 0 => result depends on the actual values in the stream
+     *      -- If the first element read is MISSING, result is null (all values are missing)
+     *      -- Else result = int[N] where N is the first N non-missing values decoded
+     *
+     * @param maybeDest if not null we'll not allocate space for the vector, but instead use
+     *                  the externally allocated array of ints to store values.  If the
+     *                  size of this vector is < the actual size of the elements, we'll be
+     *                  forced to use freshly allocated arrays.  Also note that padded
+     *                  int elements are still forced to do a fresh allocation as well.
+     * @return see description
+     */
+    @Requires({"BCF2Type.INTEGERS.contains(type)", "size >= 0", "type != null"})
+    public final int[] decodeIntArray(final int size, final BCF2Type type, int[] maybeDest) {
+        if ( size == 0 ) {
+            return null;
+        } else {
+            if ( maybeDest != null && maybeDest.length < size )
+                maybeDest = null; // by nulling this out we ensure that we do fresh allocations as maybeDest is too small
+
+            final int val1 = decodeInt(type);
+            if ( val1 == type.getMissingBytes() ) {
+                // fast path for first element being missing
+                for ( int i = 1; i < size; i++ ) decodeInt(type);
+                return null;
+            } else {
+                // we know we will have at least 1 element, so making the int[] is worth it
+                final int[] ints = maybeDest == null ? new int[size] : maybeDest;
+                ints[0] = val1; // we already read the first one
+                for ( int i = 1; i < size; i++ ) {
+                    ints[i] = decodeInt(type);
+                    if ( ints[i] == type.getMissingBytes() ) {
+                        // read the rest of the missing values, dropping them
+                        for ( int j = i + 1; j < size; j++ ) decodeInt(type);
+                        // deal with auto-pruning by returning an int[] containing
+                        // only the non-MISSING values.  We do this by copying the first
+                        // i elements, as i itself is missing
+                        return Arrays.copyOf(ints, i);
+                    }
+                }
+                return ints; // all of the elements were non-MISSING
+            }
+        }
+    }
+
+    public final int[] decodeIntArray(final byte typeDescriptor) {
+        final int size = decodeNumberOfElements(typeDescriptor);
+        final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
+        return decodeIntArray(size, type, null);
     }
 
     public final double rawFloatToFloat(final int rawFloat) {

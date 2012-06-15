@@ -6,7 +6,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.testng.Assert;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderUnitTest;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderUnitTest;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 
 import org.testng.annotations.Test;

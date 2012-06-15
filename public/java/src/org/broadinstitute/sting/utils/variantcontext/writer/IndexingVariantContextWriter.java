@@ -159,4 +159,10 @@ final class PositionalOutputStream extends OutputStream {
     }
 
     public final long getPosition() { return position; }
+
+    @Override
+    public void close() throws IOException {
+        super.close();
+        out.close();
+    }
 }

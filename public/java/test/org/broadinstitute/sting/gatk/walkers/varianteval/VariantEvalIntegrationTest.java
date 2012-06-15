@@ -302,7 +302,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         String tests = cmdRoot +
                 " --dbsnp " + b36dbSNP129 +
                 " --eval " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
-                " --comp:comp_genotypes,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
+                " --comp:comp_genotypes " + testDir + "yri.trio.gatk.ug.head.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
                 1, Arrays.asList("4b9dcbce0717285e3c0c736c1bed744c"));
         executeTestParallel("testSelect1", spec);

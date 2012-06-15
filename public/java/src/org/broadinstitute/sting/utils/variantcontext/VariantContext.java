@@ -327,19 +327,36 @@ public class VariantContext implements Feature { // to enable tribble integratio
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    public VariantContext subContextFromSamples(Set<String> sampleNames, Collection<Allele> alleles) {
-        VariantContextBuilder builder = new VariantContextBuilder(this);
-        return builder.genotypes(genotypes.subsetToSamples(sampleNames)).alleles(alleles).make();
-    }
+    /**
+     * This method subsets down to a set of samples.
+     *
+     * At the same time returns the alleles to just those in use by the samples,
+     * if rederiveAllelesFromGenotypes is true, otherwise the full set of alleles
+     * in this VC is returned as the set of alleles in the subContext, even if
+     * some of those alleles aren't in the samples
+     *
+     * @param sampleNames
+     * @return
+     */
+    public VariantContext subContextFromSamples(Set<String> sampleNames, final boolean rederiveAllelesFromGenotypes ) {
+        if ( ! rederiveAllelesFromGenotypes && sampleNames.containsAll(getSampleNames()) ) {
+            return this; // fast path when you don't have any work to do
+        } else {
+            VariantContextBuilder builder = new VariantContextBuilder(this);
+            GenotypesContext newGenotypes = genotypes.subsetToSamples(sampleNames);
 
-    public VariantContext subContextFromSamples(Set<String> sampleNames) {
-        VariantContextBuilder builder = new VariantContextBuilder(this);
-        GenotypesContext newGenotypes = genotypes.subsetToSamples(sampleNames);
-        return builder.genotypes(newGenotypes).alleles(allelesOfGenotypes(newGenotypes)).make();
+            if ( rederiveAllelesFromGenotypes )
+                builder.alleles(allelesOfGenotypes(newGenotypes));
+            else {
+                builder.alleles(alleles);
+            }
+
+            return builder.genotypes(newGenotypes).make();
+        }
     }
 
     public VariantContext subContextFromSample(String sampleName) {
-        return subContextFromSamples(Collections.singleton(sampleName));
+        return subContextFromSamples(Collections.singleton(sampleName), true);
     }
 
     /**
@@ -849,7 +866,8 @@ public class VariantContext implements Feature { // to enable tribble integratio
      * @return chromosome count
      */
     public int getCalledChrCount() {
-        return  getCalledChrCount(new HashSet<String>(0));
+        final Set<String> noSamples = Collections.emptySet();
+        return  getCalledChrCount(noSamples);
     }
 
     /**
@@ -892,7 +910,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
         GenotypesContext genotypes = sampleIds.isEmpty() ? getGenotypes() : getGenotypes(sampleIds);
 
         for ( final Genotype g : genotypes ) {
-            n += g.getAlleles(a).size();
+            n += g.countAllele(a);
         }
 
         return n;
@@ -922,7 +940,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
 
     private void calculateGenotypeCounts() {
         if ( genotypeCounts == null ) {
-            genotypeCounts = new int[Genotype.Type.values().length];
+            genotypeCounts = new int[GenotypeType.values().length];
 
             for ( final Genotype g : getGenotypes() ) {
                 genotypeCounts[g.getType().ordinal()]++;
@@ -937,7 +955,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
      */
     public int getNoCallCount() {
         calculateGenotypeCounts();
-        return genotypeCounts[Genotype.Type.NO_CALL.ordinal()];
+        return genotypeCounts[GenotypeType.NO_CALL.ordinal()];
     }
 
     /**
@@ -947,7 +965,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
      */
     public int getHomRefCount() {
         calculateGenotypeCounts();
-        return genotypeCounts[Genotype.Type.HOM_REF.ordinal()];
+        return genotypeCounts[GenotypeType.HOM_REF.ordinal()];
     }
 
     /**
@@ -957,7 +975,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
      */
     public int getHetCount() {
         calculateGenotypeCounts();
-        return genotypeCounts[Genotype.Type.HET.ordinal()];
+        return genotypeCounts[GenotypeType.HET.ordinal()];
     }
 
     /**
@@ -967,7 +985,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
      */
     public int getHomVarCount() {
         calculateGenotypeCounts();
-        return genotypeCounts[Genotype.Type.HOM_VAR.ordinal()];
+        return genotypeCounts[GenotypeType.HOM_VAR.ordinal()];
     }
 
     /**
@@ -977,7 +995,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
      */
     public int getMixedCount() {
         calculateGenotypeCounts();
-        return genotypeCounts[Genotype.Type.MIXED.ordinal()];
+        return genotypeCounts[GenotypeType.MIXED.ordinal()];
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -1412,8 +1430,8 @@ public class VariantContext implements Feature { // to enable tribble integratio
     }
 
     private final Genotype fullyDecodeGenotypes(final Genotype g, final VCFHeader header) {
-        final Map<String, Object> map = fullyDecodeAttributes(g.getAttributes(), header);
-        return new Genotype(g.getSampleName(), g.getAlleles(), g.getLog10PError(), g.getFilters(), map, g.isPhased());
+        final Map<String, Object> map = fullyDecodeAttributes(g.getExtendedAttributes(), header);
+        return new GenotypeBuilder(g).attributes(map).make();
     }
 
     // ---------------------------------------------------------------------------------------------------------

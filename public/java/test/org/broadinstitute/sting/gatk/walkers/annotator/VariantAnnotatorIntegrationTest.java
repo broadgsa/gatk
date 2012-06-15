@@ -16,7 +16,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testHasAnnotsNotAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --variant:VCF3 " + testDir + "vcfexample2.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("5720826c2bf6cbc762e4a888ef58c3f2"));
+                Arrays.asList("dfa5dff09fa964b06da19c0f4aff6928"));
         executeTest("test file has annotations, not asking for annotations, #1", spec);
     }
 
@@ -24,7 +24,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testHasAnnotsNotAsking2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --variant:VCF3 " + testDir + "vcfexample3.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
-                Arrays.asList("088e5db7d8de6606cd562885fa47f3b2"));
+                Arrays.asList("9914bd19f6235c550e5182e0f4591da6"));
         executeTest("test file has annotations, not asking for annotations, #2", spec);
     }
 
@@ -32,7 +32,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testHasAnnotsAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G Standard --variant:VCF3 " + testDir + "vcfexample2.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("37fd6826db907f80d4631bae1b629da4"));
+                Arrays.asList("6a52ef10bb10d72cdd82a8f7afc2dd09"));
         executeTest("test file has annotations, asking for annotations, #1", spec);
     }
 
@@ -40,7 +40,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testHasAnnotsAsking2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G Standard --variant:VCF3 " + testDir + "vcfexample3.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
-                Arrays.asList("8a85c20b219a8bb286df3c9f4e1cdc8c"));
+                Arrays.asList("74d894fd31b449deffca88d0e465f01b"));
         executeTest("test file has annotations, asking for annotations, #2", spec);
     }
 
@@ -48,7 +48,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testNoAnnotsNotAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --variant:VCF3 " + testDir + "vcfexample2empty.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("da446d3a3e9aefa7537b65b5adc3609b"));
+                Arrays.asList("dd89dfa22f0e1d6760095e04f528d62a"));
         executeTest("test file doesn't have annotations, not asking for annotations, #1", spec);
     }
 
@@ -58,7 +58,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
         // they don't get reordered.  It's a good test of the genotype ordering system.
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --variant:VCF3 " + testDir + "vcfexample3empty.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
-                Arrays.asList("04c71d90e3df9d519160636ceb0f02b9"));
+                Arrays.asList("542d9ed8290ef7868387af4127e0b5fa"));
         executeTest("test file doesn't have annotations, not asking for annotations, #2", spec);
     }
 
@@ -66,7 +66,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testNoAnnotsAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G Standard --variant:VCF3 " + testDir + "vcfexample2empty.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("6d64723c808a3dd774ed06e228f9c63d"));
+                Arrays.asList("b1b32ed3b831c92c94258c8e4a60e8c9"));
         executeTest("test file doesn't have annotations, asking for annotations, #1", spec);
     }
 
@@ -74,7 +74,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testNoAnnotsAsking2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G Standard --variant:VCF3 " + testDir + "vcfexample3empty.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
-                Arrays.asList("153a23b2fa4eb0ee288e4bb2f0fc4bf8"));
+                Arrays.asList("a25eacb0ceea2c082af349f8d7776c8a"));
         executeTest("test file doesn't have annotations, asking for annotations, #2", spec);
     }
 
@@ -82,7 +82,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testExcludeAnnotations() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G Standard -XA FisherStrand -XA ReadPosRankSumTest --variant:VCF3 " + testDir + "vcfexample2empty.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("a28a503ab204474ecee306c9eceb1060"));
+                Arrays.asList("ef046909a6f6c6cb43653a255a99a014"));
         executeTest("test exclude annotations", spec);
     }
 
@@ -90,7 +90,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testOverwritingHeader() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G Standard --variant " + testDir + "vcfexample4.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,001,292", 1,
-                Arrays.asList("1d98be77dad9c703402de0315db5176a"));
+                Arrays.asList("5c2fded3b6a96b0b0788086bbb2409ed"));
         executeTest("test overwriting header", spec);
     }
 
@@ -98,7 +98,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testNoReads() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G Standard --variant " + testDir + "vcfexample3empty.vcf -L " + testDir + "vcfexample3empty.vcf", 1,
-                Arrays.asList("ea6201db7c1fd5cb9cc3110a3396c646"));
+                Arrays.asList("c590088d85edce786604fd600f5d5e75"));
         executeTest("not passing it any reads", spec);
     }
 
@@ -106,7 +106,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testDBTagWithDbsnp() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --dbsnp " + b36dbSNP129 + " -G Standard --variant " + testDir + "vcfexample3empty.vcf -L " + testDir + "vcfexample3empty.vcf", 1,
-                Arrays.asList("5103b9d9857530dc0ccdb8ca0a1db8c3"));
+                Arrays.asList("ade9354a4cdd6cc92c169f252fb36f3f"));
         executeTest("getting DB tag with dbSNP", spec);
     }
 
@@ -114,7 +114,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testMultipleIdsWithDbsnp() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --alwaysAppendDbsnpId --dbsnp " + b36dbSNP129 + " -G Standard --variant " + testDir + "vcfexample3withIDs.vcf -L " + testDir + "vcfexample3withIDs.vcf", 1,
-                Arrays.asList("d519c21ab0ae901d39856fea7e0e9d83"));
+                Arrays.asList("f496f40e1e9efa743e3b473f6fe6e6d3"));
         executeTest("adding multiple IDs with dbSNP", spec);
     }
 
@@ -122,7 +122,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testDBTagWithHapMap() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --comp:H3 " + testDir + "fakeHM3.vcf -G Standard --variant " + testDir + "vcfexample3empty.vcf -L " + testDir + "vcfexample3empty.vcf", 1,
-                Arrays.asList("746f3a431c6491b85dd6fcf75065550f"));
+                Arrays.asList("d383fbd741d604625c9507d4da1c5a27"));
         executeTest("getting DB tag with HM3", spec);
     }
 
@@ -130,7 +130,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testNoQuals() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --variant " + testDir + "noQual.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L " + testDir + "noQual.vcf -A QualByDepth", 1,
-                Arrays.asList("7ce09a89e72ee95f21313e496311068a"));
+                Arrays.asList("4a247f039dfb16ac05b38a0dd5f98da6"));
         executeTest("test file doesn't have QUALs", spec);
     }
 
@@ -138,7 +138,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testUsingExpression() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --resource:foo " + testDir + "targetAnnotations.vcf -G Standard --variant:VCF3 " + testDir + "vcfexample3empty.vcf -E foo.AF -L " + testDir + "vcfexample3empty.vcf", 1,
-                Arrays.asList("accce2796a967d05d756e1b5adecd6d2"));
+                Arrays.asList("067792efcffea93ade632e52a80d0d8f"));
         executeTest("using expression", spec);
     }
 
@@ -146,13 +146,13 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testUsingExpressionWithID() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --resource:foo " + testDir + "targetAnnotations.vcf -G Standard --variant:VCF3 " + testDir + "vcfexample3empty.vcf -E foo.ID -L " + testDir + "vcfexample3empty.vcf", 1,
-                Arrays.asList("9a37502ab929ac3d5a829467f5612853"));
+                Arrays.asList("66c68deb0508348324eb47d524e756de"));
         executeTest("using expression with ID", spec);
     }
 
     @Test
     public void testTabixAnnotations() {
-        final String MD5 = "bb9a148716fc69d706c5be146c1afa00";
+        final String MD5 = "5aebcf8f76c649d645708b1262185c80";
         for ( String file : Arrays.asList("CEU.exon.2010_03.sites.vcf", "CEU.exon.2010_03.sites.vcf.gz")) {
             WalkerTestSpec spec = new WalkerTestSpec(
                     baseTestString() + " -A HomopolymerRun --variant:vcf " + validationDataLocation + file + " -L " + validationDataLocation + "CEU.exon.2010_03.sites.vcf --no_cmdline_in_header", 1,
@@ -168,7 +168,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
             validationDataLocation + "1kg_exomes_unfiltered.AFR.unfiltered.vcf --snpEffFile  " + validationDataLocation +
             "snpEff2.0.5.AFR.unfiltered.vcf -L 1:1-1,500,000 -L 2:232,325,429",
             1,
-            Arrays.asList("bef7201d9c79facbecba15d4abcc684b")
+            Arrays.asList("0c20cda1cf0b903a287f1807ae5bee02")
         );
         executeTest("Testing SnpEff annotations", spec);
     }
@@ -187,7 +187,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
     @Test
     public void testTDTAnnotation() {
-        final String MD5 = "900e9d82ea3127aa06e676cf50b341f6";
+        final String MD5 = "81f85f0ce8cc36df7c717c478e100ba1";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T VariantAnnotator -R " + b37KGReference + " -A TransmissionDisequilibriumTest --variant:vcf " + testDir + "ug.random50000.subset300bp.chr1.family.vcf" +
                         " -L " + testDir + "ug.random50000.subset300bp.chr1.family.vcf --no_cmdline_in_header -ped " + testDir + "ug.random50000.family.ped -o %s", 1,
@@ -198,7 +198,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
     @Test
     public void testChromosomeCountsPed() {
-        final String MD5 = "7fe0e9df2d9fb375beb7cf23afdb4c87";
+        final String MD5 = "9830fe2247651377e68ad0b0894e9a4e";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T VariantAnnotator -R " + b37KGReference + " -A ChromosomeCounts --variant:vcf " + testDir + "ug.random50000.subset300bp.chr1.family.vcf" +
                         " -L " + testDir + "ug.random50000.subset300bp.chr1.family.vcf --no_cmdline_in_header -ped " + testDir + "ug.random50000.family.ped -o %s", 1,
@@ -208,7 +208,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
 
     @Test
     public void testInbreedingCoeffPed() {
-        final String MD5 = "7aaf0033a823bbf9066b43764d8dd660";
+        final String MD5 = "e94d589b5691e3ecfd9cc9475a384890";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T VariantAnnotator -R " + b37KGReference + " -A InbreedingCoeff --variant:vcf " + testDir + "ug.random50000.subset300bp.chr1.family.vcf" +
                         " -L " + testDir + "ug.random50000.subset300bp.chr1.family.vcf --no_cmdline_in_header -ped " + testDir + "ug.random50000.family.ped -o %s", 1,

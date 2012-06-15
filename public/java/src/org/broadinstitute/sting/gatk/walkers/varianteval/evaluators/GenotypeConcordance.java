@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Molten;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeType;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
@@ -54,7 +55,7 @@ public class GenotypeConcordance extends VariantEvaluator {
      * Initialize this object
      */
     public GenotypeConcordance() {
-        final int nGenotypeTypes = Genotype.Type.values().length;
+        final int nGenotypeTypes = GenotypeType.values().length;
         truthByCalledGenotypeCounts = new long[nGenotypeTypes][nGenotypeTypes];
     }
 
@@ -75,11 +76,11 @@ public class GenotypeConcordance extends VariantEvaluator {
             if (eval != null) {
                 for (final Genotype g : eval.getGenotypes() ) {
                     final String sample = g.getSampleName();
-                    final Genotype.Type called = g.getType();
-                    final Genotype.Type truth;
+                    final GenotypeType called = g.getType();
+                    final GenotypeType truth;
 
                     if (!validationIsValidVC || !validation.hasGenotype(sample)) {
-                        truth = Genotype.Type.NO_CALL;
+                        truth = GenotypeType.NO_CALL;
                     } else {
                         truth = validation.getGenotype(sample).getType();
                     }
@@ -90,19 +91,19 @@ public class GenotypeConcordance extends VariantEvaluator {
 
             // otherwise, mark no-calls for all samples
             else {
-                final Genotype.Type called = Genotype.Type.NO_CALL;
+                final GenotypeType called = GenotypeType.NO_CALL;
 
                 for (final Genotype g : validation.getGenotypes()) {
-                    final Genotype.Type truth = g.getType();
+                    final GenotypeType truth = g.getType();
                     incrValue(truth, called);
 
                     // print out interesting sites
                     /*
                 if ( PRINT_INTERESTING_SITES && super.getVEWalker().gcLog != null ) {
-                    if ( (truth == Genotype.Type.HOM_VAR || truth == Genotype.Type.HET) && called == Genotype.Type.NO_CALL ) {
+                    if ( (truth == GenotypeType.HOM_VAR || truth == GenotypeType.HET) && called == GenotypeType.NO_CALL ) {
                         super.getVEWalker().gcLog.printf("%s FN %s%n", group, validation);
                     }
-                    if ( (called == Genotype.Type.HOM_VAR || called == Genotype.Type.HET) && truth == Genotype.Type.HOM_REF ) {
+                    if ( (called == GenotypeType.HOM_VAR || called == GenotypeType.HET) && truth == GenotypeType.HOM_REF ) {
                         super.getVEWalker().gcLog.printf("%s FP %s%n", group, validation);
                     }
                 }
@@ -121,36 +122,36 @@ public class GenotypeConcordance extends VariantEvaluator {
      * @param truth the truth type
      * @param called the called type
      */
-    private void incrValue(final Genotype.Type truth, final Genotype.Type called) {
+    private void incrValue(final GenotypeType truth, final GenotypeType called) {
         truthByCalledGenotypeCounts[truth.ordinal()][called.ordinal()]++;
     }
 
-    private long count(final Genotype.Type truth, final Genotype.Type called) {
+    private long count(final GenotypeType truth, final GenotypeType called) {
         return truthByCalledGenotypeCounts[truth.ordinal()][called.ordinal()];
     }
 
-    private long count(final EnumSet<Genotype.Type> truth, final Genotype.Type called) {
+    private long count(final EnumSet<GenotypeType> truth, final GenotypeType called) {
         return count(truth, EnumSet.of(called));
     }
 
-    private long count(final Genotype.Type truth, final EnumSet<Genotype.Type> called) {
+    private long count(final GenotypeType truth, final EnumSet<GenotypeType> called) {
         return count(EnumSet.of(truth), called);
     }
 
-    private long count(final EnumSet<Genotype.Type> truth, final EnumSet<Genotype.Type> called) {
+    private long count(final EnumSet<GenotypeType> truth, final EnumSet<GenotypeType> called) {
         long sum = 0;
-        for ( final Genotype.Type truth1 : truth ) {
-            for ( final Genotype.Type called1 : called ) {
+        for ( final GenotypeType truth1 : truth ) {
+            for ( final GenotypeType called1 : called ) {
                 sum += count(truth1, called1);
             }
         }
         return sum;
     }
 
-    private long countDiag( final EnumSet<Genotype.Type> d1 ) {
+    private long countDiag( final EnumSet<GenotypeType> d1 ) {
         long sum = 0;
 
-        for(final Genotype.Type e1 : d1 ) {
+        for(final GenotypeType e1 : d1 ) {
             sum += truthByCalledGenotypeCounts[e1.ordinal()][e1.ordinal()];
         }
 
@@ -159,13 +160,13 @@ public class GenotypeConcordance extends VariantEvaluator {
 
     @Override
     public void finalizeEvaluation() {
-        final EnumSet<Genotype.Type> allVariantGenotypes = EnumSet.of(Genotype.Type.HOM_VAR, Genotype.Type.HET);
-        final EnumSet<Genotype.Type> allCalledGenotypes = EnumSet.of(Genotype.Type.HOM_VAR, Genotype.Type.HET, Genotype.Type.HOM_REF);
-        final EnumSet<Genotype.Type> allGenotypes = EnumSet.allOf(Genotype.Type.class);
+        final EnumSet<GenotypeType> allVariantGenotypes = EnumSet.of(GenotypeType.HOM_VAR, GenotypeType.HET);
+        final EnumSet<GenotypeType> allCalledGenotypes = EnumSet.of(GenotypeType.HOM_VAR, GenotypeType.HET, GenotypeType.HOM_REF);
+        final EnumSet<GenotypeType> allGenotypes = EnumSet.allOf(GenotypeType.class);
 
         // exact values of the table
-        for ( final Genotype.Type truth : Genotype.Type.values() ) {
-            for ( final Genotype.Type called : Genotype.Type.values() ) {
+        for ( final GenotypeType truth : GenotypeType.values() ) {
+            for ( final GenotypeType called : GenotypeType.values() ) {
                 final String field = String.format("n_true_%s_called_%s", truth, called);
                 final Long value = count(truth, called);
                 map.put(field, value.toString());
@@ -173,20 +174,20 @@ public class GenotypeConcordance extends VariantEvaluator {
         }
 
         // counts of called genotypes
-        for ( final Genotype.Type called : Genotype.Type.values() ) {
+        for ( final GenotypeType called : GenotypeType.values() ) {
             final String field = String.format("total_called_%s", called);
             final Long value = count(allGenotypes, called);
             map.put(field, value.toString());
         }
 
         // counts of true genotypes
-        for ( final Genotype.Type truth : Genotype.Type.values() ) {
+        for ( final GenotypeType truth : GenotypeType.values() ) {
             final String field = String.format("total_true_%s", truth);
             final Long value = count(truth, allGenotypes);
             map.put(field, value.toString());
         }
 
-        for ( final Genotype.Type genotype : Genotype.Type.values() ) {
+        for ( final GenotypeType genotype : GenotypeType.values() ) {
             final String field = String.format("percent_%s_called_%s", genotype, genotype);
             long numer = count(genotype, genotype);
             long denom = count(EnumSet.of(genotype), allGenotypes);
@@ -215,7 +216,7 @@ public class GenotypeConcordance extends VariantEvaluator {
             // overall genotype concordance of sites called non-ref in eval track
             // MAD: this is the non-reference discrepancy rate
             final String field = "percent_non_reference_discrepancy_rate";
-            long homrefConcords = count(Genotype.Type.HOM_REF, Genotype.Type.HOM_REF);
+            long homrefConcords = count(GenotypeType.HOM_REF, GenotypeType.HOM_REF);
             long allNoHomRef = count(allCalledGenotypes, allCalledGenotypes) - homrefConcords;
             long numer = allNoHomRef - countDiag(allVariantGenotypes);
             long denom = count(allCalledGenotypes, allCalledGenotypes)  - homrefConcords;

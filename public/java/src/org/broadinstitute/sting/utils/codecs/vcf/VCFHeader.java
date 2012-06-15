@@ -24,12 +24,18 @@
 
 package org.broadinstitute.sting.utils.codecs.vcf;
 
+import org.apache.log4j.Logger;
 import org.broad.tribble.util.ParsingUtils;
 
 import java.util.*;
 
 
 /**
+ * This class is really a POS.  It allows duplicate entries in the metadata,
+ * stores header lines in lots of places, and all around f*cking sucks.
+ *
+ * todo -- clean this POS up
+ *
  * @author aaron
  *         <p/>
  *         Class VCFHeader
@@ -37,6 +43,7 @@ import java.util.*;
  *         A class representing the VCF header
  */
 public class VCFHeader {
+    final protected static Logger logger = Logger.getLogger(VCFHeader.class);
 
     // the mandatory header fields
     public enum HEADER_FIELDS {
@@ -68,8 +75,8 @@ public class VCFHeader {
     private boolean samplesWereAlreadySorted = true;
 
     // cache for efficient conversion of VCF -> VariantContext
-    protected ArrayList<String> sampleNamesInOrder = null;
-    protected HashMap<String, Integer> sampleNameToOffset = null;
+    private ArrayList<String> sampleNamesInOrder = null;
+    private HashMap<String, Integer> sampleNameToOffset = null;
 
     private boolean writeEngineHeaders = true;
     private boolean writeCommandLine = true;
@@ -164,16 +171,31 @@ public class VCFHeader {
         for ( VCFHeaderLine line : mMetaData ) {
             if ( line instanceof VCFInfoHeaderLine )  {
                 VCFInfoHeaderLine infoLine = (VCFInfoHeaderLine)line;
-                mInfoMetaData.put(infoLine.getID(), infoLine);
+                addMetaDataMapBinding(mInfoMetaData, infoLine);
             } else if ( line instanceof VCFFormatHeaderLine ) {
                 VCFFormatHeaderLine formatLine = (VCFFormatHeaderLine)line;
-                mFormatMetaData.put(formatLine.getID(), formatLine);
+                addMetaDataMapBinding(mFormatMetaData, formatLine);
             } else if ( line instanceof VCFContigHeaderLine ) {
                 contigMetaData.add((VCFContigHeaderLine)line);
             } else {
                 mOtherMetaData.put(line.getKey(), line);
             }
         }
+    }
+
+    /**
+     * Add line to map, issuing warnings about duplicates
+     *
+     * @param map
+     * @param line
+     * @param <T>
+     */
+    private final <T extends VCFCompoundHeaderLine> void addMetaDataMapBinding(final Map<String, T> map, T line) {
+        final String key = line.getID();
+        if ( map.containsKey(key) )
+            logger.warn("Found duplicate VCF header lines for " + key + "; keeping the first only" );
+        else
+            map.put(key, line);
     }
 
     /**
@@ -193,7 +215,7 @@ public class VCFHeader {
      */
     public Set<VCFHeaderLine> getMetaData() {
         Set<VCFHeaderLine> lines = new LinkedHashSet<VCFHeaderLine>();
-        lines.add(new VCFHeaderLine(VCFHeaderVersion.VCF4_0.getFormatString(), VCFHeaderVersion.VCF4_0.getVersionString()));
+        lines.add(new VCFHeaderLine(VCFHeaderVersion.VCF4_1.getFormatString(), VCFHeaderVersion.VCF4_1.getVersionString()));
         lines.addAll(mMetaData);
         return Collections.unmodifiableSet(lines);
     }
@@ -221,13 +243,17 @@ public class VCFHeader {
         return mGenotypeSampleNames;
     }
 
+    public int getNGenotypeSamples() {
+        return mGenotypeSampleNames.size();
+    }
+
     /**
      * do we have genotyping data?
      *
      * @return true if we have genotyping columns, false otherwise
      */
     public boolean hasGenotypingData() {
-        return mGenotypeSampleNames.size() > 0;
+        return getNGenotypeSamples() > 0;
     }
 
     /**
@@ -242,6 +268,14 @@ public class VCFHeader {
     /** @return the column count */
     public int getColumnCount() {
         return HEADER_FIELDS.values().length + (hasGenotypingData() ? mGenotypeSampleNames.size() + 1 : 0);
+    }
+
+    public Collection<VCFInfoHeaderLine> getInfoHeaderLines() {
+        return mInfoMetaData.values();
+    }
+
+    public Collection<VCFFormatHeaderLine> getFormatHeaderLines() {
+        return mFormatMetaData.values();
     }
 
     /**
@@ -298,5 +332,13 @@ public class VCFHeader {
      */
     public void setWriteCommandLine(boolean writeCommandLine) {
         this.writeCommandLine = writeCommandLine;
+    }
+
+    public ArrayList<String> getSampleNamesInOrder() {
+        return sampleNamesInOrder;
+    }
+
+    public HashMap<String, Integer> getSampleNameToOffset() {
+        return sampleNameToOffset;
     }
 }

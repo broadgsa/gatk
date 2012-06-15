@@ -223,7 +223,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
                     newA = Allele.NO_CALL;
                 newAlleles.add(newA);
             }
-            newGenotypes.add(Genotype.modifyAlleles(genotype, newAlleles));
+            newGenotypes.add(new GenotypeBuilder(genotype).alleles(newAlleles).make());
         }
 
         return new VariantContextBuilder(vc).alleles(alleleMap.values()).genotypes(newGenotypes).referenceBaseForIndel(refBaseForIndel).make();

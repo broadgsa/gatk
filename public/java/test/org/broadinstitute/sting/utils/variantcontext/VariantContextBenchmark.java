@@ -152,7 +152,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
                     public void run(final VariantContext vc) {
                         if ( samples == null )
                             samples = new HashSet<String>(new ArrayList<String>(vc.getSampleNames()).subList(0, nSamplesToTake));
-                        VariantContext sub = vc.subContextFromSamples(samples);
+                        VariantContext sub = vc.subContextFromSamples(samples, true);
                         sub.getNSamples();
                     }
                 };
@@ -230,7 +230,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
                         for ( int i = 0; i < dupsToMerge; i++ ) {
                             GenotypesContext gc = GenotypesContext.create(vc.getNSamples());
                             for ( final Genotype g : vc.getGenotypes() ) {
-                                gc.add(new Genotype(g.getSampleName()+"_"+i, g));
+                                gc.add(new GenotypeBuilder(g).name(g.getSampleName()+"_"+i).make());
                             }
                             toMerge.add(new VariantContextBuilder(vc).genotypes(gc).make());
                         }
@@ -315,7 +315,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
 //            case GET_ATTRIBUTE_STRING:
 //                return new FunctionToBenchmark<org.broadinstitute.sting.utils.variantcontext.v13.VariantContext>() {
 //                    public void run(final org.broadinstitute.sting.utils.variantcontext.v13.VariantContext vc) {
-//                        vc.getAttribute("AN", null);
+//                        vc.getExtendedAttribute("AN", null);
 //                    }
 //                };
 //

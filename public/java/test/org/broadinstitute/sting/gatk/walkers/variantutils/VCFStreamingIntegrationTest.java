@@ -46,7 +46,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
 
 
         // Copy VCF data from the test file into the FIFO.
-        String testFile = validationDataLocation + "yri.trio.gatk.ug.head.vcf";
+        String testFile = testDir + "yri.trio.gatk.ug.head.vcf";
         FileInputStream inputStream = new FileInputStream(testFile);
         FileOutputStream outputStream = new FileOutputStream(tmpFifo);
         outputStream.getChannel().transferFrom(inputStream.getChannel(),0,inputStream.getChannel().size());
@@ -56,11 +56,11 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
             "-T SelectVariants" +
                     " -R " + b36KGReference +
-                    " --variant:vcf3,storage=STREAM " + tmpFifo.getAbsolutePath() +
+                    " --variant:VCF,storage=STREAM " + tmpFifo.getAbsolutePath() +
                     " --no_cmdline_in_header " +
                     " -o %s",
             1,
-            Arrays.asList("c5e93b0e2e8610785d43e5d9e7fb5a7b")
+            Arrays.asList("b532a20b5af4e8ea7a073888976c71ba")
         );
 
         executeTest("testSimpleVCFStreaming", spec);
@@ -74,13 +74,13 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         File tmpFifo = File.createTempFile("vcfstreaming","");
         Runtime.getRuntime().exec(new String[] {"mkfifo",tmpFifo.getAbsolutePath()});
 
-        String testFile = validationDataLocation + "yri.trio.gatk.ug.head.vcf";
+        String testFile = testDir + "yri.trio.gatk.ug.head.vcf";
 
         // Output select to FIFO
         WalkerTestSpec selectTestSpec = new WalkerTestSpec(
             "-T SelectVariants" +
             " -R " + b36KGReference +
-            " --variant:vcf3,storage=STREAM " + testFile +
+            " --variant:VCF,storage=STREAM " + testFile +
             " --no_cmdline_in_header" +
             " -select 'QD > 2.0'" +
             " -o " + tmpFifo.getAbsolutePath(),
@@ -93,7 +93,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         selectTestSpec = new WalkerTestSpec(
             "-T VariantEval" +
             " -R " + b36KGReference +
-            " --eval:vcf3 " + testFile +
+            " --eval " + testFile +
             " --comp:vcf,storage=STREAM " + tmpFifo.getAbsolutePath() +
             " -EV CompOverlap -noEV -noST" +
             " -o %s",

@@ -36,10 +36,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
+import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 
 import java.util.*;
@@ -260,7 +257,7 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
         VariantContextBuilder vcb = new VariantContextBuilder("DiagnoseTargets", interval.getContig(), interval.getStart(), interval.getStart(), alleles);
 
         vcb = vcb.log10PError(VariantContext.NO_LOG10_PERROR);                                                          // QUAL field makes no sense in our VCF
-        vcb.filters(statusesToStrings(stats.callableStatuses(thresholds)));
+        vcb.filters(new HashSet<String>(statusesToStrings(stats.callableStatuses(thresholds))));
 
         attributes.put(VCFConstants.END_KEY, interval.getStop());
         attributes.put(VCFConstants.DEPTH_KEY, stats.averageCoverage());
@@ -270,21 +267,20 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
             System.out.printf("Output -- Interval: %s, Coverage: %.2f%n", stats.getInterval(), stats.averageCoverage());
         }
         for (String sample : samples) {
-            Map<String, Object> infos = new HashMap<String, Object>();
-            SampleStatistics sampleStat = stats.getSample(sample);
-            infos.put(VCFConstants.DEPTH_KEY, sampleStat.averageCoverage());
-            infos.put("Q1", sampleStat.getQuantileDepth(0.25));
-            infos.put("MED", sampleStat.getQuantileDepth(0.50));
-            infos.put("Q3", sampleStat.getQuantileDepth(0.75));
+            final GenotypeBuilder gb = new GenotypeBuilder(sample);
 
-            Set<String> filters = new HashSet<String>();
-            filters.addAll(statusesToStrings(stats.getSample(sample).getCallableStatuses(thresholds)));
+            SampleStatistics sampleStat = stats.getSample(sample);
+            gb.DP((int)sampleStat.averageCoverage());
+            gb.attribute("Q1", sampleStat.getQuantileDepth(0.25));
+            gb.attribute("MED", sampleStat.getQuantileDepth(0.50));
+            gb.attribute("Q3", sampleStat.getQuantileDepth(0.75));
 
             if (debug) {
                 System.out.printf("Found %d bad mates out of %d reads %n", sampleStat.getnBadMates(), sampleStat.getnReads());
             }
+            gb.filters(statusesToStrings(stats.getSample(sample).getCallableStatuses(thresholds)));
 
-            genotypes.add(new Genotype(sample, null, VariantContext.NO_LOG10_PERROR, filters, infos, false));
+            genotypes.add(gb.make());
         }
         vcb = vcb.genotypes(genotypes);
 
@@ -299,8 +295,8 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
      * @param statuses the set of statuses to be converted
      * @return a matching set of strings
      */
-    private Set<String> statusesToStrings(Set<CallableStatus> statuses) {
-        Set<String> output = new HashSet<String>(statuses.size());
+    private List<String> statusesToStrings(Set<CallableStatus> statuses) {
+        List<String> output = new ArrayList<String>(statuses.size());
 
         for (CallableStatus status : statuses)
             output.add(status.name());

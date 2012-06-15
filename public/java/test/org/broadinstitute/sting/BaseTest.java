@@ -87,8 +87,10 @@ public abstract class BaseTest {
     private static final String networkTempDir;
     private static final File networkTempDirFile;
 
-    public static final File testDirFile = new File("public/testdata/");
+    protected static final String testDirRelative = "public/testdata/";
+    public static final File testDirFile = new File(testDirRelative);
     public static final String testDir = testDirFile.getAbsolutePath() + "/";
+    protected static final String testDirRoot = testDir.replace(testDirRelative, "");
 
     public static final String keysDataLocation = validationDataLocation + "keys/";
     public static final String gatkKeyFile = CryptUtils.GATK_USER_KEY_DIRECTORY + "gsamembers_broadinstitute.org.key";

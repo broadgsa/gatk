@@ -223,6 +223,20 @@ public class Utils {
         return ret.toString();
     }
 
+    public static String join(String separator, int[] ints) {
+        if ( ints == null || ints.length == 0)
+            return "";
+        else {
+            StringBuilder ret = new StringBuilder();
+            ret.append(ints[0]);
+            for (int i = 1; i < ints.length; ++i) {
+                ret.append(separator);
+                ret.append(ints[i]);
+            }
+            return ret.toString();
+        }
+    }
+
     /**
      * Returns a string of the form elt1.toString() [sep elt2.toString() ... sep elt.toString()] for a collection of
      * elti objects (note there's no actual space between sep and the elti elements).  Returns

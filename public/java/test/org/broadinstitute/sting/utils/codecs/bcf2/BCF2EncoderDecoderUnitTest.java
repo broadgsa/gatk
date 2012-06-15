@@ -31,7 +31,7 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.variantcontext.writer.BCF2Encoder;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
@@ -41,7 +41,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 
 public class BCF2EncoderDecoderUnitTest extends BaseTest {
@@ -172,13 +175,11 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
         }
     }
 
-    @DataProvider(name = "BCF2EncodingTestProviderSingletons")
-    public Object[][] BCF2EncodingTestProviderSingletons() {
-        List<Object[]> tests = new ArrayList<Object[]>();
-        for ( BCF2TypedValue tv : primitives )
-            tests.add(new Object[]{Arrays.asList(tv)});
-        return tests.toArray(new Object[][]{});
-    }
+    // -----------------------------------------------------------------
+    //
+    // Test encoding of basic types
+    //
+    // -----------------------------------------------------------------
 
     @DataProvider(name = "BCF2EncodingTestProviderBasicTypes")
     public Object[][] BCF2EncodingTestProviderBasicTypes() {
@@ -188,36 +189,68 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @DataProvider(name = "BCF2EncodingTestProviderSequences")
-    public Object[][] BCF2EncodingTestProviderSequences() {
-        List<Object[]> tests = new ArrayList<Object[]>();
-        for ( BCF2TypedValue tv1 : forCombinations )
-            for ( BCF2TypedValue tv2 : forCombinations )
-                for ( BCF2TypedValue tv3 : forCombinations )
-                    tests.add(new Object[]{Arrays.asList(tv1, tv2, tv3)});
-        return tests.toArray(new Object[][]{});
+    private interface EncodeMe {
+        public void encode(final BCF2Encoder encoder, final BCF2TypedValue tv) throws IOException;
     }
 
-    @Test(dataProvider = "BCF2EncodingTestProviderSingletons")
-    public void testBCF2EncodingSingletons(final List<BCF2TypedValue> toEncode) throws IOException {
-        final byte[] record = encodeRecord(toEncode);
-        decodeRecord(toEncode, record);
+
+    @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")
+    public void testBCF2BasicTypesWithStaticCalls(final List<BCF2TypedValue> toEncode) throws IOException {
+        testBCF2BasicTypesWithEncodeMe(toEncode,
+                new EncodeMe() {
+                    @Override
+                    public void encode(final BCF2Encoder encoder, final BCF2TypedValue tv) throws IOException {
+                        switch ( tv.type ) {
+                            case INT8:
+                            case INT16:
+                            case INT32:
+                                encoder.encodeTypedInt((Integer)tv.value, tv.type);
+                                break;
+                            case FLOAT:
+                                encoder.encodeTypedFloat((Double)tv.value);
+                                break;
+                            case CHAR:
+                                encoder.encodeTypedString((String)tv.value);
+                                break;
+                        }
+                    }
+                });
     }
 
-    @DataProvider(name = "ListOfStrings")
-    public Object[][] listOfStringsProvider() {
-        List<Object[]> tests = new ArrayList<Object[]>();
-        tests.add(new Object[]{Arrays.asList("s1", "s2"), ",s1,s2"});
-        tests.add(new Object[]{Arrays.asList("s1", "s2", "s3"), ",s1,s2,s3"});
-        tests.add(new Object[]{Arrays.asList("s1", "s2", "s3", "s4"), ",s1,s2,s3,s4"});
-        return tests.toArray(new Object[][]{});
+    @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")
+    public void testBCF2BasicTypesWithObjectType(final List<BCF2TypedValue> toEncode) throws IOException {
+        testBCF2BasicTypesWithEncodeMe(toEncode,
+                new EncodeMe() {
+                    @Override
+                    public void encode(final BCF2Encoder encoder, final BCF2TypedValue tv) throws IOException {
+                        encoder.encodeTyped(tv.value, tv.type);
+                    }
+                });
     }
 
-    @Test(dataProvider = "ListOfStrings")
-    public void testEncodingListOfString(List<String> strings, String expected) throws IOException {
-        final String collapsed = BCF2Utils.collapseStringList(strings);
-        Assert.assertEquals(collapsed, expected);
-        Assert.assertEquals(BCF2Utils.exploreStringList(collapsed), strings);
+    @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")
+    public void testBCF2BasicTypesWithObjectNoType(final List<BCF2TypedValue> toEncode) throws IOException {
+        testBCF2BasicTypesWithEncodeMe(toEncode,
+                new EncodeMe() {
+                    @Override
+                    public void encode(final BCF2Encoder encoder, final BCF2TypedValue tv) throws IOException {
+                        encoder.encode(tv.value);
+                    }
+                });
+    }
+
+    public void testBCF2BasicTypesWithEncodeMe(final List<BCF2TypedValue> toEncode, final EncodeMe func) throws IOException {
+        for ( final BCF2TypedValue tv : toEncode ) {
+            BCF2Encoder encoder = new BCF2Encoder();
+            func.encode(encoder, tv);
+
+            BCF2Decoder decoder = new BCF2Decoder(encoder.getRecordBytes());
+            final Object decoded = decoder.decodeTypedValue();
+
+            Assert.assertNotNull(decoded);
+            Assert.assertFalse(decoded instanceof List);
+            myAssertEquals(tv, decoded);
+        }
     }
 
     @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")
@@ -240,30 +273,34 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
         }
     }
 
-    @DataProvider(name = "BestIntTypeTests")
-    public Object[][] BestIntTypeTests() {
+    @DataProvider(name = "BCF2EncodingTestProviderSingletons")
+    public Object[][] BCF2EncodingTestProviderSingletons() {
         List<Object[]> tests = new ArrayList<Object[]>();
-        tests.add(new Object[]{Arrays.asList(1), BCF2Type.INT8});
-        tests.add(new Object[]{Arrays.asList(1, 10), BCF2Type.INT8});
-        tests.add(new Object[]{Arrays.asList(1, 10, 100), BCF2Type.INT8});
-        tests.add(new Object[]{Arrays.asList(1, -1), BCF2Type.INT8});
-        tests.add(new Object[]{Arrays.asList(1, 1000), BCF2Type.INT16});
-        tests.add(new Object[]{Arrays.asList(1, 1000, 10), BCF2Type.INT16});
-        tests.add(new Object[]{Arrays.asList(1, 1000, 100), BCF2Type.INT16});
-        tests.add(new Object[]{Arrays.asList(1000), BCF2Type.INT16});
-        tests.add(new Object[]{Arrays.asList(100000), BCF2Type.INT32});
-        tests.add(new Object[]{Arrays.asList(100000, 10), BCF2Type.INT32});
-        tests.add(new Object[]{Arrays.asList(100000, 100), BCF2Type.INT32});
-        tests.add(new Object[]{Arrays.asList(100000, 1, -10), BCF2Type.INT32});
-        tests.add(new Object[]{Arrays.asList(-100000, 1, -10), BCF2Type.INT32});
+        for ( BCF2TypedValue tv : primitives )
+            tests.add(new Object[]{Arrays.asList(tv)});
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "BestIntTypeTests")
-    public void determineBestEncoding(final List<Integer> ints, final BCF2Type expectedType) throws IOException {
-        BCF2Encoder encoder = new BCF2Encoder();
-        Assert.assertEquals(encoder.determineIntegerType(ints), expectedType);
-        Assert.assertEquals(encoder.determineIntegerType(ArrayUtils.toPrimitive(ints.toArray(new Integer[0]))), expectedType);
+    @Test(dataProvider = "BCF2EncodingTestProviderSingletons")
+    public void testBCF2EncodingSingletons(final List<BCF2TypedValue> toEncode) throws IOException {
+        final byte[] record = encodeRecord(toEncode);
+        decodeRecord(toEncode, record);
+    }
+
+    // -----------------------------------------------------------------
+    //
+    // Test encoding of vectors
+    //
+    // -----------------------------------------------------------------
+
+    @DataProvider(name = "BCF2EncodingTestProviderSequences")
+    public Object[][] BCF2EncodingTestProviderSequences() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+        for ( BCF2TypedValue tv1 : forCombinations )
+            for ( BCF2TypedValue tv2 : forCombinations )
+                for ( BCF2TypedValue tv3 : forCombinations )
+                    tests.add(new Object[]{Arrays.asList(tv1, tv2, tv3)});
+        return tests.toArray(new Object[][]{});
     }
 
     @Test(dataProvider = "BCF2EncodingTestProviderBasicTypes")
@@ -289,12 +326,71 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
         }
     }
 
-
     @Test(dataProvider = "BCF2EncodingTestProviderSequences", dependsOnMethods = "testBCF2EncodingSingletons")
     public void testBCF2EncodingTestProviderSequences(final List<BCF2TypedValue> toEncode) throws IOException {
         final byte[] record = encodeRecord(toEncode);
         decodeRecord(toEncode, record);
     }
+
+    // -----------------------------------------------------------------
+    //
+    // Test strings and lists of strings
+    //
+    // -----------------------------------------------------------------
+
+    @DataProvider(name = "ListOfStrings")
+    public Object[][] listOfStringsProvider() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+        tests.add(new Object[]{Arrays.asList("s1", "s2"), ",s1,s2"});
+        tests.add(new Object[]{Arrays.asList("s1", "s2", "s3"), ",s1,s2,s3"});
+        tests.add(new Object[]{Arrays.asList("s1", "s2", "s3", "s4"), ",s1,s2,s3,s4"});
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "ListOfStrings")
+    public void testEncodingListOfString(List<String> strings, String expected) throws IOException {
+        final String collapsed = BCF2Utils.collapseStringList(strings);
+        Assert.assertEquals(collapsed, expected);
+        Assert.assertEquals(BCF2Utils.exploreStringList(collapsed), strings);
+    }
+
+    // -----------------------------------------------------------------
+    //
+    // Tests to determine the best type of arrays of integers
+    //
+    // -----------------------------------------------------------------
+
+    @DataProvider(name = "BestIntTypeTests")
+    public Object[][] BestIntTypeTests() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+        tests.add(new Object[]{Arrays.asList(1), BCF2Type.INT8});
+        tests.add(new Object[]{Arrays.asList(1, 10), BCF2Type.INT8});
+        tests.add(new Object[]{Arrays.asList(1, 10, 100), BCF2Type.INT8});
+        tests.add(new Object[]{Arrays.asList(1, -1), BCF2Type.INT8});
+        tests.add(new Object[]{Arrays.asList(1, 1000), BCF2Type.INT16});
+        tests.add(new Object[]{Arrays.asList(1, 1000, 10), BCF2Type.INT16});
+        tests.add(new Object[]{Arrays.asList(1, 1000, 100), BCF2Type.INT16});
+        tests.add(new Object[]{Arrays.asList(1000), BCF2Type.INT16});
+        tests.add(new Object[]{Arrays.asList(100000), BCF2Type.INT32});
+        tests.add(new Object[]{Arrays.asList(100000, 10), BCF2Type.INT32});
+        tests.add(new Object[]{Arrays.asList(100000, 100), BCF2Type.INT32});
+        tests.add(new Object[]{Arrays.asList(100000, 1, -10), BCF2Type.INT32});
+        tests.add(new Object[]{Arrays.asList(-100000, 1, -10), BCF2Type.INT32});
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "BestIntTypeTests")
+    public void determineBestEncoding(final List<Integer> ints, final BCF2Type expectedType) throws IOException {
+        BCF2Encoder encoder = new BCF2Encoder();
+        Assert.assertEquals(BCF2Utils.determineIntegerType(ints), expectedType);
+        Assert.assertEquals(BCF2Utils.determineIntegerType(ArrayUtils.toPrimitive(ints.toArray(new Integer[0]))), expectedType);
+    }
+
+    // -----------------------------------------------------------------
+    //
+    // Tests managing and skipping multiple blocks
+    //
+    // -----------------------------------------------------------------
 
     @Test(dataProvider = "BCF2EncodingTestProviderSequences", dependsOnMethods = "testBCF2EncodingTestProviderSequences")
     public void testReadAndSkipWithMultipleBlocks(final List<BCF2TypedValue> block) throws IOException {
@@ -336,6 +432,82 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
         decoder.readNextBlock(record2.length, stream);
         decodeRecord(block2, decoder);
     }
+
+    // -----------------------------------------------------------------
+    //
+    // Test encoding / decoding arrays of ints
+    //
+    // This checks that we can encode and decode correctly with the
+    // low-level decodeIntArray function arrays of values.  This
+    // has to be pretty comprehensive as decodeIntArray is a highly optimized
+    // piece of code with lots of edge cases.  The values we are encoding
+    // don't really matter -- just that the values come back as expected.
+    //
+    // -----------------------------------------------------------------
+
+    @DataProvider(name = "IntArrays")
+    public Object[][] makeIntArrays() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        for ( int nValues : Arrays.asList(0, 1, 2, 5, 10, 100) ) {
+            for ( int nPad : Arrays.asList(0, 1, 2, 5, 10, 100) ) {
+                int nElements = nValues + nPad;
+
+                List<Integer> values = new ArrayList<Integer>(nElements);
+
+                // add nValues from 0 to nValues - 1
+                for ( int i = 0; i < nValues; i++ )
+                    values.add(i);
+
+                // add nPad nulls
+                for ( int i = 0; i < nPad; i++ )
+                    values.add(null);
+
+                tests.add(new Object[]{values});
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "IntArrays")
+    public void testIntArrays(final List<Integer> ints) throws IOException {
+        final BCF2Encoder encoder = new BCF2Encoder();
+        encoder.encodeTyped(ints, BCF2Type.INT16);
+
+        final BCF2Decoder decoder = new BCF2Decoder(encoder.getRecordBytes());
+
+        final byte typeDescriptor = decoder.readTypeDescriptor();
+
+        // read the int[] with the low-level version
+        final int[] decoded = decoder.decodeIntArray(typeDescriptor);
+
+        if ( isMissing(ints) ) {
+            // we expect that the result is null in this case
+            Assert.assertNull(decoded, "Encoded all missing values -- expected null");
+        } else {
+            // we expect at least some values to come back
+            Assert.assertTrue(decoded.length > 0, "Must have at least 1 element for non-null encoded data");
+
+            // check corresponding values
+            for ( int i = 0; i < ints.size(); i++ ) {
+                final Integer expected = ints.get(i);
+
+                if ( expected == null ) {
+                    Assert.assertTrue(decoded.length <= i, "we expect decoded to be truncated for missing values");
+                } else {
+                    Assert.assertTrue(decoded.length > i, "we expected at least " + i + " values in decoded array");
+                    Assert.assertEquals(decoded[i], (int)expected);
+                }
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------
+    //
+    // Helper routines
+    //
+    // -----------------------------------------------------------------
 
     private final byte[] combineRecords(final byte[] record1, final byte[] record2) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -391,5 +563,13 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
             BaseTest.assertEqualsDoubleSmart(decodedFloat, valueFloat, FLOAT_TOLERANCE);
         } else
             Assert.assertEquals(decoded, tv.value);
+    }
+
+    private final boolean isMissing(final List<Integer> values) {
+        if ( values != null )
+            for ( Integer value : values )
+                if ( value != null )
+                    return false;
+        return true;
     }
 }

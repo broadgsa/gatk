@@ -55,7 +55,10 @@ public class VariantContextWritersUnitTest extends BaseTest {
 
     @BeforeSuite
     public void before() throws IOException {
-        IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
+        final File source = new File(b37KGReference);
+        //final File source = new File("/Users/depristo/Desktop/broadLocal/localData/human_g1k_v37.fasta");
+        IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(source);
+        //IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
         dictionary = seq.getSequenceDictionary();
         VariantContextTestProvider.initializeTests();
     }

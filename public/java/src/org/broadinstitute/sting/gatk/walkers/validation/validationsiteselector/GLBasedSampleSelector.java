@@ -43,7 +43,7 @@ public class GLBasedSampleSelector extends SampleSelector {
             return true;
         // want to include a site in the given samples if it is *likely* to be variant (via the EXACT model)
         // first subset to the samples
-        VariantContext subContext = vc.subContextFromSamples(samples);
+        VariantContext subContext = vc.subContextFromSamples(samples, true);
 
         // now check to see (using EXACT model) whether this should be variant
         // do we want to apply a prior? maybe user-spec?

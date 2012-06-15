@@ -79,14 +79,12 @@ class SampleStatistics {
      * @return the callable statuses of the entire sample
      */
     public Set<CallableStatus> getCallableStatuses(ThresHolder thresholds) {
-        Set<CallableStatus> output = new HashSet<CallableStatus>();
-
         // We check if reads are present ot prevent div / 0 exceptions
         if (nReads == 0) {
-            output.add(CallableStatus.NO_READS);
-            return output;
+            return Collections.singleton(CallableStatus.NO_READS);
         }
 
+        Set<CallableStatus> output = new HashSet<CallableStatus>();
         Map<CallableStatus, Double> totals = new HashMap<CallableStatus, Double>(CallableStatus.values().length);
 
         // initialize map
@@ -126,6 +124,7 @@ class SampleStatistics {
         if (output.isEmpty()) {
             output.add(CallableStatus.PASS);
         }
+
         return output;
     }
 

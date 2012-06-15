@@ -97,10 +97,10 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     private ArrayList<Sample> trios = new ArrayList<Sample>();
 
     //Matrix of priors for all genotype combinations
-    private EnumMap<Genotype.Type,EnumMap<Genotype.Type,EnumMap<Genotype.Type,Integer>>> mvCountMatrix;
+    private EnumMap<GenotypeType,EnumMap<GenotypeType,EnumMap<GenotypeType,Integer>>> mvCountMatrix;
 
     //Matrix of allele transmission
-    private EnumMap<Genotype.Type,EnumMap<Genotype.Type,EnumMap<Genotype.Type,TrioPhase>>> transmissionMatrix;
+    private EnumMap<GenotypeType,EnumMap<GenotypeType,EnumMap<GenotypeType,TrioPhase>>> transmissionMatrix;
 
     //Metrics counters hash keys
     private final Byte NUM_TRIO_GENOTYPES_CALLED = 0;
@@ -138,17 +138,17 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
 
         private EnumMap<FamilyMember,Genotype> trioPhasedGenotypes = new EnumMap<FamilyMember, Genotype>(FamilyMember.class);
 
-        private ArrayList<Allele> getAlleles(Genotype.Type genotype){
+        private ArrayList<Allele> getAlleles(GenotypeType genotype){
             ArrayList<Allele> alleles = new ArrayList<Allele>(2);
-            if(genotype == Genotype.Type.HOM_REF){
+            if(genotype == GenotypeType.HOM_REF){
                 alleles.add(REF);
                 alleles.add(REF);
             }
-            else if(genotype == Genotype.Type.HET){
+            else if(genotype == GenotypeType.HET){
                 alleles.add(REF);
                 alleles.add(VAR);
             }
-            else if(genotype == Genotype.Type.HOM_VAR){
+            else if(genotype == GenotypeType.HOM_VAR){
                 alleles.add(VAR);
                 alleles.add(VAR);
             }
@@ -158,27 +158,34 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             return alleles;
         }
 
-        private boolean isPhasable(Genotype.Type genotype){
-            return genotype == Genotype.Type.HOM_REF || genotype == Genotype.Type.HET || genotype == Genotype.Type.HOM_VAR;
+        private boolean isPhasable(GenotypeType genotype){
+            return genotype == GenotypeType.HOM_REF || genotype == GenotypeType.HET || genotype == GenotypeType.HOM_VAR;
         }
 
         //Create a new Genotype based on information from a single individual
         //Homozygous genotypes will be set as phased, heterozygous won't be
-        private void phaseSingleIndividualAlleles(Genotype.Type genotype, FamilyMember familyMember){
-            if(genotype == Genotype.Type.HOM_REF || genotype == Genotype.Type.HOM_VAR){
-                trioPhasedGenotypes.put(familyMember, new Genotype(DUMMY_NAME, getAlleles(genotype), Genotype.NO_LOG10_PERROR, null, null, true));
-            }
-            else
-                trioPhasedGenotypes.put(familyMember, new Genotype(DUMMY_NAME,getAlleles(genotype),Genotype.NO_LOG10_PERROR,null,null,false));
+        private void phaseSingleIndividualAlleles(GenotypeType genotype, FamilyMember familyMember){
+            boolean phase = genotype == GenotypeType.HOM_REF || genotype == GenotypeType.HOM_VAR;
+            trioPhasedGenotypes.put(familyMember, makeGenotype(genotype, phase));
+        }
+
+        private Genotype makeGenotype(final GenotypeType type, boolean phase) {
+            return makeGenotype(getAlleles(type), phase);
+        }
+
+        private Genotype makeGenotype(final List<Allele> alleles, boolean phase) {
+            final GenotypeBuilder gb = new GenotypeBuilder(DUMMY_NAME, alleles);
+            gb.phased(phase);
+            return gb.make();
         }
 
         //Find the phase for a parent/child pair
-        private void phasePairAlleles(Genotype.Type parentGenotype, Genotype.Type childGenotype, FamilyMember parent){
+        private void phasePairAlleles(GenotypeType parentGenotype, GenotypeType childGenotype, FamilyMember parent){
 
             //Special case for Het/Het as it is ambiguous
-            if(parentGenotype == Genotype.Type.HET && childGenotype == Genotype.Type.HET){
-                trioPhasedGenotypes.put(parent, new Genotype(DUMMY_NAME, getAlleles(parentGenotype), Genotype.NO_LOG10_PERROR, null, null, false));
-                trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME,getAlleles(childGenotype),Genotype.NO_LOG10_PERROR,null,null,false));
+            if(parentGenotype == GenotypeType.HET && childGenotype == GenotypeType.HET){
+                trioPhasedGenotypes.put(parent, makeGenotype(parentGenotype, false));
+                trioPhasedGenotypes.put(FamilyMember.CHILD, makeGenotype(childGenotype, false));
                 return;
             }
 
@@ -190,34 +197,34 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             //If there is a possible phasing between the parent and child => phase
             int childTransmittedAlleleIndex = childAlleles.indexOf(parentAlleles.get(0));
             if(childTransmittedAlleleIndex > -1){
-                trioPhasedGenotypes.put(parent, new Genotype(DUMMY_NAME, parentAlleles, Genotype.NO_LOG10_PERROR, null, null, true));
+                trioPhasedGenotypes.put(parent, makeGenotype(parentAlleles, true));
                 childPhasedAlleles.add(childAlleles.remove(childTransmittedAlleleIndex));
                 if(parent.equals(FamilyMember.MOTHER))
                         childPhasedAlleles.add(childAlleles.get(0));
                 else
                         childPhasedAlleles.add(0,childAlleles.get(0));
-                trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME, childPhasedAlleles, Genotype.NO_LOG10_PERROR, null, null, true));
+                trioPhasedGenotypes.put(FamilyMember.CHILD, makeGenotype(childPhasedAlleles, true));
             }
             else if((childTransmittedAlleleIndex = childAlleles.indexOf(parentAlleles.get(1))) > -1){
                 parentPhasedAlleles.add(parentAlleles.get(1));
                 parentPhasedAlleles.add(parentAlleles.get(0));
-                trioPhasedGenotypes.put(parent, new Genotype(DUMMY_NAME, parentPhasedAlleles, Genotype.NO_LOG10_PERROR, null, null, true));
+                trioPhasedGenotypes.put(parent, makeGenotype(parentPhasedAlleles, true));
                 childPhasedAlleles.add(childAlleles.remove(childTransmittedAlleleIndex));
                 if(parent.equals(FamilyMember.MOTHER))
                     childPhasedAlleles.add(childAlleles.get(0));
                 else
                     childPhasedAlleles.add(0,childAlleles.get(0));
-                trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME, childPhasedAlleles, Genotype.NO_LOG10_PERROR, null, null, true));
+                trioPhasedGenotypes.put(FamilyMember.CHILD, makeGenotype(childPhasedAlleles, true));
             }
             //This is a Mendelian Violation => Do not phase
             else{
-                trioPhasedGenotypes.put(parent, new Genotype(DUMMY_NAME,getAlleles(parentGenotype),Genotype.NO_LOG10_PERROR,null,null,false));
-                trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME,getAlleles(childGenotype),Genotype.NO_LOG10_PERROR,null,null,false));
+                trioPhasedGenotypes.put(parent, makeGenotype(parentGenotype, false));
+                trioPhasedGenotypes.put(FamilyMember.CHILD, makeGenotype(childGenotype, false));
             }
         }
 
         //Phases a family by transmission
-        private void phaseFamilyAlleles(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
+        private void phaseFamilyAlleles(GenotypeType mother, GenotypeType father, GenotypeType child){
 
             Set<ArrayList<Allele>> possiblePhasedChildGenotypes = new HashSet<ArrayList<Allele>>();
             ArrayList<Allele> motherAlleles = getAlleles(mother);
@@ -246,7 +253,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                         motherPhasedAlleles.add(motherAlleles.get(0));
                     else
                         motherPhasedAlleles.add(motherAlleles.get(1));
-                    trioPhasedGenotypes.put(FamilyMember.MOTHER, new Genotype(DUMMY_NAME,motherPhasedAlleles,Genotype.NO_LOG10_PERROR,null,null,true));
+                    trioPhasedGenotypes.put(FamilyMember.MOTHER, makeGenotype(motherPhasedAlleles, true));
 
                     //Create father's genotype
                     ArrayList<Allele> fatherPhasedAlleles = new ArrayList<Allele>(2);
@@ -255,10 +262,10 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                         fatherPhasedAlleles.add(fatherAlleles.get(0));
                     else
                         fatherPhasedAlleles.add(fatherAlleles.get(1));
-                    trioPhasedGenotypes.put(FamilyMember.FATHER, new Genotype(DUMMY_NAME,fatherPhasedAlleles,Genotype.NO_LOG10_PERROR,null,null,true));
+                    trioPhasedGenotypes.put(FamilyMember.FATHER, makeGenotype(fatherPhasedAlleles,true));
 
                     //Create child's genotype
-                    trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME,childPhasedAllelesAlleles,Genotype.NO_LOG10_PERROR,null,null,true));
+                    trioPhasedGenotypes.put(FamilyMember.CHILD, makeGenotype(childPhasedAllelesAlleles,true));
 
                     //Once a phased combination is found; exit
                     return;
@@ -266,16 +273,16 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             }
 
             //If this is reached then no phasing could be found
-            trioPhasedGenotypes.put(FamilyMember.MOTHER, new Genotype(DUMMY_NAME,getAlleles(mother),Genotype.NO_LOG10_PERROR,null,null,false));
-            trioPhasedGenotypes.put(FamilyMember.FATHER, new Genotype(DUMMY_NAME,getAlleles(father),Genotype.NO_LOG10_PERROR,null,null,false));
-            trioPhasedGenotypes.put(FamilyMember.CHILD, new Genotype(DUMMY_NAME,getAlleles(child),Genotype.NO_LOG10_PERROR,null,null,false));
+            trioPhasedGenotypes.put(FamilyMember.MOTHER, makeGenotype(mother,false));
+            trioPhasedGenotypes.put(FamilyMember.FATHER, makeGenotype(father,false));
+            trioPhasedGenotypes.put(FamilyMember.CHILD, makeGenotype(child,false));
         }
 
         /*  Constructor: Creates a conceptual trio genotype combination from the given genotypes.
             If one or more genotypes are set as NO_CALL or UNAVAILABLE, it will phase them like a pair
             or single individual.
         */
-        public TrioPhase(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
+        public TrioPhase(GenotypeType mother, GenotypeType father, GenotypeType child){
 
             //Take care of cases where one or more family members are no call
             if(!isPhasable(child)){
@@ -297,7 +304,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                 phaseSingleIndividualAlleles(father, FamilyMember.FATHER);
             }
             //Special case for Het/Het/Het as it is ambiguous
-            else if(mother == Genotype.Type.HET && father  == Genotype.Type.HET && child == Genotype.Type.HET){
+            else if(mother == GenotypeType.HET && father  == GenotypeType.HET && child == GenotypeType.HET){
                 phaseSingleIndividualAlleles(mother, FamilyMember.MOTHER);
                 phaseSingleIndividualAlleles(father, FamilyMember.FATHER);
                 phaseSingleIndividualAlleles(child, FamilyMember.CHILD);
@@ -311,7 +318,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             if(fatherFAlleleFirst && trioPhasedGenotypes.get(FamilyMember.CHILD).isPhased()){
                 ArrayList<Allele> childAlleles = new ArrayList<Allele>(trioPhasedGenotypes.get(FamilyMember.CHILD).getAlleles());
                 childAlleles.add(childAlleles.remove(0));
-                trioPhasedGenotypes.put(FamilyMember.CHILD,new Genotype(DUMMY_NAME,childAlleles,Genotype.NO_LOG10_PERROR,null,null,true));
+                trioPhasedGenotypes.put(FamilyMember.CHILD,makeGenotype(childAlleles,true));
             }
 
         }
@@ -347,7 +354,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
 
            //Add the transmission probability
            Map<String, Object> genotypeAttributes = new HashMap<String, Object>();
-           genotypeAttributes.putAll(genotype.getAttributes());
+           genotypeAttributes.putAll(genotype.getExtendedAttributes());
            if(transmissionProb>NO_TRANSMISSION_PROB)
                 genotypeAttributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, phredScoreTransmission);
 
@@ -370,7 +377,10 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             else
                 log10Error = genotype.getLikelihoods().getLog10GQ(phasedGenotype.getType());
 
-            return new Genotype(genotype.getSampleName(), phasedAlleles, log10Error, null, genotypeAttributes, phasedGenotype.isPhased());
+            return new GenotypeBuilder(genotype).alleles(phasedAlleles)
+                    .log10PError(log10Error)
+                    .attributes(genotypeAttributes)
+                    .phased(phasedGenotype.isPhased()).make();
         }
 
 
@@ -438,15 +448,15 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
 
     //Create the transmission matrices
     private void buildMatrices(){
-        mvCountMatrix = new EnumMap<Genotype.Type,EnumMap<Genotype.Type,EnumMap<Genotype.Type,Integer>>>(Genotype.Type.class);
-        transmissionMatrix = new EnumMap<Genotype.Type,EnumMap<Genotype.Type,EnumMap<Genotype.Type,TrioPhase>>>(Genotype.Type.class);
-        for(Genotype.Type mother : Genotype.Type.values()){
-            mvCountMatrix.put(mother,new EnumMap<Genotype.Type,EnumMap<Genotype.Type,Integer>>(Genotype.Type.class));
-            transmissionMatrix.put(mother,new EnumMap<Genotype.Type,EnumMap<Genotype.Type,TrioPhase>>(Genotype.Type.class));
-            for(Genotype.Type father : Genotype.Type.values()){
-                mvCountMatrix.get(mother).put(father,new EnumMap<Genotype.Type, Integer>(Genotype.Type.class));
-                transmissionMatrix.get(mother).put(father,new EnumMap<Genotype.Type,TrioPhase>(Genotype.Type.class));
-                for(Genotype.Type child : Genotype.Type.values()){
+        mvCountMatrix = new EnumMap<GenotypeType,EnumMap<GenotypeType,EnumMap<GenotypeType,Integer>>>(GenotypeType.class);
+        transmissionMatrix = new EnumMap<GenotypeType,EnumMap<GenotypeType,EnumMap<GenotypeType,TrioPhase>>>(GenotypeType.class);
+        for(GenotypeType mother : GenotypeType.values()){
+            mvCountMatrix.put(mother,new EnumMap<GenotypeType,EnumMap<GenotypeType,Integer>>(GenotypeType.class));
+            transmissionMatrix.put(mother,new EnumMap<GenotypeType,EnumMap<GenotypeType,TrioPhase>>(GenotypeType.class));
+            for(GenotypeType father : GenotypeType.values()){
+                mvCountMatrix.get(mother).put(father,new EnumMap<GenotypeType, Integer>(GenotypeType.class));
+                transmissionMatrix.get(mother).put(father,new EnumMap<GenotypeType,TrioPhase>(GenotypeType.class));
+                for(GenotypeType child : GenotypeType.values()){
                     mvCountMatrix.get(mother).get(father).put(child, getCombinationMVCount(mother, father, child));
                     transmissionMatrix.get(mother).get(father).put(child,new TrioPhase(mother,father,child));
                 }
@@ -457,16 +467,16 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     //Returns the number of Mendelian Violations for a given genotype combination.
     //If one of the parents genotype is missing, it will consider it as a parent/child pair
     //If the child genotype or both parents genotypes are missing, 0 is returned.
-    private int getCombinationMVCount(Genotype.Type mother, Genotype.Type father, Genotype.Type child){
+    private int getCombinationMVCount(GenotypeType mother, GenotypeType father, GenotypeType child){
 
         //Child is no call => No MV
-        if(child == Genotype.Type.NO_CALL || child == Genotype.Type.UNAVAILABLE)
+        if(child == GenotypeType.NO_CALL || child == GenotypeType.UNAVAILABLE)
             return 0;
         //Add parents with genotypes for the evaluation
-        ArrayList<Genotype.Type> parents = new ArrayList<Genotype.Type>();
-        if (!(mother == Genotype.Type.NO_CALL || mother == Genotype.Type.UNAVAILABLE))
+        ArrayList<GenotypeType> parents = new ArrayList<GenotypeType>();
+        if (!(mother == GenotypeType.NO_CALL || mother == GenotypeType.UNAVAILABLE))
             parents.add(mother);
-        if (!(father == Genotype.Type.NO_CALL || father == Genotype.Type.UNAVAILABLE))
+        if (!(father == GenotypeType.NO_CALL || father == GenotypeType.UNAVAILABLE))
             parents.add(father);
 
         //Both parents no calls => No MV
@@ -477,35 +487,35 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         int parentsNumRefAlleles = 0;
         int parentsNumAltAlleles = 0;
 
-        for(Genotype.Type parent : parents){
-            if(parent == Genotype.Type.HOM_REF){
+        for(GenotypeType parent : parents){
+            if(parent == GenotypeType.HOM_REF){
                 parentsNumRefAlleles++;
             }
-            else if(parent == Genotype.Type.HET){
+            else if(parent == GenotypeType.HET){
                 parentsNumRefAlleles++;
                 parentsNumAltAlleles++;
             }
-            else if(parent == Genotype.Type.HOM_VAR){
+            else if(parent == GenotypeType.HOM_VAR){
                 parentsNumAltAlleles++;
             }
         }
 
         //Case Child is HomRef
-        if(child == Genotype.Type.HOM_REF){
+        if(child == GenotypeType.HOM_REF){
             if(parentsNumRefAlleles == parents.size())
                 return 0;
             else return (parents.size()-parentsNumRefAlleles);
         }
 
         //Case child is HomVar
-        if(child == Genotype.Type.HOM_VAR){
+        if(child == GenotypeType.HOM_VAR){
             if(parentsNumAltAlleles == parents.size())
                 return 0;
             else return parents.size()-parentsNumAltAlleles;
         }
 
         //Case child is Het
-        if(child == Genotype.Type.HET && ((parentsNumRefAlleles > 0 && parentsNumAltAlleles > 0) || parents.size()<2))
+        if(child == GenotypeType.HET && ((parentsNumRefAlleles > 0 && parentsNumAltAlleles > 0) || parents.size()<2))
             return 0;
 
         //MV
@@ -513,7 +523,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     }
 
     //Given two trio genotypes combinations, returns the number of different genotypes between the two combinations.
-    private int countFamilyGenotypeDiff(Genotype.Type motherOriginal,Genotype.Type fatherOriginal,Genotype.Type childOriginal,Genotype.Type motherNew,Genotype.Type fatherNew,Genotype.Type childNew){
+    private int countFamilyGenotypeDiff(GenotypeType motherOriginal,GenotypeType fatherOriginal,GenotypeType childOriginal,GenotypeType motherNew,GenotypeType fatherNew,GenotypeType childNew){
         int count = 0;
         if(motherOriginal!=motherNew)
             count++;
@@ -526,21 +536,21 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
 
     //Get a Map of genotype likelihoods.
     //In case of null, unavailable or no call, all likelihoods are 1/3.
-    private EnumMap<Genotype.Type,Double> getLikelihoodsAsMapSafeNull(Genotype genotype){
+    private EnumMap<GenotypeType,Double> getLikelihoodsAsMapSafeNull(Genotype genotype){
         if(genotype == null || !genotype.isCalled()){
-            EnumMap<Genotype.Type,Double> likelihoods = new EnumMap<Genotype.Type, Double>(Genotype.Type.class);
-            likelihoods.put(Genotype.Type.HOM_REF,1.0/3.0);
-            likelihoods.put(Genotype.Type.HET,1.0/3.0);
-            likelihoods.put(Genotype.Type.HOM_VAR,1.0/3.0);
+            EnumMap<GenotypeType,Double> likelihoods = new EnumMap<GenotypeType, Double>(GenotypeType.class);
+            likelihoods.put(GenotypeType.HOM_REF,1.0/3.0);
+            likelihoods.put(GenotypeType.HET,1.0/3.0);
+            likelihoods.put(GenotypeType.HOM_VAR,1.0/3.0);
             return likelihoods;
         }
         return genotype.getLikelihoods().getAsMap(true);
     }
 
-    //Returns the Genotype.Type; returns UNVAILABLE if given null
-    private Genotype.Type getTypeSafeNull(Genotype genotype){
+    //Returns the GenotypeType; returns UNVAILABLE if given null
+    private GenotypeType getTypeSafeNull(Genotype genotype){
         if(genotype == null)
-            return Genotype.Type.UNAVAILABLE;
+            return GenotypeType.UNAVAILABLE;
         return genotype.getType();
     }
 
@@ -561,18 +571,18 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         //Always assign the first parent as the parent having genotype information in pairs
         //Always assign the mother as the first parent in trios
         int parentsCalled = 0;
-        Map<Genotype.Type,Double> firstParentLikelihoods;
-        Map<Genotype.Type,Double> secondParentLikelihoods;
-        ArrayList<Genotype.Type> bestFirstParentGenotype = new ArrayList<Genotype.Type>();
-        ArrayList<Genotype.Type> bestSecondParentGenotype = new ArrayList<Genotype.Type>();
-        ArrayList<Genotype.Type> bestChildGenotype = new ArrayList<Genotype.Type>();
-        Genotype.Type pairSecondParentGenotype = null;
+        Map<GenotypeType,Double> firstParentLikelihoods;
+        Map<GenotypeType,Double> secondParentLikelihoods;
+        ArrayList<GenotypeType> bestFirstParentGenotype = new ArrayList<GenotypeType>();
+        ArrayList<GenotypeType> bestSecondParentGenotype = new ArrayList<GenotypeType>();
+        ArrayList<GenotypeType> bestChildGenotype = new ArrayList<GenotypeType>();
+        GenotypeType pairSecondParentGenotype = null;
         if(mother == null || !mother.isCalled()){
             firstParentLikelihoods = getLikelihoodsAsMapSafeNull(father);
             secondParentLikelihoods = getLikelihoodsAsMapSafeNull(mother);
             bestFirstParentGenotype.add(getTypeSafeNull(father));
             bestSecondParentGenotype.add(getTypeSafeNull(mother));
-            pairSecondParentGenotype = mother == null ? Genotype.Type.UNAVAILABLE : mother.getType();
+            pairSecondParentGenotype = mother == null ? GenotypeType.UNAVAILABLE : mother.getType();
             if(father != null && father.isCalled())
                 parentsCalled = 1;
         }
@@ -583,12 +593,12 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             bestSecondParentGenotype.add(getTypeSafeNull(father));
             if(father == null || !father.isCalled()){
                 parentsCalled = 1;
-                pairSecondParentGenotype = father == null ? Genotype.Type.UNAVAILABLE : father.getType();
+                pairSecondParentGenotype = father == null ? GenotypeType.UNAVAILABLE : father.getType();
             }else{
                 parentsCalled = 2;
             }
         }
-        Map<Genotype.Type,Double> childLikelihoods = getLikelihoodsAsMapSafeNull(child);
+        Map<GenotypeType,Double> childLikelihoods = getLikelihoodsAsMapSafeNull(child);
         bestChildGenotype.add(getTypeSafeNull(child));
 
         //Prior vars
@@ -604,9 +614,9 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             int mvCount;
             int cumulativeMVCount = 0;
             double configurationLikelihood = 0;
-            for(Map.Entry<Genotype.Type,Double> childGenotype : childLikelihoods.entrySet()){
-                for(Map.Entry<Genotype.Type,Double> firstParentGenotype : firstParentLikelihoods.entrySet()){
-                    for(Map.Entry<Genotype.Type,Double> secondParentGenotype : secondParentLikelihoods.entrySet()){
+            for(Map.Entry<GenotypeType,Double> childGenotype : childLikelihoods.entrySet()){
+                for(Map.Entry<GenotypeType,Double> firstParentGenotype : firstParentLikelihoods.entrySet()){
+                    for(Map.Entry<GenotypeType,Double> secondParentGenotype : secondParentLikelihoods.entrySet()){
                         mvCount = mvCountMatrix.get(firstParentGenotype.getKey()).get(secondParentGenotype.getKey()).get(childGenotype.getKey());
                         //For parent/child pairs, sum over the possible genotype configurations of the missing parent
                         if(parentsCalled<2){
@@ -797,9 +807,9 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                     updateTrioMetricsCounters(phasedMother,phasedFather,phasedChild,mvCount,metricsCounters);
                     mvfLine = String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s:%s:%s:%s\t%s:%s:%s:%s\t%s:%s:%s:%s",
                             vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),
-                            phasedMother.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getAttribute(VCFConstants.DEPTH_KEY),phasedMother.getAttribute("AD"),phasedMother.getLikelihoodsString(),
-                            phasedFather.getGenotypeString(),phasedFather.getAttribute(VCFConstants.DEPTH_KEY),phasedFather.getAttribute("AD"),phasedFather.getLikelihoodsString(),
-                            phasedChild.getGenotypeString(),phasedChild.getAttribute(VCFConstants.DEPTH_KEY),phasedChild.getAttribute("AD"),phasedChild.getLikelihoodsString());
+                            phasedMother.getExtendedAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getDP(),Arrays.asList(phasedMother.getAD()),
+                            phasedMother.getLikelihoodsString(), phasedFather.getGenotypeString(),phasedFather.getDP(),Arrays.asList(phasedFather.getAD()),phasedFather.getLikelihoodsString(),
+                            phasedChild.getGenotypeString(),Arrays.asList(phasedChild.getDP()),phasedChild.getAD(),phasedChild.getLikelihoodsString());
                     if(!(phasedMother.getType()==mother.getType() && phasedFather.getType()==father.getType() && phasedChild.getType()==child.getType()))
                         metricsCounters.put(NUM_GENOTYPES_MODIFIED,metricsCounters.get(NUM_GENOTYPES_MODIFIED)+1);
                 }
@@ -809,8 +819,8 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                         metricsCounters.put(NUM_GENOTYPES_MODIFIED,metricsCounters.get(NUM_GENOTYPES_MODIFIED)+1);
                     mvfLine = String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s:%s:%s:%s\t.:.:.:.\t%s:%s:%s:%s",
                             vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),
-                            phasedMother.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getAttribute(VCFConstants.DEPTH_KEY),phasedMother.getAttribute("AD"),phasedMother.getLikelihoodsString(),
-                            phasedChild.getGenotypeString(),phasedChild.getAttribute(VCFConstants.DEPTH_KEY),phasedChild.getAttribute("AD"),phasedChild.getLikelihoodsString());
+                            phasedMother.getExtendedAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getDP(),Arrays.asList(phasedMother.getAD()),phasedMother.getLikelihoodsString(),
+                            phasedChild.getGenotypeString(),phasedChild.getDP(),Arrays.asList(phasedChild.getAD()),phasedChild.getLikelihoodsString());
                 }
             }
             else{
@@ -820,8 +830,8 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                     metricsCounters.put(NUM_GENOTYPES_MODIFIED,metricsCounters.get(NUM_GENOTYPES_MODIFIED)+1);
                 mvfLine =   String.format("%s\t%d\t%s\t%s\t%s\t%s\t.:.:.:.\t%s:%s:%s:%s\t%s:%s:%s:%s",
                         vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),
-                        phasedFather.getAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedFather.getGenotypeString(),phasedFather.getAttribute(VCFConstants.DEPTH_KEY),phasedFather.getAttribute("AD"),phasedFather.getLikelihoodsString(),
-                        phasedChild.getGenotypeString(),phasedChild.getAttribute(VCFConstants.DEPTH_KEY),phasedChild.getAttribute("AD"),phasedChild.getLikelihoodsString());
+                        phasedFather.getExtendedAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedFather.getGenotypeString(),phasedFather.getDP(),Arrays.asList(phasedFather.getAD()),phasedFather.getLikelihoodsString(),
+                        phasedChild.getGenotypeString(),phasedChild.getDP(),Arrays.asList(phasedChild.getAD()),phasedChild.getLikelihoodsString());
             }
 
             //Report violation if set so

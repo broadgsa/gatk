@@ -288,8 +288,8 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
 
     private byte getStandardEncoding(Genotype g, int offset) {
         byte b;
-        if ( g.hasAttribute(VCFConstants.GENOTYPE_QUALITY_KEY) && ((Integer) g.getAttribute(VCFConstants.GENOTYPE_QUALITY_KEY)) < minGenotypeQuality ) {
-            b = NO_CALL;
+        if ( g.hasGQ() && g.getGQ() < minGenotypeQuality ) {
+                b = NO_CALL;
         } else if ( g.isHomRef() ) {
             b = HOM_REF;
         } else if ( g.isHomVar() ) {
@@ -305,7 +305,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
 
     private byte getFlippedEncoding(Genotype g, int offset) {
         byte b;
-        if ( g.hasAttribute(VCFConstants.GENOTYPE_QUALITY_KEY) && ((Integer) g.getAttribute(VCFConstants.GENOTYPE_QUALITY_KEY)) < minGenotypeQuality ) {
+        if ( g.hasGQ() && g.getGQ() < minGenotypeQuality ) {
             b = NO_CALL;
         } else if ( g.isHomRef() ) {
             b = HOM_VAR;

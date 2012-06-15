@@ -141,13 +141,11 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             if (context.hasBasePileup()) {
                 final ReadBackedPileup pileup = context.getBasePileup();
                 if (pileup != null) {
+                    final GenotypeBuilder b = new GenotypeBuilder(sample.getKey());
                     final double[] genotypeLikelihoods = pairModel.computeDiploidReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
-                    final GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(genotypeLikelihoods);
-
-                    final HashMap<String, Object> attributes = new HashMap<String, Object>();
-                    attributes.put(VCFConstants.DEPTH_KEY, getFilteredDepth(pileup));
-                    attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
-                    genotypes.add(new Genotype(sample.getKey(), noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
+                    b.PL(genotypeLikelihoods);
+                    b.DP(getFilteredDepth(pileup));
+                    genotypes.add(b.make());
 
                     if (DEBUG) {
                         System.out.format("Sample:%s Alleles:%s GL:", sample.getKey(), alleleList.toString());
