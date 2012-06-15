@@ -147,7 +147,8 @@ public class VariantContextTestProvider {
 
                 logger.warn("Reading records from " + file);
                 for ( final VariantContext raw : x.getSecond() ) {
-                    fullyDecoded.add(raw.fullyDecode(x.getFirst()));
+                    if ( raw != null )
+                        fullyDecoded.add(raw.fullyDecode(x.getFirst()));
                 }
                 logger.warn("Done reading " + file);
 
@@ -328,7 +329,7 @@ public class VariantContextTestProvider {
             addGenotypeTests(site, homRef, het, homVar);
 
             // test no GT at all
-            addGenotypeTests(site);
+            addGenotypeTests(site, new GenotypeBuilder("noGT", new ArrayList<Allele>(0)).attribute("INT1", 10).make());
 
             final List<Allele> noCall = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 

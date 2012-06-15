@@ -10,6 +10,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.writer.Options;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 import org.testng.annotations.BeforeTest;
@@ -19,6 +20,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.EnumSet;
 
 /**
  * tests out the various functions in the index factory class
@@ -56,7 +58,8 @@ public class IndexFactoryUnitTest extends BaseTest {
             AbstractFeatureReader<VariantContext> source = AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), new VCFCodec(), indexFromInputFile);
 
             int counter = 0;
-            VariantContextWriter writer = VariantContextWriterFactory.create(outputFile, dict);
+            final EnumSet<Options> options = EnumSet.of(Options.ALLOW_MISSING_FIELDS_IN_HEADER);
+            VariantContextWriter writer = VariantContextWriterFactory.create(outputFile, dict, options);
             writer.writeHeader((VCFHeader)source.getHeader());
             CloseableTribbleIterator<VariantContext> it = source.iterator();
             while (it.hasNext() && (counter++ < maxRecords || maxRecords == -1) ) {
