@@ -203,8 +203,9 @@ public class VariantAnnotatorEngine {
         // go through all the requested info annotationTypes
         for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
             Map<String, Object> annotationsFromCurrentType = ((ActiveRegionBasedAnnotation)annotationType).annotate(stratifiedContexts, vc);
-            if ( annotationsFromCurrentType != null )
+            if ( annotationsFromCurrentType != null ) {
                 infoAnnotations.putAll(annotationsFromCurrentType);
+            }
         }
 
         // generate a new annotated VC

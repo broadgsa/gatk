@@ -150,8 +150,7 @@ public class SampleUtils {
         // iterate to get all of the sample names
 
         for ( Map.Entry<String, VCFHeader> pair : VCFUtils.getVCFHeadersFromRods(toolkit).entrySet() ) {
-            Set<String> vcfSamples = pair.getValue().getGenotypeSamples();
-            for ( String sample : vcfSamples )
+            for ( String sample : pair.getValue().getGenotypeSamples() )
                 addUniqueSample(samples, sampleOverlapMap, rodNamesToSampleNames, sample, pair.getKey());
         }
     }

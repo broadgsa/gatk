@@ -277,7 +277,7 @@ public abstract class BaseTest {
         Reporter.log(message, true);
     }
 
-    private static final double DEFAULT_FLOAT_TOLERANCE = 1e-4;
+    private static final double DEFAULT_FLOAT_TOLERANCE = 1e-1;
 
     public static final void assertEqualsDoubleSmart(final Object actual, final Double expected) {
         Assert.assertTrue(actual instanceof Double);

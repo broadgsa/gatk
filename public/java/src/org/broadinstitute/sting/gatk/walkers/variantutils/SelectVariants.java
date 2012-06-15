@@ -427,12 +427,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
 
         if (KEEP_ORIGINAL_CHR_COUNTS) {
-            headerLines.add(new VCFFormatHeaderLine("AC_Orig", 1, VCFHeaderLineType.Integer, "Original AC"));
-            headerLines.add(new VCFFormatHeaderLine("AF_Orig", 1, VCFHeaderLineType.Float, "Original AF"));
-            headerLines.add(new VCFFormatHeaderLine("AN_Orig", 1, VCFHeaderLineType.Integer, "Original AN"));
+            headerLines.add(new VCFInfoHeaderLine("AC_Orig", 1, VCFHeaderLineType.Integer, "Original AC"));
+            headerLines.add(new VCFInfoHeaderLine("AF_Orig", 1, VCFHeaderLineType.Float, "Original AF"));
+            headerLines.add(new VCFInfoHeaderLine("AN_Orig", 1, VCFHeaderLineType.Integer, "Original AN"));
         }
         headerLines.addAll(Arrays.asList(ChromosomeCounts.descriptions));
-        headerLines.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Depth of coverage"));
+        headerLines.add(new VCFInfoHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Depth of coverage"));
         vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
 
         for (int i = 0; i < SELECT_EXPRESSIONS.size(); i++) {

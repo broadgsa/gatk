@@ -26,6 +26,7 @@ package org.broadinstitute.sting.utils.variantcontext;
 
 
 import com.google.java.contract.Ensures;
+import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 
@@ -49,6 +50,7 @@ import java.util.*;
  * @author Mark DePristo
  * @since 06/12
  */
+@Invariant({"alleles != null"})
 public final class GenotypeBuilder {
     public static boolean MAKE_FAST_BY_DEFAULT = true;
 
@@ -154,9 +156,9 @@ public final class GenotypeBuilder {
      * function you must provide sampleName and alleles before trying to
      * make more Genotypes.
      */
-    public final void reset() {
-        sampleName = null;
-        alleles = null;
+    public final void reset(final boolean keepSampleName) {
+        if ( ! keepSampleName ) sampleName = null;
+        alleles = Collections.emptyList();
         isPhased = false;
         GQ = -1;
         DP = -1;

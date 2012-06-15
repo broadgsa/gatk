@@ -198,8 +198,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     // Variables
     private Set<SortableJexlVCMatchExp> jexlExpressions = new TreeSet<SortableJexlVCMatchExp>();
 
-    private Set<String> sampleNamesForEvaluation = new TreeSet<String>();
-    private Set<String> sampleNamesForStratification = new TreeSet<String>();
+    private boolean isSubsettingSamples;
+    private Set<String> sampleNamesForEvaluation = new LinkedHashSet<String>();
+    private Set<String> sampleNamesForStratification = new LinkedHashSet<String>();
 
     // important stratifications
     private boolean byFilterIsEnabled = false;
@@ -249,8 +250,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), evals);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
 
-        // Load the sample list
-        sampleNamesForEvaluation.addAll(SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS));
+        // Load the sample list, using an intermediate tree set to sort the samples
+        final Set<String> allSampleNames = SampleUtils.getSamplesFromCommandLineInput(vcfSamples);
+        sampleNamesForEvaluation.addAll(new TreeSet<String>(SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS)));
+        isSubsettingSamples = ! sampleNamesForEvaluation.containsAll(allSampleNames);
 
         if (Arrays.asList(STRATIFICATIONS_TO_USE).contains("Sample")) {
             sampleNamesForStratification.addAll(sampleNamesForEvaluation);
@@ -571,6 +574,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     public List<RodBinding<VariantContext>> getEvals() { return evals; }
 
+    public boolean isSubsettingToSpecificSamples() { return isSubsettingSamples; }
     public Set<String> getSampleNamesForEvaluation() { return sampleNamesForEvaluation; }
 
     public Set<String> getSampleNamesForStratification() { return sampleNamesForStratification; }

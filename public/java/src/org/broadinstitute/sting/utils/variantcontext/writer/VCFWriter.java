@@ -27,9 +27,9 @@ package org.broadinstitute.sting.utils.variantcontext.writer;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.*;
@@ -54,12 +54,17 @@ class VCFWriter extends IndexingVariantContextWriter {
     // were filters applied?
     protected boolean filtersWereAppliedToContext = false;
 
+    final private boolean allowMissingFieldsInHeader;
+
     private IntGenotypeFieldAccessors intGenotypeFieldAccessors = new IntGenotypeFieldAccessors();
 
-    public VCFWriter(final File location, final OutputStream output, final SAMSequenceDictionary refDict, final boolean enableOnTheFlyIndexing, boolean doNotWriteGenotypes) {
+    public VCFWriter(final File location, final OutputStream output, final SAMSequenceDictionary refDict,
+                     final boolean enableOnTheFlyIndexing, boolean doNotWriteGenotypes,
+                     final boolean allowMissingFieldsInHeader ) {
         super(writerName(location, output), location, output, refDict, enableOnTheFlyIndexing);
         mWriter = new BufferedWriter(new OutputStreamWriter(getOutputStream())); // todo -- fix buffer size
         this.doNotWriteGenotypes = doNotWriteGenotypes;
+        this.allowMissingFieldsInHeader = allowMissingFieldsInHeader;
     }
 
     // --------------------------------------------------------------------------------
@@ -222,6 +227,10 @@ class VCFWriter extends IndexingVariantContextWriter {
             Map<String, String> infoFields = new TreeMap<String, String>();
             for ( Map.Entry<String, Object> field : vc.getAttributes().entrySet() ) {
                 String key = field.getKey();
+
+                if ( ! mHeader.hasInfoLine(key) )
+                    fieldIsMissingFromHeaderError(vc, key, "INFO");
+
                 String outputValue = formatVCFField(field.getValue());
                 if ( outputValue != null )
                     infoFields.put(key, outputValue);
@@ -236,6 +245,10 @@ class VCFWriter extends IndexingVariantContextWriter {
             } else {
                 List<String> genotypeAttributeKeys = calcVCFGenotypeKeys(vc, mHeader);
                 if ( ! genotypeAttributeKeys.isEmpty() ) {
+                    for ( final String format : genotypeAttributeKeys )
+                        if ( ! mHeader.hasFormatLine(format) )
+                            fieldIsMissingFromHeaderError(vc, format, "FORMAT");
+
                     final String genotypeFormatString = ParsingUtils.join(VCFConstants.GENOTYPE_FIELD_SEPARATOR, genotypeAttributeKeys);
 
                     mWriter.write(VCFConstants.FIELD_SEPARATOR);
@@ -270,12 +283,18 @@ class VCFWriter extends IndexingVariantContextWriter {
     //
     // --------------------------------------------------------------------------------
 
-    public static final String getFilterString(final VariantContext vc) {
-        return getFilterString(vc, false);
-    }
+    private final String getFilterString(final VariantContext vc, boolean forcePASS) {
+        if ( vc.isFiltered() ) {
+            for ( final String filter : vc.getFilters() )
+                if ( ! mHeader.hasFilterLine(filter) )
+                    fieldIsMissingFromHeaderError(vc, filter, "FILTER");
 
-    public static final String getFilterString(final VariantContext vc, boolean forcePASS) {
-        return vc.isFiltered() ? ParsingUtils.join(";", ParsingUtils.sortList(vc.getFilters())) : (forcePASS || vc.filtersWereApplied() ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
+            return ParsingUtils.join(";", ParsingUtils.sortList(vc.getFilters()));
+        }
+        else if ( forcePASS || vc.filtersWereApplied() )
+            return VCFConstants.PASSES_FILTERS_v4;
+        else
+            return VCFConstants.UNFILTERED;
     }
 
     private static final String QUAL_FORMAT_STRING = "%.2f";
@@ -330,13 +349,13 @@ class VCFWriter extends IndexingVariantContextWriter {
      */
     private void addGenotypeData(VariantContext vc, Map<Allele, String> alleleMap, List<String> genotypeFormatKeys)
     throws IOException {
-        if ( ! mHeader.getGenotypeSamples().containsAll(vc.getSampleNames()) ) {
-            final List<String> badSampleNames = new ArrayList<String>();
-            for ( final Genotype g : vc.getGenotypes() )
-                if ( ! mHeader.getGenotypeSamples().contains(g.getSampleName()) )
-                    badSampleNames.add(g.getSampleName());
-            throw new ReviewedStingException("BUG: VariantContext contains some samples not in the VCF header: bad samples are " + Utils.join(",",badSampleNames));
-        }
+//        if ( ! mHeader.getGenotypeSamples().containsAll(vc.getSampleNames()) ) {
+//            final List<String> badSampleNames = new ArrayList<String>();
+//            for ( final Genotype g : vc.getGenotypes() )
+//                if ( ! mHeader.getGenotypeSamples().contains(g.getSampleName()) )
+//                    badSampleNames.add(g.getSampleName());
+//            throw new ReviewedStingException("BUG: VariantContext contains some samples not in the VCF header: bad samples are " + Utils.join(",",badSampleNames));
+//        }
 
         for ( String sample : mHeader.getGenotypeSamples() ) {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
@@ -552,5 +571,14 @@ class VCFWriter extends IndexingVariantContextWriter {
                count += s.charAt(i) == c ? 1 : 0;
            }
            return count;
+    }
+
+    private final void fieldIsMissingFromHeaderError(final VariantContext vc, final String id, final String field) {
+        if ( !allowMissingFieldsInHeader)
+            throw new UserException.MalformedVCFHeader("Key " + id + " found in VariantContext field " + field
+                    + " at " + vc.getChr() + ":" + vc.getStart()
+                    + " but this key isn't defined in the VCFHeader.  The GATK now requires all VCFs to have"
+                    + " complete VCF headers by default.  This error can be disabled with the engine argument"
+                    + " --allowMissingVCFHeaders");
     }
 }

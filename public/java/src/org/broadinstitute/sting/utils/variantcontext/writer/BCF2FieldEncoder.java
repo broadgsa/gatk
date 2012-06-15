@@ -260,7 +260,7 @@ public abstract class BCF2FieldEncoder {
     @Requires("isDynamicallyTyped()")
     @Ensures("result != null")
     public BCF2Type getDynamicType(final Object value) {
-        throw new ReviewedStingException("BUG: cannot get dynamic type for statically typed BCF2 field");
+        throw new ReviewedStingException("BUG: cannot get dynamic type for statically typed BCF2 field " + getField());
     }
 
     // ----------------------------------------------------------------------
@@ -367,7 +367,7 @@ public abstract class BCF2FieldEncoder {
         public Flag(final VCFCompoundHeaderLine headerLine, final Map<String, Integer> dict ) {
             super(headerLine, dict, BCF2Type.INT8);
             if ( ! headerLine.isFixedCount() || headerLine.getCount() != 0 )
-                throw new ReviewedStingException("Flag encoder only suppports atomic flags!");
+                throw new ReviewedStingException("Flag encoder only suppports atomic flags for field " + getField());
         }
 
         @Override

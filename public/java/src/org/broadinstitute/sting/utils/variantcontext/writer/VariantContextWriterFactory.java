@@ -79,7 +79,8 @@ public class VariantContextWriterFactory {
         else {
             return new VCFWriter(location, output, refDict,
                     options.contains(Options.INDEX_ON_THE_FLY),
-                    options.contains(Options.DO_NOT_WRITE_GENOTYPES));
+                    options.contains(Options.DO_NOT_WRITE_GENOTYPES),
+                    options.contains(Options.ALLOW_MISSING_FIELDS_IN_HEADER));
         }
     }
 

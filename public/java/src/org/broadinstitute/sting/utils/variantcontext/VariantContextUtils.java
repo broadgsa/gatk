@@ -119,10 +119,6 @@ public class VariantContextUtils {
                 attributes.put(VCFConstants.ALLELE_COUNT_KEY, alleleCounts.size() == 1 ? alleleCounts.get(0) : alleleCounts);
                 attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs.size() == 1 ? alleleFreqs.get(0) : alleleFreqs);
             }
-            else {
-                attributes.put(VCFConstants.ALLELE_COUNT_KEY, 0);
-                attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, 0.0);
-            }
         }
 
         return attributes;

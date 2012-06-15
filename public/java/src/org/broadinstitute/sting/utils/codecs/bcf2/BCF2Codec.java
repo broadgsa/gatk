@@ -79,6 +79,14 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
      */
     private BCF2GenotypeFieldDecoders gtFieldDecoders = null;
 
+    /**
+     * A cached array of GenotypeBuilders for efficient genotype decoding.
+     *
+     * Caching it allows us to avoid recreating this intermediate data
+     * structure each time we decode genotypes
+     */
+    private GenotypeBuilder[] builders = null;
+
     // for error handling
     private int recordNo = 0;
     private int pos = 0;
@@ -168,6 +176,13 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
         // prepare the genotype field decoders
         gtFieldDecoders = new BCF2GenotypeFieldDecoders(header);
 
+        // create and initialize the genotype builder array
+        final int nSamples = header.getNGenotypeSamples();
+        builders = new GenotypeBuilder[nSamples];
+        for ( int i = 0; i < nSamples; i++ ) {
+            builders[i] = new GenotypeBuilder(header.getGenotypeSamples().get(i));
+        }
+
         // position right before next line (would be right before first real record byte at end of header)
         return new FeatureCodecHeader(header, inputStream.getPosition());
     }
@@ -255,6 +270,11 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
         final int nInfo = nAlleleInfo & 0x0000FFFF;
         final int nFormatFields = nFormatSamples >> 24;
         final int nSamples = nFormatSamples & 0x00FFFFF;
+
+        if ( header.getNGenotypeSamples() != nSamples )
+            throw new UserException.MalformedBCF2("GATK currently doesn't support reading BCF2 files with " +
+                    "different numbers of samples per record.  Saw " + header.getNGenotypeSamples() +
+                    " samples in header but have a record with " + nSamples + " samples");
 
         decodeID(builder);
         final ArrayList<Allele> alleles = decodeAlleles(builder, pos, nAlleles);
@@ -416,11 +436,11 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
                                              final VariantContextBuilder builder ) {
         if (siteInfo.nSamples > 0) {
             final LazyGenotypesContext.LazyParser lazyParser =
-                    new BCF2LazyGenotypesDecoder(this, siteInfo.alleles, siteInfo.nSamples, siteInfo.nFormatFields);
-            final int nGenotypes = header.getGenotypeSamples().size();
+                    new BCF2LazyGenotypesDecoder(this, siteInfo.alleles, siteInfo.nSamples, siteInfo.nFormatFields, builders);
+
             LazyGenotypesContext lazy = new LazyGenotypesContext(lazyParser,
                     new LazyData(siteInfo.nFormatFields, decoder.getRecordBytes()),
-                    nGenotypes);
+                    header.getNGenotypeSamples());
 
             // did we resort the sample names?  If so, we need to load the genotype data
             if ( !header.samplesWereAlreadySorted() )
