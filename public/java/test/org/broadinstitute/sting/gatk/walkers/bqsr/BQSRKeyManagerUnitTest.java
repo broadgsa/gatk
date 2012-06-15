@@ -80,16 +80,22 @@ public class BQSRKeyManagerUnitTest {
     }
 
     private void runTestOnRead(GATKSAMRecord read, List<Covariate> covariateList, int nRequired) {
-        final long[][][] covariateKeys = new long[covariateList.size()][EventType.values().length][];
-        int i = 0;
-        for (Covariate cov : covariateList) {
+        final long[][][] covariateKeys = new long[covariateList.size()][EventType.values().length][read.getReadLength()];
+        ReadCovariates readCovariates = new ReadCovariates(read.getReadLength(), covariateList.size());
+        for (int i = 0; i < covariateList.size(); i++) {
+            final Covariate cov = covariateList.get(i);
             cov.initialize(RAC);
-            CovariateValues covValues = cov.getValues(read);
-            covariateKeys[i][EventType.BASE_SUBSTITUTION.index] = covValues.getMismatches();
-            covariateKeys[i][EventType.BASE_INSERTION.index] = covValues.getInsertions();
-            covariateKeys[i][EventType.BASE_DELETION.index] = covValues.getDeletions();
-            i++;
+            readCovariates.setCovariateIndex(i);
+            cov.recordValues(read, readCovariates);
         }
+        for (int i = 0; i < read.getReadLength(); i++) {
+            for (EventType eventType : EventType.values()) {
+                final long[] vals = readCovariates.getKeySet(i, eventType);
+                for (int j = 0; j < vals.length; j++)
+                    covariateKeys[j][eventType.index][i] = vals[j];
+            }
+        }
+
         List<Covariate> requiredCovariates = new LinkedList<Covariate>();
         List<Covariate> optionalCovariates = new LinkedList<Covariate>();
         

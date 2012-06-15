@@ -32,8 +32,6 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
-import java.util.Arrays;
-
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
@@ -54,20 +52,21 @@ public class ContextCovariate implements StandardCovariate {
         mismatchesContextSize = RAC.MISMATCHES_CONTEXT_SIZE;
         insertionsContextSize = RAC.INSERTIONS_CONTEXT_SIZE;
         deletionsContextSize = RAC.DELETIONS_CONTEXT_SIZE;
+        if (mismatchesContextSize > MAX_DNA_CONTEXT)
+            throw new UserException.BadArgumentValue("mismatches_context_size", String.format("context size cannot be bigger than %d, but was %d", MAX_DNA_CONTEXT, mismatchesContextSize));
+        if (insertionsContextSize > MAX_DNA_CONTEXT)
+            throw new UserException.BadArgumentValue("insertions_context_size", String.format("context size cannot be bigger than %d, but was %d", MAX_DNA_CONTEXT, insertionsContextSize));
+        if (deletionsContextSize > MAX_DNA_CONTEXT)
+            throw new UserException.BadArgumentValue("deletions_context_size", String.format("context size cannot be bigger than %d, but was %d", MAX_DNA_CONTEXT, deletionsContextSize));
 
         LOW_QUAL_TAIL = RAC.LOW_QUAL_TAIL;
         
         if (mismatchesContextSize <= 0 || insertionsContextSize <= 0 || deletionsContextSize <= 0)
             throw new UserException(String.format("Context Size must be positive, if you don't want to use the context covariate, just turn it off instead. Mismatches: %d Insertions: %d Deletions:%d", mismatchesContextSize, insertionsContextSize, deletionsContextSize));
-
     }
 
     @Override
-    public CovariateValues getValues(final GATKSAMRecord read) {
-        final int l = read.getReadLength();
-        final long[] mismatches = new long[l];
-        final long[] insertions = new long[l];
-        final long[] deletions = new long[l];
+    public void recordValues(final GATKSAMRecord read, final ReadCovariates values) {
 
         final GATKSAMRecord clippedRead = ReadClipper.clipLowQualEnds(read, LOW_QUAL_TAIL, ClippingRepresentation.WRITE_NS);   // Write N's over the low quality tail of the reads to avoid adding them into the context
         
@@ -76,18 +75,10 @@ public class ContextCovariate implements StandardCovariate {
         if (negativeStrand)
             bases = BaseUtils.simpleReverseComplement(bases);
 
-        for (int i = 0; i < clippedRead.getReadLength(); i++) {
-            mismatches[i] = contextWith(bases, i, mismatchesContextSize);
-            insertions[i] = contextWith(bases, i, insertionsContextSize);
-            deletions[i] = contextWith(bases, i, deletionsContextSize);
+        final int readLength = clippedRead.getReadLength();
+        for (int i = 0; i < readLength; i++) {
+            values.addCovariate(contextWith(bases, i, mismatchesContextSize), contextWith(bases, i, insertionsContextSize), contextWith(bases, i, deletionsContextSize), (negativeStrand ? readLength - i - 1 : i));
         }
-
-        if (negativeStrand) {
-            reverse(mismatches);
-            reverse(insertions);
-            reverse(deletions);
-        }
-        return new CovariateValues(mismatches, insertions, deletions);
     }
 
     // Used to get the covariate's value from input csv file during on-the-fly recalibration
@@ -106,7 +97,7 @@ public class ContextCovariate implements StandardCovariate {
 
     @Override
     public long longFromKey(Object key) {
-        return longFrom((String) key);
+        return keyFromContext((String) key);
     }
 
     @Override
@@ -123,35 +114,17 @@ public class ContextCovariate implements StandardCovariate {
      * @return the key representing the context
      */
     private long contextWith(final byte[] bases, final int offset, final int contextSize) {
-        long result = -1;
         final int start = offset - contextSize + 1;
-        if (start >= 0) {
-            final byte[] context = Arrays.copyOfRange(bases, start, offset + 1);
-            if (!BaseUtils.containsBase(context, BaseUtils.N))
-                result = keyFromContext(context);
-        }
+        final long result;
+        if (start >= 0)
+            result = keyFromContext(bases, start, offset + 1);
+        else
+            result = -1L;
         return result;
     }
 
-    /**
-     * Reverses the given array in place.
-     *
-     * @param array any array
-     */
-    private static void reverse(final long[] array) {
-        final int arrayLength = array.length;
-        for (int l = 0, r = arrayLength - 1; l < r; l++, r--) {
-            final long temp = array[l];
-            array[l] = array[r];
-            array[r] = temp;
-        }
-    }
-
-    static final private int MAX_DNA_CONTEXT = 31;                              // the maximum context size (number of bases) permitted in the "long bitset" implementation of the DNA <=> BitSet conversion.
-    static final long[] combinationsPerLength = new long[MAX_DNA_CONTEXT + 1];  // keeps the memoized table with the number of combinations for each given DNA context length
-
-    public static long longFrom(final String dna) {
-        return keyFromContext(dna.getBytes());
+    public static long keyFromContext(final String dna) {
+        return keyFromContext(dna.getBytes(), 0, dna.length());
     }
 
     /**
@@ -172,17 +145,24 @@ public class ContextCovariate implements StandardCovariate {
      * @param dna the dna sequence
      * @return the key representing the dna sequence
      */
-    public static long keyFromContext(final byte[] dna) {
-        if (dna.length > MAX_DNA_CONTEXT)
-            throw new ReviewedStingException(String.format("DNA Length cannot be bigger than %d. dna: %s (%d)", MAX_DNA_CONTEXT, dna, dna.length));
-
-        final long preContext = combinationsFor(dna.length - 1);      // the sum of all combinations that preceded the length of the dna string
-        long baseTen = 0L;                                            // the number in base_10 that we are going to use to generate the bit set
-        for (final byte base : dna) {
-            baseTen = baseTen << 2;  // multiply by 4
-            baseTen += (long)BaseUtils.simpleBaseToBaseIndex(base);
+    public static long keyFromContext(final byte[] dna, final int start, final int end) {
+        final long preContext = combinationsPerLength[end - start - 1];      // the sum of all combinations that preceded the length of the dna string
+        long baseTen = 0L;                                                   // the number in base_10 that we are going to use to generate the bit set
+        for (int i = start; i < end; i++) {
+            baseTen = (baseTen << 2);               // multiply by 4
+            final int baseIndex = BaseUtils.simpleBaseToBaseIndex(dna[i]);
+            if (baseIndex == -1)                    // ignore non-ACGT bases
+                return -1L;
+            baseTen += (long)baseIndex;
         }
         return baseTen + preContext;                // the number representing this DNA string is the base_10 representation plus all combinations that preceded this string length.
+    }
+
+    static final private int MAX_DNA_CONTEXT = 31;                              // the maximum context size (number of bases) permitted in the "long bitset" implementation of the DNA <=> BitSet conversion.
+    static final long[] combinationsPerLength = new long[MAX_DNA_CONTEXT + 1];  // keeps the memoized table with the number of combinations for each given DNA context length
+    static {
+        for (int i = 0; i < MAX_DNA_CONTEXT + 1; i++)
+            computeCombinationsFor(i);
     }
 
     /**
@@ -191,20 +171,12 @@ public class ContextCovariate implements StandardCovariate {
      * Memoized implementation of sum(4^i) , where i=[0,length]
      *
      * @param length the length of the DNA context
-     * @return the sum of all combinations leading up to this context length.
      */
-    private static long combinationsFor(int length) {
-        if (length > MAX_DNA_CONTEXT)
-            throw new ReviewedStingException(String.format("Context cannot be longer than %d bases but requested %d.", MAX_DNA_CONTEXT, length));
-
-        // only calculate the number of combinations if the table hasn't already cached the value
-        if (length > 0 && combinationsPerLength[length] == 0) {
-            long combinations = 0L;
-            for (int i = 1; i <= length; i++)
-                combinations += (1L << 2 * i);        // add all combinations with 4^i ( 4^i is the same as 2^(2*i) )
-            combinationsPerLength[length] = combinations;
-        }
-        return combinationsPerLength[length];
+    private static void computeCombinationsFor(final int length) {
+        long combinations = 0L;
+        for (int i = 1; i <= length; i++)
+            combinations += (1L << 2 * i);        // add all combinations with 4^i ( 4^i is the same as 2^(2*i) )
+        combinationsPerLength[length] = combinations;
     }
 
     /**
@@ -232,7 +204,7 @@ public class ContextCovariate implements StandardCovariate {
             throw new ReviewedStingException("dna conversion cannot handle negative numbers. Possible overflow?");
 
         final int length = contextLengthFor(key);  // the length of the context (the number of combinations is memoized, so costs zero to separate this into two method calls)
-        key -= combinationsFor(length - 1);        // subtract the the number of combinations of the preceding context from the number to get to the quasi-canonical representation
+        key -= combinationsPerLength[length - 1];  // subtract the the number of combinations of the preceding context from the number to get to the quasi-canonical representation
 
         StringBuilder dna = new StringBuilder();
         while (key > 0) {                         // perform a simple base_10 to base_4 conversion (quasi-canonical)
@@ -259,11 +231,11 @@ public class ContextCovariate implements StandardCovariate {
      * @return the length of the DNA context represented by this number
      */
     private static int contextLengthFor(final long number) {
-        int length = 1;                              // the calculated length of the DNA sequence given the base_10 representation of its BitSet.
-        long combinations = combinationsFor(length); // the next context (we advance it so we know which one was preceding it).
-        while (combinations <= number) {             // find the length of the dna string (length)
+        int length = 1;                                     // the calculated length of the DNA sequence given the base_10 representation of its BitSet.
+        long combinations = combinationsPerLength[length];  // the next context (we advance it so we know which one was preceding it).
+        while (combinations <= number) {                    // find the length of the dna string (length)
             length++;
-            combinations = combinationsFor(length);  // calculate the next context
+            combinations = combinationsPerLength[length];   // calculate the next context
         }
         return length;
     }

@@ -40,14 +40,15 @@ public class ReadGroupCovariateUnitTest {
     private void runTest(GATKSAMReadGroupRecord rg, String expected) {
         GATKSAMRecord read = ReadUtils.createRandomRead(10);
         read.setReadGroup(rg);
-        CovariateValues values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), expected);
+        ReadCovariates readCovariates = new ReadCovariates(read.getReadLength(), 1);
+        covariate.recordValues(read, readCovariates);
+        verifyCovariateArray(readCovariates.getMismatchesKeySet(), expected);
 
     }
 
-    private void verifyCovariateArray(long[] values, String expected) {
-        for (Long value : values) {
-            String actual = covariate.formatKey(value);
+    private void verifyCovariateArray(long[][] values, String expected) {
+        for (long[] value : values) {
+            String actual = covariate.formatKey(value[0]);
             Assert.assertEquals(actual, expected);
         }
     }

@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.utils.recalibration;
 
 import org.broadinstitute.sting.gatk.walkers.bqsr.*;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -92,7 +93,6 @@ public class BaseRecalibration {
      * @param read the read to recalibrate
      */
     public void recalibrateRead(final GATKSAMRecord read) {
-        readCovariates.reset();
         RecalDataManager.computeCovariates(read, requestedCovariates, readCovariates);                                  // compute all covariates for the read
         for (final EventType errorModel : EventType.values()) {                                                         // recalibrate all three quality strings
             final byte[] quals = read.getBaseQualities(errorModel);
@@ -181,7 +181,7 @@ public class BaseRecalibration {
         }
 
         double recalibratedQual = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;                      // calculate the recalibrated qual using the BQSR formula 
-        recalibratedQual = QualityUtils.boundQual((int) Math.round(recalibratedQual), QualityUtils.MAX_RECALIBRATED_Q_SCORE);     // recalibrated quality is bound between 1 and MAX_QUAL
+        recalibratedQual = QualityUtils.boundQual(MathUtils.fastRound(recalibratedQual), QualityUtils.MAX_RECALIBRATED_Q_SCORE);     // recalibrated quality is bound between 1 and MAX_QUAL
 
         return quantizationInfo.getQuantizedQuals().get((int) recalibratedQual);                                        // return the quantized version of the recalibrated quality
     }

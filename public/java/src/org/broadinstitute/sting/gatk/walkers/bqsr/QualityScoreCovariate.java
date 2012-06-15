@@ -40,28 +40,17 @@ public class QualityScoreCovariate implements RequiredCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
-    public void initialize(final RecalibrationArgumentCollection RAC) {
-    }
+    public void initialize(final RecalibrationArgumentCollection RAC) {}
 
     @Override
-    public CovariateValues getValues(final GATKSAMRecord read) {
-        int readLength = read.getReadLength();
-
-        long[] mismatches = new long[readLength];
-        long[] insertions = new long[readLength];
-        long[] deletions = new long[readLength];
-
-        byte[] baseQualities = read.getBaseQualities();
-        byte[] baseInsertionQualities = read.getBaseInsertionQualities();
-        byte[] baseDeletionQualities = read.getBaseDeletionQualities();
+    public void recordValues(final GATKSAMRecord read, final ReadCovariates values) {
+        final byte[] baseQualities = read.getBaseQualities();
+        final byte[] baseInsertionQualities = read.getBaseInsertionQualities();
+        final byte[] baseDeletionQualities = read.getBaseDeletionQualities();
 
         for (int i = 0; i < baseQualities.length; i++) {
-            mismatches[i] = (long)baseQualities[i];
-            insertions[i] = (long)baseInsertionQualities[i];
-            deletions[i] = (long)baseDeletionQualities[i];
+            values.addCovariate((long)baseQualities[i], (long)baseInsertionQualities[i], (long)baseDeletionQualities[i], i);
         }
-
-        return new CovariateValues(mismatches, insertions, deletions);
     }
 
     // Used to get the covariate's value from input csv file during on-the-fly recalibration

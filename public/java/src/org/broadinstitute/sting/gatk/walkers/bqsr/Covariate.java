@@ -48,10 +48,10 @@ public interface Covariate {
     /**
      * Calculates covariate values for all positions in the read.
      *
-     * @param read the read to calculate the covariates on.
-     * @return all the covariate values for every base in the read.
+     * @param read   the read to calculate the covariates on.
+     * @param values the object to record the covariate values for every base in the read.
      */
-    public CovariateValues getValues(final GATKSAMRecord read);
+    public void recordValues(final GATKSAMRecord read, final ReadCovariates values);
 
     /**
      * Used to get the covariate's value from input csv file during on-the-fly recalibration

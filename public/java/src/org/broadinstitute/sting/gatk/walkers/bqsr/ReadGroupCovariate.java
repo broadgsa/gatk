@@ -3,7 +3,6 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
-import java.util.Arrays;
 import java.util.HashMap;
 
 /*
@@ -50,13 +49,13 @@ public class ReadGroupCovariate implements RequiredCovariate {
     public void initialize(final RecalibrationArgumentCollection RAC) {}
 
     @Override
-    public CovariateValues getValues(final GATKSAMRecord read) {
-        final int l = read.getReadLength();
+    public void recordValues(final GATKSAMRecord read, final ReadCovariates values) {
         final String readGroupId = readGroupValueFromRG(read.getReadGroup());
         final long key = keyForReadGroup(readGroupId);
-        long[] readGroups = new long[l];
-        Arrays.fill(readGroups, key);
-        return new CovariateValues(readGroups, readGroups, readGroups);
+
+        final int l = read.getReadLength();
+        for (int i = 0; i < l; i++)
+            values.addCovariate(key, key, key, i);
     }
 
     @Override

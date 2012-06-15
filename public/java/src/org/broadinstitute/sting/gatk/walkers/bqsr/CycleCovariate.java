@@ -58,9 +58,8 @@ public class CycleCovariate implements StandardCovariate {
 
     // Used to pick out the covariate's value from attributes of the read
     @Override
-    public CovariateValues getValues(final GATKSAMRecord read) {
+    public void recordValues(final GATKSAMRecord read, final ReadCovariates values) {
         final int readLength = read.getReadLength();
-        final long[] cycles = new long[readLength];
         final NGSPlatform ngsPlatform = read.getNGSPlatform();
 
         // Discrete cycle platforms
@@ -79,12 +78,11 @@ public class CycleCovariate implements StandardCovariate {
 
             final int CUSHION = 4;
             final int MAX_CYCLE = readLength - CUSHION - 1;
-            for (int i = 0; i < MAX_CYCLE; i++) {
-                cycles[i] = (i<CUSHION || i>MAX_CYCLE) ? -1L : keyFromCycle(cycle);
+            for (int i = 0; i < readLength; i++) {
+                final long key = (i<CUSHION || i>MAX_CYCLE) ? -1L : keyFromCycle(cycle);
+                values.addCovariate(key, key, key, i);
                 cycle += increment;
             }
-            for (int i = MAX_CYCLE; i < readLength; i++)
-                cycles[i] = -1L;
         }
 
         // Flow cycle platforms
@@ -108,19 +106,23 @@ public class CycleCovariate implements StandardCovariate {
                 int iii = 0;
                 while (iii < readLength) {
                     while (iii < readLength && bases[iii] == (byte) 'T') {
-                        cycles[iii] = keyFromCycle(cycle);
+                        final long key = keyFromCycle(cycle);
+                        values.addCovariate(key, key, key, iii);
                         iii++;
                     }
                     while (iii < readLength && bases[iii] == (byte) 'A') {
-                        cycles[iii] = keyFromCycle(cycle);
+                        final long key = keyFromCycle(cycle);
+                        values.addCovariate(key, key, key, iii);
                         iii++;
                     }
                     while (iii < readLength && bases[iii] == (byte) 'C') {
-                        cycles[iii] = keyFromCycle(cycle);
+                        final long key = keyFromCycle(cycle);
+                        values.addCovariate(key, key, key, iii);
                         iii++;
                     }
                     while (iii < readLength && bases[iii] == (byte) 'G') {
-                        cycles[iii] = keyFromCycle(cycle);
+                        final long key = keyFromCycle(cycle);
+                        values.addCovariate(key, key, key, iii);
                         iii++;
                     }
                     if (iii < readLength) {
@@ -130,7 +132,8 @@ public class CycleCovariate implements StandardCovariate {
                             cycle++;
                     }
                     if (iii < readLength && !BaseUtils.isRegularBase(bases[iii])) {
-                        cycles[iii] = keyFromCycle(cycle);
+                        final long key = keyFromCycle(cycle);
+                        values.addCovariate(key, key, key, iii);
                         iii++;
                     }
 
@@ -140,19 +143,23 @@ public class CycleCovariate implements StandardCovariate {
                 int iii = readLength - 1;
                 while (iii >= 0) {
                     while (iii >= 0 && bases[iii] == (byte) 'T') {
-                        cycles[iii] = keyFromCycle(cycle);
+                        final long key = keyFromCycle(cycle);
+                        values.addCovariate(key, key, key, iii);
                         iii--;
                     }
                     while (iii >= 0 && bases[iii] == (byte) 'A') {
-                        cycles[iii] = keyFromCycle(cycle);
+                        final long key = keyFromCycle(cycle);
+                        values.addCovariate(key, key, key, iii);
                         iii--;
                     }
                     while (iii >= 0 && bases[iii] == (byte) 'C') {
-                        cycles[iii] = keyFromCycle(cycle);
+                        final long key = keyFromCycle(cycle);
+                        values.addCovariate(key, key, key, iii);
                         iii--;
                     }
                     while (iii >= 0 && bases[iii] == (byte) 'G') {
-                        cycles[iii] = keyFromCycle(cycle);
+                        final long key = keyFromCycle(cycle);
+                        values.addCovariate(key, key, key, iii);
                         iii--;
                     }
                     if (iii >= 0) {
@@ -162,7 +169,8 @@ public class CycleCovariate implements StandardCovariate {
                             cycle++;
                     }
                     if (iii >= 0 && !BaseUtils.isRegularBase(bases[iii])) {
-                        cycles[iii] = keyFromCycle(cycle);
+                        final long key = keyFromCycle(cycle);
+                        values.addCovariate(key, key, key, iii);
                         iii--;
                     }
                 }
@@ -173,8 +181,6 @@ public class CycleCovariate implements StandardCovariate {
         else {
             throw new UserException("The platform (" + read.getReadGroup().getPlatform() + ") associated with read group " + read.getReadGroup() + " is not a recognized platform. Implemented options are e.g. illumina, 454, and solid");
         }
-
-        return new CovariateValues(cycles, cycles, cycles);
     }
 
     // Used to get the covariate's value from input csv file during on-the-fly recalibration

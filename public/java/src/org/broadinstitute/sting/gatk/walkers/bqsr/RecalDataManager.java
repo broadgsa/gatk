@@ -631,8 +631,10 @@ public class RecalDataManager {
      */
     public static void computeCovariates(final GATKSAMRecord read, final Covariate[] requestedCovariates, final ReadCovariates readCovariates) {
         // Loop through the list of requested covariates and compute the values of each covariate for all positions in this read
-        for (final Covariate covariate : requestedCovariates)
-            readCovariates.addCovariate(covariate.getValues(read));
+        for (int i = 0; i < requestedCovariates.length; i++) {
+            readCovariates.setCovariateIndex(i);
+            requestedCovariates[i].recordValues(read, readCovariates);
+        }
     }
 
     /**

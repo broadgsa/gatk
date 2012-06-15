@@ -15,24 +15,22 @@ public class ReadCovariates {
     private final long[][] insertionsKeySet;
     private final long[][] deletionsKeySet;
 
-    private int nextCovariateIndex;
+    private int currentCovariateIndex = 0;
 
     public ReadCovariates(int readLength, int numberOfCovariates) {
         this.mismatchesKeySet = new long[readLength][numberOfCovariates];
         this.insertionsKeySet = new long[readLength][numberOfCovariates];
         this.deletionsKeySet = new long[readLength][numberOfCovariates];
-        this.nextCovariateIndex = 0;
     }
 
-    public void reset() {
-        nextCovariateIndex = 0;
+    public void setCovariateIndex(final int index) {
+        currentCovariateIndex = index;
     }
 
-    public void addCovariate(CovariateValues covariate) {
-        transposeCovariateValues(mismatchesKeySet, covariate.getMismatches());
-        transposeCovariateValues(insertionsKeySet, covariate.getInsertions());
-        transposeCovariateValues(deletionsKeySet, covariate.getDeletions());
-        nextCovariateIndex++;
+    public void addCovariate(final long mismatch, final long insertion, final long deletion, final int readOffset) {
+        mismatchesKeySet[readOffset][currentCovariateIndex] = mismatch;
+        insertionsKeySet[readOffset][currentCovariateIndex] = insertion;
+        deletionsKeySet[readOffset][currentCovariateIndex] = deletion;
     }
 
     public long[] getKeySet(final int readPosition, final EventType errorModel) {
@@ -58,11 +56,6 @@ public class ReadCovariates {
 
     public long[] getDeletionsKeySet(final int readPosition) {
         return deletionsKeySet[readPosition];
-    }
-
-    private void transposeCovariateValues(final long[][] keySet, final long[] covariateValues) {
-        for (int i = 0; i < covariateValues.length; i++)
-            keySet[i][nextCovariateIndex] = covariateValues[i];
     }
 
     /**
