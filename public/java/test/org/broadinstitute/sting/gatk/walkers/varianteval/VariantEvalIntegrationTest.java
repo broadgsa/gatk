@@ -32,11 +32,12 @@ import java.util.Arrays;
 
 public class VariantEvalIntegrationTest extends WalkerTest {
     private static String variantEvalTestDataRoot = validationDataLocation + "VariantEval/";
-    private static String fundamentalTestVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.snps_and_indels.vcf";
-    private static String fundamentalTestSNPsVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.vcf";
-    private static String fundamentalTestSNPsSplit1of2VCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.split_1_of_2.vcf";
-    private static String fundamentalTestSNPsSplit2of2VCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.split_2_of_2.vcf";
-    private static String fundamentalTestSNPsOneSampleVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.NA12045.vcf";
+    private static String fundamentalTestVCF = variantEvalTestDataRoot + "FundamentalsTest.annotated.db.subset.snps_and_indels.vcf";
+    private static String fundamentalTestSNPsVCF = variantEvalTestDataRoot + "FundamentalsTest.annotated.db.subset.final.vcf";
+    private static String fundamentalTestSNPsWithMLEVCF = variantEvalTestDataRoot + "FundamentalsTest.annotated.db.subset.final.withMLE.vcf";
+    private static String fundamentalTestSNPsSplit1of2VCF = variantEvalTestDataRoot + "FundamentalsTest.annotated.db.subset.final.split_1_of_2.vcf";
+    private static String fundamentalTestSNPsSplit2of2VCF = variantEvalTestDataRoot + "FundamentalsTest.annotated.db.subset.final.split_2_of_2.vcf";
+    private static String fundamentalTestSNPsOneSampleVCF = variantEvalTestDataRoot + "FundamentalsTest.annotated.db.subset.final.NA12045.vcf";
 
     private static String cmdRoot = "-T VariantEval" +
             " -R " + b36KGReference;
@@ -455,6 +456,27 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 Arrays.asList("0d51321693d4afc262e4059353993d12")
         );
         executeTest("testAlleleCountStrat", spec);
+    }
+
+    @Test
+    public void testAlleleCountStratWithMLE() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "--dbsnp " + b37dbSNP132,
+                        "--eval " + fundamentalTestSNPsWithMLEVCF,
+                        "-noEV",
+                        "-EV CountVariants",
+                        "-noST",
+                        "-ST AlleleCount",
+                        "-L " + fundamentalTestSNPsWithMLEVCF,
+                        "-o %s"
+                ),
+                1,
+                Arrays.asList("cadd4e32ab82f7e43d0e510dfe5e6dda")
+        );
+        executeTest("testAlleleCountStratWithMLE", spec);
     }
 
     @Test
