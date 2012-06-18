@@ -262,12 +262,14 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
         if ( UAC.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED )
             headerInfo.add(new VCFInfoHeaderLine(UnifiedGenotyperEngine.NUMBER_OF_DISCOVERED_ALLELES_KEY, 1, VCFHeaderLineType.Integer, "Number of alternate alleles discovered (but not necessarily genotyped) at this site"));
         headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DOWNSAMPLED_KEY, 0, VCFHeaderLineType.Flag, "Were any of the samples downsampled?"));
+        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.MLE_ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum likelihood expectation (MLE) for the allele counts (not necessarily the same as the AC), for each ALT allele, in the same order as listed"));
+        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.MLE_ALLELE_FREQUENCY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Maximum likelihood expectation (MLE) for the allele frequency (not necessarily the same as the AF), for each ALT allele, in the same order as listed"));
 
         // also, check to see whether comp rods were included
         if ( dbsnp.dbsnp.isBound() )
             headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DBSNP_KEY, 0, VCFHeaderLineType.Flag, "dbSNP Membership"));
 
-        // FORMAT and INFO fields
+        // FORMAT fields
         headerInfo.addAll(getSupportedHeaderStrings());
 
         // FILTER fields

@@ -296,6 +296,7 @@ public class UnifiedGenotyperEngine {
 
         // determine which alternate alleles have AF>0
         final List<Allele> myAlleles = new ArrayList<Allele>(vc.getAlleles().size());
+        final List<Integer> alleleCountsofMLE = new ArrayList<Integer>(vc.getAlleles().size());
         myAlleles.add(vc.getReference());
         for ( int i = 0; i < vc.getAlternateAlleles().size(); i++ ) {
             final Allele alternateAllele = vc.getAlternateAllele(i);
@@ -304,11 +305,12 @@ public class UnifiedGenotyperEngine {
             if ( indexOfAllele == -1 )
                 continue;
 
-            int indexOfBestAC = AFresult.getAlleleCountsOfMAP()[indexOfAllele-1];
+            final int indexOfBestAC = AFresult.getAlleleCountsOfMAP()[indexOfAllele-1];
 
             // if the most likely AC is not 0, then this is a good alternate allele to use
             if ( indexOfBestAC != 0 ) {
                 myAlleles.add(alternateAllele);
+                alleleCountsofMLE.add(AFresult.getAlleleCountsOfMLE()[indexOfAllele-1]);
                 bestGuessIsRef = false;
             }
             // if in GENOTYPE_GIVEN_ALLELES mode, we still want to allow the use of a poor allele
@@ -355,6 +357,7 @@ public class UnifiedGenotyperEngine {
 
         // create the genotypes
         final GenotypesContext genotypes = afcm.get().subsetAlleles(vc, myAlleles, true,ploidy);
+        builder.genotypes(genotypes);
 
         // print out stats if we have a writer
         if ( verboseWriter != null && !limitedContext )
@@ -369,6 +372,16 @@ public class UnifiedGenotyperEngine {
 
         if ( UAC.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED )
             attributes.put(NUMBER_OF_DISCOVERED_ALLELES_KEY, vc.getAlternateAlleles().size());
+
+        // add the MLE AC and AF annotations
+        if ( alleleCountsofMLE.size() > 0 ) {
+            attributes.put(VCFConstants.MLE_ALLELE_COUNT_KEY, alleleCountsofMLE);
+            final double AN = (double)builder.make().getCalledChrCount();
+            final ArrayList<Double> MLEfrequencies = new ArrayList<Double>(alleleCountsofMLE.size());
+            for ( int AC : alleleCountsofMLE )
+                MLEfrequencies.add((double)AC / AN);
+            attributes.put(VCFConstants.MLE_ALLELE_FREQUENCY_KEY, MLEfrequencies);
+        }
 
         if ( !UAC.NO_SLOD && !limitedContext && !bestGuessIsRef ) {
             //final boolean DEBUG_SLOD = false;
@@ -413,7 +426,6 @@ public class UnifiedGenotyperEngine {
         }
 
         // finish constructing the resulting VC
-        builder.genotypes(genotypes);
         builder.attributes(attributes);
         VariantContext vcCall = builder.make();
 

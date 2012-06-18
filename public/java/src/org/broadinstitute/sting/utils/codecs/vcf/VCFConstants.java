@@ -33,7 +33,9 @@ public final class VCFConstants {
     // reserved INFO/FORMAT field keys
     public static final String ANCESTRAL_ALLELE_KEY = "AA";
     public static final String ALLELE_COUNT_KEY = "AC";
+    public static final String MLE_ALLELE_COUNT_KEY = "MLEAC";
     public static final String ALLELE_FREQUENCY_KEY = "AF";
+    public static final String MLE_ALLELE_FREQUENCY_KEY = "MLEAF";
     public static final String ALLELE_NUMBER_KEY = "AN";
     public static final String RMS_BASE_QUALITY_KEY = "BQ";
     public static final String CIGAR_KEY = "CIGAR";
