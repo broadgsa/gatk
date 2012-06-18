@@ -26,6 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
@@ -314,8 +315,12 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         if ( addGenotypeFields ) {
             for ( final String sample : samples ) {
                 for ( final String gf : genotypeFields ) {
-                    if ( vc.hasGenotype(sample) && vc.getGenotype(sample).hasAttribute(gf) )
-                        addFieldValue(vc.getGenotype(sample).getAttribute(gf), records);
+                    if ( vc.hasGenotype(sample) && vc.getGenotype(sample).hasAnyAttribute(gf) ) {
+                        if ( gf.equals(VCFConstants.GENOTYPE_KEY) )
+                            addFieldValue(vc.getGenotype(sample).getGenotypeString(true), records);
+                        else
+                            addFieldValue(vc.getGenotype(sample).getAnyAttribute(gf), records);
+                    }
                     else
                         addFieldValue(MISSING_DATA, records);
                 }

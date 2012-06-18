@@ -7,8 +7,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.BitSet;
-
 /**
  * @author Mauricio Carneiro
  * @since 3/1/12
@@ -32,25 +30,26 @@ public class CycleCovariateUnitTest {
         read.setReadGroup(new GATKSAMReadGroupRecord("MY.ID"));
         read.getReadGroup().setPlatform("illumina");
 
-        CovariateValues values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), (short) 1, (short) 1);
+        ReadCovariates readCovariates = new ReadCovariates(read.getReadLength(), 1);
+        covariate.recordValues(read, readCovariates);
+        verifyCovariateArray(readCovariates.getMismatchesKeySet(), 1, (short) 1);
 
         read.setReadNegativeStrandFlag(true);
-        values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), readLength, (short) -1);
+        covariate.recordValues(read, readCovariates);
+        verifyCovariateArray(readCovariates.getMismatchesKeySet(), readLength, -1);
 
         read.setSecondOfPairFlag(true);
-        values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), (short) -readLength, (short) 1);
+        covariate.recordValues(read, readCovariates);
+        verifyCovariateArray(readCovariates.getMismatchesKeySet(), -readLength, 1);
 
         read.setReadNegativeStrandFlag(false);
-        values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), (short) -1, (short) -1);
+        covariate.recordValues(read, readCovariates);
+        verifyCovariateArray(readCovariates.getMismatchesKeySet(), -1, -1);
     }
 
-    private void verifyCovariateArray(BitSet[] values, short init, short increment) {
+    private void verifyCovariateArray(long[][] values, int init, int increment) {
         for (short i = 0; i < values.length; i++) {
-            short actual = Short.decode(covariate.keyFromBitSet(values[i]));
+            short actual = Short.decode(covariate.formatKey(values[i][0]));
             int expected = init + (increment * i);
             //            System.out.println(String.format("%d: %d, %d", i, actual, expected));
             Assert.assertEquals(actual, expected);

@@ -40,9 +40,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.ReservoirDownsampler;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileupImpl;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -63,7 +61,6 @@ public class LocusIteratorByState extends LocusIterator {
     // member fields
     //
     // -----------------------------------------------------------------------------------------------------------------
-    private boolean hasExtendedEvents = false; // will be set to true if at least one read had an indel right before the current position
 
     /**
      * Used to create new GenomeLocs.
@@ -92,26 +89,10 @@ public class LocusIteratorByState extends LocusIterator {
         // stepForwardOnGenome(). The next call to stepForwardOnGenome() will clear that memory (as we remember only extended
         // events immediately preceding the current reference base).
 
-        boolean generateExtendedEvents = true;  // should we generate an additional,  special pile for indels between the ref bases?
-                                                // the only purpose of this flag is to shield away a few additional lines of code
-                                                // when extended piles are not needed, it may not be even worth it...
-
-        byte[] insertedBases = null;            // remember full inserted sequence if we are generating piles of extended events (indels)
-        int eventLength = -1;                   // will be set to the length of insertion/deletion if we are generating piles of extended events
-        byte eventDelayedFlag = 0;              // will be set to non-0 if there was an event (indel) right before the
-                                                // current base on the ref. We use a counter-like variable here since clearing the indel event is
-                                                // delayed by one base, so we need to remember how long ago we have seen the actual event
-
-        int eventStart = -1;                    // where on the read the extended event starts (i.e. the last position on the read prior to the
-                                                // event, or -1 if alignment starts with an insertion); this one is easy to recompute on the fly,
-                                                // we cache it here mainly for convenience
-
-
-        public SAMRecordState(SAMRecord read, boolean extended) {
+        public SAMRecordState(SAMRecord read) {
             this.read = read;
             cigar = read.getCigar();
             nCigarElements = cigar.numCigarElements();
-            generateExtendedEvents = extended;
 
             //System.out.printf("Creating a SAMRecordState: %s%n", this);
         }
@@ -148,27 +129,6 @@ public class LocusIteratorByState extends LocusIterator {
 
         public CigarOperator getCurrentCigarOperator() {
             return curElement.getOperator();
-        }
-
-        /**
-         * Returns true if we just stepped over insertion/into a deletion prior to the last return from stepForwardOnGenome.
-         *
-         * @return
-         */
-        public boolean hadIndel() {
-            return (eventLength > 0);
-        }
-
-        public int getEventLength() {
-            return eventLength;
-        }
-
-        public byte[] getEventBases() {
-            return insertedBases;
-        }
-
-        public int getReadEventStartOffset() {
-            return eventStart;
         }
 
         public String toString() {
@@ -208,19 +168,6 @@ public class LocusIteratorByState extends LocusIterator {
                     genomeOffset++; // extended events need that. Logically, it's legal to advance the genomic offset here:
                     // we do step forward on the ref, and by returning null we also indicate that we are past the read end.
 
-                    if (generateExtendedEvents && eventDelayedFlag > 0) {
-
-                        // if we had an indel right before the read ended (i.e. insertion was the last cigar element),
-                        // we keep it until next reference base; then we discard it and this will allow the LocusIterator to
-                        // finally discard this read
-                        eventDelayedFlag--;
-                        if (eventDelayedFlag == 0) {
-                            eventLength = -1; // reset event when we are past it
-                            insertedBases = null;
-                            eventStart = -1;
-                        }
-                    }
-
                     return null;
                 }
             }
@@ -232,17 +179,6 @@ public class LocusIteratorByState extends LocusIterator {
                     cigarElementCounter = curElement.getLength();
                     break;
                 case I: // insertion w.r.t. the reference
-                    if (generateExtendedEvents) {
-                        // we see insertions only once, when we step right onto them; the position on the read is scrolled
-                        // past the insertion right after that
-                        if (eventDelayedFlag > 1)
-                            throw new UserException.MalformedBAM(read, String.format("Adjacent I/D events in read %s -- cigar: %s. This is an indication of a malformed file, but the SAM spec allows reads with adjacent insertion/deletion. If you are sure you want to use this read, re-run your analysis with the extra option: -rf BadCigar", read.getReadName(), read.getCigarString()));
-                        insertedBases = Arrays.copyOfRange(read.getReadBases(), readOffset + 1, readOffset + 1 + curElement.getLength());
-                        eventLength = curElement.getLength();
-                        eventStart = readOffset;
-                        eventDelayedFlag = 2; // insertion causes re-entry into stepForwardOnGenome, so we set the delay to 2
-//                        System.out.println("Inserted "+(new String (insertedBases)) +" after "+readOffset);
-                    } // continue onto the 'S' case !
                 case S: // soft clip
                     cigarElementCounter = curElement.getLength();
                     readOffset += curElement.getLength();
@@ -250,19 +186,6 @@ public class LocusIteratorByState extends LocusIterator {
                 case D: // deletion w.r.t. the reference
                     if (readOffset < 0)             // we don't want reads starting with deletion, this is a malformed cigar string
                         throw new UserException.MalformedBAM(read, "Read starting with deletion. Cigar: " + read.getCigarString() + ". This is an indication of a malformed file, but the SAM spec allows reads starting in deletion. If you are sure you want to use this read, re-run your analysis with the extra option: -rf BadCigar");
-                    if (generateExtendedEvents) {
-                        if (cigarElementCounter == 1) {
-                            // generate an extended event only if we just stepped into the deletion (i.e. don't
-                            // generate the event at every deleted position on the ref, that's what cigarElementCounter==1 is for!)
-                            if (eventDelayedFlag > 1)
-                                throw new UserException.MalformedBAM(read, String.format("Adjacent I/D events in read %s -- cigar: %s. This is an indication of a malformed file, but the SAM spec allows reads with adjacent insertion/deletion. If you are sure you want to use this read, re-run your analysis with the extra option: -rf BadCigar", read.getReadName(), read.getCigarString()));
-                            eventLength = curElement.getLength();
-                            eventDelayedFlag = 2; // deletion on the ref causes an immediate return, so we have to delay by 1 only
-                            eventStart = readOffset;
-                            insertedBases = null;
-//                            System.out.println("Deleted "+eventLength +" bases after "+readOffset);
-                        }
-                    }
                     // should be the same as N case
                     genomeOffset++;
                     done = true;
@@ -278,21 +201,6 @@ public class LocusIteratorByState extends LocusIterator {
                     break;
                 default:
                     throw new IllegalStateException("Case statement didn't deal with cigar op: " + curElement.getOperator());
-            }
-
-            if (generateExtendedEvents) {
-                if (eventDelayedFlag > 0 && done) {
-                    // if we did make a successful step on the ref, decrement delayed flag. If, upon the decrementing the,
-                    // the flag is 1, we are standing on the reference base right after the indel (so we have to keep it).
-                    // Otherwise, we are away from the previous indel and have to clear our memories...
-                    eventDelayedFlag--; // when we notice an indel, we set delayed flag to 2, so now
-                    // if eventDelayedFlag == 1, an indel occured right before the current base
-                    if (eventDelayedFlag == 0) {
-                        eventLength = -1; // reset event when we are past it
-                        insertedBases = null;
-                        eventStart = -1;
-                    }
-                }
             }
 
             return done ? curElement.getOperator() : stepForwardOnGenome();
@@ -374,147 +282,69 @@ public class LocusIteratorByState extends LocusIterator {
             // this call will set hasExtendedEvents to true if it picks up a read with indel right before the current position on the ref:
             readStates.collectPendingReads();
 
-            int size = 0;
-            int nDeletions = 0;
-            int nInsertions = 0;
-            int nMQ0Reads = 0;
+            final GenomeLoc location = getLocation();
+            final Map<String, ReadBackedPileupImpl> fullPileup = new HashMap<String, ReadBackedPileupImpl>();
+            boolean hasBeenSampled = false;
+            for (final String sample : samples) {
+                final Iterator<SAMRecordState> iterator = readStates.iterator(sample);
+                final List<PileupElement> pile = new ArrayList<PileupElement>(readStates.size(sample));
+                hasBeenSampled |= location.getStart() <= readStates.getDownsamplingExtent(sample);
 
+                int size = 0;                                                           // number of elements in this sample's pileup
+                int nDeletions = 0;                                                     // number of deletions in this sample's pileup
+                int nMQ0Reads = 0;                                                      // number of MQ0 reads in this sample's pileup (warning: current implementation includes N bases that are MQ0)
 
-            // if extended events are requested, and if previous traversal step brought us over an indel in
-            // at least one read, we emit extended pileup (making sure that it is associated with the previous base,
-            // i.e. the one right *before* the indel) and do NOT shift the current position on the ref.
-            // In this case, the subsequent call to next() will emit the normal pileup at the current base
-            // and shift the position.
-            if (readInfo.generateExtendedEvents() && hasExtendedEvents) {
-                Map<String, ReadBackedExtendedEventPileupImpl> fullExtendedEventPileup = new HashMap<String, ReadBackedExtendedEventPileupImpl>();
+                while (iterator.hasNext()) {
+                    final SAMRecordState state = iterator.next();                   // state object with the read/offset information
+                    final GATKSAMRecord read = (GATKSAMRecord) state.getRead();     // the actual read
+                    final CigarOperator op = state.getCurrentCigarOperator();       // current cigar operator
+                    final CigarElement nextElement = state.peekForwardOnGenome();   // next cigar element
+                    final CigarElement lastElement = state.peekBackwardOnGenome();  // last cigar element
+                    final CigarOperator nextOp = nextElement.getOperator();         // next cigar operator
+                    final CigarOperator lastOp = lastElement.getOperator();         // last cigar operator
+                    final int readOffset = state.getReadOffset();                   // the base offset on this read
 
-                // get current location on the reference and decrement it by 1: the indels we just stepped over
-                // are associated with the *previous* reference base
-                GenomeLoc loc = genomeLocParser.incPos(getLocation(), -1);
+                    final boolean isBeforeDeletion  = nextOp == CigarOperator.DELETION;
+                    final boolean isAfterDeletion   = lastOp == CigarOperator.DELETION;
+                    final boolean isBeforeInsertion = nextOp == CigarOperator.INSERTION;
+                    final boolean isAfterInsertion  = lastOp == CigarOperator.INSERTION;
+                    final boolean isNextToSoftClip  = nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart());
 
-                boolean hasBeenSampled = false;
-                for (final String sample : samples) {
-                    Iterator<SAMRecordState> iterator = readStates.iterator(sample);
-                    List<ExtendedEventPileupElement> indelPile = new ArrayList<ExtendedEventPileupElement>(readStates.size(sample));
-                    hasBeenSampled |= loc.getStart() <= readStates.getDownsamplingExtent(sample);
+                    int nextElementLength = nextElement.getLength();
 
-                    size = 0;
-                    nDeletions = 0;
-                    nInsertions = 0;
-                    nMQ0Reads = 0;
-                    int maxDeletionLength = 0;
+                    if (op == CigarOperator.N)                                      // N's are never added to any pileup
+                        continue;
 
-                    while (iterator.hasNext()) {
-                        final SAMRecordState state = iterator.next();
-                        final GATKSAMRecord read = (GATKSAMRecord) state.getRead();     // the actual read
-                        final CigarOperator op = state.getCurrentCigarOperator();       // current cigar operator
-                        final int readOffset = state.getReadOffset();                   // the base offset on this read
-                        final int eventStartOffset = state.getReadEventStartOffset();   // this will be -1 if base is not a deletion, or if base is the first deletion in the event. Otherwise, it will give the last base before the deletion began.
-                        final int eventLength = state.getEventLength();
-
-                        if (op == CigarOperator.N)                                      // N's are never added to any pileup
-                                continue;
-
-                        if (state.hadIndel()) {                                         // this read has an indel associated with the previous position on the ref
+                    if (op == CigarOperator.D) {
+                        if (readInfo.includeReadsWithDeletionAtLoci()) {            // only add deletions to the pileup if we are authorized to do so
+                            pile.add(new PileupElement(read, readOffset, true, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, null, nextOp == CigarOperator.D ? nextElementLength : -1));
                             size++;
-                            ExtendedEventPileupElement pileupElement;
-                            if (state.getEventBases() == null) {                        // Deletion event
-                                nDeletions++;
-                                maxDeletionLength = Math.max(maxDeletionLength, state.getEventLength());
-                                pileupElement = new ExtendedEventPileupElement(read, eventStartOffset, eventLength);
-                            }
-                            else {                                                      // Insertion event
-                                nInsertions++;
-                                pileupElement = new ExtendedEventPileupElement(read, eventStartOffset, eventLength, state.getEventBases());
-                            }
-                            if (read.getMappingQuality() == 0)
-                                nMQ0Reads++;
-
-                            indelPile.add(pileupElement);
-                        }
-
-                        // this read has no indel so add it to the pileup as a NOEVENT:
-                        //   a deletion that didn't start here (therefore, not an extended event)
-                        //   we add (mis)matches as no events.
-                        else if (op != CigarOperator.D || readInfo.includeReadsWithDeletionAtLoci()) {
-                            size++;
-                            indelPile.add(new ExtendedEventPileupElement((GATKSAMRecord) state.getRead(), readOffset));
+                            nDeletions++;
                             if (read.getMappingQuality() == 0)
                                 nMQ0Reads++;
                         }
                     }
+                    else {
+                        if (!filterBaseInRead(read, location.getStart())) {
+                            String insertedBaseString = null;
+                            if (nextOp == CigarOperator.I)
+                                insertedBaseString = new String(Arrays.copyOfRange(read.getReadBases(), readOffset + 1, readOffset + 1 + nextElement.getLength()));
 
-                    if (indelPile.size() != 0)
-                        fullExtendedEventPileup.put(sample, new ReadBackedExtendedEventPileupImpl(loc, indelPile, size, maxDeletionLength, nInsertions, nDeletions, nMQ0Reads));
-                }
-                hasExtendedEvents = false;                                              // we are done with extended events prior to current ref base
-                nextAlignmentContext = new AlignmentContext(loc, new ReadBackedExtendedEventPileupImpl(loc, fullExtendedEventPileup), hasBeenSampled);
-            }
-            else {                                                                      // this is a regular event pileup (not extended)
-                final GenomeLoc location = getLocation();
-                final Map<String, ReadBackedPileupImpl> fullPileup = new HashMap<String, ReadBackedPileupImpl>();
-                boolean hasBeenSampled = false;
-                for (final String sample : samples) {
-                    final Iterator<SAMRecordState> iterator = readStates.iterator(sample);
-                    final List<PileupElement> pile = new ArrayList<PileupElement>(readStates.size(sample));
-                    hasBeenSampled |= location.getStart() <= readStates.getDownsamplingExtent(sample);
-
-                    size = 0;                                                           // number of elements in this sample's pileup
-                    nDeletions = 0;                                                     // number of deletions in this sample's pileup
-                    nMQ0Reads = 0;                                                      // number of MQ0 reads in this sample's pileup (warning: current implementation includes N bases that are MQ0)
-
-                    while (iterator.hasNext()) {
-                        final SAMRecordState state = iterator.next();                   // state object with the read/offset information
-                        final GATKSAMRecord read = (GATKSAMRecord) state.getRead();     // the actual read
-                        final CigarOperator op = state.getCurrentCigarOperator();       // current cigar operator
-                        final CigarElement nextElement = state.peekForwardOnGenome();   // next cigar element
-                        final CigarElement lastElement = state.peekBackwardOnGenome();  // last cigar element
-                        final CigarOperator nextOp = nextElement.getOperator();         // next cigar operator
-                        final CigarOperator lastOp = lastElement.getOperator();         // last cigar operator
-                        final int readOffset = state.getReadOffset();                   // the base offset on this read
-                        
-                        final boolean isBeforeDeletion  = nextOp == CigarOperator.DELETION;
-                        final boolean isAfterDeletion   = lastOp == CigarOperator.DELETION;
-                        final boolean isBeforeInsertion = nextOp == CigarOperator.INSERTION;
-                        final boolean isAfterInsertion  = lastOp == CigarOperator.INSERTION;
-                        final boolean isNextToSoftClip  = nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart());
-                        
-                        int nextElementLength = nextElement.getLength();
-
-                        if (op == CigarOperator.N)                                      // N's are never added to any pileup
-                            continue;
-
-                        if (op == CigarOperator.D) {
-                            if (readInfo.includeReadsWithDeletionAtLoci()) {            // only add deletions to the pileup if we are authorized to do so
-                                pile.add(new PileupElement(read, readOffset, true, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, null, nextOp == CigarOperator.D ? nextElementLength : -1));
-                                size++;
-                                nDeletions++;
-                                if (read.getMappingQuality() == 0)
-                                    nMQ0Reads++;
-                            }
-                        }
-                        else {
-                            if (!filterBaseInRead(read, location.getStart())) {
-                                String insertedBaseString = null;
-                                if (nextOp == CigarOperator.I)
-                                    insertedBaseString = new String(Arrays.copyOfRange(read.getReadBases(), readOffset + 1, readOffset + 1 + nextElement.getLength()));
-
-                                pile.add(new PileupElement(read, readOffset, false, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, insertedBaseString, nextElementLength));
-                                size++;
-                                if (read.getMappingQuality() == 0)
-                                    nMQ0Reads++;
-                            }
+                            pile.add(new PileupElement(read, readOffset, false, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, insertedBaseString, nextElementLength));
+                            size++;
+                            if (read.getMappingQuality() == 0)
+                                nMQ0Reads++;
                         }
                     }
-
-                    if (pile.size() != 0)                                             // if this pileup added at least one base, add it to the full pileup
-                        fullPileup.put(sample, new ReadBackedPileupImpl(location, pile, size, nDeletions, nMQ0Reads));
                 }
 
-                updateReadStates();                                                   // critical - must be called after we get the current state offsets and location
-                if (!fullPileup.isEmpty())                                            // if we got reads with non-D/N over the current position, we are done
-                    nextAlignmentContext = new AlignmentContext(location, new ReadBackedPileupImpl(location, fullPileup), hasBeenSampled);
+                if (pile.size() != 0)                                             // if this pileup added at least one base, add it to the full pileup
+                    fullPileup.put(sample, new ReadBackedPileupImpl(location, pile, size, nDeletions, nMQ0Reads));
             }
+
+            updateReadStates();                                                   // critical - must be called after we get the current state offsets and location
+            if (!fullPileup.isEmpty())                                            // if we got reads with non-D/N over the current position, we are done
+                nextAlignmentContext = new AlignmentContext(location, new ReadBackedPileupImpl(location, fullPileup), hasBeenSampled);
         }
     }
 
@@ -546,9 +376,7 @@ public class LocusIteratorByState extends LocusIterator {
             while (it.hasNext()) {
                 SAMRecordState state = it.next();
                 CigarOperator op = state.stepForwardOnGenome();
-                if (state.hadIndel() && readInfo.generateExtendedEvents())
-                    hasExtendedEvents = true;
-                else if (op == null) {
+                if (op == null) {
                     // we discard the read only when we are past its end AND indel at the end of the read (if any) was
                     // already processed. Keeping the read state that retunred null upon stepForwardOnGenome() is safe
                     // as the next call to stepForwardOnGenome() will return null again AND will clear hadIndel() flag.
@@ -757,12 +585,9 @@ public class LocusIteratorByState extends LocusIterator {
             int readCount = 0;
             for (SAMRecord read : reads) {
                 if (readCount < maxReads) {
-                    SAMRecordState state = new SAMRecordState(read, readInfo.generateExtendedEvents());
+                    SAMRecordState state = new SAMRecordState(read);
                     state.stepForwardOnGenome();
                     newReadStates.add(state);
-                    // TODO: What if we downsample the extended events away?
-                    if (state.hadIndel())
-                        hasExtendedEvents = true;
                     readCount++;
                 }
             }

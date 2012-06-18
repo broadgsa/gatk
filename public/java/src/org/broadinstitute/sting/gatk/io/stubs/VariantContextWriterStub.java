@@ -51,6 +51,8 @@ import java.util.List;
  * @version 0.1
  */
 public class VariantContextWriterStub implements Stub<VariantContextWriter>, VariantContextWriter {
+    public final static boolean UPDATE_CONTIG_HEADERS = true;
+
     /**
      * The engine, central to the GATK's processing.
      */
@@ -215,7 +217,8 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
                     vcfHeader.addMetaDataLine(commandLineArgHeaderLine);
             }
 
-            //vcfHeader = VCFUtils.withUpdatedContigs(vcfHeader, engine);
+            if ( UPDATE_CONTIG_HEADERS )
+                vcfHeader = VCFUtils.withUpdatedContigs(vcfHeader, engine);
         }
 
         outputTracker.getStorage(this).writeHeader(vcfHeader);

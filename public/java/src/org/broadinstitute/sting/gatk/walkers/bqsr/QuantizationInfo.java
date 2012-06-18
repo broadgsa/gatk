@@ -6,7 +6,6 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.recalibration.QualQuantizer;
 
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 
@@ -31,15 +30,15 @@ public class QuantizationInfo {
         this(quantizedQuals, empiricalQualCounts, calculateQuantizationLevels(quantizedQuals));
     }
     
-    public QuantizationInfo(Map<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap, int quantizationLevels) {
+    public QuantizationInfo(Map<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap, int quantizationLevels) {
         final Long [] qualHistogram = new Long[QualityUtils.MAX_QUAL_SCORE+1];                                          // create a histogram with the empirical quality distribution
         for (int i = 0; i < qualHistogram.length; i++)
             qualHistogram[i] = 0L;
 
-        Map<BitSet, RecalDatum> qualTable = null;                                                                       // look for the quality score table
-        for (Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> entry : keysAndTablesMap.entrySet()) {
+        Map<Long, RecalDatum> qualTable = null;                                                                         // look for the quality score table
+        for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> entry : keysAndTablesMap.entrySet()) {
             BQSRKeyManager keyManager = entry.getKey();
-            if (keyManager.getRequiredCovariates().size() == 2)                                                         // it should be the only one with 2 required covaraites
+            if (keyManager.getNumRequiredCovariates() == 2)                                                             // it should be the only one with 2 required covariates
                 qualTable = entry.getValue();
         }
 

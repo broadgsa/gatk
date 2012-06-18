@@ -35,8 +35,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Haplotype;
-import org.broadinstitute.sting.utils.codecs.vcf.AbstractVCFCodec;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -44,14 +43,13 @@ import org.broadinstitute.sting.utils.variantcontext.*;
 import java.util.*;
 
 public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsCalculationModel {
-    private final int HAPLOTYPE_SIZE;
-
-    private final boolean getAlleleListFromVCF;
+    private static final int HAPLOTYPE_SIZE = 80;
 
     private boolean DEBUG = false;
     private boolean ignoreSNPAllelesWhenGenotypingIndels = false;
     private PairHMMIndelErrorModel pairModel;
-
+    private boolean allelesArePadded;
+    
     private static ThreadLocal<HashMap<PileupElement, LinkedHashMap<Allele, Double>>> indelLikelihoodMap =
             new ThreadLocal<HashMap<PileupElement, LinkedHashMap<Allele, Double>>>() {
                 protected synchronized HashMap<PileupElement, LinkedHashMap<Allele, Double>> initialValue() {
@@ -75,124 +73,56 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         super(UAC, logger);
         pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY, UAC.INDEL_GAP_CONTINUATION_PENALTY,
                 UAC.OUTPUT_DEBUG_INDEL_INFO, !UAC.DONT_DO_BANDED_INDEL_COMPUTATION);
-        getAlleleListFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
-        HAPLOTYPE_SIZE = UAC.INDEL_HAPLOTYPE_SIZE;
         DEBUG = UAC.OUTPUT_DEBUG_INDEL_INFO;
         haplotypeMap = new LinkedHashMap<Allele, Haplotype>();
         ignoreSNPAllelesWhenGenotypingIndels = UAC.IGNORE_SNP_ALLELES;
     }
 
-    protected List<Allele> computeConsensusAlleles(ReferenceContext ref,
+    protected static List<Allele> computeConsensusAlleles(ReferenceContext ref,
                                                  Map<String, AlignmentContext> contexts,
                                                  AlignmentContextUtils.ReadOrientation contextType,
-                                                 GenomeLocParser locParser) {
+                                                 GenomeLocParser locParser, UnifiedArgumentCollection UAC) {
         ConsensusAlleleCounter counter = new ConsensusAlleleCounter(locParser, true, UAC.MIN_INDEL_COUNT_FOR_GENOTYPING, UAC.MIN_INDEL_FRACTION_PER_SAMPLE);
         return counter.computeConsensusAlleles(ref, contexts, contextType);
     }
 
     private final static EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.INDEL, VariantContext.Type.MIXED);
 
+
     public VariantContext getLikelihoods(final RefMetaDataTracker tracker,
                                          final ReferenceContext ref,
                                          final Map<String, AlignmentContext> contexts,
                                          final AlignmentContextUtils.ReadOrientation contextType,
-                                         final List<Allele> alternateAllelesToUse,
+                                         final List<Allele> allAllelesToUse,
                                          final boolean useBAQedPileup,
                                          final GenomeLocParser locParser) {
 
-        if (tracker == null)
-            return null;
-
         GenomeLoc loc = ref.getLocus();
-        Allele refAllele, altAllele;
-        VariantContext vc = null;
-
-        boolean allelesArePadded = true;
-
-        if (!ref.getLocus().equals(lastSiteVisited)) {
+//        if (!ref.getLocus().equals(lastSiteVisited)) {
+        if (contextType == AlignmentContextUtils.ReadOrientation.COMPLETE) {
             // starting a new site: clear allele list
-            alleleList.clear();
             lastSiteVisited = ref.getLocus();
             indelLikelihoodMap.set(new HashMap<PileupElement, LinkedHashMap<Allele, Double>>());
             haplotypeMap.clear();
 
-            if (getAlleleListFromVCF) {
-                for (final VariantContext vc_input : tracker.getValues(UAC.alleles, loc)) {
-                    if (vc_input != null &&
-                            allowableTypes.contains(vc_input.getType()) &&
-                            ref.getLocus().getStart() == vc_input.getStart()) {
-                        vc = vc_input;
-                        break;
-                    }
-                }
-                // ignore places where we don't have a variant
-                if (vc == null)
-                    return null;
-
-                alleleList.clear();
-                if (ignoreSNPAllelesWhenGenotypingIndels) {
-                    // if there's an allele that has same length as the reference (i.e. a SNP or MNP), ignore it and don't genotype it
-                    for (Allele a : vc.getAlleles())
-                        if (a.isNonReference() && a.getBases().length == vc.getReference().getBases().length)
-                            continue;
-                        else
-                            alleleList.add(a);
-
-                } else {
-                    for (Allele a : vc.getAlleles())
-                        alleleList.add(a);
-                }
-                if (vc.getReference().getBases().length == vc.getEnd()-vc.getStart()+1)
-                    allelesArePadded = false;
-
-            } else {
-                alleleList = computeConsensusAlleles(ref, contexts, contextType, locParser);
-                if (alleleList.isEmpty())
-                    return null;
-            }
-        }
-        // protect against having an indel too close to the edge of a contig
-        if (loc.getStart() <= HAPLOTYPE_SIZE)
-            return null;
-
-        // check if there is enough reference window to create haplotypes (can be an issue at end of contigs)
-        if (ref.getWindow().getStop() < loc.getStop() + HAPLOTYPE_SIZE)
-            return null;
-
-        if (alleleList.isEmpty())
-            return null;
-
-        refAllele = alleleList.get(0);
-        altAllele = alleleList.get(1);
-
-        // look for alt allele that has biggest length distance to ref allele
-        int maxLenDiff = 0;
-        for (Allele a : alleleList) {
-            if (a.isNonReference()) {
-                int lenDiff = Math.abs(a.getBaseString().length() - refAllele.getBaseString().length());
-                if (lenDiff > maxLenDiff) {
-                    maxLenDiff = lenDiff;
-                    altAllele = a;
-                }
-            }
+            Pair<List<Allele>,Boolean> pair = getInitialAlleleList(tracker, ref, contexts, contextType, locParser, UAC, ignoreSNPAllelesWhenGenotypingIndels);
+            alleleList = pair.first;
+            allelesArePadded = pair.second;
+            if (alleleList.isEmpty())
+                return null;
         }
 
-        final int eventLength = altAllele.getBaseString().length() - refAllele.getBaseString().length();
-        final int hsize = ref.getWindow().size() - Math.abs(eventLength) - 1;
-        final int numPrefBases = ref.getLocus().getStart() - ref.getWindow().getStart() + 1;
 
-        if (hsize <= 0) {
-            logger.warn(String.format("Warning: event at location %s can't be genotyped, skipping", loc.toString()));
+        getHaplotypeMapFromAlleles(alleleList, ref, loc, haplotypeMap); // will update haplotypeMap adding elements
+        if (haplotypeMap == null || haplotypeMap.isEmpty())
             return null;
-        }
-        haplotypeMap = Haplotype.makeHaplotypeListFromAlleles(alleleList, loc.getStart(),
-                ref, hsize, numPrefBases);
 
         // start making the VariantContext
         // For all non-snp VC types, VC end location is just startLocation + length of ref allele including padding base.
-        int endLoc = loc.getStart() + refAllele.length()-1;
-        if (allelesArePadded)
-            endLoc++;
+        
+        final int endLoc = computeEndLocation(alleleList, loc,allelesArePadded);
+        final int eventLength = getEventLength(alleleList);
+
         final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), endLoc, alleleList).referenceBaseForIndel(ref.getBase());
 
         // create the genotypes; no-call everyone for now
@@ -206,23 +136,19 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         for (Map.Entry<String, AlignmentContext> sample : contexts.entrySet()) {
             AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
-            if (context.hasBasePileup()) {
-                final ReadBackedPileup pileup = context.getBasePileup();
-                if (pileup != null) {
-                    final double[] genotypeLikelihoods = pairModel.computeReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
-                    GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(genotypeLikelihoods);
+            final ReadBackedPileup pileup = context.getBasePileup();
+            if (pileup != null) {
+                final GenotypeBuilder b = new GenotypeBuilder(sample.getKey());
+                final double[] genotypeLikelihoods = pairModel.computeDiploidReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
+                b.PL(genotypeLikelihoods);
+                b.DP(getFilteredDepth(pileup));
+                genotypes.add(b.make());
 
-                    HashMap<String, Object> attributes = new HashMap<String, Object>();
-                    attributes.put(VCFConstants.DEPTH_KEY, getFilteredDepth(pileup));
-                    attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
-                    genotypes.add(new Genotype(sample.getKey(), noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
-
-                    if (DEBUG) {
-                        System.out.format("Sample:%s Alleles:%s GL:", sample.getKey(), alleleList.toString());
-                        for (int k = 0; k < genotypeLikelihoods.length; k++)
-                            System.out.format("%1.4f ", genotypeLikelihoods[k]);
-                        System.out.println();
-                    }
+                if (DEBUG) {
+                    System.out.format("Sample:%s Alleles:%s GL:", sample.getKey(), alleleList.toString());
+                    for (int k = 0; k < genotypeLikelihoods.length; k++)
+                        System.out.format("%1.4f ", genotypeLikelihoods[k]);
+                    System.out.println();
                 }
             }
         }
@@ -232,6 +158,102 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
     public static HashMap<PileupElement, LinkedHashMap<Allele, Double>> getIndelLikelihoodMap() {
         return indelLikelihoodMap.get();
+    }
+
+    public static int computeEndLocation(final List<Allele> alleles, final GenomeLoc loc, final boolean allelesArePadded) {
+        Allele refAllele = alleles.get(0);
+        int endLoc = loc.getStart() + refAllele.length()-1;
+        if (allelesArePadded)
+            endLoc++;
+
+        return endLoc;
+    }
+
+    public static void getHaplotypeMapFromAlleles(final List<Allele> alleleList,
+                                                 final ReferenceContext ref,
+                                                 final GenomeLoc loc,
+                                                 final LinkedHashMap<Allele, Haplotype> haplotypeMap) {
+        // protect against having an indel too close to the edge of a contig
+        if (loc.getStart() <= HAPLOTYPE_SIZE)
+            haplotypeMap.clear();
+        // check if there is enough reference window to create haplotypes (can be an issue at end of contigs)
+        else if (ref.getWindow().getStop() < loc.getStop() + HAPLOTYPE_SIZE)
+            haplotypeMap.clear();
+        else if (alleleList.isEmpty())
+            haplotypeMap.clear();
+        else {
+            final int eventLength = getEventLength(alleleList);
+            final int hsize = ref.getWindow().size() - Math.abs(eventLength) - 1;
+            final int numPrefBases = ref.getLocus().getStart() - ref.getWindow().getStart() + 1;
+
+            haplotypeMap.putAll(Haplotype.makeHaplotypeListFromAlleles(alleleList, loc.getStart(),
+                    ref, hsize, numPrefBases));
+        }
+    }
+
+    public static int getEventLength(List<Allele> alleleList) {
+        Allele refAllele = alleleList.get(0);
+        Allele altAllele = alleleList.get(1);
+        // look for alt allele that has biggest length distance to ref allele
+        int maxLenDiff = 0;
+        for (Allele a : alleleList) {
+            if (a.isNonReference()) {
+                int lenDiff = Math.abs(a.getBaseString().length() - refAllele.getBaseString().length());
+                if (lenDiff > maxLenDiff) {
+                    maxLenDiff = lenDiff;
+                    altAllele = a;
+                }
+            }
+        }
+
+        return altAllele.getBaseString().length() - refAllele.getBaseString().length();
+
+    }
+    
+    public static Pair<List<Allele>,Boolean> getInitialAlleleList(final RefMetaDataTracker tracker,
+                                                    final ReferenceContext ref,
+                                                    final Map<String, AlignmentContext> contexts,
+                                                    final AlignmentContextUtils.ReadOrientation contextType,
+                                                    final GenomeLocParser locParser,
+                                                    final UnifiedArgumentCollection UAC,
+                                                    final boolean ignoreSNPAllelesWhenGenotypingIndels) {
+        
+        List<Allele> alleles = new ArrayList<Allele>();
+        boolean allelesArePadded = true;
+        if (UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES) {
+            VariantContext vc = null;
+            for (final VariantContext vc_input : tracker.getValues(UAC.alleles, ref.getLocus())) {
+                if (vc_input != null &&
+                        allowableTypes.contains(vc_input.getType()) &&
+                        ref.getLocus().getStart() == vc_input.getStart()) {
+                    vc = vc_input;
+                    break;
+                }
+            }
+           // ignore places where we don't have a variant
+            if (vc == null)
+                return new Pair<List<Allele>,Boolean>(alleles,false);
+
+            if (ignoreSNPAllelesWhenGenotypingIndels) {
+                // if there's an allele that has same length as the reference (i.e. a SNP or MNP), ignore it and don't genotype it
+                for (Allele a : vc.getAlleles())
+                    if (a.isNonReference() && a.getBases().length == vc.getReference().getBases().length)
+                        continue;
+                    else
+                        alleles.add(a);
+
+            } else {
+                alleles.addAll(vc.getAlleles());
+            }
+            if ( vc.getReference().getBases().length == vc.getEnd()-vc.getStart()+1)
+                allelesArePadded = false;
+
+
+
+        } else {
+            alleles = IndelGenotypeLikelihoodsCalculationModel.computeConsensusAlleles(ref, contexts, contextType, locParser, UAC);
+        }
+        return new Pair<List<Allele>,Boolean> (alleles,allelesArePadded);
     }
 
     // Overload function in GenotypeLikelihoodsCalculationModel so that, for an indel case, we consider a deletion as part of the pileup,

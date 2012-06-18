@@ -62,7 +62,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                                          final ReferenceContext ref,
                                          final Map<String, AlignmentContext> contexts,
                                          final AlignmentContextUtils.ReadOrientation contextType,
-                                         final List<Allele> alternateAllelesToUse,
+                                         final List<Allele> allAllelesToUse,
                                          final boolean useBAQedPileup,
                                          final GenomeLocParser locParser) {
 
@@ -70,11 +70,6 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         final int indexOfRefBase = BaseUtils.simpleBaseToBaseIndex(refBase);
         final Allele refAllele = Allele.create(refBase, true);
 
-        // start making the VariantContext
-        final GenomeLoc loc = ref.getLocus();
-        final List<Allele> alleles = new ArrayList<Allele>();
-        alleles.add(refAllele);
-        final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles);
 
         // calculate the GLs
         ArrayList<SampleGenotypeData> GLs = new ArrayList<SampleGenotypeData>(contexts.size());
@@ -90,9 +85,16 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                 GLs.add(new SampleGenotypeData(sample.getKey(), GL, getFilteredDepth(pileup)));
         }
 
+        // start making the VariantContext
+        final GenomeLoc loc = ref.getLocus();
+        final List<Allele> alleles = new ArrayList<Allele>();
+        alleles.add(refAllele);
+
+
+        final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles);
         // find the alternate allele(s) that we should be using
-        if ( alternateAllelesToUse != null ) {
-            alleles.addAll(alternateAllelesToUse);
+        if ( allAllelesToUse != null ) {
+            alleles.addAll(allAllelesToUse.subList(1,allAllelesToUse.size()));   // this includes ref allele
         } else if ( useAlleleFromVCF ) {
             final VariantContext vc = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, ref, ref.getLocus(), true, logger, UAC.alleles);
 
@@ -156,12 +158,11 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                 myLikelihoods[i] = allLikelihoods[PLordering[i]];
 
             // normalize in log space so that max element is zero.
-            final GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(MathUtils.normalizeFromLog10(myLikelihoods, false, true));
-
-            final HashMap<String, Object> attributes = new HashMap<String, Object>();
-            attributes.put(VCFConstants.DEPTH_KEY, sampleData.depth);
-            attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
-            genotypes.add(new Genotype(sampleData.name, noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
+            final GenotypeBuilder gb = new GenotypeBuilder(sampleData.name);
+            final double[] genotypeLikelihoods = MathUtils.normalizeFromLog10(myLikelihoods, false, true);
+            gb.PL(genotypeLikelihoods);
+            gb.DP(sampleData.depth);
+            genotypes.add(gb.make());
         }
 
         return builder.genotypes(genotypes).make();

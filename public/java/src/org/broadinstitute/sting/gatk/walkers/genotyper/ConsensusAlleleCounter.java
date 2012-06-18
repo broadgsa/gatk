@@ -98,11 +98,9 @@ public class ConsensusAlleleCounter {
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
             final AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
-            if ( context.hasBasePileup() ) {
-                final ReadBackedPileup indelPileup = context.getBasePileup();
-                insCount += indelPileup.getNumberOfInsertionsAfterThisElement();
-                delCount += indelPileup.getNumberOfDeletionsAfterThisElement();
-             }
+            final ReadBackedPileup indelPileup = context.getBasePileup();
+            insCount += indelPileup.getNumberOfInsertionsAfterThisElement();
+            delCount += indelPileup.getNumberOfDeletionsAfterThisElement();
         }
 
         if ( insCount < minIndelCountForGenotyping && delCount < minIndelCountForGenotyping )
@@ -111,9 +109,6 @@ public class ConsensusAlleleCounter {
         for (Map.Entry<String, AlignmentContext> sample : contexts.entrySet()) {
             // todo -- warning, can be duplicating expensive partition here
             AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
-
-            if ( !context.hasBasePileup() )
-                continue;
 
             final ReadBackedPileup indelPileup = context.getBasePileup();
 

@@ -226,12 +226,12 @@ final class CommonInfo {
         return Boolean.valueOf((String)x); // throws an exception if this isn't a string
     }
 
-//    public String getAttributeAsString(String key)      { return (String.valueOf(getAttribute(key))); } // **NOTE**: will turn a null Object into the String "null"
-//    public int getAttributeAsInt(String key)            { Object x = getAttribute(key); return x instanceof Integer ? (Integer)x : Integer.valueOf((String)x); }
-//    public double getAttributeAsDouble(String key)      { Object x = getAttribute(key); return x instanceof Double ? (Double)x : Double.valueOf((String)x); }
-//    public boolean getAttributeAsBoolean(String key)      { Object x = getAttribute(key); return x instanceof Boolean ? (Boolean)x : Boolean.valueOf((String)x); }
+//    public String getAttributeAsString(String key)      { return (String.valueOf(getExtendedAttribute(key))); } // **NOTE**: will turn a null Object into the String "null"
+//    public int getAttributeAsInt(String key)            { Object x = getExtendedAttribute(key); return x instanceof Integer ? (Integer)x : Integer.valueOf((String)x); }
+//    public double getAttributeAsDouble(String key)      { Object x = getExtendedAttribute(key); return x instanceof Double ? (Double)x : Double.valueOf((String)x); }
+//    public boolean getAttributeAsBoolean(String key)      { Object x = getExtendedAttribute(key); return x instanceof Boolean ? (Boolean)x : Boolean.valueOf((String)x); }
 //    public Integer getAttributeAsIntegerNoException(String key)  { try {return getAttributeAsInt(key);} catch (Exception e) {return null;} }
 //    public Double getAttributeAsDoubleNoException(String key)    { try {return getAttributeAsDouble(key);} catch (Exception e) {return null;} }
-//    public String getAttributeAsStringNoException(String key)    { if (getAttribute(key) == null) return null; return getAttributeAsString(key); }
+//    public String getAttributeAsStringNoException(String key)    { if (getExtendedAttribute(key) == null) return null; return getAttributeAsString(key); }
 //    public Boolean getAttributeAsBooleanNoException(String key)  { try {return getAttributeAsBoolean(key);} catch (Exception e) {return null;} }
 }

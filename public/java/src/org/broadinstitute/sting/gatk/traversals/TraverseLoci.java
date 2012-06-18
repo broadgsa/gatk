@@ -53,19 +53,6 @@ public class TraverseLoci<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,Locu
 
                 dataProvider.getShard().getReadMetrics().incrementNumIterations();
 
-                if ( locus.hasExtendedEventPileup() ) {
-                    // if the alignment context we received holds an "extended" pileup (i.e. pileup of insertions/deletions
-                    // associated with the current site), we need to update the location. The updated location still starts
-                    // at the current genomic position, but it has to span the length of the longest deletion (if any).
-                    location = engine.getGenomeLocParser().setStop(location,location.getStop()+locus.getExtendedEventPileup().getMaxDeletionLength());
-
-                    // it is possible that the new expanded location spans the current shard boundary; the next method ensures
-                    // that when it is the case, the reference sequence held by the ReferenceView will be reloaded so that
-                    // the view has all the bases we are gonna need. If the location fits within the current view bounds,
-                    // the next call will not do anything to the view:
-                    referenceView.expandBoundsToAccomodateLoc(location);
-                }
-
                 // create reference context. Note that if we have a pileup of "extended events", the context will
                 // hold the (longest) stretch of deleted reference bases (if deletions are present in the pileup).
                 ReferenceContext refContext = referenceView.getReferenceContext(location);

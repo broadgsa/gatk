@@ -8,8 +8,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.BitSet;
-
 /**
  * @author Mauricio Carneiro
  * @since 3/1/12
@@ -30,15 +28,17 @@ public class ContextCovariateUnitTest {
     public void testSimpleContexts() {
         GATKSAMRecord read = ReadUtils.createRandomRead(1000);
         GATKSAMRecord clippedRead = ReadClipper.clipLowQualEnds(read, RAC.LOW_QUAL_TAIL, ClippingRepresentation.WRITE_NS);
-        CovariateValues values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), RAC.MISMATCHES_CONTEXT_SIZE, clippedRead, covariate);
-        verifyCovariateArray(values.getInsertions(), RAC.INSERTIONS_CONTEXT_SIZE, clippedRead, covariate);
-        verifyCovariateArray(values.getDeletions(),  RAC.DELETIONS_CONTEXT_SIZE,  clippedRead, covariate);
+        ReadCovariates readCovariates = new ReadCovariates(read.getReadLength(), 1);
+        covariate.recordValues(read, readCovariates);
+
+        verifyCovariateArray(readCovariates.getMismatchesKeySet(), RAC.MISMATCHES_CONTEXT_SIZE, clippedRead, covariate);
+        verifyCovariateArray(readCovariates.getInsertionsKeySet(), RAC.INDELS_CONTEXT_SIZE, clippedRead, covariate);
+        verifyCovariateArray(readCovariates.getDeletionsKeySet(),  RAC.INDELS_CONTEXT_SIZE,  clippedRead, covariate);
     }
 
-    public static void verifyCovariateArray(BitSet[] values, int contextSize, GATKSAMRecord read, Covariate contextCovariate) {
+    public static void verifyCovariateArray(long[][] values, int contextSize, GATKSAMRecord read, Covariate contextCovariate) {
         for (int i = 0; i < values.length; i++)
-            Assert.assertEquals(contextCovariate.keyFromBitSet(values[i]), expectedContext(read, i, contextSize));
+            Assert.assertEquals(contextCovariate.formatKey(values[i][0]), expectedContext(read, i, contextSize));
 
     }
 

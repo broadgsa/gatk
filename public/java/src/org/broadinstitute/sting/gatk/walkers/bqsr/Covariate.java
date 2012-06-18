@@ -2,8 +2,6 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
-import java.util.BitSet;
-
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -45,15 +43,15 @@ public interface Covariate {
      *
      * @param RAC the recalibration argument collection
      */
-    public void initialize(RecalibrationArgumentCollection RAC);
+    public void initialize(final RecalibrationArgumentCollection RAC);
 
     /**
      * Calculates covariate values for all positions in the read.
      *
-     * @param read the read to calculate the covariates on.
-     * @return all the covariate values for every base in the read.
+     * @param read   the read to calculate the covariates on.
+     * @param values the object to record the covariate values for every base in the read.
      */
-    public CovariateValues getValues(GATKSAMRecord read);
+    public void recordValues(final GATKSAMRecord read, final ReadCovariates values);
 
     /**
      * Used to get the covariate's value from input csv file during on-the-fly recalibration
@@ -61,26 +59,26 @@ public interface Covariate {
      * @param str the key in string type (read from the csv)
      * @return the key in it's correct type.
      */
-    public Object getValue(String str);
+    public Object getValue(final String str);
 
     /**
-     * Converts the bitset representation of the key (used internally for table indexing) to String format for file output.
+     * Converts the internal representation of the key to String format for file output.
      *
-     * @param key the bitset representation of the key
+     * @param key the long representation of the key
      * @return a string representation of the key
      */
-    public String keyFromBitSet(BitSet key);
+    public String formatKey(final long key);
 
     /**
-     * Converts a key into a bitset
+     * Converts an Object key into a long key using only the lowest numberOfBits() bits
      *
-     * Only necessary for on-the-fly recalibration when you have the object, but need to store it in memory in bitset format. For counting covariates
-     * the getValues method already returns all values in BitSet format.
+     * Only necessary for on-the-fly recalibration when you have the object, but need to store it in memory in long format. For counting covariates
+     * the getValues method already returns all values in long format.
      *
      * @param key the object corresponding to the covariate
-     * @return a bitset representation of the object
+     * @return a long representation of the object
      */
-    public BitSet bitSetFromKey(Object key);
+    public long longFromKey(final Object key);
 
     /**
      * Each covariate should determine how many bits are necessary to encode it's data

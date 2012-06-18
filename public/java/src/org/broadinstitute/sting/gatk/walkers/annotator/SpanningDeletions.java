@@ -35,11 +35,9 @@ public class SpanningDeletions extends InfoFieldAnnotation implements StandardAn
         int depth = 0;
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             AlignmentContext context = sample.getValue();
-            if ( context.hasBasePileup() ) {
-                final ReadBackedPileup pileup = context.getBasePileup();
-                deletions += pileup.getNumberOfDeletions();
-                depth += pileup.getNumberOfElements();
-            }
+            final ReadBackedPileup pileup = context.getBasePileup();
+            deletions += pileup.getNumberOfDeletions();
+            depth += pileup.getNumberOfElements();
         }
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), String.format("%.2f", depth == 0 ? 0.0 : (double)deletions/(double)depth));

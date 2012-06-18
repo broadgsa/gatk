@@ -7,8 +7,6 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.BitSet;
-
 /**
  * @author Mauricio Carneiro
  * @since 3/1/12
@@ -42,14 +40,15 @@ public class ReadGroupCovariateUnitTest {
     private void runTest(GATKSAMReadGroupRecord rg, String expected) {
         GATKSAMRecord read = ReadUtils.createRandomRead(10);
         read.setReadGroup(rg);
-        CovariateValues values = covariate.getValues(read);
-        verifyCovariateArray(values.getMismatches(), expected);
+        ReadCovariates readCovariates = new ReadCovariates(read.getReadLength(), 1);
+        covariate.recordValues(read, readCovariates);
+        verifyCovariateArray(readCovariates.getMismatchesKeySet(), expected);
 
     }
 
-    private void verifyCovariateArray(BitSet[] values, String expected) {
-        for (BitSet value : values) {
-            String actual = covariate.keyFromBitSet(value);
+    private void verifyCovariateArray(long[][] values, String expected) {
+        for (long[] value : values) {
+            String actual = covariate.formatKey(value[0]);
             Assert.assertEquals(actual, expected);
         }
     }

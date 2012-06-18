@@ -16,7 +16,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testNoAction() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --variant:VCF3 " + testDir + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("5720826c2bf6cbc762e4a888ef58c3f2"));
+                Arrays.asList("dfa5dff09fa964b06da19c0f4aff6928"));
         executeTest("test no action", spec);
     }
 
@@ -24,7 +24,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testClusteredSnps() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -window 10 --variant:VCF3 " + testDir + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("d7c2a4b0c1b2b982847508997ba57ebf"));
+                Arrays.asList("4a4596929f9fe983d8868ca142567781"));
         executeTest("test clustered SNPs", spec);
     }
 
@@ -32,7 +32,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testMask1() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
                 baseTestString() + " -maskName foo --mask:VCF3 " + testDir + "vcfexample2.vcf --variant:VCF3 " + testDir + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("890774962576c407d8a17ed57cf704c1"));
+                Arrays.asList("1719462cd17986c33e59e45b69df0270"));
         executeTest("test mask all", spec1);
     }
 
@@ -40,7 +40,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testMask2() {
         WalkerTestSpec spec2 = new WalkerTestSpec(
                 baseTestString() + " -maskName foo --mask:VCF " + testDir + "vcfMask.vcf --variant:VCF3 " + testDir + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("8864573dbf52908501140e6b0afcbc90"));
+                Arrays.asList("db19ff7d90c82cda09fb3c3878100eb5"));
         executeTest("test mask some", spec2);
     }
 
@@ -48,7 +48,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testMask3() {
         WalkerTestSpec spec3 = new WalkerTestSpec(
                 baseTestString() + " -maskName foo -maskExtend 10 --mask:VCF " + testDir + "vcfMask.vcf --variant:VCF3 " + testDir + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("42a1c08763f151073a49e3c7bb68028b"));
+                Arrays.asList("a9e417cba21585c786d4b9930265ea31"));
         executeTest("test mask extend", spec3);
     }
 
@@ -56,7 +56,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testFilter1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -filter 'DoC < 20 || FisherStrand > 20.0' -filterName foo --variant:VCF3 " + testDir + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("ef8100c3b7c67d28571cbda771c414c2"));
+                Arrays.asList("4160904b180d1f62a6bf50de6728ce00"));
         executeTest("test filter #1", spec);
     }
 
@@ -64,7 +64,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testFilter2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -filter 'AlleleBalance < 70.0 && FisherStrand == 1.4' -filterName bar --variant:VCF3 " + testDir + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("318ed3874fd42b7da8c59554a25a1fab"));
+                Arrays.asList("df80db30c7836731ac7c8c3d4fc005b4"));
         executeTest("test filter #2", spec);
     }
 
@@ -72,7 +72,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testFilterWithSeparateNames() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --filterName ABF -filter 'AlleleBalance < 0.7' --filterName FSF -filter 'FisherStrand == 1.4' --variant:VCF3 " + testDir + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("9cb398e78a38a7bc5e839e28c8dae2eb"));
+                Arrays.asList("71ce6c0952831cb68f575aa0173dce2b"));
         executeTest("test filter with separate names #2", spec);
     }
 
@@ -80,7 +80,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testGenotypeFilters1() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
                 baseTestString() + " -G_filter 'GQ == 0.60' -G_filterName foo --variant:VCF3 " + testDir + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("b38709f932b969e4267603333863269e"));
+                Arrays.asList("179f7f2a90c0e6c656109aac9b775476"));
         executeTest("test genotype filter #1", spec1);
     }
 
@@ -88,7 +88,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testGenotypeFilters2() {
         WalkerTestSpec spec2 = new WalkerTestSpec(
                 baseTestString() + " -G_filter 'AF == 0.04 && isHomVar == 1' -G_filterName foo --variant:VCF3 " + testDir + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("0e1457e678326e44e92ee13e84414e0f"));
+                Arrays.asList("22e07c27feb9017a130dfb045c5b29b9"));
         executeTest("test genotype filter #2", spec2);
     }
 
@@ -96,7 +96,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testDeletions() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --filterExpression 'QUAL < 100' --filterName foo --variant:VCF " + testDir + "twoDeletions.vcf", 1,
-                Arrays.asList("569546fd798afa0e65c5b61b440d07ac"));
+                Arrays.asList("637256ee5348c1c57f1dadf581b06ed9"));
         executeTest("test deletions", spec);
     }
 }

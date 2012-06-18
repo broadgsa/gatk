@@ -2,8 +2,6 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.BitSet;
-
 /**
  * The object temporarily held by a read that describes all of it's covariates.
  *
@@ -13,27 +11,29 @@ import java.util.BitSet;
  * @since 2/8/12
  */
 public class ReadCovariates {
-    private final BitSet[][] mismatchesKeySet;
-    private final BitSet[][] insertionsKeySet;
-    private final BitSet[][] deletionsKeySet;
+    private final long[][] mismatchesKeySet;
+    private final long[][] insertionsKeySet;
+    private final long[][] deletionsKeySet;
 
-    private int nextCovariateIndex;
+    private int currentCovariateIndex = 0;
 
     public ReadCovariates(int readLength, int numberOfCovariates) {
-        this.mismatchesKeySet = new BitSet[readLength][numberOfCovariates];
-        this.insertionsKeySet = new BitSet[readLength][numberOfCovariates];
-        this.deletionsKeySet = new BitSet[readLength][numberOfCovariates];
-        this.nextCovariateIndex = 0;
+        this.mismatchesKeySet = new long[readLength][numberOfCovariates];
+        this.insertionsKeySet = new long[readLength][numberOfCovariates];
+        this.deletionsKeySet = new long[readLength][numberOfCovariates];
     }
 
-    public void addCovariate(CovariateValues covariate) {
-        transposeCovariateValues(mismatchesKeySet, covariate.getMismatches());
-        transposeCovariateValues(insertionsKeySet, covariate.getInsertions());
-        transposeCovariateValues(deletionsKeySet, covariate.getDeletions());
-        nextCovariateIndex++;
+    public void setCovariateIndex(final int index) {
+        currentCovariateIndex = index;
     }
 
-    public BitSet[] getKeySet(final int readPosition, final EventType errorModel) {
+    public void addCovariate(final long mismatch, final long insertion, final long deletion, final int readOffset) {
+        mismatchesKeySet[readOffset][currentCovariateIndex] = mismatch;
+        insertionsKeySet[readOffset][currentCovariateIndex] = insertion;
+        deletionsKeySet[readOffset][currentCovariateIndex] = deletion;
+    }
+
+    public long[] getKeySet(final int readPosition, final EventType errorModel) {
         switch (errorModel) {
             case BASE_SUBSTITUTION:
                 return getMismatchesKeySet(readPosition);
@@ -46,35 +46,30 @@ public class ReadCovariates {
         }
     }
 
-    public BitSet[] getMismatchesKeySet(int readPosition) {
+    public long[] getMismatchesKeySet(final int readPosition) {
         return mismatchesKeySet[readPosition];
     }
 
-    public BitSet[] getInsertionsKeySet(int readPosition) {
+    public long[] getInsertionsKeySet(final int readPosition) {
         return insertionsKeySet[readPosition];
     }
 
-    public BitSet[] getDeletionsKeySet(int readPosition) {
+    public long[] getDeletionsKeySet(final int readPosition) {
         return deletionsKeySet[readPosition];
-    }
-
-    private void transposeCovariateValues(BitSet[][] keySet, BitSet[] covariateValues) {
-        for (int i = 0; i < covariateValues.length; i++)
-            keySet[i][nextCovariateIndex] = covariateValues[i];
     }
 
     /**
      * Testing routines
      */
-    protected BitSet[][] getMismatchesKeySet() {
+    protected long[][] getMismatchesKeySet() {
         return mismatchesKeySet;
     }
 
-    protected BitSet[][] getInsertionsKeySet() {
+    protected long[][] getInsertionsKeySet() {
         return insertionsKeySet;
     }
 
-    protected BitSet[][] getDeletionsKeySet() {
+    protected long[][] getDeletionsKeySet() {
         return deletionsKeySet;
     }
 }

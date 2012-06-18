@@ -305,12 +305,10 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         // if the reference base is not ambiguous, we can annotate
         Map<String, AlignmentContext> stratifiedContexts;
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
-            if ( context.hasBasePileup() ) {
-                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getBasePileup());
-                annotatedVCs = new ArrayList<VariantContext>(VCs.size());
-                for ( VariantContext vc : VCs )
-                    annotatedVCs.add(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
-            }
+            stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getBasePileup());
+            annotatedVCs = new ArrayList<VariantContext>(VCs.size());
+            for ( VariantContext vc : VCs )
+                annotatedVCs.add(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
         }
 
         for ( VariantContext annotatedVC : annotatedVCs )

@@ -48,6 +48,7 @@ public final class VCFConstants {
     public static final String GENOTYPE_LIKELIHOODS_KEY = "GL";         // log10 scaled genotype likelihoods
     public static final String GENOTYPE_POSTERIORS_KEY = "GP";
     public static final String GENOTYPE_QUALITY_KEY = "GQ";
+    public static final String GENOTYPE_ALLELE_DEPTHS = "AD";
     public static final String HAPMAP2_KEY = "H2";
     public static final String HAPMAP3_KEY = "H3";
     public static final String HAPLOTYPE_QUALITY_KEY = "HQ";
@@ -113,7 +114,5 @@ public final class VCFConstants {
     public static final String EMPTY_GENOTYPE = "./.";
     public static final int MAX_GENOTYPE_QUAL = 99;
 
-    public static final String DOUBLE_PRECISION_FORMAT_STRING = "%.2f";
-    public static final String DOUBLE_PRECISION_INT_SUFFIX = ".00";
     public static final Double VCF_ENCODING_EPSILON = 0.00005; // when we consider fields equal(), used in the Qual compare
 }

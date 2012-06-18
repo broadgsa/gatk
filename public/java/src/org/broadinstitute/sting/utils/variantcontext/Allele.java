@@ -336,7 +336,7 @@ public class Allele implements Comparable<Allele> {
      *
      * @return the segregating bases
      */
-    public String getBaseString() { return new String(getBases()); }
+    public String getBaseString() { return isNoCall() ? NO_CALL_STRING : new String(getBases()); }
 
     /**
      * Return the printed representation of this allele.

@@ -79,14 +79,12 @@ class SampleStatistics {
      * @return the callable statuses of the entire sample
      */
     public Set<CallableStatus> getCallableStatuses(ThresHolder thresholds) {
-        Set<CallableStatus> output = new HashSet<CallableStatus>();
-
         // We check if reads are present ot prevent div / 0 exceptions
         if (nReads == 0) {
-            output.add(CallableStatus.NO_READS);
-            return output;
+            return Collections.singleton(CallableStatus.NO_READS);
         }
 
+        Set<CallableStatus> output = new HashSet<CallableStatus>();
         Map<CallableStatus, Double> totals = new HashMap<CallableStatus, Double>(CallableStatus.values().length);
 
         // initialize map
@@ -104,19 +102,19 @@ class SampleStatistics {
 
         double intervalSize = interval.size();
 
-        if ((nBadMates / nReads) > thresholds.getBadMateStatusThreshold())
+        if (((double) nBadMates / nReads) >= thresholds.getBadMateStatusThreshold())
             output.add(CallableStatus.BAD_MATE);
 
-        if ((totals.get(CallableStatus.COVERAGE_GAPS) / intervalSize) > thresholds.getCoverageStatusThreshold())
+        if ((totals.get(CallableStatus.COVERAGE_GAPS) / intervalSize) >= thresholds.getCoverageStatusThreshold())
             output.add(CallableStatus.COVERAGE_GAPS);
 
-        if ((totals.get(CallableStatus.LOW_COVERAGE) / intervalSize) > thresholds.getCoverageStatusThreshold())
+        if ((totals.get(CallableStatus.LOW_COVERAGE) / intervalSize) >= thresholds.getCoverageStatusThreshold())
             output.add(CallableStatus.LOW_COVERAGE);
 
-        if ((totals.get(CallableStatus.EXCESSIVE_COVERAGE) / intervalSize) > thresholds.getExcessiveCoverageThreshold())
+        if ((totals.get(CallableStatus.EXCESSIVE_COVERAGE) / intervalSize) >= thresholds.getExcessiveCoverageThreshold())
             output.add(CallableStatus.EXCESSIVE_COVERAGE);
 
-        if ((totals.get(CallableStatus.POOR_QUALITY) / intervalSize) > thresholds.getQualityStatusThreshold())
+        if ((totals.get(CallableStatus.POOR_QUALITY) / intervalSize) >= thresholds.getQualityStatusThreshold())
             output.add(CallableStatus.POOR_QUALITY);
 
         if (totals.get(CallableStatus.REF_N) > 0)
@@ -126,6 +124,7 @@ class SampleStatistics {
         if (output.isEmpty()) {
             output.add(CallableStatus.PASS);
         }
+
         return output;
     }
 
@@ -146,7 +145,7 @@ class SampleStatistics {
             int locusIndex = locus.getStart() - interval.getStart();
 
             int rawCoverage = pileup.depthOfCoverage();
-            int coverage = pileup.getBaseAndMappingFilteredPileup(thresholds.getMinimumBaseQuality(), thresholds.getMinimumMappingQuality()).depthOfCoverage();
+            int coverage = thresholds.getFilteredCoverage(pileup);
 
             LocusStatistics locusData = new LocusStatistics(coverage, rawCoverage);
 
@@ -161,7 +160,7 @@ class SampleStatistics {
         // Was this read already processed?
         if (read.getTemporaryAttribute("checkedBadMate") == null) {
             nReads++;
-            if (hasValidMate(read, thresholds))
+            if (!hasValidMate(read, thresholds))
                 nBadMates++;
             read.setTemporaryAttribute("checkedBadMate", true);
         }
@@ -254,7 +253,7 @@ class SampleStatistics {
          * reasonable insert size?
          * inverted?
          * same orientation?
-         * todo - same contig?
+         * same contig?
          * is pair mapped?
          * todo - is forced mate?
          *
@@ -262,6 +261,10 @@ class SampleStatistics {
 
         // has NO pair
         if (!read.getReadPairedFlag())
+            return false;
+
+        // different contigs
+        if (read.getMateReferenceIndex() != read.getReferenceIndex())
             return false;
 
         // unmapped
@@ -277,10 +280,19 @@ class SampleStatistics {
                 read.getAlignmentStart() < read.getMateAlignmentStart())
             return false;
 
+        // TODO note: IGV uses a different alorithm for insert size, there should be a common util class that does this for you
         // mates are too far apart
         if (Math.abs(read.getAlignmentStart() - read.getMateAlignmentStart()) > thresholds.getMaximumInsertSize())
             return false;
 
         return true;
+    }
+
+    public int getnReads() {
+        return nReads;
+    }
+
+    public int getnBadMates() {
+        return nBadMates;
     }
 }

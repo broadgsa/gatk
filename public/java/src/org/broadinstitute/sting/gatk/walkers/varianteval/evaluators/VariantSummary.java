@@ -241,7 +241,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
                 // update transition / transversion ratio
                 if ( titvTable != null ) titvTable.inc(type, g.getSampleName());
 
-                if ( g.hasAttribute(VCFConstants.DEPTH_KEY) )
+                if ( g.hasDP() )
                     depthPerSample.inc(type, g.getSampleName());
             }
         }

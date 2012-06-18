@@ -48,7 +48,6 @@ import java.util.*;
 public class VCFCodec extends AbstractVCFCodec {
     // Our aim is to read in the records and convert to VariantContext as quickly as possible, relying on VariantContext to do the validation of any contradictory (or malformed) record parameters.
     public final static String VCF4_MAGIC_HEADER = "##fileformat=VCFv4";
-    private VCFHeaderVersion version = null;
 
     /**
      * A VCF header the contains master info/filter/format records that we use to 'fill in'
@@ -127,121 +126,33 @@ public class VCFCodec extends AbstractVCFCodec {
      * @param filterString the string to parse
      * @return a set of the filters applied or null if filters were not applied to the record (e.g. as per the missing value in a VCF)
      */
-    protected Set<String> parseFilters(String filterString) {
-        return parseFilters(filterHash, lineNo, filterString);
-    }
-
-    public static Set<String> parseFilters(final Map<String, LinkedHashSet<String>> cache, final int lineNo, final String filterString) {
+    protected List<String> parseFilters(String filterString) {
         // null for unfiltered
         if ( filterString.equals(VCFConstants.UNFILTERED) )
             return null;
 
         if ( filterString.equals(VCFConstants.PASSES_FILTERS_v4) )
-            return Collections.emptySet();
+            return Collections.emptyList();
         if ( filterString.equals(VCFConstants.PASSES_FILTERS_v3) )
             generateException(VCFConstants.PASSES_FILTERS_v3 + " is an invalid filter name in vcf4", lineNo);
         if ( filterString.length() == 0 )
             generateException("The VCF specification requires a valid filter status: filter was " + filterString, lineNo);
 
         // do we have the filter string cached?
-        if ( cache != null && cache.containsKey(filterString) )
-            return Collections.unmodifiableSet(cache.get(filterString));
+        if ( filterHash.containsKey(filterString) )
+            return filterHash.get(filterString);
 
         // empty set for passes filters
-        LinkedHashSet<String> fFields = new LinkedHashSet<String>();
+        List<String> fFields = new LinkedList<String>();
         // otherwise we have to parse and cache the value
         if ( filterString.indexOf(VCFConstants.FILTER_CODE_SEPARATOR) == -1 )
             fFields.add(filterString);
         else
             fFields.addAll(Arrays.asList(filterString.split(VCFConstants.FILTER_CODE_SEPARATOR)));
 
-        fFields = fFields;
-        if ( cache != null ) cache.put(filterString, fFields);
+        filterHash.put(filterString, Collections.unmodifiableList(fFields));
 
-        return Collections.unmodifiableSet(fFields);
-    }
-
-
-    /**
-     * create a genotype map
-     *
-     * @param str the string
-     * @param alleles the list of alleles
-     * @return a mapping of sample name to genotype object
-     */
-    public LazyGenotypesContext.LazyData createGenotypeMap(String str, List<Allele> alleles, String chr, int pos) {
-        if (genotypeParts == null)
-            genotypeParts = new String[header.getColumnCount() - NUM_STANDARD_FIELDS];
-
-        int nParts = ParsingUtils.split(str, genotypeParts, VCFConstants.FIELD_SEPARATOR_CHAR);
-        if ( nParts != genotypeParts.length )
-            generateException("there are " + (nParts-1) + " genotypes while the header requires that " + (genotypeParts.length-1) + " genotypes be present for all records", lineNo);
-
-        ArrayList<Genotype> genotypes = new ArrayList<Genotype>(nParts);
-
-        // get the format keys
-        int nGTKeys = ParsingUtils.split(genotypeParts[0], genotypeKeyArray, VCFConstants.GENOTYPE_FIELD_SEPARATOR_CHAR);
-
-        // cycle through the sample names
-        Iterator<String> sampleNameIterator = header.getGenotypeSamples().iterator();
-
-        // clear out our allele mapping
-        alleleMap.clear();
-
-        // cycle through the genotype strings
-        for (int genotypeOffset = 1; genotypeOffset < nParts; genotypeOffset++) {
-            int GTValueSplitSize = ParsingUtils.split(genotypeParts[genotypeOffset], GTValueArray, VCFConstants.GENOTYPE_FIELD_SEPARATOR_CHAR);
-
-            double GTQual = VariantContext.NO_LOG10_PERROR;
-            Set<String> genotypeFilters = null;
-            Map<String, Object> gtAttributes = null;
-            String sampleName = sampleNameIterator.next();
-
-            // check to see if the value list is longer than the key list, which is a problem
-            if (nGTKeys < GTValueSplitSize)
-                generateException("There are too many keys for the sample " + sampleName + ", keys = " + parts[8] + ", values = " + parts[genotypeOffset]);
-
-            int genotypeAlleleLocation = -1;
-            if (nGTKeys >= 1) {
-                gtAttributes = new HashMap<String, Object>(nGTKeys - 1);
-
-                for (int i = 0; i < nGTKeys; i++) {
-                    final String gtKey = new String(genotypeKeyArray[i]);
-                    boolean missing = i >= GTValueSplitSize;
-
-                    // todo -- all of these on the fly parsing of the missing value should be static constants
-                    if (gtKey.equals(VCFConstants.GENOTYPE_KEY)) {
-                        genotypeAlleleLocation = i;
-                    } else if (gtKey.equals(VCFConstants.GENOTYPE_QUALITY_KEY)) {
-                        GTQual = missing ? parseQual(VCFConstants.MISSING_VALUE_v4) : parseQual(GTValueArray[i]);
-                    } else if (gtKey.equals(VCFConstants.GENOTYPE_FILTER_KEY)) {
-                        genotypeFilters = missing ? parseFilters(VCFConstants.MISSING_VALUE_v4) : parseFilters(getCachedString(GTValueArray[i]));
-                    } else if ( missing ) {
-                        // if its truly missing (there no provided value) skip adding it to the attributes
-                    } else {
-                        gtAttributes.put(gtKey, GTValueArray[i]);
-                    }
-                }
-            }
-
-            // check to make sure we found a genotype field if we are a VCF4.0 file
-            if ( version == VCFHeaderVersion.VCF4_0 && genotypeAlleleLocation == -1 )
-                generateException("Unable to find the GT field for the record; the GT field is required in VCF4.0");
-            if ( genotypeAlleleLocation > 0 )
-                generateException("Saw GT field at position " + genotypeAlleleLocation + ", but it must be at the first position for genotypes when present");
-
-            List<Allele> GTalleles = (genotypeAlleleLocation == -1 ? new ArrayList<Allele>(0) : parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], alleles, alleleMap));
-            boolean phased = genotypeAlleleLocation != -1 && GTValueArray[genotypeAlleleLocation].indexOf(VCFConstants.PHASED) != -1;
-
-            // add it to the list
-            try {
-                genotypes.add(new Genotype(sampleName, GTalleles, GTQual, genotypeFilters, gtAttributes, phased));
-            } catch (TribbleException e) {
-                throw new TribbleException.InternalCodecException(e.getMessage() + ", at position " + chr+":"+pos);
-            }
-        }
-
-        return new LazyGenotypesContext.LazyData(genotypes, header.sampleNamesInOrder, header.sampleNameToOffset);
+        return fFields;
     }
 
     @Override

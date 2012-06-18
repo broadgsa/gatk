@@ -269,10 +269,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     logger.debug("Unprocessed variant = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
             }
 
-            int numReads = 0;
-            if (context.hasBasePileup()) {
-                numReads = context.getBasePileup().getNumberOfElements();
-            }
+            int numReads = context.getBasePileup().getNumberOfElements();
             PhasingStats addInPhaseStats = new PhasingStats(numReads, 1);
             phaseStats.addIn(addInPhaseStats);
         }
@@ -288,7 +285,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     private VariantContext reduceVCToSamples(VariantContext vc, Set<String> samplesToPhase) {
 //        for ( String sample : samplesToPhase )
 //            logger.debug(String.format("  Sample %s has genotype %s, het = %s", sample, vc.getGenotype(sample), vc.getGenotype(sample).isHet() ));
-        VariantContext subvc = vc.subContextFromSamples(samplesToPhase);
+        VariantContext subvc = vc.subContextFromSamples(samplesToPhase, true);
 //        logger.debug("original VC = " + vc);
 //        logger.debug("sub      VC = " + subvc);
         return VariantContextUtils.pruneVariantContext(subvc, KEYS_TO_KEEP_IN_REDUCED_VCF);
@@ -374,7 +371,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             if (isUnfilteredCalledDiploidGenotype(gt)) {
                 if (gt.isHom()) { // Note that this Genotype may be replaced later to contain the PQ of a downstream het site that was phased relative to a het site lying upstream of this hom site:
                     // true <-> can trivially phase a hom site relative to ANY previous site:
-                    Genotype phasedGt = new Genotype(gt.getSampleName(), gt.getAlleles(), gt.getLog10PError(), gt.getFilters(), gt.getAttributes(), true);
+                    Genotype phasedGt = new GenotypeBuilder(gt).phased(true).make();
                     uvc.setGenotype(samp, phasedGt);
                 }
                 else if (gt.isHet()) { // Attempt to phase this het genotype relative to the previous het genotype
@@ -408,9 +405,10 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                             if (DEBUG) logger.debug("THE PHASE CHOSEN HERE:\n" + allelePair + "\n\n");
 
                             ensurePhasing(allelePair, prevAllelePair, pr.haplotype);
-                            Map<String, Object> gtAttribs = new HashMap<String, Object>(gt.getAttributes());
-                            gtAttribs.put(PQ_KEY, pr.phaseQuality);
-                            Genotype phasedGt = new Genotype(gt.getSampleName(), allelePair.getAllelesAsList(), gt.getLog10PError(), gt.getFilters(), gtAttribs, genotypesArePhased);
+                            Genotype phasedGt = new GenotypeBuilder(gt)
+                                    .alleles(allelePair.getAllelesAsList())
+                                    .attribute(PQ_KEY, pr.phaseQuality)
+                                    .phased(genotypesArePhased).make();
                             uvc.setGenotype(samp, phasedGt);
                         }
 
@@ -428,9 +426,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                                 interiorUvc.setPhasingInconsistent();
 
                             if (genotypesArePhased) {
-                                Map<String, Object> handledGtAttribs = new HashMap<String, Object>(handledGt.getAttributes());
-                                handledGtAttribs.put(PQ_KEY, pr.phaseQuality);
-                                Genotype phasedHomGt = new Genotype(handledGt.getSampleName(), handledGt.getAlleles(), handledGt.getLog10PError(), handledGt.getFilters(), handledGtAttribs, genotypesArePhased);
+                                Genotype phasedHomGt = new GenotypeBuilder(handledGt)
+                                        .attribute(PQ_KEY, pr.phaseQuality)
+                                        .phased(genotypesArePhased).make();
                                 interiorUvc.setGenotype(samp, phasedHomGt);
                             }
                         }
@@ -1106,10 +1104,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             this.sampleReadBases = new HashMap<String, ReadBasesAtPosition>();
 
             if (alignment != null) {
-                ReadBackedPileup pileup = null;
-                if (alignment.hasBasePileup()) {
-                    pileup = alignment.getBasePileup();
-                }
+                ReadBackedPileup pileup = alignment.getBasePileup();
                 if (pileup != null) {
                     // filter the read-base pileup based on min base and mapping qualities:
                     pileup = pileup.getBaseAndMappingFilteredPileup(MIN_BASE_QUALITY_SCORE, MIN_MAPPING_QUALITY_SCORE);
@@ -1439,7 +1434,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     public static boolean isUnfilteredCalledDiploidGenotype(Genotype gt) {
-        return (gt.isNotFiltered() && gt.isCalled() && gt.getPloidy() == 2);
+        return (! gt.isFiltered() && gt.isCalled() && gt.getPloidy() == 2);
     }
 
     private class MultipleBaseCountsWriter {

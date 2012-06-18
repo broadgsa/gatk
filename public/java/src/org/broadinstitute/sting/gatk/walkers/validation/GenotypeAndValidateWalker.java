@@ -365,7 +365,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             return counter;
 
         // Do not operate on variants that are not covered to the optional minimum depth
-        if (!context.hasReads() || !context.hasBasePileup() || (minDepth > 0 && context.getBasePileup().getBases().length < minDepth)) {
+        if (!context.hasReads() || (minDepth > 0 && context.getBasePileup().getBases().length < minDepth)) {
             counter.nUncovered = 1L;
             if (vcComp.getAttribute("GV").equals("T"))
                 counter.nAltNotCalled = 1L;
@@ -423,7 +423,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             }
         }
         else {
-//            if (!vcComp.hasAttribute("GV"))
+//            if (!vcComp.hasExtendedAttribute("GV"))
 //                throw new UserException.BadInput("Variant has no GV annotation in the INFO field. " + vcComp.getChr() + ":" + vcComp.getStart());
 
             if (call.isCalledAlt(callConf)) {

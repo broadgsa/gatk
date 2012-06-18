@@ -40,10 +40,13 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextTestProvider;
+
+import java.io.*;
+
 import org.testng.Assert;
+import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeMethod;
 
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -52,13 +55,26 @@ public class WalkerTest extends BaseTest {
     private static final boolean ENABLE_PHONE_HOME_FOR_TESTS = false;
     private static final boolean ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX = false;
 
+    private static MD5DB md5DB = new MD5DB();
+
     @BeforeMethod
-    public void initializeRandomGenerator() {
+    public void initializeWalkerTests() {
+        logger.debug("Initializing walker tests");
         GenomeAnalysisEngine.resetRandomGenerator();
     }
 
+    @AfterSuite
+    public void finalizeWalkerTests() {
+        logger.debug("Finalizing walker tests");
+        md5DB.close();
+    }
+
+    public static MD5DB getMd5DB() {
+        return md5DB;
+    }
+
     public MD5DB.MD5Match assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5) {
-        return MD5DB.assertMatchingMD5(name, resultsFile, expectedMD5, parameterize());
+        return getMd5DB().assertMatchingMD5(name, resultsFile, expectedMD5, parameterize());
     }
 
     public void validateOutputBCFIfPossible(final String name, final File resultFile) {
@@ -67,6 +83,7 @@ public class WalkerTest extends BaseTest {
             logger.warn("Checking shadow BCF output file " + bcfFile + " against VCF file " + resultFile);
             try {
                 VariantContextTestProvider.assertVCFandBCFFilesAreTheSame(resultFile, bcfFile);
+                logger.warn("  Shadow BCF PASSED!");
             } catch ( Exception e ) {
                 Assert.fail("Exception received reading shadow BCFFile " + bcfFile + " for test " + name, e);
             }
@@ -103,9 +120,9 @@ public class WalkerTest extends BaseTest {
 
         for (int i = 0; i < resultFiles.size(); i++) {
             MD5DB.MD5Match result = assertMatchingMD5(name, resultFiles.get(i), expectedMD5s.get(i));
+            validateOutputBCFIfPossible(name, resultFiles.get(i));
             if ( ! result.failed ) {
                 validateOutputIndex(name, resultFiles.get(i));
-                validateOutputBCFIfPossible(name, resultFiles.get(i));
                 md5s.add(result.expectedMD5);
             } else {
                 fails.add(result);
@@ -256,8 +273,6 @@ public class WalkerTest extends BaseTest {
     }
 
     protected Pair<List<File>, List<String>> executeTest(final String name, WalkerTestSpec spec) {
-        MD5DB.ensureMd5DbDirectory(); // ensure the md5 directory exists
-
         List<File> tmpFiles = new ArrayList<File>();
         for (int i = 0; i < spec.nOutputFiles; i++) {
             String ext = spec.exts == null ? ".tmp" : "." + spec.exts.get(i);
@@ -337,8 +352,11 @@ public class WalkerTest extends BaseTest {
         boolean gotAnException = false;
         try {
             final String now = new SimpleDateFormat("HH:mm:ss").format(new Date());
-            System.out.println(String.format("[%s] Executing test %s with GATK arguments: %s",
-                    now, name, Utils.join(" ",command)));
+            final String cmdline = Utils.join(" ",command);
+            System.out.println(String.format("[%s] Executing test %s with GATK arguments: %s", now, name, cmdline));
+            // also write the command line to the HTML log for convenient follow-up
+            // do the replaceAll so paths become relative to the current
+            BaseTest.log(cmdline.replaceAll(testDirRoot, ""));
             CommandLineExecutable.start(instance, command);
         } catch (Exception e) {
             gotAnException = true;

@@ -261,24 +261,22 @@ public class VariantAnnotatorEngine {
     }
 
     private GenotypesContext annotateGenotypes(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
-        if ( requestedGenotypeAnnotations.size() == 0 )
+        if ( requestedGenotypeAnnotations.isEmpty() )
             return vc.getGenotypes();
 
-        GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
+        final GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
         for ( final Genotype genotype : vc.getGenotypes() ) {
             AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
+
             if ( context == null ) {
                 genotypes.add(genotype);
-                continue;
+            } else {
+                final GenotypeBuilder gb = new GenotypeBuilder(genotype);
+                for ( final GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
+                    annotation.annotate(tracker, walker, ref, context, vc, genotype, gb);
+                }
+                genotypes.add(gb.make());
             }
-
-            Map<String, Object> genotypeAnnotations = new HashMap<String, Object>(genotype.getAttributes());
-            for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
-                Map<String, Object> result = annotation.annotate(tracker, walker, ref, context, vc, genotype);
-                if ( result != null )
-                    genotypeAnnotations.putAll(result);
-            }
-            genotypes.add(new Genotype(genotype.getSampleName(), genotype.getAlleles(), genotype.getLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.isPhased()));
         }
 
         return genotypes;

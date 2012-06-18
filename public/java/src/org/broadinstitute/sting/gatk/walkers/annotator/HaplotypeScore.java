@@ -74,9 +74,6 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
 
         final int locus = ref.getLocus().getStart() + (ref.getLocus().getStop() - ref.getLocus().getStart()) / 2;
 
-        if ( !context.hasBasePileup() )
-            return null;
-
         final ReadBackedPileup pileup = context.getBasePileup();
 
         // Compute all haplotypes consistent with the current read pileup
@@ -86,7 +83,7 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
         if (haplotypes != null) {
             for (final Genotype genotype : vc.getGenotypes()) {
                 final AlignmentContext thisContext = stratifiedContexts.get(genotype.getSampleName());
-                if (thisContext != null && thisContext.hasBasePileup()) {
+                if (thisContext != null) {
                     final ReadBackedPileup thisPileup = thisContext.getBasePileup();
                     if (vc.isSNP())
                         scoreRA.add(scoreReadsAgainstHaplotypes(haplotypes, thisPileup, contextSize, locus)); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense

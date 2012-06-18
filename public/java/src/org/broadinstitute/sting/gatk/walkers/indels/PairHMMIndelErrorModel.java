@@ -117,7 +117,7 @@ public class PairHMMIndelErrorModel {
 
     }
 
-     static private void getContextHomopolymerLength(final byte[] refBytes, final int[] hrunArray) {
+    static private void getContextHomopolymerLength(final byte[] refBytes, final int[] hrunArray) {
         // compute forward hrun length, example:
         // AGGTGACCCCCCTGAGAG
         // 001000012345000000
@@ -164,10 +164,24 @@ public class PairHMMIndelErrorModel {
             }
         }
     }
-    public synchronized double[] computeReadHaplotypeLikelihoods(ReadBackedPileup pileup, LinkedHashMap<Allele,Haplotype> haplotypeMap, ReferenceContext ref, int eventLength, HashMap<PileupElement, LinkedHashMap<Allele,Double>> indelLikelihoodMap){
+
+
+    public synchronized double[] computeDiploidReadHaplotypeLikelihoods(ReadBackedPileup pileup, LinkedHashMap<Allele, Haplotype> haplotypeMap, ReferenceContext ref, int eventLength, HashMap<PileupElement, LinkedHashMap<Allele, Double>> indelLikelihoodMap){
         final int numHaplotypes = haplotypeMap.size();
-        final double readLikelihoods[][] = new double[pileup.getNumberOfElements()][numHaplotypes];
+
         final int readCounts[] = new int[pileup.getNumberOfElements()];
+        final double[][] readLikelihoods = computeGeneralReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, indelLikelihoodMap, readCounts);
+        return getDiploidHaplotypeLikelihoods(numHaplotypes, readCounts, readLikelihoods);
+        
+    }
+
+    public synchronized double[][] computeGeneralReadHaplotypeLikelihoods(final ReadBackedPileup pileup, 
+                                                                          final LinkedHashMap<Allele, Haplotype> haplotypeMap, 
+                                                                          final ReferenceContext ref,
+                                                                          final int eventLength, 
+                                                                          final HashMap<PileupElement, LinkedHashMap<Allele, Double>> indelLikelihoodMap,
+                                                                          final int[] readCounts) {
+        final double readLikelihoods[][] = new double[pileup.getNumberOfElements()][haplotypeMap.size()];
         final PairHMM pairHMM = new PairHMM(bandedLikelihoods);
 
         int readIdx=0;
@@ -367,7 +381,7 @@ public class PairHMMIndelErrorModel {
 
         }
 
-        return getHaplotypeLikelihoods(numHaplotypes, readCounts, readLikelihoods);
+        return readLikelihoods;
     }
 
     private boolean useSoftClippedBases(GATKSAMRecord read, long eventStartPos, int eventLength) {
@@ -385,7 +399,7 @@ public class PairHMMIndelErrorModel {
         return b1.length;
     }
 
-    private static double[] getHaplotypeLikelihoods(final int numHaplotypes, final int readCounts[], final double readLikelihoods[][]) {
+    private static double[] getDiploidHaplotypeLikelihoods(final int numHaplotypes, final int readCounts[], final double readLikelihoods[][]) {
         final double[][] haplotypeLikehoodMatrix = new double[numHaplotypes][numHaplotypes];
 
         // todo: MAD 09/26/11 -- I'm almost certain this calculation can be simplified to just a single loop without the intermediate NxN matrix

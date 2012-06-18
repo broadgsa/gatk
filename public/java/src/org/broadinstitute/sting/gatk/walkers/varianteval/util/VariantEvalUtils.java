@@ -199,7 +199,7 @@ public class VariantEvalUtils {
      * @return a new VariantContext with just the requested samples
      */
     public VariantContext getSubsetOfVariantContext(VariantContext vc, Set<String> sampleNames) {
-        VariantContext vcsub = vc.subContextFromSamples(sampleNames, vc.getAlleles());
+        VariantContext vcsub = vc.subContextFromSamples(sampleNames, false);
         VariantContextBuilder builder = new VariantContextBuilder(vcsub);
 
         final int originalAlleleCount = vc.getHetCount() + 2 * vc.getHomVarCount();

@@ -42,6 +42,7 @@ import org.broadinstitute.sting.queue.engine.CommandLinePluginManager
 object PipelineTest extends BaseTest with Logging {
 
   private val validationReportsDataLocation = "/humgen/gsa-hpprojects/GATK/validationreports/submitted/"
+  private val md5DB = new MD5DB()
 
   final val run = System.getProperty("pipeline.run") == "run"
 
@@ -111,7 +112,7 @@ object PipelineTest extends BaseTest with Logging {
   private def assertMatchingMD5s(name: String, fileMD5s: Traversable[(File, String)], parameterize: Boolean) {
     var failed = 0
     for ((file, expectedMD5) <- fileMD5s) {
-      val calculatedMD5 = MD5DB.testFileMD5(name, file, expectedMD5, parameterize)
+      val calculatedMD5 = md5DB.testFileMD5(name, file, expectedMD5, parameterize)
       if (!parameterize && expectedMD5 != "" && expectedMD5 != calculatedMD5)
         failed += 1
     }

@@ -31,12 +31,10 @@ public class MappingQualityZero extends InfoFieldAnnotation implements StandardA
         int mq0 = 0;
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             final AlignmentContext context = sample.getValue();
-            if ( context.hasBasePileup() ) {
-                final ReadBackedPileup pileup = context.getBasePileup();
-                for (PileupElement p : pileup ) {
-                    if ( p.getMappingQual() == 0 )
-                        mq0++;
-                }
+            final ReadBackedPileup pileup = context.getBasePileup();
+            for (PileupElement p : pileup ) {
+                if ( p.getMappingQual() == 0 )
+                    mq0++;
             }
         }
         Map<String, Object> map = new HashMap<String, Object>();

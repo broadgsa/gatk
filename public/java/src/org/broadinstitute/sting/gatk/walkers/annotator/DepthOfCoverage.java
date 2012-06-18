@@ -44,7 +44,7 @@ public class DepthOfCoverage extends InfoFieldAnnotation implements StandardAnno
 
         int depth = 0;
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() )
-            depth += sample.getValue().hasBasePileup() ? sample.getValue().getBasePileup().depthOfCoverage() : 0;
+            depth += sample.getValue().getBasePileup().depthOfCoverage();
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), String.format("%d", depth));
         return map;

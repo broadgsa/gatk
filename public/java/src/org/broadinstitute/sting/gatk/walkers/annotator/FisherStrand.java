@@ -296,7 +296,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
         for ( String sample : stratifiedContexts.keySet() ) {
             final AlignmentContext context = stratifiedContexts.get(sample);
-            if ( context == null || !context.hasBasePileup() )
+            if ( context == null )
                 continue;
 
             final ReadBackedPileup pileup = context.getBasePileup();
