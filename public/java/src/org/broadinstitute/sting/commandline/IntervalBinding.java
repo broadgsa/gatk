@@ -29,17 +29,14 @@ import org.broad.tribble.AbstractFeatureReader;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureReader;
-import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -73,7 +70,11 @@ public final class IntervalBinding<T extends Feature> {
         return stringIntervals;
     }
 
-    public List<GenomeLoc> getIntervals(GenomeAnalysisEngine toolkit) {
+    public List<GenomeLoc> getIntervals(final GenomeAnalysisEngine toolkit) {
+        return getIntervals(toolkit.getGenomeLocParser());
+    }
+
+    public List<GenomeLoc> getIntervals(final GenomeLocParser genomeLocParser) {
         List<GenomeLoc> intervals;
 
         if ( featureIntervals != null ) {
@@ -83,17 +84,17 @@ public final class IntervalBinding<T extends Feature> {
 
             final FeatureCodec codec = new FeatureManager().getByName(featureIntervals.getTribbleType()).getCodec();
             if ( codec instanceof ReferenceDependentFeatureCodec )
-                ((ReferenceDependentFeatureCodec)codec).setGenomeLocParser(toolkit.getGenomeLocParser());
+                ((ReferenceDependentFeatureCodec)codec).setGenomeLocParser(genomeLocParser);
             try {
                 FeatureReader<Feature> reader = AbstractFeatureReader.getFeatureReader(featureIntervals.getSource(), codec, false);
                 for ( Feature feature : reader.iterator() )
-                    intervals.add(toolkit.getGenomeLocParser().createGenomeLoc(feature));
+                    intervals.add(genomeLocParser.createGenomeLoc(feature));
             } catch (Exception e) {
                 throw new UserException.MalformedFile(featureIntervals.getSource(), "Problem reading the interval file", e);
             }
 
         } else {
-            intervals = IntervalUtils.parseIntervalArguments(toolkit.getGenomeLocParser(), stringIntervals);
+            intervals = IntervalUtils.parseIntervalArguments(genomeLocParser, stringIntervals);
         }
 
         return intervals;
