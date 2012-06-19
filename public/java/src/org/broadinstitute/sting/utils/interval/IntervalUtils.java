@@ -648,6 +648,26 @@ public class IntervalUtils {
         return expanded;
     }
 
+    /**
+     * Returns a list of intervals between the passed int locs. Does not extend UNMAPPED locs.
+     * @param parser A genome loc parser for creating the new intervals
+     * @param locs Original genome locs
+     * @param basePairs Number of base pairs on each side of loc
+     * @return The list of intervals between the locs
+     */
+    public static List<GenomeLoc> getIntervalsWithFlanks(final GenomeLocParser parser, final List<GenomeLoc> locs, final int basePairs) {
+
+        if (locs.size() == 0)
+            return Collections.emptyList();
+
+        final List<GenomeLoc> expanded = new ArrayList<GenomeLoc>();
+        for ( final GenomeLoc loc : locs ) {
+            expanded.add(parser.createPaddedGenomeLoc(loc, basePairs));
+        }
+
+        return sortAndMergeIntervals(parser, expanded, IntervalMergingRule.ALL).toList();
+    }
+
     private static LinkedHashMap<String, List<GenomeLoc>> splitByContig(List<GenomeLoc> sorted) {
         LinkedHashMap<String, List<GenomeLoc>> splits = new LinkedHashMap<String, List<GenomeLoc>>();
         GenomeLoc last = null;

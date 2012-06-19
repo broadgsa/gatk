@@ -104,6 +104,12 @@ public class GATKArgumentCollection {
     @Argument(fullName = "interval_merging", shortName = "im", doc = "Indicates the interval merging rule we should use for abutting intervals", required = false)
     public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
 
+    /**
+     * For example, '-L chr1:100' with a padding value of 20 would turn into '-L chr1:80-120'.
+     */
+    @Argument(fullName = "interval_padding", shortName = "ip", doc = "Indicates how many basepairs of padding to include around each of the intervals specified with the -L/--intervals argument", required = false)
+    public int intervalPadding = 0;
+
     @Input(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
 

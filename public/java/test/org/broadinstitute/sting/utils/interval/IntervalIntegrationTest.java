@@ -207,9 +207,24 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -R " + hg18Reference +
                         " -o %s" +
                         " -L " + validationDataLocation + "intervalTest.3.vcf",
-                        1, // just one output file
-                        Arrays.asList(md5));
+                1, // just one output file
+                Arrays.asList(md5));
         executeTest("testComplexVCF", spec);
+    }
+
+    @Test(enabled = true)
+    public void testComplexVCFWithPadding() {
+        String md5 = "649ee93d50739c656e94ec88a32c7ffe";
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T CountLoci" +
+                        " --interval_padding 2" +
+                        " -I " + validationDataLocation + "OV-0930.normal.chunk.bam" +
+                        " -R " + hg18Reference +
+                        " -o %s" +
+                        " -L " + validationDataLocation + "intervalTest.3.vcf",
+                1, // just one output file
+                Arrays.asList(md5));
+        executeTest("testComplexVCFWithPadding", spec);
     }
 
     @Test(enabled = true)
