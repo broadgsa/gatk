@@ -3,28 +3,27 @@
 ##FILTER=<ID=LowQual,Description="Genotype call confidence below LOD 1.3">
 ##FORMAT=<ID=CN,Number=1,Type=Integer,Description="Copy number genotype for imprecise events">
 ##FORMAT=<ID=CNQ,Number=1,Type=Float,Description="Copy number genotype quality for imprecise events">
-##FORMAT=<ID=FT,Number=-1,Type=String,Description="Per-sample genotype filter, PASS for called genotypes or list of excluding filters">
 ##FORMAT=<ID=GL,Number=3,Type=Float,Description="Genotype Likelihoods">
 ##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-##INFO=<ID=BKPTID,Number=-1,Type=String,Description="ID of the assembled alternate allele in the assembly file">
+##INFO=<ID=BKPTID,Number=1,Type=String,Description="ID of the assembled alternate allele in the assembly file">
 ##INFO=<ID=CIEND,Number=2,Type=Integer,Description="Confidence interval around END for imprecise variants">
 ##INFO=<ID=CIPOS,Number=2,Type=Integer,Description="Confidence interval around POS for imprecise variants">
 ##INFO=<ID=DBRIPID,Number=1,Type=String,Description="ID of this element in DBRIP">
 ##INFO=<ID=DBVARID,Number=1,Type=String,Description="ID of this element in DBVAR">
 ##INFO=<ID=DGVID,Number=1,Type=String,Description="ID of this element in Database of Genomic Variation">
 ##INFO=<ID=END,Number=1,Type=Integer,Description="End coordinate of this variant">
-##INFO=<ID=HOMLEN,Number=-1,Type=Integer,Description="Length of base pair identical micro-homology at event breakpoints">
-##INFO=<ID=HOMSEQ,Number=-1,Type=String,Description="Sequence of base pair identical micro-homology at event breakpoints">
+##INFO=<ID=HOMLEN,Number=1,Type=Integer,Description="Length of base pair identical micro-homology at event breakpoints">
+##INFO=<ID=HOMSEQ,Number=1,Type=String,Description="Sequence of base pair identical micro-homology at event breakpoints">
 ##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description="Imprecise structural variation">
 ##INFO=<ID=MEINFO,Number=4,Type=String,Description="Mobile element info of the form NAME>
 ##INFO=<ID=METRANS,Number=4,Type=String,Description="Mobile element transduction info of the form CHR>
 ##INFO=<ID=NOVEL,Number=0,Type=Flag,Description="Indicates a novel structural variation">
-##INFO=<ID=SVLEN,Number=-1,Type=Integer,Description="Difference in length between REF and ALT alleles">
-##INFO=<ID=SVMETHOD,Number=-1,Type=String,Description="Type of approach used to detect SV: RP (read pair), RD (read depth), SR (split read), or AS (assembly)">
+##INFO=<ID=SVLEN,Number=1,Type=Integer,Description="Difference in length between REF and ALT alleles">
+##INFO=<ID=SVMETHOD,Number=.,Type=String,Description="Type of approach used to detect SV: RP (read pair), RD (read depth), SR (split read), or AS (assembly)">
 ##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
 ##INFO=<ID=VALIDATED,Number=0,Type=Flag,Description="Validated by PCR, Assembly or Microarray">
-##INFO=<ID=VALMETHOD,Number=-1,Type=String,Description="Type of validation: CGH, PCR, SAV (superarray), CAP (capture-array), or ASM (assembly)">
+##INFO=<ID=VALMETHOD,Number=.,Type=String,Description="Type of validation: CGH, PCR, SAV (superarray), CAP (capture-array), or ASM (assembly)">
 ##fileDate=20100625
 ##reference=1000GenomesPilot-NCBI36
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO

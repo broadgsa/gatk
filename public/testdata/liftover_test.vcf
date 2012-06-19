@@ -1,4 +1,31 @@
-##fileformat=VCFv4.0
+##fileformat=VCFv4.1
+##FILTER=<ID=SnpCluster,Description="SnpCluster">
+##FILTER=<ID=FDRtranche0.10to1.00,Description="FDRtranche0.10to1.00">
+##FILTER=<ID=FDRtranche1.00to2.00,Description="FDRtranche1.00to2.00">
+##FILTER=<ID=FDRtranche2.00to10.00,Description="FDRtranche2.00to10.00">
+##FILTER=<ID=FDRtranche2.00to10.00+,Description="FDRtranche2.00to10.00+">
+##FILTER=<ID=Indel,Description="Indel">
+##FILTER=<ID=LowQual,Description="LowQual">
+##FILTER=<ID=DPFilter,Description="DPFilter">
+##FILTER=<ID=HARD_TO_VALIDATE,Description="HARD_TO_VALIDATE">
+##FORMAT=<ID=AD,Number=A,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read Depth (only filtered reads used for calling)">
+##FORMAT=<ID=GQ,Number=1,Type=Float,Description="Genotype Quality">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GL,Number=G,Type=Float,Description="Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification">
+##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">
+##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency, for each ALT allele, in the same order as listed">
+##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
+##INFO=<ID=DB,Number=0,Type=Flag,Description="dbSNP Membership">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Filtered Depth">
+##INFO=<ID=Dels,Number=1,Type=Float,Description="Fraction of Reads Containing Spanning Deletions">
+##INFO=<ID=HRun,Number=1,Type=Integer,Description="Largest Contiguous Homopolymer Run of Variant Allele In Either Direction">
+##INFO=<ID=HaplotypeScore,Number=1,Type=Float,Description="Consistency of the site with at most two segregating haplotypes">
+##INFO=<ID=MQ,Number=1,Type=Float,Description="RMS Mapping Quality">
+##INFO=<ID=MQ0,Number=1,Type=Integer,Description="Total Mapping Quality Zero Reads">
+##INFO=<ID=OQ,Number=1,Type=Float,Description="Original QUAL">
+##INFO=<ID=QD,Number=1,Type=Float,Description="Variant Confidence/Quality by Depth">
+##INFO=<ID=SB,Number=1,Type=Float,Description="Strand bias">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	NA12878	
 chr2	1000206	rs62104286	A	G	83.59	PASS	AC=2;AF=1.00;AN=2;DB;DP=71;Dels=0.00;HRun=0;HaplotypeScore=0.10;MQ=32.66;MQ0=12;OQ=2095.67;QD=29.52;SB=-548.23	GT:AD:DP:GL:GQ	1/1:0,71:57:-213.17,-17.17,-0.01:99
 chr2	1000670	rs13398764	G	T	535.46	PASS	AC=2;AF=1.00;AN=2;DB;DP=46;Dels=0.00;HRun=0;HaplotypeScore=0.00;MQ=59.59;MQ0=0;OQ=1520.60;QD=33.06;SB=-629.04	GT:AD:DP:GL:GQ	1/1:0,46:44:-155.66,-13.25,-0.02:99

@@ -1,4 +1,23 @@
 ##fileformat=VCFv4.1
+##FILTER=<ID=GATK_STANDARD,Description="GATK STANDARD">
+##FILTER=<ID=HARD_TO_VALIDATE,Description="HARD_TO_VALIDATE">
+##FILTER=<ID=SnpCluster,Description="SnpCluster">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read Depth (only filtered reads used for calling)">
+##FORMAT=<ID=GQ,Number=1,Type=Float,Description="Genotype Quality">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##INFO=<ID=AB,Number=A,Type=Float,Description="Allele balance">
+##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">
+##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency, for each ALT allele, in the same order as listed">
+##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
+##INFO=<ID=DB,Number=0,Type=Flag,Description="dbSNP Membership">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Filtered Depth">
+##INFO=<ID=Dels,Number=1,Type=Float,Description="Fraction of Reads Containing Spanning Deletions">
+##INFO=<ID=HRun,Number=1,Type=Integer,Description="Largest Contiguous Homopolymer Run of Variant Allele In Either Direction">
+##INFO=<ID=MQ,Number=1,Type=Float,Description="RMS Mapping Quality">
+##INFO=<ID=MQ0,Number=1,Type=Integer,Description="Total Mapping Quality Zero Reads">
+##INFO=<ID=QD,Number=1,Type=Float,Description="Variant Confidence/Quality by Depth">
+##INFO=<ID=SB,Number=1,Type=Float,Description="Strand bias">
+##INFO=<ID=set,Number=1,Type=String,Description="Source VCF for the merged record in CombineVariants">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	NA19238	NA19239	NA19240	
 1	327	.	T	C	666.18	GATK_STANDARD;HARD_TO_VALIDATE	AB=0.74;AC=3;AF=0.50;AN=6;DB=0;DP=936;Dels=0.00;HRun=3;MQ=34.66;MQ0=728;QD=0.71;SB=-268.74;set=filteredInBoth	GT:DP:GQ	1/0:10:62.65	1/0:37:99.00	1/0:53:99.00
 1	4793	rs6682385	A	G	1687.16	GATK_STANDARD;HARD_TO_VALIDATE	AB=0.54;AC=3;AF=0.50;AN=6;DB=1;DP=242;Dels=0.00;HRun=0;MQ=77.94;MQ0=43;QD=6.97;SB=-891.19;set=filteredInBoth	GT:DP:GQ	0/1:15:4.94	0/1:58:99.00	0/1:73:99.00

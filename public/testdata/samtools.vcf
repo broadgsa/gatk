@@ -16,10 +16,9 @@
 ##INFO=<ID=PR,Number=1,Type=Integer,Description="# permutations yielding a smaller PCHI2.">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
-##FORMAT=<ID=GL,Number=3,Type=Float,Description="Likelihoods for RR,RA,AA genotypes (R=ref,A=alt)">
 ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="# high-quality bases">
 ##FORMAT=<ID=SP,Number=1,Type=Integer,Description="Phred-scaled strand bias P-value">
-##FORMAT=<ID=PL,Number=-1,Type=Integer,Description="List of Phred-scaled genotype likelihoods, number of values is (#ALT+1)*(#ALT+2)/2">
+##FORMAT=<ID=PL,Number=A,Type=Integer,Description="List of Phred-scaled genotype likelihoods, number of values is (#ALT+1)*(#ALT+2)/2">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	NA12878
 20	9999996	.	A	ACT	214	.	INDEL;DP=76;AF1=1;CI95=1,1;DP4=0,0,51,25;MQ=60;FQ=-264	GT:PL:GQ	1/1:255,229,0:99
 20	10000117	.	C	T	98	.	DP=62;AF1=0.5;CI95=0.5,0.5;DP4=16,19,18,6;MQ=60;FQ=101;PV4=0.033,7.6e-24,1,1	GT:PL:GQ	0/1:128,0,255:99
