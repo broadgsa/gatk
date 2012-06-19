@@ -36,6 +36,7 @@ import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
@@ -334,7 +335,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
      */
     protected static ArrayList<Allele> clipAllelesIfNecessary(int position, String ref, ArrayList<Allele> unclippedAlleles) {
         if ( ! AbstractVCFCodec.isSingleNucleotideEvent(unclippedAlleles) ) {
-            ArrayList<Allele> clippedAlleles = new ArrayList<Allele>(unclippedAlleles.size());
+            final ArrayList<Allele> clippedAlleles = new ArrayList<Allele>(unclippedAlleles.size());
             AbstractVCFCodec.clipAlleles(position, ref, unclippedAlleles, clippedAlleles, -1);
             return clippedAlleles;
         } else
@@ -355,14 +356,16 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
         String ref = null;
 
         for ( int i = 0; i < nAlleles; i++ ) {
-            final String allele = (String)decoder.decodeTypedValue();
+            final String alleleBases = (String)decoder.decodeTypedValue();
 
-            if ( i == 0 ) {
-                ref = allele;
-                alleles.add(Allele.create(allele, true));
-            } else {
-                alleles.add(Allele.create(allele, false));
-            }
+            final boolean isRef = i == 0;
+            final Allele allele = Allele.create(alleleBases, isRef);
+            if ( isRef ) ref = alleleBases;
+
+            alleles.add(allele);
+
+            if ( allele.isSymbolic() )
+                throw new ReviewedStingException("LIMITATION: GATK BCF2 codec does not yet support symbolic alleles");
         }
         assert ref != null;
 

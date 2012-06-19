@@ -19,7 +19,7 @@ public class SymbolicAllelesIntegrationTest extends WalkerTest {
     }
 
 
-    @Test
+    @Test(enabled = false)
     public void test1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(b36KGReference, "symbolic_alleles_1.vcf"),
@@ -28,7 +28,7 @@ public class SymbolicAllelesIntegrationTest extends WalkerTest {
         executeTest("Test symbolic alleles", spec);
     }
 
-    @Test
+    @Test(enabled = false)
     public void test2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(b36KGReference, "symbolic_alleles_2.vcf"),

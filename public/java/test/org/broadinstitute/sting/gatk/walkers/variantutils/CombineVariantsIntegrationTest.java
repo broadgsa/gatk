@@ -72,7 +72,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     public void combinePLs(String file1, String file2, String md5) {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 "-T CombineVariants --no_cmdline_in_header -o %s -R " + b36KGReference + " -priority v1,v2 -V:v1 " + validationDataLocation + file1 + " -V:v2 " + validationDataLocation + file2,
+                 "-T CombineVariants --no_cmdline_in_header -o %s -R " + b36KGReference + " -priority v1,v2 -V:v1 " + testDir + file1 + " -V:v2 " + testDir + file2,
                  1,
                  Arrays.asList(md5));
          executeTest("combine PLs 1:" + new File(file1).getName() + " 2:" + new File(file2).getName(), spec);
@@ -120,8 +120,8 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         String file2 = "combine.2.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T CombineVariants --no_cmdline_in_header -o %s -R " + b37KGReference
-                        + " -V:one " + validationDataLocation + file1
-                        + " -V:two " + validationDataLocation + file2 + args,
+                        + " -V:one " + testDir + file1
+                        + " -V:two " + testDir + file2 + args,
                 1,
                 Arrays.asList(md5));
         executeTest("combineComplexSites 1:" + new File(file1).getName() + " 2:" + new File(file2).getName() + " args = " + args, spec);

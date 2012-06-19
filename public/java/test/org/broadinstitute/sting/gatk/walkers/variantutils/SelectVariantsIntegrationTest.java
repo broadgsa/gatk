@@ -122,7 +122,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -sn NA12892 --variant:dbsnp " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("9162a67ccb4201c0542f30d14967f2d5")
+                Arrays.asList("2a0436eecc2bc29fe559e4d1b9e13580")
         );
 
         executeTest("testUsingDbsnpName--" + testFile, spec);

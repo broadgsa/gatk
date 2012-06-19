@@ -117,4 +117,9 @@ public final class VCFConstants {
     public static final int MAX_GENOTYPE_QUAL = 99;
 
     public static final Double VCF_ENCODING_EPSILON = 0.00005; // when we consider fields equal(), used in the Qual compare
+
+    //
+    // VCF header line constants
+    //
+    public static final VCFFormatHeaderLine GENOTYPE_KEY_HEADER_LINE = new VCFFormatHeaderLine(VCFConstants.GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype");
 }

@@ -43,7 +43,7 @@ public class ReferenceOrderedQueryDataPoolUnitTest extends BaseTest{
     @Test
     public void testCloseFilePointers() throws IOException {
         // Build up query parameters
-        File file = new File(BaseTest.validationDataLocation + "NA12878.hg19.example1.vcf");
+        File file = new File(BaseTest.testDir + "NA12878.hg19.example1.vcf");
         RMDTriplet triplet = new RMDTriplet("test", "VCF", file.getAbsolutePath(), RMDTriplet.RMDStorageType.FILE, new Tags());
         IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(BaseTest.hg19Reference));
         GenomeLocParser parser = new GenomeLocParser(seq);

@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.codecs.vcf;
 import org.apache.log4j.Logger;
 import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -154,6 +155,10 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
             count = Integer.valueOf(numberStr);
 
         }
+
+        if ( count < 0 && countType == VCFHeaderLineCount.INTEGER )
+            throw new UserException.MalformedVCFHeader("Count < 0 for fixed size VCF header field " + name);
+
         try {
             type = VCFHeaderLineType.valueOf(mapping.get("Type"));
         } catch (Exception e) {

@@ -41,7 +41,8 @@ public class BeagleIntegrationTest extends WalkerTest {
                         "--beagleR2:BEAGLE " + beagleValidationDataLocation + "inttestbgl.r2 " +
                         "--beagleProbs:BEAGLE " + beagleValidationDataLocation + "inttestbgl.gprobs " +
                         "--beaglePhased:BEAGLE " + beagleValidationDataLocation + "inttestbgl.phased " +
-                        "-o %s --no_cmdline_in_header", 1, Arrays.asList("cdbf8cc557f5be9ac778e52338c0d906"));
+                        "-o %s --no_cmdline_in_header --allowMissingVCFHeaders", 1, Arrays.asList("c5522304abf0633041c7772dd7dafcea"));
+        spec.disableShadowBCF();
         executeTest("test BeagleOutputToVCF", spec);
     }
    
@@ -50,7 +51,8 @@ public class BeagleIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T ProduceBeagleInput -R " + hg19Reference + " " +
                         "--variant:VCF3 " + beagleValidationDataLocation + "inttestbgl.input.vcf " +
-                         "-o %s", 1, Arrays.asList("f301b089d21da259873f04bdc468835d"));
+                         "-o %s --allowMissingVCFHeaders", 1, Arrays.asList("f301b089d21da259873f04bdc468835d"));
+        spec.disableShadowBCF();
         executeTest("test BeagleInput", spec);
     }
 
@@ -59,8 +61,9 @@ public class BeagleIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T ProduceBeagleInput --variant:VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878_HSQ_chr22_14-16m.vcf "+
                         "--validation:VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878_OMNI_chr22_14-16m.vcf "+
-                        "-L 22:14000000-16000000 -o %s -bvcf %s -bs 0.8 -valp 0.98 -R /humgen/1kg/reference/human_g1k_v37.fasta --no_cmdline_in_header ",2,
+                        "-L 22:14000000-16000000 -o %s -bvcf %s -bs 0.8 --allowMissingVCFHeaders -valp 0.98 -R /humgen/1kg/reference/human_g1k_v37.fasta --no_cmdline_in_header ",2,
                 Arrays.asList("660986891b30cdc937e0f2a3a5743faa","4b6417f892ccfe5c63b8a60cb0ef3740"));
+        spec.disableShadowBCF();
         executeTest("test BeagleInputWithBootstrap",spec);
     }
 
@@ -72,8 +75,8 @@ public class BeagleIntegrationTest extends WalkerTest {
                 "--beagleR2:beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.r2 "+
                 "--beagleProbs:beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.gprobs.bgl "+
                 "--beaglePhased:beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.phased.bgl "+
-                "-L 20:1-70000 -o %s --no_cmdline_in_header ",1,Arrays.asList("fbbbebfda35bab3f6f62eea2f0be1c01"));
-
+                "-L 20:1-70000 -o %s --no_cmdline_in_header --allowMissingVCFHeaders",1,Arrays.asList("fbbbebfda35bab3f6f62eea2f0be1c01"));
+        spec.disableShadowBCF();
         executeTest("testBeagleChangesSitesToRef",spec);
     }
 

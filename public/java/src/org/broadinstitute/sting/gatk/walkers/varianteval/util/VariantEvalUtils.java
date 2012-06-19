@@ -204,16 +204,16 @@ public class VariantEvalUtils {
         final int originalAlleleCount = vc.getHetCount() + 2 * vc.getHomVarCount();
         final int newAlleleCount = vcsub.getHetCount() + 2 * vcsub.getHomVarCount();
         final boolean isSingleton = originalAlleleCount == newAlleleCount && newAlleleCount == 1;
-        final boolean hasChrCountAnnotations = vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) &&
-                vc.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) &&
-                vc.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY);
+        final boolean hasChrCountAnnotations = vcsub.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) &&
+                vcsub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) &&
+                vcsub.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY);
 
         if ( ! isSingleton && hasChrCountAnnotations ) {
             // nothing to update
-            return vc;
+            return vcsub;
         } else {
             // have to do the work
-            VariantContextBuilder builder = new VariantContextBuilder(vc);
+            VariantContextBuilder builder = new VariantContextBuilder(vcsub);
 
             if ( isSingleton )
                 builder.attribute(VariantEvalWalker.IS_SINGLETON_KEY, true);

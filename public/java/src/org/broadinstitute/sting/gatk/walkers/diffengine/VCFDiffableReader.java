@@ -97,7 +97,9 @@ public class VCFDiffableReader implements DiffableReader {
                 vcRoot.add("REF", vc.getReference());
                 vcRoot.add("ALT", vc.getAlternateAlleles());
                 vcRoot.add("QUAL", vc.hasLog10PError() ? vc.getLog10PError() * -10 : VCFConstants.MISSING_VALUE_v4);
-                vcRoot.add("FILTER", vc.getFilters());
+                vcRoot.add("FILTER", ! vc.filtersWereApplied() // needs null to differentiate between PASS and .
+                        ? VCFConstants.MISSING_VALUE_v4
+                        : ( vc.getFilters().isEmpty() ? VCFConstants.PASSES_FILTERS_v4 : vc.getFilters()) );
 
                 // add info fields
                 for (Map.Entry<String, Object> attribute : vc.getAttributes().entrySet()) {

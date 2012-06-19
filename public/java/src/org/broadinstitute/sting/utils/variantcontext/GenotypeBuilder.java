@@ -383,7 +383,8 @@ public final class GenotypeBuilder {
      */
     @Requires("filters != null")
     public GenotypeBuilder filters(final List<String> filters) {
-        attribute(VCFConstants.GENOTYPE_FILTER_KEY, filters);
+        if ( ! filters.isEmpty() )
+            attribute(VCFConstants.GENOTYPE_FILTER_KEY, filters);
         return this;
     }
 

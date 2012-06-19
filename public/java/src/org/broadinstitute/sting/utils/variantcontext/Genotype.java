@@ -451,16 +451,13 @@ public abstract class Genotype implements Comparable<Genotype> {
      *
      * @return
      */
-    @Ensures({"result != null", "filtersWereApplied() || result.isEmpty()"})
+    @Ensures({"result != null"})
     public abstract List<String> getFilters();
 
     @Ensures({"result != getFilters().isEmpty()"})
     public boolean isFiltered() {
         return ! getFilters().isEmpty();
     }
-
-    @Ensures("result == true || getFilters().isEmpty()")
-    public abstract boolean filtersWereApplied();
 
     @Deprecated public boolean hasLog10PError() { return hasGQ(); }
     @Deprecated public double getLog10PError() { return getGQ() / -10.0; }

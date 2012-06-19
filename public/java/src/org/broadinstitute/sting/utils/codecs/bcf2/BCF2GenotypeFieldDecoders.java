@@ -169,6 +169,9 @@ public class BCF2GenotypeFieldDecoders {
 
                     gb.alleles(gt);
                 }
+
+                final boolean phased = (a1 & 0x01) == 1;
+                gb.phased(phased);
             }
         }
 
@@ -199,6 +202,8 @@ public class BCF2GenotypeFieldDecoders {
                         gt.add(getAlleleFromEncoded(siteAlleles, encode));
 
                     gb.alleles(gt);
+                    final boolean phased = (encoded[0] & 0x01) == 1;
+                    gb.phased(phased);
                 }
             }
         }

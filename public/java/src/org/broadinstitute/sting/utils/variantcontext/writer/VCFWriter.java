@@ -51,9 +51,6 @@ class VCFWriter extends IndexingVariantContextWriter {
     // the VCF header we're storing
     protected VCFHeader mHeader = null;
 
-    // were filters applied?
-    protected boolean filtersWereAppliedToContext = false;
-
     final private boolean allowMissingFieldsInHeader;
 
     private IntGenotypeFieldAccessors intGenotypeFieldAccessors = new IntGenotypeFieldAccessors();
@@ -78,13 +75,6 @@ class VCFWriter extends IndexingVariantContextWriter {
         // note we need to update the mHeader object after this call because they header
         // may have genotypes trimmed out of it, if doNotWriteGenotypes is true
         mHeader = writeHeader(header, mWriter, doNotWriteGenotypes, getVersionLine(), getStreamName());
-
-        // determine if we use filters, so we should FORCE pass the records
-        // TODO -- this might not be necessary any longer as we have unfiltered, filtered, and PASS VCs
-        for ( final VCFHeaderLine line : header.getMetaData() ) {
-            if ( line instanceof VCFFilterHeaderLine)
-                filtersWereAppliedToContext = true;
-        }
     }
 
     public static final String getVersionLine() {
@@ -171,7 +161,7 @@ class VCFWriter extends IndexingVariantContextWriter {
             vc = new VariantContextBuilder(vc).noGenotypes().make();
 
         try {
-            vc = VariantContextUtils.createVariantContextWithPaddedAlleles(vc, false);
+            vc = VariantContextUtils.createVariantContextWithPaddedAlleles(vc);
             super.add(vc);
 
             Map<Allele, String> alleleMap = buildAlleleMap(vc);
@@ -219,7 +209,7 @@ class VCFWriter extends IndexingVariantContextWriter {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             // FILTER
-            String filters = getFilterString(vc, filtersWereAppliedToContext);
+            String filters = getFilterString(vc);
             mWriter.write(filters);
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
@@ -283,7 +273,7 @@ class VCFWriter extends IndexingVariantContextWriter {
     //
     // --------------------------------------------------------------------------------
 
-    private final String getFilterString(final VariantContext vc, boolean forcePASS) {
+    private final String getFilterString(final VariantContext vc) {
         if ( vc.isFiltered() ) {
             for ( final String filter : vc.getFilters() )
                 if ( ! mHeader.hasFilterLine(filter) )
@@ -291,7 +281,7 @@ class VCFWriter extends IndexingVariantContextWriter {
 
             return ParsingUtils.join(";", ParsingUtils.sortList(vc.getFilters()));
         }
-        else if ( forcePASS || vc.filtersWereApplied() )
+        else if ( vc.filtersWereApplied() )
             return VCFConstants.PASSES_FILTERS_v4;
         else
             return VCFConstants.UNFILTERED;
@@ -407,7 +397,7 @@ class VCFWriter extends IndexingVariantContextWriter {
 
                     // some exceptions
                     if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY ) ) {
-                        val = g.isFiltered() ? ParsingUtils.join(";", ParsingUtils.sortList(g.getFilters())) : (g.filtersWereApplied() ? VCFConstants.PASSES_FILTERS_v4 : VCFConstants.UNFILTERED);
+                        val = g.isFiltered() ? ParsingUtils.join(";", ParsingUtils.sortList(g.getFilters())) : VCFConstants.PASSES_FILTERS_v4;
                     }
 
                     VCFFormatHeaderLine metaData = mHeader.getFormatHeaderLine(field);

@@ -339,7 +339,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
      * @return
      */
     public VariantContext subContextFromSamples(Set<String> sampleNames, final boolean rederiveAllelesFromGenotypes ) {
-        if ( ! rederiveAllelesFromGenotypes && sampleNames.containsAll(getSampleNames()) ) {
+        if ( sampleNames.containsAll(getSampleNames()) ) {
             return this; // fast path when you don't have any work to do
         } else {
             VariantContextBuilder builder = new VariantContextBuilder(this);
@@ -559,7 +559,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
 
     public String getAlleleStringWithRefPadding(final Allele allele) {
         if ( VariantContextUtils.needsPadding(this) )
-            return VariantContextUtils.padAllele(this, allele);
+            return VariantContextUtils.padAllele(this, allele).getDisplayString();
         else
             return allele.getDisplayString();
     }
@@ -1177,8 +1177,9 @@ public class VariantContext implements Feature { // to enable tribble integratio
 //        if ( getType() == Type.INDEL ) {
 //            if ( getReference().length() != (getLocation().size()-1) ) {
         long length = (stop - start) + 1;
-        if ( (getReference().isNull() && length != 1 ) ||
-                (!isSymbolic() && getReference().isNonNull() && (length - getReference().length()  > 1))) {
+        if ( ! isSymbolic()
+                && ((getReference().isNull() && length != 1 )
+                    || (getReference().isNonNull() && (length - getReference().length()  > 1)))) {
             throw new IllegalStateException("BUG: GenomeLoc " + contig + ":" + start + "-" + stop + " has a size == " + length + " but the variation reference allele has length " + getReference().length() + " this = " + this);
         }
     }
@@ -1358,19 +1359,38 @@ public class VariantContext implements Feature { // to enable tribble integratio
     }
 
     private final void fullyDecodeInfo(final VariantContextBuilder builder, final VCFHeader header) {
-        builder.attributes(fullyDecodeAttributes(getAttributes(), header));
+        builder.attributes(fullyDecodeAttributes(getAttributes(), header, false));
     }
 
-    private final Map<String, Object> fullyDecodeAttributes(final Map<String, Object> attributes, final VCFHeader header) {
+    private final Map<String, Object> fullyDecodeAttributes(final Map<String, Object> attributes,
+                                                            final VCFHeader header,
+                                                            final boolean allowMissingValuesComparedToHeader) {
         final Map<String, Object> newAttributes = new HashMap<String, Object>(attributes.size());
 
         for ( final Map.Entry<String, Object> attr : attributes.entrySet() ) {
             final String field = attr.getKey();
+
+            if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY) )
+                continue; // gross, FT is part of the extended attributes
+
             final VCFCompoundHeaderLine format = VariantContextUtils.getMetaDataForField(header, field);
             final Object decoded = decodeValue(field, attr.getValue(), format);
 
-            if ( decoded != null )
+            if ( decoded != null ) {
+                if ( ! allowMissingValuesComparedToHeader
+                        && format.getCountType() != VCFHeaderLineCount.UNBOUNDED
+                        && format.getType() != VCFHeaderLineType.Flag ) { // we expect exactly the right number of elements
+                    final int obsSize = decoded instanceof List ? ((List) decoded).size() : 1;
+                    final int expSize = format.getCount(this.getNAlleles() - 1);
+                    if ( obsSize != expSize ) {
+                        throw new UserException.MalformedVCFHeader("Discordant field size detected for field " +
+                                field + " at " + getChr() + ":" + getStart() + ".  Field had " + obsSize + " values " +
+                                "but the header says this should have " + expSize + " values based on header record " +
+                                format);
+                    }
+                }
                 newAttributes.put(field, decoded);
+            }
         }
 
         return newAttributes;
@@ -1400,6 +1420,8 @@ public class VariantContext implements Feature { // to enable tribble integratio
         } else {
             return value;
         }
+
+        // allowMissingValuesComparedToHeader
     }
 
     private final Object decodeOne(final String field, final String string, final VCFCompoundHeaderLine format) {
@@ -1409,7 +1431,12 @@ public class VariantContext implements Feature { // to enable tribble integratio
             else {
                 switch ( format.getType() ) {
                     case Character: return string;
-                    case Flag:      return Boolean.valueOf(string);
+                    case Flag:
+                        final boolean b = Boolean.valueOf(string);
+                        if ( b == false )
+                            throw new UserException.MalformedVCF("VariantContext FLAG fields " + field + " cannot contain false values"
+                             + " as seen at " + getChr() + ":" + getStart());
+                        return b;
                     case String:    return string;
                     case Integer:   return Integer.valueOf(string);
                     case Float:     return Double.valueOf(string);
@@ -1430,7 +1457,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
     }
 
     private final Genotype fullyDecodeGenotypes(final Genotype g, final VCFHeader header) {
-        final Map<String, Object> map = fullyDecodeAttributes(g.getExtendedAttributes(), header);
+        final Map<String, Object> map = fullyDecodeAttributes(g.getExtendedAttributes(), header, true);
         return new GenotypeBuilder(g).attributes(map).make();
     }
 

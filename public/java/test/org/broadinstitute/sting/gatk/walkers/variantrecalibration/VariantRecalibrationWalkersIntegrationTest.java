@@ -133,7 +133,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -tranchesFile " + testDir + "VQSR.mixedTest.tranches" +
                         " -recalFile " + testDir + "VQSR.mixedTest.recal",
-                Arrays.asList("1370d7701a6231633d43a8062b7aff7f"));
+                Arrays.asList("beadf841bbf39c3f0d0bc7fb55462b37"));
         executeTest("testApplyRecalibrationSnpAndIndelTogether", spec);
     }
 }

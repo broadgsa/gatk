@@ -272,9 +272,9 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
         // FORMAT fields
         headerInfo.addAll(getSupportedHeaderStrings());
 
-        // FILTER fields
-        if ( UAC.STANDARD_CONFIDENCE_FOR_EMITTING < UAC.STANDARD_CONFIDENCE_FOR_CALLING )
-            headerInfo.add(new VCFFilterHeaderLine(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME, "Low quality"));
+        // FILTER fields are added unconditionally as it's not always 100% certain the circumstances
+        // where the filters are used.  For example, in emitting all sites the lowQual field is used
+        headerInfo.add(new VCFFilterHeaderLine(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME, "Low quality"));
 
         return headerInfo;
     }
@@ -285,7 +285,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
      */
     private static Set<VCFFormatHeaderLine> getSupportedHeaderStrings() {
         Set<VCFFormatHeaderLine> result = new HashSet<VCFFormatHeaderLine>();
-        result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
+        result.add(VCFConstants.GENOTYPE_KEY_HEADER_LINE);
         result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_QUALITY_KEY, 1, VCFHeaderLineType.Integer, "Genotype Quality"));
         result.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Approximate read depth (reads with MQ=255 or with bad mates are filtered)"));
         result.add(new VCFFormatHeaderLine(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));

@@ -182,17 +182,23 @@ public class VariantContextUtils {
             return false;
     }
 
-    public static String padAllele(final VariantContext vc, final Allele allele) {
+    public static Allele padAllele(final VariantContext vc, final Allele allele) {
         assert needsPadding(vc);
 
-        StringBuilder sb = new StringBuilder();
-        sb.append((char)vc.getReferenceBaseForIndel().byteValue());
-        sb.append(allele.getDisplayString());
-        return sb.toString();
+        if ( allele.isSymbolic() )
+            return allele;
+        else {
+            // get bases for current allele and create a new one with trimmed bases
+            final StringBuilder sb = new StringBuilder();
+            sb.append((char)vc.getReferenceBaseForIndel().byteValue());
+            sb.append(allele.getDisplayString());
+            final String newBases = sb.toString();
+            return Allele.create(newBases, allele.isReference());
+        }
     }
 
 
-    public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC, boolean refBaseShouldBeAppliedToEndOfAlleles) {
+    public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC) {
         final boolean padVC = needsPadding(inputVC);
 
         // nothing to do if we don't need to pad bases
@@ -200,46 +206,21 @@ public class VariantContextUtils {
             if ( !inputVC.hasReferenceBaseForIndel() )
                 throw new ReviewedStingException("Badly formed variant context at location " + inputVC.getChr() + ":" + inputVC.getStart() + "; no padded reference base is available.");
 
-            Byte refByte = inputVC.getReferenceBaseForIndel();
+            final ArrayList<Allele> alleles = new ArrayList<Allele>(inputVC.getNAlleles());
+            final Map<Allele, Allele> unpaddedToPadded = new HashMap<Allele, Allele>(inputVC.getNAlleles());
 
-            List<Allele> alleles = new ArrayList<Allele>();
-
-            for (Allele a : inputVC.getAlleles()) {
-                // get bases for current allele and create a new one with trimmed bases
-                if (a.isSymbolic()) {
-                    alleles.add(a);
-                } else {
-                    String newBases;
-                    if ( refBaseShouldBeAppliedToEndOfAlleles )
-                        newBases = a.getBaseString() + new String(new byte[]{refByte});
-                    else
-                        newBases = new String(new byte[]{refByte}) + a.getBaseString();
-                    alleles.add(Allele.create(newBases,a.isReference()));
-                }
+            for (final Allele a : inputVC.getAlleles()) {
+                final Allele padded = padAllele(inputVC, a);
+                alleles.add(padded);
+                unpaddedToPadded.put(a, padded);
             }
 
             // now we can recreate new genotypes with trimmed alleles
             GenotypesContext genotypes = GenotypesContext.create(inputVC.getNSamples());
             for (final Genotype g : inputVC.getGenotypes() ) {
-                List<Allele> inAlleles = g.getAlleles();
-                List<Allele> newGenotypeAlleles = new ArrayList<Allele>(g.getAlleles().size());
-                for (Allele a : inAlleles) {
-                    if (a.isCalled()) {
-                        if (a.isSymbolic()) {
-                            newGenotypeAlleles.add(a);
-                        } else {
-                            String newBases;
-                            if ( refBaseShouldBeAppliedToEndOfAlleles )
-                                newBases = a.getBaseString() + new String(new byte[]{refByte});
-                            else
-                                newBases = new String(new byte[]{refByte}) + a.getBaseString();
-                            newGenotypeAlleles.add(Allele.create(newBases,a.isReference()));
-                        }
-                    }
-                    else {
-                        // add no-call allele
-                        newGenotypeAlleles.add(Allele.NO_CALL);
-                    }
+                final List<Allele> newGenotypeAlleles = new ArrayList<Allele>(g.getAlleles().size());
+                for (final Allele a : g.getAlleles()) {
+                    newGenotypeAlleles.add( a.isCalled() ? unpaddedToPadded.get(a) : Allele.NO_CALL);
                 }
                 genotypes.add(new GenotypeBuilder(g).alleles(newGenotypeAlleles).make());
 
@@ -556,7 +537,7 @@ public class VariantContextUtils {
         for (final VariantContext vc : prepaddedVCs) {
             // also a reasonable place to remove filtered calls, if needed
             if ( ! filteredAreUncalled || vc.isNotFiltered() )
-                VCs.add(createVariantContextWithPaddedAlleles(vc, false));
+                VCs.add(createVariantContextWithPaddedAlleles(vc));
         }
         if ( VCs.size() == 0 ) // everything is filtered out and we're filteredAreUncalled
             return null;

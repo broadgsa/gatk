@@ -113,7 +113,6 @@ public class SlowGenotype extends Genotype {
     //
     // ---------------------------------------------------------------------------------------------------------
     @Override public List<String> getFilters()    { return new ArrayList<String>(commonInfo.getFilters()); }
-    @Override public boolean filtersWereApplied() { return commonInfo.filtersWereApplied(); }
     @Override public boolean hasLog10PError()     { return commonInfo.hasLog10PError(); }
     @Override public double getLog10PError()      { return commonInfo.getLog10PError(); }
 

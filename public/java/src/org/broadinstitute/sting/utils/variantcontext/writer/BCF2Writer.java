@@ -84,6 +84,7 @@ import java.util.*;
  */
 class BCF2Writer extends IndexingVariantContextWriter {
     final protected static Logger logger = Logger.getLogger(BCF2Writer.class);
+    final private static List<Allele> MISSING_GENOTYPE = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 
     private final OutputStream outputStream;      // Note: do not flush until completely done writing, to avoid issues with eventual BGZF support
     private VCFHeader header;
@@ -213,7 +214,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
         final int nAlleles = vc.getNAlleles();
         final int nInfo = vc.getAttributes().size();
         final int nGenotypeFormatFields = getNGenotypeFormatFields(vc);
-        final int nSamples = vc.getNSamples();
+        final int nSamples = header.getNGenotypeSamples();
 
         encoder.encodeRawInt((nAlleles << 16) | (nInfo & 0x0000FFFF), BCF2Type.INT32);
         encoder.encodeRawInt((nGenotypeFormatFields << 24) | (nSamples & 0x00FFFFF), BCF2Type.INT32);
@@ -256,10 +257,10 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
     private void buildAlleles( VariantContext vc ) throws IOException {
         final boolean needsPadding = VariantContextUtils.needsPadding(vc);
-        for ( final Allele allele : vc.getAlleles() ) {
-            byte[] s = allele.getBases();
+        for ( Allele allele : vc.getAlleles() ) {
             if ( needsPadding )
-                s = VariantContextUtils.padAllele(vc,allele).getBytes();
+                allele = VariantContextUtils.padAllele(vc,allele);
+            final byte[] s = allele.getDisplayBases();
             encoder.encodeTypedString(s);
         }
     }
@@ -298,7 +299,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
                     Genotype g = vc.getGenotype(name);
                     if ( g == null )
                         // we don't have any data about g at all
-                        g = new GenotypeBuilder(name).make();
+                        g = new GenotypeBuilder(name).alleles(MISSING_GENOTYPE).make();
                     writer.addGenotype(encoder, vc, g);
                 }
                 writer.done(encoder, vc);

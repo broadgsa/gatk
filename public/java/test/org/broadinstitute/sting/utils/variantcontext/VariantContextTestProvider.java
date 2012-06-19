@@ -370,6 +370,35 @@ public class VariantContextTestProvider {
                         GenotypeBuilder.create("dip", Arrays.asList(ref, alt1)),
                         GenotypeBuilder.create("tet", Arrays.asList(ref, alt1, alt1)));
             }
+
+
+            //
+            //
+            // TESTING PHASE
+            //
+            //
+            final Genotype gUnphased = new GenotypeBuilder("gUnphased", Arrays.asList(ref, alt1)).make();
+            final Genotype gPhased = new GenotypeBuilder("gPhased", Arrays.asList(ref, alt1)).phased(true).make();
+            final Genotype gPhased2 = new GenotypeBuilder("gPhased2", Arrays.asList(alt1, alt1)).phased(true).make();
+            final Genotype gPhased3 = new GenotypeBuilder("gPhased3", Arrays.asList(ref, ref)).phased(true).make();
+            final Genotype haploidNoPhase = new GenotypeBuilder("haploidNoPhase", Arrays.asList(ref)).make();
+            addGenotypeTests(site, gUnphased, gPhased);
+            addGenotypeTests(site, gUnphased, gPhased2);
+            addGenotypeTests(site, gUnphased, gPhased3);
+            addGenotypeTests(site, gPhased, gPhased2);
+            addGenotypeTests(site, gPhased, gPhased3);
+            addGenotypeTests(site, gPhased2, gPhased3);
+            addGenotypeTests(site, haploidNoPhase, gPhased);
+            addGenotypeTests(site, haploidNoPhase, gPhased2);
+            addGenotypeTests(site, haploidNoPhase, gPhased3);
+            addGenotypeTests(site, haploidNoPhase, gPhased, gPhased2);
+            addGenotypeTests(site, haploidNoPhase, gPhased, gPhased3);
+            addGenotypeTests(site, haploidNoPhase, gPhased2, gPhased3);
+            addGenotypeTests(site, haploidNoPhase, gPhased, gPhased2, gPhased3);
+
+            final Genotype gUnphasedTet = new GenotypeBuilder("gUnphasedTet", Arrays.asList(ref, alt1, ref, alt1)).make();
+            final Genotype gPhasedTet = new GenotypeBuilder("gPhasedTet", Arrays.asList(ref, alt1, alt1, alt1)).phased(true).make();
+            addGenotypeTests(site, gUnphasedTet, gPhasedTet);
         }
 
         if ( ENABLE_PL_TESTS ) {
@@ -484,8 +513,6 @@ public class VariantContextTestProvider {
                     new GenotypeBuilder("g2-x", Arrays.asList(ref, ref)).filters("X").make(),
                     new GenotypeBuilder("g3-xy", Arrays.asList(ref, ref)).filters("X", "Y").make());
         }
-
-        // TODO -- test test Integer, Float, Flag, String atomic, vector, and missing types of different lengths per sample
     }
 
     private static Genotype attr(final String name, final Allele ref, final String key, final Object ... value) {
@@ -649,7 +676,6 @@ public class VariantContextTestProvider {
         // filters are the same
         Assert.assertEquals(actual.getFilters(), expected.getFilters());
         Assert.assertEquals(actual.isFiltered(), expected.isFiltered());
-        Assert.assertEquals(actual.filtersWereApplied(), expected.filtersWereApplied());
 
         // inline attributes
         Assert.assertEquals(actual.getDP(), expected.getDP());

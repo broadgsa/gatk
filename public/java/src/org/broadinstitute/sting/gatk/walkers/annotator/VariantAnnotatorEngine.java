@@ -217,11 +217,11 @@ public class VariantAnnotatorEngine {
             if ( dbSet.getValue().equals(VCFConstants.DBSNP_KEY) ) {
                 final String rsID = VCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), ref.getLocus()), vc.getType());
                 
-                // put the DB key into the INFO field
-                infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID != null);
-                
                 // add the ID if appropriate
                 if ( rsID != null ) {
+                    // put the DB key into the INFO field
+                    infoAnnotations.put(VCFConstants.DBSNP_KEY, true);
+
                     if ( vc.emptyID() ) {
                         vc = new VariantContextBuilder(vc).id(rsID).make();
                     } else if ( walker.alwaysAppendDbsnpId() && vc.getID().indexOf(rsID) == -1 ) {
@@ -237,7 +237,8 @@ public class VariantAnnotatorEngine {
                         break;
                     }
                 }
-                infoAnnotations.put(dbSet.getValue(), overlapsComp);
+                if ( overlapsComp )
+                    infoAnnotations.put(dbSet.getValue(), overlapsComp);
             }
         }
 

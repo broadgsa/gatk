@@ -316,7 +316,7 @@ public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
         // first, the basic info
         headerInfo.add(new VCFHeaderLine("source", "SomaticIndelDetector"));
         headerInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
-        headerInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
+        headerInfo.add(VCFConstants.GENOTYPE_KEY_HEADER_LINE);
 
         // FORMAT and INFO fields
 //        headerInfo.addAll(VCFUtils.getSupportedHeaderStrings());

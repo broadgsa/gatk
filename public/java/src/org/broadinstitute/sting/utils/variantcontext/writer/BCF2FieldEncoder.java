@@ -270,21 +270,6 @@ public abstract class BCF2FieldEncoder {
     // ----------------------------------------------------------------------
 
     /**
-     * Convenience method that just called encodeValue with a no minimum for the number of values.
-     *
-     * Primarily useful for encoding site values
-     *
-     * @param encoder
-     * @param value
-     * @param type
-     * @throws IOException
-     */
-    @Requires({"encoder != null", "isDynamicallyTyped() || type == getStaticType()"})
-    public void encodeOneValue(final BCF2Encoder encoder, final Object value, final BCF2Type type) throws IOException {
-        encodeValue(encoder, value, type, 0);
-    }
-
-    /**
      * Key abstract method that should encode a value of the given type into the encoder.
      *
      * Value will be of a type appropriate to the underlying encoder.  If the genotype field is represented as
@@ -348,10 +333,10 @@ public abstract class BCF2FieldEncoder {
             if ( value == null )
                 return "";
             else if (value instanceof List) {
-                if ( ((List) value).size() == 1 )
-                    return (String)((List) value).get(0);
-                else
-                    return BCF2Utils.collapseStringList((List<String>)value);
+                final List<String> l = (List<String>)value;
+                if ( l.isEmpty() ) return "";
+                else if ( l.size() == 1 ) return (String)l.get(0);
+                else return BCF2Utils.collapseStringList(l);
             } else
                 return (String)value;
         }
@@ -376,7 +361,7 @@ public abstract class BCF2FieldEncoder {
         }
 
         @Override
-        @Requires("minValues <= 1")
+        @Requires({"minValues <= 1", "value != null", "value instanceof Boolean", "((Boolean)value) == true"})
         public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
             encoder.encodeRawBytes(1, getStaticType());
         }
