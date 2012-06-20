@@ -52,11 +52,11 @@ import java.util.*;
  * UnitTests for RMD FeatureManager
  */
 public class FeatureManagerUnitTest extends BaseTest {
-    private static final File RANDOM_FILE = new File(testDir + "exampleGATKReport.eval");
-    private static final File VCF3_FILE = new File(testDir + "vcf3.vcf");
-    private static final File VCF4_FILE = new File(testDir + "HiSeq.10000.vcf");
-    private static final File VCF4_FILE_GZ = new File(testDir + "HiSeq.10000.vcf.gz");
-    private static final File VCF4_FILE_BGZIP = new File(testDir + "HiSeq.10000.bgzip.vcf.gz");
+    private static final File RANDOM_FILE = new File(publicTestDir+ "exampleGATKReport.eval");
+    private static final File VCF3_FILE = new File(privateTestDir + "vcf3.vcf");
+    private static final File VCF4_FILE = new File(privateTestDir + "HiSeq.10000.vcf");
+    private static final File VCF4_FILE_GZ = new File(privateTestDir + "HiSeq.10000.vcf.gz");
+    private static final File VCF4_FILE_BGZIP = new File(privateTestDir + "HiSeq.10000.bgzip.vcf.gz");
 
     private FeatureManager manager;
     private GenomeLocParser genomeLocParser;

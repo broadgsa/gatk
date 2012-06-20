@@ -60,7 +60,7 @@ public class BCF2GenotypeFieldDecoders {
         genotypeFieldDecoder.put(VCFConstants.GENOTYPE_FILTER_KEY, new FTDecoder());
         genotypeFieldDecoder.put(VCFConstants.DEPTH_KEY, new DPDecoder());
         genotypeFieldDecoder.put(VCFConstants.GENOTYPE_ALLELE_DEPTHS, new ADDecoder());
-        genotypeFieldDecoder.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, new PLDecoder());
+        genotypeFieldDecoder.put(VCFConstants.GENOTYPE_PL_KEY, new PLDecoder());
         genotypeFieldDecoder.put(VCFConstants.GENOTYPE_QUALITY_KEY, new GQDecoder());
     }
 

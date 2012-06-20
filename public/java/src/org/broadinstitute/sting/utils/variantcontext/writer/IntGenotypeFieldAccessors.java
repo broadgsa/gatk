@@ -44,7 +44,7 @@ class IntGenotypeFieldAccessors {
     public IntGenotypeFieldAccessors() {
         intGenotypeFieldEncoders.put(VCFConstants.DEPTH_KEY, new IntGenotypeFieldAccessors.DPAccessor());
         intGenotypeFieldEncoders.put(VCFConstants.GENOTYPE_ALLELE_DEPTHS, new IntGenotypeFieldAccessors.ADAccessor());
-        intGenotypeFieldEncoders.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, new IntGenotypeFieldAccessors.PLAccessor());
+        intGenotypeFieldEncoders.put(VCFConstants.GENOTYPE_PL_KEY, new IntGenotypeFieldAccessors.PLAccessor());
         intGenotypeFieldEncoders.put(VCFConstants.GENOTYPE_QUALITY_KEY, new IntGenotypeFieldAccessors.GQAccessor());
     }
 

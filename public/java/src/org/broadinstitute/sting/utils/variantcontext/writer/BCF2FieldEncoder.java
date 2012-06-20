@@ -394,9 +394,11 @@ public abstract class BCF2FieldEncoder {
             } else {
                 // handle generic case
                 final List<Double> doubles = toList(Double.class, value);
-                for ( final double d : doubles ) {
-                    encoder.encodeRawFloat(d);
-                    count++;
+                for ( final Double d : doubles ) {
+                    if ( d != null ) { // necessary because .,. => [null, null] in VC
+                        encoder.encodeRawFloat(d);
+                        count++;
+                    }
                 }
             }
             for ( ; count < minValues; count++ ) encoder.encodeRawMissingValue(type);
@@ -424,6 +426,7 @@ public abstract class BCF2FieldEncoder {
             return value == null ? BCF2Type.INT8 : BCF2Utils.determineIntegerType((int[])value);
         }
 
+        @Requires("value == null || ((int[])value).length <= minValues")
         @Override
         public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
             int count = 0;
@@ -480,9 +483,11 @@ public abstract class BCF2FieldEncoder {
         @Override
         public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
             int count = 0;
-            for ( final int i : toList(Integer.class, value) ) {
-                encoder.encodeRawInt(i, type);
-                count++;
+            for ( final Integer i : toList(Integer.class, value) ) {
+                if ( i != null ) { // necessary because .,. => [null, null] in VC
+                    encoder.encodeRawInt(i, type);
+                    count++;
+                }
             }
             for ( ; count < minValues; count++ ) encoder.encodeRawMissingValue(type);
         }

@@ -1398,7 +1398,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
 
     private final Object decodeValue(final String field, final Object value, final VCFCompoundHeaderLine format) {
         if ( value instanceof String ) {
-            if ( field.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) )
+            if ( field.equals(VCFConstants.GENOTYPE_PL_KEY) )
                 return GenotypeLikelihoods.fromPLField((String)value);
 
             final String string = (String)value;

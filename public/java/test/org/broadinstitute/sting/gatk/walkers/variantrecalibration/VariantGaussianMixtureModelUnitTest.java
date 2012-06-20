@@ -45,10 +45,10 @@ public final class VariantGaussianMixtureModelUnitTest extends BaseTest {
     private static int N_VARIANTS = 100;
     VariantDatum[] variantData1 = new VariantDatum[N_VARIANTS];
 
-    private final File QUAL_DATA = new File(testDir + "tranches.raw.dat");
+    private final File QUAL_DATA = new File(privateTestDir + "tranches.raw.dat");
     private final double[] TRUTH_SENSITIVITY_CUTS = new double[]{99.9, 99.0, 97.0, 95.0};
-    private final File EXPECTED_TRANCHES_NEW = new File(testDir + "tranches.6.txt");
-    private final File EXPECTED_TRANCHES_OLD = new File(testDir + "tranches.4.txt");
+    private final File EXPECTED_TRANCHES_NEW = new File(privateTestDir + "tranches.6.txt");
+    private final File EXPECTED_TRANCHES_OLD = new File(privateTestDir + "tranches.4.txt");
 
     private ArrayList<VariantDatum> readData() {
         ArrayList<VariantDatum> vd = new ArrayList<VariantDatum>();

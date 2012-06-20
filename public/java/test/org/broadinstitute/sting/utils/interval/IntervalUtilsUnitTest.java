@@ -357,8 +357,8 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
     @Test
     public void testIsIntervalFile() {
-        Assert.assertTrue(IntervalUtils.isIntervalFile(BaseTest.testDir + "empty_intervals.list"));
-        Assert.assertTrue(IntervalUtils.isIntervalFile(BaseTest.testDir + "empty_intervals.list", true));
+        Assert.assertTrue(IntervalUtils.isIntervalFile(BaseTest.privateTestDir + "empty_intervals.list"));
+        Assert.assertTrue(IntervalUtils.isIntervalFile(BaseTest.privateTestDir + "empty_intervals.list", true));
 
         List<String> extensions = Arrays.asList("bed", "interval_list", "intervals", "list", "picard");
         for (String extension: extensions) {
@@ -368,7 +368,7 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
     @Test(expectedExceptions = UserException.CouldNotReadInputFile.class)
     public void testMissingIntervalFile() {
-        IntervalUtils.isIntervalFile(BaseTest.testDir + "no_such_intervals.list");
+        IntervalUtils.isIntervalFile(BaseTest.privateTestDir + "no_such_intervals.list");
     }
 
     @Test
@@ -758,7 +758,7 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
     @Test(dataProvider="unmergedIntervals")
     public void testUnmergedIntervals(String unmergedIntervals) {
-        List<GenomeLoc> locs = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Collections.singletonList(testDir + unmergedIntervals));
+        List<GenomeLoc> locs = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Collections.singletonList(privateTestDir + unmergedIntervals));
         Assert.assertEquals(locs.size(), 2);
 
         List<GenomeLoc> merged = IntervalUtils.mergeIntervalLocations(locs, IntervalMergingRule.ALL);

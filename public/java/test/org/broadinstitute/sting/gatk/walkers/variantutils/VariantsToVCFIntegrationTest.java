@@ -19,7 +19,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testVariantsToVCFUsingDbsnpInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("268c116f825c2a4b5200a416ca587adc");
+        md5.add("72e6ce7aff7dec7ca9e7580be7ddd435");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
@@ -36,7 +36,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testVariantsToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("82ca5ecef2df5d64dee9ef5a4b14ef2f");
+        md5.add("22373883afa2221b5a4f75a50f30f26b");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
@@ -54,7 +54,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("90bc2e21d633fa6c3c47c6bd86c134a0");
+        md5.add("738eb66dbc400dcd1786cd9e49902e8c");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
@@ -72,7 +72,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingHapMapInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("bb71dabd072a679cc85fe8d3e130fb2b");
+        md5.add("67656672acc264156f5a3e01e5cac61a");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
@@ -89,11 +89,11 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingVCFInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("ae39e2249bc20fcd0a668a7fe5fb84b0");
+        md5.add("95898aad8c9f9515c0e668e2fb65a024");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " --variant:VCF " + testDir + "complexExample.vcf4" +
+                        " --variant:VCF " + privateTestDir + "complexExample.vcf4" +
                         " -T VariantsToVCF" +
                         " -o %s" +
                         " --no_cmdline_in_header",

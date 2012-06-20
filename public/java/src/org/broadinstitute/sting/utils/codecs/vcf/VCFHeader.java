@@ -195,11 +195,11 @@ public class VCFHeader {
             }
         }
 
-        if ( hasFormatLine(VCFConstants.GENOTYPE_LIKELIHOODS_KEY) && ! hasFormatLine(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) ) {
+        if ( hasFormatLine(VCFConstants.GENOTYPE_LIKELIHOODS_KEY) && ! hasFormatLine(VCFConstants.GENOTYPE_PL_KEY) ) {
             logger.warn("Found " + VCFConstants.GENOTYPE_LIKELIHOODS_KEY + " format, but no "
-                    + VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY + " field.  As the GATK now only manages PL fields internally"
+                    + VCFConstants.GENOTYPE_PL_KEY + " field.  As the GATK now only manages PL fields internally"
                     + " automatically adding a corresponding PL field to your VCF header");
-            addMetaDataLine(new VCFFormatHeaderLine(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
+            addMetaDataLine(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_PL_KEY, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
             loadMetaDataMaps();
         }
     }

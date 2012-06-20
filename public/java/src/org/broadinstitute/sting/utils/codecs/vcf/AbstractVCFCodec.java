@@ -23,7 +23,7 @@ import java.util.zip.GZIPInputStream;
 public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext> implements NameAwareCodec {
     public final static int MAX_ALLELE_SIZE_BEFORE_WARNING = (int)Math.pow(2, 20);
 
-    protected final static Logger log = Logger.getLogger(VCFCodec.class);
+    protected final static Logger log = Logger.getLogger(AbstractVCFCodec.class);
     protected final static int NUM_STANDARD_FIELDS = 8;  // INFO is the 8th column
 
     // we have to store the list of strings that make up the header until they're needed
@@ -168,6 +168,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
         }
 
         this.header = new VCFHeader(metaData, sampleNames);
+        this.header = VCFStandardHeaderLines.repairStandardHeaderLines(this.header);
         return this.header;
     }
 
@@ -433,6 +434,10 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
                     }
                 } else {
                     key = infoFieldArray[i];
+                    final VCFInfoHeaderLine headerLine = header.getInfoHeaderLine(key);
+                    if ( headerLine != null && headerLine.getType() != VCFHeaderLineType.Flag )
+                        generateException("Found info key " + key + " without a = value, but the header says the field is of type "
+                                + headerLine.getType() + " but this construct is only value for FLAG type fields");
                     value = true;
                 }
 
@@ -780,7 +785,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
                                 gb.GQ((int)Math.round(Double.valueOf(GTValueArray[i])));
                         } else if (gtKey.equals(VCFConstants.GENOTYPE_ALLELE_DEPTHS)) {
                             gb.AD(decodeInts(GTValueArray[i]));
-                        } else if (gtKey.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY)) {
+                        } else if (gtKey.equals(VCFConstants.GENOTYPE_PL_KEY)) {
                             gb.PL(decodeInts(GTValueArray[i]));
                         } else if (gtKey.equals(VCFConstants.GENOTYPE_LIKELIHOODS_KEY)) {
                             gb.PL(GenotypeLikelihoods.fromGLField(GTValueArray[i]).getAsPLs());

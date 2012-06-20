@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
-import org.broadinstitute.sting.MD5DB;
 import org.broadinstitute.sting.WalkerTest;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
@@ -129,10 +128,10 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -L 20:1000100-1000500" +
                         " -mode BOTH" +
                         " --no_cmdline_in_header" +
-                        " -input " + testDir + "VQSR.mixedTest.input" +
+                        " -input " + privateTestDir + "VQSR.mixedTest.input" +
                         " -o %s" +
-                        " -tranchesFile " + testDir + "VQSR.mixedTest.tranches" +
-                        " -recalFile " + testDir + "VQSR.mixedTest.recal",
+                        " -tranchesFile " + privateTestDir + "VQSR.mixedTest.tranches" +
+                        " -recalFile " + privateTestDir + "VQSR.mixedTest.recal",
                 Arrays.asList("beadf841bbf39c3f0d0bc7fb55462b37"));
         executeTest("testApplyRecalibrationSnpAndIndelTogether", spec);
     }

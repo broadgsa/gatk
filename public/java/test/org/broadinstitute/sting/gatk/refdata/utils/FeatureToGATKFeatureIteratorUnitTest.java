@@ -44,7 +44,7 @@ public class FeatureToGATKFeatureIteratorUnitTest extends BaseTest {
         final String chr = "20";
         IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(BaseTest.hg19Reference));
         GenomeLocParser parser = new GenomeLocParser(seq);
-        File file = new File(testDir + "NA12878.hg19.example1.vcf");
+        File file = new File(privateTestDir + "NA12878.hg19.example1.vcf");
         VCFCodec codec = new VCFCodec();
         TestFeatureReader reader = new TestFeatureReader(file.getAbsolutePath(), codec);
         CheckableCloseableTribbleIterator<Feature> tribbleIterator = reader.query(chr, 1, 100000);

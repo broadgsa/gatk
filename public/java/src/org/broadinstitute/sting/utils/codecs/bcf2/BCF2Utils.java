@@ -164,8 +164,10 @@ public final class BCF2Utils {
     public static final String collapseStringList(final List<String> strings) {
         final StringBuilder b = new StringBuilder();
         for ( final String s : strings ) {
-            assert s.indexOf(",") == -1; // no commas in individual strings
-            b.append(",").append(s);
+            if ( s != null ) {
+                assert s.indexOf(",") == -1; // no commas in individual strings
+                b.append(",").append(s);
+            }
         }
         return b.toString();
     }

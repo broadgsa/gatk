@@ -13,7 +13,7 @@ public class VCFIntegrationTest extends WalkerTest {
     public void testReadingAndWritingWitHNoChanges() {
 
         String md5ofInputVCF = "babf02baabcfa7f72a2c6f7da5fdc996";
-        String testVCF = testDir + "vcf4.1.example.vcf";
+        String testVCF = privateTestDir + "vcf4.1.example.vcf";
 
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
 
@@ -26,10 +26,10 @@ public class VCFIntegrationTest extends WalkerTest {
         executeTest("Test Variants To VCF from new output", spec2);
     }
 
-    @Test
+    @Test(enabled = false)
     // See https://getsatisfaction.com/gsa/topics/support_vcf_4_1_structural_variation_breakend_alleles?utm_content=topic_link&utm_medium=email&utm_source=new_topic
     public void testReadingAndWritingBreakpointAlleles() {
-        String testVCF = testDir + "breakpoint-example.vcf";
+        String testVCF = privateTestDir + "breakpoint-example.vcf";
         //String testVCF = validationDataLocation + "multiallelic.vcf";
 
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
@@ -41,12 +41,21 @@ public class VCFIntegrationTest extends WalkerTest {
 
     @Test
     public void testReadingAndWritingSamtools() {
-        String testVCF = testDir + "samtools.vcf";
+        String testVCF = privateTestDir + "samtools.vcf";
 
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
 
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
-        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("0807ff11bebba81b87a273ad6bee01a8"));
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("cf3f09ef63feba6958d32f95d587af80"));
         executeTest("Test reading and writing samtools vcf", spec1);
+    }
+
+    @Test
+    public void testReadingAndWritingSamtoolsWExBCFExample() {
+        String testVCF = privateTestDir + "ex2.vcf";
+        String baseCommand = "-R " + b36KGReference + " --no_cmdline_in_header -o %s ";
+        String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("5839ed4972e2ccf3a7b190752ede6596"));
+        executeTest("Test reading and writing samtools WEx vcf/BCF example", spec1);
     }
 }

@@ -32,7 +32,7 @@ import java.util.Arrays;
  
 public class BeagleIntegrationTest extends WalkerTest {
 
-    private static final String beagleValidationDataLocation = testDir + "/Beagle/";
+    private static final String beagleValidationDataLocation = privateTestDir + "/Beagle/";
     @Test
     public void testBeagleOutput() {
         WalkerTestSpec spec = new WalkerTestSpec(

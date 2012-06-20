@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 import java.util.Arrays;
 
 public class PhaseByTransmissionIntegrationTest extends WalkerTest {
-    private static String phaseByTransmissionTestDataRoot = testDir + "PhaseByTransmission/";
+    private static String phaseByTransmissionTestDataRoot = privateTestDir + "PhaseByTransmission/";
     private static String goodFamilyFile =  phaseByTransmissionTestDataRoot + "PhaseByTransmission.IntegrationTest.goodFamilies.ped";
     private static String TNTest = phaseByTransmissionTestDataRoot + "PhaseByTransmission.IntegrationTest.TN.vcf";
     private static String TPTest = phaseByTransmissionTestDataRoot + "PhaseByTransmission.IntegrationTest.TP.vcf";

@@ -279,7 +279,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam" +
                         " -R " + b36KGReference +
                         " -o %s" +
-                        " -L " + testDir + "symbolic_alleles_1.vcf",
+                        " -L " + privateTestDir + "symbolic_alleles_1.vcf",
                 1, // just one output file
                 Arrays.asList(md5));
         executeTest("testSymbolicAlleles", spec);

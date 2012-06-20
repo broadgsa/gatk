@@ -11,7 +11,7 @@ public class ReadBackedPhasingIntegrationTest extends WalkerTest {
         return "-T ReadBackedPhasing" +
                 " -R " + reference +
                 " -I " + validationDataLocation + reads +
-                " --variant " + ( VCF.contains("phasing_test") ? testDir : validationDataLocation) + VCF +
+                " --variant " + ( VCF.contains("phasing_test") ? privateTestDir : validationDataLocation) + VCF +
                 " --cacheWindowSize " + cacheWindowSize +
                 " --maxPhaseSites " + maxPhaseSites +
                 " --phaseQualityThresh " + phaseQualityThresh +

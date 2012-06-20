@@ -44,7 +44,7 @@ public class RealignerTargetCreatorIntegrationTest extends WalkerTest {
     @Test
     public void testKnownsOnly() {
         WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
-                "-T RealignerTargetCreator -R " + b36KGReference + " --known " + testDir + "NA12878.chr1_10mb_11mb.slx.indels.vcf4 -L " + testDir + "NA12878.chr1_10mb_11mb.slx.indels.vcf4 -o %s",
+                "-T RealignerTargetCreator -R " + b36KGReference + " --known " + privateTestDir + "NA12878.chr1_10mb_11mb.slx.indels.vcf4 -L " + privateTestDir + "NA12878.chr1_10mb_11mb.slx.indels.vcf4 -o %s",
                  1,
                  Arrays.asList("5206cee6c01b299417bf2feeb8b3dc96"));
         executeTest("test rods only", spec3);

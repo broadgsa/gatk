@@ -179,7 +179,7 @@ public abstract class BCF2FieldWriter {
             final List<Integer> values = new ArrayList<Integer>(vc.getNSamples());
             for ( final Genotype g : vc.getGenotypes() ) {
                 for ( final Object i : BCF2Utils.toList(g.getExtendedAttribute(getField(), null)) ) {
-                    values.add((Integer)i); // we know they are all integers
+                    if ( i != null ) values.add((Integer)i); // we know they are all integers
                 }
             }
 

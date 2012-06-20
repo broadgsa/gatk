@@ -356,7 +356,7 @@ public class WalkerTest extends BaseTest {
             System.out.println(String.format("[%s] Executing test %s with GATK arguments: %s", now, name, cmdline));
             // also write the command line to the HTML log for convenient follow-up
             // do the replaceAll so paths become relative to the current
-            BaseTest.log(cmdline.replaceAll(testDirRoot, ""));
+            BaseTest.log(cmdline.replaceAll(publicTestDirRoot, "").replaceAll(privateTestDirRoot, ""));
             CommandLineExecutable.start(instance, command);
         } catch (Exception e) {
             gotAnException = true;

@@ -87,10 +87,13 @@ public abstract class BaseTest {
     private static final String networkTempDir;
     private static final File networkTempDirFile;
 
-    protected static final String testDirRelative = "public/testdata/";
-    public static final File testDirFile = new File(testDirRelative);
-    public static final String testDir = testDirFile.getAbsolutePath() + "/";
-    protected static final String testDirRoot = testDir.replace(testDirRelative, "");
+    private static final String privateTestDirRelative = "private/testdata/";
+    public static final String privateTestDir = new File(privateTestDirRelative).getAbsolutePath() + "/";
+    protected static final String privateTestDirRoot = privateTestDir.replace(privateTestDirRelative, "");
+
+    private static final String publicTestDirRelative = "public/testdata/";
+    public static final String publicTestDir = new File(publicTestDirRelative).getAbsolutePath() + "/";
+    protected static final String publicTestDirRoot = publicTestDir.replace(publicTestDirRelative, "");
 
     public static final String keysDataLocation = validationDataLocation + "keys/";
     public static final String gatkKeyFile = CryptUtils.GATK_USER_KEY_DIRECTORY + "gsamembers_broadinstitute.org.key";

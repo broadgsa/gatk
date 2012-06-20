@@ -17,8 +17,8 @@ public class ValidationAmpliconsIntegrationTest extends WalkerTest {
     @Test(enabled=true)
     public void testWikiExample() {
         String siteVCF = validationDataLocation + "sites_to_validate.vcf";
-        String maskVCF = testDir + "amplicon_mask_sites.vcf";
-        String intervalTable = testDir + "amplicon_interval_table1.table";
+        String maskVCF = privateTestDir + "amplicon_mask_sites.vcf";
+        String intervalTable = privateTestDir + "amplicon_interval_table1.table";
         String testArgs = "-R " + b37KGReference + " -T ValidationAmplicons --ValidateAlleles:VCF "+siteVCF+" -o %s";
         testArgs += " --ProbeIntervals:table "+intervalTable+" -L:table "+intervalTable+" --MaskAlleles:VCF "+maskVCF;
         testArgs += " --virtualPrimerSize 30";
@@ -29,9 +29,9 @@ public class ValidationAmpliconsIntegrationTest extends WalkerTest {
 
     @Test(enabled=true)
     public void testWikiExampleNoBWA() {
-        String siteVCF = testDir + "sites_to_validate.vcf";
-        String maskVCF = testDir + "amplicon_mask_sites.vcf";
-        String intervalTable = testDir + "amplicon_interval_table1.table";
+        String siteVCF = privateTestDir + "sites_to_validate.vcf";
+        String maskVCF = privateTestDir + "amplicon_mask_sites.vcf";
+        String intervalTable = privateTestDir + "amplicon_interval_table1.table";
         String testArgs = "-R " + b37KGReference + " -T ValidationAmplicons --ValidateAlleles:VCF "+siteVCF+" -o %s";
         testArgs += " --ProbeIntervals:table "+intervalTable+" -L:table "+intervalTable+" --MaskAlleles:VCF "+maskVCF;
         testArgs += " --virtualPrimerSize 30 --doNotUseBWA";
@@ -42,9 +42,9 @@ public class ValidationAmpliconsIntegrationTest extends WalkerTest {
 
     @Test(enabled=true)
     public void testWikiExampleMonoFilter() {
-        String siteVCF = testDir + "sites_to_validate.vcf";
-        String maskVCF = testDir + "amplicon_mask_sites.vcf";
-        String intervalTable = testDir + "amplicon_interval_table1.table";
+        String siteVCF = privateTestDir + "sites_to_validate.vcf";
+        String maskVCF = privateTestDir + "amplicon_mask_sites.vcf";
+        String intervalTable = privateTestDir + "amplicon_interval_table1.table";
         String testArgs = "-R " + b37KGReference + " -T ValidationAmplicons --ValidateAlleles:VCF "+siteVCF+" -o %s";
         testArgs += " --ProbeIntervals:table "+intervalTable+" -L:table "+intervalTable+" --MaskAlleles:VCF "+maskVCF;
         testArgs += " --virtualPrimerSize 30 --filterMonomorphic";

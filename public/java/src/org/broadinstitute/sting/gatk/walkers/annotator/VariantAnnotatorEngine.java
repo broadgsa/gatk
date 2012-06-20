@@ -41,8 +41,8 @@ import java.util.*;
 
 public class VariantAnnotatorEngine {
 
-    private List<InfoFieldAnnotation> requestedInfoAnnotations;
-    private List<GenotypeAnnotation> requestedGenotypeAnnotations;
+    private List<InfoFieldAnnotation> requestedInfoAnnotations = Collections.emptyList();
+    private List<GenotypeAnnotation> requestedGenotypeAnnotations = Collections.emptyList();
     private List<VAExpression> requestedExpressions = new ArrayList<VAExpression>();
 
     private final HashMap<RodBinding<VariantContext>, String> dbAnnotations = new HashMap<RodBinding<VariantContext>, String>();
@@ -164,8 +164,12 @@ public class VariantAnnotatorEngine {
             descriptions.addAll(annotation.getDescriptions());
         for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations )
             descriptions.addAll(annotation.getDescriptions());
-        for ( String db : dbAnnotations.values() )
-            descriptions.add(new VCFInfoHeaderLine(db, 0, VCFHeaderLineType.Flag, (db.equals(VCFConstants.DBSNP_KEY) ? "dbSNP" : db) + " Membership"));
+        for ( String db : dbAnnotations.values() ) {
+            if ( VCFStandardHeaderLines.getInfoLine(db, false) != null )
+                descriptions.add(VCFStandardHeaderLines.getInfoLine(db));
+            else
+                descriptions.add(new VCFInfoHeaderLine(db, 0, VCFHeaderLineType.Flag, db + " Membership"));
+        }
 
         return descriptions;
     }

@@ -51,7 +51,7 @@ public class SlowGenotype extends Genotype {
             this.alleles = Collections.unmodifiableList(alleles);
         commonInfo = new CommonInfo(sampleName, log10PError, filters, attributes);
         if ( log10Likelihoods != null )
-            commonInfo.putAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.fromLog10Likelihoods(log10Likelihoods));
+            commonInfo.putAttribute(VCFConstants.GENOTYPE_PL_KEY, GenotypeLikelihoods.fromLog10Likelihoods(log10Likelihoods));
         this.isPhased = isPhased;
         validate();
     }
@@ -72,12 +72,12 @@ public class SlowGenotype extends Genotype {
     // Useful methods for getting genotype likelihoods for a genotype object, if present
     //
     @Override public boolean hasLikelihoods() {
-        return (commonInfo.hasAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY) && !commonInfo.getAttribute(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY).equals(VCFConstants.MISSING_VALUE_v4)) ||
+        return (commonInfo.hasAttribute(VCFConstants.GENOTYPE_PL_KEY) && !commonInfo.getAttribute(VCFConstants.GENOTYPE_PL_KEY).equals(VCFConstants.MISSING_VALUE_v4)) ||
                 (commonInfo.hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY) && !commonInfo.getAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY).equals(VCFConstants.MISSING_VALUE_v4));
     }
 
     @Override public GenotypeLikelihoods getLikelihoods() {
-        GenotypeLikelihoods x = getLikelihoods(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, true);
+        GenotypeLikelihoods x = getLikelihoods(VCFConstants.GENOTYPE_PL_KEY, true);
         if ( x != null )
             return x;
         else {

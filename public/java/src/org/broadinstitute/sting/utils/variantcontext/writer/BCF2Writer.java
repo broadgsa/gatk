@@ -85,6 +85,7 @@ import java.util.*;
 class BCF2Writer extends IndexingVariantContextWriter {
     final protected static Logger logger = Logger.getLogger(BCF2Writer.class);
     final private static List<Allele> MISSING_GENOTYPE = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
+    final private static boolean ALLOW_MISSING_CONTIG_LINES = false;
 
     private final OutputStream outputStream;      // Note: do not flush until completely done writing, to avoid issues with eventual BGZF support
     private VCFHeader header;
@@ -112,8 +113,12 @@ class BCF2Writer extends IndexingVariantContextWriter {
     public void writeHeader(final VCFHeader header) {
         // create the config offsets map
         if ( header.getContigLines().isEmpty() ) {
-            logger.warn("No contig dictionary found in header, falling back to reference sequence dictionary");
-            createContigDictionary(VCFUtils.makeContigHeaderLines(getRefDict(), null));
+            if ( ALLOW_MISSING_CONTIG_LINES ) {
+                logger.warn("No contig dictionary found in header, falling back to reference sequence dictionary");
+                createContigDictionary(VCFUtils.makeContigHeaderLines(getRefDict(), null));
+            } else {
+                throw new UserException.MalformedBCF2("Cannot write BCF2 file with missing contig lines");
+            }
         } else {
             createContigDictionary(header.getContigLines());
         }

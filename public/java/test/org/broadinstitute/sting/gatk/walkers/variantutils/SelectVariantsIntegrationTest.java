@@ -13,7 +13,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
     @Test
     public void testDiscordanceNoSampleSpecified() {
-        String testFile = testDir + "NA12878.hg19.example1.vcf";
+        String testFile = privateTestDir + "NA12878.hg19.example1.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + hg19Reference + " -L 20:1012700-1020000 --variant "
@@ -29,7 +29,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
     @Test
     public void testRepeatedLineSelection() {
-        String testfile = testDir + "test.dup.vcf";
+        String testfile = privateTestDir + "test.dup.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(" -sn A -sn B -sn C --variant " + testfile),
@@ -42,7 +42,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
     @Test
     public void testDiscordance() {
-        String testFile = testDir + "NA12878.hg19.example1.vcf";
+        String testFile = privateTestDir + "NA12878.hg19.example1.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 --variant "
@@ -88,14 +88,14 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
     @Test
     public void testConcordance() {
-        String testFile = testDir + "NA12878.hg19.example1.vcf";
+        String testFile = privateTestDir + "NA12878.hg19.example1.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 -conc "
                         + b37hapmapGenotypes + " --variant " + testFile
                         + " -o %s --no_cmdline_in_header --allowMissingVCFHeaders",
                 1,
-                Arrays.asList("7d2c7deeacf307d140a85a34629c6539")
+                Arrays.asList("25b3a8fd7b62b035c9d7c090db3c682d")
         );
         spec.disableShadowBCF();
 
@@ -104,7 +104,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
     @Test
     public void testVariantTypeSelection() {
-        String testFile = testDir + "complexExample1.vcf";
+        String testFile = privateTestDir + "complexExample1.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -restrictAllelesTo MULTIALLELIC -selectType MIXED --variant " + testFile + " -o %s --no_cmdline_in_header",
@@ -117,7 +117,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
     @Test
     public void testUsingDbsnpName() {
-        String testFile = testDir + "combine.3.vcf";
+        String testFile = privateTestDir + "combine.3.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -sn NA12892 --variant:dbsnp " + testFile + " -o %s --no_cmdline_in_header",
@@ -130,7 +130,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
     @Test
     public void testRegenotype() {
-        String testFile = testDir + "combine.3.vcf";
+        String testFile = privateTestDir + "combine.3.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -regenotype -sn NA12892 --variant " + testFile + " -o %s --no_cmdline_in_header",
@@ -143,7 +143,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
     @Test
     public void testMultipleRecordsAtOnePosition() {
-        String testFile = testDir + "selectVariants.onePosition.vcf";
+        String testFile = privateTestDir + "selectVariants.onePosition.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -select 'KG_FREQ < 0.5' --variant " + testFile + " -o %s --no_cmdline_in_header",
@@ -156,7 +156,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
     @Test
     public void testNoGTs() {
-        String testFile = testDir + "vcf4.1.example.vcf";
+        String testFile = privateTestDir + "vcf4.1.example.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b37KGReference + " --variant " + testFile + " -o %s --no_cmdline_in_header",
@@ -199,8 +199,8 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
     @Test
     public void testSelectFromMultiAllelic() {
-        String testfile = testDir + "multi-allelic.bi-allelicInGIH.vcf";
-        String samplesFile = testDir + "GIH.samples.list";
+        String testfile = privateTestDir + "multi-allelic.bi-allelicInGIH.vcf";
+        String samplesFile = privateTestDir + "GIH.samples.list";
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b37KGReference + " -o %s --no_cmdline_in_header -sf " + samplesFile + " --excludeNonVariants --variant " + testfile,
                 1,
@@ -220,7 +220,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
     }
 
     private void testFileWithoutInfoLineInHeader(final String name, final Class expectedException) {
-        final String testFile = testDir + "missingHeaderLine.vcf";
+        final String testFile = privateTestDir + "missingHeaderLine.vcf";
         final String cmd = "-T SelectVariants -R " + b36KGReference + " -sn NA12892 --variant:dbsnp "
                 + testFile + " -o %s --no_cmdline_in_header"
                 + (expectedException == null ? " -allowMissingVCFHeaders" : "");

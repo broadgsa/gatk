@@ -37,7 +37,9 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.R.RScriptExecutor;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.io.Resource;
@@ -229,7 +231,10 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             throw new UserException.CommandLineException( "No truth set found! Please provide sets of known polymorphic loci marked with the truth=true ROD binding tag. For example, -B:hapmap,VCF,known=false,training=true,truth=true,prior=12.0 hapmapFile.vcf" );
         }
 
-        recalWriter.writeHeader( new VCFHeader() );
+
+        final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        ApplyRecalibration.addVQSRStandardHeaderLines(hInfo);
+        recalWriter.writeHeader( new VCFHeader(hInfo) );
     }
 
     //---------------------------------------------------------------------------------------------------------------

@@ -33,7 +33,7 @@ import java.util.*;
 public class VariantsToTableIntegrationTest extends WalkerTest {
     private String variantsToTableCmd(String moreArgs) {
         return "-R " + hg18Reference +
-                " --variant:vcf " + testDir + "soap_gatk_annotated.vcf" +
+                " --variant:vcf " + privateTestDir + "soap_gatk_annotated.vcf" +
                 " -T VariantsToTable" +
                 " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F FILTER -F TRANSITION -F DP -F SB -F set -F RankSumP -F refseq.functionalClass*" +
                 " -L chr1 -o %s" + moreArgs;
@@ -41,7 +41,7 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
 
     private String variantsToTableMultiAllelicCmd(String moreArgs) {
         return "-R " + b37KGReference +
-                " --variant " + testDir + "multiallelic.vcf" +
+                " --variant " + privateTestDir + "multiallelic.vcf" +
                 " -T VariantsToTable" +
                 " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F MULTI-ALLELIC -F AC -F AF" +
                 " -o %s" + moreArgs;
@@ -78,7 +78,7 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
     public void testGenotypeFields() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                " --variant " + testDir + "vcfexample2.vcf" +
+                " --variant " + privateTestDir + "vcfexample2.vcf" +
                 " -T VariantsToTable" +
                 " -GF RD" +
                 " -o %s",
@@ -91,7 +91,7 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
     public void testGenotypeFieldsWithInline() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " --variant " + testDir + "vcfexample2.vcf" +
+                        " --variant " + privateTestDir + "vcfexample2.vcf" +
                         " -T VariantsToTable" +
                         " -GF RD -GF GT -GF GQ" +
                         " -o %s",
@@ -104,7 +104,7 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
     public void testMoltenOutput() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " --variant " + testDir + "vcfexample2.vcf" +
+                        " --variant " + privateTestDir + "vcfexample2.vcf" +
                         " -T VariantsToTable" +
                         " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F FILTER" +
                         " --moltenize" +
@@ -118,7 +118,7 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
     public void testMoltenOutputWithGenotypeFields() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " --variant " + testDir + "vcfexample2.vcf" +
+                        " --variant " + privateTestDir + "vcfexample2.vcf" +
                         " -T VariantsToTable" +
                         " -GF RD" +
                         " --moltenize" +
@@ -132,7 +132,7 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
     public void testMoltenOutputWithMultipleAlleles() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b37KGReference +
-                        " --variant " + testDir + "multiallelic.vcf" +
+                        " --variant " + privateTestDir + "multiallelic.vcf" +
                         " -T VariantsToTable" +
                         " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F MULTI-ALLELIC -F AC -F AF" +
                         " --moltenize -SMA" +

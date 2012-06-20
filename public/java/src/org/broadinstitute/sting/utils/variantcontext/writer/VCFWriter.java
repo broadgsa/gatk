@@ -533,7 +533,7 @@ class VCFWriter extends IndexingVariantContextWriter {
         if ( sawGoodQual ) keys.add(VCFConstants.GENOTYPE_QUALITY_KEY);
         if ( sawDP ) keys.add(VCFConstants.DEPTH_KEY);
         if ( sawAD ) keys.add(VCFConstants.GENOTYPE_ALLELE_DEPTHS);
-        if ( sawPL ) keys.add(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
+        if ( sawPL ) keys.add(VCFConstants.GENOTYPE_PL_KEY);
         if ( sawGenotypeFilter ) keys.add(VCFConstants.GENOTYPE_FILTER_KEY);
 
         List<String> sortedList = ParsingUtils.sortList(new ArrayList<String>(keys));

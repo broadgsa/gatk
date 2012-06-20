@@ -36,6 +36,7 @@ import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCounts;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -432,8 +433,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             headerLines.add(new VCFInfoHeaderLine("AN_Orig", 1, VCFHeaderLineType.Integer, "Original AN"));
         }
         headerLines.addAll(Arrays.asList(ChromosomeCounts.descriptions));
-        headerLines.add(new VCFInfoHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Depth of coverage"));
-        vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
+        headerLines.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.DEPTH_KEY));
 
         for (int i = 0; i < SELECT_EXPRESSIONS.size(); i++) {
             // It's not necessary that the user supply select names for the JEXL expressions, since those
@@ -469,6 +469,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             UAC.OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES;
             UAC.NO_SLOD = true;
             UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, null, null, samples, VariantContextUtils.DEFAULT_PLOIDY);
+            headerLines.addAll(UnifiedGenotyper.getHeaderInfo(UAC, null, null));
         }
 
         /** load in the IDs file to a hashset for matching */
@@ -483,6 +484,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                 throw new UserException.CouldNotReadInputFile(rsIDFile, e);
             }
         }
+
+        vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
     }
 
     /**
