@@ -588,6 +588,27 @@ public final class GenomeLocParser {
     }
 
     /**
+     * Creates a loc padded in both directions by maxBasePairs size (if possible).
+     * @param loc      The original loc
+     * @param padding  The number of base pairs to pad on either end
+     * @return The contiguous loc of length up to the original length + 2*padding (depending on the start/end of the contig).
+     */
+    @Requires({"loc != null", "padding > 0"})
+    public GenomeLoc createPaddedGenomeLoc(final GenomeLoc loc, final int padding) {
+        if (GenomeLoc.isUnmapped(loc))
+            return loc;
+        final String contigName = loc.getContig();
+        final SAMSequenceRecord contig = contigInfo.getSequence(contigName);
+        final int contigIndex = contig.getSequenceIndex();
+        final int contigLength = contig.getSequenceLength();
+
+        final int start = Math.max(1, loc.getStart() - padding);
+        final int stop = Math.min(contigLength, loc.getStop() + padding);
+
+        return createGenomeLoc(contigName, contigIndex, start, stop, true);
+    }
+
+    /**
      * Creates a loc to the right (starting at the loc stop + 1) of maxBasePairs size.
      * @param loc The original loc
      * @param maxBasePairs The maximum number of basePairs

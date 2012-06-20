@@ -592,7 +592,7 @@ public class GenomeAnalysisEngine {
         // if include argument isn't given, create new set of all possible intervals
         GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null ?
             GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getReference().getSequenceDictionary()) :
-            loadIntervals(argCollection.intervals, argCollection.intervalSetRule));
+            loadIntervals(argCollection.intervals, argCollection.intervalSetRule, argCollection.intervalPadding));
 
         // if no exclude arguments, can return parseIntervalArguments directly
         if ( argCollection.excludeIntervals == null )
@@ -619,14 +619,29 @@ public class GenomeAnalysisEngine {
      * @param rule     interval merging rule
      * @return A sorted, merged list of all intervals specified in this arg list.
      */
-    protected GenomeLocSortedSet loadIntervals( List<IntervalBinding<Feature>> argList, IntervalSetRule rule ) {
+    protected GenomeLocSortedSet loadIntervals( final List<IntervalBinding<Feature>> argList, final IntervalSetRule rule ) {
+        return loadIntervals(argList, rule, 0);
+    }
+
+        /**
+        * Loads the intervals relevant to the current execution
+        * @param argList  argument bindings; might include filenames, intervals in samtools notation, or a combination of the above
+        * @param rule     interval merging rule
+        * @param padding  how much to pad the intervals
+        * @return A sorted, merged list of all intervals specified in this arg list.
+        */
+    protected GenomeLocSortedSet loadIntervals( final List<IntervalBinding<Feature>> argList, final IntervalSetRule rule, final int padding ) {
 
         List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>();
         for ( IntervalBinding intervalBinding : argList ) {
-            List<GenomeLoc> intervals = intervalBinding.getIntervals(this);
+            List<GenomeLoc> intervals = intervalBinding.getIntervals(this.getGenomeLocParser());
 
             if ( intervals.isEmpty() ) {
                 logger.warn("The interval file " + intervalBinding.getSource() + " contains no intervals that could be parsed.");
+            }
+
+            if ( padding > 0 ) {
+                intervals = IntervalUtils.getIntervalsWithFlanks(this.getGenomeLocParser(), intervals, padding);
             }
 
             allIntervals = IntervalUtils.mergeListsBySetOperator(intervals, allIntervals, rule);

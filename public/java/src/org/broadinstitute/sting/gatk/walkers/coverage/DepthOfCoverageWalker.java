@@ -405,15 +405,19 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
             printGeneStats(statsByInterval);
         }
 
-        for(DoCOutputType.Partition partition: partitionTypes) {
-            if ( checkType(statsByInterval.get(0).getSecond().getCoverageByAggregationType(partition) ,partition) ) {
-                printIntervalStats(statsByInterval,
-                        getCorrectStream(partition, DoCOutputType.Aggregation.interval, DoCOutputType.FileType.summary),
-                        getCorrectStream(partition, DoCOutputType.Aggregation.interval, DoCOutputType.FileType.statistics),
-                        partition);
-            } else {
-                throw new ReviewedStingException("Partition type "+partition.toString()+" had no entries. Please check that your .bam header has all appropriate partition types.");
+        if ( statsByInterval.size() > 0 ) {
+            for(DoCOutputType.Partition partition: partitionTypes) {
+                if ( checkType(statsByInterval.get(0).getSecond().getCoverageByAggregationType(partition) ,partition) ) {
+                    printIntervalStats(statsByInterval,
+                            getCorrectStream(partition, DoCOutputType.Aggregation.interval, DoCOutputType.FileType.summary),
+                            getCorrectStream(partition, DoCOutputType.Aggregation.interval, DoCOutputType.FileType.statistics),
+                            partition);
+                } else {
+                    throw new ReviewedStingException("Partition type "+partition.toString()+" had no entries. Please check that your .bam header has all appropriate partition types.");
+                }
             }
+        } else {
+            throw new UserException.CommandLineException("Cannot reduce by interval without interval list provided. Please provide a -L argument.");
         }
 
         onTraversalDone(mergeAll(statsByInterval));

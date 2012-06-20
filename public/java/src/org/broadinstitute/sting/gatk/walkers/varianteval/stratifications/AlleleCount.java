@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
-import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantSummary;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -14,8 +14,9 @@ import java.util.*;
 /**
  * Stratifies the eval RODs by the allele count of the alternate allele
  *
- * Looks at the AC value in the INFO field, and uses that value if present.  If absent,
- * computes the AC from the genotypes themselves.  For no AC can be computed, 0 is used.
+ * Looks first at the MLEAC value in the INFO field, and uses that value if present.
+ * If not present, it then looks for the AC value in the INFO field.  If both are absent,
+ * it computes the AC from the genotypes themselves.  If no AC can be computed, 0 is used.
  */
 public class AlleleCount extends VariantStratifier {
     @Override
@@ -41,8 +42,10 @@ public class AlleleCount extends VariantStratifier {
         if (eval != null) {
             int AC = 0; // by default, the site is considered monomorphic
 
-            if ( eval.hasAttribute("AC") && eval.getAttribute("AC") instanceof Integer ) {
-                AC = eval.getAttributeAsInt("AC", 0);
+            if ( eval.hasAttribute(VCFConstants.MLE_ALLELE_COUNT_KEY) && eval.isBiallelic() ) {
+                AC = eval.getAttributeAsInt(VCFConstants.MLE_ALLELE_COUNT_KEY, 0);
+            } else if ( eval.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) && eval.isBiallelic() ) {
+                AC = eval.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY, 0);
             } else if ( eval.isVariant() ) {
                 for (Allele allele : eval.getAlternateAlleles())
                     AC = Math.max(AC, eval.getCalledChrCount(allele));
