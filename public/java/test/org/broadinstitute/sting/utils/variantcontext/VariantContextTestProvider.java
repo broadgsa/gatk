@@ -177,7 +177,7 @@ public class VariantContextTestProvider {
         addHeaderLine(metaData, "STRING20", 20, VCFHeaderLineType.String);
         addHeaderLine(metaData, "VAR.INFO.STRING", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String);
 
-        addHeaderLine(metaData, "GT", 1, VCFHeaderLineType.Integer);
+        addHeaderLine(metaData, "GT", 1, VCFHeaderLineType.String);
         addHeaderLine(metaData, "GQ", 1, VCFHeaderLineType.Integer);
         addHeaderLine(metaData, "PL", VCFHeaderLineCount.G, VCFHeaderLineType.Integer);
         addHeaderLine(metaData, "GS", 2, VCFHeaderLineType.String);

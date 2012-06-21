@@ -65,6 +65,7 @@ public class VCFDiffableReader implements DiffableReader {
             br.close();
 
             // must be read as state is stored in reader itself
+            AbstractVCFCodec.disableOnTheFlyModifications();
             FeatureReader<VariantContext> reader = AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), new VCFCodec(), false);
             VCFHeader header = (VCFHeader)reader.getHeader();
             for ( VCFHeaderLine headerLine : header.getMetaData() ) {

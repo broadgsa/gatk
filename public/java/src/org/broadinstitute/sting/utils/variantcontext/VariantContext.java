@@ -1376,21 +1376,20 @@ public class VariantContext implements Feature { // to enable tribble integratio
             final VCFCompoundHeaderLine format = VariantContextUtils.getMetaDataForField(header, field);
             final Object decoded = decodeValue(field, attr.getValue(), format);
 
-            if ( decoded != null ) {
-                if ( ! allowMissingValuesComparedToHeader
-                        && format.getCountType() != VCFHeaderLineCount.UNBOUNDED
-                        && format.getType() != VCFHeaderLineType.Flag ) { // we expect exactly the right number of elements
-                    final int obsSize = decoded instanceof List ? ((List) decoded).size() : 1;
-                    final int expSize = format.getCount(this.getNAlleles() - 1);
-                    if ( obsSize != expSize ) {
-                        throw new UserException.MalformedVCFHeader("Discordant field size detected for field " +
-                                field + " at " + getChr() + ":" + getStart() + ".  Field had " + obsSize + " values " +
-                                "but the header says this should have " + expSize + " values based on header record " +
-                                format);
-                    }
+            if ( decoded != null &&
+                    ! allowMissingValuesComparedToHeader
+                    && format.getCountType() != VCFHeaderLineCount.UNBOUNDED
+                    && format.getType() != VCFHeaderLineType.Flag ) { // we expect exactly the right number of elements
+                final int obsSize = decoded instanceof List ? ((List) decoded).size() : 1;
+                final int expSize = format.getCount(this.getNAlleles() - 1);
+                if ( obsSize != expSize ) {
+                    throw new UserException.MalformedVCFHeader("Discordant field size detected for field " +
+                            field + " at " + getChr() + ":" + getStart() + ".  Field had " + obsSize + " values " +
+                            "but the header says this should have " + expSize + " values based on header record " +
+                            format);
                 }
-                newAttributes.put(field, decoded);
             }
+            newAttributes.put(field, decoded);
         }
 
         return newAttributes;

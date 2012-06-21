@@ -243,9 +243,7 @@ public class VCFStandardHeaderLines {
         }
 
         @Requires("line != null")
-        @Ensures({
-                "standards.containsKey(line.getID())",
-                "old(standards.values().size()) > standards.values().size()"})
+        @Ensures({"standards.containsKey(line.getID())"})
         public void add(final T line) {
             if ( standards.containsKey(line.getID()) )
                 throw new ReviewedStingException("Attempting to add multiple standard header lines for ID " + line.getID());
