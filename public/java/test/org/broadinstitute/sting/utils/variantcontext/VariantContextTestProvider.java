@@ -724,8 +724,21 @@ public class VariantContextTestProvider {
         // and they must all be null
         for ( final String missingExpected : expectedKeys ) {
             final Object value = expected.get(missingExpected);
-            Assert.assertTrue(value == null || value.equals(VCFConstants.MISSING_VALUE_v4));
+            Assert.assertTrue(isMissing(value));
         }
+    }
+
+    private static final boolean isMissing(final Object value) {
+        if ( value == null ) return true;
+        else if ( value.equals(VCFConstants.MISSING_VALUE_v4) ) return true;
+        else if ( value instanceof List ) {
+            // handles the case where all elements are null or the list is empty
+            for ( final Object elt : (List)value)
+                if ( elt != null )
+                    return false;
+            return true;
+        } else
+            return false;
     }
 
     private static void assertAttributesEquals(final Object actual, final Object expected) {

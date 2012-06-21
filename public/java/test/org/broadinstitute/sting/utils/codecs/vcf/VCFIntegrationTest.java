@@ -46,7 +46,7 @@ public class VCFIntegrationTest extends WalkerTest {
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
 
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
-        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("cf3f09ef63feba6958d32f95d587af80"));
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("0f82ac11852e7f958c1a0ce52398c2ae"));
         executeTest("Test reading and writing samtools vcf", spec1);
     }
 
@@ -55,7 +55,7 @@ public class VCFIntegrationTest extends WalkerTest {
         String testVCF = privateTestDir + "ex2.vcf";
         String baseCommand = "-R " + b36KGReference + " --no_cmdline_in_header -o %s ";
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
-        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("5839ed4972e2ccf3a7b190752ede6596"));
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("9773d6a121cfcb18d090965bc520f120"));
         executeTest("Test reading and writing samtools WEx vcf/BCF example", spec1);
     }
 }

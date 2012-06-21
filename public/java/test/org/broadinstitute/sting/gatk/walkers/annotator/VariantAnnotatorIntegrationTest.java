@@ -16,7 +16,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testHasAnnotsNotAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " --variant " + privateTestDir + "vcfexample2.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("bd6848e7dbf2f809ee2f690ee2cf8ef4"));
+                Arrays.asList("55785745fe13ad81a2c4a14373d091f0"));
         executeTest("test file has annotations, not asking for annotations, #1", spec);
     }
 
