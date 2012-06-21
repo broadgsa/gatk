@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.codecs.hapmap;
 import org.broad.tribble.annotation.Strand;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.PositionalBufferedStream;
+import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -38,9 +39,9 @@ import java.io.IOException;
 /**
  * Unit tests for the HapMap codec
  */
-public class HapMapUnitTest {
+public class HapMapUnitTest extends BaseTest {
     // our sample hapmap file
-    private final static File hapMapFile = new File("public/testdata/genotypes_chr1_ASW_phase3.3_first500.hapmap");
+    private final static File hapMapFile = new File(privateTestDir + "genotypes_chr1_ASW_phase3.3_first500.hapmap");
     private final static String knownLine = "rs2185539 C/T chr1 556738 + ncbi_b36 bbs urn:lsid:bbs.hapmap.org:Protocol:Phase3.r3:1 urn:lsid:bbs.hapmap.org:Assay:Phase3.r3_r" +
             "s2185539:1 urn:lsid:dcc.hapmap.org:Panel:US_African-30-trios:4 QC+ CC TC TT CT CC CC CC CC CC CC CC CC CC";
     /**

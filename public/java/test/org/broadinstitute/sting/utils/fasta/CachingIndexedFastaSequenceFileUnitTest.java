@@ -25,7 +25,7 @@ import net.sf.samtools.SAMSequenceRecord;
  * Basic unit test for GenomeLoc
  */
 public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
-    private File simpleFasta = new File(privateTestDir + "/exampleFASTA.fasta");
+    private File simpleFasta = new File(publicTestDir + "/exampleFASTA.fasta");
     private static final int STEP_SIZE = 1;
 
     //private static final List<Integer> QUERY_SIZES = Arrays.asList(1);

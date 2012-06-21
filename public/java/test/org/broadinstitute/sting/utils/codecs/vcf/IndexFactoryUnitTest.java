@@ -27,8 +27,8 @@ import java.util.EnumSet;
  */
 public class IndexFactoryUnitTest extends BaseTest {
 
-    File inputFile = new File("public/testdata/HiSeq.10000.vcf");
-    File outputFile = new File("public/testdata/onTheFlyOutputTest.vcf");
+    File inputFile = new File(privateTestDir + "HiSeq.10000.vcf");
+    File outputFile = new File(privateTestDir + "onTheFlyOutputTest.vcf");
     File outputFileIndex = Tribble.indexFile(outputFile);
 
     private SAMSequenceDictionary dict;
