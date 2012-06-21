@@ -52,8 +52,9 @@ public class VariantContextUtils {
     private final static boolean ASSUME_MISSING_FIELDS_ARE_STRINGS = false;
 
     static {
-        engine.setSilent(false); // will throw errors now for selects that don't evaluate properly
-        engine.setLenient(false);
+        engine.setSilent(true); // will throw errors now for selects that don't evaluate properly
+        engine.setLenient(true);
+        engine.setDebug(false);
     }
 
     /**

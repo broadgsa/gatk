@@ -264,7 +264,9 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
         // if the context is null, we need to create it to evaluate the JEXL expression
         if (this.jContext == null) createContext();
         try {
-            jexl.put (exp, (Boolean) exp.exp.evaluate(jContext));
+            final Boolean value = (Boolean) exp.exp.evaluate(jContext);
+            // treat errors as no match
+            jexl.put(exp, value == null ? false : value);
         } catch (Exception e) {
             throw new UserException.CommandLineException(String.format("Invalid JEXL expression detected for %s with message %s", exp.name, e.getMessage()));
         }
