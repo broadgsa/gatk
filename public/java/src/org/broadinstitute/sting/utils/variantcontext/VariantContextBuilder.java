@@ -182,7 +182,13 @@ public class VariantContextBuilder {
      * @param attributes
      */
     public VariantContextBuilder attributes(final Map<String, Object> attributes) {
-        this.attributes = attributes;
+        if (attributes != null) {
+            this.attributes = attributes;
+        }
+        else {
+            this.attributes = new HashMap<String, Object>();
+        }
+
         this.attributesCanBeModified = true;
         return this;
     }
@@ -220,6 +226,7 @@ public class VariantContextBuilder {
      * Makes the attributes field modifiable.  In many cases attributes is just a pointer to an immutable
      * collection, so methods that want to add / remove records require the attributes to be copied to a
      */
+    @Ensures({"this.attributesCanBeModified"})
     private void makeAttributesModifiable() {
         if ( ! attributesCanBeModified ) {
             this.attributesCanBeModified = true;
