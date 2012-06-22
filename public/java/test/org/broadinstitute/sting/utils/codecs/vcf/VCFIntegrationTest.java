@@ -12,7 +12,7 @@ public class VCFIntegrationTest extends WalkerTest {
     @Test(enabled = true)
     public void testReadingAndWritingWitHNoChanges() {
 
-        String md5ofInputVCF = "babf02baabcfa7f72a2c6f7da5fdc996";
+        String md5ofInputVCF = "d991abe6c6a7a778a60a667717903be0";
         String testVCF = privateTestDir + "vcf4.1.example.vcf";
 
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
