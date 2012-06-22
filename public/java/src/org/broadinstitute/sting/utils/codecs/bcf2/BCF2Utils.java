@@ -200,8 +200,11 @@ public final class BCF2Utils {
      * foo.vcf => foo.bcf
      * foo.xxx => foo.xxx.bcf
      *
+     * If the resulting BCF file cannot be written, return null.  Happens
+     * when vcfFile = /dev/null for example
+     *
      * @param vcfFile
-     * @return
+     * @return the BCF
      */
     @Requires("vcfFile != null")
     @Ensures("result != null")
@@ -209,8 +212,10 @@ public final class BCF2Utils {
         final String path = vcfFile.getAbsolutePath();
         if ( path.contains(".vcf") )
             return new File(path.replace(".vcf", ".bcf"));
-        else
-            return new File( path + ".bcf" );
+        else {
+            final File bcf = new File( path + ".bcf" );
+            return bcf.canWrite() ? bcf : null;
+        }
     }
 
     @Ensures("BCF2Type.INTEGERS.contains(result)")
