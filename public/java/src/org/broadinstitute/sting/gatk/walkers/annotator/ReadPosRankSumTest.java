@@ -56,12 +56,12 @@ public class ReadPosRankSumTest extends RankSumTest {
                 continue;
 
             for ( final GATKSAMRecord read : alleleBin.getValue() ) {
-                final int offset = ReadUtils.getReadCoordinateForReferenceCoordinate( read.getUnclippedStart(), read.getCigar(), refLoc, ReadUtils.ClippingTail.RIGHT_TAIL, true );
+                final int offset = ReadUtils.getReadCoordinateForReferenceCoordinate( read.getSoftStart(), read.getCigar(), refLoc, ReadUtils.ClippingTail.RIGHT_TAIL, true );
                 if ( offset == ReadUtils.CLIPPING_GOAL_NOT_REACHED )
                     continue;
                 int readPos = AlignmentUtils.calcAlignmentByteArrayOffset( read.getCigar(), offset, false, false, 0, 0 );
 
-                final int numAlignedBases = AlignmentUtils.getNumAlignedBases( read );
+                final int numAlignedBases = AlignmentUtils.getNumAlignedBasesCountingSoftClips( read );
                 if (readPos > numAlignedBases / 2)
                     readPos = numAlignedBases - (readPos + 1);
 
