@@ -63,6 +63,7 @@ public class VariantContextTestProvider {
 
     private final static List<File> testSourceVCFs = Arrays.asList(
             new File(BaseTest.privateTestDir + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"),
+            new File(BaseTest.privateTestDir + "ex2.vcf"),
             new File(BaseTest.privateTestDir + "dbsnp_135.b37.1000.vcf")
             );
 
