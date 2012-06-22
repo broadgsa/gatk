@@ -114,7 +114,8 @@ public class VCFCodec extends AbstractVCFCodec {
      * @param headerForRepairs
      */
     public void setHeaderForRepairs(final VCFHeader headerForRepairs) {
-        log.info("Using master VCF header to repair missing files from incoming VCFs");
+        if ( headerForRepairs != null )
+            log.info("Using master VCF header to repair missing files from incoming VCFs");
         this.headerForRepairs = headerForRepairs;
     }
 

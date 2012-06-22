@@ -31,7 +31,7 @@ public abstract class Genotype implements Comparable<Genotype> {
             VCFConstants.GENOTYPE_QUALITY_KEY,
             VCFConstants.DEPTH_KEY,
             VCFConstants.GENOTYPE_ALLELE_DEPTHS,
-            VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY);
+            VCFConstants.GENOTYPE_PL_KEY);
 
     public final static String PHASED_ALLELE_SEPARATOR = "|";
     public final static String UNPHASED_ALLELE_SEPARATOR = "/";
@@ -354,7 +354,7 @@ public abstract class Genotype implements Comparable<Genotype> {
                 toStringIfExists(VCFConstants.GENOTYPE_QUALITY_KEY, getGQ()),
                 toStringIfExists(VCFConstants.DEPTH_KEY, getDP()),
                 toStringIfExists(VCFConstants.GENOTYPE_ALLELE_DEPTHS, getAD()),
-                toStringIfExists(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, getPL()),
+                toStringIfExists(VCFConstants.GENOTYPE_PL_KEY, getPL()),
                 sortedString(getExtendedAttributes()));
     }
 
@@ -451,16 +451,13 @@ public abstract class Genotype implements Comparable<Genotype> {
      *
      * @return
      */
-    @Ensures({"result != null", "filtersWereApplied() || result.isEmpty()"})
+    @Ensures({"result != null"})
     public abstract List<String> getFilters();
 
     @Ensures({"result != getFilters().isEmpty()"})
     public boolean isFiltered() {
         return ! getFilters().isEmpty();
     }
-
-    @Ensures("result == true || getFilters().isEmpty()")
-    public abstract boolean filtersWereApplied();
 
     @Deprecated public boolean hasLog10PError() { return hasGQ(); }
     @Deprecated public double getLog10PError() { return getGQ() / -10.0; }
@@ -505,7 +502,7 @@ public abstract class Genotype implements Comparable<Genotype> {
             return getGQ();
         } else if (key.equals(VCFConstants.GENOTYPE_ALLELE_DEPTHS)) {
             return Arrays.asList(getAD());
-        } else if (key.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY)) {
+        } else if (key.equals(VCFConstants.GENOTYPE_PL_KEY)) {
             return Arrays.asList(getPL());
         } else if (key.equals(VCFConstants.DEPTH_KEY)) {
             return getDP();
@@ -521,7 +518,7 @@ public abstract class Genotype implements Comparable<Genotype> {
             return hasGQ();
         } else if (key.equals(VCFConstants.GENOTYPE_ALLELE_DEPTHS)) {
             return hasAD();
-        } else if (key.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY)) {
+        } else if (key.equals(VCFConstants.GENOTYPE_PL_KEY)) {
             return hasPL();
         } else if (key.equals(VCFConstants.DEPTH_KEY)) {
             return hasDP();

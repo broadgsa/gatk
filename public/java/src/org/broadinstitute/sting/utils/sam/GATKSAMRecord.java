@@ -194,12 +194,35 @@ public class GATKSAMRecord extends BAMRecord {
         }
     }
 
+    /**
+     * @return whether or not this read has base insertion or deletion qualities (one of the two is sufficient to return true)
+     */
     public boolean hasBaseIndelQualities() {
         return getAttribute( BQSR_BASE_INSERTION_QUALITIES ) != null || getAttribute( BQSR_BASE_DELETION_QUALITIES ) != null;
     }
 
+    /**
+     * @return the base deletion quality or null if read doesn't have one
+     */
+    public byte[] getExistingBaseInsertionQualities() {
+        return SAMUtils.fastqToPhred( getStringAttribute(BQSR_BASE_INSERTION_QUALITIES));
+    }
+
+    /**
+     * @return the base deletion quality or null if read doesn't have one
+     */
+    public byte[] getExistingBaseDeletionQualities() {
+        return SAMUtils.fastqToPhred( getStringAttribute(BQSR_BASE_DELETION_QUALITIES));
+    }
+
+    /**
+     * Default utility to query the base insertion quality of a read. If the read doesn't have one, it creates an array of default qualities (currently Q45)
+     * and assigns it to the read.
+     *
+     * @return the base insertion quality array
+     */
     public byte[] getBaseInsertionQualities() {
-        byte[] quals = SAMUtils.fastqToPhred( getStringAttribute( BQSR_BASE_INSERTION_QUALITIES ) );
+        byte [] quals = getExistingBaseInsertionQualities();
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
             Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
@@ -209,8 +232,14 @@ public class GATKSAMRecord extends BAMRecord {
         return quals;
     }
 
+    /**
+     * Default utility to query the base deletion quality of a read. If the read doesn't have one, it creates an array of default qualities (currently Q45)
+     * and assigns it to the read.
+     *
+     * @return the base deletion quality array
+     */
     public byte[] getBaseDeletionQualities() {
-        byte[] quals = SAMUtils.fastqToPhred( getStringAttribute( BQSR_BASE_DELETION_QUALITIES ) );
+        byte[] quals = getExistingBaseDeletionQualities();
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
             Arrays.fill(quals, (byte) 45);  // Some day in the future when base insertion and base deletion quals exist the samtools API will
@@ -478,6 +507,7 @@ public class GATKSAMRecord extends BAMRecord {
     public Object clone() throws CloneNotSupportedException {
         final GATKSAMRecord clone = (GATKSAMRecord) super.clone();
         if (temporaryAttributes != null) {
+            clone.temporaryAttributes = new HashMap<Object, Object>();
             for (Object attribute : temporaryAttributes.keySet())
                 clone.setTemporaryAttribute(attribute, temporaryAttributes.get(attribute));
         }

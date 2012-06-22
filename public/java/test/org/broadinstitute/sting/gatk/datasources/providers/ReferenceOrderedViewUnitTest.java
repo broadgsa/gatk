@@ -79,7 +79,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
      */
     @Test
     public void testSingleBinding() {
-        String fileName = testDir + "TabularDataTest.dat";
+        String fileName = privateTestDir + "TabularDataTest.dat";
         RMDTriplet triplet = new RMDTriplet("tableTest","Table",fileName,RMDStorageType.FILE,new Tags());
         ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(triplet,builder,seq.getSequenceDictionary(),genomeLocParser,false);
 
@@ -101,7 +101,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
      */
     @Test
     public void testMultipleBinding() {
-        File file = new File(testDir + "TabularDataTest.dat");
+        File file = new File(privateTestDir + "TabularDataTest.dat");
 
         RMDTriplet testTriplet1 = new RMDTriplet("tableTest1","Table",file.getAbsolutePath(),RMDStorageType.FILE,new Tags());
         ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(testTriplet1,builder,seq.getSequenceDictionary(),genomeLocParser,false);

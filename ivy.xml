@@ -59,7 +59,7 @@
      
     <!-- Commons Dependencies -->  
     <dependency org="org.apache.commons" name="commons-email" rev="1.2"/>
-    <dependency org="org.apache.commons" name="commons-jexl" rev="2.0"/>
+    <dependency org="org.apache.commons" name="commons-jexl" rev="2.1.1"/>
     <dependency org="commons-lang" name="commons-lang" rev="2.5"/>
     <dependency org="commons-logging" name="commons-logging" rev="1.1.1"/>
     <dependency org="commons-io" name="commons-io" rev="2.1"/>

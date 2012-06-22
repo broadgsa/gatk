@@ -45,7 +45,7 @@ import java.util.List;
 public class ReadClipperUnitTest extends BaseTest {
 
     List<Cigar> cigarList;
-    int maximumCigarSize = 6;      // 6 is the minimum necessary number to try all combinations of cigar types with guarantee of clipping an element with length = 2
+    int maximumCigarSize = 6;                                                                                           // 6 is the minimum necessary number to try all combinations of cigar types with guarantee of clipping an element with length = 2
 
     @BeforeClass
     public void init() {
@@ -92,22 +92,15 @@ public class ReadClipperUnitTest extends BaseTest {
             int start = read.getSoftStart();
             int stop = read.getSoftEnd();
 
-//            System.out.println(String.format("CIGAR: %s (%d, %d)", cigar.toString(), start, stop));
-
-//            if (ReadUtils.readIsEntirelyInsertion(read))
-//                System.out.println("debug");
-
             for (int i = start; i <= stop; i++) {
                 GATKSAMRecord clipLeft = (new ReadClipper(read)).hardClipByReferenceCoordinates(-1, i);
                 if (!clipLeft.isEmpty()) {
-//                    System.out.println(String.format("\t left [%d] %s -> %s ", i-start+1, cigar.toString(), clipLeft.getCigarString()));
                     Assert.assertTrue(clipLeft.getAlignmentStart() >= Math.min(read.getAlignmentEnd(), i + 1), String.format("Clipped alignment start (%d) is less the expected (%d): %s -> %s", clipLeft.getAlignmentStart(), i + 1, read.getCigarString(), clipLeft.getCigarString()));
                     assertUnclippedLimits(read, clipLeft);
                 }
 
                 GATKSAMRecord clipRight = (new ReadClipper(read)).hardClipByReferenceCoordinates(i, -1);
-                if (!clipRight.isEmpty() && clipRight.getAlignmentStart() <= clipRight.getAlignmentEnd()) {  // alnStart > alnEnd if the entire read is a soft clip now. We can't test those.
-//                    System.out.println(String.format("\t right [%d] %s -> %s ", i-start+1, cigar.toString(), clipRight.getCigarString()));
+                if (!clipRight.isEmpty() && clipRight.getAlignmentStart() <= clipRight.getAlignmentEnd()) {             // alnStart > alnEnd if the entire read is a soft clip now. We can't test those.
                     Assert.assertTrue(clipRight.getAlignmentEnd() <= Math.max(read.getAlignmentStart(), i - 1), String.format("Clipped alignment end (%d) is greater than expected (%d): %s -> %s", clipRight.getAlignmentEnd(), i - 1, read.getCigarString(), clipRight.getCigarString()));
                     assertUnclippedLimits(read, clipRight);
                 }
@@ -121,7 +114,7 @@ public class ReadClipperUnitTest extends BaseTest {
             GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
             int alnStart = read.getAlignmentStart();
             int alnEnd = read.getAlignmentEnd();
-            if (read.getSoftStart() == alnStart) {                                // we can't test left clipping if the read has hanging soft clips on the left side
+            if (read.getSoftStart() == alnStart) {                                                                      // we can't test left clipping if the read has hanging soft clips on the left side
                 for (int i = alnStart; i <= alnEnd; i++) {
                     GATKSAMRecord clipLeft = ReadClipper.hardClipByReferenceCoordinatesLeftTail(read, i);
 
@@ -141,7 +134,7 @@ public class ReadClipperUnitTest extends BaseTest {
             GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
             int alnStart = read.getAlignmentStart();
             int alnEnd = read.getAlignmentEnd();
-            if (read.getSoftEnd() == alnEnd) {                                   // we can't test right clipping if the read has hanging soft clips on the right side
+            if (read.getSoftEnd() == alnEnd) {                                                                          // we can't test right clipping if the read has hanging soft clips on the right side
                 for (int i = alnStart; i <= alnEnd; i++) {
                     GATKSAMRecord clipRight = ReadClipper.hardClipByReferenceCoordinatesRightTail(read, i);
                     if (!clipRight.isEmpty() && clipRight.getAlignmentStart() <= clipRight.getAlignmentEnd()) {  // alnStart > alnEnd if the entire read is a soft clip now. We can't test those.
@@ -165,7 +158,7 @@ public class ReadClipperUnitTest extends BaseTest {
             byte[] quals = new byte[readLength];
 
             for (int nLowQualBases = 0; nLowQualBases < readLength; nLowQualBases++) {
-                Utils.fillArrayWithByte(quals, HIGH_QUAL);                                    // create a read with nLowQualBases in the left tail
+                Utils.fillArrayWithByte(quals, HIGH_QUAL);                                                              // create a read with nLowQualBases in the left tail
                 for (int addLeft = 0; addLeft < nLowQualBases; addLeft++)
                     quals[addLeft] = LOW_QUAL;
                 read.setBaseQualities(quals);
@@ -252,7 +245,7 @@ public class ReadClipperUnitTest extends BaseTest {
             final GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
             final GATKSAMRecord unclipped = ReadClipper.revertSoftClippedBases(read);
 
-            assertUnclippedLimits(read, unclipped);        // Make sure limits haven't changed
+            assertUnclippedLimits(read, unclipped);                                                                     // Make sure limits haven't changed
 
             if (leadingSoftClips > 0 || tailSoftClips > 0) {
                 final int expectedStart = read.getAlignmentStart() - leadingSoftClips;
@@ -262,6 +255,25 @@ public class ReadClipperUnitTest extends BaseTest {
                 Assert.assertEquals(unclipped.getAlignmentEnd(), expectedEnd);
             } else
                 Assert.assertEquals(read.getCigarString(), unclipped.getCigarString());
+        }
+    }
+
+    @Test(enabled = true)
+    public void testRevertSoftClippedBasesWithThreshold() {
+        for (Cigar cigar : cigarList) {
+            final int leadingSoftClips = leadingCigarElementLength(cigar, CigarOperator.SOFT_CLIP);
+            final int tailSoftClips = leadingCigarElementLength(ReadClipperTestUtils.invertCigar(cigar), CigarOperator.SOFT_CLIP);
+
+            final GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
+            final GATKSAMRecord unclipped = ReadClipper.revertSoftClippedBases(read);
+
+            assertUnclippedLimits(read, unclipped);                                                                     // Make sure limits haven't changed
+            Assert.assertNull(read.getCigar().isValid(null, -1));
+            Assert.assertNull(unclipped.getCigar().isValid(null, -1));
+
+            if (!(leadingSoftClips > 0 || tailSoftClips > 0))
+                Assert.assertEquals(read.getCigarString(), unclipped.getCigarString());
+
         }
     }
 

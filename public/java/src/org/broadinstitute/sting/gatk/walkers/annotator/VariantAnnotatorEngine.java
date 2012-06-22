@@ -41,8 +41,8 @@ import java.util.*;
 
 public class VariantAnnotatorEngine {
 
-    private List<InfoFieldAnnotation> requestedInfoAnnotations;
-    private List<GenotypeAnnotation> requestedGenotypeAnnotations;
+    private List<InfoFieldAnnotation> requestedInfoAnnotations = Collections.emptyList();
+    private List<GenotypeAnnotation> requestedGenotypeAnnotations = Collections.emptyList();
     private List<VAExpression> requestedExpressions = new ArrayList<VAExpression>();
 
     private final HashMap<RodBinding<VariantContext>, String> dbAnnotations = new HashMap<RodBinding<VariantContext>, String>();
@@ -164,8 +164,12 @@ public class VariantAnnotatorEngine {
             descriptions.addAll(annotation.getDescriptions());
         for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations )
             descriptions.addAll(annotation.getDescriptions());
-        for ( String db : dbAnnotations.values() )
-            descriptions.add(new VCFInfoHeaderLine(db, 0, VCFHeaderLineType.Flag, (db.equals(VCFConstants.DBSNP_KEY) ? "dbSNP" : db) + " Membership"));
+        for ( String db : dbAnnotations.values() ) {
+            if ( VCFStandardHeaderLines.getInfoLine(db, false) != null )
+                descriptions.add(VCFStandardHeaderLines.getInfoLine(db));
+            else
+                descriptions.add(new VCFInfoHeaderLine(db, 0, VCFHeaderLineType.Flag, db + " Membership"));
+        }
 
         return descriptions;
     }
@@ -203,8 +207,9 @@ public class VariantAnnotatorEngine {
         // go through all the requested info annotationTypes
         for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
             Map<String, Object> annotationsFromCurrentType = ((ActiveRegionBasedAnnotation)annotationType).annotate(stratifiedContexts, vc);
-            if ( annotationsFromCurrentType != null )
+            if ( annotationsFromCurrentType != null ) {
                 infoAnnotations.putAll(annotationsFromCurrentType);
+            }
         }
 
         // generate a new annotated VC
@@ -216,11 +221,11 @@ public class VariantAnnotatorEngine {
             if ( dbSet.getValue().equals(VCFConstants.DBSNP_KEY) ) {
                 final String rsID = VCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), ref.getLocus()), vc.getType());
                 
-                // put the DB key into the INFO field
-                infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID != null);
-                
                 // add the ID if appropriate
                 if ( rsID != null ) {
+                    // put the DB key into the INFO field
+                    infoAnnotations.put(VCFConstants.DBSNP_KEY, true);
+
                     if ( vc.emptyID() ) {
                         vc = new VariantContextBuilder(vc).id(rsID).make();
                     } else if ( walker.alwaysAppendDbsnpId() && vc.getID().indexOf(rsID) == -1 ) {
@@ -236,7 +241,8 @@ public class VariantAnnotatorEngine {
                         break;
                     }
                 }
-                infoAnnotations.put(dbSet.getValue(), overlapsComp);
+                if ( overlapsComp )
+                    infoAnnotations.put(dbSet.getValue(), overlapsComp);
             }
         }
 

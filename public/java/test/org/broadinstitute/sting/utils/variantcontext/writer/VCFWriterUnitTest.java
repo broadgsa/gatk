@@ -83,7 +83,8 @@ public class VCFWriterUnitTest extends BaseTest {
     @Test
     public void testBasicWriteAndRead() {
         VCFHeader header = createFakeHeader(metaData,additionalColumns);
-        VariantContextWriter writer = VariantContextWriterFactory.create(fakeVCFFile, seq.getSequenceDictionary());
+        final EnumSet<Options> options = EnumSet.of(Options.ALLOW_MISSING_FIELDS_IN_HEADER);
+        VariantContextWriter writer = VariantContextWriterFactory.create(fakeVCFFile, seq.getSequenceDictionary(), options);
         writer.writeHeader(header);
         writer.add(createVC(header));
         writer.add(createVC(header));

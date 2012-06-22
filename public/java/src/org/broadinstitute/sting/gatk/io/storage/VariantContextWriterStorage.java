@@ -74,7 +74,8 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
         else if ( stub.getOutputStream() != null ) {
             this.file = null;
             this.stream = stub.getOutputStream();
-            writer = VariantContextWriterFactory.create(stream, stub.getMasterSequenceDictionary(), stub.getWriterOptions(false));
+            writer = VariantContextWriterFactory.create(stream,
+                    stub.getMasterSequenceDictionary(), stub.getWriterOptions(false));
         }
         else
             throw new ReviewedStingException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");

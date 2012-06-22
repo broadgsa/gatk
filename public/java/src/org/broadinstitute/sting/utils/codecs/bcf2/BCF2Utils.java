@@ -82,18 +82,27 @@ public final class BCF2Utils {
     @Requires("header != null")
     @Ensures({"result != null", "new HashSet(result).size() == result.size()"})
     public final static ArrayList<String> makeDictionary(final VCFHeader header) {
-        final Set<String> dict = new TreeSet<String>();
+        final Set<String> seen = new HashSet<String>();
+        final ArrayList<String> dict = new ArrayList<String>();
 
+        boolean sawPASS = false;
         // set up the strings dictionary
-        dict.add(VCFConstants.PASSES_FILTERS_v4); // special case the special PASS field
         for ( VCFHeaderLine line : header.getMetaData() ) {
             if ( line instanceof VCFIDHeaderLine) {
-                VCFIDHeaderLine idLine = (VCFIDHeaderLine)line;
-                dict.add(idLine.getID());
+                final VCFIDHeaderLine idLine = (VCFIDHeaderLine)line;
+                if ( ! seen.contains(idLine.getID())) {
+                    sawPASS = sawPASS || idLine.getID().equals(VCFConstants.PASSES_FILTERS_v4);
+                    dict.add(idLine.getID());
+                    seen.add(idLine.getID());
+                }
             }
         }
 
-        return new ArrayList<String>(dict);
+
+        if ( ! sawPASS )
+            dict.add(VCFConstants.PASSES_FILTERS_v4); // special case the special PASS field
+
+        return dict;
     }
 
     @Requires({"nElements >= 0", "type != null"})
@@ -142,25 +151,6 @@ public final class BCF2Utils {
         }
     }
 
-    @Requires({"stream != null", "bytesForEachInt > 0"})
-    public final static int readInt(int bytesForEachInt, final InputStream stream) {
-        switch ( bytesForEachInt ) {
-            case 1: {
-                return (byte)(readByte(stream));
-            } case 2: {
-                final int b1 = readByte(stream) & 0xFF;
-                final int b2 = readByte(stream) & 0xFF;
-                return (short)((b1 << 8) | b2);
-            } case 4: {
-                final int b1 = readByte(stream) & 0xFF;
-                final int b2 = readByte(stream) & 0xFF;
-                final int b3 = readByte(stream) & 0xFF;
-                final int b4 = readByte(stream) & 0xFF;
-                return (int)(b1 << 24 | b2 << 16 | b3 << 8 | b4);
-            } default: throw new ReviewedStingException("Unexpected size during decoding");
-        }
-    }
-
     /**
      * Collapse multiple strings into a comma separated list
      *
@@ -174,8 +164,10 @@ public final class BCF2Utils {
     public static final String collapseStringList(final List<String> strings) {
         final StringBuilder b = new StringBuilder();
         for ( final String s : strings ) {
-            assert s.indexOf(",") == -1; // no commas in individual strings
-            b.append(",").append(s);
+            if ( s != null ) {
+                assert s.indexOf(",") == -1; // no commas in individual strings
+                b.append(",").append(s);
+            }
         }
         return b.toString();
     }
@@ -299,20 +291,40 @@ public final class BCF2Utils {
         else return Collections.singletonList(o);
     }
 
+
+    @Requires({"stream != null", "bytesForEachInt > 0"})
+    public final static int readInt(int bytesForEachInt, final InputStream stream) {
+        switch ( bytesForEachInt ) {
+            case 1: {
+                return (byte)(readByte(stream));
+            } case 2: {
+                final int b2 = readByte(stream) & 0xFF;
+                final int b1 = readByte(stream) & 0xFF;
+                return (short)((b1 << 8) | b2);
+            } case 4: {
+                final int b4 = readByte(stream) & 0xFF;
+                final int b3 = readByte(stream) & 0xFF;
+                final int b2 = readByte(stream) & 0xFF;
+                final int b1 = readByte(stream) & 0xFF;
+                return (int)(b1 << 24 | b2 << 16 | b3 << 8 | b4);
+            } default: throw new ReviewedStingException("Unexpected size during decoding");
+        }
+    }
+
     public final static void encodeRawBytes(final int value, final BCF2Type type, final OutputStream encodeStream) throws IOException {
         switch ( type.getSizeInBytes() ) {
             case 1:
                 encodeStream.write(0xFF & value);
                 break;
             case 2:
+                encodeStream.write((0x00FF & value));
                 encodeStream.write((0xFF00 & value) >> 8);
-                encodeStream.write(0xFF & value);
                 break;
             case 4:
-                encodeStream.write((0xFF000000 & value) >> 24);
-                encodeStream.write((0x00FF0000 & value) >> 16);
-                encodeStream.write((0x0000FF00 & value) >> 8);
                 encodeStream.write((0x000000FF & value));
+                encodeStream.write((0x0000FF00 & value) >> 8);
+                encodeStream.write((0x00FF0000 & value) >> 16);
+                encodeStream.write((0xFF000000 & value) >> 24);
                 break;
             default:
                 throw new ReviewedStingException("BUG: unexpected type size " + type);

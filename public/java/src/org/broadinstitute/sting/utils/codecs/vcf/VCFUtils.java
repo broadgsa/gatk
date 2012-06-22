@@ -247,9 +247,13 @@ public class VCFUtils {
      * @param refDict the SAM formatted reference sequence dictionary
      */
     public final static VCFHeader withUpdatedContigs(final VCFHeader oldHeader, final File referenceFile, final SAMSequenceDictionary refDict) {
-        final Set<VCFHeaderLine> lines = new LinkedHashSet<VCFHeaderLine>(oldHeader.getMetaData().size());
+        return new VCFHeader(withUpdatedContigsAsLines(oldHeader.getMetaData(), referenceFile, refDict), oldHeader.getGenotypeSamples());
+    }
 
-        for ( final VCFHeaderLine line : oldHeader.getMetaData() ) {
+    public final static Set<VCFHeaderLine> withUpdatedContigsAsLines(final Set<VCFHeaderLine> oldLines, final File referenceFile, final SAMSequenceDictionary refDict) {
+        final Set<VCFHeaderLine> lines = new LinkedHashSet<VCFHeaderLine>(oldLines.size());
+
+        for ( final VCFHeaderLine line : oldLines ) {
             if ( line instanceof VCFContigHeaderLine )
                 continue; // skip old contig lines
             if ( line.getKey().equals(VCFHeader.REFERENCE_KEY) )
@@ -261,7 +265,7 @@ public class VCFUtils {
             lines.add(contigLine);
 
         lines.add(new VCFHeaderLine(VCFHeader.REFERENCE_KEY, "file://" + referenceFile.getAbsolutePath()));
-        return new VCFHeader(lines, oldHeader.getGenotypeSamples());
+        return lines;
     }
 
     /**

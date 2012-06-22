@@ -1,8 +1,0 @@
-##fileformat=VCFv4.0
-##source=UnifiedGenotyper
-##INFO=<ID=AB,Number=1,Type=Float,Description="Almost the same AB">
-##INFO=<ID=DP,Number=2,Type=Float,Description="Weird Depth">
-##INFO=<ID=AC,Number=.,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">
-##reference=human_b36_both.fasta
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	NA12878	
-1	10001292	.	G	A	42.22	PASS	.	GT	1/0

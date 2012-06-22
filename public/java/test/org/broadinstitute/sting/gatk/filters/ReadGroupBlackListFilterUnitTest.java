@@ -4,7 +4,6 @@ import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -188,7 +187,7 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
         }
 
         List<String> filterList = new ArrayList<String>();
-        filterList.add(testDir + "readgroupblacklisttest.txt");
+        filterList.add(privateTestDir + "readgroupblacklisttest.txt");
 
         ReadGroupBlackListFilter filter = new ReadGroupBlackListFilter(filterList);
         int filtered = 0;
@@ -227,7 +226,7 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
         }
 
         List<String> filterList = new ArrayList<String>();
-        filterList.add(testDir + "readgroupblacklisttestlist.txt");
+        filterList.add(privateTestDir + "readgroupblacklisttestlist.txt");
 
         ReadGroupBlackListFilter filter = new ReadGroupBlackListFilter(filterList);
         int filtered = 0;

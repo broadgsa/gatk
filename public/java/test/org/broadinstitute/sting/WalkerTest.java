@@ -51,7 +51,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class WalkerTest extends BaseTest {
-    private static final boolean GENERATE_SHADOW_BCF = false;
+    private static final boolean GENERATE_SHADOW_BCF = true;
     private static final boolean ENABLE_PHONE_HOME_FOR_TESTS = false;
     private static final boolean ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX = false;
 
@@ -356,7 +356,7 @@ public class WalkerTest extends BaseTest {
             System.out.println(String.format("[%s] Executing test %s with GATK arguments: %s", now, name, cmdline));
             // also write the command line to the HTML log for convenient follow-up
             // do the replaceAll so paths become relative to the current
-            BaseTest.log(cmdline.replaceAll(testDirRoot, ""));
+            BaseTest.log(cmdline.replaceAll(publicTestDirRoot, "").replaceAll(privateTestDirRoot, ""));
             CommandLineExecutable.start(instance, command);
         } catch (Exception e) {
             gotAnException = true;

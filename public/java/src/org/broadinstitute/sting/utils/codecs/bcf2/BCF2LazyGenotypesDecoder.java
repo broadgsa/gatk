@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.codecs.bcf2;
 
+import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -46,12 +47,16 @@ class BCF2LazyGenotypesDecoder implements LazyGenotypesContext.LazyParser {
     private final ArrayList<Allele> siteAlleles;
     private final int nSamples;
     private final int nFields;
+    private final GenotypeBuilder[] builders;
 
-    BCF2LazyGenotypesDecoder(final BCF2Codec codec, final ArrayList<Allele> alleles, final int nSamples, final int nFields) {
+    @Requires("codec.getHeader().getNGenotypeSamples() == builders.length")
+    BCF2LazyGenotypesDecoder(final BCF2Codec codec, final ArrayList<Allele> alleles, final int nSamples,
+                             final int nFields, final GenotypeBuilder[] builders) {
         this.codec = codec;
         this.siteAlleles = alleles;
         this.nSamples = nSamples;
         this.nFields = nFields;
+        this.builders = builders;
     }
 
     @Override
@@ -62,21 +67,8 @@ class BCF2LazyGenotypesDecoder implements LazyGenotypesContext.LazyParser {
         // load our byte[] data into the decoder
         final BCF2Decoder decoder = new BCF2Decoder(((BCF2Codec.LazyData)data).bytes);
 
-        // TODO -- fast path for sites only
-
-        // go ahead and decode everyone
-        final List<String> samples = new ArrayList<String>(codec.getHeader().getGenotypeSamples());
-
-        if ( samples.size() != nSamples )
-            throw new UserException.MalformedBCF2("GATK currently doesn't support reading BCF2 files with " +
-                    "different numbers of samples per record.  Saw " + samples.size() +
-                    " samples in header but have a record with " + nSamples + " samples");
-
-        // create and initialize the genotypes array
-        final ArrayList<GenotypeBuilder> builders = new ArrayList<GenotypeBuilder>(nSamples);
-        for ( int i = 0; i < nSamples; i++ ) {
-            builders.add(new GenotypeBuilder(samples.get(i)));
-        }
+        for ( int i = 0; i < nSamples; i++ )
+            builders[i].reset(true);
 
         for ( int i = 0; i < nFields; i++ ) {
             // get the field name

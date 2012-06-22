@@ -38,7 +38,7 @@ public class LeftAlignVariantsIntegrationTest extends WalkerTest {
     @Test
     public void testLeftAlignment() {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 "-T LeftAlignVariants -o %s -R " + b37KGReference + " --variant:vcf " + testDir + "forLeftAlignVariantsTest.vcf --no_cmdline_in_header",
+                 "-T LeftAlignVariants -o %s -R " + b37KGReference + " --variant:vcf " + privateTestDir + "forLeftAlignVariantsTest.vcf --no_cmdline_in_header",
                  1,
                  Arrays.asList("bcf05f56adbb32a47b6d6b27b327d5c2"));
          executeTest("test left alignment", spec);

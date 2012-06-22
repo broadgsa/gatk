@@ -22,8 +22,9 @@ import java.util.zip.GZIPInputStream;
 
 public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext> implements NameAwareCodec {
     public final static int MAX_ALLELE_SIZE_BEFORE_WARNING = (int)Math.pow(2, 20);
+    protected static boolean doOnTheFlyModifications = true;
 
-    protected final static Logger log = Logger.getLogger(VCFCodec.class);
+    protected final static Logger log = Logger.getLogger(AbstractVCFCodec.class);
     protected final static int NUM_STANDARD_FIELDS = 8;  // INFO is the 8th column
 
     // we have to store the list of strings that make up the header until they're needed
@@ -57,6 +58,8 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
     protected int lineNo = 0;
 
     protected Map<String, String> stringCache = new HashMap<String, String>();
+
+    protected boolean warnedAboutNoEqualsForNonFlag = false;
 
     protected AbstractVCFCodec() {
         super(VariantContext.class);
@@ -168,6 +171,8 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
         }
 
         this.header = new VCFHeader(metaData, sampleNames);
+        if ( doOnTheFlyModifications )
+            this.header = VCFStandardHeaderLines.repairStandardHeaderLines(this.header);
         return this.header;
     }
 
@@ -344,7 +349,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
         // do we have genotyping data
         if (parts.length > NUM_STANDARD_FIELDS) {
             final LazyGenotypesContext.LazyParser lazyParser = new LazyVCFGenotypesParser(alleles, chr, pos);
-            final int nGenotypes = header.getGenotypeSamples().size();
+            final int nGenotypes = header.getNGenotypeSamples();
             LazyGenotypesContext lazy = new LazyGenotypesContext(lazyParser, parts[8], nGenotypes);
 
             // did we resort the sample names?  If so, we need to load the genotype data
@@ -425,6 +430,11 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
                     int infoValueSplitSize = ParsingUtils.split(str, infoValueArray, VCFConstants.INFO_FIELD_ARRAY_SEPARATOR_CHAR, false);
                     if ( infoValueSplitSize == 1 ) {
                         value = infoValueArray[0];
+                        final VCFInfoHeaderLine headerLine = header.getInfoHeaderLine(key);
+                        if ( headerLine != null && headerLine.getType() == VCFHeaderLineType.Flag && value.equals("0") ) {
+                            // deal with the case where a flag field has =0, such as DB=0, by skipping the add
+                            continue;
+                        }
                     } else {
                         ArrayList<String> valueList = new ArrayList<String>(infoValueSplitSize);
                         for ( int j = 0; j < infoValueSplitSize; j++ )
@@ -433,7 +443,18 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
                     }
                 } else {
                     key = infoFieldArray[i];
-                    value = true;
+                    final VCFInfoHeaderLine headerLine = header.getInfoHeaderLine(key);
+                    if ( headerLine != null && headerLine.getType() != VCFHeaderLineType.Flag ) {
+                        if ( ! warnedAboutNoEqualsForNonFlag ) {
+                            log.warn("Found info key " + key + " without a = value, but the header says the field is of type "
+                                    + headerLine.getType() + " but this construct is only value for FLAG type fields");
+                            warnedAboutNoEqualsForNonFlag = true;
+                        }
+
+                        value = VCFConstants.MISSING_VALUE_v4;
+                    } else {
+                        value = true;
+                    }
                 }
 
                 attributes.put(key, value);
@@ -780,7 +801,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
                                 gb.GQ((int)Math.round(Double.valueOf(GTValueArray[i])));
                         } else if (gtKey.equals(VCFConstants.GENOTYPE_ALLELE_DEPTHS)) {
                             gb.AD(decodeInts(GTValueArray[i]));
-                        } else if (gtKey.equals(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY)) {
+                        } else if (gtKey.equals(VCFConstants.GENOTYPE_PL_KEY)) {
                             gb.PL(decodeInts(GTValueArray[i]));
                         } else if (gtKey.equals(VCFConstants.GENOTYPE_LIKELIHOODS_KEY)) {
                             gb.PL(GenotypeLikelihoods.fromGLField(GTValueArray[i]).getAsPLs());
@@ -822,5 +843,14 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
         for ( int i = 0; i < nValues; i++ )
             values[i] = Integer.valueOf(INT_DECODE_ARRAY[i]);
         return values;
+    }
+
+    /**
+     * Forces all VCFCodecs to not perform any on the fly modifications to the VCF header
+     * of VCF records.  Useful primarily for raw comparisons such as when comparing
+     * raw VCF records
+     */
+    public static final void disableOnTheFlyModifications() {
+        doOnTheFlyModifications = false;
     }
 }

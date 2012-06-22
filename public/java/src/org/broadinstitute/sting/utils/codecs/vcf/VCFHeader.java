@@ -26,6 +26,7 @@ package org.broadinstitute.sting.utils.codecs.vcf;
 
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
 
@@ -54,11 +55,12 @@ public class VCFHeader {
     private final Set<VCFHeaderLine> mMetaData = new TreeSet<VCFHeaderLine>();
     private final Map<String, VCFInfoHeaderLine> mInfoMetaData = new HashMap<String, VCFInfoHeaderLine>();
     private final Map<String, VCFFormatHeaderLine> mFormatMetaData = new HashMap<String, VCFFormatHeaderLine>();
+    private final Map<String, VCFFilterHeaderLine> mFilterMetaData = new HashMap<String, VCFFilterHeaderLine>();
     private final Map<String, VCFHeaderLine> mOtherMetaData = new HashMap<String, VCFHeaderLine>();
     private final List<VCFContigHeaderLine> contigMetaData = new ArrayList<VCFContigHeaderLine>();
 
     // the list of auxillary tags
-    private final Set<String> mGenotypeSampleNames = new LinkedHashSet<String>();
+    private final List<String> mGenotypeSampleNames = new ArrayList<String>();
 
     // the character string that indicates meta data
     public static final String METADATA_INDICATOR = "##";
@@ -106,7 +108,15 @@ public class VCFHeader {
      * @param genotypeSampleNames the sample names
      */
     public VCFHeader(Set<VCFHeaderLine> metaData, Set<String> genotypeSampleNames) {
+        this(metaData, new ArrayList<String>(genotypeSampleNames));
+    }
+
+    public VCFHeader(Set<VCFHeaderLine> metaData, List<String> genotypeSampleNames) {
         this(metaData);
+
+        if ( genotypeSampleNames.size() != new HashSet<String>(genotypeSampleNames).size() )
+            throw new ReviewedStingException("BUG: VCF header has duplicate sample names");
+
         mGenotypeSampleNames.addAll(genotypeSampleNames);
         samplesWereAlreadySorted = ParsingUtils.isSorted(genotypeSampleNames);
         buildVCFReaderMaps(genotypeSampleNames);
@@ -175,11 +185,22 @@ public class VCFHeader {
             } else if ( line instanceof VCFFormatHeaderLine ) {
                 VCFFormatHeaderLine formatLine = (VCFFormatHeaderLine)line;
                 addMetaDataMapBinding(mFormatMetaData, formatLine);
+            } else if ( line instanceof VCFFilterHeaderLine ) {
+                VCFFilterHeaderLine filterLine = (VCFFilterHeaderLine)line;
+                mFilterMetaData.put(filterLine.getID(), filterLine);
             } else if ( line instanceof VCFContigHeaderLine ) {
                 contigMetaData.add((VCFContigHeaderLine)line);
             } else {
                 mOtherMetaData.put(line.getKey(), line);
             }
+        }
+
+        if ( hasFormatLine(VCFConstants.GENOTYPE_LIKELIHOODS_KEY) && ! hasFormatLine(VCFConstants.GENOTYPE_PL_KEY) ) {
+            logger.warn("Found " + VCFConstants.GENOTYPE_LIKELIHOODS_KEY + " format, but no "
+                    + VCFConstants.GENOTYPE_PL_KEY + " field.  As the GATK now only manages PL fields internally"
+                    + " automatically adding a corresponding PL field to your VCF header");
+            addMetaDataLine(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_PL_KEY, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
+            loadMetaDataMaps();
         }
     }
 
@@ -239,7 +260,7 @@ public class VCFHeader {
      *
      * @return a list of the genotype column names, which may be empty if hasGenotypingData() returns false
      */
-    public Set<String> getGenotypeSamples() {
+    public List<String> getGenotypeSamples() {
         return mGenotypeSampleNames;
     }
 
@@ -292,6 +313,26 @@ public class VCFHeader {
      */
     public VCFFormatHeaderLine getFormatHeaderLine(String id) {
         return mFormatMetaData.get(id);
+    }
+
+    /**
+     * @param id    the header key name
+     * @return the meta data line, or null if there is none
+     */
+    public VCFFilterHeaderLine getFilterHeaderLine(final String id) {
+        return mFilterMetaData.get(id);
+    }
+
+    public boolean hasInfoLine(final String id) {
+        return getInfoHeaderLine(id) != null;
+    }
+
+    public boolean hasFormatLine(final String id) {
+        return getFormatHeaderLine(id) != null;
+    }
+
+    public boolean hasFilterLine(final String id) {
+        return getFilterHeaderLine(id) != null;
     }
 
     /**

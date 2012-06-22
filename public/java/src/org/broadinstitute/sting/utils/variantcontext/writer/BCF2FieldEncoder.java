@@ -260,7 +260,7 @@ public abstract class BCF2FieldEncoder {
     @Requires("isDynamicallyTyped()")
     @Ensures("result != null")
     public BCF2Type getDynamicType(final Object value) {
-        throw new ReviewedStingException("BUG: cannot get dynamic type for statically typed BCF2 field");
+        throw new ReviewedStingException("BUG: cannot get dynamic type for statically typed BCF2 field " + getField());
     }
 
     // ----------------------------------------------------------------------
@@ -268,21 +268,6 @@ public abstract class BCF2FieldEncoder {
     // methods to encode values, including the key abstract method
     //
     // ----------------------------------------------------------------------
-
-    /**
-     * Convenience method that just called encodeValue with a no minimum for the number of values.
-     *
-     * Primarily useful for encoding site values
-     *
-     * @param encoder
-     * @param value
-     * @param type
-     * @throws IOException
-     */
-    @Requires({"encoder != null", "isDynamicallyTyped() || type == getStaticType()"})
-    public void encodeOneValue(final BCF2Encoder encoder, final Object value, final BCF2Type type) throws IOException {
-        encodeValue(encoder, value, type, 0);
-    }
 
     /**
      * Key abstract method that should encode a value of the given type into the encoder.
@@ -348,10 +333,10 @@ public abstract class BCF2FieldEncoder {
             if ( value == null )
                 return "";
             else if (value instanceof List) {
-                if ( ((List) value).size() == 1 )
-                    return (String)((List) value).get(0);
-                else
-                    return BCF2Utils.collapseStringList((List<String>)value);
+                final List<String> l = (List<String>)value;
+                if ( l.isEmpty() ) return "";
+                else if ( l.size() == 1 ) return (String)l.get(0);
+                else return BCF2Utils.collapseStringList(l);
             } else
                 return (String)value;
         }
@@ -367,7 +352,7 @@ public abstract class BCF2FieldEncoder {
         public Flag(final VCFCompoundHeaderLine headerLine, final Map<String, Integer> dict ) {
             super(headerLine, dict, BCF2Type.INT8);
             if ( ! headerLine.isFixedCount() || headerLine.getCount() != 0 )
-                throw new ReviewedStingException("Flag encoder only suppports atomic flags!");
+                throw new ReviewedStingException("Flag encoder only suppports atomic flags for field " + getField());
         }
 
         @Override
@@ -376,7 +361,7 @@ public abstract class BCF2FieldEncoder {
         }
 
         @Override
-        @Requires("minValues <= 1")
+        @Requires({"minValues <= 1", "value != null", "value instanceof Boolean", "((Boolean)value) == true"})
         public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
             encoder.encodeRawBytes(1, getStaticType());
         }
@@ -409,9 +394,11 @@ public abstract class BCF2FieldEncoder {
             } else {
                 // handle generic case
                 final List<Double> doubles = toList(Double.class, value);
-                for ( final double d : doubles ) {
-                    encoder.encodeRawFloat(d);
-                    count++;
+                for ( final Double d : doubles ) {
+                    if ( d != null ) { // necessary because .,. => [null, null] in VC
+                        encoder.encodeRawFloat(d);
+                        count++;
+                    }
                 }
             }
             for ( ; count < minValues; count++ ) encoder.encodeRawMissingValue(type);
@@ -439,6 +426,7 @@ public abstract class BCF2FieldEncoder {
             return value == null ? BCF2Type.INT8 : BCF2Utils.determineIntegerType((int[])value);
         }
 
+        @Requires("value == null || ((int[])value).length <= minValues")
         @Override
         public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
             int count = 0;
@@ -495,9 +483,11 @@ public abstract class BCF2FieldEncoder {
         @Override
         public void encodeValue(final BCF2Encoder encoder, final Object value, final BCF2Type type, final int minValues) throws IOException {
             int count = 0;
-            for ( final int i : toList(Integer.class, value) ) {
-                encoder.encodeRawInt(i, type);
-                count++;
+            for ( final Integer i : toList(Integer.class, value) ) {
+                if ( i != null ) { // necessary because .,. => [null, null] in VC
+                    encoder.encodeRawInt(i, type);
+                    count++;
+                }
             }
             for ( ; count < minValues; count++ ) encoder.encodeRawMissingValue(type);
         }

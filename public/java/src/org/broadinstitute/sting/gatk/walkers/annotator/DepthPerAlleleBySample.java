@@ -6,10 +6,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineCount;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
+import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
@@ -136,11 +133,6 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
     public List<String> getKeyNames() { return Arrays.asList(VCFConstants.GENOTYPE_ALLELE_DEPTHS); }
 
     public List<VCFFormatHeaderLine> getDescriptions() {
-        return Arrays.asList(
-                new VCFFormatHeaderLine(
-                        getKeyNames().get(0),
-                        VCFHeaderLineCount.UNBOUNDED,
-                        VCFHeaderLineType.Integer,
-                        "Allelic depths for the ref and alt alleles in the order listed"));
+        return Arrays.asList(VCFStandardHeaderLines.getFormatLine(getKeyNames().get(0)));
     }
 }

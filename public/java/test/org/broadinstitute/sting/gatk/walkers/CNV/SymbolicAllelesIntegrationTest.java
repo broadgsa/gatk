@@ -10,7 +10,7 @@ public class SymbolicAllelesIntegrationTest extends WalkerTest {
     public static String baseTestString(String reference, String VCF) {
         return "-T CombineVariants" +
                 " -R " + reference +
-                " --variant:vcf " + testDir + VCF +
+                " --variant:vcf " + privateTestDir + VCF +
                 " -filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED" +
                 " -genotypeMergeOptions REQUIRE_UNIQUE" +
                 " -setKey null" +
@@ -19,7 +19,7 @@ public class SymbolicAllelesIntegrationTest extends WalkerTest {
     }
 
 
-    @Test
+    @Test(enabled = false)
     public void test1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(b36KGReference, "symbolic_alleles_1.vcf"),
@@ -28,7 +28,7 @@ public class SymbolicAllelesIntegrationTest extends WalkerTest {
         executeTest("Test symbolic alleles", spec);
     }
 
-    @Test
+    @Test(enabled = false)
     public void test2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(b36KGReference, "symbolic_alleles_2.vcf"),

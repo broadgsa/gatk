@@ -348,6 +348,15 @@ public class Allele implements Comparable<Allele> {
     public String getDisplayString() { return new String(bases); }
 
     /**
+     * Same as #getDisplayString() but returns the result as byte[].
+     *
+     * Slightly faster then getDisplayString()
+     *
+     * @return the allele string representation
+     */
+    public byte[] getDisplayBases() { return bases; }
+
+    /**
      * @param other  the other allele
      *
      * @return true if these alleles are equal

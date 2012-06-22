@@ -20,7 +20,7 @@ import java.util.*;
 public class SampleDBUnitTest extends BaseTest {
     private static SampleDBBuilder builder;
     // all the test sample files are located here
-    private File testPED = new File(testDir +  "ceutrio.ped");
+    private File testPED = new File(privateTestDir +  "ceutrio.ped");
 
     private static final Set<Sample> testPEDSamples = new HashSet<Sample>(Arrays.asList(
             new Sample("kid", "fam1", "dad", "mom", Gender.MALE,   Affection.AFFECTED),

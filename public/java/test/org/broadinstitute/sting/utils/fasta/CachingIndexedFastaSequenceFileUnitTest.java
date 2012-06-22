@@ -9,8 +9,6 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.BeforeMethod;
 import org.broadinstitute.sting.BaseTest;
 
 import java.io.File;
@@ -27,7 +25,7 @@ import net.sf.samtools.SAMSequenceRecord;
  * Basic unit test for GenomeLoc
  */
 public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
-    private File simpleFasta = new File(testDir + "/exampleFASTA.fasta");
+    private File simpleFasta = new File(publicTestDir + "/exampleFASTA.fasta");
     private static final int STEP_SIZE = 1;
 
     //private static final List<Integer> QUERY_SIZES = Arrays.asList(1);

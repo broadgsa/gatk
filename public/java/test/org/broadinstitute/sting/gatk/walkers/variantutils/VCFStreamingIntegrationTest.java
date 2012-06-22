@@ -46,7 +46,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
 
 
         // Copy VCF data from the test file into the FIFO.
-        String testFile = testDir + "yri.trio.gatk.ug.head.vcf";
+        String testFile = privateTestDir + "yri.trio.gatk.ug.head.vcf";
         FileInputStream inputStream = new FileInputStream(testFile);
         FileOutputStream outputStream = new FileOutputStream(tmpFifo);
         outputStream.getChannel().transferFrom(inputStream.getChannel(),0,inputStream.getChannel().size());
@@ -60,7 +60,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
                     " --no_cmdline_in_header " +
                     " -o %s",
             1,
-            Arrays.asList("b532a20b5af4e8ea7a073888976c71ba")
+            Arrays.asList("2cdcd9e140eb1b6da7e365e37dd7d859")
         );
 
         executeTest("testSimpleVCFStreaming", spec);
@@ -74,7 +74,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         File tmpFifo = File.createTempFile("vcfstreaming","");
         Runtime.getRuntime().exec(new String[] {"mkfifo",tmpFifo.getAbsolutePath()});
 
-        String testFile = testDir + "yri.trio.gatk.ug.head.vcf";
+        String testFile = privateTestDir + "yri.trio.gatk.ug.head.vcf";
 
         // Output select to FIFO
         WalkerTestSpec selectTestSpec = new WalkerTestSpec(

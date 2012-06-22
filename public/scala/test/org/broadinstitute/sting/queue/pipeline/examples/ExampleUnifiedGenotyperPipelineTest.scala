@@ -35,8 +35,8 @@ class ExampleUnifiedGenotyperPipelineTest {
     spec.name = "unifiedgenotyper"
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
-      " -R " + BaseTest.testDir + "exampleFASTA.fasta",
-      " -I " + BaseTest.testDir + "exampleBAM.bam",
+      " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
+      " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -filter QD",
       " -filterExpression 'QD < 2.0'").mkString
     spec.jobRunners = PipelineTest.allJobRunners

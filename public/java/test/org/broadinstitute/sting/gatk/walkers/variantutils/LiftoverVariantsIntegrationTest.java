@@ -38,27 +38,27 @@ public class LiftoverVariantsIntegrationTest extends WalkerTest {
     @Test
     public void testb36Tohg19() {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 "-T LiftoverVariants -o %s -R " + b36KGReference + " --variant " + testDir + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.noheader.vcf -chain " + validationDataLocation + "b36ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
+                 "-T LiftoverVariants -o %s -R " + b36KGReference + " --variant " + privateTestDir + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.noheader.vcf -chain " + validationDataLocation + "b36ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
                  1,
-                 Arrays.asList("70aeaca5b74cc7ba8e2da7b71ff0fbfd"));
+                 Arrays.asList("a139480c004859452d4095fe4859b42e"));
          executeTest("test b36 to hg19", spec);
     }
 
     @Test
     public void testb36Tohg19UnsortedSamples() {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 "-T LiftoverVariants -o %s -R " + b36KGReference + " --variant " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.noheader.unsortedSamples.vcf -chain " + validationDataLocation + "b36ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
+                 "-T LiftoverVariants -o %s -R " + b36KGReference + " --variant " + privateTestDir + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.noheader.unsortedSamples.vcf -chain " + validationDataLocation + "b36ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
                  1,
-                 Arrays.asList("07d1bf52125d1f9a25e260e13ec7b010"));
+                 Arrays.asList("91344768f1e98c979364ec0d5d3aa9d6"));
          executeTest("test b36 to hg19, unsorted samples", spec);
     }
 
     @Test
     public void testhg18Tohg19Unsorted() {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 "-T LiftoverVariants -o %s -R " + hg18Reference + " --variant:vcf " + testDir + "liftover_test.vcf -chain " + validationDataLocation + "hg18ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
+                 "-T LiftoverVariants -o %s -R " + hg18Reference + " --variant:vcf " + privateTestDir + "liftover_test.vcf -chain " + validationDataLocation + "hg18ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
                  1,
-                 Arrays.asList("ab2c6254225d7e2ecf52eee604d5673b"));
+                 Arrays.asList("e0b813ff873185ab51995a151f80ec98"));
          executeTest("test hg18 to hg19, unsorted", spec);
     }
 }

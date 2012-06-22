@@ -303,7 +303,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         String tests = cmdRoot +
                 " --dbsnp " + b36dbSNP129 +
                 " --eval " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
-                " --comp:comp_genotypes " + testDir + "yri.trio.gatk.ug.head.vcf";
+                " --comp:comp_genotypes " + privateTestDir + "yri.trio.gatk.ug.head.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
                 1, Arrays.asList("4b9dcbce0717285e3c0c736c1bed744c"));
         executeTestParallel("testSelect1", spec);
@@ -343,7 +343,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test(enabled = false) // no longer supported in the GATK
     public void testTranches() {
-        String extraArgs = "-T VariantEval -R "+ hg18Reference +" --eval " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -EV TiTvVariantEvaluator -L chr1 -noEV -ST CpG -tf " + testDir + "tranches.6.txt";
+        String extraArgs = "-T VariantEval -R "+ hg18Reference +" --eval " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -EV TiTvVariantEvaluator -L chr1 -noEV -ST CpG -tf " + privateTestDir + "tranches.6.txt";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("6af2b9959aa1778a5b712536de453952"));
         executeTestParallel("testTranches",spec);
     }
@@ -530,11 +530,11 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                                 buildCommandLine(
                                         "-T VariantEval",
                                         "-R " + b37KGReference,
-                                        "-eval " + testDir + "/withSymbolic.b37.vcf",
+                                        "-eval " + privateTestDir + "/withSymbolic.b37.vcf",
                                         "-noEV",
                                         "-EV CountVariants",
                                         "-noST",
-                                        "-stratIntervals " + testDir + "/overlapTest.bed",
+                                        "-stratIntervals " + privateTestDir + "/overlapTest.bed",
                                         "-ST IntervalStratification",
                                         "-L 20",
                                         "-o %s"
@@ -602,7 +602,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-eval " + testDir + "/ac0.vcf",
+                        "-eval " + privateTestDir + "/ac0.vcf",
                         "-L 20:81006 -noST -noEV -EV VariantSummary -o %s" + (includeAC0 ? " -keepAC0" : "")
                 ),
                 1,

@@ -36,6 +36,7 @@ import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
@@ -78,6 +79,14 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
      * Genotype field decoders that are initialized when the header is read
      */
     private BCF2GenotypeFieldDecoders gtFieldDecoders = null;
+
+    /**
+     * A cached array of GenotypeBuilders for efficient genotype decoding.
+     *
+     * Caching it allows us to avoid recreating this intermediate data
+     * structure each time we decode genotypes
+     */
+    private GenotypeBuilder[] builders = null;
 
     // for error handling
     private int recordNo = 0;
@@ -168,6 +177,13 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
         // prepare the genotype field decoders
         gtFieldDecoders = new BCF2GenotypeFieldDecoders(header);
 
+        // create and initialize the genotype builder array
+        final int nSamples = header.getNGenotypeSamples();
+        builders = new GenotypeBuilder[nSamples];
+        for ( int i = 0; i < nSamples; i++ ) {
+            builders[i] = new GenotypeBuilder(header.getGenotypeSamples().get(i));
+        }
+
         // position right before next line (would be right before first real record byte at end of header)
         return new FeatureCodecHeader(header, inputStream.getPosition());
     }
@@ -256,6 +272,11 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
         final int nFormatFields = nFormatSamples >> 24;
         final int nSamples = nFormatSamples & 0x00FFFFF;
 
+        if ( header.getNGenotypeSamples() != nSamples )
+            throw new UserException.MalformedBCF2("GATK currently doesn't support reading BCF2 files with " +
+                    "different numbers of samples per record.  Saw " + header.getNGenotypeSamples() +
+                    " samples in header but have a record with " + nSamples + " samples");
+
         decodeID(builder);
         final ArrayList<Allele> alleles = decodeAlleles(builder, pos, nAlleles);
         decodeFilter(builder);
@@ -314,7 +335,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
      */
     protected static ArrayList<Allele> clipAllelesIfNecessary(int position, String ref, ArrayList<Allele> unclippedAlleles) {
         if ( ! AbstractVCFCodec.isSingleNucleotideEvent(unclippedAlleles) ) {
-            ArrayList<Allele> clippedAlleles = new ArrayList<Allele>(unclippedAlleles.size());
+            final ArrayList<Allele> clippedAlleles = new ArrayList<Allele>(unclippedAlleles.size());
             AbstractVCFCodec.clipAlleles(position, ref, unclippedAlleles, clippedAlleles, -1);
             return clippedAlleles;
         } else
@@ -335,14 +356,16 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
         String ref = null;
 
         for ( int i = 0; i < nAlleles; i++ ) {
-            final String allele = (String)decoder.decodeTypedValue();
+            final String alleleBases = (String)decoder.decodeTypedValue();
 
-            if ( i == 0 ) {
-                ref = allele;
-                alleles.add(Allele.create(allele, true));
-            } else {
-                alleles.add(Allele.create(allele, false));
-            }
+            final boolean isRef = i == 0;
+            final Allele allele = Allele.create(alleleBases, isRef);
+            if ( isRef ) ref = alleleBases;
+
+            alleles.add(allele);
+
+            if ( allele.isSymbolic() )
+                throw new ReviewedStingException("LIMITATION: GATK BCF2 codec does not yet support symbolic alleles");
         }
         assert ref != null;
 
@@ -416,11 +439,11 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
                                              final VariantContextBuilder builder ) {
         if (siteInfo.nSamples > 0) {
             final LazyGenotypesContext.LazyParser lazyParser =
-                    new BCF2LazyGenotypesDecoder(this, siteInfo.alleles, siteInfo.nSamples, siteInfo.nFormatFields);
-            final int nGenotypes = header.getGenotypeSamples().size();
+                    new BCF2LazyGenotypesDecoder(this, siteInfo.alleles, siteInfo.nSamples, siteInfo.nFormatFields, builders);
+
             LazyGenotypesContext lazy = new LazyGenotypesContext(lazyParser,
                     new LazyData(siteInfo.nFormatFields, decoder.getRecordBytes()),
-                    nGenotypes);
+                    header.getNGenotypeSamples());
 
             // did we resort the sample names?  If so, we need to load the genotype data
             if ( !header.samplesWereAlreadySorted() )

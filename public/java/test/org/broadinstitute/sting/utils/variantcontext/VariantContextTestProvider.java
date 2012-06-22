@@ -62,8 +62,8 @@ public class VariantContextTestProvider {
     private static VariantContext ROOT;
 
     private final static List<File> testSourceVCFs = Arrays.asList(
-            new File(BaseTest.testDir + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"),
-            new File(BaseTest.testDir + "dbsnp_135.b37.1000.vcf")
+            new File(BaseTest.privateTestDir + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"),
+            new File(BaseTest.privateTestDir + "dbsnp_135.b37.1000.vcf")
             );
 
     public abstract static class VariantContextIOTest {
@@ -142,16 +142,17 @@ public class VariantContextTestProvider {
         if ( ENABLE_SOURCE_VCF_TESTS ) {
             for ( final File file : testSourceVCFs ) {
                 VCFCodec codec = new VCFCodec();
-                Pair<VCFHeader, List<VariantContext>> x = readAllVCs( file, codec );
-                List<VariantContext> fullyDecoded = new ArrayList<VariantContext>(x.getSecond().size());
-                int i = 0;
+                Pair<VCFHeader, Iterable<VariantContext>> x = readAllVCs( file, codec );
+                List<VariantContext> fullyDecoded = new ArrayList<VariantContext>();
+
                 logger.warn("Reading records from " + file);
                 for ( final VariantContext raw : x.getSecond() ) {
-                    fullyDecoded.add(raw.fullyDecode(x.getFirst()));
-                    logger.warn("\t" + i++);
+                    if ( raw != null )
+                        fullyDecoded.add(raw.fullyDecode(x.getFirst()));
                 }
                 logger.warn("Done reading " + file);
-                TEST_DATAs.add(new VariantContextTestData(x.getFirst(), x.getSecond()));
+
+                TEST_DATAs.add(new VariantContextTestData(x.getFirst(), fullyDecoded));
             }
         }
     }
@@ -176,7 +177,7 @@ public class VariantContextTestProvider {
         addHeaderLine(metaData, "STRING20", 20, VCFHeaderLineType.String);
         addHeaderLine(metaData, "VAR.INFO.STRING", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String);
 
-        addHeaderLine(metaData, "GT", 1, VCFHeaderLineType.Integer);
+        addHeaderLine(metaData, "GT", 1, VCFHeaderLineType.String);
         addHeaderLine(metaData, "GQ", 1, VCFHeaderLineType.Integer);
         addHeaderLine(metaData, "PL", VCFHeaderLineCount.G, VCFHeaderLineType.Integer);
         addHeaderLine(metaData, "GS", 2, VCFHeaderLineType.String);
@@ -326,6 +327,10 @@ public class VariantContextTestProvider {
             final Genotype homVar = GenotypeBuilder.create("homVar", Arrays.asList(alt1, alt1));
             addGenotypeTests(site, homRef, het);
             addGenotypeTests(site, homRef, het, homVar);
+
+            // test no GT at all
+            addGenotypeTests(site, new GenotypeBuilder("noGT", new ArrayList<Allele>(0)).attribute("INT1", 10).make());
+
             final List<Allele> noCall = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 
             // ploidy
@@ -365,6 +370,35 @@ public class VariantContextTestProvider {
                         GenotypeBuilder.create("dip", Arrays.asList(ref, alt1)),
                         GenotypeBuilder.create("tet", Arrays.asList(ref, alt1, alt1)));
             }
+
+
+            //
+            //
+            // TESTING PHASE
+            //
+            //
+            final Genotype gUnphased = new GenotypeBuilder("gUnphased", Arrays.asList(ref, alt1)).make();
+            final Genotype gPhased = new GenotypeBuilder("gPhased", Arrays.asList(ref, alt1)).phased(true).make();
+            final Genotype gPhased2 = new GenotypeBuilder("gPhased2", Arrays.asList(alt1, alt1)).phased(true).make();
+            final Genotype gPhased3 = new GenotypeBuilder("gPhased3", Arrays.asList(ref, ref)).phased(true).make();
+            final Genotype haploidNoPhase = new GenotypeBuilder("haploidNoPhase", Arrays.asList(ref)).make();
+            addGenotypeTests(site, gUnphased, gPhased);
+            addGenotypeTests(site, gUnphased, gPhased2);
+            addGenotypeTests(site, gUnphased, gPhased3);
+            addGenotypeTests(site, gPhased, gPhased2);
+            addGenotypeTests(site, gPhased, gPhased3);
+            addGenotypeTests(site, gPhased2, gPhased3);
+            addGenotypeTests(site, haploidNoPhase, gPhased);
+            addGenotypeTests(site, haploidNoPhase, gPhased2);
+            addGenotypeTests(site, haploidNoPhase, gPhased3);
+            addGenotypeTests(site, haploidNoPhase, gPhased, gPhased2);
+            addGenotypeTests(site, haploidNoPhase, gPhased, gPhased3);
+            addGenotypeTests(site, haploidNoPhase, gPhased2, gPhased3);
+            addGenotypeTests(site, haploidNoPhase, gPhased, gPhased2, gPhased3);
+
+            final Genotype gUnphasedTet = new GenotypeBuilder("gUnphasedTet", Arrays.asList(ref, alt1, ref, alt1)).make();
+            final Genotype gPhasedTet = new GenotypeBuilder("gPhasedTet", Arrays.asList(ref, alt1, alt1, alt1)).phased(true).make();
+            addGenotypeTests(site, gUnphasedTet, gPhasedTet);
         }
 
         if ( ENABLE_PL_TESTS ) {
@@ -479,8 +513,6 @@ public class VariantContextTestProvider {
                     new GenotypeBuilder("g2-x", Arrays.asList(ref, ref)).filters("X").make(),
                     new GenotypeBuilder("g3-xy", Arrays.asList(ref, ref)).filters("X", "Y").make());
         }
-
-        // TODO -- test test Integer, Float, Flag, String atomic, vector, and missing types of different lengths per sample
     }
 
     private static Genotype attr(final String name, final Allele ref, final String key, final Object ... value) {
@@ -511,7 +543,7 @@ public class VariantContextTestProvider {
             writer.add(vc);
         writer.close();
 
-        final List<VariantContext> actual = readAllVCs(tmpFile, tester.makeCodec()).getSecond();
+        final Iterable<VariantContext> actual = readAllVCs(tmpFile, tester.makeCodec()).getSecond();
         assertEquals(actual, expected);
 
     }
@@ -524,7 +556,7 @@ public class VariantContextTestProvider {
      * @return
      * @throws IOException
      */
-    private final static Pair<VCFHeader, List<VariantContext>> readAllVCs( final File source, final FeatureCodec<VariantContext> codec ) throws IOException {
+    private final static Pair<VCFHeader, Iterable<VariantContext>> readAllVCs( final File source, final FeatureCodec<VariantContext> codec ) throws IOException {
         // read in the features
         PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(source));
         FeatureCodecHeader header = codec.readHeader(pbs);
@@ -533,27 +565,79 @@ public class VariantContextTestProvider {
         pbs = new PositionalBufferedStream(new FileInputStream(source));
         pbs.skip(header.getHeaderEnd());
 
-        final List<VariantContext> read = new ArrayList<VariantContext>();
-        while ( ! pbs.isDone() ) {
-            final VariantContext vc = codec.decode(pbs);
-            if ( vc != null ) read.add(vc.fullyDecode((VCFHeader)header.getHeaderValue()));
-        };
+        final VCFHeader vcfHeader = (VCFHeader)header.getHeaderValue();
+        return new Pair<VCFHeader, Iterable<VariantContext>>(vcfHeader, new VCIterable(pbs, codec, vcfHeader));
+    }
 
-        return new Pair<VCFHeader, List<VariantContext>>((VCFHeader)header.getHeaderValue(), read);
+    private static class VCIterable implements Iterable<VariantContext>, Iterator<VariantContext> {
+        final PositionalBufferedStream pbs;
+        final FeatureCodec<VariantContext> codec;
+        final VCFHeader header;
+
+        private VCIterable(final PositionalBufferedStream pbs, final FeatureCodec<VariantContext> codec, final VCFHeader header) {
+            this.pbs = pbs;
+            this.codec = codec;
+            this.header = header;
+        }
+
+        @Override
+        public Iterator<VariantContext> iterator() {
+            return this;
+        }
+
+        @Override
+        public boolean hasNext() {
+            try {
+                return ! pbs.isDone();
+            } catch ( IOException e ) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public VariantContext next() {
+            try {
+                final VariantContext vc = codec.decode(pbs);
+                return vc == null ? null : vc.fullyDecode(header);
+            } catch ( IOException e ) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void remove() {
+            //To change body of implemented methods use File | Settings | File Templates.
+        }
     }
 
     public static void assertVCFandBCFFilesAreTheSame(final File vcfFile, final File bcfFile) throws IOException {
-        final Pair<VCFHeader, List<VariantContext>> vcfData = readAllVCs(vcfFile, new VCFCodec());
-        final Pair<VCFHeader, List<VariantContext>> bcfData = readAllVCs(bcfFile, new BCF2Codec());
+        final Pair<VCFHeader, Iterable<VariantContext>> vcfData = readAllVCs(vcfFile, new VCFCodec());
+        final Pair<VCFHeader, Iterable<VariantContext>> bcfData = readAllVCs(bcfFile, new BCF2Codec());
         assertEquals(bcfData.getFirst(), vcfData.getFirst());
         assertEquals(bcfData.getSecond(), vcfData.getSecond());
     }
 
-    public static void assertEquals(final List<VariantContext> actual, final List<VariantContext> expected) {
-        Assert.assertEquals(actual.size(), expected.size());
+    public static void assertEquals(final Iterable<VariantContext> actual, final Iterable<VariantContext> expected) {
+        final Iterator<VariantContext> actualIT = actual.iterator();
+        final Iterator<VariantContext> expectedIT = expected.iterator();
 
-        for ( int i = 0; i < expected.size(); i++ )
-            assertEquals(actual.get(i), expected.get(i));
+        while ( expectedIT.hasNext() ) {
+            final VariantContext expectedVC = expectedIT.next();
+            if ( expectedVC == null )
+                continue;
+
+            VariantContext actualVC;
+            do {
+                Assert.assertTrue(actualIT.hasNext(), "Too few records found in actual");
+                actualVC = actualIT.next();
+            } while ( actualIT.hasNext() && actualVC == null );
+
+            if ( actualVC == null )
+                Assert.fail("Too few records in actual");
+
+            assertEquals(actualVC, expectedVC);
+        }
+        Assert.assertTrue(! actualIT.hasNext(), "Too many records found in actual");
     }
 
     /**
@@ -592,7 +676,6 @@ public class VariantContextTestProvider {
         // filters are the same
         Assert.assertEquals(actual.getFilters(), expected.getFilters());
         Assert.assertEquals(actual.isFiltered(), expected.isFiltered());
-        Assert.assertEquals(actual.filtersWereApplied(), expected.filtersWereApplied());
 
         // inline attributes
         Assert.assertEquals(actual.getDP(), expected.getDP());
@@ -641,8 +724,21 @@ public class VariantContextTestProvider {
         // and they must all be null
         for ( final String missingExpected : expectedKeys ) {
             final Object value = expected.get(missingExpected);
-            Assert.assertTrue(value == null || value.equals(VCFConstants.MISSING_VALUE_v4));
+            Assert.assertTrue(isMissing(value));
         }
+    }
+
+    private static final boolean isMissing(final Object value) {
+        if ( value == null ) return true;
+        else if ( value.equals(VCFConstants.MISSING_VALUE_v4) ) return true;
+        else if ( value instanceof List ) {
+            // handles the case where all elements are null or the list is empty
+            for ( final Object elt : (List)value)
+                if ( elt != null )
+                    return false;
+            return true;
+        } else
+            return false;
     }
 
     private static void assertAttributesEquals(final Object actual, final Object expected) {
@@ -728,6 +824,16 @@ public class VariantContextTestProvider {
         final List<VCFHeaderLine> expectedLines = new ArrayList<VCFHeaderLine>(expected.getMetaData());
         for ( int i = 0; i < actualLines.size(); i++ ) {
             Assert.assertEquals(actualLines.get(i), expectedLines.get(i));
+        }
+    }
+
+    public static void main( String argv[] ) {
+        final File variants1 = new File(argv[0]);
+        final File variants2 = new File(argv[1]);
+        try {
+            VariantContextTestProvider.assertVCFandBCFFilesAreTheSame(variants1, variants2);
+        } catch ( IOException e ) {
+            throw new RuntimeException(e);
         }
     }
 }

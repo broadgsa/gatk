@@ -156,11 +156,6 @@ public final class FastGenotype extends Genotype {
         return (List<String>) getExtendedAttribute(VCFConstants.GENOTYPE_FILTER_KEY, Collections.emptyList());
     }
 
-    @Override
-    public boolean filtersWereApplied() {
-        return hasExtendedAttribute(VCFConstants.GENOTYPE_FILTER_KEY);
-    }
-
     @Override public int[] getPL() {
         return PL;
     }

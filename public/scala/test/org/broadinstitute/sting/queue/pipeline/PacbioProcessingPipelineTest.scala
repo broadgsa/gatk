@@ -35,11 +35,11 @@ class PacbioProcessingPipelineTest {
     spec.name = "pacbioProcessingPipeline"
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/PacbioProcessingPipeline.scala",
-      " -R " + BaseTest.testDir + "exampleFASTA.fasta",
-      " -i " + BaseTest.testDir + "exampleBAM.bam",
+      " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
+      " -i " + BaseTest.publicTestDir + "exampleBAM.bam",
       " -blasr ",
       " -test ",
-      " -D " + BaseTest.testDir + "exampleDBSNP.vcf").mkString
+      " -D " + BaseTest.publicTestDir + "exampleDBSNP.vcf").mkString
     spec.fileMD5s += testOut -> "cf147e7f56806598371f8d5d6794b852"
     PipelineTest.executeTest(spec)
   }

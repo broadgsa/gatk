@@ -844,8 +844,8 @@ public class ParsingEngineUnitTest extends BaseTest {
         Assert.assertEquals(argProvider.bindings.get(1).getName(), "foo2", "Name isn't set properly");
     }
 
-    private final static String HISEQ_VCF = testDir + "HiSeq.10000.vcf";
-    private final static String TRANCHES_FILE = testDir + "tranches.6.txt";
+    private final static String HISEQ_VCF = privateTestDir + "HiSeq.10000.vcf";
+    private final static String TRANCHES_FILE = privateTestDir + "tranches.6.txt";
 
     @Test
     public void variantContextBindingTestDynamicTyping1() {

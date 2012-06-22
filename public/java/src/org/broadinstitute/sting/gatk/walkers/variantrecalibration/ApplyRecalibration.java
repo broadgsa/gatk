@@ -150,8 +150,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> implements T
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
-        hInfo.add(new VCFInfoHeaderLine(VariantRecalibrator.VQS_LOD_KEY, 1, VCFHeaderLineType.Float, "Log odds ratio of being a true variant versus being false under the trained gaussian mixture model"));
-        hInfo.add(new VCFInfoHeaderLine(VariantRecalibrator.CULPRIT_KEY, 1, VCFHeaderLineType.String, "The annotation which was the worst performing in the Gaussian mixture model, likely the reason why the variant was filtered out"));
+        addVQSRStandardHeaderLines(hInfo);
         final TreeSet<String> samples = new TreeSet<String>();
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames));
 
@@ -171,6 +170,12 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> implements T
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
+    }
+
+    public static final void addVQSRStandardHeaderLines(final Set<VCFHeaderLine> hInfo) {
+        hInfo.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.END_KEY));
+        hInfo.add(new VCFInfoHeaderLine(VariantRecalibrator.VQS_LOD_KEY, 1, VCFHeaderLineType.Float, "Log odds ratio of being a true variant versus being false under the trained gaussian mixture model"));
+        hInfo.add(new VCFInfoHeaderLine(VariantRecalibrator.CULPRIT_KEY, 1, VCFHeaderLineType.String, "The annotation which was the worst performing in the Gaussian mixture model, likely the reason why the variant was filtered out"));
     }
 
     //---------------------------------------------------------------------------------------------------------------

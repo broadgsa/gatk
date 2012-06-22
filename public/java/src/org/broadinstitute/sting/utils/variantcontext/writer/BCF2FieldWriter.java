@@ -100,7 +100,7 @@ public abstract class BCF2FieldWriter {
             } else {
                 final int valueCount = getFieldEncoder().numElements(vc, rawValue);
                 encoder.encodeType(valueCount, type);
-                getFieldEncoder().encodeOneValue(encoder, rawValue, type);
+                getFieldEncoder().encodeValue(encoder, rawValue, type, valueCount);
             }
         }
     }
@@ -179,7 +179,7 @@ public abstract class BCF2FieldWriter {
             final List<Integer> values = new ArrayList<Integer>(vc.getNSamples());
             for ( final Genotype g : vc.getGenotypes() ) {
                 for ( final Object i : BCF2Utils.toList(g.getExtendedAttribute(getField(), null)) ) {
-                    values.add((Integer)i); // we know they are all integers
+                    if ( i != null ) values.add((Integer)i); // we know they are all integers
                 }
             }
 
@@ -246,6 +246,10 @@ public abstract class BCF2FieldWriter {
             buildAlleleMap(vc);
             nValuesPerGenotype = vc.getMaxPloidy();
 
+            // deal with the case where we have no call everywhere, in which case we write out diploid
+            if ( nValuesPerGenotype == -1 )
+                nValuesPerGenotype = 2;
+
             super.start(encoder, vc);
         }
 
@@ -298,7 +302,6 @@ public abstract class BCF2FieldWriter {
             if ( nAlleles > 2 ) {
                 // for multi-allelics we need to clear the map, and add additional looks
                 alleleMapForTriPlus.clear();
-                alleleMapForTriPlus.put(Allele.NO_CALL, -1); // convenience for lookup
                 final List<Allele> alleles = vc.getAlleles();
                 for ( int i = 2; i < alleles.size(); i++ ) {
                     alleleMapForTriPlus.put(alleles.get(i), i);

@@ -422,13 +422,24 @@ public class ReadClipper {
     /**
      * Reverts only soft clipped bases with quality score greater than or equal to minQual
      *
-     * Note: Will write a temporary field with the number of soft clips that were undone on each side (left: 'SL', right: 'SR')
+     * todo -- Note: Will write a temporary field with the number of soft clips that were undone on each side (left: 'SL', right: 'SR') -- THIS HAS BEEN REMOVED TEMPORARILY SHOULD HAPPEN INSIDE THE CLIPPING ROUTINE!
      *
      * @param read    the read
      * @param minQual the mininum base quality score to revert the base (inclusive)
-     * @return the read with high quality soft clips reverted
+     * @return a new read with high quality soft clips reverted
      */
     public static GATKSAMRecord revertSoftClippedBases(GATKSAMRecord read, byte minQual) {
+        return revertSoftClippedBases(hardClipLowQualitySoftClips(read, minQual));
+    }
+
+    /**
+     * Hard clips away soft clipped bases that are below the given quality threshold
+     *
+     * @param read    the read
+     * @param minQual the mininum base quality score to revert the base (inclusive)
+     * @return a new read without low quality soft clipped bases
+     */
+    public static GATKSAMRecord hardClipLowQualitySoftClips(GATKSAMRecord read, byte minQual) {
         int nLeadingSoftClips = read.getAlignmentStart() - read.getSoftStart();
         if (read.isEmpty() || nLeadingSoftClips > read.getReadLength())
             return GATKSAMRecord.emptyRead(read);
@@ -457,17 +468,12 @@ public class ReadClipper {
         }
 
         GATKSAMRecord clippedRead = read;
-        if (right >= 0) {
-            if (right + 1 < clippedRead.getReadLength())
-                clippedRead = hardClipByReadCoordinates(clippedRead, right+1, clippedRead.getReadLength()-1);           // first we hard clip the low quality soft clips on the left tail
-            clippedRead.setTemporaryAttribute("SR", nTailingSoftClips - (read.getReadLength() - right - 1));                // keep track of how may bases to 're-softclip' after processing
-        }
-        if (left >= 0) {
-            if (left - 1 > 0)
-                clippedRead = hardClipByReadCoordinates(clippedRead, 0, left-1);                                        // then we hard clip the low quality soft clips on the right tail
-            clippedRead.setTemporaryAttribute("SL", nLeadingSoftClips - left);                                          // keep track of how may bases to 're-softclip' after processing
-        }
-        return revertSoftClippedBases(clippedRead);                                                                     // now that we have only good bases in the soft clips, we can revert them all
+        if (right >= 0 && right + 1 < clippedRead.getReadLength())                                                      // only clip if there are softclipped bases (right >= 0) and the first high quality soft clip is not the last base (right+1 < readlength)
+                clippedRead = hardClipByReadCoordinates(clippedRead, right+1, clippedRead.getReadLength()-1);           // first we hard clip the low quality soft clips on the right tail
+        if (left >= 0 && left - 1 > 0)                                                                                  // only clip if there are softclipped bases (left >= 0) and the first high quality soft clip is not the last base (left-1 > 0)
+                clippedRead = hardClipByReadCoordinates(clippedRead, 0, left-1);                                        // then we hard clip the low quality soft clips on the left tail
+
+        return clippedRead;
     }
 
     /**

@@ -28,8 +28,6 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.report.GATKReport;
-import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.StandardEval;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
@@ -37,13 +35,13 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.Require
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.StandardStratification;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
-import java.lang.reflect.Field;
 import java.util.*;
 
 public class VariantEvalUtils {
@@ -199,18 +197,32 @@ public class VariantEvalUtils {
      * @return a new VariantContext with just the requested samples
      */
     public VariantContext getSubsetOfVariantContext(VariantContext vc, Set<String> sampleNames) {
-        VariantContext vcsub = vc.subContextFromSamples(sampleNames, false);
-        VariantContextBuilder builder = new VariantContextBuilder(vcsub);
+        return ensureAnnotations(vc, vc.subContextFromSamples(sampleNames, false));
+    }
 
+    public VariantContext ensureAnnotations(final VariantContext vc, final VariantContext vcsub) {
         final int originalAlleleCount = vc.getHetCount() + 2 * vc.getHomVarCount();
         final int newAlleleCount = vcsub.getHetCount() + 2 * vcsub.getHomVarCount();
+        final boolean isSingleton = originalAlleleCount == newAlleleCount && newAlleleCount == 1;
+        final boolean hasChrCountAnnotations = vcsub.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) &&
+                vcsub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) &&
+                vcsub.hasAttribute(VCFConstants.ALLELE_NUMBER_KEY);
 
-        if (originalAlleleCount == newAlleleCount && newAlleleCount == 1) {
-            builder.attribute(VariantEvalWalker.IS_SINGLETON_KEY, true);
+        if ( ! isSingleton && hasChrCountAnnotations ) {
+            // nothing to update
+            return vcsub;
+        } else {
+            // have to do the work
+            VariantContextBuilder builder = new VariantContextBuilder(vcsub);
+
+            if ( isSingleton )
+                builder.attribute(VariantEvalWalker.IS_SINGLETON_KEY, true);
+
+            if ( ! hasChrCountAnnotations )
+                VariantContextUtils.calculateChromosomeCounts(builder, true);
+
+            return builder.make();
         }
-
-        VariantContextUtils.calculateChromosomeCounts(builder, true);
-        return builder.make();
     }
 
     /**
@@ -250,8 +262,11 @@ public class VariantEvalUtils {
                 // First, filter the VariantContext to represent only the samples for evaluation
                 VariantContext vcsub = vc;
 
-                if (subsetBySample && vc.hasGenotypes() && vc.hasGenotypes(variantEvalWalker.getSampleNamesForEvaluation())) {
-                    vcsub = getSubsetOfVariantContext(vc, variantEvalWalker.getSampleNamesForEvaluation());
+                if (subsetBySample && vc.hasGenotypes()) {
+                    if ( variantEvalWalker.isSubsettingToSpecificSamples() )
+                        vcsub = getSubsetOfVariantContext(vc, variantEvalWalker.getSampleNamesForEvaluation());
+                    else
+                        vcsub = ensureAnnotations(vc, vc);
                 }
 
                 if ((byFilter || !vcsub.isFiltered())) {

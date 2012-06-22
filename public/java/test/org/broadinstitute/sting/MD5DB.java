@@ -48,7 +48,7 @@ public class MD5DB {
     /**
      * Subdirectory under the ant build directory where we store integration test md5 results
      */
-    private static final int MAX_RECORDS_TO_READ = 100000;
+    private static final int MAX_RECORDS_TO_READ = 1000000;
     private static final int MAX_RAW_DIFFS_TO_SUMMARIZE = -1;
     public static final String LOCAL_MD5_DB_DIR = "integrationtests";
     public static final String GLOBAL_MD5_DB_DIR = "/humgen/gsa-hpprojects/GATK/data/integrationtests";

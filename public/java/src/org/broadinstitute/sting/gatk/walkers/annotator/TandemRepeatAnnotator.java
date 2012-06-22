@@ -68,9 +68,10 @@ public class TandemRepeatAnnotator extends InfoFieldAnnotation implements Standa
     }
 
     public static final String[] keyNames = {STR_PRESENT, REPEAT_UNIT_KEY,REPEATS_PER_ALLELE_KEY };
-    public static final VCFInfoHeaderLine[] descriptions = { new VCFInfoHeaderLine(STR_PRESENT, 1, VCFHeaderLineType.Flag, "Variant is a short tandem repeat"),
+    public static final VCFInfoHeaderLine[] descriptions = {
+            new VCFInfoHeaderLine(STR_PRESENT, 0, VCFHeaderLineType.Flag, "Variant is a short tandem repeat"),
             new VCFInfoHeaderLine(REPEAT_UNIT_KEY, 1, VCFHeaderLineType.String, "Tandem repeat unit (bases)"),
-            new VCFInfoHeaderLine(VCFConstants.ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Number of times tandem repeat unit is repeated, for each allele (including reference)") };
+            new VCFInfoHeaderLine(REPEATS_PER_ALLELE_KEY, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "Number of times tandem repeat unit is repeated, for each allele (including reference)") };
 
     public List<String> getKeyNames() {
         return Arrays.asList(keyNames);

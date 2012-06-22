@@ -29,8 +29,8 @@ package org.broadinstitute.sting.gatk.walkers.diffengine;
 // the imports for unit testing.
 
 
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -45,8 +45,8 @@ import java.util.*;
 public class DiffableReaderUnitTest extends BaseTest {
     DiffEngine engine;
 
-    File vcfFile = new File(testDir + "diffTestMaster.vcf");
-    File bamFile = new File(testDir + "exampleBAM.bam");
+    File vcfFile = new File(privateTestDir + "diffTestMaster.vcf");
+    File bamFile = new File(publicTestDir + "exampleBAM.bam");
 
     @BeforeClass(enabled = true)
     public void createDiffEngine() {
@@ -97,7 +97,7 @@ public class DiffableReaderUnitTest extends BaseTest {
         testLeaf(rec1, "REF", Allele.create("G", true));
         testLeaf(rec1, "ALT", Arrays.asList(Allele.create("A")));
         testLeaf(rec1, "QUAL", 0.15);
-        testLeaf(rec1, "FILTER", Collections.<Object>emptySet());
+        testLeaf(rec1, "FILTER", VCFConstants.PASSES_FILTERS_v4);
         testLeaf(rec1, "AC", "2");
         testLeaf(rec1, "AF", "1.00");
         testLeaf(rec1, "AN", "2");
