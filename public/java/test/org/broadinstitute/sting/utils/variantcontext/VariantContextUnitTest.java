@@ -757,12 +757,18 @@ public class VariantContextUnitTest extends BaseTest {
         modified = new VariantContextBuilder(cfg.vc).filters(newFilters).make();
         Assert.assertEquals(modified.getFilters(), newFilters);
 
+        // test the behavior when the builder's attribute object is null
+        modified = new VariantContextBuilder(modified).attributes(null).make();
+        Assert.assertTrue(modified.getAttributes().isEmpty());
+        modified = new VariantContextBuilder(modified).attributes(null).rmAttribute("AC").make();
+        Assert.assertTrue(modified.getAttributes().isEmpty());
+        modified = new VariantContextBuilder(modified).attributes(null).attribute("AC", 1).make();
+        Assert.assertEquals(modified.getAttribute("AC"), 1);
+
         modified = new VariantContextBuilder(cfg.vc).attribute("AC", 1).make();
         Assert.assertEquals(modified.getAttribute("AC"), 1);
         modified = new VariantContextBuilder(modified).attribute("AC", 2).make();
         Assert.assertEquals(modified.getAttribute("AC"), 2);
-        modified = new VariantContextBuilder(modified).attributes(null).make();
-        Assert.assertTrue(modified.getAttributes().isEmpty());
 
         Genotype g1 = GenotypeBuilder.create("AA2", Arrays.asList(Aref, Aref));
         Genotype g2 = GenotypeBuilder.create("AT2", Arrays.asList(Aref, T));
