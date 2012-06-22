@@ -101,15 +101,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
 
     @Override
     public Feature decodeLoc( final PositionalBufferedStream inputStream ) {
-        recordNo++;
-        final VariantContextBuilder builder = new VariantContextBuilder();
-
-        final int sitesBlockSize = decoder.readBlockSize(inputStream);
-        final int genotypeBlockSize = decoder.readBlockSize(inputStream); // necessary because it's in the stream
-        decoder.readNextBlock(sitesBlockSize, inputStream);
-        decodeSiteLoc(builder);
-
-        return builder.fullyDecoded(true).make();
+        return decode(inputStream);
     }
 
     @Override
