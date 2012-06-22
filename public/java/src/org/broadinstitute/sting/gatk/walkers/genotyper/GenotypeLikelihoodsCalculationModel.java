@@ -56,9 +56,10 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
     public enum Model {
         SNP,
         INDEL,
+        BOTH,
         POOLSNP,
         POOLINDEL,
-        BOTH
+        POOLBOTH
     }
 
     public enum GENOTYPING_MODE {

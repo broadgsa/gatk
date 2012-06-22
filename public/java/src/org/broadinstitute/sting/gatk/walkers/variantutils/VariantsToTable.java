@@ -232,7 +232,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                     firstEntry = false;
                 else
                     sb.append("\t");
-                sb.append(sample);
+                // spaces in sample names are legal but wreak havoc in R data frames
+                sb.append(sample.replace(" ","_"));
                 sb.append(".");
                 sb.append(gf);
             }
@@ -247,7 +248,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         }
         for ( final String sample : samples ) {
             for ( final String gf : genotypeFieldsToTake ) {
-                out.println(String.format("%d\t%s\t%s\t%s", nRecords, sample, gf, record.get(index++)));
+                out.println(String.format("%d\t%s\t%s\t%s", nRecords, sample.replace(" ","_"), gf, record.get(index++)));
             }
         }
     }
