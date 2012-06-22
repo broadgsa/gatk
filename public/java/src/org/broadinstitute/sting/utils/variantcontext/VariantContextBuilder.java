@@ -108,7 +108,7 @@ public class VariantContextBuilder {
      * @param parent  Cannot be null
      */
     public VariantContextBuilder(VariantContext parent) {
-        if ( parent == null ) throw new ReviewedStingException("BUG: VariantContext parent argument cannot be null in VariantContextBuilder");
+        if ( parent == null ) throw new ReviewedStingException("BUG: VariantContextBuilder parent argument cannot be null in VariantContextBuilder");
         this.alleles = parent.alleles;
         this.attributes = parent.getAttributes();
         this.attributesCanBeModified = false;
