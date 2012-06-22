@@ -54,6 +54,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -recalFile %s" +
                         " -tranchesFile %s",
                 Arrays.asList(params.recalMD5, params.tranchesMD5));
+        spec.disableShadowBCF(); // TODO -- enable when we support symbolic alleles
         executeTest("testVariantRecalibrator-"+params.inVCF, spec).getFirst();
     }
 
@@ -101,6 +102,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -recalFile %s" +
                         " -tranchesFile %s",
                 Arrays.asList(params.recalMD5, params.tranchesMD5));
+        spec.disableShadowBCF(); // TODO -- enable when we support symbolic alleles
         executeTest("testVariantRecalibratorIndel-"+params.inVCF, spec).getFirst();
     }
 
