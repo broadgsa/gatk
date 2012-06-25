@@ -155,7 +155,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
     public void add( VariantContext vc ) {
         if ( doNotWriteGenotypes )
             vc = new VariantContextBuilder(vc).noGenotypes().make();
-        vc = vc.fullyDecode(header);
+        vc = vc.fullyDecode(header, false);
 
         super.add(vc); // allow on the fly indexing
 

@@ -18,7 +18,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + hg19Reference + " -L 20:1012700-1020000 --variant "
                         + b37hapmapGenotypes + " -disc " + testFile
-                        + " -o %s --no_cmdline_in_header --allowMissingVCFHeaders --allowMissingVCFHeaders",
+                        + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
                 1,
                 Arrays.asList("d88bdae45ae0e74e8d8fd196627e612c")
         );
@@ -47,7 +47,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 --variant "
                         + b37hapmapGenotypes + " -disc " + testFile
-                        + " -o %s --no_cmdline_in_header --allowMissingVCFHeaders",
+                        + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
                 1,
                 Arrays.asList("54289033d35d32b8ebbb38c51fbb614c")
         );
@@ -93,7 +93,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 -conc "
                         + b37hapmapGenotypes + " --variant " + testFile
-                        + " -o %s --no_cmdline_in_header --allowMissingVCFHeaders",
+                        + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
                 1,
                 Arrays.asList("946e7f2e0ae08dc0e931c1634360fc46")
         );
@@ -161,7 +161,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b37KGReference + " --variant " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("a0b7f77edc16df0992d2c1363136a17e")
+                Arrays.asList("ef3c5f75074a5dd2b2cd2715856a2542")
         );
 
         executeTest("testNoGTs--" + testFile, spec);
@@ -223,7 +223,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         final String testFile = privateTestDir + "missingHeaderLine.vcf";
         final String cmd = "-T SelectVariants -R " + b36KGReference + " -sn NA12892 --variant:dbsnp "
                 + testFile + " -o %s --no_cmdline_in_header"
-                + (expectedException == null ? " -allowMissingVCFHeaders" : "");
+                + (expectedException == null ? " -lenientVCFProcessing" : "");
         WalkerTestSpec spec =
                 expectedException != null
                         ? new WalkerTestSpec(cmd, 1, expectedException)

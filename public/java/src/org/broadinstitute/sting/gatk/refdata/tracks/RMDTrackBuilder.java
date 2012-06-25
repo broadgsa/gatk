@@ -34,6 +34,7 @@ import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.commandline.Tags;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
@@ -98,7 +99,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
         this.dict = dict;
         this.validationExclusionType = validationExclusionType;
         this.genomeLocParser = genomeLocParser;
-        this.featureManager = new FeatureManager(headerForRepairs);
+        this.featureManager = new FeatureManager(headerForRepairs, GenomeAnalysisEngine.lenientVCFProcessing(validationExclusionType));
     }
 
     /**

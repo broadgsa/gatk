@@ -149,7 +149,7 @@ public class VariantContextTestProvider {
                 logger.warn("Reading records from " + file);
                 for ( final VariantContext raw : x.getSecond() ) {
                     if ( raw != null )
-                        fullyDecoded.add(raw.fullyDecode(x.getFirst()));
+                        fullyDecoded.add(raw.fullyDecode(x.getFirst(), false));
                 }
                 logger.warn("Done reading " + file);
 
@@ -599,7 +599,7 @@ public class VariantContextTestProvider {
         public VariantContext next() {
             try {
                 final VariantContext vc = codec.decode(pbs);
-                return vc == null ? null : vc.fullyDecode(header);
+                return vc == null ? null : vc.fullyDecode(header, false);
             } catch ( IOException e ) {
                 throw new RuntimeException(e);
             }

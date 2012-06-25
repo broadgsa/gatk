@@ -38,14 +38,14 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
     // TODO TODO TODO TODO TODO TODO TODO TODO
     // TODO TODO TODO TODO TODO TODO TODO TODO
     //
-    // TODO WHEN THE HC EMITS VALID VCF HEADERS ENABLE BCF AND REMOVE allowMissingVCFHeaders ARGUMENTS
+    // TODO WHEN THE HC EMITS VALID VCF HEADERS ENABLE BCF AND REMOVE lenientVCFProcessing ARGUMENTS
     //
     // TODO TODO TODO TODO TODO TODO TODO TODO
     // TODO TODO TODO TODO TODO TODO TODO TODO
     // TODO TODO TODO TODO TODO TODO TODO TODO
     //
     private static String baseTestString(String args) {
-        return "-T CombineVariants --no_cmdline_in_header -L 1:1-50,000,000 -o %s --allowMissingVCFHeaders -R " + b36KGReference + args;
+        return "-T CombineVariants --no_cmdline_in_header -L 1:1-50,000,000 -o %s -U LENIENT_VCF_PROCESSING -R " + b36KGReference + args;
     }
 
     private void cvExecuteTest(final String name, final WalkerTestSpec spec) {

@@ -22,7 +22,6 @@ import java.util.zip.GZIPInputStream;
 
 public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext> implements NameAwareCodec {
     public final static int MAX_ALLELE_SIZE_BEFORE_WARNING = (int)Math.pow(2, 20);
-    protected static boolean doOnTheFlyModifications = true;
 
     protected final static Logger log = Logger.getLogger(AbstractVCFCodec.class);
     protected final static int NUM_STANDARD_FIELDS = 8;  // INFO is the 8th column
@@ -60,6 +59,11 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
     protected Map<String, String> stringCache = new HashMap<String, String>();
 
     protected boolean warnedAboutNoEqualsForNonFlag = false;
+
+    /**
+     * If true, then we'll magically fix up VCF headers on the fly when we read them in
+     */
+    protected boolean doOnTheFlyModifications = true;
 
     protected AbstractVCFCodec() {
         super(VariantContext.class);
@@ -850,7 +854,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
      * of VCF records.  Useful primarily for raw comparisons such as when comparing
      * raw VCF records
      */
-    public static final void disableOnTheFlyModifications() {
+    public final void disableOnTheFlyModifications() {
         doOnTheFlyModifications = false;
     }
 }

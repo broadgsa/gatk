@@ -830,7 +830,8 @@ public class GenomeAnalysisEngine {
                 throw new UserException.CouldNotReadInputFile(getArguments().repairVCFHeader, e);
             }
         }
-        RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser,header,validationExclusionType);
+
+        RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser, header, validationExclusionType);
 
         List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTriplet fileDescriptor : referenceMetaDataFiles)
@@ -852,6 +853,15 @@ public class GenomeAnalysisEngine {
      */
     public SAMFileHeader getSAMFileHeader() {
         return readsDataSource.getHeader();
+    }
+
+    public boolean lenientVCFProcessing() {
+        return lenientVCFProcessing(argCollection.unsafe);
+    }
+
+    public static boolean lenientVCFProcessing(final ValidationExclusion.TYPE val) {
+        return val == ValidationExclusion.TYPE.ALL
+                || val == ValidationExclusion.TYPE.LENIENT_VCF_PROCESSING;
     }
 
     /**

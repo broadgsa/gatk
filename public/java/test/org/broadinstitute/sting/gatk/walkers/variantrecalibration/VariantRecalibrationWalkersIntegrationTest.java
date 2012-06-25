@@ -66,7 +66,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -L 20:12,000,000-30,000,000" +
                         " --no_cmdline_in_header" +
                         " -input " + params.inVCF +
-                        " -o %s" +
+                        " -U LENIENT_VCF_PROCESSING -o %s" +
                         " -tranchesFile " + getMd5DB().getMD5FilePath(params.tranchesMD5, null) +
                         " -recalFile " + getMd5DB().getMD5FilePath(params.recalMD5, null),
                 Arrays.asList(params.cutVCFMD5));
@@ -113,7 +113,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -T ApplyRecalibration" +
                         " -L 20:12,000,000-30,000,000" +
                         " -mode INDEL" +
-                        " --no_cmdline_in_header" +
+                        " -U LENIENT_VCF_PROCESSING --no_cmdline_in_header" +
                         " -input " + params.inVCF +
                         " -o %s" +
                         " -tranchesFile " + getMd5DB().getMD5FilePath(params.tranchesMD5, null) +

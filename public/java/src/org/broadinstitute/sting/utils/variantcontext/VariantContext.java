@@ -1337,13 +1337,13 @@ public class VariantContext implements Feature { // to enable tribble integratio
      * @param header containing types about all fields in this VC
      * @return a fully decoded version of this VC
      */
-    public VariantContext fullyDecode(final VCFHeader header) {
+    public VariantContext fullyDecode(final VCFHeader header, final boolean lenientDecoding) {
         if ( isFullyDecoded() )
             return this;
         else {
             // TODO -- warning this is potentially very expensive as it creates copies over and over
             final VariantContextBuilder builder = new VariantContextBuilder(this);
-            fullyDecodeInfo(builder, header);
+            fullyDecodeInfo(builder, header, lenientDecoding);
             fullyDecodeGenotypes(builder, header);
             builder.fullyDecoded(true);
             return builder.make();
@@ -1358,13 +1358,13 @@ public class VariantContext implements Feature { // to enable tribble integratio
         return fullyDecoded;
     }
 
-    private final void fullyDecodeInfo(final VariantContextBuilder builder, final VCFHeader header) {
-        builder.attributes(fullyDecodeAttributes(getAttributes(), header, false));
+    private final void fullyDecodeInfo(final VariantContextBuilder builder, final VCFHeader header, final boolean lenientDecoding) {
+        builder.attributes(fullyDecodeAttributes(getAttributes(), header, lenientDecoding));
     }
 
     private final Map<String, Object> fullyDecodeAttributes(final Map<String, Object> attributes,
                                                             final VCFHeader header,
-                                                            final boolean allowMissingValuesComparedToHeader) {
+                                                            final boolean lenientDecoding) {
         final Map<String, Object> newAttributes = new HashMap<String, Object>(attributes.size());
 
         for ( final Map.Entry<String, Object> attr : attributes.entrySet() ) {
@@ -1377,7 +1377,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
             final Object decoded = decodeValue(field, attr.getValue(), format);
 
             if ( decoded != null &&
-                    ! allowMissingValuesComparedToHeader
+                    ! lenientDecoding
                     && format.getCountType() != VCFHeaderLineCount.UNBOUNDED
                     && format.getType() != VCFHeaderLineType.Flag ) { // we expect exactly the right number of elements
                 final int obsSize = decoded instanceof List ? ((List) decoded).size() : 1;

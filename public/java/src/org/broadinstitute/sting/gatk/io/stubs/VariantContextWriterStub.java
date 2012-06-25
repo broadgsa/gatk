@@ -183,7 +183,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
         List<Options> options = new ArrayList<Options>();
 
         if ( doNotWriteGenotypes ) options.add(Options.DO_NOT_WRITE_GENOTYPES);
-        if ( engine.getArguments().allowMissingVCFHeaders ) options.add(Options.ALLOW_MISSING_FIELDS_IN_HEADER);
+        if ( engine.lenientVCFProcessing() ) options.add(Options.ALLOW_MISSING_FIELDS_IN_HEADER);
         if ( indexOnTheFly && ! isCompressed() ) options.add(Options.INDEX_ON_THE_FLY);
 
         return options.isEmpty() ? EnumSet.noneOf(Options.class) : EnumSet.copyOf(options);
