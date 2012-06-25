@@ -1431,7 +1431,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
                 switch ( format.getType() ) {
                     case Character: return string;
                     case Flag:
-                        final boolean b = Boolean.valueOf(string);
+                        final boolean b = Boolean.valueOf(string) || string.equals("1");
                         if ( b == false )
                             throw new UserException.MalformedVCF("VariantContext FLAG fields " + field + " cannot contain false values"
                              + " as seen at " + getChr() + ":" + getStart());
