@@ -68,8 +68,8 @@ class DataProcessingPipeline extends QScript {
   @Input(doc="Number of threads BWA should use", fullName="bwa_threads", shortName="bt", required=false)
   var bwaThreads: Int = 1
 
-  @Input(doc="Dont perform validation on the BAM files", fullName="no_validation", shortName="nv", required=false)
-  var noValidation: Boolean = false
+  @Input(doc="Perform validation on the BAM files", fullName="validation", shortName="vs", required=false)
+  var validation: Boolean = false
 
 
   /****************************************************************************
@@ -268,7 +268,7 @@ class DataProcessingPipeline extends QScript {
 
       // Validation is an optional step for the BAM file generated after
       // alignment and the final bam file of the pipeline.
-      if (!noValidation) {
+      if (validation) {
         for (sampleFile <- bamList)
         add(validate(sampleFile, preValidateLog),
             validate(recalBam, postValidateLog))
