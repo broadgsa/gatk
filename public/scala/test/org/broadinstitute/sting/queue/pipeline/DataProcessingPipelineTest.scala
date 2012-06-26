@@ -39,7 +39,6 @@ class DataProcessingPipelineTest {
       " -R " + BaseTest.testDir + "exampleFASTA.fasta",
       " -i " + BaseTest.testDir + "exampleBAM.bam",
       " -D " + BaseTest.testDir + "exampleDBSNP.vcf",
-      " -nv ",
       " -test ",
       " -p " + projectName).mkString
     spec.fileMD5s += testOut -> "1f85e76de760167a77ed1d9ab4da2936"
@@ -57,7 +56,6 @@ class DataProcessingPipelineTest {
       " -R " + BaseTest.testDir + "exampleFASTA.fasta",
       " -i " + BaseTest.testDir + "exampleBAM.bam",
       " -D " + BaseTest.testDir + "exampleDBSNP.vcf",
-      " -nv ",
       " -test ",
       " -bwa /home/unix/carneiro/bin/bwa",
       " -bwape ",
