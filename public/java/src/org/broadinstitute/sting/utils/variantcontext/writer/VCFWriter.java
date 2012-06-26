@@ -402,7 +402,7 @@ class VCFWriter extends IndexingVariantContextWriter {
 
                     VCFFormatHeaderLine metaData = mHeader.getFormatHeaderLine(field);
                     if ( metaData != null ) {
-                        int numInFormatField = metaData.getCount(vc.getAlternateAlleles().size());
+                        int numInFormatField = metaData.getCount(vc);
                         if ( numInFormatField > 1 && val.equals(VCFConstants.MISSING_VALUE_v4) ) {
                             // If we have a missing field but multiple values are expected, we need to construct a new string with all fields.
                             // For example, if Number=2, the string has to be ".,."

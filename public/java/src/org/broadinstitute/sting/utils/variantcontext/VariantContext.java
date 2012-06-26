@@ -626,14 +626,13 @@ public class VariantContext implements Feature { // to enable tribble integratio
 
     /**
      * Returns the maximum ploidy of all samples in this VC, or -1 if there are no genotypes
+     *
+     * This function is caching, so it's only expensive on the first call
+     *
      * @return -1, or the max ploidy
      */
     public int getMaxPloidy() {
-        int max = -1;
-        for ( final Genotype g : getGenotypes() ) {
-            max = Math.max(g.getPloidy(), max);
-        }
-        return max;
+        return genotypes.getMaxPloidy();
     }
 
     /**
@@ -1381,7 +1380,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
                     && format.getCountType() != VCFHeaderLineCount.UNBOUNDED
                     && format.getType() != VCFHeaderLineType.Flag ) { // we expect exactly the right number of elements
                 final int obsSize = decoded instanceof List ? ((List) decoded).size() : 1;
-                final int expSize = format.getCount(this.getNAlleles() - 1);
+                final int expSize = format.getCount(this);
                 if ( obsSize != expSize ) {
                     throw new UserException.MalformedVCFHeader("Discordant field size detected for field " +
                             field + " at " + getChr() + ":" + getStart() + ".  Field had " + obsSize + " values " +

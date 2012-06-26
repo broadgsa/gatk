@@ -1199,8 +1199,8 @@ public class VariantContextUtils {
                     altAlleleIndexToUse[i] = true;
             }
 
-            // calculateNumLikelihoods takes total # of alleles. Use default # of chromosomes (ploidy) = 2
-            final int numLikelihoods = GenotypeLikelihoods.calculateNumLikelihoods(1+numOriginalAltAlleles, DEFAULT_PLOIDY);
+            // numLikelihoods takes total # of alleles. Use default # of chromosomes (ploidy) = 2
+            final int numLikelihoods = GenotypeLikelihoods.numLikelihoods(1 + numOriginalAltAlleles, DEFAULT_PLOIDY);
             for ( int PLindex = 0; PLindex < numLikelihoods; PLindex++ ) {
                 final GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(PLindex);
                 // consider this entry only if both of the alleles are good

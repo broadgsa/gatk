@@ -100,10 +100,10 @@ public class GenotypeLikelihoodsUnitTest {
         
         for (int nAlleles=2; nAlleles<=5; nAlleles++)
             // simplest case: diploid
-            Assert.assertEquals(GenotypeLikelihoods.calculateNumLikelihoods(nAlleles, 2), nAlleles*(nAlleles+1)/2);
+            Assert.assertEquals(GenotypeLikelihoods.numLikelihoods(nAlleles, 2), nAlleles*(nAlleles+1)/2);
 
         // some special cases: ploidy = 20, #alleles = 4
-        Assert.assertEquals(GenotypeLikelihoods.calculateNumLikelihoods(4, 20), 1771);
+        Assert.assertEquals(GenotypeLikelihoods.numLikelihoods(4, 20), 1771);
     }
     
     @Test

@@ -24,6 +24,8 @@
 
 package org.broadinstitute.sting.utils.variantcontext;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
@@ -34,6 +36,11 @@ import java.util.Arrays;
 import java.util.EnumMap;
 
 public class GenotypeLikelihoods {
+    private final static int NUM_LIKELIHOODS_CACHE_N_ALLELES = 5;
+    private final static int NUM_LIKELIHOODS_CACHE_PLOIDY = 10;
+    // caching numAlleles up to 5 and ploidy up to 10
+    private final static int[][] numLikelihoodCache = new int[NUM_LIKELIHOODS_CACHE_N_ALLELES][NUM_LIKELIHOODS_CACHE_PLOIDY];
+
     public final static int MAX_PL = Short.MAX_VALUE;
 
     //
@@ -43,6 +50,30 @@ public class GenotypeLikelihoods {
     //
     private double[] log10Likelihoods = null;
     private String likelihoodsAsString_PLs = null;
+
+
+    /**
+     * initialize num likelihoods cache
+     */
+    static {
+        // must be done before PLIndexToAlleleIndex
+        for ( int numAlleles = 1; numAlleles < NUM_LIKELIHOODS_CACHE_N_ALLELES; numAlleles++ ) {
+            //numLikelihoodCache[numAlleles] = new int[NUM_LIKELIHOODS_CACHE_PLOIDY];
+            for ( int ploidy = 1; ploidy < NUM_LIKELIHOODS_CACHE_PLOIDY; ploidy++ ) {
+                numLikelihoodCache[numAlleles][ploidy] = calcNumLikelihoods(numAlleles, ploidy);
+            }
+        }
+    }
+
+    /**
+     * The maximum number of alleles that we can represent as genotype likelihoods
+     */
+    public final static int MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED = 50;
+
+    /*
+    * a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
+    */
+    private final static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex = calculatePLcache(MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
 
     public final static GenotypeLikelihoods fromPLField(String PLs) {
         return new GenotypeLikelihoods(PLs);
@@ -245,47 +276,11 @@ public class GenotypeLikelihoods {
         return likelihoodsAsVector;
     }
 
-//    // -------------------------------------------------------------------------------------
-//    //
-//    // List interface functions
-//    //
-//    // -------------------------------------------------------------------------------------
-//
-//    private final void notImplemented() {
-//        throw new ReviewedStingException("BUG: code not implemented");
-//    }
-//
-//    @Override public int size() { return getAsVector().length; }
-//    @Override public Double get(final int i) { return getAsVector()[i];}
-//    @Override public Double set(final int i, final Double aDouble) { return getAsVector()[i] = aDouble; }
-//    @Override public boolean isEmpty() { return false; }
-//    @Override public Iterator<Double> iterator() { return Arrays.asList(ArrayUtils.toObject(getAsVector())).iterator(); }
-//    @Override public Object[] toArray() { return ArrayUtils.toObject(getAsVector()); }
-//
-//    // none of these are implemented
-//    @Override public boolean contains(final Object o) { notImplemented(); return false; }
-//    @Override public <T> T[] toArray(final T[] ts) { notImplemented(); return null; }
-//    @Override public boolean add(final Double aDouble) { notImplemented(); return false; }
-//    @Override public boolean remove(final Object o) {notImplemented(); return false; }
-//    @Override public boolean containsAll(final Collection<?> objects) { notImplemented(); return false; }
-//    @Override public boolean addAll(final Collection<? extends Double> doubles) { notImplemented(); return false; }
-//    @Override public boolean addAll(final int i, final Collection<? extends Double> doubles) { notImplemented(); return false; }
-//    @Override public boolean removeAll(final Collection<?> objects) { notImplemented(); return false; }
-//    @Override public boolean retainAll(final Collection<?> objects) { notImplemented(); return false; }
-//    @Override public void clear() { notImplemented(); }
-//    @Override public void add(final int i, final Double aDouble) { notImplemented(); }
-//    @Override public Double remove(final int i) { notImplemented(); return null; }
-//    @Override public int indexOf(final Object o) { notImplemented(); return -1; }
-//    @Override public int lastIndexOf(final Object o) { notImplemented(); return 0; }
-//    @Override public ListIterator<Double> listIterator() { notImplemented(); return null; }
-//    @Override public ListIterator<Double> listIterator(final int i) { notImplemented(); return null; }
-//    @Override public List<Double> subList(final int i, final int i1) { notImplemented(); return null; }
-
-// -------------------------------------------------------------------------------------
-//
-// Static conversion utilities, going from GL/PL index to allele index and vice versa.
-//
-// -------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------------------
+    //
+    // Static conversion utilities, going from GL/PL index to allele index and vice versa.
+    //
+    // -------------------------------------------------------------------------------------
 
     /*
     * Class representing the 2 alleles (or rather their indexes into VariantContext.getAllele()) corresponding to a specific PL index.
@@ -300,18 +295,8 @@ public class GenotypeLikelihoods {
         }
     }
 
-    /**
-     * The maximum number of alleles that we can represent as genotype likelihoods
-     */
-    public final static int MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED = 50;
-
-    /*
-    * a cache of the PL index to the 2 alleles it represents over all possible numbers of alternate alleles
-    */
-    private final static GenotypeLikelihoodsAllelePair[] PLIndexToAlleleIndex = calculatePLcache(MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
-
     private static GenotypeLikelihoodsAllelePair[] calculatePLcache(final int altAlleles) {
-        final int numLikelihoods = calculateNumLikelihoods(1+altAlleles, 2);
+        final int numLikelihoods = numLikelihoods(1 + altAlleles, 2);
         final GenotypeLikelihoodsAllelePair[] cache = new GenotypeLikelihoodsAllelePair[numLikelihoods];
 
         // for all possible combinations of 2 alleles
@@ -330,6 +315,32 @@ public class GenotypeLikelihoods {
         return cache;
     }
 
+    // -------------------------------------------------------------------------------------
+    //
+    // num likelihoods given number of alleles and ploidy
+    //
+    // -------------------------------------------------------------------------------------
+
+    /**
+     * Actually does the computation in @see #numLikelihoods
+     *
+     * @param numAlleles
+     * @param ploidy
+     * @return
+     */
+    private static final int calcNumLikelihoods(final int numAlleles, final int ploidy) {
+        if (numAlleles == 1)
+            return 1;
+        else if (ploidy == 1)
+            return numAlleles;
+        else {
+            int acc =0;
+            for (int k=0; k <= ploidy; k++ )
+                acc += calcNumLikelihoods(numAlleles - 1, ploidy - k);
+            return acc;
+        }
+    }
+
     /**
      * Compute how many likelihood elements are associated with the given number of alleles
      * Equivalent to asking in how many ways N non-negative integers can add up to P is S(N,P)
@@ -344,6 +355,8 @@ public class GenotypeLikelihoods {
      * which is then, for ordering above, (2,0,0), (1,1,0), (0,2,0), (1,1,0), (0,1,1), (0,0,2)
      * In general, for P=2 (regular biallelic), then S(N,2) = N*(N+1)/2
      *
+     * Note this method caches the value for most common num Allele / ploidy combinations for efficiency
+     *
      * Recursive implementation:
      *   S(N,P) = sum_{k=0}^P S(N-1,P-k)
      *  because if we have N integers, we can condition 1 integer to be = k, and then N-1 integers have to sum to P-K
@@ -355,23 +368,16 @@ public class GenotypeLikelihoods {
      *   @param  ploidy          Ploidy, or number of chromosomes in set
      *   @return    Number of likelihood elements we need to hold.
      */
-    public static int calculateNumLikelihoods(final int numAlleles, final int ploidy) {
-
-        // fast, closed form solution for diploid samples (most common use case)
-        if (ploidy==2)
-            return numAlleles*(numAlleles+1)/2;
-
-        if (numAlleles == 1)
-            return 1;
-        else if (ploidy == 1)
-            return numAlleles;
-
-        int acc =0;
-        for (int k=0; k <= ploidy; k++ )
-            acc += calculateNumLikelihoods(numAlleles-1, ploidy-k);
-
-        return acc;
-
+    @Requires({"ploidy > 0", "numAlleles > 0"})
+    @Ensures("result > 0")
+    public static int numLikelihoods(final int numAlleles, final int ploidy) {
+        if ( numAlleles < NUM_LIKELIHOODS_CACHE_N_ALLELES
+                && ploidy < NUM_LIKELIHOODS_CACHE_PLOIDY )
+            return numLikelihoodCache[numAlleles][ploidy];
+        else {
+            // have to calculate on the fly
+            return calcNumLikelihoods(numAlleles, ploidy);
+        }
     }
 
     // As per the VCF spec: "the ordering of genotypes for the likelihoods is given by: F(j/k) = (k*(k+1)/2)+j.

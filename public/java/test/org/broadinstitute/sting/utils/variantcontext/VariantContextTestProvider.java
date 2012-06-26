@@ -51,6 +51,8 @@ import java.util.*;
 public class VariantContextTestProvider {
     final protected static Logger logger = Logger.getLogger(VariantContextTestProvider.class);
 
+    final private static boolean ENABLE_GENOTYPE_TESTS = true;
+    final private static boolean ENABLE_A_AND_G_TESTS = true;
     final private static boolean ENABLE_VARARRAY_TESTS = true;
     final private static boolean ENABLE_PLOIDY_TESTS = true;
     final private static boolean ENABLE_PL_TESTS = true;
@@ -180,6 +182,7 @@ public class VariantContextTestProvider {
 
         addHeaderLine(metaData, "GT", 1, VCFHeaderLineType.String);
         addHeaderLine(metaData, "GQ", 1, VCFHeaderLineType.Integer);
+        addHeaderLine(metaData, "ADA", VCFHeaderLineCount.A, VCFHeaderLineType.Integer);
         addHeaderLine(metaData, "PL", VCFHeaderLineCount.G, VCFHeaderLineType.Integer);
         addHeaderLine(metaData, "GS", 2, VCFHeaderLineType.String);
         addHeaderLine(metaData, "GV", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String);
@@ -268,9 +271,13 @@ public class VariantContextTestProvider {
         add(builder().attribute("VAR.INFO.STRING", Arrays.asList("s1", "s2", "s3")));
         add(builder().attribute("VAR.INFO.STRING", null));
 
-        addGenotypesToTestData();
+        if ( ENABLE_GENOTYPE_TESTS ) {
+            addGenotypesToTestData();
+            addComplexGenotypesTest();
+        }
 
-        addComplexGenotypesTest();
+        if ( ENABLE_A_AND_G_TESTS )
+            addGenotypesAndGTests();
     }
 
     private static void addGenotypesToTestData() {
@@ -314,7 +321,6 @@ public class VariantContextTestProvider {
             }
         }
     }
-
 
     private static void addGenotypes( final VariantContext site) {
         // test ref/ref
@@ -513,6 +519,46 @@ public class VariantContextTestProvider {
                     new GenotypeBuilder("g1-unft", Arrays.asList(ref, ref)).unfiltered().make(),
                     new GenotypeBuilder("g2-x", Arrays.asList(ref, ref)).filters("X").make(),
                     new GenotypeBuilder("g3-xy", Arrays.asList(ref, ref)).filters("X", "Y").make());
+        }
+    }
+
+    private static void addGenotypesAndGTests() {
+//        for ( final int ploidy : Arrays.asList(2)) {
+        for ( final int ploidy : Arrays.asList(1, 2, 3, 4, 5)) {
+            final List<List<String>> alleleCombinations =
+                    Arrays.asList(
+                            Arrays.asList("A"),
+                            Arrays.asList("A", "C"),
+                            Arrays.asList("A", "C", "G"),
+                            Arrays.asList("A", "C", "G", "T"));
+
+            for ( final List<String> alleles : alleleCombinations ) {
+                final VariantContextBuilder vcb = builder().alleles(alleles);
+                final VariantContext site = vcb.make();
+                final int nAlleles = site.getNAlleles();
+                final Allele ref = site.getReference();
+
+                // base genotype is ref/.../ref up to ploidy
+                final List<Allele> baseGenotype = new ArrayList<Allele>(ploidy);
+                for ( int i = 0; i < ploidy; i++) baseGenotype.add(ref);
+                final int nPLs = GenotypeLikelihoods.numLikelihoods(nAlleles, ploidy);
+
+                // ada is 0, 1, ..., nAlleles - 1
+                final List<Integer> ada = new ArrayList<Integer>(nAlleles);
+                for ( int i = 0; i < nAlleles - 1; i++ ) ada.add(i);
+
+                // pl is 0, 1, ..., up to nPLs (complex calc of nAlleles and ploidy)
+                final int[] pl = new int[nPLs];
+                for ( int i = 0; i < pl.length; i++ ) pl[i] = i;
+
+                final GenotypeBuilder gb = new GenotypeBuilder("ADA_PL_SAMPLE");
+                gb.alleles(baseGenotype);
+                gb.PL(pl);
+                gb.attribute("ADA", nAlleles == 2 ? ada.get(0) : ada);
+                vcb.genotypes(gb.make());
+
+                add(vcb);
+            }
         }
     }
 

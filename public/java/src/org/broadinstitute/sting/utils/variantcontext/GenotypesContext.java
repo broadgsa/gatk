@@ -61,6 +61,11 @@ public class GenotypesContext implements List<Genotype> {
      */
     ArrayList<Genotype> notToBeDirectlyAccessedGenotypes;
 
+    /**
+     * Cached value of the maximum ploidy observed among all samples
+     */
+    private int maxPloidy = -1;
+
     /** Are we allowing users to modify the list? */
     boolean immutable = false;
 
@@ -406,6 +411,16 @@ public class GenotypesContext implements List<Genotype> {
     @Override
     public Genotype get(final int i) {
         return getGenotypes().get(i);
+    }
+
+    @Ensures("result >= 0")
+    public int getMaxPloidy() {
+        if ( maxPloidy == -1 ) {
+            for ( final Genotype g : getGenotypes() ) {
+                maxPloidy = Math.max(g.getPloidy(), maxPloidy);
+            }
+        }
+        return maxPloidy;
     }
 
     /**

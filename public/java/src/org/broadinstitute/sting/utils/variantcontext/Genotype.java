@@ -554,7 +554,7 @@ public abstract class Genotype implements Comparable<Genotype> {
             pairs.add(k + "=" + c.get(k));
         }
 
-        return "{" + ParsingUtils.join(", ", pairs.toArray(new String[pairs.size()])) + "}";
+        return pairs.isEmpty() ? "" : " {" + ParsingUtils.join(", ", pairs.toArray(new String[pairs.size()])) + "}";
     }
 
     /**
