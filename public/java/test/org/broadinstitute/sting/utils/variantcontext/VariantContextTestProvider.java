@@ -56,18 +56,23 @@ public class VariantContextTestProvider {
     final private static boolean ENABLE_VARARRAY_TESTS = true;
     final private static boolean ENABLE_PLOIDY_TESTS = true;
     final private static boolean ENABLE_PL_TESTS = true;
+    final private static boolean ENABLE_SYMBOLIC_ALLELE_TESTS = false;
     final private static boolean ENABLE_SOURCE_VCF_TESTS = true;
     final private static boolean ENABLE_VARIABLE_LENGTH_GENOTYPE_STRING_TESTS = true;
+    final private static List<Integer> TWENTY_INTS = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20);
 
     private static VCFHeader syntheticHeader;
     final static List<VariantContextTestData> TEST_DATAs = new ArrayList<VariantContextTestData>();
     private static VariantContext ROOT;
 
-    private final static List<File> testSourceVCFs = Arrays.asList(
-            new File(BaseTest.privateTestDir + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"),
-            new File(BaseTest.privateTestDir + "ex2.vcf"),
-            new File(BaseTest.privateTestDir + "dbsnp_135.b37.1000.vcf")
-            );
+    private final static List<File> testSourceVCFs = new ArrayList<File>();
+    static {
+        testSourceVCFs.add(new File(BaseTest.privateTestDir + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"));
+        testSourceVCFs.add(new File(BaseTest.privateTestDir + "ex2.vcf"));
+        testSourceVCFs.add(new File(BaseTest.privateTestDir + "dbsnp_135.b37.1000.vcf"));
+        if ( ENABLE_SYMBOLIC_ALLELE_TESTS )
+            testSourceVCFs.add(new File(BaseTest.privateTestDir + "diagnosis_targets_testfile.vcf"));
+    }
 
     public abstract static class VariantContextIOTest {
         public String toString() {
@@ -245,7 +250,7 @@ public class VariantContextTestProvider {
         add(builder().attribute("INT3", Arrays.asList(1000, 2000, 3000)));
         add(builder().attribute("INT3", Arrays.asList(100000, 200000, 300000)));
         add(builder().attribute("INT3", null));
-        add(builder().attribute("INT20", Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)));
+        add(builder().attribute("INT20", TWENTY_INTS));
 
         add(builder().attribute("FLOAT1", 1.0));
         add(builder().attribute("FLOAT1", 100.0));
@@ -448,6 +453,11 @@ public class VariantContextTestProvider {
         addGenotypeTests(site,
                 attr("g1", ref, "INT3", 1, 2, 3),
                 attr("g2", ref, "INT3"));
+
+        addGenotypeTests(site,
+                attr("g1", ref, "INT20", TWENTY_INTS),
+                attr("g2", ref, "INT20", TWENTY_INTS));
+
 
         if (ENABLE_VARARRAY_TESTS) {
             addGenotypeTests(site,
@@ -693,20 +703,23 @@ public class VariantContextTestProvider {
      * @param expected
      */
     public static void assertEquals( final VariantContext actual, final VariantContext expected ) {
-        Assert.assertNotNull(actual);
-        Assert.assertEquals(actual.getChr(), expected.getChr());
-        Assert.assertEquals(actual.getStart(), expected.getStart());
-        Assert.assertEquals(actual.getEnd(), expected.getEnd());
-        Assert.assertEquals(actual.getID(), expected.getID());
-        Assert.assertEquals(actual.getAlleles(), expected.getAlleles());
+        Assert.assertNotNull(actual, "VariantContext expected not null");
+        Assert.assertEquals(actual.getChr(), expected.getChr(), "chr");
+        Assert.assertEquals(actual.getStart(), expected.getStart(), "start");
+        Assert.assertEquals(actual.getEnd(), expected.getEnd(), "end");
+        Assert.assertEquals(actual.getID(), expected.getID(), "id");
+        Assert.assertEquals(actual.getAlleles(), expected.getAlleles(), "alleles");
 
         assertAttributesEquals(actual.getAttributes(), expected.getAttributes());
-        Assert.assertEquals(actual.getFilters(), expected.getFilters());
+        Assert.assertEquals(actual.getFilters(), expected.getFilters(), "filters");
         BaseTest.assertEqualsDoubleSmart(actual.getPhredScaledQual(), expected.getPhredScaledQual());
 
-        Assert.assertEquals(actual.hasGenotypes(), expected.hasGenotypes());
+        Assert.assertEquals(actual.hasGenotypes(), expected.hasGenotypes(), "hasGenotypes");
         if ( expected.hasGenotypes() ) {
-            Assert.assertEquals(actual.getSampleNames(), expected.getSampleNames());
+            final Set<String> actualSampleSet = new HashSet<String>(actual.getSampleNames());
+            final Set<String> expectedSampleSet = new HashSet<String>(expected.getSampleNames());
+            Assert.assertTrue(actualSampleSet.equals(expectedSampleSet), "sample names"); // note this is necessary due to testng bug for set comps
+            Assert.assertEquals(actual.getSampleNamesOrderedByName(), expected.getSampleNamesOrderedByName(), "sample names");
             final Set<String> samples = expected.getSampleNames();
             for ( final String sample : samples ) {
                 assertEquals(actual.getGenotype(sample), expected.getGenotype(sample));
@@ -715,33 +728,33 @@ public class VariantContextTestProvider {
     }
 
     public static void assertEquals(final Genotype actual, final Genotype expected) {
-        Assert.assertEquals(actual.getSampleName(), expected.getSampleName());
-        Assert.assertEquals(actual.getAlleles(), expected.getAlleles());
-        Assert.assertEquals(actual.getGenotypeString(), expected.getGenotypeString());
-        Assert.assertEquals(actual.getType(), expected.getType());
+        Assert.assertEquals(actual.getSampleName(), expected.getSampleName(), "Genotype names");
+        Assert.assertEquals(actual.getAlleles(), expected.getAlleles(), "Genotype alleles");
+        Assert.assertEquals(actual.getGenotypeString(), expected.getGenotypeString(), "Genotype string");
+        Assert.assertEquals(actual.getType(), expected.getType(), "Genotype type");
 
         // filters are the same
-        Assert.assertEquals(actual.getFilters(), expected.getFilters());
-        Assert.assertEquals(actual.isFiltered(), expected.isFiltered());
+        Assert.assertEquals(actual.getFilters(), expected.getFilters(), "Genotype fields");
+        Assert.assertEquals(actual.isFiltered(), expected.isFiltered(), "Genotype isFiltered");
 
         // inline attributes
-        Assert.assertEquals(actual.getDP(), expected.getDP());
-        Assert.assertEquals(actual.getAD(), expected.getAD());
-        Assert.assertEquals(actual.getGQ(), expected.getGQ());
-        Assert.assertEquals(actual.hasPL(), expected.hasPL());
-        Assert.assertEquals(actual.hasAD(), expected.hasAD());
-        Assert.assertEquals(actual.hasGQ(), expected.hasGQ());
-        Assert.assertEquals(actual.hasDP(), expected.hasDP());
+        Assert.assertEquals(actual.getDP(), expected.getDP(), "Genotype dp");
+        Assert.assertEquals(actual.getAD(), expected.getAD(), "Genotype ad");
+        Assert.assertEquals(actual.getGQ(), expected.getGQ(), "Genotype gq");
+        Assert.assertEquals(actual.hasPL(), expected.hasPL(), "Genotype hasPL");
+        Assert.assertEquals(actual.hasAD(), expected.hasAD(), "Genotype hasAD");
+        Assert.assertEquals(actual.hasGQ(), expected.hasGQ(), "Genotype hasGQ");
+        Assert.assertEquals(actual.hasDP(), expected.hasDP(), "Genotype hasDP");
 
-        Assert.assertEquals(actual.hasLikelihoods(), expected.hasLikelihoods());
-        Assert.assertEquals(actual.getLikelihoodsString(), expected.getLikelihoodsString());
-        Assert.assertEquals(actual.getLikelihoods(), expected.getLikelihoods());
-        Assert.assertEquals(actual.getPL(), expected.getPL());
+        Assert.assertEquals(actual.hasLikelihoods(), expected.hasLikelihoods(), "Genotype haslikelihoods");
+        Assert.assertEquals(actual.getLikelihoodsString(), expected.getLikelihoodsString(), "Genotype getlikelihoodsString");
+        Assert.assertEquals(actual.getLikelihoods(), expected.getLikelihoods(), "Genotype getLikelihoods");
+        Assert.assertEquals(actual.getPL(), expected.getPL(), "Genotype getPL");
 
-        Assert.assertEquals(actual.getPhredScaledQual(), expected.getPhredScaledQual());
+        Assert.assertEquals(actual.getPhredScaledQual(), expected.getPhredScaledQual(), "Genotype phredScaledQual");
         assertAttributesEquals(actual.getExtendedAttributes(), expected.getExtendedAttributes());
-        Assert.assertEquals(actual.isPhased(), expected.isPhased());
-        Assert.assertEquals(actual.getPloidy(), expected.getPloidy());
+        Assert.assertEquals(actual.isPhased(), expected.isPhased(), "Genotype isPhased");
+        Assert.assertEquals(actual.getPloidy(), expected.getPloidy(), "Genotype getPloidy");
     }
 
     private static void assertAttributesEquals(final Map<String, Object> actual, Map<String, Object> expected) {
@@ -753,16 +766,16 @@ public class VariantContextTestProvider {
                 final Object expectedValue = expected.get(act.getKey());
                 if ( expectedValue instanceof List ) {
                     final List<Object> expectedList = (List<Object>)expectedValue;
-                    Assert.assertTrue(actualValue instanceof List);
+                    Assert.assertTrue(actualValue instanceof List, act.getKey() + " should be a list but isn't");
                     final List<Object> actualList = (List<Object>)actualValue;
-                    Assert.assertEquals(actualList.size(), expectedList.size());
+                    Assert.assertEquals(actualList.size(), expectedList.size(), act.getKey() + " size");
                     for ( int i = 0; i < expectedList.size(); i++ )
-                        assertAttributesEquals(actualList.get(i), expectedList.get(i));
+                        assertAttributeEquals(act.getKey(), actualList.get(i), expectedList.get(i));
                 } else
-                    assertAttributesEquals(actualValue, expectedValue);
+                    assertAttributeEquals(act.getKey(), actualValue, expectedValue);
             } else {
                 // it's ok to have a binding in x -> null that's absent in y
-                Assert.assertNull(actualValue);
+                Assert.assertNull(actualValue, act.getKey() + " present in one but not in the other");
             }
             expectedKeys.remove(act.getKey());
         }
@@ -771,7 +784,7 @@ public class VariantContextTestProvider {
         // and they must all be null
         for ( final String missingExpected : expectedKeys ) {
             final Object value = expected.get(missingExpected);
-            Assert.assertTrue(isMissing(value));
+            Assert.assertTrue(isMissing(value), "Attribute " + missingExpected + " missing in one but not in other" );
         }
     }
 
@@ -788,12 +801,12 @@ public class VariantContextTestProvider {
             return false;
     }
 
-    private static void assertAttributesEquals(final Object actual, final Object expected) {
+    private static void assertAttributeEquals(final String key, final Object actual, final Object expected) {
         if ( expected instanceof Double ) {
             // must be very tolerant because doubles are being rounded to 2 sig figs
             BaseTest.assertEqualsDoubleSmart(actual, (Double)expected, 1e-2);
         } else
-            Assert.assertEquals(actual, expected);
+            Assert.assertEquals(actual, expected, "Attribute " + key);
     }
 
     public static void addComplexGenotypesTest() {
@@ -863,14 +876,14 @@ public class VariantContextTestProvider {
     }
 
     public static void assertEquals(final VCFHeader actual, final VCFHeader expected) {
-        Assert.assertEquals(actual.getMetaData().size(), expected.getMetaData().size());
+        Assert.assertEquals(actual.getMetaData().size(), expected.getMetaData().size(), "No VCF header lines");
 
         // for some reason set.equals() is returning false but all paired elements are .equals().  Perhaps compare to is busted?
         //Assert.assertEquals(actual.getMetaData(), expected.getMetaData());
         final List<VCFHeaderLine> actualLines = new ArrayList<VCFHeaderLine>(actual.getMetaData());
         final List<VCFHeaderLine> expectedLines = new ArrayList<VCFHeaderLine>(expected.getMetaData());
         for ( int i = 0; i < actualLines.size(); i++ ) {
-            Assert.assertEquals(actualLines.get(i), expectedLines.get(i));
+            Assert.assertEquals(actualLines.get(i), expectedLines.get(i), "VCF header lines");
         }
     }
 
