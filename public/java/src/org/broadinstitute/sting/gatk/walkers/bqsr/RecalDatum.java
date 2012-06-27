@@ -113,8 +113,7 @@ public class RecalDatum extends Datum {
         return String.format("%s,%d,%.2f", toString(), (byte) Math.floor(getEstimatedQReported()), getEmpiricalQuality() - getEstimatedQReported());
     }
 
-
-        private double calcExpectedErrors() {
+    private double calcExpectedErrors() {
         return (double) this.numObservations * qualToErrorProb(estimatedQReported);
     }
 

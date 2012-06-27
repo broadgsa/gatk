@@ -32,11 +32,13 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.R.RScriptExecutor;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.io.Resource;
+import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -81,6 +83,14 @@ public class RecalDataManager {
     private static boolean warnUserNullPlatform = false;
 
     private static final String SCRIPT_FILE = "BQSR.R";
+
+    private static final Pair<String, String> covariateValue     = new Pair<String, String>(RecalDataManager.COVARIATE_VALUE_COLUMN_NAME, "%s");
+    private static final Pair<String, String> covariateName      = new Pair<String, String>(RecalDataManager.COVARIATE_NAME_COLUMN_NAME, "%s");
+    private static final Pair<String, String> eventType          = new Pair<String, String>(RecalDataManager.EVENT_TYPE_COLUMN_NAME, "%s");
+    private static final Pair<String, String> empiricalQuality   = new Pair<String, String>(RecalDataManager.EMPIRICAL_QUALITY_COLUMN_NAME, "%.4f");
+    private static final Pair<String, String> estimatedQReported = new Pair<String, String>(RecalDataManager.ESTIMATED_Q_REPORTED_COLUMN_NAME, "%.4f");
+    private static final Pair<String, String> nObservations      = new Pair<String, String>(RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME, "%d");
+    private static final Pair<String, String> nErrors            = new Pair<String, String>(RecalDataManager.NUMBER_ERRORS_COLUMN_NAME, "%d");
 
 
     public enum SOLID_RECAL_MODE {
@@ -141,30 +151,6 @@ public class RecalDataManager {
         }
     }
 
-
-    /**
-     * Initializes the recalibration table -> key manager map
-     *
-     * @param requiredCovariates list of required covariates (in order)
-     * @param optionalCovariates list of optional covariates (in order)
-     * @return a map with each key manager and it's corresponding recalibration table properly initialized
-     */
-    public static LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> initializeTables(ArrayList<Covariate> requiredCovariates, ArrayList<Covariate> optionalCovariates) {
-        final LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> tablesAndKeysMap = new LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>>();
-        final ArrayList<Covariate> requiredCovariatesToAdd = new ArrayList<Covariate>(requiredCovariates.size() + 1);           // incrementally add the covariates to create the recal tables with 1, 2 and 3 covariates.
-        final ArrayList<Covariate> optionalCovariatesToAdd = new ArrayList<Covariate>();                                        // initialize an empty array of optional covariates to create the first few tables
-        for (Covariate covariate : requiredCovariates) {
-            requiredCovariatesToAdd.add(covariate);
-            final Map<Long, RecalDatum> recalTable = new HashMap<Long, RecalDatum>();                                   // initializing a new recal table for each required covariate (cumulatively)
-            final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariatesToAdd, optionalCovariatesToAdd);     // initializing it's corresponding key manager
-            tablesAndKeysMap.put(keyManager, recalTable);                                                               // adding the pair table+key to the map
-        }
-        final Map<Long, RecalDatum> recalTable = new HashMap<Long, RecalDatum>(Short.MAX_VALUE);                        // initializing a new recal table to hold all optional covariates
-        final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);                   // initializing it's corresponding key manager
-        tablesAndKeysMap.put(keyManager, recalTable);                                                                   // adding the pair table+key to the map
-        return tablesAndKeysMap;
-    }
-
     /**
      * Generates two lists : required covariates and optional covariates based on the user's requests.
      *
@@ -223,42 +209,29 @@ public class RecalDataManager {
         logger.info("");
     }
 
-    private static List<GATKReportTable> generateReportTables(Map<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap) {
+    private static List<GATKReportTable> generateReportTables(final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates) {
         List<GATKReportTable> result = new LinkedList<GATKReportTable>();
         int tableIndex = 0;
 
-        final Pair<String, String> covariateValue     = new Pair<String, String>(RecalDataManager.COVARIATE_VALUE_COLUMN_NAME, "%s");
-        final Pair<String, String> covariateName      = new Pair<String, String>(RecalDataManager.COVARIATE_NAME_COLUMN_NAME, "%s");
-        final Pair<String, String> eventType          = new Pair<String, String>(RecalDataManager.EVENT_TYPE_COLUMN_NAME, "%s");
-        final Pair<String, String> empiricalQuality   = new Pair<String, String>(RecalDataManager.EMPIRICAL_QUALITY_COLUMN_NAME, "%.4f");
-        final Pair<String, String> estimatedQReported = new Pair<String, String>(RecalDataManager.ESTIMATED_Q_REPORTED_COLUMN_NAME, "%.4f");
-        final Pair<String, String> nObservations      = new Pair<String, String>(RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME, "%d");
-        final Pair<String, String> nErrors            = new Pair<String, String>(RecalDataManager.NUMBER_ERRORS_COLUMN_NAME, "%d");
+        final Map<Covariate, String> covariateNameMap = new HashMap<Covariate, String>(requestedCovariates.length);
+        for (final Covariate covariate : requestedCovariates)
+            covariateNameMap.put(covariate, parseCovariateName(covariate));
 
-        for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> entry : keysAndTablesMap.entrySet()) {
-            final BQSRKeyManager keyManager = entry.getKey();
-            final Map<Long, RecalDatum> recalTable = entry.getValue();
+        for (final RecalibrationTables.TableType type : RecalibrationTables.TableType.values()) {
 
-            final boolean isReadGroupTable = tableIndex == 0;                                                           // special case for the read group table so we can print the extra column it needs.
-
-            final Covariate[] requiredList = keyManager.getRequiredCovariates();                                    // ask the key manager what required covariates were used in this recal table
-            final Covariate[] optionalList = keyManager.getOptionalCovariates();                                    // ask the key manager what optional covariates were used in this recal table
-
-            final ArrayList<Pair<String, String>> columnNames = new ArrayList<Pair<String, String>>();                                     // initialize the array to hold the column names
-
-            for (final Covariate covariate : requiredList) {
-                final String name = covariate.getClass().getSimpleName().split("Covariate")[0];                         // get the covariate names and put them in order
-                columnNames.add(new Pair<String,String>(name, "%s"));                                                   // save the required covariate name so we can reference it in the future
-            }
-
-            if (optionalList.length > 0) {
-                columnNames.add(covariateValue);
-                columnNames.add(covariateName);
+            final ArrayList<Pair<String, String>> columnNames = new ArrayList<Pair<String, String>>();                  // initialize the array to hold the column names
+            columnNames.add(new Pair<String, String>(covariateNameMap.get(requestedCovariates[0]), "%s"));              // save the required covariate name so we can reference it in the future
+            if (type != RecalibrationTables.TableType.READ_GROUP_TABLE) {
+                columnNames.add(new Pair<String, String>(covariateNameMap.get(requestedCovariates[1]), "%s"));                                            // save the required covariate name so we can reference it in the future
+                if (type == RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLE) {
+                    columnNames.add(covariateValue);
+                    columnNames.add(covariateName);
+                }
             }
 
             columnNames.add(eventType);                                                                                 // the order of these column names is important here
             columnNames.add(empiricalQuality);
-            if (isReadGroupTable)
+            if (type == RecalibrationTables.TableType.READ_GROUP_TABLE)
                 columnNames.add(estimatedQReported);                                                                    // only the read group table needs the estimated Q reported
             columnNames.add(nObservations);
             columnNames.add(nErrors);
@@ -269,42 +242,59 @@ public class RecalDataManager {
 
             int rowIndex = 0;
 
-            for (Map.Entry<Long, RecalDatum> recalTableEntry : recalTable.entrySet()) {                               // create a map with column name => key value for all covariate keys
-                final Long bitSetKey = recalTableEntry.getKey();
-                final Map<String, Object> columnData = new HashMap<String, Object>(columnNames.size());
-                final Iterator<Pair<String, String>> iterator = columnNames.iterator();
-                for (final Object key : keyManager.keySetFrom(bitSetKey)) {
-                    final String columnName = iterator.next().getFirst();
-                    columnData.put(columnName, key);
-                }
-                final RecalDatum datum = recalTableEntry.getValue();
-                columnData.put(iterator.next().getFirst(), datum.getEmpiricalQuality());
-                if (isReadGroupTable)
-                    columnData.put(iterator.next().getFirst(), datum.getEstimatedQReported());                          // we only add the estimated Q reported in the RG table
-                columnData.put(iterator.next().getFirst(), datum.numObservations);
-                columnData.put(iterator.next().getFirst(), datum.numMismatches);
+            final NestedHashMap table = recalibrationTables.getTable(type);
+            for (final NestedHashMap.Leaf row : table.getAllLeaves()) {
+                final RecalDatum datum = (RecalDatum)row.value;
+                final List<Object> keys = row.keys;
 
-                for (final Map.Entry<String, Object> dataEntry : columnData.entrySet()) {
-                    final String columnName = dataEntry.getKey();
-                    final Object value = dataEntry.getValue();
-                    reportTable.set(rowIndex, columnName, value.toString());
+                int columnIndex = 0;
+                setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex).getFirst(), requestedCovariates[0].formatKey((Integer)keys.get(columnIndex++)));
+                if (type != RecalibrationTables.TableType.READ_GROUP_TABLE) {
+                    setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex).getFirst(), requestedCovariates[1].formatKey((Integer) keys.get(columnIndex++)));
+                    if (type == RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLE) {
+                        final int covariateIndex = (Integer)keys.get(columnIndex);
+                        final Covariate covariate = requestedCovariates[2 + covariateIndex];
+                        final int covariateKey = (Integer)keys.get(columnIndex+1);
+
+                        setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex++).getFirst(), covariate.formatKey(covariateKey));
+                        setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex++).getFirst(), covariateNameMap.get(covariate));
+                    }
                 }
+
+                final EventType event = EventType.eventFrom((Integer)keys.get(columnIndex));
+                setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex++).getFirst(), event);
+
+                setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEmpiricalQuality());
+                if (type == RecalibrationTables.TableType.READ_GROUP_TABLE)
+                    setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEstimatedQReported());                          // we only add the estimated Q reported in the RG table
+                setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex++).getFirst(), datum.numObservations);
+                setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex).getFirst(), datum.numMismatches);
+
                 rowIndex++;
             }
             result.add(reportTable);
         }
+
         return result;
     }
 
-    public static void outputRecalibrationReport(RecalibrationArgumentCollection RAC, QuantizationInfo quantizationInfo, Map<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap, PrintStream outputFile) {
-        outputRecalibrationReport(RAC.generateReportTable(), quantizationInfo.generateReportTable(), generateReportTables(keysAndTablesMap), outputFile);
+    private static String parseCovariateName(final Covariate covariate) {
+        return covariate.getClass().getSimpleName().split("Covariate")[0];
     }
 
-    public static void outputRecalibrationReport(GATKReportTable argumentTable, QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager,Map<Long, RecalDatum>> keysAndTablesMap, PrintStream outputFile) {
-        outputRecalibrationReport(argumentTable, quantizationInfo.generateReportTable(), generateReportTables(keysAndTablesMap), outputFile);
+    private static void setReportTableCell(final GATKReportTable reportTable, final int rowIndex, final String columnName, final Object value) {
+        reportTable.set(rowIndex, columnName, value.toString());
     }
 
-    private static void outputRecalibrationReport(GATKReportTable argumentTable, GATKReportTable quantizationTable, List<GATKReportTable> recalTables, PrintStream outputFile) {
+    public static void outputRecalibrationReport(final RecalibrationArgumentCollection RAC, final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, final PrintStream outputFile) {
+        outputRecalibrationReport(RAC.generateReportTable(), quantizationInfo.generateReportTable(), generateReportTables(recalibrationTables, requestedCovariates), outputFile);
+    }
+
+    public static void outputRecalibrationReport(final GATKReportTable argumentTable, final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, final PrintStream outputFile) {
+        outputRecalibrationReport(argumentTable, quantizationInfo.generateReportTable(), generateReportTables(recalibrationTables, requestedCovariates), outputFile);
+    }
+
+    private static void outputRecalibrationReport(final GATKReportTable argumentTable, final GATKReportTable quantizationTable, final List<GATKReportTable> recalTables, final PrintStream outputFile) {
         final GATKReport report = new GATKReport();
         report.addTable(argumentTable);
         report.addTable(quantizationTable);
@@ -340,108 +330,87 @@ public class RecalDataManager {
 
     }
 
-    public static void generateRecalibrationPlot(File filename, LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> original, boolean keepIntermediates) {
+    public static void generateRecalibrationPlot(final File filename, final RecalibrationTables original, final Covariate[] requestedCovariates, final boolean keepIntermediates) {
         final Pair<PrintStream, File> files = initializeRecalibrationPlot(filename);
-        writeCSV(files.getFirst(), original, "ORIGINAL", true);
+        writeCSV(files.getFirst(), original, "ORIGINAL", requestedCovariates, true);
         outputRecalibrationPlot(files, keepIntermediates);
     }
 
-    public static void generateRecalibrationPlot(File filename, LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> original, LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> recalibrated, boolean keepIntermediates) {
+    public static void generateRecalibrationPlot(final File filename, final RecalibrationTables original, final RecalibrationTables recalibrated, final Covariate[] requestedCovariates, final boolean keepIntermediates) {
         final Pair<PrintStream, File> files = initializeRecalibrationPlot(filename);
-        writeCSV(files.getFirst(), recalibrated, "RECALIBRATED", true);
-        writeCSV(files.getFirst(), original, "ORIGINAL", false);
+        writeCSV(files.getFirst(), recalibrated, "RECALIBRATED", requestedCovariates, true);
+        writeCSV(files.getFirst(), original, "ORIGINAL", requestedCovariates, false);
         outputRecalibrationPlot(files, keepIntermediates);
     }
 
-    private static void writeCSV(PrintStream deltaTableFile, LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> map, String recalibrationMode, boolean printHeader) {
-        final int QUALITY_SCORE_COVARIATE_INDEX = 1;
-        final Map<Long, RecalDatum> deltaTable = new HashMap<Long, RecalDatum>();
-        BQSRKeyManager deltaKeyManager = null;
+    private static void writeCSV(final PrintStream deltaTableFile, final RecalibrationTables recalibrationTables, final String recalibrationMode, final Covariate[] requestedCovariates, final boolean printHeader) {
+        final NestedHashMap deltaTable = new NestedHashMap();
 
-
-        for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> tableEntry : map.entrySet()) {
-            final BQSRKeyManager keyManager = tableEntry.getKey();
-
-            if (keyManager.getNumOptionalCovariates() > 0) {                                                            // initialize with the 'all covariates' table
-                // create a key manager for the delta table
-                final List<Covariate> requiredCovariates = Arrays.asList(keyManager.getRequiredCovariates()[0]);        // include the read group covariate as the only required covariate
-                final List<Covariate> optionalCovariates = new ArrayList<Covariate>();
-                optionalCovariates.add(keyManager.getRequiredCovariates()[1]);                                          // include the quality score covariate as an optional covariate
-                optionalCovariates.addAll(Arrays.asList(keyManager.getOptionalCovariates()));                           // include all optional covariates
-                deltaKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);                           // initialize the key manager
-            }
+        // add the quality score table to the delta table
+        final NestedHashMap qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE);
+        for (final NestedHashMap.Leaf leaf : qualTable.getAllLeaves()) {                                                // go through every element in the covariates table to create the delta table
+            final List<Object> newCovs = new ArrayList<Object>(4);
+            newCovs.add(leaf.keys.get(0));
+            newCovs.add(requestedCovariates.length);                                                                    // replace the covariate name with an arbitrary (unused) index for QualityScore
+            newCovs.add(leaf.keys.get(1));
+            newCovs.add(leaf.keys.get(2));
+            addToDeltaTable(deltaTable, newCovs.toArray(), (RecalDatum)leaf.value);                                     // add this covariate to the delta table
         }
 
-        if (deltaKeyManager == null)
-            throw new ReviewedStingException ("Couldn't find the covariates table");
-
-        boolean readyToPrint = false;
-        for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> tableEntry : map.entrySet()) {
-            final BQSRKeyManager keyManager = tableEntry.getKey();
-
-            if (keyManager.getNumRequiredCovariates() == 2 && keyManager.getNumOptionalCovariates() == 0) {             // look for the QualityScore table
-                final Map<Long, RecalDatum> table = tableEntry.getValue();
-
-                // add the quality score table to the delta table
-                for (final Map.Entry<Long, RecalDatum> entry : table.entrySet()) {                                      // go through every element in the covariates table to create the delta table
-                    final RecalDatum recalDatum = entry.getValue();                                                     // the current element (recal datum)
-
-                    final List<Object> covs = keyManager.keySetFrom(entry.getKey());                                    // extract the key objects from the bitset key
-                    final List<Object> newCovs = new ArrayList<Object>(4);
-                    newCovs.add(0, covs.get(0));                                                                        // replace the covariate value with the quality score
-                    newCovs.add(1, covs.get(1));
-                    newCovs.add(2, "QualityScore");                                                                     // replace the covariate name with QualityScore (for the QualityScore covariate)
-                    newCovs.add(3, covs.get(2));
-                    final long deltaKey = deltaKeyManager.longFromKey(newCovs.toArray());                               // create a new bitset key for the delta table
-                    addToDeltaTable(deltaTable, deltaKey, recalDatum);                                                  // add this covariate to the delta table
-                }
-            }
-
-            else if (keyManager.getNumOptionalCovariates() > 0) {                                                       // look for the optional covariates table
-                final Map<Long, RecalDatum> table = tableEntry.getValue();
-
-                // add the optional covariates to the delta table
-                for (final Map.Entry<Long, RecalDatum> entry : table.entrySet()) {                                      // go through every element in the covariates table to create the delta table
-                    final RecalDatum recalDatum = entry.getValue();                                                     // the current element (recal datum)
-
-                    final List<Object> covs = keyManager.keySetFrom(entry.getKey());                                    // extract the key objects from the bitset key
-                    covs.remove(QUALITY_SCORE_COVARIATE_INDEX);                                                         // reset the quality score covariate to 0 from the keyset (so we aggregate all rows regardless of QS)
-                    final long deltaKey = deltaKeyManager.longFromKey(covs.toArray());                                  // create a new bitset key for the delta table
-                    addToDeltaTable(deltaTable, deltaKey, recalDatum);                                                  // add this covariate to the delta table
-                }
-                readyToPrint = true;
-            }
-
-            // output the csv file
-            if (readyToPrint) {
-
-                if (printHeader) {
-                    final List<String> header = new LinkedList<String>();
-                    header.add("ReadGroup");
-                    header.add("CovariateValue");
-                    header.add("CovariateName");
-                    header.add("EventType");
-                    header.add("Observations");
-                    header.add("Errors");
-                    header.add("EmpiricalQuality");
-                    header.add("AverageReportedQuality");
-                    header.add("Accuracy");
-                    header.add("Recalibration");
-                    deltaTableFile.println(Utils.join(",", header));
-                }
-
-                // print each data line
-                for (final Map.Entry<Long, RecalDatum> deltaEntry : deltaTable.entrySet()) {
-                    final List<Object> deltaKeys = deltaKeyManager.keySetFrom(deltaEntry.getKey());
-                    final RecalDatum deltaDatum = deltaEntry.getValue();
-                    deltaTableFile.print(Utils.join(",", deltaKeys));
-                    deltaTableFile.print("," + deltaDatum.stringForCSV());
-                    deltaTableFile.println("," + recalibrationMode);
-                }
-
-            }
-
+        // add the optional covariates to the delta table
+        final NestedHashMap covTable = recalibrationTables.getTable(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLE);
+        for (final NestedHashMap.Leaf leaf : covTable.getAllLeaves()) {
+            final List<Object> covs = new ArrayList<Object>(leaf.keys);
+            covs.remove(1);                                                                                             // reset the quality score covariate to 0 from the keyset (so we aggregate all rows regardless of QS)
+            addToDeltaTable(deltaTable, covs.toArray(), (RecalDatum)leaf.value);                                        // add this covariate to the delta table
         }
+
+        // output the csv file
+        if (printHeader) {
+            final List<String> header = new LinkedList<String>();
+            header.add("ReadGroup");
+            header.add("CovariateValue");
+            header.add("CovariateName");
+            header.add("EventType");
+            header.add("Observations");
+            header.add("Errors");
+            header.add("EmpiricalQuality");
+            header.add("AverageReportedQuality");
+            header.add("Accuracy");
+            header.add("Recalibration");
+            deltaTableFile.println(Utils.join(",", header));
+        }
+
+        final Map<Covariate, String> covariateNameMap = new HashMap<Covariate, String>(requestedCovariates.length);
+        for (final Covariate covariate : requestedCovariates)
+            covariateNameMap.put(covariate, parseCovariateName(covariate));
+
+        // print each data line
+        for (final NestedHashMap.Leaf leaf : deltaTable.getAllLeaves()) {
+            final List<Object> deltaKeys = generateValuesFromKeys(leaf.keys, requestedCovariates, covariateNameMap);
+            final RecalDatum deltaDatum = (RecalDatum)leaf.value;
+            deltaTableFile.print(Utils.join(",", deltaKeys));
+            deltaTableFile.print("," + deltaDatum.stringForCSV());
+            deltaTableFile.println("," + recalibrationMode);
+        }
+    }
+
+    private static List<Object> generateValuesFromKeys(final List<Object> keys, final Covariate[] covariates, final Map<Covariate, String> covariateNameMap) {
+        final List<Object> values = new ArrayList<Object>(4);
+        values.add(covariates[0].formatKey((Integer)keys.get(0)));
+
+        // TODO -- create static final variables to hold the indexes of the RG, qual, cov ID, etc.
+
+        final int covariateIndex = (Integer)keys.get(1);
+        final Covariate covariate = covariateIndex == covariates.length ? covariates[1] : covariates[2 + covariateIndex];
+        final int covariateKey = (Integer)keys.get(2);
+        values.add(covariate.formatKey(covariateKey));
+        values.add(covariateNameMap.get(covariate));
+
+        final EventType event = EventType.eventFrom((Integer)keys.get(3));
+        values.add(event);
+
+        return values;
     }
 
     /**
@@ -453,14 +422,13 @@ public class RecalDataManager {
      * @param deltaKey the key to the table
      * @param recalDatum the recal datum to combine with the accuracyDatum element in the table
      */
-    private static void addToDeltaTable(Map<Long, RecalDatum> deltaTable, Long deltaKey, RecalDatum recalDatum) {
-        final RecalDatum deltaDatum = deltaTable.get(deltaKey);                                                         // check if we already have a RecalDatum for this key
+    private static void addToDeltaTable(final NestedHashMap deltaTable, final Object[] deltaKey, final RecalDatum recalDatum) {
+        final RecalDatum deltaDatum = (RecalDatum)deltaTable.get(deltaKey);                                             // check if we already have a RecalDatum for this key
         if (deltaDatum == null)
-            deltaTable.put(deltaKey, new RecalDatum(recalDatum));                                                       // if we don't have a key yet, create a new one with the same values as the curent datum
+            deltaTable.put(new RecalDatum(recalDatum), deltaKey);                                                       // if we don't have a key yet, create a new one with the same values as the curent datum
         else
             deltaDatum.combine(recalDatum);                                                                             // if we do have a datum, combine it with this one.
     }
-
 
     /**
      * Section of code shared between the two recalibration walkers which uses the command line arguments to adjust attributes of the read such as quals or platform string
@@ -627,13 +595,13 @@ public class RecalDataManager {
      *
      * @param read                The read for which to compute covariate values.
      * @param requestedCovariates The list of requested covariates.
-     * @param readCovariates      The object to store the covariate values
+     * @param resultsStorage      The object to store the covariate values
      */
-    public static void computeCovariates(final GATKSAMRecord read, final Covariate[] requestedCovariates, final ReadCovariates readCovariates) {
+    public static void computeCovariates(final GATKSAMRecord read, final Covariate[] requestedCovariates, final ReadCovariates resultsStorage) {
         // Loop through the list of requested covariates and compute the values of each covariate for all positions in this read
         for (int i = 0; i < requestedCovariates.length; i++) {
-            readCovariates.setCovariateIndex(i);
-            requestedCovariates[i].recordValues(read, readCovariates);
+            resultsStorage.setCovariateIndex(i);
+            requestedCovariates[i].recordValues(read, resultsStorage);
         }
     }
 

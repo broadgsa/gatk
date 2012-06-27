@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.walkers.bqsr.BQSRKeyManager;
-import org.broadinstitute.sting.gatk.walkers.bqsr.ContextCovariate;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -58,20 +56,5 @@ public class BitSetUtilsUnitTest {
         // Test the special cases listed in the dna array
         //for (String d : dna)
         //    Assert.assertEquals(BitSetUtils.dnaFrom(BitSetUtils.bitSetFrom(d)), d);
-    }
-
-    @Test(enabled = true)
-    public void testNumberOfBitsToRepresent() {
-        Assert.assertEquals(BQSRKeyManager.numberOfBitsToRepresent(0), 0); // Make sure 0 elements need 0 bits to be represented
-        Assert.assertEquals(BQSRKeyManager.numberOfBitsToRepresent(1), 1); // Make sure 1 element needs 1 bit to be represented
-        Assert.assertEquals(BQSRKeyManager.numberOfBitsToRepresent(3), 2); // Make sure 3 elements need 2 bit to be represented
-
-        for (int i = 1; i < 63; i++) {                                  // Can't test i == 63 because n1 is a negative number
-            long n1 = 1L << i;
-            long n2 = Math.abs(random.nextLong()) % n1;
-            long n3 = n1 | n2;
-            Assert.assertEquals(BQSRKeyManager.numberOfBitsToRepresent(n3), (n3 == n1) ? i : i + 1);
-            Assert.assertEquals(BQSRKeyManager.numberOfBitsToRepresent(n1), i);
-        }
     }
 }

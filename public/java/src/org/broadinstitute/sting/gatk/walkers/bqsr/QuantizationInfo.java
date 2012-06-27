@@ -1,13 +1,14 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.recalibration.QualQuantizer;
+import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Class that encapsulates the information necessary for quality score quantization for BQSR
@@ -30,25 +31,17 @@ public class QuantizationInfo {
         this(quantizedQuals, empiricalQualCounts, calculateQuantizationLevels(quantizedQuals));
     }
     
-    public QuantizationInfo(Map<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap, int quantizationLevels) {
+    public QuantizationInfo(final RecalibrationTables recalibrationTables, final int quantizationLevels) {
         final Long [] qualHistogram = new Long[QualityUtils.MAX_QUAL_SCORE+1];                                          // create a histogram with the empirical quality distribution
         for (int i = 0; i < qualHistogram.length; i++)
             qualHistogram[i] = 0L;
 
-        Map<Long, RecalDatum> qualTable = null;                                                                         // look for the quality score table
-        for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> entry : keysAndTablesMap.entrySet()) {
-            BQSRKeyManager keyManager = entry.getKey();
-            if (keyManager.getNumRequiredCovariates() == 2)                                                             // it should be the only one with 2 required covariates
-                qualTable = entry.getValue();
-        }
+        final NestedHashMap qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE); // get the quality score table
 
-        if (qualTable == null)
-            throw new ReviewedStingException("Could not find QualityScore table.");
-
-        for (RecalDatum datum : qualTable.values()) {
-            int empiricalQual = (int) Math.round(datum.getEmpiricalQuality());                                          // convert the empirical quality to an integer ( it is already capped by MAX_QUAL )
-            long nObservations = datum.numObservations;
-            qualHistogram[empiricalQual] += nObservations;                                                              // add the number of observations for every key
+        for (final Object value : qualTable.getAllValues()) {
+            final RecalDatum datum = (RecalDatum)value;
+            final int empiricalQual = MathUtils.fastRound(datum.getEmpiricalQuality());                                 // convert the empirical quality to an integer ( it is already capped by MAX_QUAL )
+            qualHistogram[empiricalQual] += datum.numObservations;                                                      // add the number of observations for every key
         }
         empiricalQualCounts = Arrays.asList(qualHistogram);                                                             // histogram with the number of observations of the empirical qualities
         quantizeQualityScores(quantizationLevels);

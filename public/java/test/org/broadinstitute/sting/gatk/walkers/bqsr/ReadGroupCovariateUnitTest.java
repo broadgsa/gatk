@@ -46,8 +46,8 @@ public class ReadGroupCovariateUnitTest {
 
     }
 
-    private void verifyCovariateArray(long[][] values, String expected) {
-        for (long[] value : values) {
+    private void verifyCovariateArray(int[][] values, String expected) {
+        for (int[] value : values) {
             String actual = covariate.formatKey(value[0]);
             Assert.assertEquals(actual, expected);
         }

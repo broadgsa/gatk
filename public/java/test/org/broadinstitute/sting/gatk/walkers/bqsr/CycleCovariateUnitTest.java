@@ -47,7 +47,7 @@ public class CycleCovariateUnitTest {
         verifyCovariateArray(readCovariates.getMismatchesKeySet(), -1, -1);
     }
 
-    private void verifyCovariateArray(long[][] values, int init, int increment) {
+    private void verifyCovariateArray(int[][] values, int init, int increment) {
         for (short i = 0; i < values.length; i++) {
             short actual = Short.decode(covariate.formatKey(values[i][0]));
             int expected = init + (increment * i);
