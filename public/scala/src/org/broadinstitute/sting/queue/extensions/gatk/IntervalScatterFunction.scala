@@ -33,12 +33,12 @@ import org.broadinstitute.sting.queue.function.InProcessFunction
  */
 class IntervalScatterFunction extends GATKScatterFunction with InProcessFunction {
   protected override def maxIntervals =
-    GATKScatterFunction.getGATKIntervals(this.referenceSequence, this.intervals).locs.size
+    GATKScatterFunction.getGATKIntervals(this.originalGATK).locs.size
 
   override def scatterCount = if (intervalFilesExist) super.scatterCount min this.maxIntervals else super.scatterCount
 
   def run() {
-    val gi = GATKScatterFunction.getGATKIntervals(this.referenceSequence, this.intervals)
+    val gi = GATKScatterFunction.getGATKIntervals(this.originalGATK)
     val splits = IntervalUtils.splitFixedIntervals(gi.locs, this.scatterOutputFiles.size)
     IntervalUtils.scatterFixedIntervals(gi.samFileHeader, splits, this.scatterOutputFiles)
   }

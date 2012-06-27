@@ -42,4 +42,43 @@ class ExampleUnifiedGenotyperPipelineTest {
     spec.jobRunners = PipelineTest.allJobRunners
     PipelineTest.executeTest(spec)
   }
+
+  @Test
+  def testUnifiedGenotyperWithGatkIntervals() {
+    val spec = new PipelineTestSpec
+    spec.name = "unifiedgenotyper_with_gatk_intervals"
+    spec.args = Array(
+      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
+      " -I " + BaseTest.validationDataLocation + "OV-0930.normal.chunk.bam",
+      " -R " + BaseTest.hg18Reference,
+      " -L " + BaseTest.validationDataLocation + "intervalTest.intervals").mkString
+    spec.jobRunners = Seq("Lsf706")
+    PipelineTest.executeTest(spec)
+  }
+
+  @Test
+  def testUnifiedGenotyperWithBedIntervals() {
+    val spec = new PipelineTestSpec
+    spec.name = "unifiedgenotyper_with_bed_intervals"
+    spec.args = Array(
+      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
+      " -I " + BaseTest.validationDataLocation + "OV-0930.normal.chunk.bam",
+      " -R " + BaseTest.hg18Reference,
+      " -L " + BaseTest.validationDataLocation + "intervalTest.bed").mkString
+    spec.jobRunners = Seq("Lsf706")
+    PipelineTest.executeTest(spec)
+  }
+
+  @Test
+  def testUnifiedGenotyperWithVcfIntervals() {
+    val spec = new PipelineTestSpec
+    spec.name = "unifiedgenotyper_with_vcf_intervals"
+    spec.args = Array(
+      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
+      " -I " + BaseTest.validationDataLocation + "OV-0930.normal.chunk.bam",
+      " -R " + BaseTest.hg18Reference,
+      " -L " + BaseTest.validationDataLocation + "intervalTest.1.vcf").mkString
+    spec.jobRunners = Seq("Lsf706")
+    PipelineTest.executeTest(spec)
+  }
 }

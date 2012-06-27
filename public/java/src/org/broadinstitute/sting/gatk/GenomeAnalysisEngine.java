@@ -30,7 +30,6 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
-import org.broad.tribble.Feature;
 import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
@@ -54,9 +53,9 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
@@ -582,7 +581,6 @@ public class GenomeAnalysisEngine {
      * Setup the intervals to be processed
      */
     protected void initializeIntervals() {
-
         // return if no interval arguments at all
         if ( argCollection.intervals == null && argCollection.excludeIntervals == null )
             return;
@@ -590,17 +588,22 @@ public class GenomeAnalysisEngine {
         // Note that the use of '-L all' is no longer supported.
 
         // if include argument isn't given, create new set of all possible intervals
-        GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null ?
-            GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getReference().getSequenceDictionary()) :
-            loadIntervals(argCollection.intervals, argCollection.intervalSetRule, argCollection.intervalPadding));
+
+        Pair<GenomeLocSortedSet, GenomeLocSortedSet> includeExcludePair = IntervalUtils.parseIntervalBindingsPair(
+                this.referenceDataSource,
+                argCollection.intervals,
+                argCollection.intervalSetRule, argCollection.intervalMerging, argCollection.intervalPadding,
+                argCollection.excludeIntervals);
+
+        GenomeLocSortedSet includeSortedSet = includeExcludePair.getFirst();
+        GenomeLocSortedSet excludeSortedSet = includeExcludePair.getSecond();
 
         // if no exclude arguments, can return parseIntervalArguments directly
-        if ( argCollection.excludeIntervals == null )
+        if ( excludeSortedSet == null )
             intervals = includeSortedSet;
 
         // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
         else {
-            GenomeLocSortedSet excludeSortedSet = loadIntervals(argCollection.excludeIntervals, IntervalSetRule.UNION);
             intervals = includeSortedSet.subtractRegions(excludeSortedSet);
 
             // logging messages only printed when exclude (-XL) arguments are given
@@ -611,43 +614,6 @@ public class GenomeAnalysisEngine {
             logger.info(String.format("Excluding %d loci from original intervals (%.2f%% reduction)",
                     toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
         }
-    }
-
-    /**
-     * Loads the intervals relevant to the current execution
-     * @param argList  argument bindings; might include filenames, intervals in samtools notation, or a combination of the above
-     * @param rule     interval merging rule
-     * @return A sorted, merged list of all intervals specified in this arg list.
-     */
-    protected GenomeLocSortedSet loadIntervals( final List<IntervalBinding<Feature>> argList, final IntervalSetRule rule ) {
-        return loadIntervals(argList, rule, 0);
-    }
-
-        /**
-        * Loads the intervals relevant to the current execution
-        * @param argList  argument bindings; might include filenames, intervals in samtools notation, or a combination of the above
-        * @param rule     interval merging rule
-        * @param padding  how much to pad the intervals
-        * @return A sorted, merged list of all intervals specified in this arg list.
-        */
-    protected GenomeLocSortedSet loadIntervals( final List<IntervalBinding<Feature>> argList, final IntervalSetRule rule, final int padding ) {
-
-        List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>();
-        for ( IntervalBinding intervalBinding : argList ) {
-            List<GenomeLoc> intervals = intervalBinding.getIntervals(this.getGenomeLocParser());
-
-            if ( intervals.isEmpty() ) {
-                logger.warn("The interval file " + intervalBinding.getSource() + " contains no intervals that could be parsed.");
-            }
-
-            if ( padding > 0 ) {
-                intervals = IntervalUtils.getIntervalsWithFlanks(this.getGenomeLocParser(), intervals, padding);
-            }
-
-            allIntervals = IntervalUtils.mergeListsBySetOperator(intervals, allIntervals, rule);
-        }
-
-        return IntervalUtils.sortAndMergeIntervals(genomeLocParser, allIntervals, argCollection.intervalMerging);
     }
 
     /**
