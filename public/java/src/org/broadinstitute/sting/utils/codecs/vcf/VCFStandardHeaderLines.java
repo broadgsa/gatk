@@ -183,6 +183,7 @@ public class VCFStandardHeaderLines {
         registerStandard(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Approximate read depth (reads with MQ=255 or with bad mates are filtered)"));
         registerStandard(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_PL_KEY, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
         registerStandard(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_ALLELE_DEPTHS, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "Allelic depths for the ref and alt alleles in the order listed"));
+        registerStandard(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_FILTER_KEY, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "Genotype-level filter"));
 
         // INFO lines
         registerStandard(new VCFInfoHeaderLine(VCFConstants.END_KEY, 1, VCFHeaderLineType.Integer, "Stop position of the interval"));

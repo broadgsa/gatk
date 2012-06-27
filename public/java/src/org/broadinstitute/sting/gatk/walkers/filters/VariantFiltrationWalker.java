@@ -176,7 +176,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             hInfo.add(new VCFFilterHeaderLine(exp.name, exp.exp.toString()));
 
         if ( genotypeFilterExps.size() > 0 )
-            hInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_FILTER_KEY, 1, VCFHeaderLineType.String, "Genotype-level filter"));
+            hInfo.add(VCFStandardHeaderLines.getFormatLine(VCFConstants.GENOTYPE_FILTER_KEY));
 
         if ( mask.isBound() ) {
             hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
