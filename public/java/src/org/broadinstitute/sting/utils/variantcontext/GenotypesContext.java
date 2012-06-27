@@ -416,6 +416,7 @@ public class GenotypesContext implements List<Genotype> {
     @Ensures("result >= 0")
     public int getMaxPloidy() {
         if ( maxPloidy == -1 ) {
+            maxPloidy = 0; // necessary in the case where there are no genotypes
             for ( final Genotype g : getGenotypes() ) {
                 maxPloidy = Math.max(g.getPloidy(), maxPloidy);
             }
