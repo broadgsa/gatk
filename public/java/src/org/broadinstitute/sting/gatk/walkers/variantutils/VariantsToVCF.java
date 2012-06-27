@@ -108,6 +108,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
     private Set<String> allowedGenotypeFormatStrings = new HashSet<String>();
     private boolean wroteHeader = false;
+    private Set<String> samples;
 
     // for dealing with indels in hapmap
     CloseableIterator<GATKFeature> dbsnpIterator = null;
@@ -228,7 +229,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 }
             }
 
-            Set<String> samples = new LinkedHashSet<String>();
+            samples = new LinkedHashSet<String>();
             if ( sampleName != null ) {
                 samples.add(sampleName);
             } else {
@@ -252,6 +253,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         }
 
         vc = VariantContextUtils.purgeUnallowedGenotypeAttributes(vc, allowedGenotypeFormatStrings);
+        vc = VariantContextUtils.addMissingSamples(vc, samples);
         vcfwriter.add(vc);
     }
 

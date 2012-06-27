@@ -187,6 +187,8 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
     // the annotation engine
     private VariantAnnotatorEngine annotationEngine;
 
+    private Set<String> samples;
+
     // enable deletions in the pileup
     @Override
     public boolean includeReadsWithDeletionAtLoci() { return true; }
@@ -231,7 +233,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
             logger.warn("WARNING: note that the EMIT_ALL_SITES option is intended only for point mutations (SNPs) in DISCOVERY mode or generally when running in GENOTYPE_GIVEN_ALLELES mode; it will by no means produce a comprehensive set of indels in DISCOVERY mode");
         
         // get all of the unique sample names
-        Set<String> samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
+        samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
 
         // initialize the verbose writer
         if ( verboseWriter != null )
@@ -298,7 +300,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
      * @return the VariantCallContext object
      */
     public List<VariantCallContext> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
-        return UG_engine.calculateLikelihoodsAndGenotypes(tracker, refContext, rawContext);
+        return UG_engine.calculateLikelihoodsAndGenotypes(tracker, refContext, rawContext, samples);
     }
 
     public UGStatistics reduceInit() { return new UGStatistics(); }
