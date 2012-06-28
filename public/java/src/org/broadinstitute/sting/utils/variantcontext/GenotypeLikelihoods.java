@@ -363,13 +363,11 @@ public class GenotypeLikelihoods {
      *   S(N,1) = N  (only way to have N integers add up to 1 is all-zeros except one element with a one. There are N of these vectors)
      *   S(1,P) = 1 (only way to have 1 integer add to P is with that integer P itself).
      *
-     * note that in the case where ploidy == 0 we assume that the ploidy actually == 2
-     *
      *   @param  numAlleles      Number of alleles (including ref)
      *   @param  ploidy          Ploidy, or number of chromosomes in set
      *   @return    Number of likelihood elements we need to hold.
      */
-    @Requires({"ploidy >= 0", "numAlleles > 0"})
+    @Requires({"ploidy > 0", "numAlleles > 0"})
     @Ensures("result > 0")
     public static int numLikelihoods(final int numAlleles, final int ploidy) {
         if ( numAlleles < NUM_LIKELIHOODS_CACHE_N_ALLELES
