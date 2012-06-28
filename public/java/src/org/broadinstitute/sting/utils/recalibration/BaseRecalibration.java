@@ -112,10 +112,12 @@ public class BaseRecalibration {
 
                 if (originalQualityScore >= QualityUtils.MIN_USABLE_Q_SCORE) {                                          // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
                     final int[] keySet = fullReadKeySet[offset];                                                        // get the keyset for this base using the error model
-                    Byte recalibratedQualityScore = (Byte) qualityScoreByFullCovariateKey[errorModel.index].get(wrapKeySet(keySet));
+                    //final Object[] wrappedKeySet = wrapKeySet(keySet);
+                    //Byte recalibratedQualityScore = (Byte) qualityScoreByFullCovariateKey[errorModel.index].get(wrappedKeySet);
+                    Byte recalibratedQualityScore = null;
                     if (recalibratedQualityScore == null) {
                         recalibratedQualityScore = performSequentialQualityCalculation(keySet, errorModel);             // recalibrate the base
-                        qualityScoreByFullCovariateKey[errorModel.index].put(recalibratedQualityScore, keySet);
+                        //qualityScoreByFullCovariateKey[errorModel.index].put(recalibratedQualityScore, wrappedKeySet);
                     }
                     quals[offset] = recalibratedQualityScore;
                 }
