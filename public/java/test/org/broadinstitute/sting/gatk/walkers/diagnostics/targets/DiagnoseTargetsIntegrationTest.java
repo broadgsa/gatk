@@ -38,17 +38,17 @@ public class DiagnoseTargetsIntegrationTest extends WalkerTest {
     private void DTTest(String testName, String args, String md5) {
         String base = String.format("-T DiagnoseTargets  --no_cmdline_in_header -R %s -L %s", REF, L) + " -o %s ";
         WalkerTestSpec spec = new WalkerTestSpec(base + args, Arrays.asList(md5));
-        spec.disableShadowBCF();
+        //spec.disableShadowBCF();
         executeTest(testName, spec);
     }
 
     @Test(enabled = true)
     public void testSingleSample() {
-        DTTest("testSingleSample ", "-I " + singleSample + " -max 75", "ef71a569a48697c89e642cdda7bfb766");
+        DTTest("testSingleSample ", "-I " + singleSample + " -max 75", "a10a0a20c6402207a2d968113595fde8");
     }
 
     @Test(enabled = true)
     public void testMultiSample() {
-        DTTest("testMultiSample ", "-I " + multiSample, "1e6e15156e01e736274898fdac77d911");
+        DTTest("testMultiSample ", "-I " + multiSample, "359a7da40e4803fc5e43e0e5211ef013");
     }
 }
