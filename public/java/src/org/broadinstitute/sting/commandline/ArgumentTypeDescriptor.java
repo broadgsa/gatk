@@ -345,7 +345,8 @@ public abstract class ArgumentTypeDescriptor {
 
                 FeatureManager manager = new FeatureManager();
                 if ( manager.getByName(tribbleType) == null )
-                    throw new UserException.CommandLineException(
+                    throw new UserException.UnknownTribbleType(
+                            tribbleType,
                             String.format("Unable to find tribble type '%s' provided on the command line. " +
                                     "Please select a correct type from among the supported types:%n%s",
                                     tribbleType, manager.userFriendlyListOfAvailableFeatures(parameterType)));

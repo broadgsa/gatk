@@ -71,11 +71,13 @@ public class BQSRGatherer extends Gatherer  {
         if (RAC.recalibrationReport != null && !RAC.NO_PLOTS) {
             File recal_out = new File(output.getName() + ".original");
             RecalibrationReport originalReport = new RecalibrationReport(RAC.recalibrationReport);
-            RecalDataManager.generateRecalibrationPlot(recal_out, originalReport.getKeysAndTablesMap(), generalReport.getKeysAndTablesMap(), RAC.KEEP_INTERMEDIATE_FILES);
+            // TODO -- fix me
+            //RecalDataManager.generateRecalibrationPlot(recal_out, originalReport.getKeysAndTablesMap(), generalReport.getKeysAndTablesMap(), RAC.KEEP_INTERMEDIATE_FILES);
         }
         else if (!RAC.NO_PLOTS) {
             File recal_out = new File(output.getName() + ".recal");
-            RecalDataManager.generateRecalibrationPlot(recal_out, generalReport.getKeysAndTablesMap(), RAC.KEEP_INTERMEDIATE_FILES);
+            // TODO -- fix me
+            //RecalDataManager.generateRecalibrationPlot(recal_out, generalReport.getKeysAndTablesMap(), RAC.KEEP_INTERMEDIATE_FILES);
         }
 
         generalReport.output(outputFile);

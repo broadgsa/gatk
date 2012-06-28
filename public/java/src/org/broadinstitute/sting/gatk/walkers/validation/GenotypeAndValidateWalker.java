@@ -261,6 +261,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
 
     private UnifiedGenotyperEngine snpEngine;
     private UnifiedGenotyperEngine indelEngine;
+    private Set<String> samples;
 
     public static class CountedData {
         private long nAltCalledAlt = 0L;
@@ -307,7 +308,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         // Initialize VCF header
         if (vcfWriter != null) {
             Map<String, VCFHeader> header = VCFUtils.getVCFHeadersFromRodPrefix(getToolkit(), alleles.getName());
-            Set<String> samples = SampleUtils.getSampleList(header, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
+            samples = SampleUtils.getSampleList(header, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
             Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(header.values(), logger);
             headerLines.add(new VCFHeaderLine("source", "GenotypeAndValidate"));
             vcfWriter.writeHeader(new VCFHeader(headerLines, samples));

@@ -2,6 +2,8 @@ package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
+import java.util.Arrays;
+
 /**
  * BaseUtils contains some basic utilities for manipulating nucleotides.
  */
@@ -45,6 +47,20 @@ public class BaseUtils {
         public boolean sameBase(char o) { return b == (byte) o; }
 
         public boolean sameBase(int i) { return index == i; }
+    }
+
+    static private final int[] baseIndexMap = new int[256];
+    static {
+        Arrays.fill(baseIndexMap, -1);
+        baseIndexMap['A'] = 0;
+        baseIndexMap['a'] = 0;
+        baseIndexMap['*'] = 0;    // the wildcard character counts as an A
+        baseIndexMap['C'] = 1;
+        baseIndexMap['c'] = 1;
+        baseIndexMap['G'] = 2;
+        baseIndexMap['g'] = 2;
+        baseIndexMap['T'] = 3;
+        baseIndexMap['t'] = 3;
     }
 
     // todo -- fix me (enums?)
@@ -182,27 +198,7 @@ public class BaseUtils {
      * @return 0, 1, 2, 3, or -1 if the base can't be understood
      */
     static public int simpleBaseToBaseIndex(byte base) {
-        switch (base) {
-            case '*':               // the wildcard character counts as an A
-            case 'A':
-            case 'a':
-                return 0;
-
-            case 'C':
-            case 'c':
-                return 1;
-
-            case 'G':
-            case 'g':
-                return 2;
-
-            case 'T':
-            case 't':
-                return 3;
-
-            default:
-                return -1;
-        }
+        return baseIndexMap[base];
     }
 
     /**
@@ -213,27 +209,7 @@ public class BaseUtils {
      */
     @Deprecated
     static public int simpleBaseToBaseIndex(char base) {
-        switch (base) {
-            case '*':               // the wildcard character counts as an A
-            case 'A':
-            case 'a':
-                return 0;
-
-            case 'C':
-            case 'c':
-                return 1;
-
-            case 'G':
-            case 'g':
-                return 2;
-
-            case 'T':
-            case 't':
-                return 3;
-
-            default:
-                return -1;
-        }
+        return baseIndexMap[base];
     }
 
     static public int extendedBaseToBaseIndex(byte base) {
@@ -282,11 +258,6 @@ public class BaseUtils {
             default:
                 return '.';
         }
-    }
-
-    @Deprecated
-    static public char baseIndexToSimpleBaseAsChar(int baseIndex) {
-        return (char) baseIndexToSimpleBase(baseIndex);
     }
 
     /**

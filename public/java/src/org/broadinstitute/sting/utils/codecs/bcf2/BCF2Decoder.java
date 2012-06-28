@@ -136,6 +136,10 @@ public final class BCF2Decoder {
 
     public final Object decodeTypedValue(final byte typeDescriptor) {
         final int size = decodeNumberOfElements(typeDescriptor);
+        return decodeTypedValue(typeDescriptor, size);
+    }
+
+    public final Object decodeTypedValue(final byte typeDescriptor, final int size) {
         final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
 
         assert size >= 0;
@@ -285,8 +289,7 @@ public final class BCF2Decoder {
         }
     }
 
-    public final int[] decodeIntArray(final byte typeDescriptor) {
-        final int size = decodeNumberOfElements(typeDescriptor);
+    public final int[] decodeIntArray(final byte typeDescriptor, final int size) {
         final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
         return decodeIntArray(size, type, null);
     }

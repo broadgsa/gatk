@@ -58,7 +58,6 @@ public class GenotypeLikelihoods {
     static {
         // must be done before PLIndexToAlleleIndex
         for ( int numAlleles = 1; numAlleles < NUM_LIKELIHOODS_CACHE_N_ALLELES; numAlleles++ ) {
-            //numLikelihoodCache[numAlleles] = new int[NUM_LIKELIHOODS_CACHE_PLOIDY];
             for ( int ploidy = 1; ploidy < NUM_LIKELIHOODS_CACHE_PLOIDY; ploidy++ ) {
                 numLikelihoodCache[numAlleles][ploidy] = calcNumLikelihoods(numAlleles, ploidy);
             }

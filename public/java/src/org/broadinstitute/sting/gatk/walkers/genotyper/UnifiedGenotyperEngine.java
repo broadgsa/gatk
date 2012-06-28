@@ -140,14 +140,39 @@ public class UnifiedGenotyperEngine {
     }
 
     /**
-     * Compute full calls at a given locus. Entry point for engine calls from the UnifiedGenotyper.
+     * @see #calculateLikelihoodsAndGenotypes(org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker, org.broadinstitute.sting.gatk.contexts.ReferenceContext, org.broadinstitute.sting.gatk.contexts.AlignmentContext, java.util.Set)
      *
-     * @param tracker    the meta data tracker
-     * @param refContext the reference base
-     * @param rawContext contextual information around the locus
-     * @return the VariantCallContext object
+     * same as the full call but with allSamples == null
+     *
+     * @param tracker
+     * @param refContext
+     * @param rawContext
+     * @return
      */
-    public List<VariantCallContext> calculateLikelihoodsAndGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
+    public List<VariantCallContext> calculateLikelihoodsAndGenotypes(final RefMetaDataTracker tracker,
+                                                                     final ReferenceContext refContext,
+                                                                     final AlignmentContext rawContext) {
+        return calculateLikelihoodsAndGenotypes(tracker, refContext, rawContext, null);
+    }
+
+
+        /**
+        * Compute full calls at a given locus. Entry point for engine calls from the UnifiedGenotyper.
+        *
+        * If allSamples != null, then the output variantCallContext is guarenteed to contain a genotype
+        * for every sample in allSamples.  If it's null there's no such guarentee.  Providing this
+        * argument is critical when the resulting calls will be written to a VCF file.
+        *
+        * @param tracker    the meta data tracker
+        * @param refContext the reference base
+        * @param rawContext contextual information around the locus
+        * @param allSamples set of all sample names that we might call (i.e., those in the VCF header)
+        * @return the VariantCallContext object
+        */
+    public List<VariantCallContext> calculateLikelihoodsAndGenotypes(final RefMetaDataTracker tracker,
+                                                                     final ReferenceContext refContext,
+                                                                     final AlignmentContext rawContext,
+                                                                     final Set<String> allSamples) {
         final List<VariantCallContext> results = new ArrayList<VariantCallContext>(2);
 
         final List<GenotypeLikelihoodsCalculationModel.Model> models = getGLModelsToUse(tracker, refContext, rawContext);
@@ -168,7 +193,23 @@ public class UnifiedGenotyperEngine {
             }        
         }
 
-        return results;
+        return addMissingSamples(results, allSamples);
+    }
+
+    private List<VariantCallContext> addMissingSamples(final List<VariantCallContext> calls, final Set<String> allSamples) {
+        if ( calls.isEmpty() || allSamples == null ) return calls;
+
+        final List<VariantCallContext> withAllSamples = new ArrayList<VariantCallContext>(calls.size());
+        for ( final VariantCallContext call : calls ) {
+            if ( call == null )
+                withAllSamples.add(call);
+            else {
+                final VariantContext withoutMissing = VariantContextUtils.addMissingSamples(call, allSamples);
+                withAllSamples.add(new VariantCallContext(withoutMissing, call.confidentlyCalled, call.shouldEmit));
+            }
+        }
+
+        return withAllSamples;
     }
 
     /**

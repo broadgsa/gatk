@@ -266,13 +266,13 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
 
         alleles.add(refAllele);
         alleles.add(SYMBOLIC_ALLELE);
-        VariantContextBuilder vcb = new VariantContextBuilder("DiagnoseTargets", interval.getContig(), interval.getStart(), interval.getStart(), alleles);
+        VariantContextBuilder vcb = new VariantContextBuilder("DiagnoseTargets", interval.getContig(), interval.getStart(), interval.getStop(), alleles);
 
         vcb = vcb.log10PError(VariantContext.NO_LOG10_PERROR);                                                          // QUAL field makes no sense in our VCF
-        vcb.filters(new HashSet<String>(statusesToStrings(stats.callableStatuses(thresholds))));
+        vcb.filters(new HashSet<String>(statusesToStrings(stats.callableStatuses(thresholds), true)));
 
         attributes.put(VCFConstants.END_KEY, interval.getStop());
-        attributes.put(VCFConstants.DEPTH_KEY, stats.averageCoverage());
+        attributes.put(ThresHolder.AVG_INTERVAL_DP_KEY, stats.averageCoverage());
 
         vcb = vcb.attributes(attributes);
         if (debug) {
@@ -282,7 +282,7 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
             final GenotypeBuilder gb = new GenotypeBuilder(sample);
 
             SampleStatistics sampleStat = stats.getSample(sample);
-            gb.DP((int)sampleStat.averageCoverage());
+            gb.attribute(ThresHolder.AVG_INTERVAL_DP_KEY, sampleStat.averageCoverage());
             gb.attribute("Q1", sampleStat.getQuantileDepth(0.25));
             gb.attribute("MED", sampleStat.getQuantileDepth(0.50));
             gb.attribute("Q3", sampleStat.getQuantileDepth(0.75));
@@ -290,7 +290,7 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
             if (debug) {
                 System.out.printf("Found %d bad mates out of %d reads %n", sampleStat.getnBadMates(), sampleStat.getnReads());
             }
-            gb.filters(statusesToStrings(stats.getSample(sample).getCallableStatuses(thresholds)));
+            gb.filters(statusesToStrings(stats.getSample(sample).getCallableStatuses(thresholds), false));
 
             genotypes.add(gb.make());
         }
@@ -307,11 +307,12 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
      * @param statuses the set of statuses to be converted
      * @return a matching set of strings
      */
-    private List<String> statusesToStrings(Set<CallableStatus> statuses) {
+    private List<String> statusesToStrings(Set<CallableStatus> statuses, final boolean includePASS) {
         List<String> output = new ArrayList<String>(statuses.size());
 
         for (CallableStatus status : statuses)
-            output.add(status.name());
+            if ( includePASS || status != CallableStatus.PASS ) // adding pass => results in a filter for genotypes
+                output.add(status.name());
 
         return output;
     }

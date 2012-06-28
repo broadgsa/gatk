@@ -480,7 +480,8 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
         final byte typeDescriptor = decoder.readTypeDescriptor();
 
         // read the int[] with the low-level version
-        final int[] decoded = decoder.decodeIntArray(typeDescriptor);
+        final int size = decoder.decodeNumberOfElements(typeDescriptor);
+        final int[] decoded = decoder.decodeIntArray(typeDescriptor, size);
 
         if ( isMissing(ints) ) {
             // we expect that the result is null in this case

@@ -75,22 +75,24 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
      * If the count is a fixed count, return that.  For example, a field with size of 1 in the header returns 1
      * If the count is of type A, return vc.getNAlleles - 1
      * If the count is of type G, return the expected number of genotypes given the number of alleles in VC and the
-     *   max ploidy among all samples
+     *   max ploidy among all samples.  Note that if the max ploidy of the VC is 0 (there's no GT information
+     *   at all, then implicitly assume diploid samples when computing G values.
      * If the count is UNBOUNDED return -1
      *
      * @param vc
      * @return
      */
     public int getCount(final VariantContext vc) {
-        int myCount;
         switch ( countType ) {
-            case INTEGER: myCount = count; break;
-            case UNBOUNDED: myCount = -1; break;
-            case A: myCount = vc.getNAlleles() - 1; break;
-            case G: myCount = GenotypeLikelihoods.numLikelihoods(vc.getNAlleles(), vc.getMaxPloidy()); break;
-            default: throw new ReviewedStingException("Unknown count type: " + countType);
+            case INTEGER:       return count;
+            case UNBOUNDED:     return -1;
+            case A:             return vc.getNAlleles() - 1;
+            case G:
+                final int ploidy = vc.getMaxPloidy();
+                return GenotypeLikelihoods.numLikelihoods(vc.getNAlleles(), ploidy == 0 ? 2 : ploidy);
+            default:
+                throw new ReviewedStingException("Unknown count type: " + countType);
         }
-        return myCount;
     }
 
     public void setNumberToUnbounded() {

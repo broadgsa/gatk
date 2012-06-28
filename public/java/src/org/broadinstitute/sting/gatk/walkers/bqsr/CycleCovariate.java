@@ -79,7 +79,7 @@ public class CycleCovariate implements StandardCovariate {
             final int CUSHION = 4;
             final int MAX_CYCLE = readLength - CUSHION - 1;
             for (int i = 0; i < readLength; i++) {
-                final long key = (i<CUSHION || i>MAX_CYCLE) ? -1L : keyFromCycle(cycle);
+                final int key = (i<CUSHION || i>MAX_CYCLE) ? -1 : keyFromCycle(cycle);
                 values.addCovariate(key, key, key, i);
                 cycle += increment;
             }
@@ -106,22 +106,22 @@ public class CycleCovariate implements StandardCovariate {
                 int iii = 0;
                 while (iii < readLength) {
                     while (iii < readLength && bases[iii] == (byte) 'T') {
-                        final long key = keyFromCycle(cycle);
+                        final int key = keyFromCycle(cycle);
                         values.addCovariate(key, key, key, iii);
                         iii++;
                     }
                     while (iii < readLength && bases[iii] == (byte) 'A') {
-                        final long key = keyFromCycle(cycle);
+                        final int key = keyFromCycle(cycle);
                         values.addCovariate(key, key, key, iii);
                         iii++;
                     }
                     while (iii < readLength && bases[iii] == (byte) 'C') {
-                        final long key = keyFromCycle(cycle);
+                        final int key = keyFromCycle(cycle);
                         values.addCovariate(key, key, key, iii);
                         iii++;
                     }
                     while (iii < readLength && bases[iii] == (byte) 'G') {
-                        final long key = keyFromCycle(cycle);
+                        final int key = keyFromCycle(cycle);
                         values.addCovariate(key, key, key, iii);
                         iii++;
                     }
@@ -132,7 +132,7 @@ public class CycleCovariate implements StandardCovariate {
                             cycle++;
                     }
                     if (iii < readLength && !BaseUtils.isRegularBase(bases[iii])) {
-                        final long key = keyFromCycle(cycle);
+                        final int key = keyFromCycle(cycle);
                         values.addCovariate(key, key, key, iii);
                         iii++;
                     }
@@ -143,22 +143,22 @@ public class CycleCovariate implements StandardCovariate {
                 int iii = readLength - 1;
                 while (iii >= 0) {
                     while (iii >= 0 && bases[iii] == (byte) 'T') {
-                        final long key = keyFromCycle(cycle);
+                        final int key = keyFromCycle(cycle);
                         values.addCovariate(key, key, key, iii);
                         iii--;
                     }
                     while (iii >= 0 && bases[iii] == (byte) 'A') {
-                        final long key = keyFromCycle(cycle);
+                        final int key = keyFromCycle(cycle);
                         values.addCovariate(key, key, key, iii);
                         iii--;
                     }
                     while (iii >= 0 && bases[iii] == (byte) 'C') {
-                        final long key = keyFromCycle(cycle);
+                        final int key = keyFromCycle(cycle);
                         values.addCovariate(key, key, key, iii);
                         iii--;
                     }
                     while (iii >= 0 && bases[iii] == (byte) 'G') {
-                        final long key = keyFromCycle(cycle);
+                        final int key = keyFromCycle(cycle);
                         values.addCovariate(key, key, key, iii);
                         iii--;
                     }
@@ -169,7 +169,7 @@ public class CycleCovariate implements StandardCovariate {
                             cycle++;
                     }
                     if (iii >= 0 && !BaseUtils.isRegularBase(bases[iii])) {
-                        final long key = keyFromCycle(cycle);
+                        final int key = keyFromCycle(cycle);
                         values.addCovariate(key, key, key, iii);
                         iii--;
                     }
@@ -190,26 +190,21 @@ public class CycleCovariate implements StandardCovariate {
     }
 
     @Override
-    public String formatKey(final long key) {
-        long cycle = key >> 1;  // shift so we can remove the "sign" bit
+    public String formatKey(final int key) {
+        int cycle = key >> 1;  // shift so we can remove the "sign" bit
         if ( (key & 1) != 0 )   // is the last bit set?
             cycle *= -1;        // then the cycle is negative
         return String.format("%d", cycle);
     }
 
     @Override
-    public long longFromKey(final Object key) {
-        return (key instanceof String) ? keyFromCycle(Integer.parseInt((String) key)) : keyFromCycle((Integer) key);
+    public int keyFromValue(final Object value) {
+        return (value instanceof String) ? keyFromCycle(Integer.parseInt((String) value)) : keyFromCycle((Integer) value);
     }
 
-    @Override
-    public int numberOfBits() {
-        return Integer.bitCount(Integer.MAX_VALUE);
-    }
-
-    private static long keyFromCycle(final int cycle) {
+    private static int keyFromCycle(final int cycle) {
         // no negative values because values must fit into the first few bits of the long
-        long result = Math.abs(cycle);
+        int result = Math.abs(cycle);
         result = result << 1; // shift so we can add the "sign" bit
         if ( cycle < 0 )
             result++;    // negative cycles get the lower-most bit set

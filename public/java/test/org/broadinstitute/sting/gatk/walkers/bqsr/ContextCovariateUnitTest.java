@@ -36,7 +36,7 @@ public class ContextCovariateUnitTest {
         verifyCovariateArray(readCovariates.getDeletionsKeySet(),  RAC.INDELS_CONTEXT_SIZE,  clippedRead, covariate);
     }
 
-    public static void verifyCovariateArray(long[][] values, int contextSize, GATKSAMRecord read, Covariate contextCovariate) {
+    public static void verifyCovariateArray(int[][] values, int contextSize, GATKSAMRecord read, Covariate contextCovariate) {
         for (int i = 0; i < values.length; i++)
             Assert.assertEquals(contextCovariate.formatKey(values[i][0]), expectedContext(read, i, contextSize));
 

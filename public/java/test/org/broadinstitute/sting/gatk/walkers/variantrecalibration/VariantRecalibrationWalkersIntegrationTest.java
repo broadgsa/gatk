@@ -7,10 +7,6 @@ import org.testng.annotations.DataProvider;
 import java.util.*;
 
 public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
-    static HashMap<String, String> clusterFiles = new HashMap<String, String>();
-    static HashMap<String, String> tranchesFiles = new HashMap<String, String>();
-    static HashMap<String, String> inputVCFFiles = new HashMap<String, String>();
-
     private static class VRTest {
         String inVCF;
         String tranchesMD5;
@@ -77,7 +73,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     VRTest indel = new VRTest("combined.phase1.chr20.raw.indels.sites.vcf",
             "da4458d05f6396f5c4ab96f274e5ccdc",  // tranches
             "a04a9001f62eff43d363f4d63769f3ee",  // recal file
-            "05e88052e0798f1c1e83f0a8938bce56"); // cut VCF
+            "b9936d2432d3c85b2d8b5b7aa17d0950"); // cut VCF
 
     @DataProvider(name = "VRIndelTest")
     public Object[][] createData2() {

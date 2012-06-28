@@ -77,9 +77,10 @@ class BCF2LazyGenotypesDecoder implements LazyGenotypesContext.LazyParser {
 
             // the type of each element
             final byte typeDescriptor = decoder.readTypeDescriptor();
+            final int numElements = decoder.decodeNumberOfElements(typeDescriptor);
             final BCF2GenotypeFieldDecoders.Decoder fieldDecoder = codec.getGenotypeFieldDecoder(field);
             try {
-                fieldDecoder.decode(siteAlleles, field, decoder, typeDescriptor, builders);
+                fieldDecoder.decode(siteAlleles, field, decoder, typeDescriptor, numElements, builders);
             } catch ( ClassCastException e ) {
                 throw new UserException.MalformedBCF2("BUG: expected encoding of field " + field
                         + " inconsistent with the value observed in the decoded value");
