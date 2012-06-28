@@ -42,14 +42,20 @@ public class SlowGenotype extends Genotype {
     protected List<Allele> alleles = null;
     protected boolean isPhased = false;
 
-    protected SlowGenotype(String sampleName, List<Allele> alleles, double log10PError, Set<String> filters, Map<String, Object> attributes, boolean isPhased, double[] log10Likelihoods) {
-        super(sampleName);
+    protected SlowGenotype(final String sampleName,
+                           final List<Allele> alleles,
+                           final double log10PError,
+                           final String filters,
+                           final Map<String, Object> attributes,
+                           final boolean isPhased,
+                           final double[] log10Likelihoods) {
+        super(sampleName, filters);
 
         if ( alleles == null || alleles.isEmpty() )
             this.alleles = Collections.emptyList();
         else
             this.alleles = Collections.unmodifiableList(alleles);
-        commonInfo = new CommonInfo(sampleName, log10PError, filters, attributes);
+        commonInfo = new CommonInfo(sampleName, log10PError, Collections.<String>emptySet(), attributes);
         if ( log10Likelihoods != null )
             commonInfo.putAttribute(VCFConstants.GENOTYPE_PL_KEY, GenotypeLikelihoods.fromLog10Likelihoods(log10Likelihoods));
         this.isPhased = isPhased;
@@ -112,7 +118,6 @@ public class SlowGenotype extends Genotype {
     // get routines to access context info fields
     //
     // ---------------------------------------------------------------------------------------------------------
-    @Override public List<String> getFilters()    { return new ArrayList<String>(commonInfo.getFilters()); }
     @Override public boolean hasLog10PError()     { return commonInfo.hasLog10PError(); }
     @Override public double getLog10PError()      { return commonInfo.getLog10PError(); }
 

@@ -276,9 +276,8 @@ public class BCF2GenotypeFieldDecoders {
         public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) {
             for ( final GenotypeBuilder gb : gbs ) {
                 Object value = decoder.decodeTypedValue(typeDescriptor, numElements);
-                if ( value != null ) { // don't add missing values
-                    gb.filters(value instanceof String ? Collections.singletonList((String)value) : (List<String>)value);
-                }
+                assert value == null || value instanceof String;
+                gb.filter((String)value);
             }
         }
     }

@@ -191,7 +191,7 @@ public class VariantContextTestProvider {
         addHeaderLine(metaData, "PL", VCFHeaderLineCount.G, VCFHeaderLineType.Integer);
         addHeaderLine(metaData, "GS", 2, VCFHeaderLineType.String);
         addHeaderLine(metaData, "GV", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String);
-        addHeaderLine(metaData, "FT", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String);
+        addHeaderLine(metaData, "FT", 1, VCFHeaderLineType.String);
 
         // prep the header
         metaData.add(new VCFContigHeaderLine(VCFHeader.CONTIG_KEY, Collections.singletonMap("ID", "1"), 0));
