@@ -186,72 +186,8 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
      * @return a feature, (not guaranteed complete) that has the correct start and stop
      */
     public Feature decodeLoc(String line) {
-
-        // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
-        if (line.startsWith(VCFHeader.HEADER_INDICATOR)) return null;
-
-        // our header cannot be null, we need the genotype sample names and counts
-        if (header == null) throw new ReviewedStingException("VCF Header cannot be null when decoding a record");
-
-        final int nParts = ParsingUtils.split(line, locParts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
-
-        if ( nParts != 6 )
-            throw new UserException.MalformedVCF("there aren't enough columns for line " + line, lineNo);
-
-        // get our alleles (because the end position depends on them)
-        final String ref = getCachedString(locParts[3].toUpperCase());
-        final String alts = getCachedString(locParts[4].toUpperCase());
-        final List<Allele> alleles = parseAlleles(ref, alts, lineNo);
-
-        // find out our location
-        int start = 0;
-        try {
-            start = Integer.valueOf(locParts[1]);
-        } catch (Exception e) {
-            generateException("the value in the POS field must be an integer but it was " + locParts[1], lineNo);
-        }
-        int stop = start;
-
-        // ref alleles don't need to be single bases for monomorphic sites
-        if ( alleles.size() == 1 ) {
-            stop = start + alleles.get(0).length() - 1;
-        }
-        // we need to parse the INFO field to check for an END tag if it's a symbolic allele
-        else if ( alleles.size() == 2 && alleles.get(1).isSymbolic() ) {
-            final String[] extraParts = new String[4];
-            final int nExtraParts = ParsingUtils.split(locParts[5], extraParts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
-            if ( nExtraParts < 3 )
-                throw new UserException.MalformedVCF("there aren't enough columns for line " + line, lineNo);
-
-            final Map<String, Object> attrs = parseInfo(extraParts[2]);
-            try {
-                stop = attrs.containsKey(VCFConstants.END_KEY) ? Integer.valueOf(attrs.get(VCFConstants.END_KEY).toString()) : start;
-            } catch (Exception e) {
-                throw new UserException.MalformedVCF("the END value in the INFO field is not valid for line " + line, lineNo);
-            }
-        } else {
-            stop = VCFAlleleClipper.clipAlleles(start, ref, alleles).stop;
-        }
-
-        return new VCFLocFeature(locParts[0], start, stop);
+        return decodeLine(line, false);
     }
-
-    private final static class VCFLocFeature implements Feature {
-
-        final String chr;
-        final int start, stop;
-
-        private VCFLocFeature(String chr, int start, int stop) {
-            this.chr = chr;
-            this.start = start;
-            this.stop = stop;
-        }
-
-        public String getChr() { return chr; }
-        public int getStart() { return start; }
-        public int getEnd() { return stop; }
-    }
-
 
     /**
      * decode the line into a feature (VariantContext)
@@ -259,6 +195,10 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
      * @return a VariantContext
      */
     public VariantContext decode(String line) {
+        return decodeLine(line, true);
+    }
+
+    private final VariantContext decodeLine(final String line, final boolean includeGenotypes) {
         // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
         if (line.startsWith(VCFHeader.HEADER_INDICATOR)) return null;
 
@@ -276,15 +216,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
             throw new UserException.MalformedVCF("there aren't enough columns for line " + line + " (we expected " + (header == null ? NUM_STANDARD_FIELDS : NUM_STANDARD_FIELDS + 1) +
                     " tokens, and saw " + nParts + " )", lineNo);
 
-        return parseVCFLine(parts);
-    }
-
-    protected void generateException(String message) {
-        throw new UserException.MalformedVCF(message, lineNo);
-    }
-
-    protected static void generateException(String message, int lineNo) {
-        throw new UserException.MalformedVCF(message, lineNo);
+        return parseVCFLine(parts, includeGenotypes);
     }
 
     /**
@@ -293,7 +225,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
      * @param parts the parts split up
      * @return a variant context object
      */
-    private VariantContext parseVCFLine(String[] parts) {
+    private VariantContext parseVCFLine(final String[] parts, final boolean includeGenotypes) {
         VariantContextBuilder builder = new VariantContextBuilder();
         builder.source(getName());
 
@@ -315,8 +247,8 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
         else
             builder.id(parts[2]);
 
-        String ref = getCachedString(parts[3].toUpperCase());
-        String alts = getCachedString(parts[4].toUpperCase());
+        final String ref = getCachedString(parts[3].toUpperCase());
+        final String alts = getCachedString(parts[4].toUpperCase());
         builder.log10PError(parseQual(parts[5]));
 
         final List<String> filters = parseFilters(getCachedString(parts[6]));
@@ -325,33 +257,11 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
         builder.attributes(attrs);
 
         // get our alleles, filters, and setup an attribute map
-        List<Allele> alleles = parseAlleles(ref, alts, lineNo);
-
-        // find out our current location, and clip the alleles down to their minimum length
-        int stop = pos;
-        // ref alleles don't need to be single bases for monomorphic sites
-        if ( alleles.size() == 1 ) {
-            stop = pos + alleles.get(0).length() - 1;
-        }
-        // we need to parse the INFO field to check for an END tag if it's a symbolic allele
-        else if ( alleles.size() == 2 && alleles.get(1).isSymbolic() && attrs.containsKey(VCFConstants.END_KEY) ) {
-            try {
-                stop = Integer.valueOf(attrs.get(VCFConstants.END_KEY).toString());
-            } catch (Exception e) {
-                generateException("the END value in the INFO field is not valid");
-            }
-        } else {
-            final VCFAlleleClipper.ClippedAlleles clipped = VCFAlleleClipper.clipAlleles(pos, ref, alleles);
-            if ( clipped.getError() != null )
-                generateException(clipped.getError(), lineNo);
-            stop = clipped.getStop();
-            alleles = clipped.clippedAlleles;
-        }
-        builder.stop(stop);
-        builder.alleles(alleles);
+        final List<Allele> rawAlleles = parseAlleles(ref, alts, lineNo);
+        final List<Allele> alleles = updateBuilderAllelesAndStop(builder, ref, pos, rawAlleles, attrs);
 
         // do we have genotyping data
-        if (parts.length > NUM_STANDARD_FIELDS) {
+        if (parts.length > NUM_STANDARD_FIELDS && includeGenotypes) {
             final LazyGenotypesContext.LazyParser lazyParser = new LazyVCFGenotypesParser(alleles, chr, pos);
             final int nGenotypes = header.getNGenotypeSamples();
             LazyGenotypesContext lazy = new LazyGenotypesContext(lazyParser, parts[8], nGenotypes);
@@ -372,6 +282,31 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
         }
 
         return vc;
+    }
+
+    private final List<Allele> updateBuilderAllelesAndStop(final VariantContextBuilder builder,
+                                                           final String ref,
+                                                           final int pos,
+                                                           final List<Allele> rawAlleles,
+                                                           final Map<String, Object> attrs) {
+        int endForSymbolicAlleles = pos; // by default we use the pos
+        if ( attrs.containsKey(VCFConstants.END_KEY) ) {
+            // update stop with the end key if provided
+            try {
+                endForSymbolicAlleles = Integer.valueOf(attrs.get(VCFConstants.END_KEY).toString());
+            } catch (Exception e) {
+                generateException("the END value in the INFO field is not valid");
+            }
+        }
+
+        // find out our current location, and clip the alleles down to their minimum length
+        final VCFAlleleClipper.ClippedAlleles clipped = VCFAlleleClipper.clipAlleles(pos, ref, rawAlleles, endForSymbolicAlleles);
+        if ( clipped.getError() != null )
+            generateException(clipped.getError(), lineNo);
+
+        builder.stop(clipped.getStop());
+        builder.alleles(clipped.getClippedAlleles());
+        return clipped.getClippedAlleles();
     }
 
     /**
@@ -760,5 +695,14 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
      */
     public final void disableOnTheFlyModifications() {
         doOnTheFlyModifications = false;
+    }
+
+
+    protected void generateException(String message) {
+        throw new UserException.MalformedVCF(message, lineNo);
+    }
+
+    protected static void generateException(String message, int lineNo) {
+        throw new UserException.MalformedVCF(message, lineNo);
     }
 }

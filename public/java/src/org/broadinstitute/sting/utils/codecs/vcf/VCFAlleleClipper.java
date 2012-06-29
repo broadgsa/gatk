@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.utils.codecs.vcf;
 
 import com.google.java.contract.Ensures;
+import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -46,47 +47,52 @@ import java.util.*;
  * VCF files.
  *
  * TODO rethink this class, make it clean, and make it easy to create, mix, and write out alleles
+ * TODO this code doesn't work with reverse clipped alleles (ATA / GTTA -> AT / GT)
  *
  * @author Mark DePristo
  * @since 6/12
  */
 public final class VCFAlleleClipper {
-    // TODO
-    // TODO
-    // TODO
-    // TODO I have honestly no idea what this code is really supposed to do
-    // TODO computeForwardClipping is called in two places:
-    // TODO
-    // TODO clipAlleles() where all alleles, including ref, are passed in
-    // TODO createVariantContextWithTrimmedAlleles() where only the alt alleles are passed in
-    // TODO
-    // TODO The problem is that the code allows us to clip
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-    @Ensures("result == 0 || result == 1")
-    public static int computeForwardClipping(final List<Allele> unclippedAlleles,
-                                             final byte ref0) {
-        boolean clipping = true;
-        int symbolicAlleleCount = 0;
+    private VCFAlleleClipper() { }
+
+    /**
+     * Determine whether we should clip off the first base of all unclippped alleles or not
+     *
+     * Returns true if all of the alleles in unclippedAlleles share a common first base with
+     * ref0.  Ref0 should be the first base of the reference allele  UnclippedAlleles may
+     * contain the reference allele itself, or just the alternate alleles, it doesn't matter.
+     *
+     * The algorithm returns true if the first base should be clipped off, or false otherwise
+     *
+     * This algorithm works even in the presence of symbolic alleles, logically ignoring these
+     * values.  It
+     *
+     * @param unclippedAlleles list of unclipped alleles to assay
+     * @param ref0 the first base of the reference allele
+     * @return true if we should clip the first base of unclippedAlleles
+     */
+    @Requires("unclippedAlleles != null")
+    public static boolean shouldClipFirstBaseP(final List<Allele> unclippedAlleles,
+                                           final byte ref0) {
+        boolean allSymbolicAlt = true;
 
         for ( final Allele a : unclippedAlleles ) {
             if ( a.isSymbolic() ) {
-                symbolicAlleleCount++;
                 continue;
             }
 
+            // already know we aren't symbolic, so we only need to decide if we have only seen a ref
+            if ( ! a.isReference() )
+                allSymbolicAlt = false;
+
             if ( a.length() < 1 || (a.getBases()[0] != ref0) ) {
-                clipping = false;
-                break;
+                return false;
             }
         }
 
-        // don't clip if all alleles are symbolic
-        return (clipping && symbolicAlleleCount != unclippedAlleles.size()) ? 1 : 0;
+        // to reach here all alleles are consistent with clipping the first base matching ref0
+        // but we don't clip if all ALT alleles are symbolic
+        return ! allSymbolicAlt;
     }
 
     public static int computeReverseClipping(final List<Allele> unclippedAlleles,
@@ -174,48 +180,64 @@ public final class VCFAlleleClipper {
      * @param unclippedAlleles the list of unclipped alleles, including the reference allele
      * @return the new reference end position of this event
      */
-    @Requires({"position > 0", "ref != null && ref.length() > 0", "!unclippedAlleles.isEmpty()"})
+    @Requires({"start > 0", "ref != null && ref.length() > 0", "!unclippedAlleles.isEmpty()"})
     @Ensures("result != null")
     public static ClippedAlleles clipAlleles(final int start,
                                              final String ref,
-                                             final List<Allele> unclippedAlleles) {
+                                             final List<Allele> unclippedAlleles,
+                                             final int endForSymbolicAllele ) {
         // no variation or single nucleotide events are by definition fully clipped
         if ( unclippedAlleles.size() == 1 || isSingleNucleotideEvent(unclippedAlleles) )
-            return new ClippedAlleles(start, unclippedAlleles);
-
-        // symbolic alleles aren't unclipped by default, and there can be only two (better than highlander style)
-        if ( unclippedAlleles.size() > 1 ) {
-            if ( unclippedAlleles.get(1).isSymbolic() ) {
-                if ( unclippedAlleles.size() > 2 )
-                    return new ClippedAlleles("Detected multiple alleles at a site, including a symbolic one, which is currently unsupported");
-                // we do not unclip symbolic alleles
-                return new ClippedAlleles(start, unclippedAlleles);
-            }
-        }
+            return new ClippedAlleles(start, unclippedAlleles, null);
 
         // we've got to sort out the clipping by looking at the alleles themselves
-        final int forwardClipping = computeForwardClipping(unclippedAlleles, (byte)ref.charAt(0));
+        final byte firstRefBase = (byte) ref.charAt(0);
+        final boolean firstBaseIsClipped = shouldClipFirstBaseP(unclippedAlleles, firstRefBase);
+        final int forwardClipping = firstBaseIsClipped ? 1 : 0;
         final int reverseClipping = computeReverseClipping(unclippedAlleles, ref.getBytes(), forwardClipping, false);
+        final boolean needsClipping = forwardClipping > 0 || reverseClipping > 0;
 
         if ( reverseClipping == -1 )
             return new ClippedAlleles("computeReverseClipping failed due to bad alleles");
 
-        final List<Allele> clippedAlleles = new ArrayList<Allele>(unclippedAlleles.size());
-        for ( final Allele a : unclippedAlleles ) {
-            if ( a.isSymbolic() ) {
-                clippedAlleles.add(a);
-            } else {
-                final byte[] allele = Arrays.copyOfRange(a.getBases(), forwardClipping, a.getBases().length - reverseClipping);
-                if ( !Allele.acceptableAlleleBases(allele) )
-                    return new ClippedAlleles("Unparsable vcf record with bad allele [" + allele + "]");
-                clippedAlleles.add(Allele.create(allele, a.isReference()));
+        boolean sawSymbolic = false;
+        List<Allele> clippedAlleles;
+        if ( ! needsClipping ) {
+            // there's nothing to clip, so clippedAlleles are the original alleles
+            clippedAlleles = unclippedAlleles;
+        } else {
+            clippedAlleles = new ArrayList<Allele>(unclippedAlleles.size());
+            for ( final Allele a : unclippedAlleles ) {
+                if ( a.isSymbolic() ) {
+                    sawSymbolic = true;
+                    clippedAlleles.add(a);
+                } else {
+                    final byte[] allele = Arrays.copyOfRange(a.getBases(), forwardClipping, a.getBases().length - reverseClipping);
+                    if ( !Allele.acceptableAlleleBases(allele) )
+                        return new ClippedAlleles("Unparsable vcf record with bad allele [" + allele + "]");
+                    clippedAlleles.add(Allele.create(allele, a.isReference()));
+                }
             }
         }
 
-        // the new reference length
-        final int refLength = ref.length() - reverseClipping;
-        final int stop = start + Math.max(refLength - 1, 0);
-        return new ClippedAlleles(stop, clippedAlleles);
+        int stop = VariantContextUtils.computeEndFromAlleles(clippedAlleles, start, endForSymbolicAllele);
+
+        // TODO
+        // TODO
+        // TODO COMPLETELY BROKEN CODE -- THE GATK CURRENTLY ENCODES THE STOP POSITION FOR CLIPPED ALLELES AS + 1
+        // TODO ITS TRUE SIZE TO DIFFERENTIATE CLIPPED VS. UNCLIPPED ALLELES.  NEEDS TO BE FIXED
+        // TODO
+        // TODO
+        if ( needsClipping && ! sawSymbolic && ! clippedAlleles.get(0).isNull() ) stop++;
+        // TODO
+        // TODO
+        // TODO COMPLETELY BROKEN CODE -- THE GATK CURRENTLY ENCODES THE STOP POSITION FOR CLIPPED ALLELES AS + 1
+        // TODO ITS TRUE SIZE TO DIFFERENTIATE CLIPPED VS. UNCLIPPED ALLELES.  NEEDS TO BE FIXED
+        // TODO
+        // TODO
+
+        final Byte refBaseForIndel = firstBaseIsClipped ? firstRefBase : null;
+        return new ClippedAlleles(stop, clippedAlleles, refBaseForIndel);
     }
 
     /**
@@ -243,8 +265,9 @@ public final class VCFAlleleClipper {
         else if ( !inputVC.hasSymbolicAlleles() )
             throw new IllegalArgumentException("Badly formed variant context at location " + String.valueOf(inputVC.getStart()) +
                     " in contig " + inputVC.getChr() + ". Reference length must be at most one base shorter than location size");
-        else
-            return false;
+        else if ( inputVC.isMixed() && inputVC.hasSymbolicAlleles() )
+            throw new IllegalArgumentException("GATK infrastructure limitation prevents needsPadding from working properly with VariantContexts containing a mixture of symbolic and concrete alleles at " + inputVC);
+        return false;
     }
 
     public static Allele padAllele(final VariantContext vc, final Allele allele) {
@@ -271,26 +294,41 @@ public final class VCFAlleleClipper {
                 throw new ReviewedStingException("Badly formed variant context at location " + inputVC.getChr() + ":" + inputVC.getStart() + "; no padded reference base is available.");
 
             final ArrayList<Allele> alleles = new ArrayList<Allele>(inputVC.getNAlleles());
-            final Map<Allele, Allele> unpaddedToPadded = new HashMap<Allele, Allele>(inputVC.getNAlleles());
+            final Map<Allele, Allele> unpaddedToPadded = inputVC.hasGenotypes() ? new HashMap<Allele, Allele>(inputVC.getNAlleles()) : null;
 
+            boolean paddedAtLeastOne = false;
             for (final Allele a : inputVC.getAlleles()) {
                 final Allele padded = padAllele(inputVC, a);
+                paddedAtLeastOne = paddedAtLeastOne || padded != a;
                 alleles.add(padded);
-                unpaddedToPadded.put(a, padded);
+                if ( unpaddedToPadded != null ) unpaddedToPadded.put(a, padded); // conditional to avoid making unnecessary make
             }
 
-            // now we can recreate new genotypes with trimmed alleles
-            GenotypesContext genotypes = GenotypesContext.create(inputVC.getNSamples());
-            for (final Genotype g : inputVC.getGenotypes() ) {
-                final List<Allele> newGenotypeAlleles = new ArrayList<Allele>(g.getAlleles().size());
-                for (final Allele a : g.getAlleles()) {
-                    newGenotypeAlleles.add( a.isCalled() ? unpaddedToPadded.get(a) : Allele.NO_CALL);
+            if ( ! paddedAtLeastOne )
+                throw new ReviewedStingException("VC was supposed to need padding but no allele was actually changed at location " + inputVC.getChr() + ":" + inputVC.getStart() + " with allele " + inputVC.getAlleles());
+
+            final VariantContextBuilder vcb = new VariantContextBuilder(inputVC);
+            vcb.alleles(alleles);
+
+            // the position of the inputVC is one further, if it doesn't contain symbolic alleles
+            vcb.computeEndFromAlleles(alleles, inputVC.getStart(), inputVC.getEnd());
+
+            if ( inputVC.hasGenotypes() ) {
+                assert unpaddedToPadded != null;
+
+                // now we can recreate new genotypes with trimmed alleles
+                final GenotypesContext genotypes = GenotypesContext.create(inputVC.getNSamples());
+                for (final Genotype g : inputVC.getGenotypes() ) {
+                    final List<Allele> newGenotypeAlleles = new ArrayList<Allele>(g.getAlleles().size());
+                    for (final Allele a : g.getAlleles()) {
+                        newGenotypeAlleles.add( a.isCalled() ? unpaddedToPadded.get(a) : Allele.NO_CALL);
+                    }
+                    genotypes.add(new GenotypeBuilder(g).alleles(newGenotypeAlleles).make());
                 }
-                genotypes.add(new GenotypeBuilder(g).alleles(newGenotypeAlleles).make());
-
+                vcb.genotypes(genotypes);
             }
 
-            return new VariantContextBuilder(inputVC).alleles(alleles).genotypes(genotypes).make();
+            return vcb.make();
         }
         else
             return inputVC;
@@ -337,33 +375,60 @@ public final class VCFAlleleClipper {
         return new VariantContextBuilder(inputVC).stop(inputVC.getStart() + alleles.get(0).length() + (inputVC.isMixed() ? -1 : 0)).alleles(alleles).genotypes(genotypes).make();
     }
 
+    @Invariant("stop != -1 || error != null") // we're either an error or a meaningful result but not both
     public static class ClippedAlleles {
-        final int stop;
-        final List<Allele> clippedAlleles;
-        final String error;
+        private final int stop;
+        private final List<Allele> clippedAlleles;
+        private final Byte refBaseForIndel;
+        private final String error;
 
-        public ClippedAlleles(final int stop, final List<Allele> clippedAlleles) {
+        @Requires({"stop > 0", "clippedAlleles != null"})
+        private ClippedAlleles(final int stop, final List<Allele> clippedAlleles, final Byte refBaseForIndel) {
             this.stop = stop;
             this.clippedAlleles = clippedAlleles;
             this.error = null;
+            this.refBaseForIndel = refBaseForIndel;
         }
 
-        public ClippedAlleles(final String error) {
+        @Requires("error != null")
+        private ClippedAlleles(final String error) {
             this.stop = -1;
             this.clippedAlleles = null;
+            this.refBaseForIndel = null;
             this.error = error;
         }
 
+        /**
+         * Get an error if it occurred
+         * @return the error message, or null if no error occurred
+         */
         public String getError() {
             return error;
         }
 
+        /**
+         * Get the stop position to use after the clipping as been applied, given the
+         * provided position to clipAlleles
+         * @return
+         */
         public int getStop() {
             return stop;
         }
 
+        /**
+         * Get the clipped alleles themselves
+         * @return the clipped alleles in the order of the input unclipped alleles
+         */
         public List<Allele> getClippedAlleles() {
             return clippedAlleles;
+        }
+
+        /**
+         * Returns the reference base we should use for indels, or null if none is appropriate
+         * @return
+         */
+        public Byte getRefBaseForIndel() {
+            return refBaseForIndel;
         }
     }
 }

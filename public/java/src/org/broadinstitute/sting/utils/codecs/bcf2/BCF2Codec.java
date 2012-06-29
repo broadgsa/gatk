@@ -332,7 +332,9 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
     protected List<Allele> clipAllelesIfNecessary(final int position,
                                                   final String ref,
                                                   final List<Allele> unclippedAlleles) {
-        final VCFAlleleClipper.ClippedAlleles clipped = VCFAlleleClipper.clipAlleles(position, ref, unclippedAlleles);
+        // the last argument of 1 allows us to safely ignore the end, because we are
+        // ultimately going to use the end in the record itself
+        final VCFAlleleClipper.ClippedAlleles clipped = VCFAlleleClipper.clipAlleles(position, ref, unclippedAlleles, 1);
         if ( clipped.getError() != null ) error(clipped.getError());
         return clipped.getClippedAlleles();
     }

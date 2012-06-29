@@ -1176,7 +1176,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
 //        if ( getType() == Type.INDEL ) {
 //            if ( getReference().length() != (getLocation().size()-1) ) {
         long length = (stop - start) + 1;
-        if ( ! isSymbolic()
+        if ( ! hasSymbolicAlleles()
                 && ((getReference().isNull() && length != 1 )
                     || (getReference().isNonNull() && (length - getReference().length()  > 1)))) {
             throw new IllegalStateException("BUG: GenomeLoc " + contig + ":" + start + "-" + stop + " has a size == " + length + " but the variation reference allele has length " + getReference().length() + " this = " + this);
@@ -1477,7 +1477,11 @@ public class VariantContext implements Feature { // to enable tribble integratio
     }
 
     public boolean hasSymbolicAlleles() {
-        for (final Allele a: getAlleles()) {
+        return hasSymbolicAlleles(getAlleles());
+    }
+
+    public static boolean hasSymbolicAlleles( final List<Allele> alleles ) {
+        for ( final Allele a: alleles ) {
             if (a.isSymbolic()) {
                 return true;
             }

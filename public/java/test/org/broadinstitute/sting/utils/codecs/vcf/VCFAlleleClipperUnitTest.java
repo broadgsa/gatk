@@ -27,12 +27,13 @@ import com.google.java.contract.Requires;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.variantcontext.*;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.*;
 
-public class VCFUtilsUnitTest extends BaseTest {
+public class VCFAlleleClipperUnitTest extends BaseTest {
     // --------------------------------------------------------------------------------
     //
     // Test allele clipping
@@ -65,6 +66,15 @@ public class VCFUtilsUnitTest extends BaseTest {
                 final boolean ref = i % n == 0;
                 expected.add(Allele.create(arg[i], ref));
             }
+        }
+
+        public boolean isClipped() {
+            for ( int i = 0; i < inputs.size(); i++ ) {
+                if ( inputs.get(i).length() != expected.get(i).length() )
+                    return true;
+            }
+
+            return false;
         }
 
         public String toString() {
@@ -102,11 +112,29 @@ public class VCFUtilsUnitTest extends BaseTest {
         new ClipAllelesTest(10, 11, "AC", "CT", "GG", "AC",  "CT", "GG");
 
         // symbolic
-        new ClipAllelesTest(10, 10, "A", "<DEL>", "A", "<DEL>");
-        new ClipAllelesTest(50, 50, "G", "G]22:60]", "A", "G]22:60]");
-        new ClipAllelesTest(51, 51, "T", "]22:55]T", "A", "]22:55]T");
-        new ClipAllelesTest(52, 52, "C", "C[22:51[", "A", "C[22:51[");
+        new ClipAllelesTest(10, 100, "A", "<DEL>", "A", "<DEL>");
+        new ClipAllelesTest(50, 50, "G", "G]22:60]", "G", "G]22:60]");
+        new ClipAllelesTest(51, 51, "T", "]22:55]T", "T", "]22:55]T");
+        new ClipAllelesTest(52, 52, "C", "C[22:51[", "C", "C[22:51[");
         new ClipAllelesTest(60, 60, "A", "A]22:50]", "A", "A]22:50]");
+
+        // symbolic with alleles that should be clipped
+        new ClipAllelesTest(10, 100, "A", "<DEL>", "AA", "-", "<DEL>", "A");
+        new ClipAllelesTest(10, 100, "AA", "<DEL>", "A", "A", "<DEL>", "-");
+        new ClipAllelesTest(10, 100, "AA", "<DEL>", "A", "AAA", "A", "<DEL>", "-", "AA");
+        new ClipAllelesTest(10, 100, "AG", "<DEL>", "A", "AGA", "G", "<DEL>", "-", "GA");
+        new ClipAllelesTest(10, 100, "G", "<DEL>", "A", "G", "<DEL>", "A");
+
+        // clipping from both ends
+        //
+        // TODO -- THIS CODE IS BROKEN BECAUSE CLIPPING DOES WORK WITH ALLELES CLIPPED FROM THE END
+        //
+//        new ClipAllelesTest(10, 10, "ATA",   "ATTA",   "-",  "T");
+//        new ClipAllelesTest(10, 10, "ATAA",  "ATTAA",  "-",  "T");
+//        new ClipAllelesTest(10, 10, "ATAAG", "ATTAAG", "-",  "T");
+//        new ClipAllelesTest(10, 11, "GTA",   "ATTA",   "G",  "AT");
+//        new ClipAllelesTest(10, 11, "GTAA",  "ATTAA",  "G",  "AT");
+//        new ClipAllelesTest(10, 11, "GTAAG", "ATTAAG", "G",  "AT");
 
         // complex substitutions
         new ClipAllelesTest(10, 10, "A", "GA", "A", "GA");
@@ -116,12 +144,37 @@ public class VCFUtilsUnitTest extends BaseTest {
 
     @Test(dataProvider = "ClipAllelesTest")
     public void testClipAllelesTest(ClipAllelesTest cfg) {
-        final VCFAlleleClipper.ClippedAlleles clipped = VCFAlleleClipper.clipAlleles(cfg.position, cfg.ref, cfg.inputs);
+        final VCFAlleleClipper.ClippedAlleles clipped = VCFAlleleClipper.clipAlleles(cfg.position, cfg.ref, cfg.inputs, cfg.stop);
         Assert.assertNull(clipped.getError(), "Unexpected error occurred");
         Assert.assertEquals(clipped.getStop(), cfg.stop, "Clipped alleles stop");
         Assert.assertEquals(clipped.getClippedAlleles(), cfg.expected, "Clipped alleles");
     }
 
+    @Test(dataProvider = "ClipAllelesTest", dependsOnMethods = "testClipAllelesTest")
+    public void testPaddingAllelesInVC(final ClipAllelesTest cfg) {
+        final VCFAlleleClipper.ClippedAlleles clipped = VCFAlleleClipper.clipAlleles(cfg.position, cfg.ref, cfg.inputs, cfg.stop);
+        final VariantContext vc = new VariantContextBuilder("x", "1", cfg.position, cfg.stop, clipped.getClippedAlleles())
+                .referenceBaseForIndel(clipped.getRefBaseForIndel()).make();
+
+        if ( vc.isMixed() && vc.hasSymbolicAlleles() )
+            throw new SkipException("GATK cannot handle mixed variant contexts with symbolic and concrete alleles.  Remove this check when allele clipping and padding is generalized");
+
+        Assert.assertEquals(VCFAlleleClipper.needsPadding(vc), cfg.isClipped(), "needPadding method");
+
+        if ( cfg.isClipped() ) {
+            // TODO
+            // TODO note that the GATK currently uses a broken approach to the clipped alleles, so the expected stop is
+            // TODO actually the original stop, as the original stop is +1 its true size.
+            // TODO
+            final int expectedStop = vc.getEnd(); //  + (vc.hasSymbolicAlleles() ? 0 : 1);
+
+            final VariantContext padded = VCFAlleleClipper.createVariantContextWithPaddedAlleles(vc);
+            Assert.assertEquals(padded.getStart(),   vc.getStart(),   "padded VC start");
+            Assert.assertEquals(padded.getAlleles(), cfg.inputs,      "padded VC alleles == original unclipped alleles");
+            Assert.assertEquals(padded.getEnd(),     expectedStop,    "padded VC end should be clipped VC + 1 (added a base to ref allele)");
+            Assert.assertFalse(VCFAlleleClipper.needsPadding(padded), "padded VC shouldn't need padding again");
+        }
+    }
 
     // --------------------------------------------------------------------------------
     //

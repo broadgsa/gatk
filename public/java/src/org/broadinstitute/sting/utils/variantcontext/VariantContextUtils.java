@@ -705,7 +705,7 @@ public class VariantContextUtils {
         else if (refAllele.isNull())
             trimVC = false;
         else {
-            trimVC = (VCFAlleleClipper.computeForwardClipping(inputVC.getAlternateAlleles(), (byte) inputVC.getReference().getDisplayString().charAt(0)) > 0);
+            trimVC = VCFAlleleClipper.shouldClipFirstBaseP(inputVC.getAlternateAlleles(), (byte) inputVC.getReference().getDisplayString().charAt(0));
          }
 
         // nothing to do if we don't need to trim bases
@@ -1369,5 +1369,34 @@ public class VariantContextUtils {
         }
 
         return true; // we passed all tests, we matched
+    }
+
+    /**
+     * Compute the end position for this VariantContext from the alleles themselves
+     *
+     * In the trivial case this is a single BP event and end = start (open intervals)
+     * In general the end is start + ref length - 1, handling the case where ref length == 0
+     * However, if alleles contains a symbolic allele then we use endForSymbolicAllele in all cases
+     *
+     * @param alleles the list of alleles to consider.  The reference allele must be the first one
+     * @param start the known start position of this event
+     * @param endForSymbolicAlleles the end position to use if any of the alleles is symbolic.  Can be -1
+     *                              if no is expected but will throw an error if one is found
+     * @return this builder
+     */
+    @Requires({"! alleles.isEmpty()", "start > 0", "endForSymbolicAlleles == -1 || endForSymbolicAlleles > 0" })
+    public static int computeEndFromAlleles(final List<Allele> alleles, final int start, final int endForSymbolicAlleles) {
+        final Allele ref = alleles.get(0);
+
+        if ( ref.isNonReference() )
+            throw new ReviewedStingException("computeEndFromAlleles requires first allele to be reference");
+
+        if ( VariantContext.hasSymbolicAlleles(alleles) ) {
+            if ( endForSymbolicAlleles == -1 )
+                throw new ReviewedStingException("computeEndFromAlleles found a symbolic allele but endForSymbolicAlleles was provided");
+            return endForSymbolicAlleles;
+        } else {
+            return start + Math.max(ref.length() - 1, 0);
+        }
     }
 }

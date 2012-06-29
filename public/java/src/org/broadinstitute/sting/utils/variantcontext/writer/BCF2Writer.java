@@ -266,6 +266,8 @@ class BCF2Writer extends IndexingVariantContextWriter {
             if ( needsPadding )
                 allele = VCFAlleleClipper.padAllele(vc, allele);
             final byte[] s = allele.getDisplayBases();
+            if ( s == null )
+                throw new ReviewedStingException("BUG: BCF2Writer encountered null padded allele" + allele);
             encoder.encodeTypedString(s);
         }
     }
