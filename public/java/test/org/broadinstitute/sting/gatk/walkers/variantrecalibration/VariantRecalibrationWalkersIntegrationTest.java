@@ -114,6 +114,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -tranchesFile " + getMd5DB().getMD5FilePath(params.tranchesMD5, null) +
                         " -recalFile " + getMd5DB().getMD5FilePath(params.recalMD5, null),
                 Arrays.asList(params.cutVCFMD5));
+        spec.disableShadowBCF(); // has to be disabled because the input VCF is missing LowQual annotation
         executeTest("testApplyRecalibrationIndel-"+params.inVCF, spec);
     }
 

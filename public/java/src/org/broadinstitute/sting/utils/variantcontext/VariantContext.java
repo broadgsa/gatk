@@ -1126,6 +1126,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
     // ---------------------------------------------------------------------------------------------------------
 
     private boolean validate(final EnumSet<Validation> validationToPerform) {
+        validateStop();
         for (final Validation val : validationToPerform ) {
             switch (val) {
                 case ALLELES: validateAlleles(); break;
@@ -1136,6 +1137,20 @@ public class VariantContext implements Feature { // to enable tribble integratio
         }
 
         return true;
+    }
+
+    /**
+     * Check that getEnd() == END from the info field, if it's present
+     */
+    private void validateStop() {
+        if ( hasAttribute(VCFConstants.END_KEY) ) {
+            final int end = getAttributeAsInt(VCFConstants.END_KEY, -1);
+            assert end != -1;
+            if ( end != getEnd() )
+                throw new ReviewedStingException("Badly formed variant context at location " + getChr() + ":"
+                        + getStart() + "; getEnd() was " + getEnd()
+                        + " but this VariantContext contains an END key with value " + end);
+        }
     }
 
     private void validateReferencePadding() {
