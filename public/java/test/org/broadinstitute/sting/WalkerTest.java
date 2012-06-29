@@ -79,7 +79,7 @@ public class WalkerTest extends BaseTest {
 
     public void validateOutputBCFIfPossible(final String name, final File resultFile) {
         final File bcfFile = BCF2Utils.shadowBCF(resultFile);
-        if ( bcfFile.exists() ) {
+        if ( bcfFile != null && bcfFile.exists() ) {
             logger.warn("Checking shadow BCF output file " + bcfFile + " against VCF file " + resultFile);
             try {
                 VariantContextTestProvider.assertVCFandBCFFilesAreTheSame(resultFile, bcfFile);

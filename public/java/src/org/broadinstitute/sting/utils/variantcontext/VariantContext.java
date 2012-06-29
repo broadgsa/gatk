@@ -626,14 +626,13 @@ public class VariantContext implements Feature { // to enable tribble integratio
 
     /**
      * Returns the maximum ploidy of all samples in this VC, or -1 if there are no genotypes
+     *
+     * This function is caching, so it's only expensive on the first call
+     *
      * @return -1, or the max ploidy
      */
     public int getMaxPloidy() {
-        int max = -1;
-        for ( final Genotype g : getGenotypes() ) {
-            max = Math.max(g.getPloidy(), max);
-        }
-        return max;
+        return genotypes.getMaxPloidy();
     }
 
     /**
@@ -1337,13 +1336,13 @@ public class VariantContext implements Feature { // to enable tribble integratio
      * @param header containing types about all fields in this VC
      * @return a fully decoded version of this VC
      */
-    public VariantContext fullyDecode(final VCFHeader header) {
+    public VariantContext fullyDecode(final VCFHeader header, final boolean lenientDecoding) {
         if ( isFullyDecoded() )
             return this;
         else {
             // TODO -- warning this is potentially very expensive as it creates copies over and over
             final VariantContextBuilder builder = new VariantContextBuilder(this);
-            fullyDecodeInfo(builder, header);
+            fullyDecodeInfo(builder, header, lenientDecoding);
             fullyDecodeGenotypes(builder, header);
             builder.fullyDecoded(true);
             return builder.make();
@@ -1358,13 +1357,13 @@ public class VariantContext implements Feature { // to enable tribble integratio
         return fullyDecoded;
     }
 
-    private final void fullyDecodeInfo(final VariantContextBuilder builder, final VCFHeader header) {
-        builder.attributes(fullyDecodeAttributes(getAttributes(), header, false));
+    private final void fullyDecodeInfo(final VariantContextBuilder builder, final VCFHeader header, final boolean lenientDecoding) {
+        builder.attributes(fullyDecodeAttributes(getAttributes(), header, lenientDecoding));
     }
 
     private final Map<String, Object> fullyDecodeAttributes(final Map<String, Object> attributes,
                                                             final VCFHeader header,
-                                                            final boolean allowMissingValuesComparedToHeader) {
+                                                            final boolean lenientDecoding) {
         final Map<String, Object> newAttributes = new HashMap<String, Object>(attributes.size());
 
         for ( final Map.Entry<String, Object> attr : attributes.entrySet() ) {
@@ -1377,11 +1376,11 @@ public class VariantContext implements Feature { // to enable tribble integratio
             final Object decoded = decodeValue(field, attr.getValue(), format);
 
             if ( decoded != null &&
-                    ! allowMissingValuesComparedToHeader
+                    ! lenientDecoding
                     && format.getCountType() != VCFHeaderLineCount.UNBOUNDED
                     && format.getType() != VCFHeaderLineType.Flag ) { // we expect exactly the right number of elements
                 final int obsSize = decoded instanceof List ? ((List) decoded).size() : 1;
-                final int expSize = format.getCount(this.getNAlleles() - 1);
+                final int expSize = format.getCount(this);
                 if ( obsSize != expSize ) {
                     throw new UserException.MalformedVCFHeader("Discordant field size detected for field " +
                             field + " at " + getChr() + ":" + getStart() + ".  Field had " + obsSize + " values " +
@@ -1431,7 +1430,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
                 switch ( format.getType() ) {
                     case Character: return string;
                     case Flag:
-                        final boolean b = Boolean.valueOf(string);
+                        final boolean b = Boolean.valueOf(string) || string.equals("1");
                         if ( b == false )
                             throw new UserException.MalformedVCF("VariantContext FLAG fields " + field + " cannot contain false values"
                              + " as seen at " + getChr() + ":" + getStart());

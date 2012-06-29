@@ -28,6 +28,8 @@ import org.apache.log4j.Logger;
 import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -67,17 +69,30 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
         return count;
     }
 
-    // utility method
-    public int getCount(int numAltAlleles) {
-        int myCount;
+    /**
+     * Get the number of values expected for this header field, given the properties of VariantContext vc
+     *
+     * If the count is a fixed count, return that.  For example, a field with size of 1 in the header returns 1
+     * If the count is of type A, return vc.getNAlleles - 1
+     * If the count is of type G, return the expected number of genotypes given the number of alleles in VC and the
+     *   max ploidy among all samples.  Note that if the max ploidy of the VC is 0 (there's no GT information
+     *   at all, then implicitly assume diploid samples when computing G values.
+     * If the count is UNBOUNDED return -1
+     *
+     * @param vc
+     * @return
+     */
+    public int getCount(final VariantContext vc) {
         switch ( countType ) {
-            case INTEGER: myCount = count; break;
-            case UNBOUNDED: myCount = -1; break;
-            case A: myCount = numAltAlleles; break;
-            case G: myCount = ((numAltAlleles + 1) * (numAltAlleles + 2) / 2); break;
-            default: throw new ReviewedStingException("Unknown count type: " + countType);
+            case INTEGER:       return count;
+            case UNBOUNDED:     return -1;
+            case A:             return vc.getNAlleles() - 1;
+            case G:
+                final int ploidy = vc.getMaxPloidy();
+                return GenotypeLikelihoods.numLikelihoods(vc.getNAlleles(), ploidy == 0 ? 2 : ploidy);
+            default:
+                throw new ReviewedStingException("Unknown count type: " + countType);
         }
-        return myCount;
     }
 
     public void setNumberToUnbounded() {

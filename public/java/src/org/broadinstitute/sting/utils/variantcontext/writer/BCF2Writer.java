@@ -155,7 +155,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
     public void add( VariantContext vc ) {
         if ( doNotWriteGenotypes )
             vc = new VariantContextBuilder(vc).noGenotypes().make();
-        vc = vc.fullyDecode(header);
+        vc = vc.fullyDecode(header, false);
 
         super.add(vc); // allow on the fly indexing
 
@@ -302,9 +302,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
                 writer.start(encoder, vc);
                 for ( final String name : sampleNames ) {
                     Genotype g = vc.getGenotype(name);
-                    if ( g == null )
-                        // we don't have any data about g at all
-                        g = new GenotypeBuilder(name).alleles(MISSING_GENOTYPE).make();
+                    if ( g == null ) VCFWriter.missingSampleError(vc, header);
                     writer.addGenotype(encoder, vc, g);
                 }
                 writer.done(encoder, vc);

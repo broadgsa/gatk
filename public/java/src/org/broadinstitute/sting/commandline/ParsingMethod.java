@@ -78,24 +78,7 @@ public abstract class ParsingMethod {
 
         String argument = matcher.group(1).trim();
 
-        Tags tags = new Tags();
-        if(matcher.group(2) != null) {
-            for(String tag: Utils.split(matcher.group(2),",")) {
-                // Check for presence of an '=' sign, indicating a key-value pair in the tag line.
-                int equalDelimiterPos = tag.indexOf('=');
-                if(equalDelimiterPos >= 0) {
-                    // Sanity check; ensure that there aren't multiple '=' in this key-value pair.
-                    if(tag.indexOf('=',equalDelimiterPos+1) >= 0)
-                        throw new ArgumentException(String.format("Tag %s passed to argument %s is malformed.  Please ensure that " +
-                                                                  "key-value tags are of the form <key>=<value>, and neither key " +
-                                                                  "nor value contain the '=' character", tag, argument));
-                    tags.addKeyValueTag(tag.substring(0,equalDelimiterPos),tag.substring(equalDelimiterPos+1));
-                }
-                else
-                    tags.addPositionalTag(tag);
-
-            }
-        }
+        Tags tags = parseTags(argument, matcher.group(2));
 
         // Find the most appropriate argument definition for the given argument.
         ArgumentDefinition argumentDefinition = definitions.findArgumentDefinition( argument, definitionMatcher );
@@ -103,6 +86,28 @@ public abstract class ParsingMethod {
         // Try to find a matching argument.  If found, label that as the match.  If not found, add the argument
         // with a null definition.
         return new ArgumentMatch(argument,argumentDefinition,position,tags);
+    }
+
+    public static Tags parseTags(String argument, String tagString) {
+        Tags tags = new Tags();
+        if (tagString != null) {
+            for(String tag: Utils.split(tagString, ",")) {
+                // Check for presence of an '=' sign, indicating a key-value pair in the tag line.
+                int equalDelimiterPos = tag.indexOf('=');
+                if(equalDelimiterPos >= 0) {
+                    // Sanity check; ensure that there aren't multiple '=' in this key-value pair.
+                    if(tag.indexOf('=',equalDelimiterPos+1) >= 0)
+                        throw new ArgumentException(String.format("Tag %s passed to argument %s is malformed.  Please ensure that " +
+                                "key-value tags are of the form <key>=<value>, and neither key " +
+                                "nor value contain the '=' character", tag, argument));
+                    tags.addKeyValueTag(tag.substring(0,equalDelimiterPos),tag.substring(equalDelimiterPos+1));
+                }
+                else
+                    tags.addPositionalTag(tag);
+
+            }
+        }
+        return tags;
     }
 
     /**

@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-
 /**
  * The object temporarily held by a read that describes all of it's covariates.
  *
@@ -11,65 +9,56 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
  * @since 2/8/12
  */
 public class ReadCovariates {
-    private final long[][] mismatchesKeySet;
-    private final long[][] insertionsKeySet;
-    private final long[][] deletionsKeySet;
+    private final int[][][] keys;
 
     private int currentCovariateIndex = 0;
 
-    public ReadCovariates(int readLength, int numberOfCovariates) {
-        this.mismatchesKeySet = new long[readLength][numberOfCovariates];
-        this.insertionsKeySet = new long[readLength][numberOfCovariates];
-        this.deletionsKeySet = new long[readLength][numberOfCovariates];
+    public ReadCovariates(final int readLength, final int numberOfCovariates) {
+        keys = new int[EventType.values().length][readLength][numberOfCovariates];
     }
 
     public void setCovariateIndex(final int index) {
         currentCovariateIndex = index;
     }
 
-    public void addCovariate(final long mismatch, final long insertion, final long deletion, final int readOffset) {
-        mismatchesKeySet[readOffset][currentCovariateIndex] = mismatch;
-        insertionsKeySet[readOffset][currentCovariateIndex] = insertion;
-        deletionsKeySet[readOffset][currentCovariateIndex] = deletion;
+    public void addCovariate(final int mismatch, final int insertion, final int deletion, final int readOffset) {
+        keys[EventType.BASE_SUBSTITUTION.index][readOffset][currentCovariateIndex] = mismatch;
+        keys[EventType.BASE_INSERTION.index][readOffset][currentCovariateIndex] = insertion;
+        keys[EventType.BASE_DELETION.index][readOffset][currentCovariateIndex] = deletion;
     }
 
-    public long[] getKeySet(final int readPosition, final EventType errorModel) {
-        switch (errorModel) {
-            case BASE_SUBSTITUTION:
-                return getMismatchesKeySet(readPosition);
-            case BASE_INSERTION:
-                return getInsertionsKeySet(readPosition);
-            case BASE_DELETION:
-                return getDeletionsKeySet(readPosition);
-            default:
-                throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel);
-        }
+    public int[] getKeySet(final int readPosition, final EventType errorModel) {
+        return keys[errorModel.index][readPosition];
     }
 
-    public long[] getMismatchesKeySet(final int readPosition) {
-        return mismatchesKeySet[readPosition];
+    public int[][] getKeySet(final EventType errorModel) {
+        return keys[errorModel.index];
     }
 
-    public long[] getInsertionsKeySet(final int readPosition) {
-        return insertionsKeySet[readPosition];
+    public int[] getMismatchesKeySet(final int readPosition) {
+        return keys[EventType.BASE_SUBSTITUTION.index][readPosition];
     }
 
-    public long[] getDeletionsKeySet(final int readPosition) {
-        return deletionsKeySet[readPosition];
+    public int[] getInsertionsKeySet(final int readPosition) {
+        return keys[EventType.BASE_INSERTION.index][readPosition];
+    }
+
+    public int[] getDeletionsKeySet(final int readPosition) {
+        return keys[EventType.BASE_DELETION.index][readPosition];
     }
 
     /**
      * Testing routines
      */
-    protected long[][] getMismatchesKeySet() {
-        return mismatchesKeySet;
+    protected int[][] getMismatchesKeySet() {
+        return keys[EventType.BASE_SUBSTITUTION.index];
     }
 
-    protected long[][] getInsertionsKeySet() {
-        return insertionsKeySet;
+    protected int[][] getInsertionsKeySet() {
+        return keys[EventType.BASE_INSERTION.index];
     }
 
-    protected long[][] getDeletionsKeySet() {
-        return deletionsKeySet;
+    protected int[][] getDeletionsKeySet() {
+        return keys[EventType.BASE_DELETION.index];
     }
 }

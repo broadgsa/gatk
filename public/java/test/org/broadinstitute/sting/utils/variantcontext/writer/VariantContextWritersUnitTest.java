@@ -121,7 +121,7 @@ public class VariantContextWritersUnitTest extends BaseTest {
             final List<VariantContext> fullyDecoded = new ArrayList<VariantContext>(vcsAfterIO.size());
 
             for ( final VariantContext withStrings : vcsAfterIO )
-                fullyDecoded.add(withStrings.fullyDecode(header));
+                fullyDecoded.add(withStrings.fullyDecode(header, false));
 
             return fullyDecoded;
         }

@@ -32,10 +32,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFIDHeaderLine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -200,17 +197,35 @@ public final class BCF2Utils {
      * foo.vcf => foo.bcf
      * foo.xxx => foo.xxx.bcf
      *
+     * If the resulting BCF file cannot be written, return null.  Happens
+     * when vcfFile = /dev/null for example
+     *
      * @param vcfFile
-     * @return
+     * @return the BCF
      */
     @Requires("vcfFile != null")
-    @Ensures("result != null")
     public static final File shadowBCF(final File vcfFile) {
         final String path = vcfFile.getAbsolutePath();
         if ( path.contains(".vcf") )
             return new File(path.replace(".vcf", ".bcf"));
-        else
-            return new File( path + ".bcf" );
+        else {
+            final File bcf = new File( path + ".bcf" );
+            if ( bcf.canRead() )
+                return bcf;
+            else {
+                try {
+                    // this is the only way to robustly decide if we could actually write to BCF
+                    final FileOutputStream o = new FileOutputStream(bcf);
+                    o.close();
+                    bcf.delete();
+                    return bcf;
+                } catch ( FileNotFoundException e ) {
+                    return null;
+                } catch ( IOException e ) {
+                    return null;
+                }
+            }
+        }
     }
 
     @Ensures("BCF2Type.INTEGERS.contains(result)")

@@ -56,8 +56,8 @@ trait QJobReport extends Logging {
       "jobName" -> QJobReport.workAroundSameJobNames(this),
       "intermediate" -> self.isIntermediate,
       "exechosts" -> info.getExecHosts,
-      "startTime" -> info.getStartTime.getTime,
-      "doneTime" -> info.getDoneTime.getTime,
+      "startTime" -> info.getStartTime,
+      "doneTime" -> info.getDoneTime,
       "formattedStartTime" -> info.getFormattedStartTime,
       "formattedDoneTime" -> info.getFormattedDoneTime,
       "runtime" -> info.getRuntimeInMs).mapValues((x:Any) => if (x != null) x.toString else "null")

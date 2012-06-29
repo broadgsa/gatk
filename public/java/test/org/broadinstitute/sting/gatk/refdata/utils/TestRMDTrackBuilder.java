@@ -58,8 +58,8 @@ public class TestRMDTrackBuilder extends RMDTrackBuilder {
         Index index;
         try {
             // Create a feature reader that creates checkable tribble iterators.
+            index = loadIndex(inputFile, codec);
             featureReader = new TestFeatureReader(inputFile.getAbsolutePath(), codec);
-            index = loadFromDisk(inputFile, Tribble.indexFile(inputFile));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

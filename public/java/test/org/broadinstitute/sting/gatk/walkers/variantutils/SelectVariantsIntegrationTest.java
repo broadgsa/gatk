@@ -18,7 +18,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + hg19Reference + " -L 20:1012700-1020000 --variant "
                         + b37hapmapGenotypes + " -disc " + testFile
-                        + " -o %s --no_cmdline_in_header --allowMissingVCFHeaders --allowMissingVCFHeaders",
+                        + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
                 1,
                 Arrays.asList("d88bdae45ae0e74e8d8fd196627e612c")
         );
@@ -34,7 +34,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(" -sn A -sn B -sn C --variant " + testfile),
                 1,
-                Arrays.asList("337bb7fc23153cf67acc42a466834775")
+                Arrays.asList("3d98a024bf3aecbd282843e0af89d0e6")
         );
 
         executeTest("testRepeatedLineSelection--" + testfile, spec);
@@ -47,7 +47,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 --variant "
                         + b37hapmapGenotypes + " -disc " + testFile
-                        + " -o %s --no_cmdline_in_header --allowMissingVCFHeaders",
+                        + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
                 1,
                 Arrays.asList("54289033d35d32b8ebbb38c51fbb614c")
         );
@@ -64,7 +64,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile),
                 1,
-                Arrays.asList("ad0514b723ee1479d861291622bd4311")
+                Arrays.asList("433eccaf1ac6e6be500ef0984a5d8d8b")
         );
         spec.disableShadowBCF();
         executeTest("testComplexSelection--" + testfile, spec);
@@ -78,7 +78,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -L 1:1-1000000 -o %s --no_cmdline_in_header -xl_sn A -xl_sf " + samplesFile + " --variant " + testfile,
                 1,
-                Arrays.asList("bc0e00d0629b2bc6799e7e9db0dc775c")
+                Arrays.asList("1f5c72951a35667c4bdf1be153787e27")
         );
         spec.disableShadowBCF();
 
@@ -93,7 +93,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 -conc "
                         + b37hapmapGenotypes + " --variant " + testFile
-                        + " -o %s --no_cmdline_in_header --allowMissingVCFHeaders",
+                        + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
                 1,
                 Arrays.asList("946e7f2e0ae08dc0e931c1634360fc46")
         );
@@ -109,7 +109,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -restrictAllelesTo MULTIALLELIC -selectType MIXED --variant " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("a111642779b05de33ad04073d6022c21")
+                Arrays.asList("ca2b70e3171420b08b0a2659bfe2a794")
         );
 
         executeTest("testVariantTypeSelection--" + testFile, spec);
@@ -161,7 +161,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b37KGReference + " --variant " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("a0b7f77edc16df0992d2c1363136a17e")
+                Arrays.asList("ef3c5f75074a5dd2b2cd2715856a2542")
         );
 
         executeTest("testNoGTs--" + testFile, spec);
@@ -176,7 +176,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         spec = new WalkerTestSpec(
                 baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 2"),
                 1,
-                Arrays.asList("ad0514b723ee1479d861291622bd4311")
+                Arrays.asList("433eccaf1ac6e6be500ef0984a5d8d8b")
         );
         spec.disableShadowBCF();
         executeTest("testParallelization (2 threads)--" + testfile, spec);
@@ -190,7 +190,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         spec = new WalkerTestSpec(
                 baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 4"),
                 1,
-                Arrays.asList("ad0514b723ee1479d861291622bd4311")
+                Arrays.asList("433eccaf1ac6e6be500ef0984a5d8d8b")
         );
         spec.disableShadowBCF();
 
@@ -204,7 +204,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b37KGReference + " -o %s --no_cmdline_in_header -sf " + samplesFile + " --excludeNonVariants --variant " + testfile,
                 1,
-                Arrays.asList("9acd6effcc78bfb832bed5edfd6a1b5b")
+                Arrays.asList("3ab35d5e81a29fb5db3e2add11c7e823")
         );
         executeTest("test select from multi allelic with excludeNonVariants --" + testfile, spec);
     }
@@ -223,7 +223,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         final String testFile = privateTestDir + "missingHeaderLine.vcf";
         final String cmd = "-T SelectVariants -R " + b36KGReference + " -sn NA12892 --variant:dbsnp "
                 + testFile + " -o %s --no_cmdline_in_header"
-                + (expectedException == null ? " -allowMissingVCFHeaders" : "");
+                + (expectedException == null ? " -U LENIENT_VCF_PROCESSING" : "");
         WalkerTestSpec spec =
                 expectedException != null
                         ? new WalkerTestSpec(cmd, 1, expectedException)

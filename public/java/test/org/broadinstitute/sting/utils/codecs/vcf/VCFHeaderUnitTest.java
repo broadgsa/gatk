@@ -33,13 +33,13 @@ public class VCFHeaderUnitTest extends BaseTest {
     @Test
     public void testVCF4ToVCF4() {
         VCFHeader header = createHeader(VCF4headerStrings);
-        checkMD5ofHeaderFile(header, "47d32e7901650ba69ed41322af638806");
+        checkMD5ofHeaderFile(header, "f05a57053a0c6a5bac15dba566f7f7ff");
     }
 
     @Test
     public void testVCF4ToVCF4_alternate() {
         VCFHeader header = createHeader(VCF4headerStrings_with_negativeOne);
-        checkMD5ofHeaderFile(header, "954e9dd756d5f952cfb401a4db6bd145");
+        checkMD5ofHeaderFile(header, "b1d71cc94261053131f8d239d65a8c9f");
     }
 
         /**
@@ -112,7 +112,7 @@ public class VCFHeaderUnitTest extends BaseTest {
                 "##reference=NCBI36\n"+
                 "##INFO=<ID=GC, Number=0, Type=Flag, Description=\"Overlap with Gencode CCDS coding sequence\">\n"+
                 "##INFO=<ID=DP, Number=1, Type=Integer, Description=\"Total number of reads in haplotype window\">\n"+
-                "##INFO=<ID=AF, Number=1, Type=Float, Description=\"Dindel estimated population allele frequency\">\n"+
+                "##INFO=<ID=AF, Number=A, Type=Float, Description=\"Dindel estimated population allele frequency\">\n"+
                 "##INFO=<ID=CA, Number=1, Type=String, Description=\"Pilot 1 callability mask\">\n"+
                 "##INFO=<ID=HP, Number=1, Type=Integer, Description=\"Reference homopolymer tract length\">\n"+
                 "##INFO=<ID=NS, Number=1, Type=Integer, Description=\"Number of samples with data\">\n"+
@@ -132,7 +132,7 @@ public class VCFHeaderUnitTest extends BaseTest {
                 "##reference=NCBI36\n"+
                 "##INFO=<ID=GC, Number=0, Type=Flag, Description=\"Overlap with Gencode CCDS coding sequence\">\n"+
                 "##INFO=<ID=YY, Number=., Type=Integer, Description=\"Some weird value that has lots of parameters\">\n"+
-                "##INFO=<ID=AF, Number=1, Type=Float, Description=\"Dindel estimated population allele frequency\">\n"+
+                "##INFO=<ID=AF, Number=A, Type=Float, Description=\"Dindel estimated population allele frequency\">\n"+
                 "##INFO=<ID=CA, Number=1, Type=String, Description=\"Pilot 1 callability mask\">\n"+
                 "##INFO=<ID=HP, Number=1, Type=Integer, Description=\"Reference homopolymer tract length\">\n"+
                 "##INFO=<ID=NS, Number=1, Type=Integer, Description=\"Number of samples with data\">\n"+

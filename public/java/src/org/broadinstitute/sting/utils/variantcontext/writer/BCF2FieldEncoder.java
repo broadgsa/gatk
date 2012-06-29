@@ -185,7 +185,7 @@ public abstract class BCF2FieldEncoder {
     @Requires("hasContextDeterminedNumElements()")
     @Ensures("result >= 0")
     public int numElements(final VariantContext vc) {
-        return headerLine.getCount(vc.getNAlleles() - 1);
+        return headerLine.getCount(vc);
     }
 
     /**

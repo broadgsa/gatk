@@ -67,7 +67,7 @@ public interface Covariate {
      * @param key the long representation of the key
      * @return a string representation of the key
      */
-    public String formatKey(final long key);
+    public String formatKey(final int key);
 
     /**
      * Converts an Object key into a long key using only the lowest numberOfBits() bits
@@ -75,18 +75,10 @@ public interface Covariate {
      * Only necessary for on-the-fly recalibration when you have the object, but need to store it in memory in long format. For counting covariates
      * the getValues method already returns all values in long format.
      *
-     * @param key the object corresponding to the covariate
+     * @param value the object corresponding to the covariate
      * @return a long representation of the object
      */
-    public long longFromKey(final Object key);
-
-    /**
-     * Each covariate should determine how many bits are necessary to encode it's data
-     *
-     * @return The number of bits used to represent the values of this covariate.
-     */
-    public int numberOfBits();
-
+    public int keyFromValue(final Object value);
 }
 
 interface RequiredCovariate extends Covariate {}

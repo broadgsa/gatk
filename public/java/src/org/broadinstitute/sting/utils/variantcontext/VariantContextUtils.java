@@ -46,6 +46,7 @@ public class VariantContextUtils {
     public final static String MERGE_FILTER_IN_ALL = "FilteredInAll";
     public final static String MERGE_REF_IN_ALL = "ReferenceInAll";
     public final static String MERGE_FILTER_PREFIX = "filterIn";
+    private static final List<Allele> DIPLOID_NO_CALL = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 
     final public static JexlEngine engine = new JexlEngine();
     public static final int DEFAULT_PLOIDY = 2;
@@ -55,6 +56,31 @@ public class VariantContextUtils {
         engine.setSilent(false); // will throw errors now for selects that don't evaluate properly
         engine.setLenient(false);
         engine.setDebug(false);
+    }
+
+    /**
+     * Ensures that VC contains all of the samples in allSamples by adding missing samples to
+     * the resulting VC with default diploid ./. genotypes
+     *
+     * @param vc
+     * @param allSamples
+     * @return
+     */
+    public static VariantContext addMissingSamples(final VariantContext vc, final Set<String> allSamples) {
+        // TODO -- what's the fastest way to do this calculation?
+        final Set<String> missingSamples = new HashSet<String>(allSamples);
+        missingSamples.removeAll(vc.getSampleNames());
+
+        if ( missingSamples.isEmpty() )
+            return vc;
+        else {
+            //logger.warn("Adding " + missingSamples.size() + " missing samples to called context");
+            final GenotypesContext gc = GenotypesContext.copy(vc.getGenotypes());
+            for ( final String missing : missingSamples ) {
+                gc.add(new GenotypeBuilder(missing).alleles(DIPLOID_NO_CALL).make());
+            }
+            return new VariantContextBuilder(vc).genotypes(gc).make();
+        }
     }
 
     /**
@@ -1199,8 +1225,8 @@ public class VariantContextUtils {
                     altAlleleIndexToUse[i] = true;
             }
 
-            // calculateNumLikelihoods takes total # of alleles. Use default # of chromosomes (ploidy) = 2
-            final int numLikelihoods = GenotypeLikelihoods.calculateNumLikelihoods(1+numOriginalAltAlleles, DEFAULT_PLOIDY);
+            // numLikelihoods takes total # of alleles. Use default # of chromosomes (ploidy) = 2
+            final int numLikelihoods = GenotypeLikelihoods.numLikelihoods(1 + numOriginalAltAlleles, DEFAULT_PLOIDY);
             for ( int PLindex = 0; PLindex < numLikelihoods; PLindex++ ) {
                 final GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(PLindex);
                 // consider this entry only if both of the alleles are good

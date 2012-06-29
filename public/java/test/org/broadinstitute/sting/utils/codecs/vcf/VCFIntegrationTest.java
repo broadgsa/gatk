@@ -12,7 +12,7 @@ public class VCFIntegrationTest extends WalkerTest {
     @Test(enabled = true)
     public void testReadingAndWritingWitHNoChanges() {
 
-        String md5ofInputVCF = "babf02baabcfa7f72a2c6f7da5fdc996";
+        String md5ofInputVCF = "d991abe6c6a7a778a60a667717903be0";
         String testVCF = privateTestDir + "vcf4.1.example.vcf";
 
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
@@ -30,12 +30,11 @@ public class VCFIntegrationTest extends WalkerTest {
     // See https://getsatisfaction.com/gsa/topics/support_vcf_4_1_structural_variation_breakend_alleles?utm_content=topic_link&utm_medium=email&utm_source=new_topic
     public void testReadingAndWritingBreakpointAlleles() {
         String testVCF = privateTestDir + "breakpoint-example.vcf";
-        //String testVCF = validationDataLocation + "multiallelic.vcf";
 
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
 
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
-        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("355b029487c3b4c499140d71310ca37e"));
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("13329ba7360a8beb3afc02569e5a20c4"));
         executeTest("Test reading and writing breakpoint VCF", spec1);
     }
 
@@ -51,11 +50,20 @@ public class VCFIntegrationTest extends WalkerTest {
     }
 
     @Test
-    public void testReadingAndWritingSamtoolsWExBCFExample() {
+    public void testWritingSamtoolsWExBCFExample() {
         String testVCF = privateTestDir + "ex2.vcf";
         String baseCommand = "-R " + b36KGReference + " --no_cmdline_in_header -o %s ";
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
         WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("9773d6a121cfcb18d090965bc520f120"));
-        executeTest("Test reading and writing samtools WEx vcf/BCF example", spec1);
+        executeTest("Test writing samtools WEx BCF example", spec1);
+    }
+
+    @Test
+    public void testReadingSamtoolsWExBCFExample() {
+        String testVCF = privateTestDir + "ex2.bcf";
+        String baseCommand = "-R " + b36KGReference + " --no_cmdline_in_header -o %s ";
+        String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("63a2e0484ae37b0680514f53e0bf0c94"));
+        executeTest("Test reading samtools WEx BCF example", spec1);
     }
 }

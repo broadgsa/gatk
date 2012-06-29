@@ -7,10 +7,6 @@ import org.testng.annotations.DataProvider;
 import java.util.*;
 
 public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
-    static HashMap<String, String> clusterFiles = new HashMap<String, String>();
-    static HashMap<String, String> tranchesFiles = new HashMap<String, String>();
-    static HashMap<String, String> inputVCFFiles = new HashMap<String, String>();
-
     private static class VRTest {
         String inVCF;
         String tranchesMD5;
@@ -27,7 +23,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     VRTest lowPass = new VRTest("phase1.projectConsensus.chr20.raw.snps.vcf",
             "0ddd1e0e483d2eaf56004615cea23ec7",  // tranches
             "b9709e4180e56abc691b208bd3e8626c",  // recal file
-            "c58ff4140e8914f0b656ed625c7f73b9"); // cut VCF
+            "4c73ff0c8c5ae0055bfacf33329a2406"); // cut VCF
 
     @DataProvider(name = "VRTest")
     public Object[][] createData1() {
@@ -54,6 +50,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -recalFile %s" +
                         " -tranchesFile %s",
                 Arrays.asList(params.recalMD5, params.tranchesMD5));
+        spec.disableShadowBCF(); // TODO -- enable when we support symbolic alleles
         executeTest("testVariantRecalibrator-"+params.inVCF, spec).getFirst();
     }
 
@@ -65,17 +62,18 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -L 20:12,000,000-30,000,000" +
                         " --no_cmdline_in_header" +
                         " -input " + params.inVCF +
-                        " -o %s" +
+                        " -U LENIENT_VCF_PROCESSING -o %s" +
                         " -tranchesFile " + getMd5DB().getMD5FilePath(params.tranchesMD5, null) +
                         " -recalFile " + getMd5DB().getMD5FilePath(params.recalMD5, null),
                 Arrays.asList(params.cutVCFMD5));
+        spec.disableShadowBCF(); // TODO -- enable when we support symbolic alleles
         executeTest("testApplyRecalibration-"+params.inVCF, spec);
     }
 
     VRTest indel = new VRTest("combined.phase1.chr20.raw.indels.sites.vcf",
             "da4458d05f6396f5c4ab96f274e5ccdc",  // tranches
             "a04a9001f62eff43d363f4d63769f3ee",  // recal file
-            "05e88052e0798f1c1e83f0a8938bce56"); // cut VCF
+            "b9936d2432d3c85b2d8b5b7aa17d0950"); // cut VCF
 
     @DataProvider(name = "VRIndelTest")
     public Object[][] createData2() {
@@ -101,6 +99,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -recalFile %s" +
                         " -tranchesFile %s",
                 Arrays.asList(params.recalMD5, params.tranchesMD5));
+        spec.disableShadowBCF(); // TODO -- enable when we support symbolic alleles
         executeTest("testVariantRecalibratorIndel-"+params.inVCF, spec).getFirst();
     }
 
@@ -111,12 +110,13 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -T ApplyRecalibration" +
                         " -L 20:12,000,000-30,000,000" +
                         " -mode INDEL" +
-                        " --no_cmdline_in_header" +
+                        " -U LENIENT_VCF_PROCESSING --no_cmdline_in_header" +
                         " -input " + params.inVCF +
                         " -o %s" +
                         " -tranchesFile " + getMd5DB().getMD5FilePath(params.tranchesMD5, null) +
                         " -recalFile " + getMd5DB().getMD5FilePath(params.recalMD5, null),
                 Arrays.asList(params.cutVCFMD5));
+        spec.disableShadowBCF(); // TODO -- enable when we support symbolic alleles
         executeTest("testApplyRecalibrationIndel-"+params.inVCF, spec);
     }
 

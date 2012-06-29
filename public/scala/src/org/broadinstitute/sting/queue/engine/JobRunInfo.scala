@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.queue.engine
 
-import java.util.Date
 import java.text.SimpleDateFormat
 
 /**
@@ -36,18 +35,21 @@ class JobRunInfo {
   val formatter = new SimpleDateFormat("yy-MM-dd H:mm:ss:SSS");
 
   /** The start time with millisecond resolution of this job */
-  var startTime: Date = _
+  var startTime: java.util.Date   = _
   /** The done time with millisecond resolution of this job */
-  var doneTime: Date = _
+  var doneTime: java.util.Date = _
   var exechosts: String = "localhost"
 
-  def getStartTime = startTime
-  def getDoneTime = doneTime
-  def getFormattedStartTime = formatTime(getStartTime)
-  def getFormattedDoneTime = formatTime(getDoneTime)
+  def getStartTime: String = getTime(startTime)
+  def getDoneTime: String = getTime(doneTime)
+  def getFormattedStartTime = formatTime(startTime)
+  def getFormattedDoneTime = formatTime(doneTime)
+
+  /** Helper function that returns the time of the date */
+  private def getTime(d: java.util.Date): String = if ( d != null ) d.getTime.toString else "null"
 
   /** Helper function that pretty prints the date */
-  private def formatTime(d: Date) = if ( d != null ) formatter.format(d) else "null"
+  private def formatTime(d: java.util.Date): String = if ( d != null ) formatter.format(d) else "null"
 
   def getExecHosts = exechosts
 
@@ -55,14 +57,14 @@ class JobRunInfo {
    * Was any information set for this jobInfo?  JobInfo can be unset because
    * the job never ran or because it already completed.
    */
-  def isFilledIn = startTime != null
+  def isFilledIn = startTime != null && doneTime != null
 
   /**
    * How long did the job run (in wall time)?  Returns -1 if this jobInfo isn't filled in
    */
   def getRuntimeInMs: Long = {
     if ( isFilledIn )
-      getDoneTime.getTime - getStartTime.getTime
+      doneTime.getTime - startTime.getTime
     else
       -1
   }

@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 class ThresHolder {
+    public static final String AVG_INTERVAL_DP_KEY = "AVG_INTERVAL_DP";
     public static final ThresHolder DEFAULTS = new ThresHolder(20, 20, 5, 700, 20, 50, 0.5, 0.2, 0.5, 0.2, 0.2, 0.5);
 
     private final int minimumBaseQuality;
@@ -129,12 +130,13 @@ class ThresHolder {
 
         // INFO fields for overall data
         headerLines.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.END_KEY));
-        headerLines.add(new VCFInfoHeaderLine("AVG_INTERVAL_DP", 1, VCFHeaderLineType.Float, "Average depth across the interval. Sum of the depth in a loci divided by interval size."));
+        headerLines.add(new VCFInfoHeaderLine(AVG_INTERVAL_DP_KEY, 1, VCFHeaderLineType.Float, "Average depth across the interval. Sum of the depth in a loci divided by interval size."));
         headerLines.add(new VCFInfoHeaderLine("Diagnose Targets", 0, VCFHeaderLineType.Flag, "DiagnoseTargets mode"));
 
         // FORMAT fields for each genotype
         // todo -- find the appropriate VCF constants
-        headerLines.add(new VCFFormatHeaderLine("AVG_INTERVAL_DP", 1, VCFHeaderLineType.Float, "Average depth across the interval. Sum of the depth in a loci divided by interval size."));
+        headerLines.add(VCFStandardHeaderLines.getFormatLine(VCFConstants.GENOTYPE_FILTER_KEY));
+        headerLines.add(new VCFFormatHeaderLine(AVG_INTERVAL_DP_KEY, 1, VCFHeaderLineType.Float, "Average depth across the interval. Sum of the depth in a loci divided by interval size."));
         headerLines.add(new VCFFormatHeaderLine("Q1", 1, VCFHeaderLineType.Float, "Lower Quartile of depth distribution."));
         headerLines.add(new VCFFormatHeaderLine("MED", 1, VCFHeaderLineType.Float, "Median of depth distribution."));
         headerLines.add(new VCFFormatHeaderLine("Q3", 1, VCFHeaderLineType.Float, "Upper Quartile of depth Distribution."));

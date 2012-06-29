@@ -2,7 +2,6 @@ package org.broadinstitute.sting.utils.recalibration;
 
 import org.broadinstitute.sting.gatk.walkers.bqsr.*;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -22,7 +21,7 @@ import java.util.*;
 public class BaseRecalibrationUnitTest {
 
     private org.broadinstitute.sting.gatk.walkers.recalibration.RecalDataManager dataManager;
-    private LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>> keysAndTablesMap;
+    private RecalibrationTables recalibrationTables;
 
     private ReadGroupCovariate rgCovariate;
     private QualityScoreCovariate qsCovariate;
@@ -50,19 +49,14 @@ public class BaseRecalibrationUnitTest {
         List<Covariate> optionalCovariates = new ArrayList<Covariate>();
 
         dataManager = new org.broadinstitute.sting.gatk.walkers.recalibration.RecalDataManager(true, 4);
-        keysAndTablesMap = new LinkedHashMap<BQSRKeyManager, Map<Long, RecalDatum>>();
 
         rgCovariate = new ReadGroupCovariate();
         rgCovariate.initialize(RAC);
         requiredCovariates.add(rgCovariate);
-        BQSRKeyManager rgKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
-        keysAndTablesMap.put(rgKeyManager, new HashMap<Long, RecalDatum>());
 
         qsCovariate = new QualityScoreCovariate();
         qsCovariate.initialize(RAC);
         requiredCovariates.add(qsCovariate);
-        BQSRKeyManager qsKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
-        keysAndTablesMap.put(qsKeyManager, new HashMap<Long, RecalDatum>());
 
         cxCovariate = new ContextCovariate();
         cxCovariate.initialize(RAC);
@@ -70,8 +64,6 @@ public class BaseRecalibrationUnitTest {
         cyCovariate = new CycleCovariate();
         cyCovariate.initialize(RAC);
         optionalCovariates.add(cyCovariate);
-        BQSRKeyManager cvKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
-        keysAndTablesMap.put(cvKeyManager, new HashMap<Long, RecalDatum>());
 
         final Covariate[] requestedCovariates = new Covariate[requiredCovariates.size() + optionalCovariates.size()];
         int covariateIndex = 0;
@@ -82,10 +74,13 @@ public class BaseRecalibrationUnitTest {
 
         readCovariates = RecalDataManager.computeCovariates(read, requestedCovariates);
 
-        for (int i=0; i<read.getReadLength(); i++) {
-            long[] bitKeys = readCovariates.getMismatchesKeySet(i);
+        final NestedHashMap rgTable = new NestedHashMap();
+        final NestedHashMap qualTable = new NestedHashMap();
+        final NestedHashMap covTable = new NestedHashMap();
 
-            Object[] objKey = buildObjectKey(bitKeys);
+        for (int i=0; i<read.getReadLength(); i++) {
+            final int[] bitKeys = readCovariates.getMismatchesKeySet(i);
+            final Object[] objKey = buildObjectKey(bitKeys);
 
             Random random = new Random();
             int nObservations = random.nextInt(10000);
@@ -97,21 +92,17 @@ public class BaseRecalibrationUnitTest {
             dataManager.addToAllTables(objKey, oldDatum, QualityUtils.MIN_USABLE_Q_SCORE);
 
             RecalDatum newDatum = new RecalDatum(nObservations, nErrors, estimatedQReported, empiricalQuality);
-            for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> mapEntry : keysAndTablesMap.entrySet()) {
-                final BQSRKeyManager keyManager = mapEntry.getKey();
-                final int numOptionalCovariates = keyManager.getNumOptionalCovariates();
-                if (numOptionalCovariates == 0) {
-                    final long masterKey = keyManager.createMasterKey(bitKeys, EventType.BASE_SUBSTITUTION, -1);
-                    updateCovariateWithKeySet(mapEntry.getValue(), masterKey, newDatum);
-                } else {
-                    for (int j = 0; j < numOptionalCovariates; j++) {
-                        final long masterKey = keyManager.createMasterKey(bitKeys, EventType.BASE_SUBSTITUTION, j);
-                        updateCovariateWithKeySet(mapEntry.getValue(), masterKey, newDatum);
-                    }
-                }
+
+            rgTable.put(newDatum, bitKeys[0], EventType.BASE_SUBSTITUTION.index);
+            qualTable.put(newDatum, bitKeys[0], bitKeys[1], EventType.BASE_SUBSTITUTION.index);
+            for (int j = 0; j < optionalCovariates.size(); j++) {
+                covTable.put(newDatum, bitKeys[0], bitKeys[1], j, bitKeys[2 + j], EventType.BASE_SUBSTITUTION.index);
             }
         }
-        dataManager.generateEmpiricalQualities(1, QualityUtils.MAX_RECALIBRATED_Q_SCORE);
+
+    recalibrationTables = new RecalibrationTables(rgTable, qualTable, covTable);
+
+    dataManager.generateEmpiricalQualities(1, QualityUtils.MAX_RECALIBRATED_Q_SCORE);
 
         List<Byte> quantizedQuals = new ArrayList<Byte>();
         List<Long> qualCounts = new ArrayList<Long>();
@@ -121,16 +112,15 @@ public class BaseRecalibrationUnitTest {
         }
         QuantizationInfo quantizationInfo = new QuantizationInfo(quantizedQuals, qualCounts);
         quantizationInfo.noQuantization();
-        baseRecalibration = new BaseRecalibration(quantizationInfo, keysAndTablesMap, requestedCovariates);
+        baseRecalibration = new BaseRecalibration(quantizationInfo, recalibrationTables, requestedCovariates);
 
     }
 
 
     @Test(enabled=false)
     public void testGoldStandardComparison() {
-        debugTables();
         for (int i = 0; i < read.getReadLength(); i++) {
-            long [] bitKey = readCovariates.getKeySet(i, EventType.BASE_SUBSTITUTION);
+            int [] bitKey = readCovariates.getKeySet(i, EventType.BASE_SUBSTITUTION);
             Object [] objKey = buildObjectKey(bitKey);
             byte v2 = baseRecalibration.performSequentialQualityCalculation(bitKey, EventType.BASE_SUBSTITUTION);
             byte v1 = goldStandardSequentialCalculation(objKey);
@@ -138,56 +128,13 @@ public class BaseRecalibrationUnitTest {
         }
     }
 
-    private Object[] buildObjectKey(long[] bitKey) {
+    private Object[] buildObjectKey(final int[] bitKey) {
         Object[] key = new Object[bitKey.length];
         key[0] = rgCovariate.formatKey(bitKey[0]);
         key[1] = qsCovariate.formatKey(bitKey[1]);
         key[2] = cxCovariate.formatKey(bitKey[2]);
         key[3] = cyCovariate.formatKey(bitKey[3]);
         return key;
-    }
-
-    private void debugTables() {
-        System.out.println("\nV1 Table\n");
-        System.out.println("ReadGroup Table:");
-        NestedHashMap nestedTable = dataManager.getCollapsedTable(0);
-        printNestedHashMap(nestedTable.data, "");
-        System.out.println("\nQualityScore Table:");
-        nestedTable = dataManager.getCollapsedTable(1);
-        printNestedHashMap(nestedTable.data, "");
-        System.out.println("\nCovariates Table:");
-        nestedTable = dataManager.getCollapsedTable(2);
-        printNestedHashMap(nestedTable.data, "");
-        nestedTable = dataManager.getCollapsedTable(3);
-        printNestedHashMap(nestedTable.data, "");
-
-
-        int i = 0;
-        System.out.println("\nV2 Table\n");
-        for (Map.Entry<BQSRKeyManager, Map<Long, RecalDatum>> mapEntry : keysAndTablesMap.entrySet()) {
-            BQSRKeyManager keyManager = mapEntry.getKey();
-            Map<Long, RecalDatum> table = mapEntry.getValue();
-            switch(i++) {
-                case 0 :
-                    System.out.println("ReadGroup Table:");
-                    break;
-                case 1 :
-                    System.out.println("QualityScore Table:");
-                    break;
-                case 2 :
-                    System.out.println("Covariates Table:");
-                    break;
-            }
-            for (Map.Entry<Long, RecalDatum> entry : table.entrySet()) {
-                Long key = entry.getKey();
-                RecalDatum datum = entry.getValue();
-                List<Object> keySet = keyManager.keySetFrom(key);
-                System.out.println(String.format("%s => %s", Utils.join(",", keySet), datum) + "," + datum.getEstimatedQReported());
-            }
-            System.out.println();
-        }
-
-
     }
 
     private static void printNestedHashMap(Map table, String output) {

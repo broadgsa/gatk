@@ -159,14 +159,18 @@ public class VariantContextBuilder {
         return this;
     }
 
-    public VariantContextBuilder alleles(final String ... alleleStrings) {
-        List<Allele> alleles = new ArrayList<Allele>(alleleStrings.length);
+    public VariantContextBuilder alleles(final List<String> alleleStrings) {
+        List<Allele> alleles = new ArrayList<Allele>(alleleStrings.size());
 
-        for ( int i = 0; i < alleleStrings.length; i++ ) {
-            alleles.add(Allele.create(alleleStrings[i], i == 0));
+        for ( int i = 0; i < alleleStrings.size(); i++ ) {
+            alleles.add(Allele.create(alleleStrings.get(i), i == 0));
         }
 
         return alleles(alleles);
+    }
+
+    public VariantContextBuilder alleles(final String ... alleleStrings) {
+        return alleles(Arrays.asList(alleleStrings));
     }
 
     public List<Allele> getAlleles() {

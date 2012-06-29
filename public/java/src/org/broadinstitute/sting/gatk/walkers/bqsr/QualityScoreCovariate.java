@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
@@ -49,7 +48,7 @@ public class QualityScoreCovariate implements RequiredCovariate {
         final byte[] baseDeletionQualities = read.getBaseDeletionQualities();
 
         for (int i = 0; i < baseQualities.length; i++) {
-            values.addCovariate((long)baseQualities[i], (long)baseInsertionQualities[i], (long)baseDeletionQualities[i], i);
+            values.addCovariate((int)baseQualities[i], (int)baseInsertionQualities[i], (int)baseDeletionQualities[i], i);
         }
     }
 
@@ -60,17 +59,12 @@ public class QualityScoreCovariate implements RequiredCovariate {
     }
 
     @Override
-    public String formatKey(final long key) {
+    public String formatKey(final int key) {
         return String.format("%d", key);
     }
 
     @Override
-    public long longFromKey(final Object key) {
-        return (key instanceof String) ? (long)Byte.parseByte((String) key) : (long)(Byte) key;
-    }
-
-    @Override
-    public int numberOfBits() {
-        return BQSRKeyManager.numberOfBitsToRepresent(QualityUtils.MAX_QUAL_SCORE);
+    public int keyFromValue(final Object value) {
+        return (value instanceof String) ? (int)Byte.parseByte((String) value) : (int)(Byte) value;
     }
 }

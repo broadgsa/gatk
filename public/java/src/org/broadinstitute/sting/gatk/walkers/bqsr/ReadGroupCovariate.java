@@ -40,9 +40,9 @@ import java.util.HashMap;
 
 public class ReadGroupCovariate implements RequiredCovariate {
 
-    private final HashMap<String, Long> readGroupLookupTable = new HashMap<String, Long>();
-    private final HashMap<Long, String> readGroupReverseLookupTable = new HashMap<Long, String>();
-    private long nextId = 0L;
+    private final HashMap<String, Integer> readGroupLookupTable = new HashMap<String, Integer>();
+    private final HashMap<Integer, String> readGroupReverseLookupTable = new HashMap<Integer, String>();
+    private int nextId = 0;
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
@@ -51,7 +51,7 @@ public class ReadGroupCovariate implements RequiredCovariate {
     @Override
     public void recordValues(final GATKSAMRecord read, final ReadCovariates values) {
         final String readGroupId = readGroupValueFromRG(read.getReadGroup());
-        final long key = keyForReadGroup(readGroupId);
+        final int key = keyForReadGroup(readGroupId);
 
         final int l = read.getReadLength();
         for (int i = 0; i < l; i++)
@@ -64,21 +64,16 @@ public class ReadGroupCovariate implements RequiredCovariate {
     }
 
     @Override
-    public String formatKey(final long key) {
+    public String formatKey(final int key) {
         return readGroupReverseLookupTable.get(key);
     }
 
     @Override
-    public long longFromKey(Object key) {
-        return keyForReadGroup((String) key);
+    public int keyFromValue(final Object value) {
+        return keyForReadGroup((String) value);
     }
 
-    @Override
-    public int numberOfBits() {
-        return BQSRKeyManager.numberOfBitsToRepresent(Short.MAX_VALUE);
-    }
-
-    private long keyForReadGroup(final String readGroupId) {
+    private int keyForReadGroup(final String readGroupId) {
         if (!readGroupLookupTable.containsKey(readGroupId)) {
             readGroupLookupTable.put(readGroupId, nextId);
             readGroupReverseLookupTable.put(nextId, readGroupId);

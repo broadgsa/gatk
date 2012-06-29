@@ -36,18 +36,19 @@ public class DiagnoseTargetsIntegrationTest extends WalkerTest {
     final String L = validationDataLocation + "DT-itest.interval_list";
 
     private void DTTest(String testName, String args, String md5) {
-        String base = String.format("-T DiagnoseTargets -R %s -L %s", REF, L) + " -o %s ";
+        String base = String.format("-T DiagnoseTargets  --no_cmdline_in_header -R %s -L %s", REF, L) + " -o %s ";
         WalkerTestSpec spec = new WalkerTestSpec(base + args, Arrays.asList(md5));
+        spec.disableShadowBCF();
         executeTest(testName, spec);
     }
 
     @Test(enabled = true)
     public void testSingleSample() {
-        DTTest("testSingleSample ", "-I " + singleSample + " -max 75", "2df47009571fe83ead779c94be97fe96");
+        DTTest("testSingleSample ", "-I " + singleSample + " -max 75", "ef71a569a48697c89e642cdda7bfb766");
     }
 
     @Test(enabled = true)
     public void testMultiSample() {
-        DTTest("testMultiSample ", "-I " + multiSample, "6f0c070b9671e1d007ce6374c3183014");
+        DTTest("testMultiSample ", "-I " + multiSample, "1e6e15156e01e736274898fdac77d911");
     }
 }

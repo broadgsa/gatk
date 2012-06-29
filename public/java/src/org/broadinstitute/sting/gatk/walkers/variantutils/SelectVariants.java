@@ -510,7 +510,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         for (VariantContext vc : vcs) {
             // an option for performance testing only
             if ( fullyDecode )
-                vc = vc.fullyDecode(vcfRods.get(vc.getSource()));
+                vc = vc.fullyDecode(vcfRods.get(vc.getSource()), getToolkit().lenientVCFProcessing() );
 
             // an option for performance testing only
             if ( forceGenotypesDecode ) {

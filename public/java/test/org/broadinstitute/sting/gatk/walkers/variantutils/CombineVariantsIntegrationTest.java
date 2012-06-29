@@ -38,14 +38,14 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
     // TODO TODO TODO TODO TODO TODO TODO TODO
     // TODO TODO TODO TODO TODO TODO TODO TODO
     //
-    // TODO WHEN THE HC EMITS VALID VCF HEADERS ENABLE BCF AND REMOVE allowMissingVCFHeaders ARGUMENTS
+    // TODO WHEN THE HC EMITS VALID VCF HEADERS ENABLE BCF AND REMOVE lenientVCFProcessing ARGUMENTS
     //
     // TODO TODO TODO TODO TODO TODO TODO TODO
     // TODO TODO TODO TODO TODO TODO TODO TODO
     // TODO TODO TODO TODO TODO TODO TODO TODO
     //
     private static String baseTestString(String args) {
-        return "-T CombineVariants --no_cmdline_in_header -L 1:1-50,000,000 -o %s --allowMissingVCFHeaders -R " + b36KGReference + args;
+        return "-T CombineVariants --no_cmdline_in_header -L 1:1-50,000,000 -o %s -U LENIENT_VCF_PROCESSING -R " + b36KGReference + args;
     }
 
     private void cvExecuteTest(final String name, final WalkerTestSpec spec) {
@@ -142,17 +142,17 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         cvExecuteTest("combineComplexSites 1:" + new File(file1).getName() + " 2:" + new File(file2).getName() + " args = " + args, spec);
     }
 
-    @Test public void complexTestFull() { combineComplexSites("", "8b19b54516b59de40992f0c4b328258a"); }
-    @Test public void complexTestMinimal() { combineComplexSites(" -minimalVCF", "a38dd097adc37420fe36ef8be14cfded"); }
-    @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "a3957dac9a617f50ce2668607e3baef0"); }
-    @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "a3957dac9a617f50ce2668607e3baef0"); }
+    @Test public void complexTestFull() { combineComplexSites("", "151a4970367dd3e73ba3e7f3c2f874f6"); }
+    @Test public void complexTestMinimal() { combineComplexSites(" -minimalVCF", "c0625e092b878b3d3eb1703c48e216b7"); }
+    @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "6978329d6a1033ac16f83b49072c679b"); }
+    @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "6978329d6a1033ac16f83b49072c679b"); }
 
     @Test
     public void combineDBSNPDuplicateSites() {
          WalkerTestSpec spec = new WalkerTestSpec(
                  "-T CombineVariants --no_cmdline_in_header -L 1:902000-903000 -o %s -R " + b37KGReference + " -V:v1 " + b37dbSNP132,
                  1,
-                 Arrays.asList("3d2a5a43db86e3f6217ed2a63251285b"));
+                 Arrays.asList("aa926eae333208dc1f41fe69dc95d7a6"));
          cvExecuteTest("combineDBSNPDuplicateSites:", spec);
     }
 }
