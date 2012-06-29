@@ -367,6 +367,8 @@ public class UnifiedGenotyperEngine {
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         final HashMap<String, Object> attributes = new HashMap<String, Object>();
 
+        // inherit attributed from input vc
+        attributes.putAll(vc.getAttributes());
         // if the site was downsampled, record that fact
         if ( !limitedContext && rawContext.hasPileupBeenDownsampled() )
             attributes.put(VCFConstants.DOWNSAMPLED_KEY, true);
@@ -581,6 +583,9 @@ public class UnifiedGenotyperEngine {
                                                                              final AlignmentContext rawContext) {
 
         final List<GenotypeLikelihoodsCalculationModel.Model> models = new ArrayList<GenotypeLikelihoodsCalculationModel.Model>(2);
+        String modelPrefix = "";
+        if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") )
+            modelPrefix = UAC.GLmodel.name().toUpperCase().replaceAll("BOTH","");
 
         // if we're genotyping given alleles and we have a requested SNP at this position, do SNP
         if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
@@ -590,24 +595,24 @@ public class UnifiedGenotyperEngine {
 
             if ( vcInput.isSNP() )  {
                 // ignore SNPs if the user chose INDEL mode only
-                if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
-                    models.add(GenotypeLikelihoodsCalculationModel.Model.SNP);
+                if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") )
+                    models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"SNP"));
                 else if ( UAC.GLmodel.name().toUpperCase().contains("SNP") )
                     models.add(UAC.GLmodel);
             }
             else if ( vcInput.isIndel() || vcInput.isMixed() ) {
                 // ignore INDELs if the user chose SNP mode only
-                if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
-                    models.add(GenotypeLikelihoodsCalculationModel.Model.INDEL);
+                if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") )
+                    models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"INDEL"));
                 else if (UAC.GLmodel.name().toUpperCase().contains("INDEL"))
                     models.add(UAC.GLmodel);
             }
             // No support for other types yet
         }
         else {
-            if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH ) {
-                models.add(GenotypeLikelihoodsCalculationModel.Model.SNP);
-                models.add(GenotypeLikelihoodsCalculationModel.Model.INDEL);
+            if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") ) {
+                models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"SNP"));
+                models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"INDEL"));
             }
             else {
                 models.add(UAC.GLmodel);
