@@ -51,6 +51,8 @@ import java.util.*;
  */
 public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDependentFeatureCodec {
     final protected static Logger logger = Logger.getLogger(BCF2Codec.class);
+    private final static boolean FORBID_SYMBOLICS = false;
+
     private VCFHeader header = null;
 
     /**
@@ -270,7 +272,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
                     " samples in header but have a record with " + nSamples + " samples");
 
         decodeID(builder);
-        final ArrayList<Allele> alleles = decodeAlleles(builder, pos, nAlleles);
+        final List<Allele> alleles = decodeAlleles(builder, pos, nAlleles);
         decodeFilter(builder);
         decodeInfo(builder, nInfo);
 
@@ -283,9 +285,9 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
     protected final static class SitesInfoForDecoding {
         final int nFormatFields;
         final int nSamples;
-        final ArrayList<Allele> alleles;
+        final List<Allele> alleles;
 
-        private SitesInfoForDecoding(final int nFormatFields, final int nSamples, final ArrayList<Allele> alleles) {
+        private SitesInfoForDecoding(final int nFormatFields, final int nSamples, final List<Allele> alleles) {
             this.nFormatFields = nFormatFields;
             this.nSamples = nSamples;
             this.alleles = alleles;
@@ -325,13 +327,14 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
      * @param unclippedAlleles
      * @return
      */
-    protected static ArrayList<Allele> clipAllelesIfNecessary(int position, String ref, ArrayList<Allele> unclippedAlleles) {
-        if ( ! AbstractVCFCodec.isSingleNucleotideEvent(unclippedAlleles) ) {
-            final ArrayList<Allele> clippedAlleles = new ArrayList<Allele>(unclippedAlleles.size());
-            AbstractVCFCodec.clipAlleles(position, ref, unclippedAlleles, clippedAlleles, -1);
-            return clippedAlleles;
-        } else
-            return unclippedAlleles;
+    @Requires({"position > 0", "ref != null && ref.length() > 0", "! unclippedAlleles.isEmpty()"})
+    @Ensures("result.size() == unclippedAlleles.size()")
+    protected List<Allele> clipAllelesIfNecessary(final int position,
+                                                  final String ref,
+                                                  final List<Allele> unclippedAlleles) {
+        final VCFAlleleClipper.ClippedAlleles clipped = VCFAlleleClipper.clipAlleles(position, ref, unclippedAlleles);
+        if ( clipped.getError() != null ) error(clipped.getError());
+        return clipped.getClippedAlleles();
     }
 
     /**
@@ -342,9 +345,9 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
      * @return the alleles
      */
     @Requires("nAlleles > 0")
-    private ArrayList<Allele> decodeAlleles( final VariantContextBuilder builder, final int pos, final int nAlleles ) {
+    private List<Allele> decodeAlleles( final VariantContextBuilder builder, final int pos, final int nAlleles ) {
         // TODO -- probably need inline decoder for efficiency here (no sense in going bytes -> string -> vector -> bytes
-        ArrayList<Allele> alleles = new ArrayList<Allele>(nAlleles);
+        List<Allele> alleles = new ArrayList<Allele>(nAlleles);
         String ref = null;
 
         for ( int i = 0; i < nAlleles; i++ ) {
@@ -356,7 +359,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
 
             alleles.add(allele);
 
-            if ( allele.isSymbolic() )
+            if ( FORBID_SYMBOLICS && allele.isSymbolic() )
                 throw new ReviewedStingException("LIMITATION: GATK BCF2 codec does not yet support symbolic alleles");
         }
         assert ref != null;

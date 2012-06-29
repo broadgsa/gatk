@@ -229,10 +229,8 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
             } catch (Exception e) {
                 throw new UserException.MalformedVCF("the END value in the INFO field is not valid for line " + line, lineNo);
             }
-        }
-        // handle multi-positional events
-        else if ( !isSingleNucleotideEvent(alleles) ) {
-            stop = clipAlleles(start, ref, alleles, null, lineNo);
+        } else {
+            stop = VCFAlleleClipper.clipAlleles(start, ref, alleles).stop;
         }
 
         return new VCFLocFeature(locParts[0], start, stop);
@@ -342,10 +340,12 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
             } catch (Exception e) {
                 generateException("the END value in the INFO field is not valid");
             }
-        } else if ( !isSingleNucleotideEvent(alleles) ) {
-            ArrayList<Allele> newAlleles = new ArrayList<Allele>();
-            stop = clipAlleles(pos, ref, alleles, newAlleles, lineNo);
-            alleles = newAlleles;
+        } else {
+            final VCFAlleleClipper.ClippedAlleles clipped = VCFAlleleClipper.clipAlleles(pos, ref, alleles);
+            if ( clipped.getError() != null )
+                generateException(clipped.getError(), lineNo);
+            stop = clipped.getStop();
+            alleles = clipped.clippedAlleles;
         }
         builder.stop(stop);
         builder.alleles(alleles);
@@ -611,102 +611,6 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
         Allele allele = Allele.create(alt, false);
         if ( ! allele.isNoCall() )
             alleles.add(allele);
-    }
-
-    public static boolean isSingleNucleotideEvent(List<Allele> alleles) {
-        for ( Allele a : alleles ) {
-            if ( a.length() != 1 )
-                return false;
-        }
-        return true;
-    }
-
-    public static int computeForwardClipping(final List<Allele> unclippedAlleles, final byte ref0) {
-        boolean clipping = true;
-        int symbolicAlleleCount = 0;
-
-        for ( Allele a : unclippedAlleles ) {
-            if ( a.isSymbolic() ) {
-                symbolicAlleleCount++;
-                continue;
-            }
-
-            if ( a.length() < 1 || (a.getBases()[0] != ref0) ) {
-                clipping = false;
-                break;
-            }
-        }
-
-        // don't clip if all alleles are symbolic
-        return (clipping && symbolicAlleleCount != unclippedAlleles.size()) ? 1 : 0;
-    }
-
-    public static int computeReverseClipping(final List<Allele> unclippedAlleles, final byte[] ref, final int forwardClipping, final boolean allowFullClip, final int lineNo) {
-        int clipping = 0;
-        boolean stillClipping = true;
-
-        while ( stillClipping ) {
-            for ( final Allele a : unclippedAlleles ) {
-                if ( a.isSymbolic() )
-                    continue;
-
-                // we need to ensure that we don't reverse clip out all of the bases from an allele because we then will have the wrong
-                // position set for the VariantContext (although it's okay to forward clip it all out, because the position will be fine).
-                if ( a.length() - clipping == 0 )
-                    return clipping - (allowFullClip ? 0 : 1);
-
-                if ( a.length() - clipping <= forwardClipping || a.length() - forwardClipping == 0 ) {
-                    stillClipping = false;
-                }
-                else if ( ref.length == clipping ) {
-                    if ( allowFullClip )
-                        stillClipping = false;
-                    else
-                        generateException("bad alleles encountered", lineNo);
-                }
-                else if ( a.getBases()[a.length()-clipping-1] != ref[ref.length-clipping-1] ) {
-                    stillClipping = false;
-                }
-            }
-            if ( stillClipping )
-                clipping++;
-        }
-
-        return clipping;
-    }
-
-    /**
-     * clip the alleles, based on the reference
-     *
-     * @param position the unadjusted start position (pre-clipping)
-     * @param ref the reference string
-     * @param unclippedAlleles the list of unclipped alleles
-     * @param clippedAlleles output list of clipped alleles
-     * @param lineNo the current line number in the file
-     * @return the new reference end position of this event
-     */
-    public static int clipAlleles(int position, String ref, List<Allele> unclippedAlleles, List<Allele> clippedAlleles, int lineNo) {
-
-        int forwardClipping = computeForwardClipping(unclippedAlleles, (byte)ref.charAt(0));
-        int reverseClipping = computeReverseClipping(unclippedAlleles, ref.getBytes(), forwardClipping, false, lineNo);
-
-        if ( clippedAlleles != null ) {
-            for ( Allele a : unclippedAlleles ) {
-                if ( a.isSymbolic() ) {
-                    clippedAlleles.add(a);
-                } else {
-                    final byte[] allele = Arrays.copyOfRange(a.getBases(), forwardClipping, a.getBases().length-reverseClipping);
-                    if ( !Allele.acceptableAlleleBases(allele) )
-                        generateException("Unparsable vcf record with bad allele [" + allele + "]", lineNo);
-                    clippedAlleles.add(Allele.create(allele, a.isReference()));
-                }
-            }
-        }
-
-        // the new reference length
-        int refLength = ref.length() - reverseClipping;
-
-        return position+Math.max(refLength - 1,0);
     }
 
     public final static boolean canDecodeFile(final String potentialInput, final String MAGIC_HEADER_LINE) {

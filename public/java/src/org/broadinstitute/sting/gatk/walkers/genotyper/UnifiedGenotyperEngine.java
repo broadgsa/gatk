@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFAlleleClipper;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -493,7 +494,7 @@ public class UnifiedGenotyperEngine {
         // if we are subsetting alleles (either because there were too many or because some were not polymorphic)
         // then we may need to trim the alleles (because the original VariantContext may have had to pad at the end).
         if ( myAlleles.size() != vc.getAlleles().size() && !limitedContext ) // TODO - this function doesn't work with mixed records or records that started as mixed and then became non-mixed
-            vcCall = VariantContextUtils.reverseTrimAlleles(vcCall);
+            vcCall = VCFAlleleClipper.reverseTrimAlleles(vcCall);
 
         if ( annotationEngine != null && !limitedContext ) {
             // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations

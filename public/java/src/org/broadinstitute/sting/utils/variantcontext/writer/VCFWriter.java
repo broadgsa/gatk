@@ -162,7 +162,7 @@ class VCFWriter extends IndexingVariantContextWriter {
             vc = new VariantContextBuilder(vc).noGenotypes().make();
 
         try {
-            vc = VariantContextUtils.createVariantContextWithPaddedAlleles(vc);
+            vc = VCFAlleleClipper.createVariantContextWithPaddedAlleles(vc);
             super.add(vc);
 
             Map<Allele, String> alleleMap = buildAlleleMap(vc);
@@ -522,7 +522,7 @@ class VCFWriter extends IndexingVariantContextWriter {
             if ( g.hasDP() ) sawDP = true;
             if ( g.hasAD() ) sawAD = true;
             if ( g.hasPL() ) sawPL = true;
-            if (g.isFiltered() && g.isCalled()) sawGenotypeFilter = true;
+            if (g.isFiltered()) sawGenotypeFilter = true;
         }
 
         if ( sawGoodQual ) keys.add(VCFConstants.GENOTYPE_QUALITY_KEY);

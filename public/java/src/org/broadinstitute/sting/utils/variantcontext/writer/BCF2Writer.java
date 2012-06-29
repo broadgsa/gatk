@@ -261,10 +261,10 @@ class BCF2Writer extends IndexingVariantContextWriter {
     }
 
     private void buildAlleles( VariantContext vc ) throws IOException {
-        final boolean needsPadding = VariantContextUtils.needsPadding(vc);
+        final boolean needsPadding = VCFAlleleClipper.needsPadding(vc);
         for ( Allele allele : vc.getAlleles() ) {
             if ( needsPadding )
-                allele = VariantContextUtils.padAllele(vc,allele);
+                allele = VCFAlleleClipper.padAllele(vc, allele);
             final byte[] s = allele.getDisplayBases();
             encoder.encodeTypedString(s);
         }

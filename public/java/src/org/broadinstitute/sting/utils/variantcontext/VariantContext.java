@@ -558,8 +558,8 @@ public class VariantContext implements Feature { // to enable tribble integratio
     }
 
     public String getAlleleStringWithRefPadding(final Allele allele) {
-        if ( VariantContextUtils.needsPadding(this) )
-            return VariantContextUtils.padAllele(this, allele).getDisplayString();
+        if ( VCFAlleleClipper.needsPadding(this) )
+            return VCFAlleleClipper.padAllele(this, allele).getDisplayString();
         else
             return allele.getDisplayString();
     }

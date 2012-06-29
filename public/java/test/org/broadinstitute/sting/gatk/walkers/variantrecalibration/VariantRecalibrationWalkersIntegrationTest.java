@@ -65,7 +65,6 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -tranchesFile " + getMd5DB().getMD5FilePath(params.tranchesMD5, null) +
                         " -recalFile " + getMd5DB().getMD5FilePath(params.recalMD5, null),
                 Arrays.asList(params.cutVCFMD5));
-        spec.disableShadowBCF(); // TODO -- enable when we support symbolic alleles
         executeTest("testApplyRecalibration-"+params.inVCF, spec);
     }
 

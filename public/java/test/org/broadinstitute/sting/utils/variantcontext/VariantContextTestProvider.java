@@ -56,7 +56,7 @@ public class VariantContextTestProvider {
     final private static boolean ENABLE_VARARRAY_TESTS = true;
     final private static boolean ENABLE_PLOIDY_TESTS = true;
     final private static boolean ENABLE_PL_TESTS = true;
-    final private static boolean ENABLE_SYMBOLIC_ALLELE_TESTS = false;
+    final private static boolean ENABLE_SYMBOLIC_ALLELE_TESTS = true;
     final private static boolean ENABLE_SOURCE_VCF_TESTS = true;
     final private static boolean ENABLE_VARIABLE_LENGTH_GENOTYPE_STRING_TESTS = true;
     final private static List<Integer> TWENTY_INTS = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20);
@@ -70,8 +70,10 @@ public class VariantContextTestProvider {
         testSourceVCFs.add(new File(BaseTest.privateTestDir + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"));
         testSourceVCFs.add(new File(BaseTest.privateTestDir + "ex2.vcf"));
         testSourceVCFs.add(new File(BaseTest.privateTestDir + "dbsnp_135.b37.1000.vcf"));
-        if ( ENABLE_SYMBOLIC_ALLELE_TESTS )
+        if ( ENABLE_SYMBOLIC_ALLELE_TESTS ) {
             testSourceVCFs.add(new File(BaseTest.privateTestDir + "diagnosis_targets_testfile.vcf"));
+            testSourceVCFs.add(new File(BaseTest.privateTestDir + "VQSR.mixedTest.recal"));
+        }
     }
 
     public abstract static class VariantContextIOTest {
@@ -181,6 +183,7 @@ public class VariantContextTestProvider {
         Set<VCFHeaderLine> metaData = new TreeSet<VCFHeaderLine>();
 
         addHeaderLine(metaData, "STRING1", 1, VCFHeaderLineType.String);
+        addHeaderLine(metaData, "END", 1, VCFHeaderLineType.Integer);
         addHeaderLine(metaData, "STRING3", 3, VCFHeaderLineType.String);
         addHeaderLine(metaData, "STRING20", 20, VCFHeaderLineType.String);
         addHeaderLine(metaData, "VAR.INFO.STRING", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String);
@@ -283,6 +286,15 @@ public class VariantContextTestProvider {
 
         if ( ENABLE_A_AND_G_TESTS )
             addGenotypesAndGTests();
+
+        if ( ENABLE_SYMBOLIC_ALLELE_TESTS )
+            addSymbolicAlleleTests();
+    }
+
+    private static void addSymbolicAlleleTests() {
+        // two tests to ensure that the end is computed correctly when there's (and not) an END field present
+        add(builder().alleles("N", "<VQSR>").start(10).stop(11).attribute("END", 11));
+        add(builder().alleles("N", "<VQSR>").start(10).stop(10));
     }
 
     private static void addGenotypesToTestData() {
@@ -509,27 +521,26 @@ public class VariantContextTestProvider {
             addGenotypeTests(site, // missing value in varlist of string
                     attr("g1", ref, "FLOAT1", 1.0),
                     attr("g2", ref, "GV", Arrays.asList("S3", "S4", "S5")));
-
-
-            //
-            //
-            // TESTING GENOTYPE FILTERS
-            //
-            //
-            addGenotypeTests(site,
-                    new GenotypeBuilder("g1-x", Arrays.asList(ref, ref)).filters("X").make(),
-                    new GenotypeBuilder("g2-x", Arrays.asList(ref, ref)).filters("X").make());
-            addGenotypeTests(site,
-                    new GenotypeBuilder("g1-unft", Arrays.asList(ref, ref)).unfiltered().make(),
-                    new GenotypeBuilder("g2-x", Arrays.asList(ref, ref)).filters("X").make());
-            addGenotypeTests(site,
-                    new GenotypeBuilder("g1-unft", Arrays.asList(ref, ref)).unfiltered().make(),
-                    new GenotypeBuilder("g2-xy", Arrays.asList(ref, ref)).filters("X", "Y").make());
-            addGenotypeTests(site,
-                    new GenotypeBuilder("g1-unft", Arrays.asList(ref, ref)).unfiltered().make(),
-                    new GenotypeBuilder("g2-x", Arrays.asList(ref, ref)).filters("X").make(),
-                    new GenotypeBuilder("g3-xy", Arrays.asList(ref, ref)).filters("X", "Y").make());
         }
+
+        //
+        //
+        // TESTING GENOTYPE FILTERS
+        //
+        //
+        addGenotypeTests(site,
+                new GenotypeBuilder("g1-x", Arrays.asList(ref, ref)).filters("X").make(),
+                new GenotypeBuilder("g2-x", Arrays.asList(ref, ref)).filters("X").make());
+        addGenotypeTests(site,
+                new GenotypeBuilder("g1-unft", Arrays.asList(ref, ref)).unfiltered().make(),
+                new GenotypeBuilder("g2-x", Arrays.asList(ref, ref)).filters("X").make());
+        addGenotypeTests(site,
+                new GenotypeBuilder("g1-unft", Arrays.asList(ref, ref)).unfiltered().make(),
+                new GenotypeBuilder("g2-xy", Arrays.asList(ref, ref)).filters("X", "Y").make());
+        addGenotypeTests(site,
+                new GenotypeBuilder("g1-unft", Arrays.asList(ref, ref)).unfiltered().make(),
+                new GenotypeBuilder("g2-x", Arrays.asList(ref, ref)).filters("X").make(),
+                new GenotypeBuilder("g3-xy", Arrays.asList(ref, ref)).filters("X", "Y").make());
     }
 
     private static void addGenotypesAndGTests() {
@@ -711,14 +722,12 @@ public class VariantContextTestProvider {
         Assert.assertEquals(actual.getAlleles(), expected.getAlleles(), "alleles");
 
         assertAttributesEquals(actual.getAttributes(), expected.getAttributes());
-        Assert.assertEquals(actual.getFilters(), expected.getFilters(), "filters");
+        BaseTest.assertEqualsSet(actual.getFilters(), expected.getFilters(), "filters");
         BaseTest.assertEqualsDoubleSmart(actual.getPhredScaledQual(), expected.getPhredScaledQual());
 
         Assert.assertEquals(actual.hasGenotypes(), expected.hasGenotypes(), "hasGenotypes");
         if ( expected.hasGenotypes() ) {
-            final Set<String> actualSampleSet = new HashSet<String>(actual.getSampleNames());
-            final Set<String> expectedSampleSet = new HashSet<String>(expected.getSampleNames());
-            Assert.assertTrue(actualSampleSet.equals(expectedSampleSet), "sample names"); // note this is necessary due to testng bug for set comps
+            BaseTest.assertEqualsSet(actual.getSampleNames(), expected.getSampleNames(), "sample names set");
             Assert.assertEquals(actual.getSampleNamesOrderedByName(), expected.getSampleNamesOrderedByName(), "sample names");
             final Set<String> samples = expected.getSampleNames();
             for ( final String sample : samples ) {
