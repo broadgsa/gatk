@@ -188,7 +188,7 @@ public class UnifiedGenotyperEngine {
                 else {
                     final VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
                     if ( vc != null )
-                        results.add(calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model));
+                        results.add(calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, true));
                 }
             }        
         }
@@ -309,6 +309,22 @@ public class UnifiedGenotyperEngine {
     }
 
     public VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model) {
+        return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, false);
+    }
+
+    /**
+     * Main entry function to calculate genotypes of a given VC with corresponding GL's
+     * @param tracker                            Tracker
+     * @param refContext                         Reference context
+     * @param rawContext                         Raw context
+     * @param stratifiedContexts                 Stratified alignment contexts
+     * @param vc                                 Input VC
+     * @param model                              GL calculation model
+     * @param inheritAttributesFromInputVC       Output VC will contain attributes inherited from input vc
+     * @return                                   VC with assigned genotypes
+     */
+    public VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model,
+                                                 final boolean inheritAttributesFromInputVC) {
 
         boolean limitedContext = tracker == null || refContext == null || rawContext == null || stratifiedContexts == null;
 
@@ -408,8 +424,9 @@ public class UnifiedGenotyperEngine {
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         final HashMap<String, Object> attributes = new HashMap<String, Object>();
 
-        // inherit attributed from input vc
-        attributes.putAll(vc.getAttributes());
+        // inherit attributed from input vc if requested
+        if (inheritAttributesFromInputVC)
+            attributes.putAll(vc.getAttributes());
         // if the site was downsampled, record that fact
         if ( !limitedContext && rawContext.hasPileupBeenDownsampled() )
             attributes.put(VCFConstants.DOWNSAMPLED_KEY, true);
