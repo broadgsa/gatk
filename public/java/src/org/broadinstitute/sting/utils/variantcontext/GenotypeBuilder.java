@@ -382,7 +382,7 @@ public final class GenotypeBuilder {
         else if ( filters.size() == 1 )
             return filter(filters.get(0));
         else
-            return filter(ParsingUtils.join(";", filters));
+            return filter(ParsingUtils.join(";", ParsingUtils.sortList(filters)));
     }
 
     /**

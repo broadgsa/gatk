@@ -147,6 +147,10 @@ public class VariantContextUtils {
 
                 attributes.put(VCFConstants.ALLELE_COUNT_KEY, alleleCounts.size() == 1 ? alleleCounts.get(0) : alleleCounts);
                 attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs.size() == 1 ? alleleFreqs.get(0) : alleleFreqs);
+            } else {
+                // if there's no alt AC and AF shouldn't be present
+                attributes.remove(VCFConstants.ALLELE_COUNT_KEY);
+                attributes.remove(VCFConstants.ALLELE_FREQUENCY_KEY);
             }
         }
 
