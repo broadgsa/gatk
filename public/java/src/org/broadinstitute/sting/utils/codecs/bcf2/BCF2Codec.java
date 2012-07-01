@@ -239,10 +239,10 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
         final String contig = lookupContigName(contigOffset);
         builder.chr(contig);
 
-        this.pos = decoder.decodeInt(BCF2Type.INT32);
+        this.pos = decoder.decodeInt(BCF2Type.INT32) + 1; // GATK is one based, BCF2 is zero-based
         final int refLength = decoder.decodeInt(BCF2Type.INT32);
         builder.start((long)pos);
-        builder.stop((long)(pos + refLength - 1)); // minus one because of our open intervals
+        builder.stop((long)(pos + refLength - 1)); // minus one because GATK has closed intervals but BCF2 is open
     }
 
     /**
