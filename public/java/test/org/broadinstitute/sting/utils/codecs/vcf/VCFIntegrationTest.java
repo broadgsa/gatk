@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.codecs.vcf;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -65,5 +66,39 @@ public class VCFIntegrationTest extends WalkerTest {
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
         WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("63a2e0484ae37b0680514f53e0bf0c94"));
         executeTest("Test reading samtools WEx BCF example", spec1);
+    }
+
+    //
+    //
+    // Tests to ensure that -U LENIENT_VCF_PROCESS and header repairs are working
+    //
+    //
+
+    @Test
+    public void testFailingOnVCFWithoutHeaders() {
+        runVCFWithoutHeaders("", "", UserException.class, false);
+    }
+
+    @Test
+    public void testPassingOnVCFWithoutHeadersWithLenientProcessing() {
+        runVCFWithoutHeaders("-U LENIENT_VCF_PROCESSING", "6de8cb7457154dd355aa55befb943f88", null, true);
+    }
+
+    @Test
+    public void testPassingOnVCFWithoutHeadersRepairingHeaders() {
+        runVCFWithoutHeaders("-repairVCFHeader " + privateTestDir + "vcfexample2.justHeader.vcf", "ff61e9cad6653c7f93d82d391f7ecdcb", null, false);
+    }
+
+    private void runVCFWithoutHeaders(final String moreArgs, final String expectedMD5, final Class expectedException, final boolean disableBCF) {
+        final String testVCF = privateTestDir + "vcfexample2.noHeader.vcf";
+        final String baseCommand = "-R " + b37KGReference
+                + " --no_cmdline_in_header -o %s "
+                + "-T VariantsToVCF -V " + testVCF + " " + moreArgs;
+        WalkerTestSpec spec1 = expectedException != null
+                ? new WalkerTestSpec(baseCommand, 1, expectedException)
+                : new WalkerTestSpec(baseCommand, 1, Arrays.asList(expectedMD5));
+        if ( disableBCF )
+            spec1.disableShadowBCF();
+        executeTest("Test reading VCF without header lines with additional args " + moreArgs, spec1);
     }
 }

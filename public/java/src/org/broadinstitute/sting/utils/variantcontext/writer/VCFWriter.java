@@ -564,6 +564,6 @@ class VCFWriter extends IndexingVariantContextWriter {
                     + " at " + vc.getChr() + ":" + vc.getStart()
                     + " but this key isn't defined in the VCFHeader.  The GATK now requires all VCFs to have"
                     + " complete VCF headers by default.  This error can be disabled with the engine argument"
-                    + " -U LENIENT_VCF_PROCESSING");
+                    + " -U LENIENT_VCF_PROCESSING or repair the VCF file header using repairVCFHeader");
     }
 }
