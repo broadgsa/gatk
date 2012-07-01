@@ -80,7 +80,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testGenotypeFilters1() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
                 baseTestString() + " -G_filter 'GQ == 0.60' -G_filterName foo --variant " + privateTestDir + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("c5ed9dd3975b3602293bb484b4fda5f4"));
+                Arrays.asList("060e9e7b6faf8b2f7b3291594eb6b39c"));
         executeTest("test genotype filter #1", spec1);
     }
 
@@ -88,7 +88,7 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     public void testGenotypeFilters2() {
         WalkerTestSpec spec2 = new WalkerTestSpec(
                 baseTestString() + " -G_filter 'isHomVar == 1' -G_filterName foo --variant " + privateTestDir + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("979ccdf484259117aa31305701075602"));
+                Arrays.asList("00f90028a8c0d56772c47f039816b585"));
         executeTest("test genotype filter #2", spec2);
     }
 

@@ -15,10 +15,7 @@ import org.testng.SkipException;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  *
@@ -294,6 +291,12 @@ public abstract class BaseTest {
 
     public static final void assertEqualsDoubleSmart(final double actual, final double expected) {
         assertEqualsDoubleSmart(actual, expected, DEFAULT_FLOAT_TOLERANCE);
+    }
+
+    public static final <T> void assertEqualsSet(final Set<T> actual, final Set<T> expected, final String info) {
+        final Set<T> actualSet = new HashSet<T>(actual);
+        final Set<T> expectedSet = new HashSet<T>(expected);
+        Assert.assertTrue(actualSet.equals(expectedSet), info); // note this is necessary due to testng bug for set comps
     }
 
     public static final void assertEqualsDoubleSmart(final double actual, final double expected, final double tolerance) {

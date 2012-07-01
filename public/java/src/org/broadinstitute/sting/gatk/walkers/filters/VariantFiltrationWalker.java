@@ -297,7 +297,8 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             // for each genotype, check filters then create a new object
             for ( final Genotype g : vc.getGenotypes() ) {
                 if ( g.isCalled() ) {
-                    List<String> filters = new ArrayList<String>(g.getFilters());
+                    final List<String> filters = new ArrayList<String>();
+                    if ( g.isFiltered() ) filters.add(g.getFilters());
 
                     for ( VariantContextUtils.JexlVCMatchExp exp : genotypeFilterExps ) {
                         if ( VariantContextUtils.match(vc, g, exp) )

@@ -27,6 +27,7 @@ public abstract class Genotype implements Comparable<Genotype> {
      * extended attributes map
      */
     public final static Collection<String> PRIMARY_KEYS = Arrays.asList(
+            VCFConstants.GENOTYPE_FILTER_KEY,
             VCFConstants.GENOTYPE_KEY,
             VCFConstants.GENOTYPE_QUALITY_KEY,
             VCFConstants.DEPTH_KEY,
@@ -38,14 +39,11 @@ public abstract class Genotype implements Comparable<Genotype> {
 
     private final String sampleName;
     private GenotypeType type = null;
+    private final String filters;
 
-    protected Genotype(final String sampleName) {
+    protected Genotype(final String sampleName, final String filters) {
         this.sampleName = sampleName;
-    }
-
-    protected Genotype(final String sampleName, final GenotypeType type) {
-        this.sampleName = sampleName;
-        this.type = type;
+        this.filters = filters;
     }
 
     /**
@@ -348,13 +346,14 @@ public abstract class Genotype implements Comparable<Genotype> {
     }
 
     public String toString() {
-        return String.format("[%s %s%s%s%s%s%s]",
+        return String.format("[%s %s%s%s%s%s%s%s]",
                 getSampleName(),
                 getGenotypeString(false),
                 toStringIfExists(VCFConstants.GENOTYPE_QUALITY_KEY, getGQ()),
                 toStringIfExists(VCFConstants.DEPTH_KEY, getDP()),
                 toStringIfExists(VCFConstants.GENOTYPE_ALLELE_DEPTHS, getAD()),
                 toStringIfExists(VCFConstants.GENOTYPE_PL_KEY, getPL()),
+                toStringIfExists(VCFConstants.GENOTYPE_FILTER_KEY, getFilters()),
                 sortedString(getExtendedAttributes()));
     }
 
@@ -448,15 +447,25 @@ public abstract class Genotype implements Comparable<Genotype> {
     }
 
     /**
+     * Returns the filter string associated with this Genotype.
      *
-     * @return
+     * @return If this result == null, then the genotype is considered PASSing filters
+     *   If the result != null, then the genotype has failed filtering for the reason(s)
+     *   specified in result.  To be reference compliant multiple filter field
+     *   string values can be encoded with a ; separator.
      */
-    @Ensures({"result != null"})
-    public abstract List<String> getFilters();
+    public final String getFilters() {
+        return filters;
+    }
 
-    @Ensures({"result != getFilters().isEmpty()"})
-    public boolean isFiltered() {
-        return ! getFilters().isEmpty();
+    /**
+     * Is this genotype filtered or not?
+     *
+     * @return returns false if getFilters() == null
+     */
+    @Ensures({"result != (getFilters() == null)"})
+    public final boolean isFiltered() {
+        return getFilters() != null;
     }
 
     @Deprecated public boolean hasLog10PError() { return hasGQ(); }
@@ -567,6 +576,16 @@ public abstract class Genotype implements Comparable<Genotype> {
     @Ensures("result != null")
     protected final static String toStringIfExists(final String name, final int v) {
         return v == -1 ? "" : " " + name + " " + v;
+    }
+
+    /**
+     * Returns a display name for field name with String value v if this isn't null.  Otherwise returns ""
+     * @param name of the field ("FT")
+     * @param v the value of the field, or null if missing
+     * @return a non-null string for display if the field is not missing
+     */
+    protected final static String toStringIfExists(final String name, final String v) {
+        return v == null ? "" : " " + name + " " + v;
     }
 
     /**

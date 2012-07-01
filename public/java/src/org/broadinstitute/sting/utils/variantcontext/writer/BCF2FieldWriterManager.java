@@ -140,6 +140,8 @@ public class BCF2FieldWriterManager {
 
         if ( field.equals(VCFConstants.GENOTYPE_KEY) ) {
             return new BCF2FieldWriter.GTWriter(header, fieldEncoder);
+        } else if ( line.getID().equals(VCFConstants.GENOTYPE_FILTER_KEY) ) {
+            return new BCF2FieldWriter.FTGenotypesWriter(header, fieldEncoder);
         } else if ( intGenotypeFieldAccessors.getAccessor(field) != null ) {
             return new BCF2FieldWriter.IGFGenotypesWriter(header, fieldEncoder, intGenotypeFieldAccessors.getAccessor(field));
         } else if ( line.getType() == VCFHeaderLineType.Integer ) {

@@ -162,7 +162,7 @@ class VCFWriter extends IndexingVariantContextWriter {
             vc = new VariantContextBuilder(vc).noGenotypes().make();
 
         try {
-            vc = VariantContextUtils.createVariantContextWithPaddedAlleles(vc);
+            vc = VCFAlleleClipper.createVariantContextWithPaddedAlleles(vc);
             super.add(vc);
 
             Map<Allele, String> alleleMap = buildAlleleMap(vc);
@@ -348,9 +348,8 @@ class VCFWriter extends IndexingVariantContextWriter {
                 missingSampleError(vc, mHeader);
             }
 
-            List<String> attrs = new ArrayList<String>(genotypeFormatKeys.size());
+            final List<String> attrs = new ArrayList<String>(genotypeFormatKeys.size());
             for ( String field : genotypeFormatKeys ) {
-
                 if ( field.equals(VCFConstants.GENOTYPE_KEY) ) {
                     if ( !g.isAvailable() ) {
                         throw new ReviewedStingException("GTs cannot be missing for some samples if they are available for others in the record");
@@ -363,54 +362,53 @@ class VCFWriter extends IndexingVariantContextWriter {
                     }
 
                     continue;
-                }
-
-                String outputValue;
-                final IntGenotypeFieldAccessors.Accessor accessor = intGenotypeFieldAccessors.getAccessor(field);
-                if ( accessor != null ) {
-                    final int[] intValues = accessor.getValues(g);
-                    if ( intValues == null )
-                        outputValue = VCFConstants.MISSING_VALUE_v4;
-                    else if ( intValues.length == 1 ) // fast path
-                        outputValue = Integer.toString(intValues[0]);
-                    else {
-                        StringBuilder sb = new StringBuilder();
-                        sb.append(intValues[0]);
-                        for ( int i = 1; i < intValues.length; i++) {
-                            sb.append(",");
-                            sb.append(intValues[i]);
-                        }
-                        outputValue = sb.toString();
-                    }
                 } else {
-                    Object val = g.hasExtendedAttribute(field) ? g.getExtendedAttribute(field) : VCFConstants.MISSING_VALUE_v4;
-
-                    // some exceptions
+                    String outputValue;
                     if ( field.equals(VCFConstants.GENOTYPE_FILTER_KEY ) ) {
-                        val = g.isFiltered() ? ParsingUtils.join(";", ParsingUtils.sortList(g.getFilters())) : VCFConstants.PASSES_FILTERS_v4;
-                    }
-
-                    VCFFormatHeaderLine metaData = mHeader.getFormatHeaderLine(field);
-                    if ( metaData != null ) {
-                        int numInFormatField = metaData.getCount(vc);
-                        if ( numInFormatField > 1 && val.equals(VCFConstants.MISSING_VALUE_v4) ) {
-                            // If we have a missing field but multiple values are expected, we need to construct a new string with all fields.
-                            // For example, if Number=2, the string has to be ".,."
-                            StringBuilder sb = new StringBuilder(VCFConstants.MISSING_VALUE_v4);
-                            for ( int i = 1; i < numInFormatField; i++ ) {
-                                sb.append(",");
-                                sb.append(VCFConstants.MISSING_VALUE_v4);
+                        outputValue = g.isFiltered() ? g.getFilters() : VCFConstants.PASSES_FILTERS_v4;
+                    } else {
+                        final IntGenotypeFieldAccessors.Accessor accessor = intGenotypeFieldAccessors.getAccessor(field);
+                        if ( accessor != null ) {
+                            final int[] intValues = accessor.getValues(g);
+                            if ( intValues == null )
+                                outputValue = VCFConstants.MISSING_VALUE_v4;
+                            else if ( intValues.length == 1 ) // fast path
+                                outputValue = Integer.toString(intValues[0]);
+                            else {
+                                StringBuilder sb = new StringBuilder();
+                                sb.append(intValues[0]);
+                                for ( int i = 1; i < intValues.length; i++) {
+                                    sb.append(",");
+                                    sb.append(intValues[i]);
+                                }
+                                outputValue = sb.toString();
                             }
-                            val = sb.toString();
+                        } else {
+                            Object val = g.hasExtendedAttribute(field) ? g.getExtendedAttribute(field) : VCFConstants.MISSING_VALUE_v4;
+
+                            VCFFormatHeaderLine metaData = mHeader.getFormatHeaderLine(field);
+                            if ( metaData != null ) {
+                                int numInFormatField = metaData.getCount(vc);
+                                if ( numInFormatField > 1 && val.equals(VCFConstants.MISSING_VALUE_v4) ) {
+                                    // If we have a missing field but multiple values are expected, we need to construct a new string with all fields.
+                                    // For example, if Number=2, the string has to be ".,."
+                                    StringBuilder sb = new StringBuilder(VCFConstants.MISSING_VALUE_v4);
+                                    for ( int i = 1; i < numInFormatField; i++ ) {
+                                        sb.append(",");
+                                        sb.append(VCFConstants.MISSING_VALUE_v4);
+                                    }
+                                    val = sb.toString();
+                                }
+                            }
+
+                            // assume that if key is absent, then the given string encoding suffices
+                            outputValue = formatVCFField(val);
                         }
                     }
 
-                    // assume that if key is absent, then the given string encoding suffices
-                    outputValue = formatVCFField(val);
+                    if ( outputValue != null )
+                        attrs.add(outputValue);
                 }
-
-                if ( outputValue != null )
-                    attrs.add(outputValue);
             }
 
             // strip off trailing missing values
@@ -524,7 +522,7 @@ class VCFWriter extends IndexingVariantContextWriter {
             if ( g.hasDP() ) sawDP = true;
             if ( g.hasAD() ) sawAD = true;
             if ( g.hasPL() ) sawPL = true;
-            if (g.isFiltered() && g.isCalled()) sawGenotypeFilter = true;
+            if (g.isFiltered()) sawGenotypeFilter = true;
         }
 
         if ( sawGoodQual ) keys.add(VCFConstants.GENOTYPE_QUALITY_KEY);

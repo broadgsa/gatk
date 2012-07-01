@@ -186,7 +186,10 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             final int hsize = ref.getWindow().size() - Math.abs(eventLength) - 1;
             final int numPrefBases = ref.getLocus().getStart() - ref.getWindow().getStart() + 1;
 
-            haplotypeMap.putAll(Haplotype.makeHaplotypeListFromAlleles(alleleList, loc.getStart(),
+            if (hsize <= 0)  // protect against event lengths larger than ref window sizes
+                haplotypeMap.clear();
+            else
+                haplotypeMap.putAll(Haplotype.makeHaplotypeListFromAlleles(alleleList, loc.getStart(),
                     ref, hsize, numPrefBases));
         }
     }
