@@ -64,7 +64,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile),
                 1,
-                Arrays.asList("433eccaf1ac6e6be500ef0984a5d8d8b")
+                Arrays.asList("4386fbb258dcef4437495a37f5a83c53")
         );
         spec.disableShadowBCF();
         executeTest("testComplexSelection--" + testfile, spec);
