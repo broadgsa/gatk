@@ -214,7 +214,7 @@ public class VCFHeader {
     private final <T extends VCFCompoundHeaderLine> void addMetaDataMapBinding(final Map<String, T> map, T line) {
         final String key = line.getID();
         if ( map.containsKey(key) )
-            logger.warn("Found duplicate VCF header lines for " + key + "; keeping the first only" );
+            logger.debug("Found duplicate VCF header lines for " + key + "; keeping the first only" );
         else
             map.put(key, line);
     }

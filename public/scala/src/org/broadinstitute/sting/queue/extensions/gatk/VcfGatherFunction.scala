@@ -52,6 +52,9 @@ class VcfGatherFunction extends CombineVariants with GatherFunction {
     val sitesOnly = QFunction.findField(originalFunction.getClass, VCFWriterArgumentTypeDescriptor.SITES_ONLY_ARG_NAME)
     this.sites_only = originalGATK.getFieldValue(sitesOnly).asInstanceOf[Boolean]
 
+    // ensure that the gather function receives the same unsafe parameter as the scattered function
+    this.unsafe = this.originalGATK.unsafe
+
     super.freezeFieldValues()
   }
 }
