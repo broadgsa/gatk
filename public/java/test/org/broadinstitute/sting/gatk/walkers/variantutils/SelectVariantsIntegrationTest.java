@@ -167,36 +167,6 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         executeTest("testNoGTs--" + testFile, spec);
     }
 
-    @Test(enabled = false)
-    public void testParallelization2() {
-        String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
-        String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
-        WalkerTestSpec spec;
-
-        spec = new WalkerTestSpec(
-                baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 2"),
-                1,
-                Arrays.asList("433eccaf1ac6e6be500ef0984a5d8d8b")
-        );
-        spec.disableShadowBCF();
-        executeTest("testParallelization (2 threads)--" + testfile, spec);
-    }
-
-    @Test(enabled = false)
-    public void testParallelization4() {
-        String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
-        String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
-        WalkerTestSpec spec;
-        spec = new WalkerTestSpec(
-                baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 4"),
-                1,
-                Arrays.asList("433eccaf1ac6e6be500ef0984a5d8d8b")
-        );
-        spec.disableShadowBCF();
-
-        executeTest("testParallelization (4 threads)--" + testfile, spec);
-    }
-
     @Test
     public void testSelectFromMultiAllelic() {
         String testfile = privateTestDir + "multi-allelic.bi-allelicInGIH.vcf";
