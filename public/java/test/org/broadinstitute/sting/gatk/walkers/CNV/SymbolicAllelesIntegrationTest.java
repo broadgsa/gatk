@@ -18,22 +18,21 @@ public class SymbolicAllelesIntegrationTest extends WalkerTest {
                 " --no_cmdline_in_header";
     }
 
-
-    @Test(enabled = false)
+    @Test(enabled = true)
     public void test1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(b36KGReference, "symbolic_alleles_1.vcf"),
                 1,
-                Arrays.asList("c79137da24ad4dc15cedc742de39247f"));
+                Arrays.asList("5bafc5a99ea839e686e55de93f91fd5c"));
         executeTest("Test symbolic alleles", spec);
     }
 
-    @Test(enabled = false)
+    @Test(enabled = true)
     public void test2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(b36KGReference, "symbolic_alleles_2.vcf"),
                 1,
-                Arrays.asList("3f6cbbd5fdf164d87081a3af19eeeba7"));
+                Arrays.asList("bf5a09f783ab1fa44774c81f91d10921"));
         executeTest("Test symbolic alleles mixed in with non-symbolic alleles", spec);
     }
 }

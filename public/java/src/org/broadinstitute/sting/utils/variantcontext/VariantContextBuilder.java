@@ -455,6 +455,32 @@ public class VariantContextBuilder {
     }
 
     /**
+     * @see #computeEndFromAlleles(java.util.List, int, int) with endForSymbolicAlleles == -1
+     */
+    public VariantContextBuilder computeEndFromAlleles(final List<Allele> alleles, final int start) {
+        return computeEndFromAlleles(alleles, start, -1);
+    }
+
+    /**
+     * Compute the end position for this VariantContext from the alleles themselves
+     *
+     * @see VariantContextUtils.computeEndFromAlleles()
+     *
+     * assigns this builder the stop position computed.
+     *
+     * @param alleles the list of alleles to consider.  The reference allele must be the first one
+     * @param start the known start position of this event
+     * @param endForSymbolicAlleles the end position to use if any of the alleles is symbolic.  Can be -1
+     *                              if no is expected but will throw an error if one is found
+     * @return this builder
+     */
+    @Requires({"! alleles.isEmpty()", "start > 0", "endForSymbolicAlleles == -1 || endForSymbolicAlleles > 0" })
+    public VariantContextBuilder computeEndFromAlleles(final List<Allele> alleles, final int start, final int endForSymbolicAlleles) {
+        stop(VariantContextUtils.computeEndFromAlleles(alleles, start, endForSymbolicAlleles));
+        return this;
+    }
+
+    /**
      * @return true if this builder contains fully decoded data
      *
      * See VariantContext for more information

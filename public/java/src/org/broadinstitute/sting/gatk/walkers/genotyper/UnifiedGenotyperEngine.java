@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFAlleleClipper;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -188,7 +189,7 @@ public class UnifiedGenotyperEngine {
                 else {
                     final VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
                     if ( vc != null )
-                        results.add(calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model));
+                        results.add(calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, true));
                 }
             }        
         }
@@ -309,6 +310,22 @@ public class UnifiedGenotyperEngine {
     }
 
     public VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model) {
+        return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, false);
+    }
+
+    /**
+     * Main entry function to calculate genotypes of a given VC with corresponding GL's
+     * @param tracker                            Tracker
+     * @param refContext                         Reference context
+     * @param rawContext                         Raw context
+     * @param stratifiedContexts                 Stratified alignment contexts
+     * @param vc                                 Input VC
+     * @param model                              GL calculation model
+     * @param inheritAttributesFromInputVC       Output VC will contain attributes inherited from input vc
+     * @return                                   VC with assigned genotypes
+     */
+    public VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model,
+                                                 final boolean inheritAttributesFromInputVC) {
 
         boolean limitedContext = tracker == null || refContext == null || rawContext == null || stratifiedContexts == null;
 
@@ -408,6 +425,9 @@ public class UnifiedGenotyperEngine {
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         final HashMap<String, Object> attributes = new HashMap<String, Object>();
 
+        // inherit attributed from input vc if requested
+        if (inheritAttributesFromInputVC)
+            attributes.putAll(vc.getAttributes());
         // if the site was downsampled, record that fact
         if ( !limitedContext && rawContext.hasPileupBeenDownsampled() )
             attributes.put(VCFConstants.DOWNSAMPLED_KEY, true);
@@ -474,7 +494,7 @@ public class UnifiedGenotyperEngine {
         // if we are subsetting alleles (either because there were too many or because some were not polymorphic)
         // then we may need to trim the alleles (because the original VariantContext may have had to pad at the end).
         if ( myAlleles.size() != vc.getAlleles().size() && !limitedContext ) // TODO - this function doesn't work with mixed records or records that started as mixed and then became non-mixed
-            vcCall = VariantContextUtils.reverseTrimAlleles(vcCall);
+            vcCall = VCFAlleleClipper.reverseTrimAlleles(vcCall);
 
         if ( annotationEngine != null && !limitedContext ) {
             // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
@@ -622,6 +642,9 @@ public class UnifiedGenotyperEngine {
                                                                              final AlignmentContext rawContext) {
 
         final List<GenotypeLikelihoodsCalculationModel.Model> models = new ArrayList<GenotypeLikelihoodsCalculationModel.Model>(2);
+        String modelPrefix = "";
+        if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") )
+            modelPrefix = UAC.GLmodel.name().toUpperCase().replaceAll("BOTH","");
 
         // if we're genotyping given alleles and we have a requested SNP at this position, do SNP
         if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
@@ -631,24 +654,24 @@ public class UnifiedGenotyperEngine {
 
             if ( vcInput.isSNP() )  {
                 // ignore SNPs if the user chose INDEL mode only
-                if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
-                    models.add(GenotypeLikelihoodsCalculationModel.Model.SNP);
+                if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") )
+                    models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"SNP"));
                 else if ( UAC.GLmodel.name().toUpperCase().contains("SNP") )
                     models.add(UAC.GLmodel);
             }
             else if ( vcInput.isIndel() || vcInput.isMixed() ) {
                 // ignore INDELs if the user chose SNP mode only
-                if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH )
-                    models.add(GenotypeLikelihoodsCalculationModel.Model.INDEL);
+                if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") )
+                    models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"INDEL"));
                 else if (UAC.GLmodel.name().toUpperCase().contains("INDEL"))
                     models.add(UAC.GLmodel);
             }
             // No support for other types yet
         }
         else {
-            if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH ) {
-                models.add(GenotypeLikelihoodsCalculationModel.Model.SNP);
-                models.add(GenotypeLikelihoodsCalculationModel.Model.INDEL);
+            if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") ) {
+                models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"SNP"));
+                models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"INDEL"));
             }
             else {
                 models.add(UAC.GLmodel);

@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.variantcontext;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
+import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 
 import java.util.*;
@@ -63,6 +64,7 @@ public final class GenotypeBuilder {
     private int[] AD = null;
     private int[] PL = null;
     private Map<String, Object> extendedAttributes = null;
+    private String filters = null;
     private int initialAttributeMapSize = 5;
 
     private boolean useFast = MAKE_FAST_BY_DEFAULT;
@@ -147,6 +149,7 @@ public final class GenotypeBuilder {
         DP(g.getDP());
         AD(g.getAD());
         PL(g.getPL());
+        filter(g.getFilters());
         attributes(g.getExtendedAttributes());
         return this;
     }
@@ -164,6 +167,7 @@ public final class GenotypeBuilder {
         DP = -1;
         AD = null;
         PL = null;
+        filters = null;
         extendedAttributes = null;
     }
 
@@ -180,21 +184,11 @@ public final class GenotypeBuilder {
     public Genotype make() {
         if ( useFast ) {
             final Map<String, Object> ea = extendedAttributes == null ? NO_ATTRIBUTES : extendedAttributes;
-            return new FastGenotype(sampleName, alleles, isPhased, GQ, DP, AD, PL, ea);
+            return new FastGenotype(sampleName, alleles, isPhased, GQ, DP, AD, PL, filters, ea);
         } else {
             final Map<String, Object> attributes = new LinkedHashMap<String, Object>();
             if ( extendedAttributes != null ) attributes.putAll(extendedAttributes);
             final double log10PError = GQ == -1 ? SlowGenotype.NO_LOG10_PERROR : (GQ == 0 ? 0 : GQ / -10.0);
-
-            Set<String> filters = null;
-            if ( extendedAttributes != null && extendedAttributes.containsKey(VCFConstants.GENOTYPE_FILTER_KEY) )
-            {
-                final Object f = extendedAttributes.get(VCFConstants.GENOTYPE_FILTER_KEY);
-                if ( f != null )
-                    filters = new LinkedHashSet<String>((List<String>)f);
-                attributes.remove(VCFConstants.GENOTYPE_FILTER_KEY);
-            }
-
             if ( DP != -1 ) attributes.put(VCFConstants.DEPTH_KEY, DP);
             if ( AD != null ) attributes.put(VCFConstants.GENOTYPE_ALLELE_DEPTHS, AD);
             final double[] log10likelihoods = PL != null ? GenotypeLikelihoods.fromPLs(PL).getAsVector() : null;
@@ -383,9 +377,12 @@ public final class GenotypeBuilder {
      */
     @Requires("filters != null")
     public GenotypeBuilder filters(final List<String> filters) {
-        if ( ! filters.isEmpty() )
-            attribute(VCFConstants.GENOTYPE_FILTER_KEY, filters);
-        return this;
+        if ( filters.isEmpty() )
+            return filter(null);
+        else if ( filters.size() == 1 )
+            return filter(filters.get(0));
+        else
+            return filter(ParsingUtils.join(";", ParsingUtils.sortList(filters)));
     }
 
     /**
@@ -399,14 +396,23 @@ public final class GenotypeBuilder {
     }
 
     /**
+     * Most efficient version of setting filters -- just set the filters string to filters
+     *
+     * @param filter if filters == null or filters.equals("PASS") => genotype is PASS
+     * @return
+     */
+    public GenotypeBuilder filter(final String filter) {
+        this.filters = VCFConstants.PASSES_FILTERS_v4.equals(filter) ? null : filter;
+        return this;
+    }
+
+    /**
      * This genotype is unfiltered
      *
      * @return
      */
     public GenotypeBuilder unfiltered() {
-        if ( extendedAttributes != null )
-            extendedAttributes.remove(VCFConstants.GENOTYPE_FILTER_KEY);
-        return this;
+        return filter(null);
     }
 
     /**

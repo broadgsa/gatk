@@ -46,7 +46,9 @@ public class VariantContextUtils {
     public final static String MERGE_FILTER_IN_ALL = "FilteredInAll";
     public final static String MERGE_REF_IN_ALL = "ReferenceInAll";
     public final static String MERGE_FILTER_PREFIX = "filterIn";
+
     private static final List<Allele> DIPLOID_NO_CALL = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
+    private static Set<String> MISSING_KEYS_WARNED_ABOUT = new HashSet<String>();
 
     final public static JexlEngine engine = new JexlEngine();
     public static final int DEFAULT_PLOIDY = 2;
@@ -145,6 +147,10 @@ public class VariantContextUtils {
 
                 attributes.put(VCFConstants.ALLELE_COUNT_KEY, alleleCounts.size() == 1 ? alleleCounts.get(0) : alleleCounts);
                 attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs.size() == 1 ? alleleFreqs.get(0) : alleleFreqs);
+            } else {
+                // if there's no alt AC and AF shouldn't be present
+                attributes.remove(VCFConstants.ALLELE_COUNT_KEY);
+                attributes.remove(VCFConstants.ALLELE_FREQUENCY_KEY);
             }
         }
 
@@ -184,83 +190,6 @@ public class VariantContextUtils {
             return g;
     }
 
-    /**
-     * Returns true if the alleles in inputVC should have reference bases added for padding
-     *
-     * We need to pad a VC with a common base if the length of the reference allele is
-     * less than the length of the VariantContext. This happens because the position of
-     * e.g. an indel is always one before the actual event (as per VCF convention).
-     *
-     * @param inputVC the VC to evaluate, cannot be null
-     * @return true if
-     */
-    public static boolean needsPadding(final VariantContext inputVC) {
-        final int recordLength = inputVC.getEnd() - inputVC.getStart() + 1;
-        final int referenceLength = inputVC.getReference().length();
-
-        if ( referenceLength == recordLength )
-            return false;
-        else if ( referenceLength == recordLength - 1 )
-            return true;
-        else if ( !inputVC.hasSymbolicAlleles() )
-            throw new IllegalArgumentException("Badly formed variant context at location " + String.valueOf(inputVC.getStart()) +
-                    " in contig " + inputVC.getChr() + ". Reference length must be at most one base shorter than location size");
-        else
-            return false;
-    }
-
-    public static Allele padAllele(final VariantContext vc, final Allele allele) {
-        assert needsPadding(vc);
-
-        if ( allele.isSymbolic() )
-            return allele;
-        else {
-            // get bases for current allele and create a new one with trimmed bases
-            final StringBuilder sb = new StringBuilder();
-            sb.append((char)vc.getReferenceBaseForIndel().byteValue());
-            sb.append(allele.getDisplayString());
-            final String newBases = sb.toString();
-            return Allele.create(newBases, allele.isReference());
-        }
-    }
-
-
-    public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC) {
-        final boolean padVC = needsPadding(inputVC);
-
-        // nothing to do if we don't need to pad bases
-        if ( padVC ) {
-            if ( !inputVC.hasReferenceBaseForIndel() )
-                throw new ReviewedStingException("Badly formed variant context at location " + inputVC.getChr() + ":" + inputVC.getStart() + "; no padded reference base is available.");
-
-            final ArrayList<Allele> alleles = new ArrayList<Allele>(inputVC.getNAlleles());
-            final Map<Allele, Allele> unpaddedToPadded = new HashMap<Allele, Allele>(inputVC.getNAlleles());
-
-            for (final Allele a : inputVC.getAlleles()) {
-                final Allele padded = padAllele(inputVC, a);
-                alleles.add(padded);
-                unpaddedToPadded.put(a, padded);
-            }
-
-            // now we can recreate new genotypes with trimmed alleles
-            GenotypesContext genotypes = GenotypesContext.create(inputVC.getNSamples());
-            for (final Genotype g : inputVC.getGenotypes() ) {
-                final List<Allele> newGenotypeAlleles = new ArrayList<Allele>(g.getAlleles().size());
-                for (final Allele a : g.getAlleles()) {
-                    newGenotypeAlleles.add( a.isCalled() ? unpaddedToPadded.get(a) : Allele.NO_CALL);
-                }
-                genotypes.add(new GenotypeBuilder(g).alleles(newGenotypeAlleles).make());
-
-            }
-
-            return new VariantContextBuilder(inputVC).alleles(alleles).genotypes(genotypes).make();
-        }
-        else
-            return inputVC;
-
-    }
-
-    private static Set<String> MISSING_KEYS_WARNED_ABOUT = new HashSet<String>();
     public final static VCFCompoundHeaderLine getMetaDataForField(final VCFHeader header, final String field) {
         VCFCompoundHeaderLine metaData = header.getFormatHeaderLine(field);
         if ( metaData == null ) metaData = header.getInfoHeaderLine(field);
@@ -564,7 +493,7 @@ public class VariantContextUtils {
         for (final VariantContext vc : prepaddedVCs) {
             // also a reasonable place to remove filtered calls, if needed
             if ( ! filteredAreUncalled || vc.isNotFiltered() )
-                VCs.add(createVariantContextWithPaddedAlleles(vc));
+                VCs.add(VCFAlleleClipper.createVariantContextWithPaddedAlleles(vc));
         }
         if ( VCs.size() == 0 ) // everything is filtered out and we're filteredAreUncalled
             return null;
@@ -769,7 +698,7 @@ public class VariantContextUtils {
         return true;
     }
 
-    public static VariantContext createVariantContextWithTrimmedAlleles(VariantContext inputVC) {
+    private static VariantContext createVariantContextWithTrimmedAlleles(VariantContext inputVC) {
         // see if we need to trim common reference base from all alleles
         boolean trimVC;
 
@@ -780,7 +709,7 @@ public class VariantContextUtils {
         else if (refAllele.isNull())
             trimVC = false;
         else {
-            trimVC = (AbstractVCFCodec.computeForwardClipping(inputVC.getAlternateAlleles(), (byte)inputVC.getReference().getDisplayString().charAt(0)) > 0);
+            trimVC = VCFAlleleClipper.shouldClipFirstBaseP(inputVC.getAlternateAlleles(), (byte) inputVC.getReference().getDisplayString().charAt(0));
          }
 
         // nothing to do if we don't need to trim bases
@@ -834,46 +763,6 @@ public class VariantContextUtils {
         }
 
         return inputVC;
-    }
-
-    public static VariantContext reverseTrimAlleles( final VariantContext inputVC ) {
-        // see if we need to trim common reference base from all alleles
-
-        final int trimExtent = AbstractVCFCodec.computeReverseClipping(inputVC.getAlleles(), inputVC.getReference().getDisplayString().getBytes(), 0, true, -1);
-        if ( trimExtent <= 0 || inputVC.getAlleles().size() <= 1 )
-            return inputVC;
-
-        final List<Allele> alleles = new ArrayList<Allele>();
-        final GenotypesContext genotypes = GenotypesContext.create();
-        final Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
-
-        for (final Allele a : inputVC.getAlleles()) {
-            if (a.isSymbolic()) {
-                alleles.add(a);
-                originalToTrimmedAlleleMap.put(a, a);
-            } else {
-                // get bases for current allele and create a new one with trimmed bases
-                final byte[] newBases = Arrays.copyOfRange(a.getBases(), 0, a.length()-trimExtent);
-                final Allele trimmedAllele = Allele.create(newBases, a.isReference());
-                alleles.add(trimmedAllele);
-                originalToTrimmedAlleleMap.put(a, trimmedAllele);
-            }
-        }
-
-        // now we can recreate new genotypes with trimmed alleles
-        for ( final Genotype genotype : inputVC.getGenotypes() ) {
-            final List<Allele> originalAlleles = genotype.getAlleles();
-            final List<Allele> trimmedAlleles = new ArrayList<Allele>();
-            for ( final Allele a : originalAlleles ) {
-                if ( a.isCalled() )
-                    trimmedAlleles.add(originalToTrimmedAlleleMap.get(a));
-                else
-                    trimmedAlleles.add(Allele.NO_CALL);
-            }
-            genotypes.add(new GenotypeBuilder(genotype).alleles(trimmedAlleles).make());
-        }
-
-        return new VariantContextBuilder(inputVC).stop(inputVC.getStart() + alleles.get(0).length() + (inputVC.isMixed() ? -1 : 0)).alleles(alleles).genotypes(genotypes).make();
     }
 
     public static GenotypesContext stripPLs(GenotypesContext genotypes) {
@@ -1484,5 +1373,34 @@ public class VariantContextUtils {
         }
 
         return true; // we passed all tests, we matched
+    }
+
+    /**
+     * Compute the end position for this VariantContext from the alleles themselves
+     *
+     * In the trivial case this is a single BP event and end = start (open intervals)
+     * In general the end is start + ref length - 1, handling the case where ref length == 0
+     * However, if alleles contains a symbolic allele then we use endForSymbolicAllele in all cases
+     *
+     * @param alleles the list of alleles to consider.  The reference allele must be the first one
+     * @param start the known start position of this event
+     * @param endForSymbolicAlleles the end position to use if any of the alleles is symbolic.  Can be -1
+     *                              if no is expected but will throw an error if one is found
+     * @return this builder
+     */
+    @Requires({"! alleles.isEmpty()", "start > 0", "endForSymbolicAlleles == -1 || endForSymbolicAlleles > 0" })
+    public static int computeEndFromAlleles(final List<Allele> alleles, final int start, final int endForSymbolicAlleles) {
+        final Allele ref = alleles.get(0);
+
+        if ( ref.isNonReference() )
+            throw new ReviewedStingException("computeEndFromAlleles requires first allele to be reference");
+
+        if ( VariantContext.hasSymbolicAlleles(alleles) ) {
+            if ( endForSymbolicAlleles == -1 )
+                throw new ReviewedStingException("computeEndFromAlleles found a symbolic allele but endForSymbolicAlleles was provided");
+            return endForSymbolicAlleles;
+        } else {
+            return start + Math.max(ref.length() - 1, 0);
+        }
     }
 }

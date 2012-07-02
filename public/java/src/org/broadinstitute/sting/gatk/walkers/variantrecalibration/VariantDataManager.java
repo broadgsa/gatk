@@ -298,7 +298,7 @@ public class VariantDataManager {
             attributes.put(VariantRecalibrator.VQS_LOD_KEY, String.format("%.4f", datum.lod));
             attributes.put(VariantRecalibrator.CULPRIT_KEY, (datum.worstAnnotation != -1 ? annotationKeys.get(datum.worstAnnotation) : "NULL"));
 
-            VariantContextBuilder builder = new VariantContextBuilder("VQSR", datum.loc.getContig(), datum.loc.getStart(), datum.loc.getStart(), alleles).attributes(attributes);
+            VariantContextBuilder builder = new VariantContextBuilder("VQSR", datum.loc.getContig(), datum.loc.getStart(), datum.loc.getStop(), alleles).attributes(attributes);
             recalWriter.add(builder.make());
         }
     }

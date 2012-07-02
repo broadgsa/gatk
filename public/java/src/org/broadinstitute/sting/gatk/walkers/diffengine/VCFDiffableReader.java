@@ -116,6 +116,7 @@ public class VCFDiffableReader implements DiffableReader {
                     if ( g.hasDP() ) gRoot.add("DP", g.getDP() );
                     if ( g.hasAD() ) gRoot.add("AD", Utils.join(",", g.getAD()));
                     if ( g.hasPL() ) gRoot.add("PL", Utils.join(",", g.getPL()));
+                    if ( g.getFilters() != null ) gRoot.add("FT", g.getFilters());
 
                     for (Map.Entry<String, Object> attribute : g.getExtendedAttributes().entrySet()) {
                         if ( ! attribute.getKey().startsWith("_") )

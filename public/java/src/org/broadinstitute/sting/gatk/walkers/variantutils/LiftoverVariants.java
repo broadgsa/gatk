@@ -129,7 +129,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
                         .attribute("OriginalStart", fromInterval.getStart()).make();
             }
 
-            VariantContext newVC = VariantContextUtils.createVariantContextWithPaddedAlleles(vc);
+            VariantContext newVC = VCFAlleleClipper.createVariantContextWithPaddedAlleles(vc);
             if ( originalVC.isSNP() && originalVC.isBiallelic() && VariantContextUtils.getSNPSubstitutionType(originalVC) != VariantContextUtils.getSNPSubstitutionType(newVC) ) {
                 logger.warn(String.format("VCF at %s / %d => %s / %d is switching substitution type %s/%s to %s/%s",
                         originalVC.getChr(), originalVC.getStart(), newVC.getChr(), newVC.getStart(),

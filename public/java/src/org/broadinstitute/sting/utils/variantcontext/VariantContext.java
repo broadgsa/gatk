@@ -558,8 +558,8 @@ public class VariantContext implements Feature { // to enable tribble integratio
     }
 
     public String getAlleleStringWithRefPadding(final Allele allele) {
-        if ( VariantContextUtils.needsPadding(this) )
-            return VariantContextUtils.padAllele(this, allele).getDisplayString();
+        if ( VCFAlleleClipper.needsPadding(this) )
+            return VCFAlleleClipper.padAllele(this, allele).getDisplayString();
         else
             return allele.getDisplayString();
     }
@@ -1126,6 +1126,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
     // ---------------------------------------------------------------------------------------------------------
 
     private boolean validate(final EnumSet<Validation> validationToPerform) {
+        validateStop();
         for (final Validation val : validationToPerform ) {
             switch (val) {
                 case ALLELES: validateAlleles(); break;
@@ -1136,6 +1137,20 @@ public class VariantContext implements Feature { // to enable tribble integratio
         }
 
         return true;
+    }
+
+    /**
+     * Check that getEnd() == END from the info field, if it's present
+     */
+    private void validateStop() {
+        if ( hasAttribute(VCFConstants.END_KEY) ) {
+            final int end = getAttributeAsInt(VCFConstants.END_KEY, -1);
+            assert end != -1;
+            if ( end != getEnd() )
+                throw new ReviewedStingException("Badly formed variant context at location " + getChr() + ":"
+                        + getStart() + "; getEnd() was " + getEnd()
+                        + " but this VariantContext contains an END key with value " + end);
+        }
     }
 
     private void validateReferencePadding() {
@@ -1176,7 +1191,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
 //        if ( getType() == Type.INDEL ) {
 //            if ( getReference().length() != (getLocation().size()-1) ) {
         long length = (stop - start) + 1;
-        if ( ! isSymbolic()
+        if ( ! hasSymbolicAlleles()
                 && ((getReference().isNull() && length != 1 )
                     || (getReference().isNonNull() && (length - getReference().length()  > 1)))) {
             throw new IllegalStateException("BUG: GenomeLoc " + contig + ":" + start + "-" + stop + " has a size == " + length + " but the variation reference allele has length " + getReference().length() + " this = " + this);
@@ -1477,7 +1492,11 @@ public class VariantContext implements Feature { // to enable tribble integratio
     }
 
     public boolean hasSymbolicAlleles() {
-        for (final Allele a: getAlleles()) {
+        return hasSymbolicAlleles(getAlleles());
+    }
+
+    public static boolean hasSymbolicAlleles( final List<Allele> alleles ) {
+        for ( final Allele a: alleles ) {
             if (a.isSymbolic()) {
                 return true;
             }

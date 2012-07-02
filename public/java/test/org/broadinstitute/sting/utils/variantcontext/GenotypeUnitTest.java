@@ -48,6 +48,26 @@ public class GenotypeUnitTest extends BaseTest {
         T = Allele.create("T");
     }
 
+    private static final GenotypeBuilder makeGB() {
+        return new GenotypeBuilder("misc");
+    }
+
+    @Test
+    public void testFilters() {
+        Assert.assertFalse(makeGB().make().isFiltered(), "by default Genotypes must be PASS");
+        Assert.assertNull(makeGB().make().getFilters(), "by default Genotypes must be PASS => getFilters() == null");
+        Assert.assertFalse(makeGB().filter(null).make().isFiltered(), "setting filter == null => Genotypes must be PASS");
+        Assert.assertNull(makeGB().filter(null).make().getFilters(), "Genotypes PASS => getFilters == null");
+        Assert.assertFalse(makeGB().filter("PASS").make().isFiltered(), "setting filter == PASS => Genotypes must be PASS");
+        Assert.assertNull(makeGB().filter("PASS").make().getFilters(), "Genotypes PASS => getFilters == null");
+        Assert.assertTrue(makeGB().filter("x").make().isFiltered(), "setting filter != null => Genotypes must be PASS");
+        Assert.assertEquals(makeGB().filter("x").make().getFilters(), "x", "Should get back the expected filter string");
+        Assert.assertEquals(makeGB().filters("x", "y").make().getFilters(), "x;y", "Multiple filter field values should be joined with ;");
+        Assert.assertEquals(makeGB().filters("x", "y", "z").make().getFilters(), "x;y;z", "Multiple filter field values should be joined with ;");
+        Assert.assertTrue(makeGB().filters("x", "y", "z").make().isFiltered(), "Multiple filter values should be filtered");
+        Assert.assertEquals(makeGB().filter("x;y;z").make().getFilters(), "x;y;z", "Multiple filter field values should be joined with ;");
+    }
+
 //    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased) {
 //    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased, double[] log10Likelihoods) {
 //    public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, double[] log10Likelihoods)

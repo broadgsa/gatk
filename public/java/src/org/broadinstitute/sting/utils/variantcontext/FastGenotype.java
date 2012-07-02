@@ -111,8 +111,9 @@ public final class FastGenotype extends Genotype {
                            final int DP,
                            final int[] AD,
                            final int[] PL,
+                           final String filters,
                            final Map<String, Object> extendedAttributes) {
-        super(sampleName);
+        super(sampleName, filters);
         this.alleles = alleles;
         this.isPhased = isPhased;
         this.GQ = GQ;
@@ -150,10 +151,6 @@ public final class FastGenotype extends Genotype {
 
     @Override public int getGQ()  {
         return GQ;
-    }
-
-    @Override public List<String> getFilters() {
-        return (List<String>) getExtendedAttribute(VCFConstants.GENOTYPE_FILTER_KEY, Collections.emptyList());
     }
 
     @Override public int[] getPL() {
