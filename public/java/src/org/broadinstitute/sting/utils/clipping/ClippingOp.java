@@ -312,6 +312,7 @@ public class ClippingOp {
             throw new ReviewedStingException("Where did the clone go?");
         }
 
+        hardClippedRead.resetSoftStartAndEnd();                                                                         // reset the cached soft start and end because they may have changed now that the read was hard clipped. No need to calculate them now. They'll be lazily calculated on the next call to getSoftStart()/End()
         hardClippedRead.setBaseQualities(newQuals);
         hardClippedRead.setReadBases(newBases);
         hardClippedRead.setCigar(cigarShift.cigar);

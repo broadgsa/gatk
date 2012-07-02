@@ -59,6 +59,8 @@ public class GATKSAMRecord extends BAMRecord {
     private String mReadString = null;
     private GATKSAMReadGroupRecord mReadGroup = null;
     private byte[] reducedReadCounts = null;
+    private int softStart = -1;
+    private int softEnd = -1;
 
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedReadGroup = false;
@@ -385,15 +387,17 @@ public class GATKSAMRecord extends BAMRecord {
      * @return the unclipped start of the read taking soft clips (but not hard clips) into account
      */
     public int getSoftStart() {
-        int start = this.getUnclippedStart();
-        for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
-            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
-                start += cigarElement.getLength();
-            else
-                break;
+        if (softStart < 0) {
+            int start = this.getUnclippedStart();
+            for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
+                if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                    start += cigarElement.getLength();
+                else
+                    break;
+            }
+            softStart = start;
         }
-
-        return start;
+        return softStart;
     }
 
     /**
@@ -404,23 +408,43 @@ public class GATKSAMRecord extends BAMRecord {
      * @return the unclipped end of the read taking soft clips (but not hard clips) into account
      */
     public int getSoftEnd() {
-        int stop = this.getUnclippedStart();
+        if (softEnd < 0) {
+            int stop = this.getUnclippedStart();
 
-        if (ReadUtils.readIsEntirelyInsertion(this))
-            return stop;
+            if (ReadUtils.readIsEntirelyInsertion(this))
+                return stop;
 
-        int shift = 0;
-        CigarOperator lastOperator = null;
-        for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
-            stop += shift;
-            lastOperator = cigarElement.getOperator();
-            if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP || cigarElement.getOperator() == CigarOperator.HARD_CLIP)
-                shift = cigarElement.getLength();
-            else
-                shift = 0;
+            int shift = 0;
+            CigarOperator lastOperator = null;
+            for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
+                stop += shift;
+                lastOperator = cigarElement.getOperator();
+                if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP || cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                    shift = cigarElement.getLength();
+                else
+                    shift = 0;
+            }
+            softEnd = (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
         }
+        return softEnd;
+    }
 
-        return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
+    /**
+     * If the read is hard clipped, the soft start and end will change. You can set manually or just reset the cache
+     * so that the next call to getSoftStart/End will recalculate it lazily.
+     */
+    public void resetSoftStartAndEnd() {
+        softStart = -1;
+        softEnd = -1;
+    }
+
+    /**
+     * If the read is hard clipped, the soft start and end will change. You can set manually or just reset the cache
+     * so that the next call to getSoftStart/End will recalculate it lazily.
+     */
+    public void resetSoftStartAndEnd(int softStart, int softEnd) {
+        this.softStart = softStart;
+        this.softEnd = softEnd;
     }
 
     /**
