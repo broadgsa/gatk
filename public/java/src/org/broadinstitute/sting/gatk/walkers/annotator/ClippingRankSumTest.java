@@ -25,6 +25,9 @@ public class ClippingRankSumTest extends RankSumTest {
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("ClippingRankSum", 1, VCFHeaderLineType.Float, "Z-score From Wilcoxon rank sum test of Alt vs. Ref number of hard clipped bases")); }
 
     protected void fillQualsFromPileup(byte ref, List<Byte> alts, ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
+        return;
+        // This working implementation below needs to be tested for the UG pipeline
+        /*
         for ( final PileupElement p : pileup ) {
             if ( isUsableBase(p) ) {
                 if ( p.getBase() == ref ) {
@@ -34,6 +37,7 @@ public class ClippingRankSumTest extends RankSumTest {
                 }
             }
         }
+        */
     }
 
     protected void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final int refLoc, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, final List<Double> altQuals) {
@@ -53,6 +57,10 @@ public class ClippingRankSumTest extends RankSumTest {
     }
 
     protected void fillIndelQualsFromPileup(ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
+        return;
+        // This working implementation below needs to be tested for the UG pipeline
+
+        /*
         // equivalent is whether indel likelihoods for reads corresponding to ref allele are more likely than reads corresponding to alt allele ?
         HashMap<PileupElement,LinkedHashMap<Allele,Double>> indelLikelihoodMap = IndelGenotypeLikelihoodsCalculationModel.getIndelLikelihoodMap();
         for (final PileupElement p: pileup) {
@@ -78,5 +86,6 @@ public class ClippingRankSumTest extends RankSumTest {
                     altQuals.add((double)AlignmentUtils.getNumHardClippedBases(p.getRead()));
             }
         }
+        */
     }
 }
