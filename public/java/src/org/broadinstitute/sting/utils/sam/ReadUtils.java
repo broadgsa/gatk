@@ -520,7 +520,7 @@ public class ReadUtils {
             if (allowGoalNotReached) {
                 return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
             } else {
-                throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Too many deletions?");
+                throw new ReviewedStingException("Somehow the requested coordinate is not covered by the read. Alignment " + alignmentStart + " | " + cigar);
             }
         }
 

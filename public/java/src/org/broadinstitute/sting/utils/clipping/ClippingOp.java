@@ -285,7 +285,10 @@ public class ClippingOp {
 
     @Requires({"start <= stop", "start == 0 || stop == read.getReadLength() - 1"})
     private GATKSAMRecord hardClip(GATKSAMRecord read, int start, int stop) {
-        if (start == 0 && stop == read.getReadLength() - 1)
+        final int firstBaseAfterSoftClips = read.getAlignmentStart() - read.getSoftStart();
+        final int lastBaseBeforeSoftClips = read.getSoftEnd() - read.getSoftStart();
+
+        if (start == firstBaseAfterSoftClips && stop == lastBaseBeforeSoftClips)                                        // note that if the read has no soft clips, these constants will be 0 and read length - 1 (beauty of math).
             return GATKSAMRecord.emptyRead(read);
 
 
