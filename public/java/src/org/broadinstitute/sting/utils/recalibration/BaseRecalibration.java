@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.recalibration;
 import org.broadinstitute.sting.gatk.walkers.bqsr.*;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.collections.IntegerIndexedNestedHashMap;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -47,8 +48,6 @@ public class BaseRecalibration {
     private final QuantizationInfo quantizationInfo;                                                                    // histogram containing the map for qual quantization (calculated after recalibration is done)
     private final RecalibrationTables recalibrationTables;
     private final Covariate[] requestedCovariates;                                                                      // list of all covariates to be used in this calculation
-
-    private final Object[] tempKeySet;
 
     private static final NestedHashMap[] qualityScoreByFullCovariateKey = new NestedHashMap[EventType.values().length]; // Caches the result of performSequentialQualityCalculation(..) for all sets of covariate values.
     static {
@@ -74,7 +73,6 @@ public class BaseRecalibration {
             quantizationInfo.quantizeQualityScores(quantizationLevels);
 
         readCovariates = new ReadCovariates(MAXIMUM_RECALIBRATED_READ_LENGTH, requestedCovariates.length);
-        tempKeySet = new Integer[requestedCovariates.length];
     }
 
     /**
@@ -89,7 +87,6 @@ public class BaseRecalibration {
         this.recalibrationTables = recalibrationTables;
         this.requestedCovariates = requestedCovariates;
         readCovariates = new ReadCovariates(MAXIMUM_RECALIBRATED_READ_LENGTH, requestedCovariates.length);
-        tempKeySet = new Integer[requestedCovariates.length];
     }
 
     /**
@@ -112,24 +109,18 @@ public class BaseRecalibration {
 
                 if (originalQualityScore >= QualityUtils.MIN_USABLE_Q_SCORE) {                                          // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
                     final int[] keySet = fullReadKeySet[offset];                                                        // get the keyset for this base using the error model
-                    //final Object[] wrappedKeySet = wrapKeySet(keySet);
-                    //Byte recalibratedQualityScore = (Byte) qualityScoreByFullCovariateKey[errorModel.index].get(wrappedKeySet);
-                    Byte recalibratedQualityScore = null;
-                    if (recalibratedQualityScore == null) {
-                        recalibratedQualityScore = performSequentialQualityCalculation(keySet, errorModel);             // recalibrate the base
-                        //qualityScoreByFullCovariateKey[errorModel.index].put(recalibratedQualityScore, wrappedKeySet);
-                    }
+                    final Byte recalibratedQualityScore = performSequentialQualityCalculation(keySet, errorModel);      // recalibrate the base
+                    //Byte recalibratedQualityScore = (Byte) qualityScoreByFullCovariateKey[errorModel.index].get(keySet);
+                    //Byte recalibratedQualityScore = null;
+                    //if (recalibratedQualityScore == null) {
+                    //    recalibratedQualityScore = performSequentialQualityCalculation(keySet, errorModel);             // recalibrate the base
+                    //    qualityScoreByFullCovariateKey[errorModel.index].put(recalibratedQualityScore, keySet);
+                    //}
                     quals[offset] = recalibratedQualityScore;
                 }
             }
             read.setBaseQualities(quals, errorModel);
         }
-    }
-
-    private Object[] wrapKeySet(final int[] keySet) {
-        for (int i = 0; i < keySet.length; i++)
-            tempKeySet[i] = keySet[i];
-        return tempKeySet;
     }
 
     /**
@@ -154,7 +145,7 @@ public class BaseRecalibration {
         final byte qualFromRead = (byte)(long)key[1];
         final double globalDeltaQ = calculateGlobalDeltaQ(recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE), key, errorModel);
         final double deltaQReported = calculateDeltaQReported(recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE), key, errorModel, globalDeltaQ, qualFromRead);
-        final double deltaQCovariates = calculateDeltaQCovariates(recalibrationTables.getTable(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLE), key, errorModel, globalDeltaQ, deltaQReported, qualFromRead);
+        final double deltaQCovariates = calculateDeltaQCovariates(recalibrationTables, key, errorModel, globalDeltaQ, deltaQReported, qualFromRead);
 
         double recalibratedQual = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;                      // calculate the recalibrated qual using the BQSR formula
         recalibratedQual = QualityUtils.boundQual(MathUtils.fastRound(recalibratedQual), QualityUtils.MAX_RECALIBRATED_Q_SCORE);     // recalibrated quality is bound between 1 and MAX_QUAL
@@ -162,10 +153,10 @@ public class BaseRecalibration {
         return quantizationInfo.getQuantizedQuals().get((int) recalibratedQual);                                        // return the quantized version of the recalibrated quality
     }
 
-    private double calculateGlobalDeltaQ(final NestedHashMap table, final int[] key, final EventType errorModel) {
+    private double calculateGlobalDeltaQ(final IntegerIndexedNestedHashMap<RecalDatum> table, final int[] key, final EventType errorModel) {
         double result = 0.0;
 
-        final RecalDatum empiricalQualRG = (RecalDatum)table.get(key[0], errorModel.index);
+        final RecalDatum empiricalQualRG = table.get(key[0], errorModel.index);
         if (empiricalQualRG != null) {
             final double globalDeltaQEmpirical = empiricalQualRG.getEmpiricalQuality();
             final double aggregrateQReported = empiricalQualRG.getEstimatedQReported();
@@ -175,10 +166,10 @@ public class BaseRecalibration {
         return result;
     }
 
-    private double calculateDeltaQReported(final NestedHashMap table, final int[] key, final EventType errorModel, final double globalDeltaQ, final byte qualFromRead) {
+    private double calculateDeltaQReported(final IntegerIndexedNestedHashMap<RecalDatum> table, final int[] key, final EventType errorModel, final double globalDeltaQ, final byte qualFromRead) {
         double result = 0.0;
 
-        final RecalDatum empiricalQualQS = (RecalDatum)table.get(key[0], key[1], errorModel.index);
+        final RecalDatum empiricalQualQS = table.get(key[0], key[1], errorModel.index);
         if (empiricalQualQS != null) {
             final double deltaQReportedEmpirical = empiricalQualQS.getEmpiricalQuality();
             result = deltaQReportedEmpirical - qualFromRead - globalDeltaQ;
@@ -187,14 +178,15 @@ public class BaseRecalibration {
         return result;
     }
 
-    private double calculateDeltaQCovariates(final NestedHashMap table, final int[] key, final EventType errorModel, final double globalDeltaQ, final double deltaQReported, final byte qualFromRead) {
+    private double calculateDeltaQCovariates(final RecalibrationTables recalibrationTables, final int[] key, final EventType errorModel, final double globalDeltaQ, final double deltaQReported, final byte qualFromRead) {
         double result = 0.0;
 
         // for all optional covariates
         for (int i = 2; i < requestedCovariates.length; i++) {
             if (key[i] < 0)
                 continue;
-            final RecalDatum empiricalQualCO = (RecalDatum)table.get(key[0], key[1], (i-2), key[i], errorModel.index);
+
+            final RecalDatum empiricalQualCO = recalibrationTables.getTable(i).get(key[0], key[1], key[i], errorModel.index);
             if (empiricalQualCO != null) {
                 final double deltaQCovariateEmpirical = empiricalQualCO.getEmpiricalQuality();
                 result += (deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported));

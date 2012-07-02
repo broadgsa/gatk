@@ -42,17 +42,12 @@ public class NestedHashMap {
 
     public Object get( final Object... keys ) {
         Map map = this.data;
-        final int keysLength = keys.length;
-        for( int iii = 0; iii < keysLength; iii++ ) {
-            if( iii == keysLength - 1 ) {
-                return map.get(keys[iii]);
-            } else {
-                map = (Map) map.get(keys[iii]);
-                if( map == null ) { return null; }
-            }
+        final int nestedMaps = keys.length - 1;
+        for( int iii = 0; iii < nestedMaps; iii++ ) {
+            map = (Map) map.get(keys[iii]);
+            if( map == null ) { return null; }
         }
-
-        return null;
+        return map.get(keys[nestedMaps]);
     }
 
     public synchronized void put( final Object value, final Object... keys ) { // WARNING! value comes before the keys!
@@ -87,7 +82,7 @@ public class NestedHashMap {
     }
 
     public List<Object> getAllValues() {
-        List<Object> result = new ArrayList<Object>();
+        final List<Object> result = new ArrayList<Object>();
         fillAllValues(data, result);
         return result;
     }
@@ -114,8 +109,8 @@ public class NestedHashMap {
     }
 
     public List<Leaf> getAllLeaves() {
-        List<Leaf> result = new ArrayList<Leaf>();
-        List<Object> path = new ArrayList<Object>();
+        final List<Leaf> result = new ArrayList<Leaf>();
+        final List<Object> path = new ArrayList<Object>();
         fillAllLeaves(data, path, result);
         return result;
     }

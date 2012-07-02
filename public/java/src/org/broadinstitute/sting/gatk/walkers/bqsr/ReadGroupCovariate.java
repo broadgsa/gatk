@@ -83,6 +83,11 @@ public class ReadGroupCovariate implements RequiredCovariate {
         return readGroupLookupTable.get(readGroupId);
     }
 
+    @Override
+    public int maximumKeyValue() {
+        return readGroupLookupTable.size() - 1;
+    }
+
     /**
      * If the sample has a PU tag annotation, return that. If not, return the read group id.
      *

@@ -2,7 +2,7 @@ package org.broadinstitute.sting.utils.recalibration;
 
 import org.broadinstitute.sting.gatk.walkers.bqsr.*;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.collections.NestedHashMap;
+import org.broadinstitute.sting.utils.collections.IntegerIndexedNestedHashMap;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -21,7 +21,6 @@ import java.util.*;
 public class BaseRecalibrationUnitTest {
 
     private org.broadinstitute.sting.gatk.walkers.recalibration.RecalDataManager dataManager;
-    private RecalibrationTables recalibrationTables;
 
     private ReadGroupCovariate rgCovariate;
     private QualityScoreCovariate qsCovariate;
@@ -74,9 +73,9 @@ public class BaseRecalibrationUnitTest {
 
         readCovariates = RecalDataManager.computeCovariates(read, requestedCovariates);
 
-        final NestedHashMap rgTable = new NestedHashMap();
-        final NestedHashMap qualTable = new NestedHashMap();
-        final NestedHashMap covTable = new NestedHashMap();
+        RecalibrationTables recalibrationTables = new RecalibrationTables(requestedCovariates);
+        final IntegerIndexedNestedHashMap<RecalDatum> rgTable = recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE);
+        final IntegerIndexedNestedHashMap<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE);
 
         for (int i=0; i<read.getReadLength(); i++) {
             final int[] bitKeys = readCovariates.getMismatchesKeySet(i);
@@ -96,11 +95,10 @@ public class BaseRecalibrationUnitTest {
             rgTable.put(newDatum, bitKeys[0], EventType.BASE_SUBSTITUTION.index);
             qualTable.put(newDatum, bitKeys[0], bitKeys[1], EventType.BASE_SUBSTITUTION.index);
             for (int j = 0; j < optionalCovariates.size(); j++) {
-                covTable.put(newDatum, bitKeys[0], bitKeys[1], j, bitKeys[2 + j], EventType.BASE_SUBSTITUTION.index);
+                final IntegerIndexedNestedHashMap<RecalDatum> covTable = recalibrationTables.getTable(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + j);
+                covTable.put(newDatum, bitKeys[0], bitKeys[1], j, bitKeys[RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + j], EventType.BASE_SUBSTITUTION.index);
             }
         }
-
-    recalibrationTables = new RecalibrationTables(rgTable, qualTable, covTable);
 
     dataManager.generateEmpiricalQualities(1, QualityUtils.MAX_RECALIBRATED_Q_SCORE);
 

@@ -204,7 +204,7 @@ public class ContextCovariate implements StandardCovariate {
     private static int keyFromContext(final byte[] dna, final int start, final int end) {
 
         int key = end - start;
-        int bitOffset = 4;
+        int bitOffset = LENGTH_BITS;
         for (int i = start; i < end; i++) {
             final int baseIndex = BaseUtils.simpleBaseToBaseIndex(dna[i]);
             if (baseIndex == -1)                    // ignore non-ACGT bases
@@ -227,7 +227,7 @@ public class ContextCovariate implements StandardCovariate {
 
         final int length = key & LENGTH_MASK;               // the first bits represent the length (in bp) of the context
         int mask = 48;                                      // use the mask to pull out bases
-        int offset = 4;
+        int offset = LENGTH_BITS;
 
         StringBuilder dna = new StringBuilder();
         for (int i = 0; i < length; i++) {
@@ -238,5 +238,18 @@ public class ContextCovariate implements StandardCovariate {
         }
 
         return dna.toString();
+    }
+
+    @Override
+    public int maximumKeyValue() {
+        // the maximum value is T (11 in binary) for each base in the context
+        int length = Math.max(mismatchesContextSize, indelsContextSize);  // the length of the context
+        int key = length;
+        int bitOffset = LENGTH_BITS;
+        for (int i = 0; i <length ; i++) {
+            key |= (3 << bitOffset);
+            bitOffset += 2;
+        }
+        return key;
     }
 }

@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.collections.NestedHashMap;
+import org.broadinstitute.sting.utils.collections.IntegerIndexedNestedHashMap;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 
@@ -26,9 +26,9 @@ public class RecalibrationReport {
     private final GATKReportTable argumentTable;                                                                              // keep the argument table untouched just for output purposes
     private final RecalibrationArgumentCollection RAC;                                                                        // necessary for quantizing qualities with the same parameter
 
-    private final Object[] tempRGarray = new Object[2];
-    private final Object[] tempQUALarray = new Object[3];
-    private final Object[] tempCOVarray = new Object[5];
+    private final int[] tempRGarray = new int[2];
+    private final int[] tempQUALarray = new int[3];
+    private final int[] tempCOVarray = new int[4];
 
     public RecalibrationReport(final File RECAL_FILE) {
         final GATKReport report = new GATKReport(RECAL_FILE);
@@ -57,16 +57,15 @@ public class RecalibrationReport {
         for (Covariate cov : requestedCovariates)
             cov.initialize(RAC);                                                                                        // initialize any covariate member variables using the shared argument collection
 
-        final GATKReportTable rgReportTable = report.getTable(RecalDataManager.READGROUP_REPORT_TABLE_TITLE);
-        final NestedHashMap rgTable = parseReadGroupTable(rgReportTable);
+        // TODO -- note that we might be able to save memory (esp. for sparse tables) by making one pass through the GATK report to see the maximum values for each covariate and using that in the constructor here
+        recalibrationTables = new RecalibrationTables(requestedCovariates, countReadGroups(report.getTable(RecalDataManager.READGROUP_REPORT_TABLE_TITLE)));
 
-        final GATKReportTable qualReportTable = report.getTable(RecalDataManager.QUALITY_SCORE_REPORT_TABLE_TITLE);
-        final NestedHashMap qualTable = parseQualityScoreTable(qualReportTable);
+        parseReadGroupTable(report.getTable(RecalDataManager.READGROUP_REPORT_TABLE_TITLE), recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE));
 
-        final GATKReportTable covReportTable = report.getTable(RecalDataManager.ALL_COVARIATES_REPORT_TABLE_TITLE);
-        final NestedHashMap covTable = parseAllCovariatesTable(covReportTable);
+        parseQualityScoreTable(report.getTable(RecalDataManager.QUALITY_SCORE_REPORT_TABLE_TITLE), recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE));
 
-        recalibrationTables = new RecalibrationTables(rgTable, qualTable, covTable);
+        parseAllCovariatesTable(report.getTable(RecalDataManager.ALL_COVARIATES_REPORT_TABLE_TITLE), recalibrationTables);
+
     }
 
     protected RecalibrationReport(final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final GATKReportTable argumentTable, final RecalibrationArgumentCollection RAC) {
@@ -76,6 +75,19 @@ public class RecalibrationReport {
         this.RAC = RAC;
         this.requestedCovariates = null;
         this.optionalCovariateIndexes = null;
+    }
+
+    /**
+     * Counts the number of unique read groups in the table
+     *
+     * @param reportTable            the GATKReport table containing data for this table
+     * @return the number of unique read groups
+     */
+    private int countReadGroups(final GATKReportTable reportTable) {
+        Set<String> readGroups = new HashSet<String>();
+        for ( int i = 0; i < reportTable.getNumRows(); i++ )
+            readGroups.add(reportTable.get(i, RecalDataManager.READGROUP_COLUMN_NAME).toString());
+        return readGroups.size();
     }
 
     /**
@@ -94,14 +106,14 @@ public class RecalibrationReport {
     public void combine(final RecalibrationReport other) {
 
         for (RecalibrationTables.TableType type : RecalibrationTables.TableType.values()) {
-            final NestedHashMap myTable = recalibrationTables.getTable(type);
-            final NestedHashMap otherTable = other.recalibrationTables.getTable(type);
+            final IntegerIndexedNestedHashMap<RecalDatum> myTable = recalibrationTables.getTable(type);
+            final IntegerIndexedNestedHashMap<RecalDatum> otherTable = other.recalibrationTables.getTable(type);
 
-            for (final NestedHashMap.Leaf row : otherTable.getAllLeaves()) {
-                final RecalDatum myDatum = (RecalDatum)myTable.get(row.keys);
+            for (final IntegerIndexedNestedHashMap.Leaf row : otherTable.getAllLeaves()) {
+                final RecalDatum myDatum = myTable.get(row.keys);
 
                 if (myDatum == null)
-                    myTable.put(row.value, row.keys);
+                    myTable.put((RecalDatum)row.value, row.keys);
                 else
                     myDatum.combine((RecalDatum)row.value);
             }
@@ -124,39 +136,34 @@ public class RecalibrationReport {
      * Compiles the list of keys for the Covariates table and uses the shared parsing utility to produce the actual table
      *
      * @param reportTable            the GATKReport table containing data for this table
-     * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key.
-     */
-    private NestedHashMap parseAllCovariatesTable(final GATKReportTable reportTable) {
-        final NestedHashMap result = new NestedHashMap();
-
+     * @param recalibrationTables    the recalibration tables
+\     */
+    private void parseAllCovariatesTable(final GATKReportTable reportTable, final RecalibrationTables recalibrationTables) {
         for ( int i = 0; i < reportTable.getNumRows(); i++ ) {
             final Object rg = reportTable.get(i, RecalDataManager.READGROUP_COLUMN_NAME);
             tempCOVarray[0] = requestedCovariates[0].keyFromValue(rg);
             final Object qual = reportTable.get(i, RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
             tempCOVarray[1] = requestedCovariates[1].keyFromValue(qual);
+
             final String covName = (String)reportTable.get(i, RecalDataManager.COVARIATE_NAME_COLUMN_NAME);
             final int covIndex = optionalCovariateIndexes.get(covName);
-            tempCOVarray[2] = covIndex;
             final Object covValue = reportTable.get(i, RecalDataManager.COVARIATE_VALUE_COLUMN_NAME);
-            tempCOVarray[3] = requestedCovariates[covIndex + 2].keyFromValue(covValue);
+            tempCOVarray[2] = requestedCovariates[RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + covIndex].keyFromValue(covValue);
+
             final EventType event = EventType.eventFrom((String)reportTable.get(i, RecalDataManager.EVENT_TYPE_COLUMN_NAME));
-            tempCOVarray[4] = event.index;
+            tempCOVarray[3] = event.index;
 
-            result.put(getRecalDatum(reportTable, i, false), tempCOVarray);
+            recalibrationTables.getTable(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + covIndex).put(getRecalDatum(reportTable, i, false), tempCOVarray);
         }
-
-        return result;
     }
 
     /**
      *
      * Compiles the list of keys for the QualityScore table and uses the shared parsing utility to produce the actual table
      * @param reportTable            the GATKReport table containing data for this table
-     * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key.
+     * @param qualTable               the map representing this table
      */
-    private NestedHashMap parseQualityScoreTable(final GATKReportTable reportTable) {
-        final NestedHashMap result = new NestedHashMap();
-
+    private void parseQualityScoreTable(final GATKReportTable reportTable, final IntegerIndexedNestedHashMap<RecalDatum> qualTable) {
         for ( int i = 0; i < reportTable.getNumRows(); i++ ) {
             final Object rg = reportTable.get(i, RecalDataManager.READGROUP_COLUMN_NAME);
             tempQUALarray[0] = requestedCovariates[0].keyFromValue(rg);
@@ -165,31 +172,25 @@ public class RecalibrationReport {
             final EventType event = EventType.eventFrom((String)reportTable.get(i, RecalDataManager.EVENT_TYPE_COLUMN_NAME));
             tempQUALarray[2] = event.index;
 
-            result.put(getRecalDatum(reportTable, i, false), tempQUALarray);
+            qualTable.put(getRecalDatum(reportTable, i, false), tempQUALarray);
         }
-
-        return result;
     }
 
     /**
      * Compiles the list of keys for the ReadGroup table and uses the shared parsing utility to produce the actual table
      *
      * @param reportTable            the GATKReport table containing data for this table
-     * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key.
+     * @param rgTable                the map representing this table
      */
-    private NestedHashMap parseReadGroupTable(final GATKReportTable reportTable) {
-        final NestedHashMap result = new NestedHashMap();
-
+    private void parseReadGroupTable(final GATKReportTable reportTable, final IntegerIndexedNestedHashMap<RecalDatum> rgTable) {
         for ( int i = 0; i < reportTable.getNumRows(); i++ ) {
             final Object rg = reportTable.get(i, RecalDataManager.READGROUP_COLUMN_NAME);
             tempRGarray[0] = requestedCovariates[0].keyFromValue(rg);
             final EventType event = EventType.eventFrom((String)reportTable.get(i, RecalDataManager.EVENT_TYPE_COLUMN_NAME));
             tempRGarray[1] = event.index;
 
-            result.put(getRecalDatum(reportTable, i, true), tempRGarray);
+            rgTable.put(getRecalDatum(reportTable, i, true), tempRGarray);
         }
-
-        return result;
     }
 
     private RecalDatum getRecalDatum(final GATKReportTable reportTable, final int row, final boolean hasEstimatedQReportedColumn) {
@@ -298,7 +299,7 @@ public class RecalibrationReport {
      */
     public void calculateEmpiricalAndQuantizedQualities() {
         for (RecalibrationTables.TableType type : RecalibrationTables.TableType.values()) {
-            final NestedHashMap table = recalibrationTables.getTable(type);
+            final IntegerIndexedNestedHashMap table = recalibrationTables.getTable(type);
             for (final Object value : table.getAllValues()) {
                 ((RecalDatum)value).calcCombinedEmpiricalQuality();
             }

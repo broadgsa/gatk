@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.collections.NestedHashMap;
+import org.broadinstitute.sting.utils.collections.IntegerIndexedNestedHashMap;
 import org.broadinstitute.sting.utils.recalibration.QualQuantizer;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 
@@ -36,10 +36,10 @@ public class QuantizationInfo {
         for (int i = 0; i < qualHistogram.length; i++)
             qualHistogram[i] = 0L;
 
-        final NestedHashMap qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE); // get the quality score table
+        final IntegerIndexedNestedHashMap<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE); // get the quality score table
 
-        for (final Object value : qualTable.getAllValues()) {
-            final RecalDatum datum = (RecalDatum)value;
+        for (final RecalDatum value : qualTable.getAllValues()) {
+            final RecalDatum datum = value;
             final int empiricalQual = MathUtils.fastRound(datum.getEmpiricalQuality());                                 // convert the empirical quality to an integer ( it is already capped by MAX_QUAL )
             qualHistogram[empiricalQual] += datum.numObservations;                                                      // add the number of observations for every key
         }

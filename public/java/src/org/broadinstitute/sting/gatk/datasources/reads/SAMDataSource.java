@@ -664,12 +664,8 @@ public class SAMDataSource {
                                                         IndexedFastaSequenceFile refReader,
                                                         BaseRecalibration bqsrApplier,
                                                         byte defaultBaseQualities) {
-        if (useOriginalBaseQualities || defaultBaseQualities >= 0)
-            // only wrap if we are replacing the original qualities or using a default base quality
-            wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
-
-        // NOTE: this (and other filtering) should be done before on-the-fly sorting
-        //  as there is no reason to sort something that we will end of throwing away
+        // **** NOTE: ALL FILTERING SHOULD BE DONE BEFORE ANY ITERATORS THAT MODIFY THE READS! ****
+        //         (otherwise we will process something that we may end up throwing away)
         if (downsamplingFraction != null)
             wrappedIterator = new DownsampleIterator(wrappedIterator, downsamplingFraction);
 
@@ -678,13 +674,17 @@ public class SAMDataSource {
         if (!noValidationOfReadOrder && enableVerification)
             wrappedIterator = new VerifyingSamIterator(genomeLocParser,wrappedIterator);
 
+        wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
+
+        if (useOriginalBaseQualities || defaultBaseQualities >= 0)
+            // only wrap if we are replacing the original qualities or using a default base quality
+            wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
+
         if (bqsrApplier != null)
             wrappedIterator = new BQSRSamIterator(wrappedIterator, bqsrApplier);
 
         if (cmode != BAQ.CalculationMode.OFF)
             wrappedIterator = new BAQSamIterator(refReader, wrappedIterator, cmode, qmode);
-
-        wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
 
         return wrappedIterator;
     }

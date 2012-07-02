@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  */
 
 public interface Covariate {
+
     /**
      * Initialize any member variables using the command-line arguments passed to the walker
      *
@@ -79,6 +80,13 @@ public interface Covariate {
      * @return a long representation of the object
      */
     public int keyFromValue(final Object value);
+
+    /**
+     * Returns the maximum value possible for any key representing this covariate
+     *
+     * @return the maximum value possible for any key representing this covariate
+     */
+    public int maximumKeyValue();
 }
 
 interface RequiredCovariate extends Covariate {}

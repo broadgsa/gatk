@@ -46,8 +46,11 @@ import java.util.EnumSet;
  */
 
 public class CycleCovariate implements StandardCovariate {
-    private final static EnumSet<NGSPlatform> DISCRETE_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.ILLUMINA, NGSPlatform.SOLID, NGSPlatform.PACBIO, NGSPlatform.COMPLETE_GENOMICS);
-    private final static EnumSet<NGSPlatform> FLOW_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.LS454, NGSPlatform.ION_TORRENT);
+
+    private static final int MAXIMUM_CYCLE_VALUE = 1000;
+
+    private static final EnumSet<NGSPlatform> DISCRETE_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.ILLUMINA, NGSPlatform.SOLID, NGSPlatform.PACBIO, NGSPlatform.COMPLETE_GENOMICS);
+    private static final EnumSet<NGSPlatform> FLOW_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.LS454, NGSPlatform.ION_TORRENT);
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
@@ -200,6 +203,11 @@ public class CycleCovariate implements StandardCovariate {
     @Override
     public int keyFromValue(final Object value) {
         return (value instanceof String) ? keyFromCycle(Integer.parseInt((String) value)) : keyFromCycle((Integer) value);
+    }
+
+    @Override
+    public int maximumKeyValue() {
+        return (MAXIMUM_CYCLE_VALUE << 1) + 1;
     }
 
     private static int keyFromCycle(final int cycle) {

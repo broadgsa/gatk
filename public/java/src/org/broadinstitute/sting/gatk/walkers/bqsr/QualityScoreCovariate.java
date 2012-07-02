@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
@@ -66,5 +67,10 @@ public class QualityScoreCovariate implements RequiredCovariate {
     @Override
     public int keyFromValue(final Object value) {
         return (value instanceof String) ? (int)Byte.parseByte((String) value) : (int)(Byte) value;
+    }
+
+    @Override
+    public int maximumKeyValue() {
+        return QualityUtils.MAX_QUAL_SCORE;
     }
 }

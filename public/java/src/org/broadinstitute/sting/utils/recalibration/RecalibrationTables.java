@@ -25,7 +25,10 @@
 
 package org.broadinstitute.sting.utils.recalibration;
 
-import org.broadinstitute.sting.utils.collections.NestedHashMap;
+import org.broadinstitute.sting.gatk.walkers.bqsr.Covariate;
+import org.broadinstitute.sting.gatk.walkers.bqsr.EventType;
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalDatum;
+import org.broadinstitute.sting.utils.collections.IntegerIndexedNestedHashMap;
 
 /**
  * Utility class to facilitate on-the-fly base quality score recalibration.
@@ -39,24 +42,42 @@ public class RecalibrationTables {
     public enum TableType {
         READ_GROUP_TABLE(0),
         QUALITY_SCORE_TABLE(1),
-        OPTIONAL_COVARIATE_TABLE(2);
+        OPTIONAL_COVARIATE_TABLES_START(2);
 
-        private final int index;
+        public final int index;
 
         private TableType(final int index) {
             this.index = index;
         }
     }
 
-    private final NestedHashMap[] tables = new NestedHashMap[TableType.values().length];
+    private final IntegerIndexedNestedHashMap[] tables;
 
-    public RecalibrationTables(final NestedHashMap rgMap, final NestedHashMap qualMap, final NestedHashMap covMap) {
-        tables[TableType.READ_GROUP_TABLE.index] = rgMap;
-        tables[TableType.QUALITY_SCORE_TABLE.index] = qualMap;
-        tables[TableType.OPTIONAL_COVARIATE_TABLE.index] = covMap;
+    public RecalibrationTables(final Covariate[] covariates) {
+        this(covariates, covariates[TableType.READ_GROUP_TABLE.index].maximumKeyValue() + 1);
     }
 
-    public NestedHashMap getTable(final TableType type) {
-        return tables[type.index];
+    public RecalibrationTables(final Covariate[] covariates, final int numReadGroups) {
+        tables = new IntegerIndexedNestedHashMap[covariates.length];
+
+        final int qualDimension = covariates[TableType.QUALITY_SCORE_TABLE.index].maximumKeyValue() + 1;
+        final int eventDimension = EventType.values().length;
+
+        tables[TableType.READ_GROUP_TABLE.index] = new IntegerIndexedNestedHashMap<RecalDatum>(numReadGroups, eventDimension);
+        tables[TableType.QUALITY_SCORE_TABLE.index] = new IntegerIndexedNestedHashMap<RecalDatum>(numReadGroups, qualDimension, eventDimension);
+        for (int i = TableType.OPTIONAL_COVARIATE_TABLES_START.index; i < covariates.length; i++)
+            tables[i] = new IntegerIndexedNestedHashMap<RecalDatum>(numReadGroups, qualDimension, covariates[i].maximumKeyValue()+1, eventDimension);
+    }
+
+    public IntegerIndexedNestedHashMap<RecalDatum> getTable(final TableType type) {
+        return (IntegerIndexedNestedHashMap<RecalDatum>)tables[type.index];
+    }
+
+    public IntegerIndexedNestedHashMap<RecalDatum> getTable(final int index) {
+        return (IntegerIndexedNestedHashMap<RecalDatum>)tables[index];
+    }
+
+    public int numTables() {
+        return tables.length;
     }
 }
