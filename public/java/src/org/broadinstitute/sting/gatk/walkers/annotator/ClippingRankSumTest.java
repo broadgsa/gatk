@@ -18,7 +18,7 @@ import java.util.*;
  * Date: 6/28/12
  */
 
-public class ClippingRankSumTest extends RankSumTest {
+public class ClippingRankSumTest /*extends RankSumTest*/ {
 
     public List<String> getKeyNames() { return Arrays.asList("ClippingRankSum"); }
 
