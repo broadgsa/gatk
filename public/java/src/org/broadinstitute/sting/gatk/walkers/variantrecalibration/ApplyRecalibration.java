@@ -157,11 +157,11 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> implements T
         if( tranches.size() >= 2 ) {
             for( int iii = 0; iii < tranches.size() - 1; iii++ ) {
                 final Tranche t = tranches.get(iii);
-                hInfo.add(new VCFFilterHeaderLine(t.name, String.format("Truth sensitivity tranche level at VSQ Lod: " + t.minVQSLod + " <= x < " + tranches.get(iii+1).minVQSLod)));
+                hInfo.add(new VCFFilterHeaderLine(t.name, String.format("Truth sensitivity tranche level for " + t.model.toString() + " model at VQS Lod: " + t.minVQSLod + " <= x < " + tranches.get(iii+1).minVQSLod)));
             }
         }
         if( tranches.size() >= 1 ) {
-            hInfo.add(new VCFFilterHeaderLine(tranches.get(0).name + "+", String.format("Truth sensitivity tranche level at VQS Lod < " + tranches.get(0).minVQSLod)));
+            hInfo.add(new VCFFilterHeaderLine(tranches.get(0).name + "+", String.format("Truth sensitivity tranche level for " + tranches.get(0).model.toString() + " model at VQS Lod < " + tranches.get(0).minVQSLod)));
         } else {
             throw new UserException("No tranches were found in the file or were above the truth sensitivity filter level " + TS_FILTER_LEVEL);
         }

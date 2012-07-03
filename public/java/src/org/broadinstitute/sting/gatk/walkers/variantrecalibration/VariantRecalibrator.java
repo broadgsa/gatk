@@ -342,7 +342,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         // Find the VQSLOD cutoff values which correspond to the various tranches of calls requested by the user
         final int nCallsAtTruth = TrancheManager.countCallsAtTruth( dataManager.getData(), Double.NEGATIVE_INFINITY );
         final TrancheManager.SelectionMetric metric = new TrancheManager.TruthSensitivityMetric( nCallsAtTruth );
-        final List<Tranche> tranches = TrancheManager.findTranches( dataManager.getData(), TS_TRANCHES, metric );
+        final List<Tranche> tranches = TrancheManager.findTranches( dataManager.getData(), TS_TRANCHES, metric, VRAC.MODE );
         tranchesStream.print(Tranche.tranchesString( tranches ));
 
         // Find the filtering lodCutoff for display on the model PDFs. Red variants are those which were below the cutoff and filtered out of the final callset.

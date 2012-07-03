@@ -112,7 +112,7 @@ public final class VariantGaussianMixtureModelUnitTest extends BaseTest {
     private static List<Tranche> findMyTranches(ArrayList<VariantDatum> vd, double[] tranches) {
         final int nCallsAtTruth = TrancheManager.countCallsAtTruth( vd, Double.NEGATIVE_INFINITY );
         final TrancheManager.SelectionMetric metric = new TrancheManager.TruthSensitivityMetric( nCallsAtTruth );
-        return TrancheManager.findTranches(vd, tranches, metric);
+        return TrancheManager.findTranches(vd, tranches, metric, VariantRecalibratorArgumentCollection.Mode.SNP);
     }
 
     @Test
