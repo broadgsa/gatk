@@ -354,6 +354,18 @@ public class AlignmentUtils {
         return n;
     }
 
+    public static int getNumHardClippedBases(final SAMRecord r) {
+        int n = 0;
+        final Cigar cigar = r.getCigar();
+        if (cigar == null) return 0;
+
+        for (final CigarElement e : cigar.getCigarElements())
+            if (e.getOperator() == CigarOperator.H)
+                n += e.getLength();
+
+        return n;
+    }
+
     public static byte[] alignmentToByteArray(final Cigar cigar, final byte[] read, final byte[] ref) {
 
         final byte[] alignment = new byte[read.length];

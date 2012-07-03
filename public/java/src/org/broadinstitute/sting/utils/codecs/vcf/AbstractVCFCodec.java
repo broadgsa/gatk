@@ -363,10 +363,10 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
                 int eqI = infoFieldArray[i].indexOf("=");
                 if ( eqI != -1 ) {
                     key = infoFieldArray[i].substring(0, eqI);
-                    String str = infoFieldArray[i].substring(eqI+1);
+                    String valueString = infoFieldArray[i].substring(eqI+1);
 
                     // split on the INFO field separator
-                    int infoValueSplitSize = ParsingUtils.split(str, infoValueArray, VCFConstants.INFO_FIELD_ARRAY_SEPARATOR_CHAR, false);
+                    int infoValueSplitSize = ParsingUtils.split(valueString, infoValueArray, VCFConstants.INFO_FIELD_ARRAY_SEPARATOR_CHAR, false);
                     if ( infoValueSplitSize == 1 ) {
                         value = infoValueArray[0];
                         final VCFInfoHeaderLine headerLine = header.getInfoHeaderLine(key);
@@ -395,6 +395,9 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
                         value = true;
                     }
                 }
+
+                // this line ensures that key/value pairs that look like key=; are parsed correctly as MISSING
+                if ( "".equals(value) ) value = VCFConstants.MISSING_VALUE_v4;
 
                 attributes.put(key, value);
             }

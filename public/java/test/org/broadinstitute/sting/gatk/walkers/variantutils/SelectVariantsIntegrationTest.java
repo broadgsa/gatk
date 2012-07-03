@@ -64,7 +64,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile),
                 1,
-                Arrays.asList("433eccaf1ac6e6be500ef0984a5d8d8b")
+                Arrays.asList("4386fbb258dcef4437495a37f5a83c53")
         );
         spec.disableShadowBCF();
         executeTest("testComplexSelection--" + testfile, spec);
@@ -165,36 +165,6 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         );
 
         executeTest("testNoGTs--" + testFile, spec);
-    }
-
-    @Test(enabled = false)
-    public void testParallelization2() {
-        String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
-        String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
-        WalkerTestSpec spec;
-
-        spec = new WalkerTestSpec(
-                baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 2"),
-                1,
-                Arrays.asList("433eccaf1ac6e6be500ef0984a5d8d8b")
-        );
-        spec.disableShadowBCF();
-        executeTest("testParallelization (2 threads)--" + testfile, spec);
-    }
-
-    @Test(enabled = false)
-    public void testParallelization4() {
-        String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
-        String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
-        WalkerTestSpec spec;
-        spec = new WalkerTestSpec(
-                baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 4"),
-                1,
-                Arrays.asList("433eccaf1ac6e6be500ef0984a5d8d8b")
-        );
-        spec.disableShadowBCF();
-
-        executeTest("testParallelization (4 threads)--" + testfile, spec);
     }
 
     @Test

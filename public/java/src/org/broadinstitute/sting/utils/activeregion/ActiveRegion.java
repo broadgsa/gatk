@@ -46,7 +46,7 @@ public class ActiveRegion implements HasGenomeLocation, Comparable<ActiveRegion>
     }
     
     public void hardClipToActiveRegion() {
-        final ArrayList<GATKSAMRecord> clippedReads = ReadClipper.hardClipToRegion( reads, activeRegionLoc.getStart(), activeRegionLoc.getStop() );
+        final ArrayList<GATKSAMRecord> clippedReads = ReadClipper.hardClipToRegion( reads, extendedLoc.getStart(), extendedLoc.getStop() );
         reads.clear();
         reads.addAll(clippedReads);
     }

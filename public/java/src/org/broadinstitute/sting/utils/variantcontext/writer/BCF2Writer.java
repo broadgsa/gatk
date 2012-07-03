@@ -84,7 +84,6 @@ import java.util.*;
  */
 class BCF2Writer extends IndexingVariantContextWriter {
     final protected static Logger logger = Logger.getLogger(BCF2Writer.class);
-    final private static List<Allele> MISSING_GENOTYPE = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
     final private static boolean ALLOW_MISSING_CONTIG_LINES = false;
 
     private final OutputStream outputStream;      // Note: do not flush until completely done writing, to avoid issues with eventual BGZF support
@@ -203,10 +202,11 @@ class BCF2Writer extends IndexingVariantContextWriter {
         // note use of encodeRawValue to not insert the typing byte
         encoder.encodeRawValue(contigIndex, BCF2Type.INT32);
 
-        // pos
-        encoder.encodeRawValue(vc.getStart(), BCF2Type.INT32);
+        // pos.  GATK is 1 based, BCF2 is 0 based
+        encoder.encodeRawValue(vc.getStart() - 1, BCF2Type.INT32);
 
-        // ref length
+        // ref length.  GATK is closed, but BCF2 is open so the ref length is GATK end - GATK start + 1
+        // for example, a SNP is in GATK at 1:10-10, which has ref length 10 - 10 + 1 = 1
         encoder.encodeRawValue(vc.getEnd() - vc.getStart() + 1, BCF2Type.INT32);
 
         // qual
