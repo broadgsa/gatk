@@ -42,26 +42,28 @@ import java.util.*;
  */
 
 public class Tranche implements Comparable<Tranche> {
-    private static final int CURRENT_VERSION = 4;
+    private static final int CURRENT_VERSION = 5;
 
     public double ts, minVQSLod, knownTiTv, novelTiTv;
     public int numKnown,numNovel;
     public String name;
+    public VariantRecalibratorArgumentCollection.Mode model;
 
     int accessibleTruthSites = 0;
     int callsAtTruthSites = 0;
 
-    public Tranche(double ts, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv, int accessibleTruthSites, int callsAtTruthSites) {
-        this(ts, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, callsAtTruthSites, "anonymous");
+    public Tranche(double ts, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv, int accessibleTruthSites, int callsAtTruthSites, VariantRecalibratorArgumentCollection.Mode model) {
+        this(ts, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, callsAtTruthSites, model, "anonymous");
     }
 
-    public Tranche(double ts, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv, int accessibleTruthSites, int callsAtTruthSites, String name ) {
+    public Tranche(double ts, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv, int accessibleTruthSites, int callsAtTruthSites, VariantRecalibratorArgumentCollection.Mode model, String name ) {
         this.ts = ts;
         this.minVQSLod = minVQSLod;
         this.novelTiTv = novelTiTv;
         this.numNovel = numNovel;
         this.knownTiTv = knownTiTv;
         this.numKnown = numKnown;
+        this.model = model;
         this.name = name;
 
         this.accessibleTruthSites = accessibleTruthSites;
@@ -104,13 +106,13 @@ public class Tranche implements Comparable<Tranche> {
 
         stream.println("# Variant quality score tranches file");
         stream.println("# Version number " + CURRENT_VERSION);
-        stream.println("targetTruthSensitivity,numKnown,numNovel,knownTiTv,novelTiTv,minVQSLod,filterName,accessibleTruthSites,callsAtTruthSites,truthSensitivity");
+        stream.println("targetTruthSensitivity,numKnown,numNovel,knownTiTv,novelTiTv,minVQSLod,filterName,model,accessibleTruthSites,callsAtTruthSites,truthSensitivity");
 
         Tranche prev = null;
         for ( Tranche t : tranches ) {
-            stream.printf("%.2f,%d,%d,%.4f,%.4f,%.4f,TruthSensitivityTranche%.2fto%.2f,%d,%d,%.4f%n",
-                    t.ts, t.numKnown, t.numNovel, t.knownTiTv, t.novelTiTv, t.minVQSLod,
-                    (prev == null ? 0.0 : prev.ts), t.ts, t.accessibleTruthSites, t.callsAtTruthSites, t.getTruthSensitivity());
+            stream.printf("%.2f,%d,%d,%.4f,%.4f,%.4f,VQSRTranche%s%.2fto%.2f,%s,%d,%d,%.4f%n",
+                    t.ts, t.numKnown, t.numNovel, t.knownTiTv, t.novelTiTv, t.minVQSLod, t.model.toString(),
+                    (prev == null ? 0.0 : prev.ts), t.ts, t.model.toString(), t.accessibleTruthSites, t.callsAtTruthSites, t.getTruthSensitivity());
             prev = t;
         }
 
@@ -157,11 +159,11 @@ public class Tranche implements Comparable<Tranche> {
                 final String[] vals = line.split(",");
                 if( header == null ) {
                     header = vals;
-                    if ( header.length == 5 || header.length == 8 || header.length == 11 )
+                    if ( header.length == 5 || header.length == 8 || header.length == 10 )
                         // old style tranches file, throw an error
-                        throw new UserException.MalformedFile(f, "Unfortunately, your tranches file is from a previous version of this tool and cannot be used with the latest code.  Please rerun VariantRecalibrator");
-                    if ( header.length != 10 )
-                        throw new UserException.MalformedFile(f, "Expected 10 elements in header line " + line);
+                        throw new UserException.MalformedFile(f, "Unfortunately your tranches file is from a previous version of this tool and cannot be used with the latest code.  Please rerun VariantRecalibrator");
+                    if ( header.length != 11 )
+                        throw new UserException.MalformedFile(f, "Expected 11 elements in header line " + line);
                 } else {
                     if ( header.length != vals.length )
                         throw new UserException.MalformedFile(f, "Line had too few/many fields.  Header = " + header.length + " vals " + vals.length + ". The line was: " + line);
@@ -176,6 +178,7 @@ public class Tranche implements Comparable<Tranche> {
                             getDouble(bindings,"novelTiTv", true),
                             getInteger(bindings,"accessibleTruthSites", false),
                             getInteger(bindings,"callsAtTruthSites", false),
+                            VariantRecalibratorArgumentCollection.parseString(bindings.get("model")),
                             bindings.get("filterName")));
                 }
             }

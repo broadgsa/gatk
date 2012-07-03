@@ -21,9 +21,9 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     }
 
     VRTest lowPass = new VRTest("phase1.projectConsensus.chr20.raw.snps.vcf",
-            "0ddd1e0e483d2eaf56004615cea23ec7",  // tranches
+            "62f81e7d2082fbc71cae0101c27fefad",  // tranches
             "b9709e4180e56abc691b208bd3e8626c",  // recal file
-            "4c73ff0c8c5ae0055bfacf33329a2406"); // cut VCF
+            "75c178345f70ca2eb90205662fbdf968"); // cut VCF
 
     @DataProvider(name = "VRTest")
     public Object[][] createData1() {
@@ -70,9 +70,9 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     }
 
     VRTest indel = new VRTest("combined.phase1.chr20.raw.indels.sites.vcf",
-            "da4458d05f6396f5c4ab96f274e5ccdc",  // tranches
+            "b7589cd098dc153ec64c02dcff2838e4",  // tranches
             "a04a9001f62eff43d363f4d63769f3ee",  // recal file
-            "b9936d2432d3c85b2d8b5b7aa17d0950"); // cut VCF
+            "888eb042dd33b807bcbb8630896fda94"); // cut VCF
 
     @DataProvider(name = "VRIndelTest")
     public Object[][] createData2() {
@@ -130,7 +130,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -tranchesFile " + privateTestDir + "VQSR.mixedTest.tranches" +
                         " -recalFile " + privateTestDir + "VQSR.mixedTest.recal",
-                Arrays.asList("d670c684f73e2744b6c01738a01d5ec4"));
+                Arrays.asList("ec519e1f01459813dab57aefffc019e2"));
         executeTest("testApplyRecalibrationSnpAndIndelTogether", spec);
     }
 }

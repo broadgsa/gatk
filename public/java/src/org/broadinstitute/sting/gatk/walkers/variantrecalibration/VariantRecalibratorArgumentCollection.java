@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -39,6 +40,13 @@ public class VariantRecalibratorArgumentCollection {
         SNP,
         INDEL,
         BOTH
+    }
+
+    static Mode parseString(final String input) {
+        if( input.equals("SNP") ) { return Mode.SNP; }
+        if( input.equals("INDEL") ) { return Mode.INDEL; }
+        if( input.equals("BOTH") ) { return Mode.BOTH; }
+        throw new ReviewedStingException("VariantRecalibrator mode string is unrecognized, input = " + input);
     }
 
     @Argument(fullName = "mode", shortName = "mode", doc = "Recalibration mode to employ: 1.) SNP for recalibrating only snps (emitting indels untouched in the output VCF); 2.) INDEL for indels; and 3.) BOTH for recalibrating both snps and indels simultaneously.", required = false)
