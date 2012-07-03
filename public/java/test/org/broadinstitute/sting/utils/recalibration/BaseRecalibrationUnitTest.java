@@ -82,15 +82,15 @@ public class BaseRecalibrationUnitTest {
             final Object[] objKey = buildObjectKey(bitKeys);
 
             Random random = new Random();
-            int nObservations = random.nextInt(10000);
-            int nErrors = random.nextInt(10);
-            double estimatedQReported = 30;
+            final int nObservations = random.nextInt(10000);
+            final int nErrors = random.nextInt(10);
+            final byte estimatedQReported = 30;
             double empiricalQuality = calcEmpiricalQual(nObservations, nErrors);
 
             org.broadinstitute.sting.gatk.walkers.recalibration.RecalDatum oldDatum = new org.broadinstitute.sting.gatk.walkers.recalibration.RecalDatum(nObservations, nErrors, estimatedQReported, empiricalQuality);
             dataManager.addToAllTables(objKey, oldDatum, QualityUtils.MIN_USABLE_Q_SCORE);
 
-            RecalDatum newDatum = new RecalDatum(nObservations, nErrors, estimatedQReported, empiricalQuality);
+            RecalDatum newDatum = new RecalDatum(nObservations, nErrors, estimatedQReported);
 
             rgTable.put(newDatum, bitKeys[0], EventType.BASE_SUBSTITUTION.index);
             qualTable.put(newDatum, bitKeys[0], bitKeys[1], EventType.BASE_SUBSTITUTION.index);
@@ -100,7 +100,7 @@ public class BaseRecalibrationUnitTest {
             }
         }
 
-    dataManager.generateEmpiricalQualities(1, QualityUtils.MAX_RECALIBRATED_Q_SCORE);
+        dataManager.generateEmpiricalQualities(1, QualityUtils.MAX_RECALIBRATED_Q_SCORE);
 
         List<Byte> quantizedQuals = new ArrayList<Byte>();
         List<Long> qualCounts = new ArrayList<Long>();
@@ -133,30 +133,6 @@ public class BaseRecalibrationUnitTest {
         key[2] = cxCovariate.formatKey(bitKey[2]);
         key[3] = cyCovariate.formatKey(bitKey[3]);
         return key;
-    }
-
-    private static void printNestedHashMap(Map table, String output) {
-        for (Object key : table.keySet()) {
-            String ret;
-            if (output.isEmpty())
-                ret = "" + key;
-            else
-                ret = output + "," + key;
-
-            Object next = table.get(key);
-            if (next instanceof org.broadinstitute.sting.gatk.walkers.recalibration.RecalDatum)
-                System.out.println(ret + " => " + next);
-            else
-                printNestedHashMap((Map) next, "" + ret);
-        }
-    }
-
-    private void updateCovariateWithKeySet(final Map<Long, RecalDatum> recalTable, final Long hashKey, final RecalDatum datum) {
-        RecalDatum previousDatum = recalTable.get(hashKey);                                                             // using the list of covariate values as a key, pick out the RecalDatum from the data HashMap
-        if (previousDatum == null)                                                                                      // key doesn't exist yet in the map so make a new bucket and add it
-            recalTable.put(hashKey, datum.copy());
-        else
-            previousDatum.combine(datum);                                                                               // add one to the number of observations and potentially one to the number of mismatches
     }
 
     /**

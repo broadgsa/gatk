@@ -57,7 +57,6 @@ public class RecalibrationReport {
         for (Covariate cov : requestedCovariates)
             cov.initialize(RAC);                                                                                        // initialize any covariate member variables using the shared argument collection
 
-        // TODO -- note that we might be able to save memory (esp. for sparse tables) by making one pass through the GATK report to see the maximum values for each covariate and using that in the constructor here
         recalibrationTables = new RecalibrationTables(requestedCovariates, countReadGroups(report.getTable(RecalDataManager.READGROUP_REPORT_TABLE_TITLE)));
 
         parseReadGroupTable(report.getTable(RecalDataManager.READGROUP_REPORT_TABLE_TITLE), recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE));
@@ -202,7 +201,10 @@ public class RecalibrationReport {
                 (Double) reportTable.get(row, RecalDataManager.ESTIMATED_Q_REPORTED_COLUMN_NAME) :                      // we get it if we are in the read group table
                 Byte.parseByte((String) reportTable.get(row, RecalDataManager.QUALITY_SCORE_COLUMN_NAME));              // or we use the reported quality if we are in any other table
 
-        return new RecalDatum(nObservations, nErrors, estimatedQReported, empiricalQuality);
+        final RecalDatum datum = new RecalDatum(nObservations, nErrors, (byte)1);
+        datum.setEstimatedQReported(estimatedQReported);
+        datum.setEmpiricalQuality(empiricalQuality);
+        return datum;
     }
 
     /**
@@ -297,14 +299,7 @@ public class RecalibrationReport {
      * this functionality avoids recalculating the empirical qualities, estimated reported quality
      * and quantization of the quality scores during every call of combine(). Very useful for the BQSRGatherer.
      */
-    public void calculateEmpiricalAndQuantizedQualities() {
-        for (RecalibrationTables.TableType type : RecalibrationTables.TableType.values()) {
-            final NestedIntegerArray table = recalibrationTables.getTable(type);
-            for (final Object value : table.getAllValues()) {
-                ((RecalDatum)value).calcCombinedEmpiricalQuality();
-            }
-        }
-
+    public void calculateQuantizedQualities() {
         quantizationInfo = new QuantizationInfo(recalibrationTables, RAC.QUANTIZING_LEVELS);
     }
 
@@ -314,5 +309,9 @@ public class RecalibrationReport {
 
     public RecalibrationArgumentCollection getRAC() {
         return RAC;
+    }
+
+    public Covariate[] getCovariates() {
+        return requestedCovariates;
     }
 }

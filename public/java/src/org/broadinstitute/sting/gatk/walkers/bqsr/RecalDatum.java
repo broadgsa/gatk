@@ -25,7 +25,10 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.util.Random;
 
@@ -39,6 +42,8 @@ import java.util.Random;
 
 public class RecalDatum extends Datum {
 
+    private static final double UNINITIALIZED = -1.0;
+
     private double estimatedQReported;                                                                                  // estimated reported quality score based on combined data's individual q-reporteds and number of observations
     private double empiricalQuality;                                                                                    // the empirical quality for datums that have been collapsed together (by read group and reported quality, for example)
 
@@ -49,18 +54,10 @@ public class RecalDatum extends Datum {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public RecalDatum() {
-        numObservations = 0L;
-        numMismatches = 0L;
-        estimatedQReported = 0.0;
-        empiricalQuality = -1.0;
-    }
-
-    public RecalDatum(final long _numObservations, final long _numMismatches, final double _estimatedQReported, final double _empiricalQuality) {
+    public RecalDatum(final long _numObservations, final long _numMismatches, final byte reportedQuality) {
         numObservations = _numObservations;
         numMismatches = _numMismatches;
-        estimatedQReported = _estimatedQReported;
-        empiricalQuality = _empiricalQuality;
+        estimatedQReported = QualityUtils.qualToErrorProb(reportedQuality);
     }
 
     public RecalDatum(final RecalDatum copy) {
@@ -72,36 +69,39 @@ public class RecalDatum extends Datum {
 
     public void combine(final RecalDatum other) {
         final double sumErrors = this.calcExpectedErrors() + other.calcExpectedErrors();
-        this.increment(other.numObservations, other.numMismatches);
-        this.estimatedQReported = -10 * Math.log10(sumErrors / this.numObservations);
-        this.empiricalQuality = -1.0;                                                                                   // reset the empirical quality calculation so we never have a wrongly calculated empirical quality stored
+        increment(other.numObservations, other.numMismatches);
+        estimatedQReported = -10 * Math.log10(sumErrors / this.numObservations);
+        empiricalQuality = UNINITIALIZED;
     }
 
-    public final void calcCombinedEmpiricalQuality() {
-        this.empiricalQuality = empiricalQualDouble();                                                                  // cache the value so we don't call log over and over again
+    @Override
+    public void increment(final boolean isError) {
+        super.increment(isError);
+        empiricalQuality = UNINITIALIZED;
     }
-    
-    public final void calcEstimatedReportedQuality() {
-        this.estimatedQReported = -10 * Math.log10(calcExpectedErrors() / numObservations);
+
+    @Requires("empiricalQuality == UNINITIALIZED")
+    @Ensures("empiricalQuality != UNINITIALIZED")
+    protected final void calcEmpiricalQuality() {
+        empiricalQuality = empiricalQualDouble();                                                                       // cache the value so we don't call log over and over again
+    }
+
+    public void setEstimatedQReported(final double estimatedQReported) {
+        this.estimatedQReported = estimatedQReported;
     }
 
     public final double getEstimatedQReported() {
         return estimatedQReported;
     }
 
-    public final double getEmpiricalQuality() {
-        if (empiricalQuality < 0)
-            calcCombinedEmpiricalQuality();
-        return empiricalQuality;
+    public void setEmpiricalQuality(final double empiricalQuality) {
+        this.empiricalQuality = empiricalQuality;
     }
 
-    /**
-     * Makes a hard copy of the recal datum element
-     *
-     * @return a new recal datum object with the same contents of this datum.
-     */
-    public RecalDatum copy() {
-        return new RecalDatum(numObservations, numMismatches, estimatedQReported, empiricalQuality);
+    public final double getEmpiricalQuality() {
+        if (empiricalQuality == UNINITIALIZED)
+            calcEmpiricalQuality();
+        return empiricalQuality;
     }
 
     @Override
@@ -122,13 +122,11 @@ public class RecalDatum extends Datum {
     }
 
     public static RecalDatum createRandomRecalDatum(int maxObservations, int maxErrors) {
-        Random random = new Random();
-        int nObservations = random.nextInt(maxObservations);
-        int nErrors = random.nextInt(maxErrors);
-        Datum datum = new Datum(nObservations, nErrors);
-        double empiricalQuality = datum.empiricalQualDouble();
-        double estimatedQReported = empiricalQuality + ((10 * random.nextDouble()) - 5);                                // empirical quality +/- 5.
-        return new RecalDatum(nObservations, nErrors, estimatedQReported, empiricalQuality);
+        final Random random = new Random();
+        final int nObservations = random.nextInt(maxObservations);
+        final int nErrors = random.nextInt(maxErrors);
+        final int qual = random.nextInt(QualityUtils.MAX_QUAL_SCORE);
+        return new RecalDatum(nObservations, nErrors, (byte)qual);
     }
 
     /**

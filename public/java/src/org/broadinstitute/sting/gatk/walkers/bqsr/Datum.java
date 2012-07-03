@@ -71,6 +71,11 @@ public class Datum {
         numMismatches += incMismatches;
     }
 
+    synchronized void increment(final boolean isError) {
+        numObservations++;
+        numMismatches += isError ? 1:0;
+    }
+
     //---------------------------------------------------------------------------------------------------------------
     //
     // methods to derive empirical quality score
