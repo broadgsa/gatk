@@ -82,7 +82,6 @@ public class ContextCovariate implements StandardCovariate {
     @Override
     public void recordValues(final GATKSAMRecord read, final ReadCovariates values) {
 
-        // TODO -- wrong: fix me
         final GATKSAMRecord clippedRead = ReadClipper.clipLowQualEnds(read, LOW_QUAL_TAIL, ClippingRepresentation.WRITE_NS);   // Write N's over the low quality tail of the reads to avoid adding them into the context
         
         final boolean negativeStrand = clippedRead.getReadNegativeStrandFlag();
