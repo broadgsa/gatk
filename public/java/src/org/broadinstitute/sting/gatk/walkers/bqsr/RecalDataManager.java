@@ -32,7 +32,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.R.RScriptExecutor;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.collections.IntegerIndexedNestedHashMap;
+import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
@@ -213,6 +213,7 @@ public class RecalDataManager {
     private static List<GATKReportTable> generateReportTables(final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates) {
         List<GATKReportTable> result = new LinkedList<GATKReportTable>();
         int reportTableIndex = 0;
+        int rowIndex = 0;
 
         final Map<Covariate, String> covariateNameMap = new HashMap<Covariate, String>(requestedCovariates.length);
         for (final Covariate covariate : requestedCovariates)
@@ -220,11 +221,11 @@ public class RecalDataManager {
 
         for (int tableIndex = 0; tableIndex < recalibrationTables.numTables(); tableIndex++) {
 
-            final ArrayList<Pair<String, String>> columnNames = new ArrayList<Pair<String, String>>();                  // initialize the array to hold the column names
+            final ArrayList<Pair<String, String>> columnNames = new ArrayList<Pair<String, String>>();                                     // initialize the array to hold the column names
             columnNames.add(new Pair<String, String>(covariateNameMap.get(requestedCovariates[0]), "%s"));              // save the required covariate name so we can reference it in the future
             if (tableIndex != RecalibrationTables.TableType.READ_GROUP_TABLE.index) {
                 columnNames.add(new Pair<String, String>(covariateNameMap.get(requestedCovariates[1]), "%s"));          // save the required covariate name so we can reference it in the future
-                if (tableIndex == RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index) {
+                if (tableIndex >= RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index) {
                     columnNames.add(covariateValue);
                     columnNames.add(covariateName);
                 }
@@ -237,38 +238,42 @@ public class RecalDataManager {
             columnNames.add(nObservations);
             columnNames.add(nErrors);
 
-            final GATKReportTable reportTable = new GATKReportTable("RecalTable" + reportTableIndex++, "", columnNames.size());
-            for (final Pair<String, String> columnName : columnNames)
-                reportTable.addColumn(columnName.getFirst(), columnName.getSecond());                                   // every table must have the event type
+            final GATKReportTable reportTable;
+            if (tableIndex <= RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index) {
+                reportTable = new GATKReportTable("RecalTable" + reportTableIndex++, "", columnNames.size());
+                for (final Pair<String, String> columnName : columnNames)
+                    reportTable.addColumn(columnName.getFirst(), columnName.getSecond());
+                rowIndex = 0;                                                                                           // reset the row index since we're starting with a new table
+            } else {
+                reportTable = result.get(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index);
+            }
 
-            int rowIndex = 0;
-
-            final IntegerIndexedNestedHashMap<RecalDatum> table = recalibrationTables.getTable(tableIndex);
-            for (final IntegerIndexedNestedHashMap.Leaf row : table.getAllLeaves()) {
+            final NestedIntegerArray<RecalDatum> table = recalibrationTables.getTable(tableIndex);
+            for (final NestedIntegerArray.Leaf row : table.getAllLeaves()) {
                 final RecalDatum datum = (RecalDatum)row.value;
                 final int[] keys = row.keys;
 
                 int columnIndex = 0;
-                setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex).getFirst(), requestedCovariates[0].formatKey(keys[columnIndex++]));
+                int keyIndex = 0;
+                reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), requestedCovariates[0].formatKey(keys[keyIndex++]));
                 if (tableIndex != RecalibrationTables.TableType.READ_GROUP_TABLE.index) {
-                    setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex).getFirst(), requestedCovariates[1].formatKey(keys[columnIndex++]));
+                    reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), requestedCovariates[1].formatKey(keys[keyIndex++]));
                     if (tableIndex >= RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index) {
                         final Covariate covariate = requestedCovariates[tableIndex];
-                        final int covariateKey = keys[columnIndex+1];
 
-                        setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex++).getFirst(), covariate.formatKey(covariateKey));
-                        setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex++).getFirst(), covariateNameMap.get(covariate));
+                        reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), covariate.formatKey(keys[keyIndex++]));
+                        reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), covariateNameMap.get(covariate));
                     }
                 }
 
-                final EventType event = EventType.eventFrom(keys[columnIndex]);
-                setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex++).getFirst(), event);
+                final EventType event = EventType.eventFrom(keys[keyIndex]);
+                reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), event.toString());
 
-                setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEmpiricalQuality());
+                reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEmpiricalQuality());
                 if (tableIndex == RecalibrationTables.TableType.READ_GROUP_TABLE.index)
-                    setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEstimatedQReported());                          // we only add the estimated Q reported in the RG table
-                setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex++).getFirst(), datum.numObservations);
-                setReportTableCell(reportTable, rowIndex, columnNames.get(columnIndex).getFirst(), datum.numMismatches);
+                    reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEstimatedQReported());   // we only add the estimated Q reported in the RG table
+                reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.numObservations);
+                reportTable.set(rowIndex, columnNames.get(columnIndex).getFirst(), datum.numMismatches);
 
                 rowIndex++;
             }
@@ -280,10 +285,6 @@ public class RecalDataManager {
 
     private static String parseCovariateName(final Covariate covariate) {
         return covariate.getClass().getSimpleName().split("Covariate")[0];
-    }
-
-    private static void setReportTableCell(final GATKReportTable reportTable, final int rowIndex, final String columnName, final Object value) {
-        reportTable.set(rowIndex, columnName, value.toString());
     }
 
     public static void outputRecalibrationReport(final RecalibrationArgumentCollection RAC, final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, final PrintStream outputFile) {
@@ -348,8 +349,8 @@ public class RecalDataManager {
         final NestedHashMap deltaTable = new NestedHashMap();
 
         // add the quality score table to the delta table
-        final IntegerIndexedNestedHashMap<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE);
-        for (final IntegerIndexedNestedHashMap.Leaf leaf : qualTable.getAllLeaves()) {                                  // go through every element in the covariates table to create the delta table
+        final NestedIntegerArray<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE);
+        for (final NestedIntegerArray.Leaf leaf : qualTable.getAllLeaves()) {                                           // go through every element in the covariates table to create the delta table
             final int[] newCovs = new int[4];
             newCovs[0] = leaf.keys[0];
             newCovs[1] = requestedCovariates.length;                                                                    // replace the covariate name with an arbitrary (unused) index for QualityScore
@@ -360,14 +361,14 @@ public class RecalDataManager {
 
         // add the optional covariates to the delta table
         for (int i = RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index; i < requestedCovariates.length; i++) {
-            final IntegerIndexedNestedHashMap<RecalDatum> covTable = recalibrationTables.getTable(i);
-            for (final IntegerIndexedNestedHashMap.Leaf leaf : covTable.getAllLeaves()) {
-                final int[] covs = new int[leaf.keys.length-1];
+            final NestedIntegerArray<RecalDatum> covTable = recalibrationTables.getTable(i);
+            for (final NestedIntegerArray.Leaf leaf : covTable.getAllLeaves()) {
+                final int[] covs = new int[4];
                 covs[0] = leaf.keys[0];
-                covs[1] = i;                                                                                     // reset the quality score covariate to 0 from the keyset (so we aggregate all rows regardless of QS)
+                covs[1] = i;                                                                                            // reset the quality score covariate to 0 from the keyset (so we aggregate all rows regardless of QS)
                 covs[2] = leaf.keys[2];
                 covs[3] = leaf.keys[3];
-                addToDeltaTable(deltaTable, covs, (RecalDatum) leaf.value);                                                  // add this covariate to the delta table
+                addToDeltaTable(deltaTable, covs, (RecalDatum) leaf.value);                                             // add this covariate to the delta table
             }
         }
 

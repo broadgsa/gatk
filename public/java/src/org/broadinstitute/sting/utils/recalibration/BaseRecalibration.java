@@ -28,7 +28,7 @@ package org.broadinstitute.sting.utils.recalibration;
 import org.broadinstitute.sting.gatk.walkers.bqsr.*;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.collections.IntegerIndexedNestedHashMap;
+import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -109,13 +109,7 @@ public class BaseRecalibration {
 
                 if (originalQualityScore >= QualityUtils.MIN_USABLE_Q_SCORE) {                                          // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
                     final int[] keySet = fullReadKeySet[offset];                                                        // get the keyset for this base using the error model
-                    final Byte recalibratedQualityScore = performSequentialQualityCalculation(keySet, errorModel);      // recalibrate the base
-                    //Byte recalibratedQualityScore = (Byte) qualityScoreByFullCovariateKey[errorModel.index].get(keySet);
-                    //Byte recalibratedQualityScore = null;
-                    //if (recalibratedQualityScore == null) {
-                    //    recalibratedQualityScore = performSequentialQualityCalculation(keySet, errorModel);             // recalibrate the base
-                    //    qualityScoreByFullCovariateKey[errorModel.index].put(recalibratedQualityScore, keySet);
-                    //}
+                    final byte recalibratedQualityScore = performSequentialQualityCalculation(keySet, errorModel);      // recalibrate the base
                     quals[offset] = recalibratedQualityScore;
                 }
             }
@@ -153,7 +147,7 @@ public class BaseRecalibration {
         return quantizationInfo.getQuantizedQuals().get((int) recalibratedQual);                                        // return the quantized version of the recalibrated quality
     }
 
-    private double calculateGlobalDeltaQ(final IntegerIndexedNestedHashMap<RecalDatum> table, final int[] key, final EventType errorModel) {
+    private double calculateGlobalDeltaQ(final NestedIntegerArray<RecalDatum> table, final int[] key, final EventType errorModel) {
         double result = 0.0;
 
         final RecalDatum empiricalQualRG = table.get(key[0], errorModel.index);
@@ -166,7 +160,7 @@ public class BaseRecalibration {
         return result;
     }
 
-    private double calculateDeltaQReported(final IntegerIndexedNestedHashMap<RecalDatum> table, final int[] key, final EventType errorModel, final double globalDeltaQ, final byte qualFromRead) {
+    private double calculateDeltaQReported(final NestedIntegerArray<RecalDatum> table, final int[] key, final EventType errorModel, final double globalDeltaQ, final byte qualFromRead) {
         double result = 0.0;
 
         final RecalDatum empiricalQualQS = table.get(key[0], key[1], errorModel.index);

@@ -28,7 +28,7 @@ package org.broadinstitute.sting.utils.recalibration;
 import org.broadinstitute.sting.gatk.walkers.bqsr.Covariate;
 import org.broadinstitute.sting.gatk.walkers.bqsr.EventType;
 import org.broadinstitute.sting.gatk.walkers.bqsr.RecalDatum;
-import org.broadinstitute.sting.utils.collections.IntegerIndexedNestedHashMap;
+import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 
 /**
  * Utility class to facilitate on-the-fly base quality score recalibration.
@@ -51,30 +51,30 @@ public class RecalibrationTables {
         }
     }
 
-    private final IntegerIndexedNestedHashMap[] tables;
+    private final NestedIntegerArray[] tables;
 
     public RecalibrationTables(final Covariate[] covariates) {
         this(covariates, covariates[TableType.READ_GROUP_TABLE.index].maximumKeyValue() + 1);
     }
 
     public RecalibrationTables(final Covariate[] covariates, final int numReadGroups) {
-        tables = new IntegerIndexedNestedHashMap[covariates.length];
+        tables = new NestedIntegerArray[covariates.length];
 
         final int qualDimension = covariates[TableType.QUALITY_SCORE_TABLE.index].maximumKeyValue() + 1;
         final int eventDimension = EventType.values().length;
 
-        tables[TableType.READ_GROUP_TABLE.index] = new IntegerIndexedNestedHashMap<RecalDatum>(numReadGroups, eventDimension);
-        tables[TableType.QUALITY_SCORE_TABLE.index] = new IntegerIndexedNestedHashMap<RecalDatum>(numReadGroups, qualDimension, eventDimension);
+        tables[TableType.READ_GROUP_TABLE.index] = new NestedIntegerArray<RecalDatum>(numReadGroups, eventDimension);
+        tables[TableType.QUALITY_SCORE_TABLE.index] = new NestedIntegerArray<RecalDatum>(numReadGroups, qualDimension, eventDimension);
         for (int i = TableType.OPTIONAL_COVARIATE_TABLES_START.index; i < covariates.length; i++)
-            tables[i] = new IntegerIndexedNestedHashMap<RecalDatum>(numReadGroups, qualDimension, covariates[i].maximumKeyValue()+1, eventDimension);
+            tables[i] = new NestedIntegerArray<RecalDatum>(numReadGroups, qualDimension, covariates[i].maximumKeyValue()+1, eventDimension);
     }
 
-    public IntegerIndexedNestedHashMap<RecalDatum> getTable(final TableType type) {
-        return (IntegerIndexedNestedHashMap<RecalDatum>)tables[type.index];
+    public NestedIntegerArray<RecalDatum> getTable(final TableType type) {
+        return (NestedIntegerArray<RecalDatum>)tables[type.index];
     }
 
-    public IntegerIndexedNestedHashMap<RecalDatum> getTable(final int index) {
-        return (IntegerIndexedNestedHashMap<RecalDatum>)tables[index];
+    public NestedIntegerArray<RecalDatum> getTable(final int index) {
+        return (NestedIntegerArray<RecalDatum>)tables[index];
     }
 
     public int numTables() {

@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.collections.IntegerIndexedNestedHashMap;
+import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 import org.broadinstitute.sting.utils.recalibration.QualQuantizer;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 
@@ -36,7 +36,7 @@ public class QuantizationInfo {
         for (int i = 0; i < qualHistogram.length; i++)
             qualHistogram[i] = 0L;
 
-        final IntegerIndexedNestedHashMap<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE); // get the quality score table
+        final NestedIntegerArray<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE); // get the quality score table
 
         for (final RecalDatum value : qualTable.getAllValues()) {
             final RecalDatum datum = value;

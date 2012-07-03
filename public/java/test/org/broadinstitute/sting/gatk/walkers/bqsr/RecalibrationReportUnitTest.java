@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.collections.IntegerIndexedNestedHashMap;
+import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
@@ -75,8 +75,8 @@ public class RecalibrationReportUnitTest {
         final ReadCovariates rc = RecalDataManager.computeCovariates(read, requestedCovariates);
 
         final RecalibrationTables recalibrationTables = new RecalibrationTables(requestedCovariates);
-        final IntegerIndexedNestedHashMap<RecalDatum> rgTable = recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE);
-        final IntegerIndexedNestedHashMap<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE);
+        final NestedIntegerArray<RecalDatum> rgTable = recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE);
+        final NestedIntegerArray<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE);
 
         for (int offset = 0; offset < length; offset++) {
 
@@ -89,7 +89,7 @@ public class RecalibrationReportUnitTest {
                 qualTable.put(RecalDatum.createRandomRecalDatum(randomMax, 10), covariates[0], covariates[1], errorMode.index);
                 nKeys += 2;
                 for (int j = 0; j < optionalCovariates.size(); j++) {
-                    final IntegerIndexedNestedHashMap<RecalDatum> covTable = recalibrationTables.getTable(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + j);
+                    final NestedIntegerArray<RecalDatum> covTable = recalibrationTables.getTable(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + j);
                     covTable.put(RecalDatum.createRandomRecalDatum(randomMax, 10), covariates[0], covariates[1], j, covariates[RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + j], errorMode.index);
                     nKeys++;
                 }
