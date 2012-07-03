@@ -57,7 +57,8 @@ public class RecalDatum extends Datum {
     public RecalDatum(final long _numObservations, final long _numMismatches, final byte reportedQuality) {
         numObservations = _numObservations;
         numMismatches = _numMismatches;
-        estimatedQReported = QualityUtils.qualToErrorProb(reportedQuality);
+        estimatedQReported = reportedQuality;
+        empiricalQuality = UNINITIALIZED;
     }
 
     public RecalDatum(final RecalDatum copy) {
