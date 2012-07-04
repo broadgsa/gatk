@@ -48,6 +48,7 @@ import java.util.EnumSet;
 public class CycleCovariate implements StandardCovariate {
 
     private static final int MAXIMUM_CYCLE_VALUE = 1000;
+    private static final int CUSHION_FOR_INDELS = 4;
 
     private static final EnumSet<NGSPlatform> DISCRETE_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.ILLUMINA, NGSPlatform.SOLID, NGSPlatform.PACBIO, NGSPlatform.COMPLETE_GENOMICS);
     private static final EnumSet<NGSPlatform> FLOW_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.LS454, NGSPlatform.ION_TORRENT);
@@ -79,11 +80,11 @@ public class CycleCovariate implements StandardCovariate {
                 increment = readOrderFactor;
             }
 
-            final int CUSHION = 4;
-            final int MAX_CYCLE = readLength - CUSHION - 1;
+            final int MAX_CYCLE_FOR_INDELS = readLength - CUSHION_FOR_INDELS - 1;
             for (int i = 0; i < readLength; i++) {
-                final int key = (i<CUSHION || i>MAX_CYCLE) ? -1 : keyFromCycle(cycle);
-                values.addCovariate(key, key, key, i);
+                final int substitutionKey = keyFromCycle(cycle);
+                final int indelKey = (i < CUSHION_FOR_INDELS || i > MAX_CYCLE_FOR_INDELS) ? -1 : substitutionKey;
+                values.addCovariate(substitutionKey, indelKey, indelKey, i);
                 cycle += increment;
             }
         }
