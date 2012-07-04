@@ -71,16 +71,19 @@ public class RecalibrationArgumentCollection {
     public boolean LIST_ONLY = false;
 
     /**
-     * Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are required covariates and are already added for you. See the list of covariates with -list.
+     * Note that the ReadGroup and QualityScore covariates are required and do not need to be specified.
+     * Also, unless --no_standard_covs is specified, the Cycle and Context covariates are standard and are included by default.
+     * Use the --list argument to see the available covariates.
      */
-    @Argument(fullName = "covariate", shortName = "cov", doc = "Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are required covariates and are already added for you.", required = false)
+    @Argument(fullName = "covariate", shortName = "cov", doc = "One or more covariates to be used in the recalibration. Can be specified multiple times", required = false)
     public String[] COVARIATES = null;
 
     /*
-     * Use the standard set of covariates in addition to the ones listed using the -cov argument
+     * The Cycle and Context covariates are standard and are included by default unless this argument is provided.
+     * Note that the ReadGroup and QualityScore covariates are required and cannot be excluded.
      */
-    @Argument(fullName = "standard_covs", shortName = "standard", doc = "Use the standard set of covariates in addition to the ones listed using the -cov argument", required = false)
-    public boolean USE_STANDARD_COVARIATES = true;
+    @Argument(fullName = "no_standard_covs", shortName = "noStandard", doc = "Do not use the standard set of covariates, but rather just the ones listed using the -cov argument", required = false)
+    public boolean DO_NOT_USE_STANDARD_COVARIATES = false;
 
     /////////////////////////////
     // Debugging-only Arguments
@@ -172,8 +175,8 @@ public class RecalibrationArgumentCollection {
         argumentsTable.addColumn(RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME);
         argumentsTable.addRowID("covariate", true);
         argumentsTable.set("covariate", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, (COVARIATES == null) ? "null" : Utils.join(",", COVARIATES));
-        argumentsTable.addRowID("standard_covs", true);
-        argumentsTable.set("standard_covs", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, USE_STANDARD_COVARIATES);
+        argumentsTable.addRowID("no_standard_covs", true);
+        argumentsTable.set("no_standard_covs", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, DO_NOT_USE_STANDARD_COVARIATES);
         argumentsTable.addRowID("run_without_dbsnp", true);
         argumentsTable.set("run_without_dbsnp", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, RUN_WITHOUT_DBSNP);
         argumentsTable.addRowID("solid_recal_mode", true);
