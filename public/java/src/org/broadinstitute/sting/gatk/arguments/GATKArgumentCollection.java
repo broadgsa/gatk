@@ -209,6 +209,12 @@ public class GATKArgumentCollection {
     @Argument(fullName="quantize_quals", shortName = "qq", doc = "Quantize quality scores to a given number of levels.", required=false)
     public int quantizationLevels = -1;
 
+    /**
+     * Turns off printing of the base insertion and base deletion tags when using the -BQSR argument.  Only the base substitution qualities will be produced.
+     */
+    @Argument(fullName="no_indel_quals", shortName = "NIQ", doc = "If true, inhibits printing of base insertion and base deletion tags.", required=false)
+    public boolean noIndelQuals = false;
+
     @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
     public byte defaultBaseQualities = -1;
 

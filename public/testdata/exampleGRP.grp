@@ -11,11 +11,11 @@ insertions_default_quality  45
 low_quality_tail            2              
 mismatches_context_size     2              
 mismatches_default_quality  -1             
+no_standard_covs            false           
 quantizing_levels           16             
 run_without_dbsnp           false          
 solid_nocall_strategy       THROW_EXCEPTION
 solid_recal_mode            SET_Q_ZERO     
-standard_covs               true           
 
 #:GATKTable:3:94:::;
 #:GATKTable:Quantized:Quality quantization map

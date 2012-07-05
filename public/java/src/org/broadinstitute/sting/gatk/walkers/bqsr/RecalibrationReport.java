@@ -247,7 +247,7 @@ public class RecalibrationReport {
                 RAC.COVARIATES = value.toString().split(",");
 
             else if (argument.equals("standard_covs"))
-                RAC.USE_STANDARD_COVARIATES = Boolean.parseBoolean((String) value);
+                RAC.DO_NOT_USE_STANDARD_COVARIATES = Boolean.parseBoolean((String) value);
 
             else if (argument.equals("solid_recal_mode"))
                 RAC.SOLID_RECAL_MODE = RecalDataManager.SOLID_RECAL_MODE.recalModeFromString((String) value);

@@ -173,10 +173,10 @@ public class GATKSAMRecord extends BAMRecord {
                 setBaseQualities(quals);
                 break;
             case BASE_INSERTION:
-                setAttribute( GATKSAMRecord.BQSR_BASE_INSERTION_QUALITIES, SAMUtils.phredToFastq(quals) );
+                setAttribute( GATKSAMRecord.BQSR_BASE_INSERTION_QUALITIES, quals == null ? null : SAMUtils.phredToFastq(quals) );
                 break;
             case BASE_DELETION:
-                setAttribute( GATKSAMRecord.BQSR_BASE_DELETION_QUALITIES, SAMUtils.phredToFastq(quals) );
+                setAttribute( GATKSAMRecord.BQSR_BASE_DELETION_QUALITIES, quals == null ? null : SAMUtils.phredToFastq(quals) );
                 break;
             default:
                 throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );

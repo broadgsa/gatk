@@ -49,6 +49,8 @@ public class BaseRecalibration {
     private final RecalibrationTables recalibrationTables;
     private final Covariate[] requestedCovariates;                                                                      // list of all covariates to be used in this calculation
 
+    private final boolean noIndelQuals;
+
     private static final NestedHashMap[] qualityScoreByFullCovariateKey = new NestedHashMap[EventType.values().length]; // Caches the result of performSequentialQualityCalculation(..) for all sets of covariate values.
     static {
         for (int i = 0; i < EventType.values().length; i++)
@@ -58,10 +60,11 @@ public class BaseRecalibration {
     /**
      * Constructor using a GATK Report file
      * 
-     * @param RECAL_FILE a GATK Report file containing the recalibration information
+     * @param RECAL_FILE         a GATK Report file containing the recalibration information
      * @param quantizationLevels number of bins to quantize the quality scores
+     * @param noIndelQuals       if true, do not emit base indel qualities
      */
-    public BaseRecalibration(final File RECAL_FILE, int quantizationLevels) {
+    public BaseRecalibration(final File RECAL_FILE, final int quantizationLevels, final boolean noIndelQuals) {
         RecalibrationReport recalibrationReport = new RecalibrationReport(RECAL_FILE);
 
         recalibrationTables = recalibrationReport.getRecalibrationTables();
@@ -73,6 +76,7 @@ public class BaseRecalibration {
             quantizationInfo.quantizeQualityScores(quantizationLevels);
 
         readCovariates = new ReadCovariates(MAXIMUM_RECALIBRATED_READ_LENGTH, requestedCovariates.length);
+        this.noIndelQuals = noIndelQuals;
     }
 
     /**
@@ -87,6 +91,7 @@ public class BaseRecalibration {
         this.recalibrationTables = recalibrationTables;
         this.requestedCovariates = requestedCovariates;
         readCovariates = new ReadCovariates(MAXIMUM_RECALIBRATED_READ_LENGTH, requestedCovariates.length);
+        noIndelQuals = false;
     }
 
     /**
@@ -99,6 +104,11 @@ public class BaseRecalibration {
     public void recalibrateRead(final GATKSAMRecord read) {
         RecalDataManager.computeCovariates(read, requestedCovariates, readCovariates);                                  // compute all covariates for the read
         for (final EventType errorModel : EventType.values()) {                                                         // recalibrate all three quality strings
+            if (noIndelQuals && errorModel != EventType.BASE_SUBSTITUTION) {
+                read.setBaseQualities(null, errorModel);
+                continue;
+            }
+
             final byte[] quals = read.getBaseQualities(errorModel);
             final int[][] fullReadKeySet = readCovariates.getKeySet(errorModel);                                        // get the keyset for this base using the error model
 

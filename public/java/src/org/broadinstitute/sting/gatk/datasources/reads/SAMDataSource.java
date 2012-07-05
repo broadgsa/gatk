@@ -664,8 +664,12 @@ public class SAMDataSource {
                                                         IndexedFastaSequenceFile refReader,
                                                         BaseRecalibration bqsrApplier,
                                                         byte defaultBaseQualities) {
-        // **** NOTE: ALL FILTERING SHOULD BE DONE BEFORE ANY ITERATORS THAT MODIFY THE READS! ****
-        //         (otherwise we will process something that we may end up throwing away)
+
+        // *********************************************************************************** //
+        // *  NOTE: ALL FILTERING SHOULD BE DONE BEFORE ANY ITERATORS THAT MODIFY THE READS! * //
+        // *     (otherwise we will process something that we may end up throwing away)      * //
+        // *********************************************************************************** //
+
         if (downsamplingFraction != null)
             wrappedIterator = new DownsampleIterator(wrappedIterator, downsamplingFraction);
 

@@ -170,7 +170,7 @@ public class RecalDataManager {
 
         final ArrayList<Covariate> requiredCovariates = addRequiredCovariatesToList(requiredClasses);                   // add the required covariates
         ArrayList<Covariate> optionalCovariates = new ArrayList<Covariate>();
-        if (argumentCollection.USE_STANDARD_COVARIATES)
+        if (!argumentCollection.DO_NOT_USE_STANDARD_COVARIATES)
             optionalCovariates = addStandardCovariatesToList(standardClasses);                                          // add the standard covariates if -standard was specified by the user
 
         if (argumentCollection.COVARIATES != null) {                                                                    // parse the -cov arguments that were provided, skipping over the ones already specified
@@ -180,7 +180,7 @@ public class RecalDataManager {
                     if (requestedCovariateString.equalsIgnoreCase(covClass.getSimpleName())) {                          // -cov argument matches the class name for an implementing class
                         foundClass = true;
                         if (!requiredClasses.contains(covClass) &&
-                                (!argumentCollection.USE_STANDARD_COVARIATES || !standardClasses.contains(covClass))) {
+                                (argumentCollection.DO_NOT_USE_STANDARD_COVARIATES || !standardClasses.contains(covClass))) {
                             try {
                                 final Covariate covariate = covClass.newInstance();                                     // now that we've found a matching class, try to instantiate it
                                 optionalCovariates.add(covariate);

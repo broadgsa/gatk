@@ -197,7 +197,7 @@ public class GenomeAnalysisEngine {
     private BaseRecalibration baseRecalibration = null;
     public BaseRecalibration getBaseRecalibration() { return baseRecalibration; }
     public boolean hasBaseRecalibration() { return baseRecalibration != null; }
-    public void setBaseRecalibration(File recalFile, int quantizationLevels) { baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels); }
+    public void setBaseRecalibration(final File recalFile, final int quantizationLevels, final boolean noIndelQuals) { baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, noIndelQuals); }
 
     /**
      * Actually run the GATK with the specified walker.
@@ -227,7 +227,7 @@ public class GenomeAnalysisEngine {
 
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
         if (this.getArguments().BQSR_RECAL_FILE != null)
-            setBaseRecalibration(this.getArguments().BQSR_RECAL_FILE, this.getArguments().quantizationLevels);
+            setBaseRecalibration(this.getArguments().BQSR_RECAL_FILE, this.getArguments().quantizationLevels, this.getArguments().noIndelQuals);
 
         // Determine how the threads should be divided between CPU vs. IO.
         determineThreadAllocation();
