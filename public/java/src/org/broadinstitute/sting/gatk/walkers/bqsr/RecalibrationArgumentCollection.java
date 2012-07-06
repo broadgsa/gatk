@@ -153,6 +153,11 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "quantizing_levels", shortName = "ql", required = false, doc = "number of distinct quality scores in the quantized output")
     public int QUANTIZING_LEVELS = 16;
 
+    /**
+     * The tag name for the binary tag covariate (if using it)
+     */
+    @Argument(fullName = "binary_tag_name", shortName = "bintag", required = false, doc = "the binary tag covariate name if using it")
+    public String BINARY_TAG_NAME = null;
 
     @Hidden
     @Argument(fullName = "default_platform", shortName = "dP", required = false, doc = "If a read has no platform then default to the provided String. Valid options are illumina, 454, and solid.")
@@ -205,6 +210,8 @@ public class RecalibrationArgumentCollection {
         argumentsTable.set("no_plots", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, NO_PLOTS);
         argumentsTable.addRowID("recalibration_report", true);
         argumentsTable.set("recalibration_report", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, recalibrationReport == null ? "null" : recalibrationReport.getAbsolutePath());
+        argumentsTable.addRowID("binary_tag_name", true);
+        argumentsTable.set("binary_tag_name", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, BINARY_TAG_NAME == null ? "null" : BINARY_TAG_NAME);
         return argumentsTable;
     }
 

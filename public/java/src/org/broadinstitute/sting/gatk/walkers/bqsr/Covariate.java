@@ -55,7 +55,7 @@ public interface Covariate {
     public void recordValues(final GATKSAMRecord read, final ReadCovariates values);
 
     /**
-     * Used to get the covariate's value from input csv file during on-the-fly recalibration
+     * Used to get the covariate's value from input (Recalibration Report) file during on-the-fly recalibration
      *
      * @param str the key in string type (read from the csv)
      * @return the key in it's correct type.

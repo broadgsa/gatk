@@ -290,6 +290,9 @@ public class RecalibrationReport {
 
             else if (argument.equals("recalibration_report"))
                 RAC.recalibrationReport = (value == null) ? null : new File((String) value);
+
+            else if (argument.equals("binary_tag_name"))
+                RAC.BINARY_TAG_NAME = (value == null) ? null : (String) value;
         }
 
         return RAC;
