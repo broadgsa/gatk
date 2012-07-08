@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.utils.codecs.vcf;
 
 import com.google.java.contract.Ensures;
-import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -60,8 +59,8 @@ public class VCFStandardHeaderLines {
     @Requires("header != null")
     @Ensures("result != null")
     public static VCFHeader repairStandardHeaderLines(final VCFHeader header) {
-        final Set<VCFHeaderLine> newLines = new LinkedHashSet<VCFHeaderLine>(header.getMetaData().size());
-        for ( VCFHeaderLine line : header.getMetaData() ) {
+        final Set<VCFHeaderLine> newLines = new LinkedHashSet<VCFHeaderLine>(header.getMetaDataInInputOrder().size());
+        for ( VCFHeaderLine line : header.getMetaDataInInputOrder() ) {
             if ( line instanceof VCFFormatHeaderLine ) {
                 line = formatStandards.repair((VCFFormatHeaderLine) line);
             } else if ( line instanceof VCFInfoHeaderLine) {

@@ -39,9 +39,6 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.variantcontext.*;
-import org.broadinstitute.sting.utils.variantcontext.writer.VCFWriter;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -166,7 +163,7 @@ public class VCFWriterUnitTest extends BaseTest {
             Assert.assertEquals(VCFHeader.HEADER_FIELDS.values()[index], field);
             index++;
         }
-        Assert.assertEquals(header.getMetaData().size(), metaData.size());
+        Assert.assertEquals(header.getMetaDataInSortedOrder().size(), metaData.size());
         index = 0;
         for (String key : header.getGenotypeSamples()) {
             Assert.assertTrue(additionalColumns.contains(key));

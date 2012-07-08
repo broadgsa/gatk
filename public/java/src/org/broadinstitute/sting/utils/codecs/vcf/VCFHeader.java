@@ -52,7 +52,7 @@ public class VCFHeader {
     }
 
     // the associated meta data
-    private final Set<VCFHeaderLine> mMetaData = new TreeSet<VCFHeaderLine>();
+    private final Set<VCFHeaderLine> mMetaData = new LinkedHashSet<VCFHeaderLine>();
     private final Map<String, VCFInfoHeaderLine> mInfoMetaData = new HashMap<String, VCFInfoHeaderLine>();
     private final Map<String, VCFFormatHeaderLine> mFormatMetaData = new HashMap<String, VCFFormatHeaderLine>();
     private final Map<String, VCFFilterHeaderLine> mFilterMetaData = new HashMap<String, VCFFilterHeaderLine>();
@@ -230,14 +230,22 @@ public class VCFHeader {
     }
 
     /**
-     * get the meta data, associated with this header
+     * get the meta data, associated with this header, in sorted order
      *
      * @return a set of the meta data
      */
-    public Set<VCFHeaderLine> getMetaData() {
-        Set<VCFHeaderLine> lines = new LinkedHashSet<VCFHeaderLine>();
+    public Set<VCFHeaderLine> getMetaDataInInputOrder() {
+        return makeGetMetaDataSet(mMetaData);
+    }
+
+    public Set<VCFHeaderLine> getMetaDataInSortedOrder() {
+        return makeGetMetaDataSet(new TreeSet<VCFHeaderLine>(mMetaData));
+    }
+
+    private static Set<VCFHeaderLine> makeGetMetaDataSet(final Set<VCFHeaderLine> headerLinesInSomeOrder) {
+        final Set<VCFHeaderLine> lines = new LinkedHashSet<VCFHeaderLine>();
         lines.add(new VCFHeaderLine(VCFHeaderVersion.VCF4_1.getFormatString(), VCFHeaderVersion.VCF4_1.getVersionString()));
-        lines.addAll(mMetaData);
+        lines.addAll(headerLinesInSomeOrder);
         return Collections.unmodifiableSet(lines);
     }
 
@@ -247,7 +255,7 @@ public class VCFHeader {
      * @return
      */
     public VCFHeaderLine getMetaDataLine(final String key) {
-        for (final VCFHeaderLine line: getMetaData()) {
+        for (final VCFHeaderLine line: mMetaData) {
             if ( line.getKey().equals(key) )
                 return line;
         }

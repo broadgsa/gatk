@@ -26,10 +26,7 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFIDHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.*;
@@ -84,8 +81,8 @@ public final class BCF2Utils {
 
         boolean sawPASS = false;
         // set up the strings dictionary
-        for ( VCFHeaderLine line : header.getMetaData() ) {
-            if ( line instanceof VCFIDHeaderLine) {
+        for ( VCFHeaderLine line : header.getMetaDataInInputOrder() ) {
+            if ( line instanceof VCFIDHeaderLine && ! (line instanceof VCFContigHeaderLine) ) {
                 final VCFIDHeaderLine idLine = (VCFIDHeaderLine)line;
                 if ( ! seen.contains(idLine.getID())) {
                     sawPASS = sawPASS || idLine.getID().equals(VCFConstants.PASSES_FILTERS_v4);

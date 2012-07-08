@@ -59,7 +59,7 @@ public class VCFIntegrationTest extends WalkerTest {
         executeTest("Test writing samtools WEx BCF example", spec1);
     }
 
-    @Test(enabled = false) // TODO disabled because current BCF2 is 1 based
+    @Test(enabled = false)
     public void testReadingSamtoolsWExBCFExample() {
         String testVCF = privateTestDir + "ex2.bcf";
         String baseCommand = "-R " + b36KGReference + " --no_cmdline_in_header -o %s ";
