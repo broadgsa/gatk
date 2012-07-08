@@ -463,7 +463,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         stream.println("dev.off()");
 
         stream.println("if (exists(\"compactPDF\")) {");
-        stream.println("compactPDF(ouputPDF)");
+        stream.println("compactPDF(outputPDF)");
         stream.println("}");
 
         stream.close();
