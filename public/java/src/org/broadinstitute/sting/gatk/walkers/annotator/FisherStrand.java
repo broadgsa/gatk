@@ -258,9 +258,6 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
                 if ( p.isDeletion() || p.getRead().isReducedRead() ) // ignore deletions and reduced reads
                     continue;
 
-                if ( p.getRead().getMappingQuality() < 20 || p.getQual() < 20 )
-                    continue; // todo -- fixme, should take filtered context!
-
                 Allele base = Allele.create(p.getBase(), false);
                 boolean isFW = !p.getRead().getReadNegativeStrandFlag();
 
