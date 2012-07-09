@@ -9,7 +9,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  * @author Mauricio Carneiro
  * @since 7/6/12
  */
-public class BinaryTagCovariate implements StandardCovariate {
+public class BinaryTagCovariate implements ExperimentalCovariate {
 
     private String tag;
 
