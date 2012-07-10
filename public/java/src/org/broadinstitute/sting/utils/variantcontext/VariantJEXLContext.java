@@ -268,7 +268,12 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
             // treat errors as no match
             jexl.put(exp, value == null ? false : value);
         } catch (Exception e) {
-            throw new UserException.CommandLineException(String.format("Invalid JEXL expression detected for %s with message %s", exp.name, e.getMessage()));
+            // if exception happens because variable is undefined (i.e. field in expression is not present), evaluate to FALSE
+            // todo - might be safer if we explicitly checked for an exception type, but Apache's API doesn't seem to have that ability
+            if (e.getMessage().contains("undefined variable"))
+                jexl.put(exp,false);
+            else
+                throw new UserException.CommandLineException(String.format("Invalid JEXL expression detected for %s with message %s", exp.name, e.getMessage()));
         }
     }
 

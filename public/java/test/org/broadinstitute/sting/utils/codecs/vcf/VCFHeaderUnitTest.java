@@ -2,7 +2,6 @@ package org.broadinstitute.sting.utils.codecs.vcf;
 
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
@@ -26,7 +25,7 @@ public class VCFHeaderUnitTest extends BaseTest {
     private VCFHeader createHeader(String headerStr) {
         VCFCodec codec = new VCFCodec();
         VCFHeader header = (VCFHeader)codec.readHeader(new AsciiLineReader(new PositionalBufferedStream(new StringBufferInputStream(headerStr))));
-        Assert.assertEquals(header.getMetaData().size(), VCF4headerStringCount);
+        Assert.assertEquals(header.getMetaDataInInputOrder().size(), VCF4headerStringCount);
         return header;
     }
 
@@ -98,7 +97,7 @@ public class VCFHeaderUnitTest extends BaseTest {
         } catch (IOException e) {
             Assert.fail("Unable to make a temp file!");
         }
-        for (VCFHeaderLine line : header.getMetaData())
+        for (VCFHeaderLine line : header.getMetaDataInSortedOrder())
             pw.println(line);
         pw.close();
         Assert.assertEquals(md5SumFile(myTempFile), md5sum);

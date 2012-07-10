@@ -385,10 +385,14 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
         if ( value == null )
             builder.unfiltered();
         else {
-            if ( value instanceof Integer )
+            if ( value instanceof Integer ) {
                 // fast path for single integer result
-                builder.filter(getDictionaryString((Integer)value));
-            else {
+                final String filterString = getDictionaryString((Integer)value);
+                if ( VCFConstants.PASSES_FILTERS_v4.equals(filterString))
+                    builder.passFilters();
+                else
+                    builder.filter(filterString);
+            } else {
                 for ( final int offset : (List<Integer>)value )
                     builder.filter(getDictionaryString(offset));
             }

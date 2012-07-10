@@ -102,7 +102,7 @@ class MergeSegregatingAlternateAllelesVCFWriter implements VariantContextWriter 
         if (useSingleSample != null) { // only want to output context for one sample
             Set<String> singSampSet = new TreeSet<String>();
             singSampSet.add(useSingleSample);
-            header = new VCFHeader(header.getMetaData(), singSampSet);
+            header = new VCFHeader(header.getMetaDataInSortedOrder(), singSampSet);
         }
 
         innerWriter.writeHeader(header);

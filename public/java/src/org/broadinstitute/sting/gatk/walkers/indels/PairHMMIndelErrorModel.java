@@ -198,21 +198,19 @@ public class PairHMMIndelErrorModel {
                 }
             }
             else {
+                final int refWindowStart = ref.getWindow().getStart();
+                final int refWindowStop = ref.getWindow().getStop();
+
                 if (DEBUG) {
                     System.out.format("Read Name:%s, aln start:%d aln stop:%d orig cigar:%s\n",p.getRead().getReadName(), p.getRead().getAlignmentStart(), p.getRead().getAlignmentEnd(), p.getRead().getCigarString());
                 }
+
                 GATKSAMRecord read = ReadClipper.hardClipAdaptorSequence(p.getRead());
 
-                if (read.isEmpty())
-                    continue;
-
-                if (read.getSoftEnd() > ref.getWindow().getStop())
+                if (!read.isEmpty() && (read.getSoftEnd() > refWindowStop && read.getSoftStart() < refWindowStop))
                     read = ReadClipper.hardClipByReferenceCoordinatesRightTail(read, ref.getWindow().getStop());
 
-                if (read.isEmpty())
-                    continue;
-
-                if (read.getSoftStart() < ref.getWindow().getStart())
+                if (!read.isEmpty() && (read.getSoftStart() < refWindowStart && read.getSoftEnd() > refWindowStart))
                     read = ReadClipper.hardClipByReferenceCoordinatesLeftTail (read, ref.getWindow().getStart());
 
                 if (read.isEmpty())

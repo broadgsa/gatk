@@ -109,7 +109,10 @@ class BCF2Writer extends IndexingVariantContextWriter {
     // --------------------------------------------------------------------------------
 
     @Override
-    public void writeHeader(final VCFHeader header) {
+    public void writeHeader(VCFHeader header) {
+        // make sure the header is sorted correctly
+        header = new VCFHeader(header.getMetaDataInSortedOrder(), header.getGenotypeSamples());
+
         // create the config offsets map
         if ( header.getContigLines().isEmpty() ) {
             if ( ALLOW_MISSING_CONTIG_LINES ) {

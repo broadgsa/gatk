@@ -25,8 +25,6 @@
 
 package org.broadinstitute.sting.utils.codecs.vcf;
 
-import com.google.java.contract.Ensures;
-import com.google.java.contract.Requires;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
@@ -34,7 +32,6 @@ import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
@@ -129,7 +126,7 @@ public class VCFUtils {
             if ( source.getRecordType().equals(VariantContext.class)) {
                 VCFHeader header = (VCFHeader)source.getHeader();
                 if ( header != null )
-                    fields.addAll(header.getMetaData());
+                    fields.addAll(header.getMetaDataInSortedOrder());
             }
         }
 
@@ -160,7 +157,7 @@ public class VCFUtils {
         // todo -- needs to remove all version headers from sources and add its own VCF version line
         for ( VCFHeader source : headers ) {
             //System.out.printf("Merging in header %s%n", source);
-            for ( VCFHeaderLine line : source.getMetaData()) {
+            for ( VCFHeaderLine line : source.getMetaDataInSortedOrder()) {
 
                 String key = line.getKey();
                 if ( line instanceof VCFIDHeaderLine )
@@ -250,7 +247,7 @@ public class VCFUtils {
      * @param refDict the SAM formatted reference sequence dictionary
      */
     public final static VCFHeader withUpdatedContigs(final VCFHeader oldHeader, final File referenceFile, final SAMSequenceDictionary refDict) {
-        return new VCFHeader(withUpdatedContigsAsLines(oldHeader.getMetaData(), referenceFile, refDict), oldHeader.getGenotypeSamples());
+        return new VCFHeader(withUpdatedContigsAsLines(oldHeader.getMetaDataInInputOrder(), referenceFile, refDict), oldHeader.getGenotypeSamples());
     }
 
     public final static Set<VCFHeaderLine> withUpdatedContigsAsLines(final Set<VCFHeaderLine> oldLines, final File referenceFile, final SAMSequenceDictionary refDict) {

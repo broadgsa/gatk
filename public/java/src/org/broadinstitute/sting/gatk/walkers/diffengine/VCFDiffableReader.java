@@ -27,15 +27,12 @@ package org.broadinstitute.sting.gatk.walkers.diffengine;
 import org.apache.log4j.Logger;
 import org.broad.tribble.AbstractFeatureReader;
 import org.broad.tribble.FeatureReader;
-import org.broad.tribble.readers.AsciiLineReader;
-import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.*;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -69,7 +66,7 @@ public class VCFDiffableReader implements DiffableReader {
 
             FeatureReader<VariantContext> reader = AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), vcfCodec, false);
             VCFHeader header = (VCFHeader)reader.getHeader();
-            for ( VCFHeaderLine headerLine : header.getMetaData() ) {
+            for ( VCFHeaderLine headerLine : header.getMetaDataInInputOrder() ) {
                 String key = headerLine.getKey();
                 if ( headerLine instanceof VCFIDHeaderLine)
                     key += "_" + ((VCFIDHeaderLine) headerLine).getID();

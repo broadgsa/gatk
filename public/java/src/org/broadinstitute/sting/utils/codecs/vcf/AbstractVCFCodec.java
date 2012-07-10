@@ -115,7 +115,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
     protected VCFHeader parseHeaderFromLines( final List<String> headerStrings, final VCFHeaderVersion version ) {
         this.version = version;
 
-        Set<VCFHeaderLine> metaData = new TreeSet<VCFHeaderLine>();
+        Set<VCFHeaderLine> metaData = new LinkedHashSet<VCFHeaderLine>();
         Set<String> sampleNames = new LinkedHashSet<String>();
         int contigCounter = 0;
         // iterate over all the passed in strings

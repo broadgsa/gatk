@@ -87,13 +87,13 @@ class VCFWriter extends IndexingVariantContextWriter {
                                         final boolean doNotWriteGenotypes,
                                         final String versionLine,
                                         final String streamNameForError) {
-        header = doNotWriteGenotypes ? new VCFHeader(header.getMetaData()) : header;
+        header = doNotWriteGenotypes ? new VCFHeader(header.getMetaDataInSortedOrder()) : header;
         
         try {
             // the file format field needs to be written first
             writer.write(versionLine + "\n");
 
-            for ( VCFHeaderLine line : header.getMetaData() ) {
+            for ( VCFHeaderLine line : header.getMetaDataInSortedOrder() ) {
                 if ( VCFHeaderVersion.isFormatString(line.getKey()) )
                     continue;
 

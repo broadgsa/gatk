@@ -260,6 +260,7 @@ public class VariantContextBuilder {
         return this;
     }
 
+    @Requires({"filter != null", "!filter.equals(\"PASS\")"})
     public VariantContextBuilder filter(final String filter) {
         if ( this.filters == null ) this.filters = new LinkedHashSet<String>(1);
         this.filters.add(filter);

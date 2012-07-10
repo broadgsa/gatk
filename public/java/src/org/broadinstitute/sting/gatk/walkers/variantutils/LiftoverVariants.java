@@ -95,7 +95,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
         Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
         if ( vcfHeaders.containsKey(trackName) )
-            metaData.addAll(vcfHeaders.get(trackName).getMetaData());
+            metaData.addAll(vcfHeaders.get(trackName).getMetaDataInSortedOrder());
         if ( RECORD_ORIGINAL_LOCATION ) {
             metaData.add(new VCFInfoHeaderLine("OriginalChr", 1, VCFHeaderLineType.String, "Original contig name for the record"));
             metaData.add(new VCFInfoHeaderLine("OriginalStart", 1, VCFHeaderLineType.Integer, "Original start position for the record"));

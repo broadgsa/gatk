@@ -644,7 +644,9 @@ public class VariantContextUtils {
 
             if ( setKey != null ) {
                 attributes.put(setKey, setValue);
-                if( mergeInfoWithMaxAC && vcWithMaxAC != null ) { attributesWithMaxAC.put(setKey, vcWithMaxAC.getSource()); }
+                if( mergeInfoWithMaxAC && vcWithMaxAC != null ) {
+                    attributesWithMaxAC.put(setKey, setValue);
+                }
             }
         }
 

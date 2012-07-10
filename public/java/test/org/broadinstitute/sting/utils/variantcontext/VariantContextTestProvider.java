@@ -106,7 +106,7 @@ public class VariantContextTestProvider {
             for ( final VariantContext vc : vcs )
                 if ( vc.hasGenotypes() )
                     samples.addAll(vc.getSampleNames());
-            this.header = samples.isEmpty() ? header : new VCFHeader(header.getMetaData(), samples);
+            this.header = samples.isEmpty() ? header : new VCFHeader(header.getMetaDataInSortedOrder(), samples);
             this.vcs = vcs;
         }
 
@@ -885,12 +885,12 @@ public class VariantContextTestProvider {
     }
 
     public static void assertEquals(final VCFHeader actual, final VCFHeader expected) {
-        Assert.assertEquals(actual.getMetaData().size(), expected.getMetaData().size(), "No VCF header lines");
+        Assert.assertEquals(actual.getMetaDataInSortedOrder().size(), expected.getMetaDataInSortedOrder().size(), "No VCF header lines");
 
         // for some reason set.equals() is returning false but all paired elements are .equals().  Perhaps compare to is busted?
-        //Assert.assertEquals(actual.getMetaData(), expected.getMetaData());
-        final List<VCFHeaderLine> actualLines = new ArrayList<VCFHeaderLine>(actual.getMetaData());
-        final List<VCFHeaderLine> expectedLines = new ArrayList<VCFHeaderLine>(expected.getMetaData());
+        //Assert.assertEquals(actual.getMetaDataInInputOrder(), expected.getMetaDataInInputOrder());
+        final List<VCFHeaderLine> actualLines = new ArrayList<VCFHeaderLine>(actual.getMetaDataInSortedOrder());
+        final List<VCFHeaderLine> expectedLines = new ArrayList<VCFHeaderLine>(expected.getMetaDataInSortedOrder());
         for ( int i = 0; i < actualLines.size(); i++ ) {
             Assert.assertEquals(actualLines.get(i), expectedLines.get(i), "VCF header lines");
         }
