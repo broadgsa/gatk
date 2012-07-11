@@ -102,6 +102,9 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
                 nDifferentAlleleSites++;
             else {
                 SiteStatus evalStatus = calcSiteStatus(eval);
+                if ( comp.hasGenotypes() && ! getWalker().getSampleNamesForEvaluation().isEmpty() && comp.hasGenotypes(getWalker().getSampleNamesForEvaluation()) )
+                    // if we have genotypes in both eval and comp, subset comp down just the samples in eval
+                    comp = comp.subContextFromSamples(eval.getSampleNames(), false);
                 SiteStatus compStatus = calcSiteStatus(comp);
                 counts[compStatus.ordinal()][evalStatus.ordinal()]++;
             }
@@ -111,7 +114,7 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
     //
     // helper routines
     //
-    public SiteStatus calcSiteStatus(VariantContext vc) {
+    private SiteStatus calcSiteStatus(VariantContext vc) {
         if ( vc == null ) return SiteStatus.NO_CALL;
         if ( vc.isFiltered() ) return SiteStatus.FILTERED;
         if ( vc.isMonomorphicInSamples() ) return SiteStatus.MONO;
@@ -121,24 +124,18 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
             int ac = 0;
             if ( vc.getNAlleles() > 2 ) {
                 return SiteStatus.POLY;
-////                System.out.printf("multiple alleles %s = %s%n", vc.getAlleles(), vc.getExtendedAttribute(VCFConstants.ALLELE_COUNT_KEY));
-//                // todo -- omg this is painful.  We need a better approach to dealing with multi-valued attributes
-//                for ( String v : (List<String>)vc.getExtendedAttribute(VCFConstants.ALLELE_COUNT_KEY) )
-//                    ac += Integer.valueOf(v);
-////                System.out.printf("  ac = %d%n", ac);
             }
             else
                 ac = vc.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY, 0);
             return ac > 0 ? SiteStatus.POLY : SiteStatus.MONO;
         } else {
             return TREAT_ALL_SITES_IN_EVAL_VCF_AS_CALLED ? SiteStatus.POLY : SiteStatus.NO_CALL; // we can't figure out what to do
-            //return SiteStatus.NO_CALL; // we can't figure out what to do
         }
     }
 
 
 
-    public boolean haveDifferentAltAlleles(VariantContext eval, VariantContext comp) {
+    private boolean haveDifferentAltAlleles(VariantContext eval, VariantContext comp) {
         Collection<Allele> evalAlts = eval.getAlternateAlleles();
         Collection<Allele> compAlts = comp.getAlternateAlleles();
         if ( evalAlts.size() != compAlts.size() ) {

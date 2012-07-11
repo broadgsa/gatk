@@ -613,4 +613,29 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test public void testWithAC0() { testIncludingAC0(true, "c786128cfe4d3e28cdbc15c5c838ad20"); }
     @Test public void testWithoutAC0() { testIncludingAC0(false, "7bc505c07d9aee49571ad4b3fc9f7feb"); }
 
+    //
+    // Test validation report is doing the right thing with sites only and genotypes files
+    // where the validation comp has more genotypes than eval
+    //
+    public void testValidationReport(final String comp, final String md5) {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "-eval " + privateTestDir + "/validationReportEval.vcf ",
+                        "-L 20:10,000,000-10,000,010  -noST -noEV -EV ValidationReport -o %s"
+                ),
+                1,
+                Arrays.asList(md5));
+        executeTest("testValidationReport with comp " + comp, spec);
+    }
+
+    @Test public void testValidationReportSites() {
+        testValidationReport(privateTestDir + "/validationReportComp.noGenotypes.vcf", "f0dbb848a94b451e42765b0cb9d09ee2");
+    }
+    @Test public void testValidationReportSubsetGenotypes() {
+        testValidationReport(privateTestDir + "/validationReportComp.vcf", "73790b530595fcbd467a88475ea9717f");
+    }
+
+
 }
