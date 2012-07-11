@@ -11,6 +11,7 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Collection;
+import java.util.Set;
 
 /**
  * The Broad Institute
@@ -102,9 +103,10 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
                 nDifferentAlleleSites++;
             else {
                 SiteStatus evalStatus = calcSiteStatus(eval);
-                if ( comp.hasGenotypes() && ! getWalker().getSampleNamesForEvaluation().isEmpty() && comp.hasGenotypes(getWalker().getSampleNamesForEvaluation()) )
+                final Set<String> evalSamples = getWalker().getSampleNamesForEvaluation();
+                if ( comp.hasGenotypes() && ! evalSamples.isEmpty() && comp.hasGenotypes(evalSamples) )
                     // if we have genotypes in both eval and comp, subset comp down just the samples in eval
-                    comp = comp.subContextFromSamples(eval.getSampleNames(), false);
+                    comp = comp.subContextFromSamples(evalSamples, false);
                 SiteStatus compStatus = calcSiteStatus(comp);
                 counts[compStatus.ordinal()][evalStatus.ordinal()]++;
             }

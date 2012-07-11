@@ -27,8 +27,11 @@ package org.broadinstitute.sting.gatk.walkers.varianteval;
 import org.broadinstitute.sting.WalkerTest;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
+import org.testng.annotations.DataProvider;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class VariantEvalIntegrationTest extends WalkerTest {
     private static String variantEvalTestDataRoot = validationDataLocation + "VariantEval/";
@@ -617,25 +620,33 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     // Test validation report is doing the right thing with sites only and genotypes files
     // where the validation comp has more genotypes than eval
     //
-    public void testValidationReport(final String comp, final String md5) {
+    @Test(dataProvider = "testValidationReportData")
+    public void testValidationReport(final String name, final String eval, final String comp, final String md5) {
         WalkerTestSpec spec = new WalkerTestSpec(
                 buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
-                        "-eval " + privateTestDir + "/validationReportEval.vcf ",
-                        "-L 20:10,000,000-10,000,010  -noST -noEV -EV ValidationReport -o %s"
+                        "-eval " + eval,
+                        "-comp " + comp,
+                        "-L 20:10,000,000-10,000,010 -noST -noEV -EV ValidationReport -o %s"
                 ),
                 1,
                 Arrays.asList(md5));
-        executeTest("testValidationReport with comp " + comp, spec);
+        executeTest("testValidationReport with " + name, spec);
     }
 
-    @Test public void testValidationReportSites() {
-        testValidationReport(privateTestDir + "/validationReportComp.noGenotypes.vcf", "f0dbb848a94b451e42765b0cb9d09ee2");
-    }
-    @Test public void testValidationReportSubsetGenotypes() {
-        testValidationReport(privateTestDir + "/validationReportComp.vcf", "73790b530595fcbd467a88475ea9717f");
-    }
+    @DataProvider(name = "testValidationReportData")
+    public Object[][] testValidationReportData() {
+        final String compGenotypes = privateTestDir + "/validationReportComp.vcf";
+        final String compSites = privateTestDir + "/validationReportComp.noGenotypes.vcf";
+        final String evalGenotypes = privateTestDir + "/validationReportEval.vcf";
+        final String evalSites = privateTestDir + "/validationReportEval.noGenotypes.vcf";
 
-
+        List<Object[]> tests = new ArrayList<Object[]>();
+        tests.add(new Object[]{"sites/sites", evalSites, compSites, ""});
+        tests.add(new Object[]{"sites/genotypes", evalSites, compGenotypes, ""});
+        tests.add(new Object[]{"genotypes/sites", evalGenotypes, compSites, ""});
+        tests.add(new Object[]{"genotypes/genotypes", evalGenotypes, compGenotypes, ""});
+        return tests.toArray(new Object[][]{});
+    }
 }
