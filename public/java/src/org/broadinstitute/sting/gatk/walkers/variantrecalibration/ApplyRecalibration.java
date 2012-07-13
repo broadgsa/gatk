@@ -172,7 +172,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> implements T
         vcfWriter.writeHeader(vcfHeader);
     }
 
-    public static final void addVQSRStandardHeaderLines(final Set<VCFHeaderLine> hInfo) {
+    public static void addVQSRStandardHeaderLines(final Set<VCFHeaderLine> hInfo) {
         hInfo.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.END_KEY));
         hInfo.add(new VCFInfoHeaderLine(VariantRecalibrator.VQS_LOD_KEY, 1, VCFHeaderLineType.Float, "Log odds ratio of being a true variant versus being false under the trained gaussian mixture model"));
         hInfo.add(new VCFInfoHeaderLine(VariantRecalibrator.CULPRIT_KEY, 1, VCFHeaderLineType.String, "The annotation which was the worst performing in the Gaussian mixture model, likely the reason why the variant was filtered out"));
@@ -236,7 +236,9 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> implements T
                     filterString = tranches.get(0).name+"+";
                 }
 
-                if( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
+                if( filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
+                    builder.passFilters();
+                } else {
                     builder.filters(filterString);
                 }
 

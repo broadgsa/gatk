@@ -18,6 +18,11 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
             this.recalMD5 = recalMD5;
             this.cutVCFMD5 = cutVCFMD5;
         }
+
+        @Override
+        public String toString() {
+            return "VRTest{inVCF='" + inVCF +"'}";
+        }
     }
 
     VRTest lowPass = new VRTest("phase1.projectConsensus.chr20.raw.snps.vcf",
@@ -69,14 +74,21 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
         executeTest("testApplyRecalibration-"+params.inVCF, spec);
     }
 
-    VRTest indel = new VRTest("combined.phase1.chr20.raw.indels.sites.vcf",
+    VRTest indelUnfiltered = new VRTest(
+            "combined.phase1.chr20.raw.indels.unfiltered.sites.vcf", // all FILTERs as .
             "b7589cd098dc153ec64c02dcff2838e4",  // tranches
             "a04a9001f62eff43d363f4d63769f3ee",  // recal file
-            "888eb042dd33b807bcbb8630896fda94"); // cut VCF
+            "64f576881e21323dd4078262604717a2"); // cut VCF
+
+    VRTest indelFiltered = new VRTest(
+            "combined.phase1.chr20.raw.indels.filtered.sites.vcf", // all FILTERs as PASS
+            "b7589cd098dc153ec64c02dcff2838e4",  // tranches
+            "a04a9001f62eff43d363f4d63769f3ee",  // recal file
+            "af22c55d91394c56a222fd40d6d54781"); // cut VCF
 
     @DataProvider(name = "VRIndelTest")
-    public Object[][] createData2() {
-        return new Object[][]{ {indel} };
+    public Object[][] createTestVariantRecalibratorIndel() {
+        return new Object[][]{ {indelUnfiltered}, {indelFiltered} };
     }
 
     @Test(dataProvider = "VRIndelTest")
