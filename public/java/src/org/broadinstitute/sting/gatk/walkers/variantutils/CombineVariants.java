@@ -35,7 +35,6 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCounts;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -185,7 +184,8 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             logger.warn("VCF output file not an instance of VCFWriterStub; cannot enable sites only output option");
 
         if ( PRIORITY_STRING == null ) {
-            PRIORITY_STRING = Utils.join(",", vcfRods.keySet());
+            genotypeMergeOption = VariantContextUtils.GenotypeMergeType.UNSORTED;
+            //PRIORITY_STRING = Utils.join(",", vcfRods.keySet());  Deleted by Ami (7/10/12)
             logger.info("Priority string not provided, using arbitrary genotyping order: " + PRIORITY_STRING);
         }
 
