@@ -110,37 +110,32 @@ public class ReadClipper {
     }
 
     /**
-     * Creates a new read that's been clipped according to ops and the chosen algorithm.
-     * The original read is unmodified.
+     * Clips a read according to ops and the chosen algorithm.
      *
      * @param algorithm What mode of clipping do you want to apply for the stacked operations.
-     * @return a new read with the clipping applied.
+     * @return the read with the clipping applied.
      */
     public GATKSAMRecord clipRead(ClippingRepresentation algorithm) {
         if (ops == null)
             return getRead();
-        else {
-            try {
-                GATKSAMRecord clippedRead = (GATKSAMRecord) read.clone();
-                for (ClippingOp op : getOps()) {
-                    //check if the clipped read can still be clipped in the range requested
-                    if (op.start < clippedRead.getReadLength()) {
-                        ClippingOp fixedOperation = op;
-                        if (op.stop >= clippedRead.getReadLength())
-                            fixedOperation = new ClippingOp(op.start, clippedRead.getReadLength() - 1);
 
-                        clippedRead = fixedOperation.apply(algorithm, clippedRead);
-                    }
-                }
-                wasClipped = true;
-                ops.clear();
-                if ( clippedRead.isEmpty() )
-                    return GATKSAMRecord.emptyRead(clippedRead);
-                return clippedRead;
-            } catch (CloneNotSupportedException e) {
-                throw new RuntimeException(e);                                                                          // this should never happen
+        GATKSAMRecord clippedRead = read;
+        for (ClippingOp op : getOps()) {
+            final int readLength = clippedRead.getReadLength();
+            //check if the clipped read can still be clipped in the range requested
+            if (op.start < readLength) {
+                ClippingOp fixedOperation = op;
+                if (op.stop >= readLength)
+                    fixedOperation = new ClippingOp(op.start, readLength - 1);
+
+                clippedRead = fixedOperation.apply(algorithm, clippedRead);
             }
         }
+        wasClipped = true;
+        ops.clear();
+        if ( clippedRead.isEmpty() )
+            return GATKSAMRecord.emptyRead(clippedRead);
+        return clippedRead;
     }
 
 
@@ -241,20 +236,21 @@ public class ReadClipper {
         if (read.isEmpty())
             return read;
 
-        byte [] quals = read.getBaseQualities();
+        final byte [] quals = read.getBaseQualities();
+        final int readLength = read.getReadLength();
         int leftClipIndex = 0;
-        int rightClipIndex = read.getReadLength() - 1;
+        int rightClipIndex = readLength - 1;
 
         // check how far we can clip both sides
         while (rightClipIndex >= 0 && quals[rightClipIndex] <= lowQual) rightClipIndex--;
-        while (leftClipIndex < read.getReadLength() && quals[leftClipIndex] <= lowQual) leftClipIndex++;
+        while (leftClipIndex < readLength && quals[leftClipIndex] <= lowQual) leftClipIndex++;
 
         // if the entire read should be clipped, then return an empty read.
         if (leftClipIndex > rightClipIndex)
             return GATKSAMRecord.emptyRead(read);
 
-        if (rightClipIndex < read.getReadLength() - 1) {
-            this.addOp(new ClippingOp(rightClipIndex + 1, read.getReadLength() - 1));
+        if (rightClipIndex < readLength - 1) {
+            this.addOp(new ClippingOp(rightClipIndex + 1, readLength - 1));
         }
         if (leftClipIndex > 0 ) {
             this.addOp(new ClippingOp(0, leftClipIndex - 1));

@@ -82,6 +82,8 @@ public class ContextCovariate implements StandardCovariate {
     @Override
     public void recordValues(final GATKSAMRecord read, final ReadCovariates values) {
 
+        // store the original bases and then write Ns over low quality ones
+        final byte[] originalBases = read.getReadBases();
         final GATKSAMRecord clippedRead = ReadClipper.clipLowQualEnds(read, LOW_QUAL_TAIL, ClippingRepresentation.WRITE_NS);   // Write N's over the low quality tail of the reads to avoid adding them into the context
         
         final boolean negativeStrand = clippedRead.getReadNegativeStrandFlag();
@@ -99,6 +101,9 @@ public class ContextCovariate implements StandardCovariate {
             final int indelKey = indelKeys.get(i);
             values.addCovariate(mismatchKeys.get(i), indelKey, indelKey, (negativeStrand ? readLength - i - 1 : i));
         }
+
+        // put the original bases back in
+        read.setReadBases(originalBases);
     }
 
     // Used to get the covariate's value from input csv file during on-the-fly recalibration
