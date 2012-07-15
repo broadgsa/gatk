@@ -71,6 +71,19 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testNonExistingFieldSelection() {
+        String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString(" -env -ef -select 'foo!=0||DP>0' --variant " + testfile),
+                1,
+                Arrays.asList("44e77cea624cfff2b8acc3a4b30485cb")    // should yield empty vcf because the foo!=0 will yield complete expression false
+        );
+        spec.disableShadowBCF();
+        executeTest("testNonExistingSelection--" + testfile, spec);
+    }
+
+    @Test
     public void testSampleExclusion() {
         String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
         String samplesFile = validationDataLocation + "SelectVariants.samples.txt";

@@ -44,6 +44,8 @@ public class Haplotype {
     private boolean isRef = false;
     private Cigar cigar;
     private int alignmentStartHapwrtRef;
+    public int leftBreakPoint = 0;
+    public int rightBreakPoint = 0;
  
     /**
      * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
