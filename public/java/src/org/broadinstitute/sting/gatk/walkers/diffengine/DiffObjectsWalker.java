@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -144,7 +145,7 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
      * files to do the comparison.  Conceptually master is the original file contained the expected
      * results, but this doesn't currently have an impact on the calculations, but might in the future.
      */
-    @Argument(fullName="master", shortName="m", doc="Master file: expected results", required=true)
+    @Input(fullName="master", shortName="m", doc="Master file: expected results", required=true)
     File masterFile;
 
     /**
@@ -152,7 +153,7 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
      * files to do the comparison.  Conceptually test is the derived file from master, but this
      * doesn't currently have an impact on the calculations, but might in the future.
      */
-    @Argument(fullName="test", shortName="t", doc="Test file: new results to compare to the master file", required=true)
+    @Input(fullName="test", shortName="t", doc="Test file: new results to compare to the master file", required=true)
     File testFile;
 
     /**
