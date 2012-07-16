@@ -33,11 +33,12 @@ import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.classloader.ProtectedPackageSource;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
@@ -47,6 +48,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.lang.reflect.Constructor;
 import java.util.*;
 
 /**
@@ -116,15 +118,13 @@ public class BaseQualityScoreRecalibrator extends LocusWalker<Long, Long> implem
     
     private Covariate[] requestedCovariates;                                                                            // list to hold the all the covariate objects that were requested (required + standard + experimental)
 
-    private static final String SKIP_RECORD_ATTRIBUTE = "SKIP";                                                         // used to label reads that should be skipped.
-    private static final String SEEN_ATTRIBUTE = "SEEN";                                                                // used to label reads as processed.
-    private static final String COVARS_ATTRIBUTE = "COVARS";                                                            // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
+    private RecalibrationEngine recalibrationEngine;
 
-    private final byte[] tempQualArray = new byte[EventType.values().length];                                           // optimization: don't reallocate an array each time
-    private final boolean[] tempErrorArray = new boolean[EventType.values().length];                                    // optimization: don't reallocate an array each time
+    protected static final String SKIP_RECORD_ATTRIBUTE = "SKIP";                                                         // used to label reads that should be skipped.
+    protected static final String SEEN_ATTRIBUTE = "SEEN";                                                                // used to label reads as processed.
+    protected static final String COVARS_ATTRIBUTE = "COVARS";                                                            // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
 
     private static final String NO_DBSNP_EXCEPTION = "This calculation is critically dependent on being able to skip over known variant sites. Please provide a VCF file containing known sites of genetic variation.";
-
 
 
     /**
@@ -135,7 +135,6 @@ public class BaseQualityScoreRecalibrator extends LocusWalker<Long, Long> implem
 
         if (RAC.FORCE_PLATFORM != null)
             RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM;
-
 
         if (RAC.knownSites.isEmpty() && !RAC.RUN_WITHOUT_DBSNP)                                                         // Warn the user if no dbSNP file or other variant mask was specified
             throw new UserException.CommandLineException(NO_DBSNP_EXCEPTION);
@@ -167,6 +166,34 @@ public class BaseQualityScoreRecalibrator extends LocusWalker<Long, Long> implem
         for ( final SAMFileHeader header : getToolkit().getSAMFileHeaders() )
             numReadGroups += header.getReadGroups().size();
         recalibrationTables = new RecalibrationTables(requestedCovariates, numReadGroups);
+
+        recalibrationEngine = initializeRecalibrationEngine();
+        recalibrationEngine.initialize(requestedCovariates, recalibrationTables);
+    }
+
+    private RecalibrationEngine initializeRecalibrationEngine() {
+        List<Class<? extends RecalibrationEngine>> REclasses = new PluginManager<RecalibrationEngine>(RecalibrationEngine.class).getPlugins();
+        if ( REclasses.isEmpty() )
+            throw new ReviewedStingException("There are no classes found that extend RecalibrationEngine; repository must be corrupted");
+
+        Class c = null;
+        for ( Class<? extends RecalibrationEngine> REclass : REclasses ) {
+            if ( REclass.isAssignableFrom(ProtectedPackageSource.class) ) {
+                c = REclass;
+                break;
+            }
+        }
+        if ( c == null )
+            c = REclasses.get(0);
+
+        try {
+            Constructor constructor = c.getDeclaredConstructor((Class[])null);
+            constructor.setAccessible(true);
+            return (RecalibrationEngine)constructor.newInstance();
+        }
+        catch (Exception e) {
+            throw new ReviewedStingException("Unable to create RecalibrationEngine class instance " + c.getSimpleName());
+        }
     }
 
     private boolean readHasBeenSkipped(GATKSAMRecord read) {
@@ -210,12 +237,10 @@ public class BaseQualityScoreRecalibrator extends LocusWalker<Long, Long> implem
                     read.setTemporaryAttribute(COVARS_ATTRIBUTE, RecalDataManager.computeCovariates(read, requestedCovariates));
                 }
 
-                final byte refBase = ref.getBase();
-
                 if (!ReadUtils.isSOLiDRead(read) ||                                                                     // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
                     RAC.SOLID_RECAL_MODE == RecalDataManager.SOLID_RECAL_MODE.DO_NOTHING ||
                         RecalDataManager.isColorSpaceConsistent(read, offset))
-                    updateDataForPileupElement(p, refBase);                                                             // This base finally passed all the checks for a good base, so add it to the big data hashmap
+                    recalibrationEngine.updateDataForPileupElement(p, ref.getBase());                                                             // This base finally passed all the checks for a good base, so add it to the big data hashmap
             }
             countedSites++;
         }
@@ -281,81 +306,6 @@ public class BaseQualityScoreRecalibrator extends LocusWalker<Long, Long> implem
      */
     private void quantizeQualityScores() {
         quantizationInfo = new QuantizationInfo(recalibrationTables, RAC.QUANTIZING_LEVELS);
-    }
-
-    /**
-     * Loop through the list of requested covariates and pick out the value from the read, offset, and reference
-     * Using the list of covariate values as a key, pick out the RecalDatum and increment,
-     * adding one to the number of observations and potentially one to the number of mismatches for all three
-     * categories (mismatches, insertions and deletions).
-     *
-     * @param pileupElement The pileup element to update
-     * @param refBase       The reference base at this locus
-     */
-    private synchronized void updateDataForPileupElement(final PileupElement pileupElement, final byte refBase) {
-        final int offset = pileupElement.getOffset();
-        final ReadCovariates readCovariates = covariateKeySetFrom(pileupElement.getRead());
-
-        tempQualArray[EventType.BASE_SUBSTITUTION.index] = pileupElement.getQual();
-        tempErrorArray[EventType.BASE_SUBSTITUTION.index] = !BaseUtils.basesAreEqual(pileupElement.getBase(), refBase);
-        tempQualArray[EventType.BASE_INSERTION.index] = pileupElement.getBaseInsertionQual();
-        tempErrorArray[EventType.BASE_INSERTION.index] = (pileupElement.getRead().getReadNegativeStrandFlag()) ? pileupElement.isAfterInsertion() : pileupElement.isBeforeInsertion();
-        tempQualArray[EventType.BASE_DELETION.index] = pileupElement.getBaseDeletionQual();
-        tempErrorArray[EventType.BASE_DELETION.index] = (pileupElement.getRead().getReadNegativeStrandFlag()) ? pileupElement.isAfterDeletedBase() : pileupElement.isBeforeDeletedBase();
-
-        for (final EventType eventType : EventType.values()) {
-            final int[] keys = readCovariates.getKeySet(offset, eventType);
-            final int eventIndex = eventType.index;
-            final byte qual = tempQualArray[eventIndex];
-            final boolean isError = tempErrorArray[eventIndex];
-
-            final NestedIntegerArray<RecalDatum> rgRecalTable = recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE);
-            final RecalDatum rgPreviousDatum = rgRecalTable.get(keys[0], eventIndex);
-            final RecalDatum rgThisDatum = createDatumObject(qual, isError);
-            if (rgPreviousDatum == null)                                                                                // key doesn't exist yet in the map so make a new bucket and add it
-                rgRecalTable.put(rgThisDatum, keys[0], eventIndex);
-            else
-                rgPreviousDatum.combine(rgThisDatum);
-
-            final NestedIntegerArray<RecalDatum> qualRecalTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE);
-            final RecalDatum qualPreviousDatum = qualRecalTable.get(keys[0], keys[1], eventIndex);
-            if (qualPreviousDatum == null)
-                qualRecalTable.put(createDatumObject(qual, isError), keys[0], keys[1], eventIndex);
-            else
-                qualPreviousDatum.increment(isError);
-
-            for (int i = 2; i < requestedCovariates.length; i++) {
-                if (keys[i] < 0)
-                    continue;
-                final NestedIntegerArray<RecalDatum> covRecalTable = recalibrationTables.getTable(i);
-                final RecalDatum covPreviousDatum = covRecalTable.get(keys[0], keys[1], keys[i], eventIndex);
-                if (covPreviousDatum == null)
-                    covRecalTable.put(createDatumObject(qual, isError), keys[0], keys[1], keys[i], eventIndex);
-                else
-                    covPreviousDatum.increment(isError);
-            }
-        }
-    }
-
-    /**
-     * creates a datum object with one observation and one or zero error 
-     * 
-     * @param reportedQual  the quality score reported by the instrument for this base
-     * @param isError       whether or not the observation is an error
-     * @return a new RecalDatum object with the observation and the error
-     */
-    private RecalDatum createDatumObject(final byte reportedQual, final boolean isError) {
-        return new RecalDatum(1, isError ? 1:0, reportedQual);
-    }
-
-    /**
-     * Get the covariate key set from a read
-     *
-     * @param read the read
-     * @return the covariate keysets for this read
-     */
-    private ReadCovariates covariateKeySetFrom(GATKSAMRecord read) {
-        return (ReadCovariates) read.getTemporaryAttribute(COVARS_ATTRIBUTE);
     }
 
     private void generateReport() {
