@@ -28,7 +28,7 @@ import java.util.Map;
 /**
  * Abstract root for all RankSum based annotations
  */
-public abstract class RankSumTest extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
+public abstract class RankSumTest extends InfoFieldAnnotation implements ActiveRegionBasedAnnotation {
     static final double INDEL_LIKELIHOOD_THRESH = 0.1;
     static final boolean DEBUG = false;
 

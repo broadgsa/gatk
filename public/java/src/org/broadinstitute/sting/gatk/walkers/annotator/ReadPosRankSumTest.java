@@ -4,6 +4,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.gatk.walkers.indels.PairHMMIndelErrorModel;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
@@ -21,7 +22,7 @@ import java.util.*;
  * The u-based z-approximation from the Mann-Whitney Rank Sum Test for the distance from the end of the read for reads with the alternate allele; if the alternate allele is only seen near the ends of reads this is indicative of error).
  * Note that the read position rank sum test can not be calculated for homozygous sites.
  */
-public class ReadPosRankSumTest extends RankSumTest {
+public class ReadPosRankSumTest extends RankSumTest implements StandardAnnotation {
 
     public List<String> getKeyNames() {
         return Arrays.asList("ReadPosRankSum");
