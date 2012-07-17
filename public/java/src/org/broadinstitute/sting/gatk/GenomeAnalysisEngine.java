@@ -207,7 +207,7 @@ public class GenomeAnalysisEngine {
      */
     public boolean isGATKLite() {
         if ( isLiteVersion == null ) {
-            isLiteVersion = new PluginManager<Object>(Object.class).exists(DummyProtectedWalkerName);
+            isLiteVersion = !(new PluginManager<Object>(Object.class).exists(DummyProtectedWalkerName));
         }
         return isLiteVersion;
     }
