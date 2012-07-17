@@ -80,8 +80,8 @@ class PacbioProcessingPipeline extends QScript {
 
       // BAM Steps
       val mqBAM: File = swapExt(bamBase, ".bam", ".mq.bam")
-      val recalFile1: File = swapExt(bamBase, ".bam", ".recal1.csv")
-      val recalFile2: File = swapExt(bamBase, ".bam", ".recal2.csv")
+      val recalFile1: File = swapExt(bamBase, ".bam", ".recal1.table")
+      val recalFile2: File = swapExt(bamBase, ".bam", ".recal2.table")
       val recalBam: File   = swapExt(bamBase, ".bam", ".recal.bam")
       val path1: String    = recalBam + ".before"
       val path2: String    = recalBam + ".after"
@@ -102,9 +102,7 @@ class PacbioProcessingPipeline extends QScript {
 
       add(cov(bam, recalFile1, resetQuals),
           recal(bam, recalFile1, recalBam),
-          cov(recalBam, recalFile2, false),
-          analyzeCovariates(recalFile1, path1),
-          analyzeCovariates(recalFile2, path2))
+          cov(recalBam, recalFile2, false))
     }
   }
 
@@ -162,36 +160,29 @@ class PacbioProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outBam + ".rg"
   }
 
-  case class cov (inBam: File, outRecalFile: File, resetQuals: Boolean) extends CountCovariates with CommandLineGATKArgs {
+  case class cov (inBam: File, outRecalFile: File, resetQuals: Boolean) extends BaseQualityScoreRecalibrator with CommandLineGATKArgs {
     if (resetQuals) 
       this.DBQ = dbq
     this.knownSites :+= dbSNP
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
-    this.recal_file = outRecalFile
+    this.out = outRecalFile
     this.analysisName = queueLogDir + outRecalFile + ".covariates"
     this.jobName = queueLogDir + outRecalFile + ".covariates"
     this.scatterCount = threads
     this.read_filter :+= "BadCigar"
   }
 
-  case class recal (inBam: File, inRecalFile: File, outBam: File) extends TableRecalibration with CommandLineGATKArgs {
+  case class recal (inBam: File, inRecalFile: File, outBam: File) extends PrintReads with CommandLineGATKArgs {
     this.DBQ = dbq
     this.input_file :+= inBam
-    this.recal_file = inRecalFile
+    this.BQSR = inRecalFile
     this.out = outBam
-    this.no_pg_tag = testMode
+    this.disable_indel_quals = true
     this.isIntermediate = false
     this.analysisName = queueLogDir + outBam + ".recalibration"
     this.jobName = queueLogDir + outBam + ".recalibration"
     this.read_filter :+= "BadCigar"
     this.scatterCount = threads
-  }
-
-  case class analyzeCovariates (inRecalFile: File, outPath: String) extends AnalyzeCovariates {
-    this.recal_file = inRecalFile
-    this.output_dir = outPath
-    this.analysisName = queueLogDir + inRecalFile + ".analyze_covariates"
-    this.jobName = queueLogDir + inRecalFile + ".analyze_covariates"
   }
 }
