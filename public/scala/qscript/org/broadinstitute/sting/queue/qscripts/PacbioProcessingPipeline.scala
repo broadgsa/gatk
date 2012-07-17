@@ -164,7 +164,7 @@ class PacbioProcessingPipeline extends QScript {
     if (resetQuals) 
       this.DBQ = dbq
     this.knownSites :+= dbSNP
-    this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
+    this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "ContextCovariate")
     this.input_file :+= inBam
     this.out = outRecalFile
     this.analysisName = queueLogDir + outRecalFile + ".covariates"

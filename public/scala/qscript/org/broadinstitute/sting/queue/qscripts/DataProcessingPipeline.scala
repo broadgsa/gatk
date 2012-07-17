@@ -345,7 +345,7 @@ class DataProcessingPipeline extends QScript {
 
   case class cov (inBam: File, outRecalFile: File) extends BaseQualityScoreRecalibrator with CommandLineGATKArgs {
     this.knownSites ++= qscript.dbSNP
-    this.covariate ++= Seq("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
+    this.covariate ++= Seq("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "ContextCovariate")
     this.input_file :+= inBam
     this.out = outRecalFile
     if (!defaultPlatform.isEmpty) this.default_platform = defaultPlatform
