@@ -79,8 +79,8 @@ public class UserException extends ReviewedStingException {
     }
 
     public static class NotSupportedInGATKLite extends UserException {
-        public NotSupportedInGATKLite(String argument) {
-            super(String.format("Unfortunately, the argument %s is not supported in the Lite version of the GATK", argument));
+        public NotSupportedInGATKLite(String message) {
+            super(String.format("GATK Lite does support all of the features of the full version: %s", message));
         }
     }
 

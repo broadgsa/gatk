@@ -51,6 +51,7 @@ import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -197,17 +198,28 @@ public class GenomeAnalysisEngine {
     private BaseRecalibration baseRecalibration = null;
     public BaseRecalibration getBaseRecalibration() { return baseRecalibration; }
     public boolean hasBaseRecalibration() { return baseRecalibration != null; }
-    public void setBaseRecalibration(final File recalFile, final int quantizationLevels, final boolean useIndelQuals, final int preserveQLessThan) {
-        baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, useIndelQuals, preserveQLessThan, isGATKLite());
+    public void setBaseRecalibration(final File recalFile, final int quantizationLevels, final boolean disableIndelQuals, final int preserveQLessThan) {
+        baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, disableIndelQuals, preserveQLessThan, isGATKLite());
     }
 
     /**
      * Utility method to determine whether this is the lite version of the GATK
      */
     public boolean isGATKLite() {
-        // TODO -- this is just a place holder for now
-        return false;
+        if ( isLiteVersion == null ) {
+            final List<Class<? extends Object>> classes = new PluginManager<Object>(Object.class).getPlugins();
+            isLiteVersion = true;
+            for ( Class c : classes ) {
+                if ( c.getSimpleName().equals(DummyProtectedClassName)) {
+                    isLiteVersion = false;
+                    break;
+                }
+            }
+        }
+        return isLiteVersion;
     }
+    private static final String DummyProtectedClassName = "DummyProtectedClass";
+    private static Boolean isLiteVersion = null;
 
     /**
      * Actually run the GATK with the specified walker.
@@ -239,7 +251,7 @@ public class GenomeAnalysisEngine {
 
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
         if (args.BQSR_RECAL_FILE != null)
-            setBaseRecalibration(args.BQSR_RECAL_FILE, args.quantizationLevels, args.enableIndelQuals, args.PRESERVE_QSCORES_LESS_THAN);
+            setBaseRecalibration(args.BQSR_RECAL_FILE, args.quantizationLevels, args.disableIndelQuals, args.PRESERVE_QSCORES_LESS_THAN);
 
         // Determine how the threads should be divided between CPU vs. IO.
         determineThreadAllocation();

@@ -50,7 +50,7 @@ public class BaseRecalibration {
     private final RecalibrationTables recalibrationTables;
     private final Covariate[] requestedCovariates;                                                                      // list of all covariates to be used in this calculation
 
-    private final boolean emitIndelQuals;
+    private final boolean disableIndelQuals;
     private final int preserveQLessThan;
 
     private static final NestedHashMap[] qualityScoreByFullCovariateKey = new NestedHashMap[EventType.values().length]; // Caches the result of performSequentialQualityCalculation(..) for all sets of covariate values.
@@ -64,14 +64,14 @@ public class BaseRecalibration {
      * 
      * @param RECAL_FILE         a GATK Report file containing the recalibration information
      * @param quantizationLevels number of bins to quantize the quality scores
-     * @param emitIndelQuals     if true, emit base indel qualities
+     * @param disableIndelQuals  if true, do not emit base indel qualities
      * @param preserveQLessThan  preserve quality scores less than this value
      * @param isGATKLite         is this being called from the full or Lite version of the GATK
      */
-    public BaseRecalibration(final File RECAL_FILE, final int quantizationLevels, final boolean emitIndelQuals, final int preserveQLessThan, final boolean isGATKLite) {
+    public BaseRecalibration(final File RECAL_FILE, final int quantizationLevels, final boolean disableIndelQuals, final int preserveQLessThan, final boolean isGATKLite) {
         // check for unsupported access
-        if (isGATKLite && emitIndelQuals)
-            throw new UserException.NotSupportedInGATKLite("enable_indel_quals");
+        if (isGATKLite && !disableIndelQuals)
+            throw new UserException.NotSupportedInGATKLite("base insertion/deletion recalibration is not supported, please use the --disable_indel_quals argument");
 
         RecalibrationReport recalibrationReport = new RecalibrationReport(RECAL_FILE);
 
@@ -84,7 +84,7 @@ public class BaseRecalibration {
             quantizationInfo.quantizeQualityScores(quantizationLevels);
 
         readCovariates = new ReadCovariates(MAXIMUM_RECALIBRATED_READ_LENGTH, requestedCovariates.length);
-        this.emitIndelQuals = emitIndelQuals;
+        this.disableIndelQuals = disableIndelQuals;
         this.preserveQLessThan = preserveQLessThan;
     }
 
@@ -98,7 +98,7 @@ public class BaseRecalibration {
     public void recalibrateRead(final GATKSAMRecord read) {
         RecalDataManager.computeCovariates(read, requestedCovariates, readCovariates);                                  // compute all covariates for the read
         for (final EventType errorModel : EventType.values()) {                                                         // recalibrate all three quality strings
-            if (!emitIndelQuals && errorModel != EventType.BASE_SUBSTITUTION) {
+            if (disableIndelQuals && errorModel != EventType.BASE_SUBSTITUTION) {
                 read.setBaseQualities(null, errorModel);
                 continue;
             }

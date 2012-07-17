@@ -215,10 +215,10 @@ public class GATKArgumentCollection {
     public int quantizationLevels = 0;
 
     /**
-     * Turns on printing of the base insertion and base deletion tags when using the -BQSR argument.  By default, only the base substitution qualities will be produced.
+     * Turns off printing of the base insertion and base deletion tags when using the -BQSR argument and only the base substitution qualities will be produced.
      */
-    @Argument(fullName="enable_indel_quals", shortName = "IQ", doc = "If true, enables printing of base insertion and base deletion tags (with -BQSR)", required=false)
-    public boolean enableIndelQuals = false;
+    @Argument(fullName="disable_indel_quals", shortName = "DIQ", doc = "If true, disables printing of base insertion and base deletion tags (with -BQSR)", required=false)
+    public boolean disableIndelQuals = false;
 
     /**
      * Do not modify quality scores less than this value but rather just write them out unmodified in the recalibrated BAM file.
