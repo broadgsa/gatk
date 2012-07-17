@@ -221,6 +221,12 @@ public class GATKArgumentCollection {
     public boolean disableIndelQuals = false;
 
     /**
+     * By default, the OQ tag in not emitted when using the -BQSR argument.
+     */
+    @Argument(fullName="emit_original_quals", shortName = "EOQ", doc = "If true, enables printing of the OQ tag with the original base qualities (with -BQSR)", required=false)
+    public boolean emitOriginalQuals = false;
+
+    /**
      * Do not modify quality scores less than this value but rather just write them out unmodified in the recalibrated BAM file.
      * In general it's unsafe to change qualities scores below < 6, since base callers use these values to indicate random or bad bases.
      * For example, Illumina writes Q2 bases when the machine has really gone wrong. This would be fine in and of itself,

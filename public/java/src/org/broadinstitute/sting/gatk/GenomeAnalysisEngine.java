@@ -198,8 +198,8 @@ public class GenomeAnalysisEngine {
     private BaseRecalibration baseRecalibration = null;
     public BaseRecalibration getBaseRecalibration() { return baseRecalibration; }
     public boolean hasBaseRecalibration() { return baseRecalibration != null; }
-    public void setBaseRecalibration(final File recalFile, final int quantizationLevels, final boolean disableIndelQuals, final int preserveQLessThan) {
-        baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, disableIndelQuals, preserveQLessThan);
+    public void setBaseRecalibration(final File recalFile, final int quantizationLevels, final boolean disableIndelQuals, final int preserveQLessThan, final boolean emitOriginalQuals) {
+        baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, disableIndelQuals, preserveQLessThan, emitOriginalQuals);
     }
 
     /**
@@ -239,7 +239,7 @@ public class GenomeAnalysisEngine {
 
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
         if (args.BQSR_RECAL_FILE != null)
-            setBaseRecalibration(args.BQSR_RECAL_FILE, args.quantizationLevels, args.disableIndelQuals, args.PRESERVE_QSCORES_LESS_THAN);
+            setBaseRecalibration(args.BQSR_RECAL_FILE, args.quantizationLevels, args.disableIndelQuals, args.PRESERVE_QSCORES_LESS_THAN, args.emitOriginalQuals);
 
         // Determine how the threads should be divided between CPU vs. IO.
         determineThreadAllocation();
