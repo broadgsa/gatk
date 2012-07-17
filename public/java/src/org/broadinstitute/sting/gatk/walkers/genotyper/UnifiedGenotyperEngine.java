@@ -145,10 +145,10 @@ public class UnifiedGenotyperEngine {
      *
      * same as the full call but with allSamples == null
      *
-     * @param tracker
-     * @param refContext
-     * @param rawContext
-     * @return
+     * @param tracker    the meta data tracker
+     * @param refContext the reference base
+     * @param rawContext contextual information around the locus
+     * @return the VariantCallContext object
      */
     public List<VariantCallContext> calculateLikelihoodsAndGenotypes(final RefMetaDataTracker tracker,
                                                                      final ReferenceContext refContext,

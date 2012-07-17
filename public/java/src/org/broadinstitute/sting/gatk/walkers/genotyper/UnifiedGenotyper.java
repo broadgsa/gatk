@@ -25,8 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
+import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.DownsampleType;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -222,6 +224,44 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
      *
      **/
     public void initialize() {
+
+        // Check for protected modes
+        if (getToolkit().isGATKLite()) {
+            // no polyploid/pooled mode in GATK Like
+            if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY ||
+                    UAC.referenceSampleName != null ||
+                    UAC.referenceSampleRod.isBound())  {
+                throw new UserException.NotSupportedInGATKLite("Usage of ploidy values different than 2 not supported in this GATK version");
+            }
+            // get all of the unique sample names
+            samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
+
+        } else {
+            // in full mode: check for consistency in ploidy/pool calling arguments
+            // check for correct calculation models
+            if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
+                // polyploidy required POOL GL and AF calculation models to be specified right now
+                if (UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLSNP && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLINDEL
+                        && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLBOTH)   {
+                    throw new UserException("Incorrect genotype calculation model chosen. Only [POOLSNP|POOLINDEL|POOLBOTH] supported with this walker if sample ploidy != 2");
+                }
+
+                if (UAC.AFmodel != AlleleFrequencyCalculationModel.Model.POOL)
+                    throw new UserException("Incorrect AF Calculation model. Only POOL model supported if sample ploidy != 2");
+
+            }
+            // get all of the unique sample names
+            if (UAC.TREAT_ALL_READS_AS_SINGLE_POOL) {
+                samples.clear();
+                samples.add(GenotypeLikelihoodsCalculationModel.DUMMY_POOL);
+            } else {
+                samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
+                if (UAC.referenceSampleName != null )
+                    samples.remove(UAC.referenceSampleName);
+            }
+
+        }
+
         // check for a bad max alleles value
         if ( UAC.MAX_ALTERNATE_ALLELES > GenotypeLikelihoods.MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED)
             throw new UserException.BadArgumentValue("max_alternate_alleles", "the maximum possible value is " + GenotypeLikelihoods.MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
@@ -232,10 +272,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
                 UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.SNP )
             logger.warn("WARNING: note that the EMIT_ALL_SITES option is intended only for point mutations (SNPs) in DISCOVERY mode or generally when running in GENOTYPE_GIVEN_ALLELES mode; it will by no means produce a comprehensive set of indels in DISCOVERY mode");
         
-        // get all of the unique sample names
-        samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
-
-        // initialize the verbose writer
+         // initialize the verbose writer
         if ( verboseWriter != null )
             verboseWriter.println("AFINFO\tLOC\tREF\tALT\tMAF\tF\tAFprior\tMLE\tMAP");
 
@@ -250,6 +287,8 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
         annotationEngine.invokeAnnotationInitializationMethods(headerInfo);
 
         writer.writeHeader(new VCFHeader(headerInfo, samples));
+
+
     }
 
     public static Set<VCFHeaderLine> getHeaderInfo(final UnifiedArgumentCollection UAC,
@@ -267,6 +306,15 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
 
         if ( UAC.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED )
             headerInfo.add(new VCFInfoHeaderLine(UnifiedGenotyperEngine.NUMBER_OF_DISCOVERED_ALLELES_KEY, 1, VCFHeaderLineType.Integer, "Number of alternate alleles discovered (but not necessarily genotyped) at this site"));
+
+        // add the pool values for each genotype
+        if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
+            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum likelihood expectation (MLE) for the alt allele counts (not necessarily the same as the AC), for each ALT allele, in the same order as listed, for this sample (equivalent to sample genotype in diploid case)"));
+            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_ALLELE_FREQUENCY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Maximum likelihood expectation (MLE) for the allele frequency (not necessarily the same as the AF), for each ALT allele, in the same order as listed, for this sample (equivalent to sample genotype in diploid case)"));
+        }
+        if (UAC.referenceSampleName != null) {
+            headerInfo.add(new VCFInfoHeaderLine(VCFConstants.REFSAMPLE_DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Total reference sample depth"));
+        }
 
         VCFStandardHeaderLines.addStandardInfoLines(headerInfo, true,
                 VCFConstants.DOWNSAMPLED_KEY,

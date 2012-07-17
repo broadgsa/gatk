@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 
 public class UnifiedArgumentCollection {
@@ -169,6 +170,66 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "ignoreSNPAlleles", shortName = "ignoreSNPAlleles", doc = "expt", required = false)
     public boolean IGNORE_SNP_ALLELES = false;
 
+    /*
+        Generalized ploidy argument (debug only): squash all reads into a single pileup without considering sample info
+     */
+    @Hidden
+    @Argument(fullName = "allReadsSP", shortName = "dl", doc = "expt", required = false)
+    public boolean TREAT_ALL_READS_AS_SINGLE_POOL = false;
+
+    /*
+       Generalized ploidy argument (debug only): When building site error models, ignore lane information and build only
+       sample-level error model
+     */
+
+    @Argument(fullName = "ignoreLaneInfo", shortName = "ignoreLane", doc = "Ignore lane when building error model, error model is then per-site", required = false)
+    public boolean IGNORE_LANE_INFO = false;
+
+    /*
+        Generalized ploidy argument: VCF file that contains truth calls for reference sample. If a reference sample is included through argument -refsample,
+        then this argument is required.
+     */
+    @Input(fullName="reference_sample_calls", shortName = "referenceCalls", doc="VCF file with the truth callset for the reference sample", required=false)
+    RodBinding<VariantContext> referenceSampleRod;
+
+    /*
+        Reference sample name: if included, a site-specific error model will be built in order to improve calling quality. This requires ideally
+        that a bar-coded reference sample be included with the polyploid/pooled data in a sequencing experimental design.
+        If argument is absent, no per-site error model is included and calling is done with a generalization of traditional statistical calling.
+     */
+    @Argument(shortName="refsample", fullName="reference_sample_name", doc="Reference sample name.", required=false)
+    String referenceSampleName;
+
+    /*
+        Sample ploidy - equivalent to number of chromosomes per pool. In pooled experiments this should be = # of samples in pool * individual sample ploidy
+     */
+    @Argument(shortName="ploidy", fullName="sample_ploidy", doc="Plody (number of chromosomes) per sample. For pooled data, set to (Number of samples in each pool * Sample Ploidy).", required=false)
+    int samplePloidy = VariantContextUtils.DEFAULT_PLOIDY;
+
+    @Hidden
+    @Argument(shortName="minqs", fullName="min_quality_score", doc="Min quality score to consider. Smaller numbers process faster. Default: Q1.", required=false)
+    byte minQualityScore= 1;
+
+    @Hidden
+    @Argument(shortName="maxqs", fullName="max_quality_score", doc="Max quality score to consider. Smaller numbers process faster. Default: Q40.", required=false)
+    byte maxQualityScore= 40;
+
+    @Hidden
+    @Argument(shortName="site_prior", fullName="site_quality_prior", doc="Phred-Scaled prior quality of the site. Default: Q20.", required=false)
+    byte phredScaledPrior = 20;
+
+    @Hidden
+    @Argument(shortName = "min_call_power", fullName = "min_power_threshold_for_calling", doc="The minimum confidence in the error model to make a call. Number should be between 0 (no power requirement) and 1 (maximum power required).", required = false)
+    double minPower = 0.95;
+
+    @Hidden
+    @Argument(shortName = "min_depth", fullName = "min_reference_depth", doc="The minimum depth required in the reference sample in order to make a call.", required = false)
+    int minReferenceDepth = 100;
+
+    @Hidden
+    @Argument(shortName="ef", fullName="exclude_filtered_reference_sites", doc="Don't include in the analysis sites where the reference sample VCF is filtered. Default: false.", required=false)
+    boolean EXCLUDE_FILTERED_REFERENCE_SITES = false;
+
 
     // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
     public UnifiedArgumentCollection clone() {
@@ -196,6 +257,18 @@ public class UnifiedArgumentCollection {
         uac.alleles = alleles;
         uac.MAX_ALTERNATE_ALLELES = MAX_ALTERNATE_ALLELES;
         uac.CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS = CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS;
+        uac.GLmodel = GLmodel;
+        uac.TREAT_ALL_READS_AS_SINGLE_POOL = TREAT_ALL_READS_AS_SINGLE_POOL;
+        uac.referenceSampleRod = referenceSampleRod;
+        uac.referenceSampleName = referenceSampleName;
+        uac.samplePloidy = samplePloidy;
+        uac.maxQualityScore = minQualityScore;
+        uac.maxQualityScore = maxQualityScore;
+        uac.phredScaledPrior = phredScaledPrior;
+        uac.minPower = minPower;
+        uac.minReferenceDepth = minReferenceDepth;
+        uac.EXCLUDE_FILTERED_REFERENCE_SITES = EXCLUDE_FILTERED_REFERENCE_SITES;
+        uac.IGNORE_LANE_INFO = IGNORE_LANE_INFO;
 
         // todo- arguments to remove
         uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
