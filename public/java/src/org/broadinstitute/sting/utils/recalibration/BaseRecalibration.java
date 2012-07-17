@@ -25,11 +25,14 @@
 
 package org.broadinstitute.sting.utils.recalibration;
 
+import net.sf.samtools.SAMTag;
+import net.sf.samtools.SAMUtils;
 import org.broadinstitute.sting.gatk.walkers.bqsr.*;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
@@ -51,6 +54,7 @@ public class BaseRecalibration {
 
     private final boolean disableIndelQuals;
     private final int preserveQLessThan;
+    private final boolean emitOriginalQuals;
 
     private static final NestedHashMap[] qualityScoreByFullCovariateKey = new NestedHashMap[EventType.values().length]; // Caches the result of performSequentialQualityCalculation(..) for all sets of covariate values.
     static {
@@ -66,7 +70,7 @@ public class BaseRecalibration {
      * @param disableIndelQuals  if true, do not emit base indel qualities
      * @param preserveQLessThan  preserve quality scores less than this value
      */
-    public BaseRecalibration(final File RECAL_FILE, final int quantizationLevels, final boolean disableIndelQuals, final int preserveQLessThan) {
+    public BaseRecalibration(final File RECAL_FILE, final int quantizationLevels, final boolean disableIndelQuals, final int preserveQLessThan, final boolean emitOriginalQuals) {
         RecalibrationReport recalibrationReport = new RecalibrationReport(RECAL_FILE);
 
         recalibrationTables = recalibrationReport.getRecalibrationTables();
@@ -80,6 +84,7 @@ public class BaseRecalibration {
         readCovariates = new ReadCovariates(MAXIMUM_RECALIBRATED_READ_LENGTH, requestedCovariates.length);
         this.disableIndelQuals = disableIndelQuals;
         this.preserveQLessThan = preserveQLessThan;
+        this.emitOriginalQuals = emitOriginalQuals;
     }
 
     /**
@@ -90,6 +95,14 @@ public class BaseRecalibration {
      * @param read the read to recalibrate
      */
     public void recalibrateRead(final GATKSAMRecord read) {
+        if (emitOriginalQuals && read.getAttribute(SAMTag.OQ.name()) == null) { // Save the old qualities if the tag isn't already taken in the read
+            try {
+                read.setAttribute(SAMTag.OQ.name(), SAMUtils.phredToFastq(read.getBaseQualities()));
+            } catch (IllegalArgumentException e) {
+                throw new UserException.MalformedBAM(read, "illegal base quality encountered; " + e.getMessage());
+            }
+        }
+
         RecalDataManager.computeCovariates(read, requestedCovariates, readCovariates);                                  // compute all covariates for the read
         for (final EventType errorModel : EventType.values()) {                                                         // recalibrate all three quality strings
             if (disableIndelQuals && errorModel != EventType.BASE_SUBSTITUTION) {

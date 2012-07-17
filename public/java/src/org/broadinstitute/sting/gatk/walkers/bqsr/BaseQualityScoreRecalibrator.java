@@ -185,7 +185,7 @@ public class BaseQualityScoreRecalibrator extends LocusWalker<Long, Long> implem
 
         Class c = null;
         for ( Class<? extends RecalibrationEngine> REclass : REclasses ) {
-            if ( REclass.isAssignableFrom(ProtectedPackageSource.class) ) {
+            if ( ProtectedPackageSource.class.isAssignableFrom(REclass) ) {
                 c = REclass;
                 break;
             }
