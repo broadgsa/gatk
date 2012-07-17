@@ -78,6 +78,12 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class NotSupportedInGATKLite extends UserException {
+        public NotSupportedInGATKLite(String argument) {
+            super(String.format("Unfortunately, the argument %s is not supported in the Lite version of the GATK", argument));
+        }
+    }
+
     // todo -- fix up exception cause passing
     public static class MissingArgument extends CommandLineException {
         public MissingArgument(String arg, String message) {

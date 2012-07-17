@@ -197,7 +197,17 @@ public class GenomeAnalysisEngine {
     private BaseRecalibration baseRecalibration = null;
     public BaseRecalibration getBaseRecalibration() { return baseRecalibration; }
     public boolean hasBaseRecalibration() { return baseRecalibration != null; }
-    public void setBaseRecalibration(final File recalFile, final int quantizationLevels, final boolean noIndelQuals) { baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, noIndelQuals); }
+    public void setBaseRecalibration(final File recalFile, final int quantizationLevels, final boolean useIndelQuals, final int preserveQLessThan) {
+        baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, useIndelQuals, preserveQLessThan, isGATKLite());
+    }
+
+    /**
+     * Utility method to determine whether this is the lite version of the GATK
+     */
+    public boolean isGATKLite() {
+        // TODO -- this is just a place holder for now
+        return false;
+    }
 
     /**
      * Actually run the GATK with the specified walker.
@@ -209,8 +219,10 @@ public class GenomeAnalysisEngine {
         //monitor.start();
         setStartTime(new java.util.Date());
 
+        final GATKArgumentCollection args = this.getArguments();
+
         // validate our parameters
-        if (this.getArguments() == null) {
+        if (args == null) {
             throw new ReviewedStingException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
         }
 
@@ -218,16 +230,16 @@ public class GenomeAnalysisEngine {
         if (this.walker == null)
             throw new ReviewedStingException("The walker passed to GenomeAnalysisEngine can not be null.");
 
-        if (this.getArguments().nonDeterministicRandomSeed)
+        if (args.nonDeterministicRandomSeed)
             resetRandomGenerator(System.currentTimeMillis());
 
         // TODO -- REMOVE ME WHEN WE STOP BCF testing
-        if ( this.getArguments().USE_SLOW_GENOTYPES )
+        if ( args.USE_SLOW_GENOTYPES )
             GenotypeBuilder.MAKE_FAST_BY_DEFAULT = false;
 
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
-        if (this.getArguments().BQSR_RECAL_FILE != null)
-            setBaseRecalibration(this.getArguments().BQSR_RECAL_FILE, this.getArguments().quantizationLevels, this.getArguments().noIndelQuals);
+        if (args.BQSR_RECAL_FILE != null)
+            setBaseRecalibration(args.BQSR_RECAL_FILE, args.quantizationLevels, args.enableIndelQuals, args.PRESERVE_QSCORES_LESS_THAN);
 
         // Determine how the threads should be divided between CPU vs. IO.
         determineThreadAllocation();

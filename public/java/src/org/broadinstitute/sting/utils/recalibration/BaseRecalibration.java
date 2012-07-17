@@ -30,6 +30,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
@@ -49,7 +50,8 @@ public class BaseRecalibration {
     private final RecalibrationTables recalibrationTables;
     private final Covariate[] requestedCovariates;                                                                      // list of all covariates to be used in this calculation
 
-    private final boolean noIndelQuals;
+    private final boolean emitIndelQuals;
+    private final int preserveQLessThan;
 
     private static final NestedHashMap[] qualityScoreByFullCovariateKey = new NestedHashMap[EventType.values().length]; // Caches the result of performSequentialQualityCalculation(..) for all sets of covariate values.
     static {
@@ -62,9 +64,15 @@ public class BaseRecalibration {
      * 
      * @param RECAL_FILE         a GATK Report file containing the recalibration information
      * @param quantizationLevels number of bins to quantize the quality scores
-     * @param noIndelQuals       if true, do not emit base indel qualities
+     * @param emitIndelQuals     if true, emit base indel qualities
+     * @param preserveQLessThan  preserve quality scores less than this value
+     * @param isGATKLite         is this being called from the full or Lite version of the GATK
      */
-    public BaseRecalibration(final File RECAL_FILE, final int quantizationLevels, final boolean noIndelQuals) {
+    public BaseRecalibration(final File RECAL_FILE, final int quantizationLevels, final boolean emitIndelQuals, final int preserveQLessThan, final boolean isGATKLite) {
+        // check for unsupported access
+        if (isGATKLite && emitIndelQuals)
+            throw new UserException.NotSupportedInGATKLite("enable_indel_quals");
+
         RecalibrationReport recalibrationReport = new RecalibrationReport(RECAL_FILE);
 
         recalibrationTables = recalibrationReport.getRecalibrationTables();
@@ -76,22 +84,8 @@ public class BaseRecalibration {
             quantizationInfo.quantizeQualityScores(quantizationLevels);
 
         readCovariates = new ReadCovariates(MAXIMUM_RECALIBRATED_READ_LENGTH, requestedCovariates.length);
-        this.noIndelQuals = noIndelQuals;
-    }
-
-    /**
-     * This constructor only exists for testing purposes.
-     *
-     * @param quantizationInfo the quantization info object
-     * @param recalibrationTables the map of key managers and recalibration tables
-     * @param requestedCovariates the list of requested covariates
-     */
-    protected BaseRecalibration(final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates) {
-        this.quantizationInfo = quantizationInfo;
-        this.recalibrationTables = recalibrationTables;
-        this.requestedCovariates = requestedCovariates;
-        readCovariates = new ReadCovariates(MAXIMUM_RECALIBRATED_READ_LENGTH, requestedCovariates.length);
-        noIndelQuals = false;
+        this.emitIndelQuals = emitIndelQuals;
+        this.preserveQLessThan = preserveQLessThan;
     }
 
     /**
@@ -104,7 +98,7 @@ public class BaseRecalibration {
     public void recalibrateRead(final GATKSAMRecord read) {
         RecalDataManager.computeCovariates(read, requestedCovariates, readCovariates);                                  // compute all covariates for the read
         for (final EventType errorModel : EventType.values()) {                                                         // recalibrate all three quality strings
-            if (noIndelQuals && errorModel != EventType.BASE_SUBSTITUTION) {
+            if (!emitIndelQuals && errorModel != EventType.BASE_SUBSTITUTION) {
                 read.setBaseQualities(null, errorModel);
                 continue;
             }
@@ -117,7 +111,7 @@ public class BaseRecalibration {
 
                 final byte originalQualityScore = quals[offset];
 
-                if (originalQualityScore >= QualityUtils.MIN_USABLE_Q_SCORE) {                                          // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
+                if (originalQualityScore >= preserveQLessThan) {                                                        // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
                     final int[] keySet = fullReadKeySet[offset];                                                        // get the keyset for this base using the error model
                     final byte recalibratedQualityScore = performSequentialQualityCalculation(keySet, errorModel);      // recalibrate the base
                     quals[offset] = recalibratedQualityScore;

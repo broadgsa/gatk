@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
@@ -190,14 +191,18 @@ public class GATKArgumentCollection {
     @Argument(fullName="useOriginalQualities", shortName = "OQ", doc = "If set, use the original base quality scores from the OQ tag when present instead of the standard scores", required=false)
     public Boolean useOriginalBaseQualities = false;
 
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // BQSR arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
     /**
-     * After the header, data records occur one per line until the end of the file. The first several items on a line are the
-     * values of the individual covariates and will change depending on which covariates were specified at runtime. The last
-     * three items are the data- that is, number of observations for this combination of covariates, number of reference mismatches,
-     * and the raw empirical quality score calculated by phred-scaling the mismatch rate.
+     * Enables on-the-fly recalibrate of base qualities.  The covariates tables are produced by the BaseQualityScoreRecalibrator tool.
+     * Please be aware that one should only run recalibration with the covariates file created on the same input bam(s).
      */
-    @Input(fullName="BQSR", shortName="BQSR", required=false, doc="Filename for the input covariates table recalibration .csv file which enables on the fly base quality score recalibration")
-    public File BQSR_RECAL_FILE = null; // BUGBUG: need a better argument name once we decide how BQSRs v1 and v2 will live in the code base simultaneously
+    @Input(fullName="BQSR", shortName="BQSR", required=false, doc="The input covariates table file which enables on-the-fly base quality score recalibration")
+    public File BQSR_RECAL_FILE = null;
 
     /**
      * Turns on the base quantization module. It requires a recalibration report (-BQSR).
@@ -206,17 +211,33 @@ public class GATKArgumentCollection {
      * Any value greater than zero will be used to recalculate the quantization using that many levels.
      * Negative values mean that we should quantize using the recalibration report's quantization level.
      */
-    @Argument(fullName="quantize_quals", shortName = "qq", doc = "Quantize quality scores to a given number of levels.", required=false)
+    @Argument(fullName="quantize_quals", shortName = "qq", doc = "Quantize quality scores to a given number of levels (with -BQSR)", required=false)
     public int quantizationLevels = 0;
 
     /**
-     * Turns off printing of the base insertion and base deletion tags when using the -BQSR argument.  Only the base substitution qualities will be produced.
+     * Turns on printing of the base insertion and base deletion tags when using the -BQSR argument.  By default, only the base substitution qualities will be produced.
      */
-    @Argument(fullName="no_indel_quals", shortName = "NIQ", doc = "If true, inhibits printing of base insertion and base deletion tags.", required=false)
-    public boolean noIndelQuals = false;
+    @Argument(fullName="enable_indel_quals", shortName = "IQ", doc = "If true, enables printing of base insertion and base deletion tags (with -BQSR)", required=false)
+    public boolean enableIndelQuals = false;
+
+    /**
+     * Do not modify quality scores less than this value but rather just write them out unmodified in the recalibrated BAM file.
+     * In general it's unsafe to change qualities scores below < 6, since base callers use these values to indicate random or bad bases.
+     * For example, Illumina writes Q2 bases when the machine has really gone wrong. This would be fine in and of itself,
+     * but when you select a subset of these reads based on their ability to align to the reference and their dinucleotide effect,
+     * your Q2 bin can be elevated to Q8 or Q10, leading to issues downstream.
+     */
+    @Argument(fullName = "preserve_qscores_less_than", shortName = "preserveQ", doc = "Bases with quality scores less than this threshold won't be recalibrated (with -BQSR)", required = false)
+    public int PRESERVE_QSCORES_LESS_THAN = QualityUtils.MIN_USABLE_Q_SCORE;
 
     @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
     public byte defaultBaseQualities = -1;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // Other utility arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
 
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
     public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;
