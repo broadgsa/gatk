@@ -277,7 +277,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
             verboseWriter.println("AFINFO\tLOC\tREF\tALT\tMAF\tF\tAFprior\tMLE\tMAP");
 
         annotationEngine = new VariantAnnotatorEngine(Arrays.asList(annotationClassesToUse), annotationsToUse, annotationsToExclude, this, getToolkit());
-        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples, VariantContextUtils.DEFAULT_PLOIDY);
+        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples, UAC.samplePloidy);
 
         // initialize the header
         Set<VCFHeaderLine> headerInfo = getHeaderInfo(UAC, annotationEngine, dbsnp);
@@ -309,8 +309,8 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
 
         // add the pool values for each genotype
         if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
-            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum likelihood expectation (MLE) for the alt allele counts (not necessarily the same as the AC), for each ALT allele, in the same order as listed, for this sample (equivalent to sample genotype in diploid case)"));
-            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_ALLELE_FREQUENCY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Maximum likelihood expectation (MLE) for the allele frequency (not necessarily the same as the AF), for each ALT allele, in the same order as listed, for this sample (equivalent to sample genotype in diploid case)"));
+            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum likelihood expectation (MLE) for the allele counts (not necessarily the same as the AC), for each ALT allele, in the same order as listed, for this pool"));
+            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_ALLELE_FREQUENCY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Maximum likelihood expectation (MLE) for the allele frequency (not necessarily the same as the AF), for each ALT allele, in the same order as listed, for this pool"));
         }
         if (UAC.referenceSampleName != null) {
             headerInfo.add(new VCFInfoHeaderLine(VCFConstants.REFSAMPLE_DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Total reference sample depth"));
