@@ -33,7 +33,6 @@ import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.classloader.ProtectedPackageSource;
@@ -120,6 +119,8 @@ public class BaseQualityScoreRecalibrator extends LocusWalker<Long, Long> implem
 
     private RecalibrationEngine recalibrationEngine;
 
+    private int minimumQToUse;
+
     protected static final String SKIP_RECORD_ATTRIBUTE = "SKIP";                                                         // used to label reads that should be skipped.
     protected static final String SEEN_ATTRIBUTE = "SEEN";                                                                // used to label reads as processed.
     protected static final String COVARS_ATTRIBUTE = "COVARS";                                                            // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
@@ -132,6 +133,10 @@ public class BaseQualityScoreRecalibrator extends LocusWalker<Long, Long> implem
      * Based on the covariates' estimates for initial capacity allocate the data hashmap
      */
     public void initialize() {
+
+        // check for unsupported access
+        if (getToolkit().isGATKLite() && !getToolkit().getArguments().disableIndelQuals)
+            throw new UserException.NotSupportedInGATKLite("base insertion/deletion recalibration is not supported, please use the --disable_indel_quals argument");
 
         if (RAC.FORCE_PLATFORM != null)
             RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM;
@@ -169,12 +174,14 @@ public class BaseQualityScoreRecalibrator extends LocusWalker<Long, Long> implem
 
         recalibrationEngine = initializeRecalibrationEngine();
         recalibrationEngine.initialize(requestedCovariates, recalibrationTables);
+
+        minimumQToUse = getToolkit().getArguments().PRESERVE_QSCORES_LESS_THAN;
     }
 
     private RecalibrationEngine initializeRecalibrationEngine() {
         List<Class<? extends RecalibrationEngine>> REclasses = new PluginManager<RecalibrationEngine>(RecalibrationEngine.class).getPlugins();
         if ( REclasses.isEmpty() )
-            throw new ReviewedStingException("There are no classes found that extend RecalibrationEngine; repository must be corrupted");
+            throw new ReviewedStingException("The RecalibrationEngine class is not found; repository must be corrupted");
 
         Class c = null;
         for ( Class<? extends RecalibrationEngine> REclass : REclasses ) {
@@ -201,7 +208,7 @@ public class BaseQualityScoreRecalibrator extends LocusWalker<Long, Long> implem
     }
 
     private boolean isLowQualityBase(GATKSAMRecord read, int offset) {
-        return read.getBaseQualities()[offset] < QualityUtils.MIN_USABLE_Q_SCORE;
+        return read.getBaseQualities()[offset] < minimumQToUse;
     }
 
     private boolean readNotSeen(GATKSAMRecord read) {

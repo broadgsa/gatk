@@ -30,7 +30,6 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
@@ -66,13 +65,8 @@ public class BaseRecalibration {
      * @param quantizationLevels number of bins to quantize the quality scores
      * @param disableIndelQuals  if true, do not emit base indel qualities
      * @param preserveQLessThan  preserve quality scores less than this value
-     * @param isGATKLite         is this being called from the full or Lite version of the GATK
      */
-    public BaseRecalibration(final File RECAL_FILE, final int quantizationLevels, final boolean disableIndelQuals, final int preserveQLessThan, final boolean isGATKLite) {
-        // check for unsupported access
-        if (isGATKLite && !disableIndelQuals)
-            throw new UserException.NotSupportedInGATKLite("base insertion/deletion recalibration is not supported, please use the --disable_indel_quals argument");
-
+    public BaseRecalibration(final File RECAL_FILE, final int quantizationLevels, final boolean disableIndelQuals, final int preserveQLessThan) {
         RecalibrationReport recalibrationReport = new RecalibrationReport(RECAL_FILE);
 
         recalibrationTables = recalibrationReport.getRecalibrationTables();

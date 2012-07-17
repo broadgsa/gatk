@@ -51,7 +51,7 @@ import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -199,20 +199,15 @@ public class GenomeAnalysisEngine {
     public BaseRecalibration getBaseRecalibration() { return baseRecalibration; }
     public boolean hasBaseRecalibration() { return baseRecalibration != null; }
     public void setBaseRecalibration(final File recalFile, final int quantizationLevels, final boolean disableIndelQuals, final int preserveQLessThan) {
-        baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, disableIndelQuals, preserveQLessThan, isGATKLite());
+        baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, disableIndelQuals, preserveQLessThan);
     }
 
     /**
      * Utility method to determine whether this is the lite version of the GATK
      */
     public boolean isGATKLite() {
-        if ( isLiteVersion == null ) {
-            isLiteVersion = !(new PluginManager<Object>(Object.class).exists(DummyProtectedWalkerName));
-        }
-        return isLiteVersion;
+        return JVMUtils.isGATKLite();
     }
-    private static final String DummyProtectedWalkerName = "DummyProtectedWalker";
-    private static Boolean isLiteVersion = null;
 
     /**
      * Actually run the GATK with the specified walker.
