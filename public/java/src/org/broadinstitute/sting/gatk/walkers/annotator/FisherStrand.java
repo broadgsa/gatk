@@ -255,7 +255,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             for (PileupElement p : sample.getValue().getBasePileup()) {
-                if ( p.isDeletion() || p.getRead().isReducedRead() ) // ignore deletions and reduced reads
+                if ( ! RankSumTest.isUsableBase(p, false) || p.getRead().isReducedRead() ) // ignore deletions and reduced reads
                     continue;
 
                 Allele base = Allele.create(p.getBase(), false);
@@ -298,9 +298,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
             final ReadBackedPileup pileup = context.getBasePileup();
             for ( final PileupElement p : pileup ) {
-                if ( p.getRead().isReducedRead() ) // ignore reduced reads
-                    continue;
-                if ( p.getRead().getMappingQuality() < 20 )
+                if ( ! RankSumTest.isUsableBase(p, true) || p.getRead().isReducedRead() ) // ignore reduced reads
                     continue;
                 if ( indelLikelihoodMap.containsKey(p) ) {
                     // to classify a pileup element as ref or alt, we look at the likelihood associated with the allele associated to this element.

@@ -149,9 +149,28 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements ActiveR
 
     protected abstract void fillIndelQualsFromPileup(final ReadBackedPileup pileup, final List<Double> refQuals, final List<Double> altQuals);
 
-    protected static boolean isUsableBase(final PileupElement p) {
+    /**
+     * Can the base in this pileup element be used in comparative tests between ref / alt bases?
+     *
+     * Note that this function by default does not allow deletion pileup elements
+     *
+     * @param p the pileup element to consider
+     * @return true if this base is part of a meaningful read for comparison, false otherwise
+     */
+    public static boolean isUsableBase(final PileupElement p) {
+        return isUsableBase(p, false);
+    }
+
+    /**
+     * Can the base in this pileup element be used in comparative tests between ref / alt bases?
+     *
+     * @param p the pileup element to consider
+     * @param allowDeletions if true, allow p to be a deletion base
+     * @return true if this base is part of a meaningful read for comparison, false otherwise
+     */
+    public static boolean isUsableBase(final PileupElement p, final boolean allowDeletions) {
         return !(p.isInsertionAtBeginningOfRead() ||
-                 p.isDeletion() ||
+                 (! allowDeletions && p.isDeletion()) ||
                  p.getMappingQual() == 0 ||
                  p.getMappingQual() == QualityUtils.MAPPING_QUALITY_UNAVAILABLE ||
                  ((int) p.getQual()) < QualityUtils.MIN_USABLE_Q_SCORE); // need the unBAQed quality score here
