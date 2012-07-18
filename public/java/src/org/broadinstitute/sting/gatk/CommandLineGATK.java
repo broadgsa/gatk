@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.gatk.walkers.Attribution;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.*;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
@@ -120,9 +121,13 @@ public class CommandLineGATK extends CommandLineExecutable {
         if ( message.indexOf("Too many open files") != -1 )
             exitSystemWithUserError(new UserException.TooManyOpenFiles());
 
-        // Malformed BAM looks like a SAM file
+        // malformed BAM looks like a SAM file
         if ( message.indexOf("Cannot use index file with textual SAM file") != -1 )
             exitSystemWithSamError(t);
+
+        // can't close tribble index when writing
+        if ( message.indexOf("Unable to close index for") != -1 )
+            exitSystemWithUserError(new UserException(t.getCause().getMessage()));
     }
 
     /**
