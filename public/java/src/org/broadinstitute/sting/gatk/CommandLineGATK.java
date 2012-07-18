@@ -122,7 +122,8 @@ public class CommandLineGATK extends CommandLineExecutable {
             exitSystemWithUserError(new UserException.TooManyOpenFiles());
 
         // malformed BAM looks like a SAM file
-        if ( message.indexOf("Cannot use index file with textual SAM file") != -1 )
+        if ( message.indexOf("Cannot use index file with textual SAM file") != -1 ||
+                message.indexOf("Cannot retrieve file pointers within SAM text files") != -1 )
             exitSystemWithSamError(t);
 
         // can't close tribble index when writing
