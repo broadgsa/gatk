@@ -120,7 +120,7 @@ public class RecalibrationArgumentCollection {
      * The context covariate will use a context of this size to calculate it's covariate value for base insertions and deletions
      */
     @Argument(fullName = "indels_context_size", shortName = "ics", doc = "size of the k-mer context to be used for base insertions and deletions", required = false)
-    public int INDELS_CONTEXT_SIZE = 8;
+    public int INDELS_CONTEXT_SIZE = 3;
 
     /**
      * A default base qualities to use as a prior (reported quality) in the mismatch covariate model. This value will replace all base qualities in the read for this default value. Negative value turns it off (default is off)
