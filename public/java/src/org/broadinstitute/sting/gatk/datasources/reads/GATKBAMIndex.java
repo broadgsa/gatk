@@ -24,6 +24,7 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
 import net.sf.samtools.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -300,7 +301,7 @@ public class GATKBAMIndex {
             fileChannel = fileStream.getChannel();
         }
         catch (IOException exc) {
-            throw new ReviewedStingException("Unable to open index file " + mFile, exc);            
+            throw new ReviewedStingException("Unable to open index file (" + exc.getMessage() +")" + mFile, exc);
         }
     }
 
