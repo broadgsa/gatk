@@ -119,4 +119,5 @@ public final class VCFConstants {
     public static final int MAX_GENOTYPE_QUAL = 99;
 
     public static final Double VCF_ENCODING_EPSILON = 0.00005; // when we consider fields equal(), used in the Qual compare
+    public static final String REFSAMPLE_DEPTH_KEY = "REFDEPTH";
 }
