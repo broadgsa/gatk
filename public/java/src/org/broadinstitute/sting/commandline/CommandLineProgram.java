@@ -369,9 +369,9 @@ public abstract class CommandLineProgram {
         System.exit(1);
     }
 
-    public static void exitSystemWithSamError(final Exception e) {
-        if ( e.getMessage() == null )
-            throw new ReviewedStingException("SamException found with no message!", e);
+    public static void exitSystemWithSamError(final Throwable t) {
+        if ( t.getMessage() == null )
+            throw new ReviewedStingException("SamException found with no message!", t);
 
         errorPrintf("------------------------------------------------------------------------------------------%n");
         errorPrintf("A BAM ERROR has occurred (version %s): %n", CommandLineGATK.getVersionNumber());
@@ -383,7 +383,7 @@ public abstract class CommandLineProgram {
         errorPrintf("Also, please ensure that your BAM index is not corrupted: delete the current one and regenerate it with 'samtools index'%n");
         printDocumentationReference();
         errorPrintf("%n");
-        errorPrintf("MESSAGE: %s%n", e.getMessage().trim());
+        errorPrintf("MESSAGE: %s%n", t.getMessage().trim());
         errorPrintf("------------------------------------------------------------------------------------------%n");
         System.exit(1);
     }

@@ -101,20 +101,28 @@ public class CommandLineGATK extends CommandLineExecutable {
             // TODO: Should Picard exceptions be, in general, UserExceptions or ReviewedStingExceptions?
             exitSystemWithError(e);
         } catch (SAMException e) {
-            checkForTooManyOpenFilesProblem(e.getMessage());
+            checkForMaskedUserErrors(e);
             exitSystemWithSamError(e);
         } catch (OutOfMemoryError e) {
             exitSystemWithUserError(new UserException.NotEnoughMemory());
         } catch (Throwable t) {
-            checkForTooManyOpenFilesProblem(t.getMessage());
+            checkForMaskedUserErrors(t);
             exitSystemWithError(t);
         }
     }
 
-    private static void checkForTooManyOpenFilesProblem(String message) {
-        // Special case the "Too many open files" error because it's a common User Error for which we know what to do
-        if ( message != null && message.indexOf("Too many open files") != -1 )
+    private static void checkForMaskedUserErrors(final Throwable t) {
+        final String message = t.getMessage();
+        if ( message == null )
+            return;
+
+        // we know what to do about the common "Too many open files" error
+        if ( message.indexOf("Too many open files") != -1 )
             exitSystemWithUserError(new UserException.TooManyOpenFiles());
+
+        // Malformed BAM looks like a SAM file
+        if ( message.indexOf("Cannot use index file with textual SAM file") != -1 )
+            exitSystemWithSamError(t);
     }
 
     /**
