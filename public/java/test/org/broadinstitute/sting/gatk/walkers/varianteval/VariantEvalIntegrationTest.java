@@ -643,10 +643,10 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         final String evalSites = privateTestDir + "/validationReportEval.noGenotypes.vcf";
 
         List<Object[]> tests = new ArrayList<Object[]>();
-        tests.add(new Object[]{"sites/sites", evalSites, compSites, ""});
-        tests.add(new Object[]{"sites/genotypes", evalSites, compGenotypes, ""});
-        tests.add(new Object[]{"genotypes/sites", evalGenotypes, compSites, ""});
-        tests.add(new Object[]{"genotypes/genotypes", evalGenotypes, compGenotypes, ""});
+        tests.add(new Object[]{"sites/sites", evalSites, compSites, "0b32e19efce28087cdc7b58e17ed633a"});
+        tests.add(new Object[]{"sites/genotypes", evalSites, compGenotypes, "e2ffecee4a3acd0da7dd7fe10a59b2bc"});
+        tests.add(new Object[]{"genotypes/sites", evalGenotypes, compSites, "f0dbb848a94b451e42765b0cb9d09ee2"});
+        tests.add(new Object[]{"genotypes/genotypes", evalGenotypes, compGenotypes, "73790b530595fcbd467a88475ea9717f"});
         return tests.toArray(new Object[][]{});
     }
 }
