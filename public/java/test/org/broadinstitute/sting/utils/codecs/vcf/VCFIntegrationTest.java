@@ -39,6 +39,17 @@ public class VCFIntegrationTest extends WalkerTest {
         executeTest("Test reading and writing breakpoint VCF", spec1);
     }
 
+    @Test(enabled = true)
+    public void testReadingAndWriting1000GSVs() {
+        String testVCF = privateTestDir + "1000G_SVs.chr1.vcf";
+
+        String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
+
+        String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList(""));
+        executeTest("Test reading and writing 1000G Phase I SVs", spec1);
+    }
+
     @Test
     public void testReadingAndWritingSamtools() {
         String testVCF = privateTestDir + "samtools.vcf";
@@ -59,12 +70,12 @@ public class VCFIntegrationTest extends WalkerTest {
         executeTest("Test writing samtools WEx BCF example", spec1);
     }
 
-    @Test(enabled = false)
+    @Test(enabled = true)
     public void testReadingSamtoolsWExBCFExample() {
         String testVCF = privateTestDir + "ex2.bcf";
         String baseCommand = "-R " + b36KGReference + " --no_cmdline_in_header -o %s ";
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
-        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("63a2e0484ae37b0680514f53e0bf0c94"));
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("0439e2b4ccc63bb4ba7c283cd9ab1b25"));
         executeTest("Test reading samtools WEx BCF example", spec1);
     }
 

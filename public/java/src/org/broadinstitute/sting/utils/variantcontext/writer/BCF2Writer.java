@@ -338,7 +338,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
     }
 
     @Requires("! strings.isEmpty()")
-    @Ensures("BCF2Type.INTEGERS.contains(result)")
+    @Ensures("result.isIntegerType()")
     private final BCF2Type encodeStringsByRef(final Collection<String> strings) throws IOException {
         final List<Integer> offsets = new ArrayList<Integer>(strings.size());
 
