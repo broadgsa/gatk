@@ -48,7 +48,7 @@ import java.util.Map;
 public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
 
     public static final String DUMMY_LANE = "Lane1";
-    public static final String DUMMY_POOL = "Pool1";
+    public static final String DUMMY_SAMPLE_NAME = "DummySample1";
 
     /*    public enum Model {
           SNP,
