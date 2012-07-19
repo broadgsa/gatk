@@ -34,8 +34,7 @@ import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.classloader.ProtectedPackageSource;
+import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -179,27 +178,15 @@ public class BaseQualityScoreRecalibrator extends LocusWalker<Long, Long> implem
     }
 
     private RecalibrationEngine initializeRecalibrationEngine() {
-        List<Class<? extends RecalibrationEngine>> REclasses = new PluginManager<RecalibrationEngine>(RecalibrationEngine.class).getPlugins();
-        if ( REclasses.isEmpty() )
-            throw new ReviewedStingException("The RecalibrationEngine class is not found; repository must be corrupted");
 
-        Class c = null;
-        for ( Class<? extends RecalibrationEngine> REclass : REclasses ) {
-            if ( ProtectedPackageSource.class.isAssignableFrom(REclass) ) {
-                c = REclass;
-                break;
-            }
-        }
-        if ( c == null )
-            c = REclasses.get(0);
-
+        final Class recalibrationEngineClass = GATKLiteUtils.getProtectedClassIfAvailable(RecalibrationEngine.class);
         try {
-            Constructor constructor = c.getDeclaredConstructor((Class[])null);
+            Constructor constructor = recalibrationEngineClass.getDeclaredConstructor((Class[])null);
             constructor.setAccessible(true);
             return (RecalibrationEngine)constructor.newInstance();
         }
         catch (Exception e) {
-            throw new ReviewedStingException("Unable to create RecalibrationEngine class instance " + c.getSimpleName());
+            throw new ReviewedStingException("Unable to create RecalibrationEngine class instance " + recalibrationEngineClass.getSimpleName());
         }
     }
 

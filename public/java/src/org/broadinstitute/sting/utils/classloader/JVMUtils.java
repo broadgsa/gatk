@@ -106,23 +106,6 @@ public class JVMUtils {
     }
 
     /**
-     * Utility method to determine whether this is the lite version of the GATK
-     */
-    public static boolean isGATKLite() {
-        if ( isLiteVersion == null ) {
-            try {
-                Class.forName(DummyProtectedClassName);
-                isLiteVersion = false;
-            } catch ( ClassNotFoundException e) {
-                isLiteVersion = true;
-            }
-        }
-        return isLiteVersion;
-    }
-    private static final String DummyProtectedClassName = "org.broadinstitute.sting.gatk.DummyProtectedClass";
-    private static Boolean isLiteVersion = null;
-
-    /**
      * Find the field with the given name in the class.  Will inspect all fields, independent
      * of access level.
      * @param type Class in which to search for the given field.
