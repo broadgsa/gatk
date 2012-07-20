@@ -211,6 +211,7 @@ public class GATKArgumentCollection {
      * Any value greater than zero will be used to recalculate the quantization using that many levels.
      * Negative values mean that we should quantize using the recalibration report's quantization level.
      */
+    @Hidden
     @Argument(fullName="quantize_quals", shortName = "qq", doc = "Quantize quality scores to a given number of levels (with -BQSR)", required=false)
     public int quantizationLevels = 0;
 

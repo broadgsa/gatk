@@ -225,7 +225,7 @@ public final class BCF2Utils {
         }
     }
 
-    @Ensures("BCF2Type.INTEGERS.contains(result)")
+    @Ensures("result.isIntegerType()")
     public final static BCF2Type determineIntegerType(final int value) {
         for ( final BCF2Type potentialType : INTEGER_TYPES_BY_SIZE) {
             if ( potentialType.withinRange(value) )
@@ -235,7 +235,7 @@ public final class BCF2Utils {
         throw new ReviewedStingException("Integer cannot be encoded in allowable range of even INT32: " + value);
     }
 
-    @Ensures("BCF2Type.INTEGERS.contains(result)")
+    @Ensures("result.isIntegerType()")
     public final static BCF2Type determineIntegerType(final int[] values) {
         // literally a copy of the code below, but there's no general way to unify lists and arrays in java
         BCF2Type maxType = BCF2Type.INT8;
@@ -260,8 +260,8 @@ public final class BCF2Utils {
      * @param t2
      * @return
      */
-    @Requires({"BCF2Type.INTEGERS.contains(t1)","BCF2Type.INTEGERS.contains(t2)"})
-    @Ensures("BCF2Type.INTEGERS.contains(result)")
+    @Requires({"t1.isIntegerType()","t2.isIntegerType()"})
+    @Ensures("result.isIntegerType()")
     public final static BCF2Type maxIntegerType(final BCF2Type t1, final BCF2Type t2) {
         switch ( t1 ) {
             case INT8: return t2;
@@ -271,7 +271,7 @@ public final class BCF2Utils {
         }
     }
 
-    @Ensures("BCF2Type.INTEGERS.contains(result)")
+    @Ensures("result.isIntegerType()")
     public final static BCF2Type determineIntegerType(final List<Integer> values) {
         BCF2Type maxType = BCF2Type.INT8;
         for ( final int value : values ) {

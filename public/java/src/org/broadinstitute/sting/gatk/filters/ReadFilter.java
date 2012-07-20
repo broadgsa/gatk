@@ -28,6 +28,7 @@ public abstract class ReadFilter implements SamRecordFilter {
      * @return true if the SAMRecords matches the filter, otherwise false
      * @throws UnsupportedOperationException when paired filter not implemented
      */
+    @Override
     public boolean filterOut(final SAMRecord first, final SAMRecord second) {
         throw new UnsupportedOperationException("Paired filter not implemented: " + this.getClass());
     }

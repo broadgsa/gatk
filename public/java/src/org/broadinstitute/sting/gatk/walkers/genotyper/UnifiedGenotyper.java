@@ -25,10 +25,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.DownsampleType;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -40,6 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -226,7 +225,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
     public void initialize() {
 
         // Check for protected modes
-        if (getToolkit().isGATKLite()) {
+        if (GATKLiteUtils.isGATKLite()) {
             // no polyploid/pooled mode in GATK Like
             if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY ||
                     UAC.referenceSampleName != null ||
@@ -240,7 +239,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
             // in full mode: check for consistency in ploidy/pool calling arguments
             // check for correct calculation models
             if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
-                // polyploidy required POOL GL and AF calculation models to be specified right now
+                // polyploidy requires POOL GL and AF calculation models to be specified right now
                 if (UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLSNP && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLINDEL
                         && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLBOTH)   {
                     throw new UserException("Incorrect genotype calculation model chosen. Only [POOLSNP|POOLINDEL|POOLBOTH] supported with this walker if sample ploidy != 2");
@@ -253,7 +252,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
             // get all of the unique sample names
             if (UAC.TREAT_ALL_READS_AS_SINGLE_POOL) {
                 samples.clear();
-                samples.add(GenotypeLikelihoodsCalculationModel.DUMMY_POOL);
+                samples.add(GenotypeLikelihoodsCalculationModel.DUMMY_SAMPLE_NAME);
             } else {
                 samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
                 if (UAC.referenceSampleName != null )

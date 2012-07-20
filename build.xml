@@ -1249,11 +1249,7 @@
     </target>
 
 
-    <target name="committests">
-        <antcall target="unittest" inheritAll="false"/>
-        <antcall target="integrationtest" inheritAll="false"/>
-        <antcall target="pipelinetest" inheritAll="false"/>
-    </target>
+    <target name="committests" depends="unittest,integrationtest,pipelinetest" />
 
     <!-- Order of the dependencies is significant in the *.release.tests targets -->
     <target name="gatkfull.binary.release.tests" depends="init.usecontracts,package.gatk.full,init.testgatkjar,unittest,integrationtest" />

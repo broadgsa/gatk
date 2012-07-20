@@ -139,25 +139,26 @@ public final class BCF2Decoder {
         return decodeTypedValue(typeDescriptor, size);
     }
 
+    @Requires("size >= 0")
     public final Object decodeTypedValue(final byte typeDescriptor, final int size) {
-        final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
-
-        assert size >= 0;
-
         if ( size == 0 ) {
+            // missing value => null in java
             return null;
-        } else if ( type == BCF2Type.CHAR ) { // special case string decoding for efficiency
-            return decodeLiteralString(size);
-        } else if ( size == 1 ) {
-            return decodeSingleValue(type);
         } else {
-            final ArrayList<Object> ints = new ArrayList<Object>(size);
-            for ( int i = 0; i < size; i++ ) {
-                final Object val = decodeSingleValue(type);
-                if ( val == null ) continue; // auto-pruning.  We remove trailing nulls
-                ints.add(val);
+            final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
+            if ( type == BCF2Type.CHAR ) { // special case string decoding for efficiency
+                return decodeLiteralString(size);
+            } else if ( size == 1 ) {
+                return decodeSingleValue(type);
+            } else {
+                final ArrayList<Object> ints = new ArrayList<Object>(size);
+                for ( int i = 0; i < size; i++ ) {
+                    final Object val = decodeSingleValue(type);
+                    if ( val == null ) continue; // auto-pruning.  We remove trailing nulls
+                    ints.add(val);
+                }
+                return ints.isEmpty() ? null : ints; // return null when all of the values are null
             }
-            return ints.isEmpty() ? null : ints; // return null when all of the values are null
         }
     }
 
@@ -256,7 +257,7 @@ public final class BCF2Decoder {
      *                  int elements are still forced to do a fresh allocation as well.
      * @return see description
      */
-    @Requires({"BCF2Type.INTEGERS.contains(type)", "size >= 0", "type != null"})
+    @Requires({"type != null", "type.isIntegerType()", "size >= 0"})
     public final int[] decodeIntArray(final int size, final BCF2Type type, int[] maybeDest) {
         if ( size == 0 ) {
             return null;

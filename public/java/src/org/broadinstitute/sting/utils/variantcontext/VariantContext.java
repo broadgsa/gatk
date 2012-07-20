@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
+import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
@@ -176,6 +177,10 @@ import java.util.*;
  * @author depristo
  */
 public class VariantContext implements Feature { // to enable tribble integration
+    private final static boolean WARN_ABOUT_BAD_END = true;
+    final protected static Logger logger = Logger.getLogger(VariantContext.class);
+
+
     private boolean fullyDecoded = false;
     protected CommonInfo commonInfo = null;
     public final static double NO_LOG10_PERROR = CommonInfo.NO_LOG10_PERROR;
@@ -1146,10 +1151,16 @@ public class VariantContext implements Feature { // to enable tribble integratio
         if ( hasAttribute(VCFConstants.END_KEY) ) {
             final int end = getAttributeAsInt(VCFConstants.END_KEY, -1);
             assert end != -1;
-            if ( end != getEnd() )
-                throw new ReviewedStingException("Badly formed variant context at location " + getChr() + ":"
+            if ( end != getEnd() && end != getEnd() + 1 ) {
+                // the end is allowed to 1 bigger because of the padding
+                final String message = "Badly formed variant context at location " + getChr() + ":"
                         + getStart() + "; getEnd() was " + getEnd()
-                        + " but this VariantContext contains an END key with value " + end);
+                        + " but this VariantContext contains an END key with value " + end;
+                if ( WARN_ABOUT_BAD_END )
+                    logger.warn(message);
+                else
+                    throw new ReviewedStingException(message);
+            }
         }
     }
 

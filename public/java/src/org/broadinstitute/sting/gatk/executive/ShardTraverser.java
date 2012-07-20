@@ -6,11 +6,11 @@ import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 /**
  * User: hanna
  * Date: Apr 29, 2009
@@ -79,6 +79,10 @@ public class ShardTraverser implements Callable {
             microScheduler.reportShardTraverseTime(endTime-startTime);
 
             return accumulator;
+        } catch(Throwable t) {
+            // Notify that an exception has occurred
+            microScheduler.handleException(new ExecutionException(t));
+            throw new RuntimeException(t);
         } finally {
             synchronized(this) {
                 complete = true;

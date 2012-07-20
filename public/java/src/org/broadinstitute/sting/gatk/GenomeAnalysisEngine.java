@@ -51,7 +51,7 @@ import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -206,7 +206,7 @@ public class GenomeAnalysisEngine {
      * Utility method to determine whether this is the lite version of the GATK
      */
     public boolean isGATKLite() {
-        return JVMUtils.isGATKLite();
+        return GATKLiteUtils.isGATKLite();
     }
 
     /**

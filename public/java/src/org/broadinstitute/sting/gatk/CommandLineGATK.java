@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.gatk.walkers.Attribution;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.*;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
@@ -101,20 +102,35 @@ public class CommandLineGATK extends CommandLineExecutable {
             // TODO: Should Picard exceptions be, in general, UserExceptions or ReviewedStingExceptions?
             exitSystemWithError(e);
         } catch (SAMException e) {
-            checkForTooManyOpenFilesProblem(e.getMessage());
+            checkForMaskedUserErrors(e);
             exitSystemWithSamError(e);
         } catch (OutOfMemoryError e) {
             exitSystemWithUserError(new UserException.NotEnoughMemory());
         } catch (Throwable t) {
-            checkForTooManyOpenFilesProblem(t.getMessage());
+            checkForMaskedUserErrors(t);
             exitSystemWithError(t);
         }
     }
 
-    private static void checkForTooManyOpenFilesProblem(String message) {
-        // Special case the "Too many open files" error because it's a common User Error for which we know what to do
-        if ( message != null && message.indexOf("Too many open files") != -1 )
+    protected static final String PICARD_TEXT_SAM_FILE_ERROR_1 = "Cannot use index file with textual SAM file";
+    protected static final String PICARD_TEXT_SAM_FILE_ERROR_2 = "Cannot retrieve file pointers within SAM text files";
+    private static void checkForMaskedUserErrors(final Throwable t) {
+        final String message = t.getMessage();
+        if ( message == null )
+            return;
+
+        // we know what to do about the common "Too many open files" error
+        if ( message.indexOf("Too many open files") != -1 )
             exitSystemWithUserError(new UserException.TooManyOpenFiles());
+
+        // malformed BAM looks like a SAM file
+        if ( message.indexOf(PICARD_TEXT_SAM_FILE_ERROR_1) != -1 ||
+                message.indexOf(PICARD_TEXT_SAM_FILE_ERROR_2) != -1 )
+            exitSystemWithSamError(t);
+
+        // can't close tribble index when writing
+        if ( message.indexOf("Unable to close index for") != -1 )
+            exitSystemWithUserError(new UserException(t.getCause().getMessage()));
     }
 
     /**
