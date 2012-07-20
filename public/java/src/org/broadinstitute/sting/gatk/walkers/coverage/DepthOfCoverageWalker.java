@@ -507,6 +507,38 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
         }
 
         PrintStream geneSummaryOut = getCorrectStream(DoCOutputType.Partition.sample, DoCOutputType.Aggregation.gene, DoCOutputType.FileType.summary);
+        StringBuilder summaryHeader = new StringBuilder();
+        summaryHeader.append("Gene");
+        summaryHeader.append(separator);
+        summaryHeader.append("total_coverage");
+        summaryHeader.append(separator);
+        summaryHeader.append("average_coverage");
+
+        for ( String s : statsByTarget.get(0).second.getCoverageByAggregationType(DoCOutputType.Partition.sample).getAllSamples() ) {
+            summaryHeader.append(separator);
+            summaryHeader.append(s);
+            summaryHeader.append("_total_cvg");
+            summaryHeader.append(separator);
+            summaryHeader.append(s);
+            summaryHeader.append("_mean_cvg");
+            summaryHeader.append(separator);
+            summaryHeader.append(s);
+            summaryHeader.append("_granular_Q1");
+            summaryHeader.append(separator);
+            summaryHeader.append(s);
+            summaryHeader.append("_granular_median");
+            summaryHeader.append(separator);
+            summaryHeader.append(s);
+            summaryHeader.append("_granular_Q3");
+            for ( int thresh : coverageThresholds ) {
+                summaryHeader.append(separator);
+                summaryHeader.append(s);
+                summaryHeader.append("_%_above_");
+                summaryHeader.append(thresh);
+            }
+        }
+
+        geneSummaryOut.printf("%s%n",summaryHeader);
 
         for ( Pair<String,DepthOfCoverageStats> geneStats : statsByGene ) {
             printTargetSummary(geneSummaryOut,geneStats);
