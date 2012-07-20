@@ -57,7 +57,7 @@ public class WalkerManagerUnitTest {
 
     @Test(expectedExceptions=DynamicClassResolutionException.class)
     public void testUninstantiableWalker() {
-        walkerManager.createByName("Uninstantiable");
+        walkerManager.createByName("UninstantiableWalker");
     }
 }
 
