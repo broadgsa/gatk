@@ -24,13 +24,12 @@
 
 package org.broadinstitute.sting.gatk;
 
-import org.testng.Assert;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker;
+import org.broadinstitute.sting.gatk.walkers.qc.CountLoci;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -48,7 +47,7 @@ public class WalkerManagerUnitTest {
     @Test
     public void testPresentWalker() {
         Walker countLociWalker = walkerManager.createByName("CountLoci");
-        Assert.assertEquals(CountLociWalker.class,countLociWalker.getClass());
+        Assert.assertEquals(CountLoci.class,countLociWalker.getClass());
     }
 
     @Test(expectedExceptions=UserException.class)

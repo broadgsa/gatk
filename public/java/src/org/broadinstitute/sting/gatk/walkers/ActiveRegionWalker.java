@@ -12,7 +12,6 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -76,7 +75,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     public abstract double isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
 
     // Map over the ActiveRegion
-    public abstract MapType map(final ActiveRegion activeRegion, final RefMetaDataTracker metaDataTracker);
+    public abstract MapType map(final org.broadinstitute.sting.utils.activeregion.ActiveRegion activeRegion, final RefMetaDataTracker metaDataTracker);
 
     public final GenomeLocSortedSet extendIntervals( final GenomeLocSortedSet intervals, final GenomeLocParser genomeLocParser, IndexedFastaSequenceFile reference ) {
         final int activeRegionExtension = this.getClass().getAnnotation(ActiveRegionExtension.class).extension();

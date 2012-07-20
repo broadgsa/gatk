@@ -28,7 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
@@ -47,7 +47,7 @@ import java.util.List;
  */
 public class MappingQualityZeroBySample extends GenotypeAnnotation {
     public void annotate(RefMetaDataTracker tracker,
-                         AnnotatorCompatibleWalker walker, ReferenceContext ref, AlignmentContext context,
+                         AnnotatorCompatible walker, ReferenceContext ref, AlignmentContext context,
                          VariantContext vc, Genotype g, GenotypeBuilder gb) {
         if ( g == null || !g.isCalled() )
             return;

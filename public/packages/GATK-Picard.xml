@@ -17,12 +17,12 @@
     <dependencies>
       <!-- Filters -->
       <package name="org.broadinstitute.sting.gatk.filters" />
-      <class name="org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker" />
-      <class name="org.broadinstitute.sting.gatk.walkers.PileupWalker" />
-      <class name="org.broadinstitute.sting.gatk.walkers.PrintReadsWalker" />
-      <class name="org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker" />
-      <class name="org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker" />
-      <class name="org.broadinstitute.sting.gatk.walkers.qc.ValidatingPileupWalker" />
+      <class name="org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverage" />
+      <class name="org.broadinstitute.sting.gatk.walkers.Pileup" />
+      <class name="org.broadinstitute.sting.gatk.walkers.PrintReads" />
+      <class name="org.broadinstitute.sting.gatk.walkers.qc.CountLoci" />
+      <class name="org.broadinstitute.sting.gatk.walkers.qc.CountReads" />
+      <class name="org.broadinstitute.sting.gatk.walkers.qc.ValidatingPileup" />
       <!-- Recalibration Covariates -->
       <class name="org.broadinstitute.sting.gatk.walkers.recalibration.PositionCovariate" />
       <class name="org.broadinstitute.sting.gatk.walkers.recalibration.MinimumNQSCovariate" />

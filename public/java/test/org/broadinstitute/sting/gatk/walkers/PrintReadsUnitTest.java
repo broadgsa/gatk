@@ -59,7 +59,7 @@ public class PrintReadsUnitTest extends BaseTest {
     private ReferenceContext bases = null;
     //private ReferenceContext ref = new ReferenceContext()
 
-    PrintReadsWalker walker;
+    PrintReads walker;
     ArtificialSAMFileWriter writer;
 
     @BeforeMethod
@@ -67,7 +67,7 @@ public class PrintReadsUnitTest extends BaseTest {
         trav = new ArtificialReadsTraversal();
         readTotal = ( ( trav.endingChr - trav.startingChr ) + 1 ) * trav.readsPerChr + trav.unMappedReads;
 
-        walker = new PrintReadsWalker();
+        walker = new PrintReads();
         writer = new ArtificialSAMFileWriter();
         walker.out = writer;
         walker.initialize();

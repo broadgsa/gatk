@@ -46,7 +46,7 @@ public class VariantAnnotatorEngine {
     private List<VAExpression> requestedExpressions = new ArrayList<VAExpression>();
 
     private final HashMap<RodBinding<VariantContext>, String> dbAnnotations = new HashMap<RodBinding<VariantContext>, String>();
-    private final AnnotatorCompatibleWalker walker;
+    private final AnnotatorCompatible walker;
     private final GenomeAnalysisEngine toolkit;
 
     private boolean requireStrictAlleleMatch = false;
@@ -75,7 +75,7 @@ public class VariantAnnotatorEngine {
     }
 
     // use this constructor if you want all possible annotations
-    public VariantAnnotatorEngine(List<String> annotationsToExclude, AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit) {
+    public VariantAnnotatorEngine(List<String> annotationsToExclude, AnnotatorCompatible walker, GenomeAnalysisEngine toolkit) {
         this.walker = walker;
         this.toolkit = toolkit;
         requestedInfoAnnotations = AnnotationInterfaceManager.createAllInfoFieldAnnotations();
@@ -85,7 +85,7 @@ public class VariantAnnotatorEngine {
     }
 
     // use this constructor if you want to select specific annotations (and/or interfaces)
-    public VariantAnnotatorEngine(List<String> annotationGroupsToUse, List<String> annotationsToUse, List<String> annotationsToExclude, AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit) {
+    public VariantAnnotatorEngine(List<String> annotationGroupsToUse, List<String> annotationsToUse, List<String> annotationsToExclude, AnnotatorCompatible walker, GenomeAnalysisEngine toolkit) {
         this.walker = walker;
         this.toolkit = toolkit;
         initializeAnnotations(annotationGroupsToUse, annotationsToUse, annotationsToExclude);

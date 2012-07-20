@@ -38,8 +38,8 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 
 import java.util.*;
 
@@ -79,7 +79,7 @@ import java.util.*;
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
-public class VariantAnnotator extends RodWalker<Integer, Integer> implements AnnotatorCompatibleWalker {
+public class VariantAnnotator extends RodWalker<Integer, Integer> implements AnnotatorCompatible {
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
