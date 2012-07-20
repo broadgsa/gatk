@@ -19,9 +19,9 @@ Medical and Population Genetics Program
 Maintainer: Kiran Garimella
 }
 \references{
-GSA wiki page: http://www.broadinstitute.org/gsa/wiki
+GSA wiki page: http://www.broadinstitute.org/gatk
 
-GATK help forum: http://www.getsatisfaction.com/gsa
+GATK help forum: http://www.broadinstitute.org/gatk
 }
 \examples{
 ## get script arguments in interactive and non-interactive mode

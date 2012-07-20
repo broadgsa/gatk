@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
+import com.google.java.contract.Requires;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.util.IntervalTree;
 import net.sf.samtools.SAMSequenceRecord;

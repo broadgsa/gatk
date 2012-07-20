@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.indels;
 
+import net.sf.samtools.*;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.JexlEngine;

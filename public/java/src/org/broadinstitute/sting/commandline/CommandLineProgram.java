@@ -287,8 +287,8 @@ public abstract class CommandLineProgram {
      * a function used to indicate an error occurred in the command line tool
      */
     private static void printDocumentationReference() {
-        errorPrintf("Visit our wiki for extensive documentation http://www.broadinstitute.org/gsa/wiki%n");
-        errorPrintf("Visit our forum to view answers to commonly asked questions http://getsatisfaction.com/gsa%n");
+        errorPrintf("Visit our website and forum for extensive documentation and answers to %n");
+        errorPrintf("commonly asked questions http://www.broadinstitute.org/gatk%n");
     }
 
 
