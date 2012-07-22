@@ -35,16 +35,16 @@ import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -121,7 +121,7 @@ import java.util.*;
 // TODO -- When LocusIteratorByState gets cleaned up, we should enable multiple @By sources:
 // TODO -- @By( {DataSource.READS, DataSource.REFERENCE_ORDERED_DATA} )
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
-public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatibleWalker {
+public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatible {
 
     @ArgumentCollection
     private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();

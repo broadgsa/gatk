@@ -49,6 +49,7 @@ public class CycleCovariate implements StandardCovariate {
 
     private static final int MAXIMUM_CYCLE_VALUE = 1000;
     private static final int CUSHION_FOR_INDELS = 4;
+    private static String default_platform = null;
 
     private static final EnumSet<NGSPlatform> DISCRETE_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.ILLUMINA, NGSPlatform.SOLID, NGSPlatform.PACBIO, NGSPlatform.COMPLETE_GENOMICS);
     private static final EnumSet<NGSPlatform> FLOW_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.LS454, NGSPlatform.ION_TORRENT);
@@ -58,13 +59,16 @@ public class CycleCovariate implements StandardCovariate {
     public void initialize(final RecalibrationArgumentCollection RAC) {
         if (RAC.DEFAULT_PLATFORM != null && !NGSPlatform.isKnown(RAC.DEFAULT_PLATFORM))
             throw new UserException.CommandLineException("The requested default platform (" + RAC.DEFAULT_PLATFORM + ") is not a recognized platform.");
+
+        if (RAC.DEFAULT_PLATFORM != null)
+            default_platform = RAC.DEFAULT_PLATFORM;
     }
 
     // Used to pick out the covariate's value from attributes of the read
     @Override
     public void recordValues(final GATKSAMRecord read, final ReadCovariates values) {
         final int readLength = read.getReadLength();
-        final NGSPlatform ngsPlatform = read.getNGSPlatform();
+        final NGSPlatform ngsPlatform = default_platform == null ? read.getNGSPlatform() : NGSPlatform.fromReadGroupPL(default_platform);
 
         // Discrete cycle platforms
         if (DISCRETE_CYCLE_PLATFORMS.contains(ngsPlatform)) {

@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEval;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.Stratifier;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 public abstract class VariantStratifier implements Comparable<VariantStratifier>, Stratifier {
-    private VariantEvalWalker variantEvalWalker;
+    private VariantEval variantEvalWalker;
     final private String name;
     final protected ArrayList<Object> states = new ArrayList<Object>();
 
@@ -40,7 +40,7 @@ public abstract class VariantStratifier implements Comparable<VariantStratifier>
     /**
      * @return a reference to the parent VariantEvalWalker running this stratification
      */
-    public final VariantEvalWalker getVariantEvalWalker() {
+    public final VariantEval getVariantEvalWalker() {
         return variantEvalWalker;
     }
 
@@ -48,7 +48,7 @@ public abstract class VariantStratifier implements Comparable<VariantStratifier>
      * Should only be called by VariantEvalWalker itself
      * @param variantEvalWalker
      */
-    public final void setVariantEvalWalker(VariantEvalWalker variantEvalWalker) {
+    public final void setVariantEvalWalker(VariantEval variantEvalWalker) {
         this.variantEvalWalker = variantEvalWalker;
     }
 

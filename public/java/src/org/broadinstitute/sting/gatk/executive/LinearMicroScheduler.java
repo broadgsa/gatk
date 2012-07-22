@@ -11,7 +11,6 @@ import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.traversals.TraverseActiveRegions;
-import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.SampleUtils;
 

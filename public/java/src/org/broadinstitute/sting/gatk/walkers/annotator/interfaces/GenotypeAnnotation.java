@@ -9,12 +9,11 @@ import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.List;
-import java.util.Map;
 
 public abstract class GenotypeAnnotation extends VariantAnnotatorAnnotation {
 
     // return annotations for the given contexts/genotype split by sample
-    public abstract void annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker,
+    public abstract void annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker,
                                   ReferenceContext ref, AlignmentContext stratifiedContext,
                                   VariantContext vc, Genotype g, GenotypeBuilder gb );
 

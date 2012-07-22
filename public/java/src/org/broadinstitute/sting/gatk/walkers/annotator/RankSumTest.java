@@ -4,9 +4,8 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ActiveRegionBasedAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.utils.MannWhitneyU;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -32,7 +31,7 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements ActiveR
     static final double INDEL_LIKELIHOOD_THRESH = 0.1;
     static final boolean DEBUG = false;
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if (stratifiedContexts.size() == 0)
             return null;
 

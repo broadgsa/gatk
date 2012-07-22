@@ -33,7 +33,6 @@ import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
 import org.broadinstitute.sting.gatk.walkers.PartitionBy;
 import org.broadinstitute.sting.gatk.walkers.PartitionType;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 
 import java.io.PrintStream;
 
@@ -56,7 +55,7 @@ public class FindCoveredIntervals extends ActiveRegionWalker<GenomeLoc, Long> {
     }
 
     @Override
-    public GenomeLoc map(final ActiveRegion activeRegion, final RefMetaDataTracker tracker) {
+    public GenomeLoc map(final org.broadinstitute.sting.utils.activeregion.ActiveRegion activeRegion, final RefMetaDataTracker tracker) {
         if (activeRegion.isActive)
             return activeRegion.getLocation();
         else

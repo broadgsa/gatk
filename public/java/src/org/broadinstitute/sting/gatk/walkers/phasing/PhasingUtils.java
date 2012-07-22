@@ -113,7 +113,7 @@ class PhasingUtils {
             Map<String, Object> mergedGtAttribs = new HashMap<String, Object>();
             PhaseAndQuality phaseQual = calcPhaseForMergedGenotypes(gt1, gt2);
             if (phaseQual.PQ != null)
-                mergedGtAttribs.put(ReadBackedPhasingWalker.PQ_KEY, phaseQual.PQ);
+                mergedGtAttribs.put(ReadBackedPhasing.PQ_KEY, phaseQual.PQ);
 
             Genotype mergedGt = new GenotypeBuilder(gt1.getSampleName(), mergedAllelesForSample).log10PError(mergedGQ).attributes(mergedGtAttribs).phased(phaseQual.isPhased).make();
             mergedGenotypes.add(mergedGt);
@@ -373,7 +373,7 @@ class PhasingUtils {
         public PhaseAndQuality(Genotype gt) {
             this.isPhased = gt.isPhased();
             if (this.isPhased) {
-                this.PQ = gt.getAttributeAsDouble(ReadBackedPhasingWalker.PQ_KEY, -1);
+                this.PQ = gt.getAttributeAsDouble(ReadBackedPhasing.PQ_KEY, -1);
                 if ( this.PQ == -1 ) this.PQ = null;
             }
         }

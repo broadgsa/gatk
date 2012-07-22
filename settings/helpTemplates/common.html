@@ -1,15 +1,147 @@
-<#macro makeHeader title>
-  <head>
-    <title>${title}</title>
-    <link href="style.css" type="text/css" rel="stylesheet"> 
-  </head>
-</#macro>
+<!--
+  ~ Copyright (c) 2012, The Broad Institute
+  ~
+  ~ Permission is hereby granted, free of charge, to any person
+  ~ obtaining a copy of this software and associated documentation
+  ~ files (the "Software"), to deal in the Software without
+  ~ restriction, including without limitation the rights to use,
+  ~ copy, modify, merge, publish, distribute, sublicense, and/or sell
+  ~ copies of the Software, and to permit persons to whom the
+  ~ Software is furnished to do so, subject to the following
+  ~ conditions:
+  ~
+  ~ The above copyright notice and this permission notice shall be
+  ~ included in all copies or substantial portions of the Software.
+  ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  ~ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+  ~ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  ~ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+  ~ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+  ~ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  ~ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+  ~ OTHER DEALINGS IN THE SOFTWARE.
+  -->
 
-<#macro headerInfo>
-</#macro>
+<#--
+        This file contains all the theming neccesary to present GATKDocs on the GATK website
+        Included are the paths to our bootstrap assets as well as helper functions to generate relevant links
 
-<#macro footerInfo>
-    <p class="see-also">See also <a href="index.html">Main index</a> | <a href="http://www.broadinstitute.org/gsa/wiki/index.php/The_Genome_Analysis_Toolkit">GATK wiki</a> | <a href="http://getsatisfaction.com/gsa">GATK support forum</a></p>
-    <p class="version">GATK version ${version} built at ${timestamp}.</p>
-</#macro>
+        -->
 
+    <#global siteRoot = "http://gsa-stage:8080/" />
+    <#global forum = "http://gatk.vanillaforums.com/" />
+
+    <#macro makeHeader title isIndex>
+        <?php ob_start(); ?>
+        <!DOCTYPE html>
+        <html lang='en'>
+        <head>
+            <meta charset='utf-8'>
+            <title>${title} documentation</title>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+            <meta name='description' content=''>
+
+            <link type="text/css" rel="stylesheet" href="bootstrap.min.css">
+            <script src="jquery.min.js"></script>
+            <script src="bootstrap.min.js"></script>
+            <style>
+                @media (min-width: 980px) {
+                    body {
+                        padding-top : 60px;
+                    }
+            </style>
+
+
+        </head>
+        <body>
+        <div class="navbar navbar-fixed-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="brand" href="index.html">GATK Documentation</a>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <?php
+
+    ob_clean();
+    include '../include/common.php';
+    printHeader("${title}", "Guides");
+    ?>
+
+            <div class="row-fluid">
+                <#if isIndex>
+                    <section class="span4">
+                        <aside class="well">
+                            <h2>About GATKdocs</h2>
+
+                            <p>He is some text describing the docs, what it is and stuf...nalysis ready SNP and indel
+                                calls
+                                with hand filtering when VQSR is not possib. nalysis ready SNP and indel calls with hand
+                                filtering when VQSR is not possib </p>
+                        </aside>
+                    </section>
+                    <div class="span8">
+                </#if>
+
+    </#macro>
+
+    <#macro footerInfo>
+        <hr>
+        <p class="see-also">See also <a href="index.html">Documentation index</a> | <a
+                href="${siteRoot}">GATK Site</a> | <a
+                href="${forum}">GATK support forum</a></p>
+
+        <p class="version">GATK version ${version} built at ${timestamp}.</p>
+    </#macro>
+
+    <#macro pageFooter>
+        </div><!--/.span-->
+        </div><!--/.row-->
+        </body>
+        <?php printFooter();
+        ob_end_flush();
+        ?>
+    </#macro>
+
+    <#macro getCategories map filter>
+        <style>
+            #sidenav .accordion-body a {
+                color : gray;
+            }
+
+            .accordion-body li {
+                list-style : none;
+            }
+        </style>
+
+        <ul class="nav nav-pills nav-stacked" id="sidenav">
+            <#list 0..(map?keys?size-1) as x>
+                <li><a data-toggle="collapse" data-parent="#sidenav"
+                       href="#${map?keys[x]}">${map?keys[x].getDescription()}</a>
+
+                    <div id="${map?keys[x]}"
+                    <?php echo (in_array('${map?keys[x]}', $categories)) ? 'class="accordion-body collapse in"'.chr(62) : 'class="accordion-body collapse"'.chr(62);?>
+                    <ul>
+                        <#assign items=map?values[x] />
+                        <#if filter !="all" >
+                            <#list items as datum>
+                                <#if datum.group == filter>
+                                    <li><a href="${datum.filename}" rel="tooltip"
+                                           title="${datum.summary}">${datum.name}</a>
+                                    </li>
+                                </#if>
+                            </#list>
+                            <#else>
+                                <#list items as datum>
+                                    <li><a href="${datum.filename}" rel="tooltip"
+                                           title="${datum.summary}">${datum.name}</a>
+                                    </li>
+                                </#list>
+                        </#if>
+                    </ul>
+                    </div>
+                </li>
+            </#list>
+        </ul>
+    </#macro>

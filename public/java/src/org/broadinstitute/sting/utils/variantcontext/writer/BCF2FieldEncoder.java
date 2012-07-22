@@ -47,7 +47,7 @@ import java.util.Map;
  */
 @Invariant({
         "headerLine != null",
-        "BCF2Type.INTEGERS.contains(dictionaryOffsetType)",
+        "dictionaryOffsetType.isIntegerType()",
         "dictionaryOffset >= 0"
 })
 public abstract class BCF2FieldEncoder {

@@ -3,27 +3,27 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.util;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEval;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
-import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.TreeSet;
 
 public final class EvaluationContext {
     // NOTE: must be hashset to avoid O(log n) cost of iteration in the very frequently called apply function
-    final VariantEvalWalker walker;
+    final VariantEval walker;
     private final ArrayList<VariantEvaluator> evaluationInstances;
     private final Set<Class<? extends VariantEvaluator>> evaluationClasses;
 
-    public EvaluationContext(final VariantEvalWalker walker, final Set<Class<? extends VariantEvaluator>> evaluationClasses) {
+    public EvaluationContext(final VariantEval walker, final Set<Class<? extends VariantEvaluator>> evaluationClasses) {
         this(walker, evaluationClasses, true);
     }
 
-    private EvaluationContext(final VariantEvalWalker walker, final Set<Class<? extends VariantEvaluator>> evaluationClasses, final boolean doInitialize) {
+    private EvaluationContext(final VariantEval walker, final Set<Class<? extends VariantEvaluator>> evaluationClasses, final boolean doInitialize) {
         this.walker = walker;
         this.evaluationClasses = evaluationClasses;
         this.evaluationInstances = new ArrayList<VariantEvaluator>(evaluationClasses.size());

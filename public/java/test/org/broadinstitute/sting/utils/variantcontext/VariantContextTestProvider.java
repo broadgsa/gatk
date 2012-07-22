@@ -597,23 +597,41 @@ public class VariantContextTestProvider {
     }
 
     public static void testReaderWriter(final VariantContextIOTest tester, final VariantContextTestData data) throws IOException {
+        testReaderWriter(tester, data.header, data.vcs, data.vcs, true);
+    }
+
+    public static void testReaderWriter(final VariantContextIOTest tester,
+                                        final VCFHeader header,
+                                        final List<VariantContext> expected,
+                                        final Iterable<VariantContext> vcs,
+                                        final boolean recurse) throws IOException {
         final File tmpFile = File.createTempFile("testReaderWriter", tester.getExtension());
         tmpFile.deleteOnExit();
 
-        // todo -- test all options
-
-        // write
+        // write expected to disk
         final EnumSet<Options> options = EnumSet.of(Options.INDEX_ON_THE_FLY);
         final VariantContextWriter writer = tester.makeWriter(tmpFile, options);
-        writer.writeHeader(data.header);
-        final List<VariantContext> expected = data.vcs;
-        for ( VariantContext vc : expected )
-            writer.add(vc);
-        writer.close();
+        writeVCsToFile(writer, header, vcs);
 
-        final Iterable<VariantContext> actual = readAllVCs(tmpFile, tester.makeCodec()).getSecond();
+        // ensure writing of expected == actual
+        final Pair<VCFHeader, Iterable<VariantContext>> p = readAllVCs(tmpFile, tester.makeCodec());
+        final Iterable<VariantContext> actual = p.getSecond();
         assertEquals(actual, expected);
 
+        if ( recurse ) {
+            // if we are doing a recursive test, grab a fresh iterator over the written values
+            final Iterable<VariantContext> read = readAllVCs(tmpFile, tester.makeCodec()).getSecond();
+            testReaderWriter(tester, p.getFirst(), expected, read, false);
+        }
+    }
+
+    private static void writeVCsToFile(final VariantContextWriter writer, final VCFHeader header, final Iterable<VariantContext> vcs) {
+        // write
+        writer.writeHeader(header);
+        for ( VariantContext vc : vcs )
+            if (vc != null)
+                writer.add(vc);
+        writer.close();
     }
 
     /**

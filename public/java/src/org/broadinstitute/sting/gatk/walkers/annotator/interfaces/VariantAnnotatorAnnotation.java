@@ -37,5 +37,5 @@ public abstract class VariantAnnotatorAnnotation {
     public abstract List<String> getKeyNames();
 
     // initialization method (optional for subclasses, and therefore non-abstract)
-    public void initialize ( AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit, Set<VCFHeaderLine> headerLines ) { }
+    public void initialize ( AnnotatorCompatible walker, GenomeAnalysisEngine toolkit, Set<VCFHeaderLine> headerLines ) { }
 }

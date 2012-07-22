@@ -35,6 +35,7 @@ import java.util.EnumSet;
  * @since 05/12
  */
 public enum BCF2Type {
+    MISSING(0, 0, 0x00),
     INT8 (1, 1, 0xFFFFFF80,        -127,        127), // todo -- confirm range
     INT16(2, 2, 0xFFFF8000,      -32767,      32767),
     INT32(3, 4, 0x80000000, -2147483647, 2147483647),
@@ -86,7 +87,7 @@ public enum BCF2Type {
      * @param v
      * @return
      */
-    @Requires("INTEGERS.contains(this)")
+    @Requires("this.isIntegerType()")
     public final boolean withinRange(final long v) { return v >= minValue && v <= maxValue; }
 
     /**
@@ -108,7 +109,14 @@ public enum BCF2Type {
     /**
      * An enum set of the types that might represent Integer values
      */
-    public final static EnumSet<BCF2Type> INTEGERS = EnumSet.of(INT8, INT16, INT32);
+    private final static EnumSet<BCF2Type> INTEGERS = EnumSet.of(INT8, INT16, INT32);
+
+    /**
+     * @return true if this BCF2Type corresponds to the magic "MISSING" type (0x00)
+     */
+    public boolean isMissingType() {
+        return this == MISSING;
+    }
 
     public boolean isIntegerType() {
         return INTEGERS.contains(this);
