@@ -45,12 +45,9 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
-<<<<<<< HEAD
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-=======
->>>>>>> Added the ability to update the Forum
 import java.util.*;
 
 /**
