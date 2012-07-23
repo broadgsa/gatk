@@ -3,16 +3,18 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 public enum EventType {
-    BASE_SUBSTITUTION(0, "M"),
-    BASE_INSERTION(1, "I"),
-    BASE_DELETION(2, "D");
+    BASE_SUBSTITUTION(0, "M", "Base Substitution"),
+    BASE_INSERTION(1, "I", "Base Insertion"),
+    BASE_DELETION(2, "D", "Base Deletion");
 
     public final int index;
     private final String representation;
+    private final String longRepresentation;
 
-    private EventType(int index, String representation) {
+    private EventType(int index, String representation, String longRepresentation) {
         this.index = index;
         this.representation = representation;
+        this.longRepresentation = longRepresentation;
     }
 
     public static EventType eventFrom(int index) {
@@ -39,5 +41,9 @@ public enum EventType {
     @Override
     public String toString() {
         return representation;
+    }
+
+    public String prettyPrint() {
+        return longRepresentation;
     }
 }

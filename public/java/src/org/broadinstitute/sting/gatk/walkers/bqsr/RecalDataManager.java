@@ -410,9 +410,7 @@ public class RecalDataManager {
         final int covariateKey = (Integer)keys.get(2);
         values.add(covariate.formatKey(covariateKey));
         values.add(covariateNameMap.get(covariate));
-
-        final EventType event = EventType.eventFrom((Integer)keys.get(3));
-        values.add(event);
+        values.add(EventType.eventFrom((Integer)keys.get(3)).prettyPrint());
 
         return values;
     }
