@@ -105,6 +105,6 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
      * @return the covariate keysets for this read
      */
     protected ReadCovariates covariateKeySetFrom(GATKSAMRecord read) {
-        return (ReadCovariates) read.getTemporaryAttribute(BQSR.COVARS_ATTRIBUTE);
+        return (ReadCovariates) read.getTemporaryAttribute(BaseRecalibrator.COVARS_ATTRIBUTE);
     }
 }

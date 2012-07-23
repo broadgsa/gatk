@@ -106,7 +106,7 @@ import java.util.ArrayList;
 @Requires({DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES})                                         // filter out all reads with zero or unavailable mapping quality
 @PartitionBy(PartitionType.LOCUS)                                                                                       // this walker requires both -I input.bam and -R reference.fasta
 
-public class BQSR extends LocusWalker<Long, Long> implements TreeReducible<Long> {
+public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeReducible<Long> {
     @ArgumentCollection
     private final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();                          // all the command line arguments for BQSR and it's covariates
 

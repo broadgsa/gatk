@@ -160,7 +160,7 @@ class PacbioProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outBam + ".rg"
   }
 
-  case class cov (inBam: File, outRecalFile: File, resetQuals: Boolean) extends BaseQualityScoreRecalibrator with CommandLineGATKArgs {
+  case class cov (inBam: File, outRecalFile: File, resetQuals: Boolean) extends BaseRecalibrator with CommandLineGATKArgs {
     if (resetQuals) 
       this.DBQ = dbq
     this.knownSites :+= dbSNP
