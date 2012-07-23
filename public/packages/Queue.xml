@@ -36,8 +36,7 @@
         </modules>
     </executable>
     <release>
-        <!-- TODO: determine the real directory where the protected Queue release should go -->
-        <executable directory="/local/gsa-engineering/test_releases/queue" symlink="current" />
-        <archive directory="/local/gsa-engineering/test_releases/queue" symlink="Queue-latest.tar.bz2" />
+        <executable directory="/humgen/gsa-hpprojects/Queue/bin" symlink="current" />
+        <archive directory="/humgen/gsa-hpprojects/Queue/bin" symlink="Queue-latest.tar.bz2" />
     </release>
 </package>
