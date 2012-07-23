@@ -343,7 +343,7 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outBam + ".clean"
   }
 
-  case class cov (inBam: File, outRecalFile: File) extends BaseQualityScoreRecalibrator with CommandLineGATKArgs {
+  case class cov (inBam: File, outRecalFile: File) extends BaseRecalibrator with CommandLineGATKArgs {
     this.knownSites ++= qscript.dbSNP
     this.covariate ++= Seq("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "ContextCovariate")
     this.input_file :+= inBam
