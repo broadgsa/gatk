@@ -67,7 +67,7 @@ import java.util.*;
  *
  * <h2>Output</h2>
  * <p>
- * A raw, unfiltered, highly specific callset in VCF format.
+ * A raw, unfiltered, highly sensitive callset in VCF format.
  * </p>
  *
  * <h2>Example generic command for multi-sample SNP calling</h2>
@@ -150,7 +150,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
     public boolean alwaysAppendDbsnpId() { return false; }
 
     /**
-     * A raw, unfiltered, highly specific callset in VCF format.
+     * A raw, unfiltered, highly sensitive callset in VCF format.
      */
     @Output(doc="File to which variants should be written",required=true)
     protected VariantContextWriter writer = null;
