@@ -41,12 +41,16 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.walkers.qc.DocumentationTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
+<<<<<<< HEAD
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+=======
+>>>>>>> Added the ability to update the Forum
 import java.util.*;
 
 /**
@@ -82,6 +86,7 @@ public class GATKDoclet {
      */
     final protected static File DESTINATION_DIR = new File("gatkdocs");
 
+    final private static String FORUM_KEY_FILE = "/local/gsa-engineering/gatkdocs_publisher/forum.key";
     // ----------------------------------------------------------------------
     //
     // Global variables that are set on the command line by javadoc
@@ -142,7 +147,7 @@ public class GATKDoclet {
                 buildTimestamp = options[1];
             if (options[0].equals("-absolute-version"))
                 absoluteVersion = options[1];
-            if (options[0].equals("-include-hidden"))
+            if (options[0].equals("-include -hidden"))
                 showHiddenFeatures = true;
             if (options[0].equals("-test"))
                 testOnly = true;
@@ -150,6 +155,7 @@ public class GATKDoclet {
 
         // process the docs
         new GATKDoclet().processDocs(rootDoc);
+
 
         return true;
     }
@@ -216,10 +222,44 @@ public class GATKDoclet {
             }
 
             processIndex(cfg, new ArrayList<GATKDocWorkUnit>(myWorkUnits));
+
+            File forumKeyFile = new File(FORUM_KEY_FILE);
+            if (forumKeyFile.exists()) {
+                String forumKey = null;
+                // Read ing a one-line file so we can do a for loop
+                for (String line : new XReadLines(forumKeyFile))
+                    forumKey = line;
+                updateForum(myWorkUnits, forumKey);
+            }
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void updateForum(Set<GATKDocWorkUnit> docWorkUnits, String forumKey) {
+        //first get list of posts that need to be added
+        List<String> old = ForumAPIUtils.getPostedTools(forumKey);
+
+        for (String s : old)
+            System.out.println(s);
+
+        System.out.printf("Forum has %d items%n", old.size());
+        System.out.printf("Docs have %d items%n", docWorkUnits.size());
+
+        List<GATKDocWorkUnit> toAdd = new ArrayList<GATKDocWorkUnit>();
+        for (GATKDocWorkUnit tool : docWorkUnits) {
+            if (!old.contains(tool.name)) {
+                System.out.println("WILL POST: " + tool.name + " TO FORUM");
+                toAdd.add(tool);
+            }
+        }
+
+        //update using list
+        for (GATKDocWorkUnit tool : toAdd) {
+            //if ( tool.name.equals("ApplyRecalibration") )
+            ForumAPIUtils.postToForum(tool, forumKey);
         }
     }
 
@@ -248,7 +288,6 @@ public class GATKDoclet {
             posts.add(properties);
         }
 
-        writeJson(DESTINATION_DIR + "/posts.json", posts);
     }
 
     private void writeJson(String filename, Object source) throws IOException {
@@ -259,40 +298,6 @@ public class GATKDoclet {
 
         out.close();
 
-    }
-
-    public static void postRestJson(String URL, String json) {
-        try {
-            URL url = new URL(URL);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setDoOutput(true);
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
-
-            OutputStream os = conn.getOutputStream();
-            os.write(json.getBytes());
-            os.flush();
-
-            if (conn.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
-                throw new RuntimeException("Failed : HTTP error code : "
-                        + conn.getResponseCode());
-            }
-
-            BufferedReader br = new BufferedReader(new InputStreamReader(
-                    (conn.getInputStream())));
-
-            String output;
-            System.out.println("Output from Server .... \n");
-            while ((output = br.readLine()) != null) {
-                System.out.println(output);
-            }
-
-            conn.disconnect();
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     /**

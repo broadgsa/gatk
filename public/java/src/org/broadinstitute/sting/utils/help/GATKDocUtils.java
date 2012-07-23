@@ -28,7 +28,7 @@ public class GATKDocUtils {
     /**
      * The URL root for RELEASED GATKDOC units
      */
-    public final static String URL_ROOT_FOR_RELEASE_GATKDOCS = "http://www.broadinstitute.org/gsa/gatkdocs/release/";
+    public final static String URL_ROOT_FOR_RELEASE_GATKDOCS = "http://www.broadinstitute.org/gatk/gatkdocs/";
     /**
      * The URL root for STABLE GATKDOC units
      */
