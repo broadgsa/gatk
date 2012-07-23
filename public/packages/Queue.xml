@@ -32,7 +32,6 @@
         <modules>
             <module file="QueueEngine.xml"/>
             <module file="GATKEngine.xml"/>
-            <module file="AnalyzeCovariates.xml"/>
         </modules>
     </executable>
     <release>

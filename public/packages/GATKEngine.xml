@@ -48,11 +48,11 @@
     <file name="public/testdata/exampleFASTA.fasta.fai" />
     <file name="public/testdata/exampleFASTA.dict" />
     <!-- GATK sample code and build scripts -->
-    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/coverage/DepthOfCoverageWalker.java" />
-    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/PileupWalker.java" />
-    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/PrintReadsWalker.java" />
-    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CountLociWalker.java" />
-    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CountReadsWalker.java" />
-    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/ValidatingPileupWalker.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/coverage/DepthOfCoverage.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/Pileup.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/PrintReads.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CountLoci.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CountReads.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/ValidatingPileup.java" />
   </resources>
 </package>

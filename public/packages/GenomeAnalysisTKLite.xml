@@ -33,9 +33,6 @@
       <module file="GATKEngine.xml"/>
     </modules>
   </executable>
-  <modules>
-    <module file="AnalyzeCovariates.xml"/>
-  </modules>
   <release>
     <archive directory="/web/ftp/pub/gsa/GenomeAnalysisTK" symlink="GenomeAnalysisTKLite-latest.tar.bz2" />
   </release>

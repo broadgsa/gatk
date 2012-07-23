@@ -679,20 +679,6 @@
             <fileset dir="${java.classes}" includes="**/alignment/**/*.class" />
         </jar>
 
-        <jar jarfile="${dist.dir}/AnalyzeCovariates.jar" whenmanifestonly="skip">
-            <fileset dir="${java.classes}">
-                <include name="**/analyzecovariates/**/*.class" />
-                <include name="**/gatk/walkers/recalibration/*.class" />
-            </fileset>
-            <fileset dir="${R.script.staging.dir}">
-                <include name="**/analyzecovariates/**/*.R"/>
-                <include name="**/gatk/walkers/recalibration/**/*.R"/>
-            </fileset>
-            <manifest>
-                <attribute name="Main-Class" value="org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates" />
-            </manifest>
-        </jar>
-
         <subant target="dist" genericantfile="build.xml">
             <property name="build.dir" value="${external.build.dir}" />
             <property name="dist.dir" value="${external.dist.dir}" />
@@ -748,12 +734,6 @@
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar" update="true">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
-            </manifest>
-        </jar>
-
-        <jar jarfile="${dist.dir}/AnalyzeCovariates.jar" update="true" whenmanifestonly="skip">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
         </jar>
     </target>
