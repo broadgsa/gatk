@@ -45,18 +45,15 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.*;
 import java.lang.annotation.Annotation;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.*;
 
 /**
  * Javadoc Doclet that combines javadoc, GATK ParsingEngine annotations, and FreeMarker
  * templates to produce html formatted GATKDocs for walkers
  * and other classes.
- * <p/>
+ *
  * This document has the following workflow:
- * <p/>
+ *
  * 1 -- walk the javadoc heirarchy, looking for class that have the
  * DocumentedGATKFeature annotation or are in the type heirarchy in the
  * static list of things to document, and are to be documented
@@ -66,7 +63,7 @@ import java.util.*;
  * as well as links to related features via their units.  Writing
  * of a specific class HTML is accomplished by a generate DocumentationHandler
  * 4 -- write out an index of all units, organized by group
- * <p/>
+ *
  * The documented classes are restricted to only those with @DocumentedGATKFeature
  * annotation or are in the STATIC_DOCS class.
  */
