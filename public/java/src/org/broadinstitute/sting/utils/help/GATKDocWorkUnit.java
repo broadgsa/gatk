@@ -25,10 +25,8 @@
 package org.broadinstitute.sting.utils.help;
 
 import com.sun.javadoc.ClassDoc;
-import org.broadinstitute.sting.gatk.Category;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,10 +55,6 @@ class GATKDocWorkUnit implements Comparable<GATKDocWorkUnit> {
      */
     final String group;
     /**
-     * The categories that this class belongs to
-     */
-    final List<Category> categories;
-    /**
      * The documentation handler for this class
      */
     final DocumentedGATKFeatureHandler handler;
@@ -81,15 +75,13 @@ class GATKDocWorkUnit implements Comparable<GATKDocWorkUnit> {
     String summary;
     Map<String, Object> forTemplate;
 
-    public GATKDocWorkUnit(String name, String filename, String group, List<Category> categories,
-                           DocumentedGATKFeatureObject annotation, DocumentedGATKFeatureHandler handler,
-                           ClassDoc classDoc, Class clazz,
+    public GATKDocWorkUnit(String name, String filename, String group, DocumentedGATKFeatureObject annotation,
+                           DocumentedGATKFeatureHandler handler, ClassDoc classDoc, Class clazz,
                            String buildTimestamp, String absoluteVersion) {
         this.annotation = annotation;
         this.name = name;
         this.filename = filename;
         this.group = group;
-        this.categories = categories;
         this.handler = handler;
         this.classDoc = classDoc;
         this.clazz = clazz;

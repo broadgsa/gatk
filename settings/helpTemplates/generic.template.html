@@ -37,7 +37,8 @@
                 <td>${arg.summary}</td>
             </tr>
             <#--
-            <td>${arg.required}</td>
+            <
+            td>${arg.required}</td>
             -->
         </#list>
     </#if>
@@ -87,14 +88,12 @@
     </#list>
 </#macro>
 
-<#list categories as cat>
-    <?php $categories[] = '${cat}'; ?>
-</#list>
+<?php $group = '${group}'; ?>
 <@makeHeader title="${name} documentation" isIndex=false />
 <section class="span4">
     <aside class="well">
         <h2>Categories</h2>
-        <@getCategories map=catNav filter="all" />
+        <@getCategories groups=groups />
     </aside>
     <?php getForumPosts( '${name}' ) ?>
 
@@ -106,18 +105,17 @@
 
     <p class="lead">${summary}</p>
     <#if author??>
-        <h2>Author<br/>
-            <small>${author}</small>
-        </h2>
+        <h3>Author
+            <small> ${author}</small>
+        </h3>
     </#if>
-    <#if (categories?size > 0) >
-        <h3>Categories</h3>
-        <ul>
-            <#list categories as cat>
-                <li>${cat.getDescription()}</li>
-            </#list>
-        </ul>
+    <#if group?? >
+        <h3>Category
+            <small> ${group}</small>
+        </h3>
     </#if>
+    <br/>
+
     <h2>Introduction</h2>
     ${description}
 
