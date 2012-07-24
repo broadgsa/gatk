@@ -245,9 +245,11 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
     private BCF2Codec.LazyData getLazyData(final VariantContext vc) {
         if ( vc.getGenotypes().isLazyWithData() ) {
-            LazyGenotypesContext lgc = (LazyGenotypesContext)vc.getGenotypes();
-            if ( lgc.getUnparsedGenotypeData() instanceof BCF2Codec.LazyData )
+                LazyGenotypesContext lgc = (LazyGenotypesContext)vc.getGenotypes();
+            if ( WRITE_UNDECODED_GENOTYPE_BLOCK && lgc.getUnparsedGenotypeData() instanceof BCF2Codec.LazyData )
                 return (BCF2Codec.LazyData)lgc.getUnparsedGenotypeData();
+            else
+                lgc.decode(); // WARNING -- required to avoid keeping around bad lazy data for too long
         }
 
         return null;
@@ -286,6 +288,8 @@ class BCF2Writer extends IndexingVariantContextWriter {
     private void buildFilter( VariantContext vc ) throws IOException {
         if ( vc.isFiltered() ) {
             encodeStringsByRef(vc.getFilters());
+        } else if ( vc.filtersWereApplied() ) {
+            encodeStringsByRef(Collections.singleton(VCFConstants.PASSES_FILTERS_v4));
         } else {
             encoder.encodeTypedMissing(BCF2Type.INT8);
         }
@@ -303,27 +307,27 @@ class BCF2Writer extends IndexingVariantContextWriter {
     }
 
     private byte[] buildSamplesData(final VariantContext vc) throws IOException {
-        final BCF2Codec.LazyData lazyData = getLazyData(vc);
-        if ( WRITE_UNDECODED_GENOTYPE_BLOCK && lazyData != null ) {
+        final BCF2Codec.LazyData lazyData = getLazyData(vc);  // has critical side effects
+        if ( lazyData != null ) {
             // we never decoded any data from this BCF file, so just pass it back
             return lazyData.bytes;
-        } else {
-            // we have to do work to convert the VC into a BCF2 byte stream
-            final List<String> genotypeFields = VCFWriter.calcVCFGenotypeKeys(vc, header);
-            for ( final String field : genotypeFields ) {
-                final BCF2FieldWriter.GenotypesWriter writer = fieldManager.getGenotypeFieldWriter(field);
-                if ( writer == null ) errorUnexpectedFieldToWrite(vc, field, "FORMAT");
-
-                writer.start(encoder, vc);
-                for ( final String name : sampleNames ) {
-                    Genotype g = vc.getGenotype(name);
-                    if ( g == null ) VCFWriter.missingSampleError(vc, header);
-                    writer.addGenotype(encoder, vc, g);
-                }
-                writer.done(encoder, vc);
-            }
-            return encoder.getRecordBytes();
         }
+
+        // we have to do work to convert the VC into a BCF2 byte stream
+        final List<String> genotypeFields = VCFWriter.calcVCFGenotypeKeys(vc, header);
+        for ( final String field : genotypeFields ) {
+            final BCF2FieldWriter.GenotypesWriter writer = fieldManager.getGenotypeFieldWriter(field);
+            if ( writer == null ) errorUnexpectedFieldToWrite(vc, field, "FORMAT");
+
+            writer.start(encoder, vc);
+            for ( final String name : sampleNames ) {
+                Genotype g = vc.getGenotype(name);
+                if ( g == null ) VCFWriter.missingSampleError(vc, header);
+                writer.addGenotype(encoder, vc, g);
+            }
+            writer.done(encoder, vc);
+        }
+        return encoder.getRecordBytes();
     }
 
     /**

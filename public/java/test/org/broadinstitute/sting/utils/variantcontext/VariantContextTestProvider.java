@@ -740,6 +740,8 @@ public class VariantContextTestProvider {
         Assert.assertEquals(actual.getAlleles(), expected.getAlleles(), "alleles");
 
         assertAttributesEquals(actual.getAttributes(), expected.getAttributes());
+        Assert.assertEquals(actual.filtersWereApplied(), expected.filtersWereApplied(), "filtersWereApplied");
+        Assert.assertEquals(actual.isFiltered(), expected.isFiltered(), "isFiltered");
         BaseTest.assertEqualsSet(actual.getFilters(), expected.getFilters(), "filters");
         BaseTest.assertEqualsDoubleSmart(actual.getPhredScaledQual(), expected.getPhredScaledQual());
 

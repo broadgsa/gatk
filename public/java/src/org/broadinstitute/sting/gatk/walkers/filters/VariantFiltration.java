@@ -333,7 +333,11 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
                     filters.add(exp.name);                         
             }
         }
-        builder.filters(filters);
+
+        if ( filters.isEmpty() )
+            builder.passFilters();
+        else
+            builder.filters(filters);
 
         writer.add(builder.make());
     }
