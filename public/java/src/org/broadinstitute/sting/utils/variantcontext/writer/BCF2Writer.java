@@ -83,6 +83,14 @@ import java.util.*;
  * @since 06/12
  */
 class BCF2Writer extends IndexingVariantContextWriter {
+    /**
+     * If true, we will write out the undecoded raw bytes for a genotypes block, if it
+     * is found in the input VC.  This can be very dangerous as the genotype encoding
+     * depends on the exact ordering of the header.
+     *
+     * TODO -- enable when the new smart VCF header code is created by Eric Banks
+     */
+    private final static boolean WRITE_UNDECODED_GENOTYPE_BLOCK = false;
     final protected static Logger logger = Logger.getLogger(BCF2Writer.class);
     final private static boolean ALLOW_MISSING_CONTIG_LINES = false;
 
@@ -285,8 +293,9 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
     private void buildInfo( VariantContext vc ) throws IOException {
         for ( Map.Entry<String, Object> infoFieldEntry : vc.getAttributes().entrySet() ) {
-            final String key = infoFieldEntry.getKey();
-            final BCF2FieldWriter.SiteWriter writer = fieldManager.getSiteFieldWriter(key);
+            final String field = infoFieldEntry.getKey();
+            final BCF2FieldWriter.SiteWriter writer = fieldManager.getSiteFieldWriter(field);
+            if ( writer == null ) errorUnexpectedFieldToWrite(vc, field, "INFO");
             writer.start(encoder, vc);
             writer.site(encoder, vc);
             writer.done(encoder, vc);
@@ -295,7 +304,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
     private byte[] buildSamplesData(final VariantContext vc) throws IOException {
         final BCF2Codec.LazyData lazyData = getLazyData(vc);
-        if ( lazyData != null ) {
+        if ( WRITE_UNDECODED_GENOTYPE_BLOCK && lazyData != null ) {
             // we never decoded any data from this BCF file, so just pass it back
             return lazyData.bytes;
         } else {
@@ -303,6 +312,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
             final List<String> genotypeFields = VCFWriter.calcVCFGenotypeKeys(vc, header);
             for ( final String field : genotypeFields ) {
                 final BCF2FieldWriter.GenotypesWriter writer = fieldManager.getGenotypeFieldWriter(field);
+                if ( writer == null ) errorUnexpectedFieldToWrite(vc, field, "FORMAT");
 
                 writer.start(encoder, vc);
                 for ( final String name : sampleNames ) {
@@ -314,6 +324,19 @@ class BCF2Writer extends IndexingVariantContextWriter {
             }
             return encoder.getRecordBytes();
         }
+    }
+
+    /**
+     * Throws a meaningful error message when a field (INFO or FORMAT) is found when writing out a file
+     * but there's no header line for it.
+     *
+     * @param vc
+     * @param field
+     * @param fieldType
+     */
+    private final void errorUnexpectedFieldToWrite(final VariantContext vc, final String field, final String fieldType) {
+        throw new UserException("Found field " + field + " in the " + fieldType + " fields of VariantContext at " +
+                vc.getChr() + ":" + vc.getStart() + " from " + vc.getSource() + " but this hasn't been defined in the VCFHeader");
     }
 
     // --------------------------------------------------------------------------------

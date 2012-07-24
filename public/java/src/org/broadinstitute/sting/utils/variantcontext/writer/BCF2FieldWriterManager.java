@@ -160,7 +160,7 @@ public class BCF2FieldWriterManager {
     /**
      * Get a site writer specialized to encode values for site info field
      * @param field key found in the VCF header INFO records
-     * @return
+     * @return non-null writer if one can be found, or null if none exists for field
      */
     public BCF2FieldWriter.SiteWriter getSiteFieldWriter(final String field) {
         return getWriter(field, siteWriters);
@@ -169,17 +169,14 @@ public class BCF2FieldWriterManager {
     /**
      * Get a genotypes writer specialized to encode values for genotypes field
      * @param field key found in the VCF header FORMAT records
-     * @return
+     * @return non-null writer if one can be found, or null if none exists for field
      */
     public BCF2FieldWriter.GenotypesWriter getGenotypeFieldWriter(final String field) {
         return getWriter(field, genotypesWriters);
     }
 
     @Requires({"map != null", "key != null"})
-    @Ensures("result != null")
     public <T> T getWriter(final String key, final Map<String, T> map) {
-        final T writer = map.get(key);
-        if ( writer == null ) throw new ReviewedStingException("BUG: no writer found for " + key);
-        return writer;
+        return map.get(key);
     }
 }
