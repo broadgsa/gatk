@@ -47,18 +47,22 @@ import java.util.Map;
  */
 public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
 
-/*    public enum Model {
-        SNP,
-        INDEL,
-        BOTH
-    }
-  */
+    public static final String DUMMY_LANE = "Lane1";
+    public static final String DUMMY_SAMPLE_NAME = "DummySample1";
+
+    /*    public enum Model {
+          SNP,
+          INDEL,
+          BOTH
+      }
+    */
     public enum Model {
         SNP,
         INDEL,
+        BOTH,
         POOLSNP,
         POOLINDEL,
-        BOTH
+        POOLBOTH
     }
 
     public enum GENOTYPING_MODE {
@@ -89,7 +93,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
       * @param ref                   reference context
       * @param contexts              stratified alignment contexts
       * @param contextType           stratified context type
-      * @param alternateAllelesToUse the alternate allele to use, null if not set
+      * @param allAllelesToUse the alternate allele to use, null if not set
       * @param useBAQedPileup        should we use the BAQed pileup or the raw one?
       * @param locParser             Genome Loc Parser
       * @return variant context where genotypes are no-called but with GLs
@@ -98,7 +102,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
                                                    final ReferenceContext ref,
                                                    final Map<String, AlignmentContext> contexts,
                                                    final AlignmentContextUtils.ReadOrientation contextType,
-                                                   final List<Allele> alternateAllelesToUse,
+                                                   final List<Allele> allAllelesToUse,
                                                    final boolean useBAQedPileup,
                                                    final GenomeLocParser locParser);
 

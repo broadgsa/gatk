@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils.codecs.table;
 
-import org.broad.tribble.Feature;
+import org.broad.tribble.AsciiFeatureCodec;
 import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -39,7 +39,7 @@ import java.util.Arrays;
  * @author Mark DePristo
  * @since 2009
  */
-public class TableCodec implements ReferenceDependentFeatureCodec {
+public class TableCodec extends AsciiFeatureCodec<TableFeature> implements ReferenceDependentFeatureCodec {
     final static protected String delimiterRegex = "\\s+";
     final static protected String headerDelimiter = "HEADER";
     final static protected String igvHeaderDelimiter = "track";
@@ -52,6 +52,10 @@ public class TableCodec implements ReferenceDependentFeatureCodec {
      */
     protected GenomeLocParser genomeLocParser;
 
+    public TableCodec() {
+        super(TableFeature.class);
+    }
+
     /**
      * Set the parser to use when resolving genetic data.
      * @param genomeLocParser The supplied parser.
@@ -61,25 +65,14 @@ public class TableCodec implements ReferenceDependentFeatureCodec {
         this.genomeLocParser =  genomeLocParser;
     }
 
-
     @Override
-    public Feature decodeLoc(String line) {
-        return decode(line);
-    }
-
-    @Override
-    public Feature decode(String line) {
+    public TableFeature decode(String line) {
         if (line.startsWith(headerDelimiter) || line.startsWith(commentDelimiter) || line.startsWith(igvHeaderDelimiter))
             return null;
         String[] split = line.split(delimiterRegex);
         if (split.length < 1)
             throw new IllegalArgumentException("TableCodec line = " + line + " doesn't appear to be a valid table format");
         return new TableFeature(genomeLocParser.parseGenomeLoc(split[0]),Arrays.asList(split),header);
-    }
-
-    @Override
-    public Class<TableFeature> getFeatureType() {
-        return TableFeature.class;
     }
 
     @Override
@@ -106,7 +99,4 @@ public class TableCodec implements ReferenceDependentFeatureCodec {
         }
         return header;
     }
-
-    public boolean canDecode(final String potentialInput) { return false; }
-
 }

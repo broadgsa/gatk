@@ -90,6 +90,21 @@ public class IndelGenotypeLikelihoodsUnitTest extends BaseTest {
         Assert.assertEquals(alleles.size(),2);
         alleles = getConsensusAlleles(eventLength,false,10,0.5001, altBases);
         Assert.assertEquals(alleles.size(),0);
+
+        // test N's in insertions
+        altBases = "CCTCNTGAGA";
+        eventLength = 4;
+        alleles = getConsensusAlleles(eventLength,true,10,0.1, altBases);
+
+        Assert.assertEquals(alleles.size(),2);
+        Assert.assertEquals(alleles.get(1).getBaseString(), altBases.substring(0,eventLength));
+
+        altBases = "CCTCNTGAGA";
+        eventLength = 5;
+        alleles = getConsensusAlleles(eventLength,true,10,0.1, altBases);
+
+        Assert.assertEquals(alleles.size(),0);
+
     }
     
     private List<Allele> getConsensusAlleles(int eventLength, boolean isInsertion, int minCnt, double minFraction, String altBases) {

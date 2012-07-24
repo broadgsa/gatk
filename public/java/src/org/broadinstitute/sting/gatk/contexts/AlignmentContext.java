@@ -28,7 +28,6 @@ package org.broadinstitute.sting.gatk.contexts;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -89,35 +88,8 @@ public class AlignmentContext implements HasGenomeLocation {
      * @return
      */
     public ReadBackedPileup getBasePileup() {
-        if(!hasBasePileup())
-            throw new ReviewedStingException("No base pileup is available.  Please check for a base pileup with hasBasePileup() before attempting to retrieve a pileup.");
         return basePileup;
     }
-
-    /** Returns extended event (indel) pileup over the current genomic location. May return null if this context keeps
-     * only base pileup.
-     * @return
-     */
-    @Deprecated
-    public ReadBackedExtendedEventPileup getExtendedEventPileup() {
-        if(!hasExtendedEventPileup())
-            throw new ReviewedStingException("No extended event pileup is present.");
-        return (ReadBackedExtendedEventPileup)basePileup; 
-    }
-
-    /**
-     * Returns true if this alignment context keeps base pileup over the current genomic location.
-     * TODO: Syntax of AlignmentContext uses hasBasePileup() / hasExtendedEventPileup() as an enumeration mechanism.  Change this to a more sensible interface.
-     * @return
-     */
-    public boolean hasBasePileup() { return !(basePileup instanceof ReadBackedExtendedEventPileup); }
-
-    /** Returns true if this alignment context keeps extended event (indel) pileup over the current genomic location.
-     *
-     * @return
-     */
-    @Deprecated
-    public boolean hasExtendedEventPileup() { return basePileup instanceof ReadBackedExtendedEventPileup; }
 
     /**
      * Returns true if any reads have been filtered out of the pileup due to excess DoC.

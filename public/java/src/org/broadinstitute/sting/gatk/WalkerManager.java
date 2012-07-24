@@ -49,7 +49,7 @@ public class WalkerManager extends PluginManager<Walker> {
     private ResourceBundle helpText;
 
     public WalkerManager() {
-        super(Walker.class,"walker","Walker");
+        super(Walker.class,"walker","");
         helpText = TextFormattingUtils.loadResourceBundle("StingText");
     }
 

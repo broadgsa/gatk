@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.utils.codecs.refseq;
 
+import org.broad.tribble.AsciiFeatureCodec;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
-import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -46,13 +46,18 @@ import java.util.ArrayList;
  * @author Mark DePristo
  * @since 2010
  */
-public class RefSeqCodec implements ReferenceDependentFeatureCodec<RefSeqFeature> {
+public class RefSeqCodec extends AsciiFeatureCodec<RefSeqFeature> implements ReferenceDependentFeatureCodec {
 
     /**
      * The parser to use when resolving genome-wide locations.
      */
     private GenomeLocParser genomeLocParser;
     private boolean zero_coding_length_user_warned = false;
+
+    public RefSeqCodec() {
+        super(RefSeqFeature.class);
+    }
+
     /**
      * Set the parser to use when resolving genetic data.
      * @param genomeLocParser The supplied parser.
@@ -130,17 +135,4 @@ public class RefSeqCodec implements ReferenceDependentFeatureCodec<RefSeqFeature
         feature.setExon_frames(exon_frames);
         return feature;
     }
-
-    @Override
-    public Object readHeader(LineReader reader) {
-        return null;
-    }
-
-    @Override
-    public Class<RefSeqFeature> getFeatureType() {
-        return RefSeqFeature.class;
-    }
-
-    public boolean canDecode(final String potentialInput) { return false; }
-
 }

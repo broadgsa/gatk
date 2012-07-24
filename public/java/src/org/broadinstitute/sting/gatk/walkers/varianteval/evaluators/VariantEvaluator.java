@@ -3,23 +3,23 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEval;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 public abstract class VariantEvaluator implements Comparable<VariantEvaluator> {
-    private VariantEvalWalker walker;
+    private VariantEval walker;
     private final String simpleName;
 
     protected VariantEvaluator() {
         this.simpleName = getClass().getSimpleName();
     }
 
-    public void initialize(VariantEvalWalker walker) {
+    public void initialize(VariantEval walker) {
         this.walker = walker;
     }
 
-    public VariantEvalWalker getWalker() {
+    public VariantEval getWalker() {
         return walker;
     }
 
@@ -57,7 +57,7 @@ public abstract class VariantEvaluator implements Comparable<VariantEvaluator> {
      * @return true if eval was originally a singleton site
      */
     protected static boolean variantWasSingleton(final VariantContext eval) {
-        return eval.getAttributeAsBoolean(VariantEvalWalker.IS_SINGLETON_KEY, false);
+        return eval.getAttributeAsBoolean(VariantEval.IS_SINGLETON_KEY, false);
     }
 
     public final String getSimpleName() {

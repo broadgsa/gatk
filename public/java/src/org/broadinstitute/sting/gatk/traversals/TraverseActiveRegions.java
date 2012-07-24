@@ -6,10 +6,12 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.ActiveRegionExtension;
+import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 import org.broadinstitute.sting.utils.activeregion.ActivityProfile;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -28,7 +30,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
      */
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
 
-    private final Queue<ActiveRegion> workQueue = new LinkedList<ActiveRegion>();
+    private final LinkedList<org.broadinstitute.sting.utils.activeregion.ActiveRegion> workQueue = new LinkedList<org.broadinstitute.sting.utils.activeregion.ActiveRegion>();
     private final LinkedHashSet<GATKSAMRecord> myReads = new LinkedHashSet<GATKSAMRecord>();
 
     @Override
@@ -109,10 +111,23 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             // add these blocks of work to the work queue
             // band-pass filter the list of isActive probabilities and turn into active regions
             final ActivityProfile bandPassFiltered = profile.bandPassFilter();
-            final List<ActiveRegion> activeRegions = bandPassFiltered.createActiveRegions( activeRegionExtension, maxRegionSize );
+            final List<org.broadinstitute.sting.utils.activeregion.ActiveRegion> activeRegions = bandPassFiltered.createActiveRegions( activeRegionExtension, maxRegionSize );
 
             // add active regions to queue of regions to process
-            workQueue.addAll( activeRegions );
+            // first check if can merge active regions over shard boundaries
+            if( !activeRegions.isEmpty() ) {
+                if( !workQueue.isEmpty() ) {
+                    final org.broadinstitute.sting.utils.activeregion.ActiveRegion last = workQueue.getLast();
+                    final org.broadinstitute.sting.utils.activeregion.ActiveRegion first = activeRegions.get(0);
+                    if( last.isActive == first.isActive && last.getLocation().contiguousP(first.getLocation()) && last.getLocation().size() + first.getLocation().size() <= maxRegionSize ) {
+                        workQueue.removeLast();
+                        activeRegions.remove(first);
+                        workQueue.add( new org.broadinstitute.sting.utils.activeregion.ActiveRegion(last.getLocation().union(first.getLocation()), first.isActive, this.engine.getGenomeLocParser(), activeRegionExtension) );
+                    }
+                }
+                workQueue.addAll( activeRegions );
+            }
+
             logger.debug("Integrated " + profile.size() + " isActive calls into " + activeRegions.size() + " regions." );
 
             // now go and process all of the active regions
@@ -170,7 +185,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
      */
     private void writeActiveRegionsToStream( final ActiveRegionWalker<M,T> walker ) {
         // Just want to output the active regions to a file, not actually process them
-        for( final ActiveRegion activeRegion : workQueue ) {
+        for( final org.broadinstitute.sting.utils.activeregion.ActiveRegion activeRegion : workQueue ) {
             if( activeRegion.isActive ) {
                 walker.activeRegionOutStream.println( activeRegion.getLocation() );
             }
@@ -183,7 +198,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
         while( workQueue.peek() != null ) {
             final GenomeLoc extendedLoc = workQueue.peek().getExtendedLoc();
             if ( extendedLoc.getStop() < minStart || (currentContig != null && !workQueue.peek().getExtendedLoc().getContig().equals(currentContig))) {
-                final ActiveRegion activeRegion = workQueue.remove();
+                final org.broadinstitute.sting.utils.activeregion.ActiveRegion activeRegion = workQueue.remove();
                 sum = processActiveRegion( activeRegion, myReads, workQueue, sum, walker );
             } else {
                 break;
@@ -193,15 +208,15 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
         return sum;
     }
 
-    private T processActiveRegion( final ActiveRegion activeRegion, final LinkedHashSet<GATKSAMRecord> reads, final Queue<ActiveRegion> workQueue, final T sum, final ActiveRegionWalker<M,T> walker ) {
+    private T processActiveRegion( final org.broadinstitute.sting.utils.activeregion.ActiveRegion activeRegion, final LinkedHashSet<GATKSAMRecord> reads, final Queue<org.broadinstitute.sting.utils.activeregion.ActiveRegion> workQueue, final T sum, final ActiveRegionWalker<M,T> walker ) {
         final ArrayList<GATKSAMRecord> placedReads = new ArrayList<GATKSAMRecord>();
         for( final GATKSAMRecord read : reads ) {
             final GenomeLoc readLoc = this.engine.getGenomeLocParser().createGenomeLoc( read );
             if( activeRegion.getLocation().overlapsP( readLoc ) ) {
                 // The region which the highest amount of overlap is chosen as the primary region for the read (tie breaking is done as right most region)
                 long maxOverlap = activeRegion.getLocation().sizeOfOverlap( readLoc );
-                ActiveRegion bestRegion = activeRegion;
-                for( final ActiveRegion otherRegionToTest : workQueue ) {
+                org.broadinstitute.sting.utils.activeregion.ActiveRegion bestRegion = activeRegion;
+                for( final org.broadinstitute.sting.utils.activeregion.ActiveRegion otherRegionToTest : workQueue ) {
                     if( otherRegionToTest.getLocation().sizeOfOverlap(readLoc) >= maxOverlap ) {
                         maxOverlap = otherRegionToTest.getLocation().sizeOfOverlap( readLoc );
                         bestRegion = otherRegionToTest;
@@ -214,7 +229,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                     if( !bestRegion.equals(activeRegion) ) {
                         activeRegion.add( read );
                     }
-                    for( final ActiveRegion otherRegionToTest : workQueue ) {
+                    for( final org.broadinstitute.sting.utils.activeregion.ActiveRegion otherRegionToTest : workQueue ) {
                         if( !bestRegion.equals(otherRegionToTest) && otherRegionToTest.getExtendedLoc().overlapsP( readLoc ) ) {
                             otherRegionToTest.add( read );
                         }

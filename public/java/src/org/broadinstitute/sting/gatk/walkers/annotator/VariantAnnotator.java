@@ -39,6 +39,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 
 import java.util.*;
 
@@ -78,7 +79,7 @@ import java.util.*;
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @Reference(window=@Window(start=-50,stop=50))
 @By(DataSource.REFERENCE)
-public class VariantAnnotator extends RodWalker<Integer, Integer> implements AnnotatorCompatibleWalker {
+public class VariantAnnotator extends RodWalker<Integer, Integer> implements AnnotatorCompatible {
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
@@ -120,7 +121,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     public List<RodBinding<VariantContext>> getResourceRodBindings() { return resources; }
 
     @Output(doc="File to which variants should be written",required=true)
-    protected VCFWriter vcfWriter = null;
+    protected VariantContextWriter vcfWriter = null;
 
     /**
      * See the -list argument to view available annotations.
@@ -304,12 +305,10 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         // if the reference base is not ambiguous, we can annotate
         Map<String, AlignmentContext> stratifiedContexts;
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
-            if ( context.hasBasePileup() ) {
-                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getBasePileup());
-                annotatedVCs = new ArrayList<VariantContext>(VCs.size());
-                for ( VariantContext vc : VCs )
-                    annotatedVCs.add(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
-            }
+            stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getBasePileup());
+            annotatedVCs = new ArrayList<VariantContext>(VCs.size());
+            for ( VariantContext vc : VCs )
+                annotatedVCs.add(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
         }
 
         for ( VariantContext annotatedVC : annotatedVCs )

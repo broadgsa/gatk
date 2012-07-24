@@ -19,7 +19,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testVariantsToVCFUsingDbsnpInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("d64942fed2a5b7b407f9537dd2b4832e");
+        md5.add("72e6ce7aff7dec7ca9e7580be7ddd435");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
@@ -27,7 +27,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                         " -T VariantsToVCF" +
                         " -L 1:1-30,000,000" +
                         " -o %s" +
-                        " -NO_HEADER",
+                        " --no_cmdline_in_header",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingDbsnpInput", spec).getFirst();
@@ -36,7 +36,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testVariantsToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("4accae035d271b35ee2ec58f403c68c6");
+        md5.add("22373883afa2221b5a4f75a50f30f26b");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
@@ -45,7 +45,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                         " -L 1:10,000,000-11,000,000" +
                         " -sample NA123AB" +
                         " -o %s" +
-                        " -NO_HEADER",
+                        " --no_cmdline_in_header",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingGeliInput - calls", spec).getFirst();
@@ -54,7 +54,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingGeliInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("2413f036ec4100b8d5db179946159a82");
+        md5.add("738eb66dbc400dcd1786cd9e49902e8c");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
@@ -63,7 +63,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                         " -L 1:10,100,000-10,200,000" +
                         " -sample NA123AB" +
                         " -o %s" +
-                        " -NO_HEADER",
+                        " --no_cmdline_in_header",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingGeliInput - genotypes", spec).getFirst();
@@ -72,7 +72,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingHapMapInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("f343085305e80c7a2493422e4eaad983");
+        md5.add("67656672acc264156f5a3e01e5cac61a");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
@@ -80,7 +80,7 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                         " -T VariantsToVCF" +
                         " -L 1:1-1,000,000" +
                         " -o %s" +
-                        " -NO_HEADER",
+                        " --no_cmdline_in_header",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingHapMapInput", spec).getFirst();
@@ -89,14 +89,14 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
     @Test
     public void testGenotypesToVCFUsingVCFInput() {
         List<String> md5 = new ArrayList<String>();
-        md5.add("86f02e2e764ba35854cff2aa05a1fdd8");
+        md5.add("21084d32ce7ac5df3cee1730bfaaf71c");
 
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " --variant:VCF " + validationDataLocation + "complexExample.vcf4" +
+                        " --variant:VCF " + privateTestDir + "complexExample.vcf4" +
                         " -T VariantsToVCF" +
                         " -o %s" +
-                        " -NO_HEADER",
+                        " --no_cmdline_in_header",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingVCFInput", spec).getFirst();

@@ -38,7 +38,7 @@ public class ReadGroupPropertiesIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T ReadGroupProperties -R " + b37KGReference + " -I " + b37GoodBAM + " -L 20:10,000,000-11,000,000 -o %s",
                 1,
-                Arrays.asList("3f1f97a1d2c5fb552ed4f33ea30d136d"));
+                Arrays.asList("618a671c61014deb3b284061a87b61d6"));
         executeTest("ReadGroupProperties:", spec);
     }
 }

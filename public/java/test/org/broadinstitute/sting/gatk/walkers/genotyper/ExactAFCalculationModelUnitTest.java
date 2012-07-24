@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
@@ -50,7 +51,7 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
     }
 
     private static Genotype createGenotype(String name, double[] gls) {
-        return new Genotype(name, Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), Genotype.NO_LOG10_PERROR, gls);
+        return new GenotypeBuilder(name, Arrays.asList(Allele.NO_CALL, Allele.NO_CALL)).PL(gls).make();
     }
 
     @DataProvider(name = "getGLs")

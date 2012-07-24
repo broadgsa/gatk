@@ -40,6 +40,7 @@ public class ValidationExclusion {
         ALLOW_UNSET_BAM_SORT_ORDER, // assume that the bam is sorted, even if the SO (sort-order) flag is not set
         NO_READ_ORDER_VERIFICATION, // do not validate that the reads are in order as we take them from the bam file
         ALLOW_SEQ_DICT_INCOMPATIBILITY, // allow dangerous, but not fatal, sequence dictionary incompabilities
+        LENIENT_VCF_PROCESSING,         // allow non-standard values for standard VCF header lines.  Don't worry about size differences between header and values, etc.
         @EnumerationArgumentDefault // set the ALL value to the default value, so if they specify just -U, we get the ALL
         ALL                         // do not check for all of the above conditions, DEFAULT
     }

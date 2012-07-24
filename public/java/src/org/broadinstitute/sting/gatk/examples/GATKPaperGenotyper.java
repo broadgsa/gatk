@@ -32,7 +32,8 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidSNPGenotypePriors;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -68,8 +69,8 @@ public class GATKPaperGenotyper extends LocusWalker<Integer,Long> implements Tre
         if (ref.getBase() == 'N' || ref.getBase() == 'n') return null; // we don't deal with the N ref base case
 
         ReadBackedPileup pileup = context.getBasePileup().getPileupWithoutMappingQualityZeroReads();
-        double likelihoods[] = DiploidSNPGenotypePriors.getReferencePolarizedPriors(ref.getBase(),
-                DiploidSNPGenotypePriors.HUMAN_HETEROZYGOSITY,
+        double likelihoods[] = getReferencePolarizedPriors(ref.getBase(),
+                UnifiedGenotyperEngine.HUMAN_SNP_HETEROZYGOSITY,
                 0.01);
         // get the bases and qualities from the pileup
         byte bases[] = pileup.getBases();
@@ -104,10 +105,106 @@ public class GATKPaperGenotyper extends LocusWalker<Integer,Long> implements Tre
     }
 
     /**
-     * Provide an initial value for reduce computations. In this case we simply return an empty list
+     * Takes reference base, and three priors for hom-ref, het, hom-var, and fills in the priors vector
+     * appropriately.
      *
-     * @return Initial value of reduce.
+     * Suppose A is the reference base, and we are given the probability of being hom-ref, het, and hom-var,
+     * and that pTriSateGenotype is the true probability of observing reference A and a true genotype of B/C
+     * then this sets the priors to:
+     *
+     * AA = hom-ref
+     * AC = AG = AT = (het - pTriStateGenotype) / 3
+     * CC = GG = TT = hom-var / 3
+     * CG = CT = GT = pTriStateGenotype / 3
+     *
+     * So that we get:
+     *
+     * hom-ref + 3 * (het - pTriStateGenotype) / 3 + 3 * hom-var / 3 + 3 * pTriStateGenotype
+     * hom-ref + het - pTriStateGenotype + hom-var + pTriStateGenotype
+     * hom-ref + het + hom-var
+     * = 1
+     *
+     * @param ref
+     * @param heterozyosity
+     * @param pRefError
      */
+    public static double[] getReferencePolarizedPriors(byte ref, double heterozyosity, double pRefError ) {
+        if ( ! MathUtils.isBounded(pRefError, 0.0, 0.01) ) {
+            throw new RuntimeException(String.format("BUG: p Reference error is out of bounds (0.0 - 0.01) is allow range %f", pRefError));
+        }
+
+        double pTriStateGenotype = heterozyosity * pRefError;
+//        if ( pTriStateGenotype >= heterozyosity ) {
+//            throw new RuntimeException(String.format("p Tristate genotype %f is greater than the heterozygosity %f", pTriStateGenotype, heterozyosity));
+//        }
+
+        double pHomRef = heterozygosity2HomRefProbability(heterozyosity);
+        double pHet    = heterozygosity2HetProbability(heterozyosity);
+        double pHomVar = heterozygosity2HomVarProbability(heterozyosity);
+
+        if (MathUtils.compareDoubles(pHomRef + pHet + pHomVar, 1.0) != 0) {
+            throw new RuntimeException(String.format("BUG: Prior probabilities don't sum to one => %f, %f, %f", pHomRef, pHet, pHomVar));
+        }
+
+        double[] priors = new double[DiploidGenotype.values().length];
+
+        for ( DiploidGenotype g : DiploidGenotype.values() ) {
+            double POfG;
+
+            final double nOnRefHets = 3;
+            final double nOffRefHets = 3;
+            final double nHomVars = 3;
+
+            if ( g.isHomRef(ref) )      { POfG = pHomRef; }
+            else if ( g.isHomVar(ref) ) { POfG = pHomVar / nHomVars; }
+            else if ( g.isHetRef(ref) ) { POfG = (pHet - pTriStateGenotype ) / nOnRefHets; }
+            else                        { POfG = pTriStateGenotype / nOffRefHets; }
+
+            priors[g.ordinal()] = Math.log10(POfG);
+        }
+
+        return priors;
+    }
+
+    /**
+     *
+     * @param h
+     * @return
+     */
+    public static double heterozygosity2HomRefProbability(double h) {
+        if (MathUtils.isNegative(h)) {
+            throw new RuntimeException(String.format("Heterozygous value is bad %f", h));
+        }
+
+        double v = 1.0 - (3.0 * h / 2.0);
+        if (MathUtils.isNegative(v)) {
+            throw new RuntimeException(String.format("Heterozygous value is bad %f", h));
+        }
+
+        return v;
+    }
+
+    public static double heterozygosity2HetProbability(double h) {
+        if (MathUtils.isNegative(h)) {
+            throw new RuntimeException(String.format("Heterozygous value is bad %f", h));
+        }
+
+        return h;
+    }
+
+    public static double heterozygosity2HomVarProbability(double h) {
+        if (MathUtils.isNegative(h)) {
+            throw new RuntimeException(String.format("Heterozygous value is bad %f", h));
+        }
+
+        return h / 2.0;
+    }
+
+    /**
+        * Provide an initial value for reduce computations. In this case we simply return an empty list
+        *
+        * @return Initial value of reduce.
+        */
     public Long reduceInit() {
         return 0L;
     }

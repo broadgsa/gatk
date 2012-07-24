@@ -20,7 +20,7 @@ public class VCFFormatHeaderLine extends VCFCompoundHeaderLine {
         super(name, count, type, description, SupportedHeaderLineType.FORMAT);
     }
 
-    protected VCFFormatHeaderLine(String line, VCFHeaderVersion version) {
+    public VCFFormatHeaderLine(String line, VCFHeaderVersion version) {
         super(line, version, SupportedHeaderLineType.FORMAT);
     }
 

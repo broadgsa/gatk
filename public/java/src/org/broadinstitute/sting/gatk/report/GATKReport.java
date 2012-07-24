@@ -25,12 +25,12 @@
 package org.broadinstitute.sting.gatk.report;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.*;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 
 /**
@@ -38,7 +38,7 @@ import java.util.TreeMap;
  */
 public class GATKReport {
     public static final String GATKREPORT_HEADER_PREFIX = "#:GATKReport.";
-    public static final GATKReportVersion LATEST_REPORT_VERSION = GATKReportVersion.V1_0;
+    public static final GATKReportVersion LATEST_REPORT_VERSION = GATKReportVersion.V1_1;
     private static final String SEPARATOR = ":";
     private GATKReportVersion version = LATEST_REPORT_VERSION;
 
@@ -70,7 +70,7 @@ public class GATKReport {
 
     /**
      * Create a new GATK report from GATK report tables
-     * @param tables Any number of tables that you want ot add to the report
+     * @param tables Any number of tables that you want to add to the report
      */
     public GATKReport(GATKReportTable... tables) {
         for( GATKReportTable table: tables)
@@ -103,12 +103,10 @@ public class GATKReport {
 
         int nTables = Integer.parseInt(reportHeader.split(":")[2]);
 
-        // Read each tables according ot the number of tables
+        // Read each table according ot the number of tables
         for (int i = 0; i < nTables; i++) {
             addTable(new GATKReportTable(reader, version));
         }
-
-
     }
 
     /**
@@ -116,9 +114,10 @@ public class GATKReport {
      *
      * @param tableName        the name of the table
      * @param tableDescription the description of the table
+     * @param numColumns       the number of columns in this table
      */
-    public void addTable(String tableName, String tableDescription) {
-        addTable(tableName, tableDescription, true);
+    public void addTable(final String tableName, final String tableDescription, final int numColumns) {
+        addTable(tableName, tableDescription, numColumns, false);
     }
 
     /**
@@ -126,10 +125,11 @@ public class GATKReport {
      *
      * @param tableName        the name of the table
      * @param tableDescription the description of the table
-     * @param sortByPrimaryKey whether to sort the rows by the primary key
+     * @param numColumns       the number of columns in this table
+     * @param sortByRowID      whether to sort the rows by the row ID
      */
-    public void addTable(String tableName, String tableDescription, boolean sortByPrimaryKey) {
-        GATKReportTable table = new GATKReportTable(tableName, tableDescription, sortByPrimaryKey);
+    public void addTable(final String tableName, final String tableDescription, final int numColumns, final boolean sortByRowID) {
+        GATKReportTable table = new GATKReportTable(tableName, tableDescription, numColumns, sortByRowID);
         tables.put(tableName, table);
     }
 
@@ -142,8 +142,8 @@ public class GATKReport {
         tables.put(table.getTableName(), table);
     }
 
-    public void addTables(List<GATKReportTable> gatkReportTables) {
-        for (GATKReportTable table : gatkReportTables) 
+    public void addTables(List<GATKReportTable> gatkReportTableV2s) {
+        for ( GATKReportTable table : gatkReportTableV2s )
             addTable(table);
     }
 
@@ -187,20 +187,19 @@ public class GATKReport {
 
     /**
      * This is the main function is charge of gathering the reports. It checks that the reports are compatible and then
-     * calls the table atheirng functions.
+     * calls the table gathering functions.
      *
      * @param input another GATKReport of the same format
      */
-    public void combineWith(GATKReport input) {
+    public void concat(GATKReport input) {
 
-        if (!this.isSameFormat(input)) {
+        if ( !isSameFormat(input) ) {
             throw new ReviewedStingException("Failed to combine GATKReport, format doesn't match!");
         }
 
-        for (String tableName : input.tables.keySet()) {
-            tables.get(tableName).combineWith(input.getTable(tableName));
+        for ( Map.Entry<String, GATKReportTable> table : tables.entrySet() ) {
+            table.getValue().concat(input.getTable(table.getKey()));
         }
-
     }
 
     public GATKReportVersion getVersion() {
@@ -271,9 +270,43 @@ public class GATKReport {
      * @param columns   The names of the columns in your table
      * @return a simplified GATK report
      */
-    public static GATKReport newSimpleReport(String tableName, String... columns) {
-        GATKReportTable table = new GATKReportTable(tableName, "A simplified GATK table report");
-        table.addPrimaryKey("id", false);
+    public static GATKReport newSimpleReport(final String tableName, final String... columns) {
+        GATKReportTable table = new GATKReportTable(tableName, "A simplified GATK table report", columns.length);
+
+        for (String column : columns) {
+            table.addColumn(column, "");
+        }
+
+        GATKReport output = new GATKReport();
+        output.addTable(table);
+
+        return output;
+    }
+
+    /**
+     * The constructor for a simplified GATK Report. Simplified GATK report are designed for reports that do not need
+     * the advanced functionality of a full GATK Report.
+     * <p/>
+     * A simple GATK Report consists of:
+     * <p/>
+     * - A single table
+     * - No primary key ( it is hidden )
+     * <p/>
+     * Optional:
+     * - Only untyped columns. As long as the data is an Object, it will be accepted.
+     * - Default column values being empty strings.
+     * <p/>
+     * Limitations:
+     * <p/>
+     * - A simple GATK report cannot contain multiple tables.
+     * - It cannot contain typed columns, which prevents arithmetic gathering.
+     *
+     * @param tableName The name of your simple GATK report table
+     * @param columns   The names of the columns in your table
+     * @return a simplified GATK report
+     */
+    public static GATKReport newSimpleReport(final String tableName, final List<String> columns) {
+        GATKReportTable table = new GATKReportTable(tableName, "A simplified GATK table report", columns.size());
 
         for (String column : columns) {
             table.addColumn(column, "");
@@ -289,48 +322,43 @@ public class GATKReport {
      * This method provides an efficient way to populate a simplified GATK report. This method will only work on reports
      * that qualify as simplified GATK reports. See the newSimpleReport() constructor for more information.
      *
-     * @param values the row of data to be added to the table.
+     * @param values     the row of data to be added to the table.
      *               Note: the number of arguments must match the columns in the table.
      */
-    public void addRow(Object... values) {
-        // Must be a simplified GATK Report
-        if (isSimpleReport()) {
+    public void addRow(final Object... values) {
+        // Must be a simple report
+        if ( tables.size() != 1 )
+            throw new ReviewedStingException("Cannot write a row to a complex GATK Report");
 
-            GATKReportTable table = tables.firstEntry().getValue();
-            if (table.getColumns().size() != values.length) {
-                throw new StingException("The number of arguments in addRow() must match the number of columns in the table");
-            }
+        GATKReportTable table = tables.firstEntry().getValue();
+        if ( table.getNumColumns() != values.length )
+            throw new ReviewedStingException("The number of arguments in writeRow() must match the number of columns in the table");
 
-            int counter = table.getNumRows() + 1;
-            int i = 0;
-
-            for (String columnName : table.getColumns().keySet()) {
-                table.set(counter, columnName, values[i]);
-                i++;
-            }
-
-        } else {
-            throw new StingException("Cannot add a Row to a non-Simplified GATK Report");
-        }
-
-
+        final int rowIndex = table.getNumRows();
+        for ( int i = 0; i < values.length; i++ )
+            table.set(rowIndex, i, values[i]);
     }
 
     /**
-     * Checks if the GATK report qualifies as a "simple" GATK report
+     * This method provides an efficient way to populate a simplified GATK report. This method will only work on reports
+     * that qualify as simplified GATK reports. See the newSimpleReport() constructor for more information.
      *
-     * @return true is the report is a simplified GATK report
+     * @param values     the row of data to be added to the table.
+     *               Note: the number of arguments must match the columns in the table.
      */
-    private boolean isSimpleReport() {
-        if (tables.size() != 1)
-            return false;
+    public void addRowList(final List<Object> values) {
+        if ( tables.size() != 1 )
+            throw new ReviewedStingException("Cannot write a row to a complex GATK Report");
 
         GATKReportTable table = tables.firstEntry().getValue();
+        if ( table.getNumColumns() != values.size() )
+            throw new ReviewedStingException("The number of arguments in writeRow() must match the number of columns in the table");
 
-        if (!table.getPrimaryKeyName().equals("id"))
-            return false;
-
-        return true;
-
+        final int rowIndex = table.getNumRows();
+        int idx = 0;
+        for ( Object value : values ) {
+            table.set(rowIndex,idx,value);
+            idx++;
+        }
     }
 }

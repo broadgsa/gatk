@@ -25,15 +25,15 @@
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 import org.apache.log4j.Logger;
-import org.broad.tribble.readers.AsciiLineReader;
-import org.broad.tribble.readers.LineReader;
+import org.broad.tribble.AbstractFeatureReader;
+import org.broad.tribble.FeatureReader;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
+import java.util.Iterator;
 import java.util.Map;
 
 
@@ -56,17 +56,17 @@ public class VCFDiffableReader implements DiffableReader {
         DiffNode root = DiffNode.rooted(file.getName());
         try {
             // read the version line from the file
-            LineReader lineReader = new AsciiLineReader(new FileInputStream(file));
-            final String version = lineReader.readLine();
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            final String version = br.readLine();
             root.add("VERSION", version);
-            lineReader.close();
+            br.close();
 
-            lineReader = new AsciiLineReader(new FileInputStream(file));
-            VCFCodec vcfCodec = new VCFCodec();
+            final VCFCodec vcfCodec = new VCFCodec();
+            vcfCodec.disableOnTheFlyModifications(); // must be read as state is stored in reader itself
 
-            // must be read as state is stored in reader itself
-            VCFHeader header = (VCFHeader)vcfCodec.readHeader(lineReader);
-            for ( VCFHeaderLine headerLine : header.getMetaData() ) {
+            FeatureReader<VariantContext> reader = AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), vcfCodec, false);
+            VCFHeader header = (VCFHeader)reader.getHeader();
+            for ( VCFHeaderLine headerLine : header.getMetaDataInInputOrder() ) {
                 String key = headerLine.getKey();
                 if ( headerLine instanceof VCFIDHeaderLine)
                     key += "_" + ((VCFIDHeaderLine) headerLine).getID();
@@ -76,14 +76,11 @@ public class VCFDiffableReader implements DiffableReader {
                     root.add(key, headerLine.toString());
             }
 
-            String line = lineReader.readLine();
             int count = 0, nRecordsAtPos = 1;
             String prevName = "";
-            while ( line != null ) {
-                if ( count++ > maxElementsToRead && maxElementsToRead != -1)
-                    break;
-
-                VariantContext vc = (VariantContext)vcfCodec.decode(line);
+            Iterator<VariantContext> it = reader.iterator();
+            while ( it.hasNext() ) {
+                VariantContext vc = it.next();
                 String name = vc.getChr() + ":" + vc.getStart();
                 if ( name.equals(prevName) ) {
                     name += "_" + ++nRecordsAtPos;
@@ -99,7 +96,9 @@ public class VCFDiffableReader implements DiffableReader {
                 vcRoot.add("REF", vc.getReference());
                 vcRoot.add("ALT", vc.getAlternateAlleles());
                 vcRoot.add("QUAL", vc.hasLog10PError() ? vc.getLog10PError() * -10 : VCFConstants.MISSING_VALUE_v4);
-                vcRoot.add("FILTER", vc.getFilters());
+                vcRoot.add("FILTER", ! vc.filtersWereApplied() // needs null to differentiate between PASS and .
+                        ? VCFConstants.MISSING_VALUE_v4
+                        : ( vc.getFilters().isEmpty() ? VCFConstants.PASSES_FILTERS_v4 : vc.getFilters()) );
 
                 // add info fields
                 for (Map.Entry<String, Object> attribute : vc.getAttributes().entrySet()) {
@@ -110,9 +109,13 @@ public class VCFDiffableReader implements DiffableReader {
                 for (Genotype g : vc.getGenotypes() ) {
                     DiffNode gRoot = DiffNode.empty(g.getSampleName(), vcRoot);
                     gRoot.add("GT", g.getGenotypeString());
-                    gRoot.add("GQ", g.hasLog10PError() ? g.getLog10PError() * -10 : VCFConstants.MISSING_VALUE_v4 );
+                    if ( g.hasGQ() ) gRoot.add("GQ", g.getGQ() );
+                    if ( g.hasDP() ) gRoot.add("DP", g.getDP() );
+                    if ( g.hasAD() ) gRoot.add("AD", Utils.join(",", g.getAD()));
+                    if ( g.hasPL() ) gRoot.add("PL", Utils.join(",", g.getPL()));
+                    if ( g.getFilters() != null ) gRoot.add("FT", g.getFilters());
 
-                    for (Map.Entry<String, Object> attribute : g.getAttributes().entrySet()) {
+                    for (Map.Entry<String, Object> attribute : g.getExtendedAttributes().entrySet()) {
                         if ( ! attribute.getKey().startsWith("_") )
                             gRoot.add(attribute.getKey(), attribute.getValue());
                     }
@@ -121,10 +124,12 @@ public class VCFDiffableReader implements DiffableReader {
                 }
 
                 root.add(vcRoot);
-                line = lineReader.readLine();
+                count += vcRoot.size();
+                if ( count > maxElementsToRead && maxElementsToRead != -1)
+                    break;
             }
 
-            lineReader.close();
+            reader.close();
         } catch ( IOException e ) {
             return null;
         }

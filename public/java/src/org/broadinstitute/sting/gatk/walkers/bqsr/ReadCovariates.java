@@ -1,9 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-
-import java.util.BitSet;
-
 /**
  * The object temporarily held by a read that describes all of it's covariates.
  *
@@ -13,68 +9,56 @@ import java.util.BitSet;
  * @since 2/8/12
  */
 public class ReadCovariates {
-    private final BitSet[][] mismatchesKeySet;
-    private final BitSet[][] insertionsKeySet;
-    private final BitSet[][] deletionsKeySet;
+    private final int[][][] keys;
 
-    private int nextCovariateIndex;
+    private int currentCovariateIndex = 0;
 
-    public ReadCovariates(int readLength, int numberOfCovariates) {
-        this.mismatchesKeySet = new BitSet[readLength][numberOfCovariates];
-        this.insertionsKeySet = new BitSet[readLength][numberOfCovariates];
-        this.deletionsKeySet = new BitSet[readLength][numberOfCovariates];
-        this.nextCovariateIndex = 0;
+    public ReadCovariates(final int readLength, final int numberOfCovariates) {
+        keys = new int[EventType.values().length][readLength][numberOfCovariates];
     }
 
-    public void addCovariate(CovariateValues covariate) {
-        transposeCovariateValues(mismatchesKeySet, covariate.getMismatches());
-        transposeCovariateValues(insertionsKeySet, covariate.getInsertions());
-        transposeCovariateValues(deletionsKeySet, covariate.getDeletions());
-        nextCovariateIndex++;
+    public void setCovariateIndex(final int index) {
+        currentCovariateIndex = index;
     }
 
-    public BitSet[] getKeySet(final int readPosition, final EventType errorModel) {
-        switch (errorModel) {
-            case BASE_SUBSTITUTION:
-                return getMismatchesKeySet(readPosition);
-            case BASE_INSERTION:
-                return getInsertionsKeySet(readPosition);
-            case BASE_DELETION:
-                return getDeletionsKeySet(readPosition);
-            default:
-                throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel);
-        }
+    public void addCovariate(final int mismatch, final int insertion, final int deletion, final int readOffset) {
+        keys[EventType.BASE_SUBSTITUTION.index][readOffset][currentCovariateIndex] = mismatch;
+        keys[EventType.BASE_INSERTION.index][readOffset][currentCovariateIndex] = insertion;
+        keys[EventType.BASE_DELETION.index][readOffset][currentCovariateIndex] = deletion;
     }
 
-    public BitSet[] getMismatchesKeySet(int readPosition) {
-        return mismatchesKeySet[readPosition];
+    public int[] getKeySet(final int readPosition, final EventType errorModel) {
+        return keys[errorModel.index][readPosition];
     }
 
-    public BitSet[] getInsertionsKeySet(int readPosition) {
-        return insertionsKeySet[readPosition];
+    public int[][] getKeySet(final EventType errorModel) {
+        return keys[errorModel.index];
     }
 
-    public BitSet[] getDeletionsKeySet(int readPosition) {
-        return deletionsKeySet[readPosition];
+    public int[] getMismatchesKeySet(final int readPosition) {
+        return keys[EventType.BASE_SUBSTITUTION.index][readPosition];
     }
 
-    private void transposeCovariateValues(BitSet[][] keySet, BitSet[] covariateValues) {
-        for (int i = 0; i < covariateValues.length; i++)
-            keySet[i][nextCovariateIndex] = covariateValues[i];
+    public int[] getInsertionsKeySet(final int readPosition) {
+        return keys[EventType.BASE_INSERTION.index][readPosition];
+    }
+
+    public int[] getDeletionsKeySet(final int readPosition) {
+        return keys[EventType.BASE_DELETION.index][readPosition];
     }
 
     /**
      * Testing routines
      */
-    protected BitSet[][] getMismatchesKeySet() {
-        return mismatchesKeySet;
+    protected int[][] getMismatchesKeySet() {
+        return keys[EventType.BASE_SUBSTITUTION.index];
     }
 
-    protected BitSet[][] getInsertionsKeySet() {
-        return insertionsKeySet;
+    protected int[][] getInsertionsKeySet() {
+        return keys[EventType.BASE_INSERTION.index];
     }
 
-    protected BitSet[][] getDeletionsKeySet() {
-        return deletionsKeySet;
+    protected int[][] getDeletionsKeySet() {
+        return keys[EventType.BASE_DELETION.index];
     }
 }

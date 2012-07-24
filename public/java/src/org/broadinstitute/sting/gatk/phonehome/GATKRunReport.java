@@ -52,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPOutputStream;
 
 
@@ -83,6 +84,10 @@ public class GATKRunReport {
      * exist, no long will be written
      */
     private static File REPORT_SENTINEL = new File(REPORT_DIR.getAbsolutePath() + "/ENABLE");
+
+    // number of milliseconds before the S3 put operation is timed-out:
+    private static final long S3PutTimeOut = 30 * 1000;
+
 
     /**
      * our log
@@ -263,6 +268,58 @@ public class GATKRunReport {
         }
     }
 
+    private class S3PutRunnable implements Runnable {
+
+        public AtomicBoolean isSuccess;
+        private final String key;
+        private final byte[] report;
+
+        public S3Object s3Object;
+        public String errorMsg;
+        public Throwable errorThrow;
+
+        public S3PutRunnable(String key, byte[] report){
+            isSuccess = new AtomicBoolean();
+            this.key = key;
+            this.report = report;
+        }
+
+        public void run() {
+            try {
+                // Your Amazon Web Services (AWS) login credentials are required to manage S3 accounts. These credentials
+                // are stored in an AWSCredentials object:
+
+                // IAM GATK user credentials -- only right is to PutObject into GATK_Run_Report bucket
+                String awsAccessKey = "AKIAJXU7VIHBPDW4TDSQ"; // GATK AWS user
+                String awsSecretKey = "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"; // GATK AWS user
+                AWSCredentials awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
+
+                // To communicate with S3, create a class that implements an S3Service. We will use the REST/HTTP
+                // implementation based on HttpClient, as this is the most robust implementation provided with JetS3t.
+                S3Service s3Service = new RestS3Service(awsCredentials);
+
+                // Create an S3Object based on a file, with Content-Length set automatically and
+                // Content-Type set based on the file's extension (using the Mimetypes utility class)
+                S3Object fileObject = new S3Object(key, report);
+                //logger.info("Created S3Object" + fileObject);
+                //logger.info("Uploading " + localFile + " to AWS bucket");
+                s3Object = s3Service.putObject(REPORT_BUCKET_NAME, fileObject);
+                isSuccess.set(true);
+            } catch ( S3ServiceException e ) {
+                setException("S3 exception occurred", e);
+            } catch ( NoSuchAlgorithmException e ) {
+                setException("Couldn't calculate MD5", e);
+            } catch ( IOException e ) {
+                setException("Couldn't read report file", e);
+            }
+        }
+
+        private void setException(String msg, Throwable e){
+            errorMsg=msg;
+            errorThrow=e;
+        }
+    }
+
     private void postReportToAWSS3() {
         // modifying example code from http://jets3t.s3.amazonaws.com/toolkit/code-samples.html
         this.hostName = Utils.resolveHostname(); // we want to fill in the host name
@@ -280,32 +337,32 @@ public class GATKRunReport {
             Logger mimeTypeLogger = Logger.getLogger(org.jets3t.service.utils.Mimetypes.class);
             mimeTypeLogger.setLevel(Level.FATAL);
 
-            // Your Amazon Web Services (AWS) login credentials are required to manage S3 accounts. These credentials
-            // are stored in an AWSCredentials object:
+            // Set the S3 upload on its own thread with timeout:
+            S3PutRunnable s3run = new S3PutRunnable(key,report);
+            Thread s3thread = new Thread(s3run);
+            s3thread.setDaemon(true);
+            s3thread.setName("S3Put-Thread");
+            s3thread.start();
 
-            // IAM GATK user credentials -- only right is to PutObject into GATK_Run_Report bucket
-            String awsAccessKey = "AKIAJXU7VIHBPDW4TDSQ"; // GATK AWS user
-            String awsSecretKey = "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"; // GATK AWS user
-            AWSCredentials awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
+            s3thread.join(S3PutTimeOut);
 
-            // To communicate with S3, create a class that implements an S3Service. We will use the REST/HTTP
-            // implementation based on HttpClient, as this is the most robust implementation provided with JetS3t.
-            S3Service s3Service = new RestS3Service(awsCredentials);
-
-            // Create an S3Object based on a file, with Content-Length set automatically and
-            // Content-Type set based on the file's extension (using the Mimetypes utility class)
-            S3Object fileObject = new S3Object(key, report);
-            //logger.info("Created S3Object" + fileObject);
-            //logger.info("Uploading " + localFile + " to AWS bucket");
-            S3Object s3Object = s3Service.putObject(REPORT_BUCKET_NAME, fileObject);
-            logger.debug("Uploaded to AWS: " + s3Object);
-            logger.info("Uploaded run statistics report to AWS S3");
-        } catch ( S3ServiceException e ) {
-            exceptDuringRunReport("S3 exception occurred", e);
-        } catch ( NoSuchAlgorithmException e ) {
-            exceptDuringRunReport("Couldn't calculate MD5", e);
+            if(s3thread.isAlive()){
+                s3thread.interrupt();
+                exceptDuringRunReport("Run statistics report upload to AWS S3 timed-out");
+            } else if(s3run.isSuccess.get()) {
+                logger.info("Uploaded run statistics report to AWS S3");
+                logger.debug("Uploaded to AWS: " + s3run.s3Object);
+            } else {
+                if((s3run.errorMsg != null) && (s3run.errorThrow != null)){
+                    exceptDuringRunReport(s3run.errorMsg,s3run.errorThrow);
+                } else {
+                    exceptDuringRunReport("Run statistics report upload to AWS S3 failed");
+                }
+            }
         } catch ( IOException e ) {
             exceptDuringRunReport("Couldn't read report file", e);
+        } catch ( InterruptedException e) {
+            exceptDuringRunReport("Run statistics report upload interrupted", e);
         }
     }
 

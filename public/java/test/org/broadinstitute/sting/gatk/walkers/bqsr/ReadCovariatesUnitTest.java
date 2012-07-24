@@ -6,9 +6,6 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * @author carneiro
  * @since 4/21/12
@@ -38,11 +35,11 @@ public class ReadCovariatesUnitTest {
         coCov.initialize(RAC);
         cyCov.initialize(RAC);
 
-        List<Covariate> requestedCovariates = new ArrayList<Covariate>(4);
-        requestedCovariates.add(rgCov);
-        requestedCovariates.add(qsCov);
-        requestedCovariates.add(coCov);
-        requestedCovariates.add(cyCov);
+        Covariate[] requestedCovariates = new Covariate[4];
+        requestedCovariates[0] = rgCov;
+        requestedCovariates[1] = qsCov;
+        requestedCovariates[2] = coCov;
+        requestedCovariates[3] = cyCov;
 
         ReadCovariates rc = RecalDataManager.computeCovariates(read, requestedCovariates);
 
@@ -53,24 +50,24 @@ public class ReadCovariatesUnitTest {
 
         for (int i = 0; i < length; i++) {
             // check that read group is always the same
-            Assert.assertEquals(rgCov.keyFromBitSet(rc.getMismatchesKeySet(i)[0]), RGID);
-            Assert.assertEquals(rgCov.keyFromBitSet(rc.getInsertionsKeySet(i)[0]), RGID);
-            Assert.assertEquals(rgCov.keyFromBitSet(rc.getDeletionsKeySet(i)[0]),  RGID);
+            Assert.assertEquals(rgCov.formatKey(rc.getMismatchesKeySet(i)[0]), RGID);
+            Assert.assertEquals(rgCov.formatKey(rc.getInsertionsKeySet(i)[0]), RGID);
+            Assert.assertEquals(rgCov.formatKey(rc.getDeletionsKeySet(i)[0]),  RGID);
 
             // check quality score
-            Assert.assertEquals(qsCov.keyFromBitSet(rc.getMismatchesKeySet(i)[1]), "" + mQuals[i]);
-            Assert.assertEquals(qsCov.keyFromBitSet(rc.getInsertionsKeySet(i)[1]), "" + iQuals[i]);
-            Assert.assertEquals(qsCov.keyFromBitSet(rc.getDeletionsKeySet(i)[1]),  "" + dQuals[i]);
+            Assert.assertEquals(qsCov.formatKey(rc.getMismatchesKeySet(i)[1]), "" + mQuals[i]);
+            Assert.assertEquals(qsCov.formatKey(rc.getInsertionsKeySet(i)[1]), "" + iQuals[i]);
+            Assert.assertEquals(qsCov.formatKey(rc.getDeletionsKeySet(i)[1]),  "" + dQuals[i]);
 
             // check context
-            Assert.assertEquals(coCov.keyFromBitSet(rc.getMismatchesKeySet(i)[2]), ContextCovariateUnitTest.expectedContext(read, i, RAC.MISMATCHES_CONTEXT_SIZE));
-            Assert.assertEquals(coCov.keyFromBitSet(rc.getInsertionsKeySet(i)[2]), ContextCovariateUnitTest.expectedContext(read, i, RAC.INSERTIONS_CONTEXT_SIZE));
-            Assert.assertEquals(coCov.keyFromBitSet(rc.getDeletionsKeySet(i)[2]),  ContextCovariateUnitTest.expectedContext(read, i, RAC.DELETIONS_CONTEXT_SIZE));
+            Assert.assertEquals(coCov.formatKey(rc.getMismatchesKeySet(i)[2]), ContextCovariateUnitTest.expectedContext(read, i, RAC.MISMATCHES_CONTEXT_SIZE));
+            Assert.assertEquals(coCov.formatKey(rc.getInsertionsKeySet(i)[2]), ContextCovariateUnitTest.expectedContext(read, i, RAC.INDELS_CONTEXT_SIZE));
+            Assert.assertEquals(coCov.formatKey(rc.getDeletionsKeySet(i)[2]),  ContextCovariateUnitTest.expectedContext(read, i, RAC.INDELS_CONTEXT_SIZE));
 
             // check cycle
-            Assert.assertEquals(cyCov.keyFromBitSet(rc.getMismatchesKeySet(i)[3]), "" + (i+1));
-            Assert.assertEquals(cyCov.keyFromBitSet(rc.getInsertionsKeySet(i)[3]), "" + (i+1));
-            Assert.assertEquals(cyCov.keyFromBitSet(rc.getDeletionsKeySet(i)[3]),  "" + (i+1));
+            Assert.assertEquals(cyCov.formatKey(rc.getMismatchesKeySet(i)[3]), "" + (i+1));
+            Assert.assertEquals(cyCov.formatKey(rc.getInsertionsKeySet(i)[3]), "" + (i+1));
+            Assert.assertEquals(cyCov.formatKey(rc.getDeletionsKeySet(i)[3]),  "" + (i+1));
         }
 
     }

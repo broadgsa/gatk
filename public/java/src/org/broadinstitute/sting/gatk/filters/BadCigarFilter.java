@@ -39,9 +39,11 @@ import net.sf.samtools.SAMRecord;
 public class BadCigarFilter extends ReadFilter {
 
     public boolean filterOut(final SAMRecord rec) {
-        Cigar c = rec.getCigar();
+        final Cigar c = rec.getCigar();
+        if( c.isEmpty() ) { return false; }                                                                             // if there is no Cigar then it can't be bad
+
         boolean previousElementWasIndel = false;
-        CigarOperator lastOp = c.getCigarElement(0).getOperator(); 
+        CigarOperator lastOp = c.getCigarElement(0).getOperator();
 
         if (lastOp == CigarOperator.D)                                                                                  // filter out reads starting with deletion
             return true;

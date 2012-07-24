@@ -26,20 +26,20 @@ package org.broadinstitute.sting.gatk.refdata.tracks;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
+import org.broad.tribble.AbstractFeatureReader;
 import org.broad.tribble.FeatureCodec;
-import org.broad.tribble.FeatureSource;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
-import org.broad.tribble.source.BasicFeatureSource;
-import org.broad.tribble.source.PerformanceLoggingFeatureSource;
 import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.commandline.Tags;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -67,22 +67,21 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * our log, which we use to capture anything from this class
      */
     private final static Logger logger = Logger.getLogger(RMDTrackBuilder.class);
-    public final static boolean MEASURE_TRIBBLE_QUERY_PERFORMANCE = false;
 
     // private sequence dictionary we use to set our tracks with
-    private SAMSequenceDictionary dict = null;
+    private final SAMSequenceDictionary dict;
 
     /**
      * Private genome loc parser to use when building out new locs.
      */
-    private GenomeLocParser genomeLocParser;
+    private final GenomeLocParser genomeLocParser;
 
     /**
      * Validation exclusions, for validating the sequence dictionary.
      */
     private ValidationExclusion.TYPE validationExclusionType;
 
-    FeatureManager featureManager;
+    private final FeatureManager featureManager;
 
     /**
      * Construct an RMDTrackerBuilder, allowing the user to define tracks to build after-the-fact.  This is generally
@@ -90,19 +89,38 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * please talk through your approach with the SE team.
      * @param dict Sequence dictionary to use.
      * @param genomeLocParser Location parser to use.
+     * @param headerForRepairs a VCF header that should be used to repair VCF headers.  Can be null
      * @param validationExclusionType Types of validations to exclude, for sequence dictionary verification.
      */
-    public RMDTrackBuilder(SAMSequenceDictionary dict,
-                           GenomeLocParser genomeLocParser,
+    public RMDTrackBuilder(final SAMSequenceDictionary dict,
+                           final GenomeLocParser genomeLocParser,
+                           final VCFHeader headerForRepairs,
                            ValidationExclusion.TYPE validationExclusionType) {
         this.dict = dict;
         this.validationExclusionType = validationExclusionType;
         this.genomeLocParser = genomeLocParser;
-        featureManager = new FeatureManager();
+        this.featureManager = new FeatureManager(headerForRepairs, GenomeAnalysisEngine.lenientVCFProcessing(validationExclusionType));
     }
 
+    /**
+     * Return the feature manager this RMDTrackBuilder is using the create tribble tracks
+     *
+     * @return
+     */
     public FeatureManager getFeatureManager() {
         return featureManager;
+    }
+
+    /**
+     * Same as full constructor but makes one without a header for repairs
+     * @param dict
+     * @param genomeLocParser
+     * @param validationExclusionType
+     */
+    public RMDTrackBuilder(final SAMSequenceDictionary dict,
+                           final GenomeLocParser genomeLocParser,
+                           ValidationExclusion.TYPE validationExclusionType) {
+        this(dict, genomeLocParser, null, validationExclusionType);
     }
 
     /**
@@ -121,7 +139,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
             throw new UserException.BadArgumentValue("-B",fileDescriptor.getType());
 
         // return a feature reader track
-        Pair<FeatureSource, SAMSequenceDictionary> pair;
+        Pair<AbstractFeatureReader, SAMSequenceDictionary> pair;
         if (inputFile.getAbsolutePath().endsWith(".gz"))
             pair = createTabixIndexedFeatureSource(descriptor, name, inputFile);
         else
@@ -155,11 +173,11 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * @param inputFile the file to load
      * @return a feature reader implementation
      */
-    private Pair<FeatureSource, SAMSequenceDictionary> createTabixIndexedFeatureSource(FeatureManager.FeatureDescriptor descriptor, String name, File inputFile) {
+    private Pair<AbstractFeatureReader, SAMSequenceDictionary> createTabixIndexedFeatureSource(FeatureManager.FeatureDescriptor descriptor, String name, File inputFile) {
         // we might not know the index type, try loading with the default reader constructor
         logger.info("Attempting to blindly load " + inputFile + " as a tabix indexed file");
         try {
-            return new Pair<FeatureSource, SAMSequenceDictionary>(BasicFeatureSource.getFeatureSource(inputFile.getAbsolutePath(), createCodec(descriptor, name)),null);
+            return new Pair<AbstractFeatureReader, SAMSequenceDictionary>(AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name)),null);
         } catch (TribbleException e) {
             throw new UserException(e.getMessage(), e);
         }
@@ -183,12 +201,12 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * @param storageType How the RMD is streamed into the input file.
      * @return the input file as a FeatureReader
      */
-    private Pair<FeatureSource, SAMSequenceDictionary> getFeatureSource(FeatureManager.FeatureDescriptor descriptor,
+    private Pair<AbstractFeatureReader, SAMSequenceDictionary> getFeatureSource(FeatureManager.FeatureDescriptor descriptor,
                                                                         String name,
                                                                         File inputFile,
                                                                         RMDStorageType storageType) {
         // Feature source and sequence dictionary to use as the ultimate reference
-        FeatureSource featureSource = null;
+        AbstractFeatureReader featureSource = null;
         SAMSequenceDictionary sequenceDictionary = null;
 
         // Detect whether or not this source should be indexed.
@@ -215,10 +233,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
                     sequenceDictionary = IndexDictionaryUtils.getSequenceDictionaryFromProperties(index);
                 }
 
-                if ( MEASURE_TRIBBLE_QUERY_PERFORMANCE )
-                    featureSource = new PerformanceLoggingFeatureSource(inputFile.getAbsolutePath(), index, createCodec(descriptor, name));
-                else
-                    featureSource = new BasicFeatureSource(inputFile.getAbsolutePath(), index, createCodec(descriptor, name));
+                featureSource = AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name), index);
             }
             catch (TribbleException e) {
                 throw new UserException(e.getMessage());
@@ -228,10 +243,10 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
             }
         }
         else {
-            featureSource = BasicFeatureSource.getFeatureSource(inputFile.getAbsolutePath(),createCodec(descriptor, name),false);
+            featureSource = AbstractFeatureReader.getFeatureReader(inputFile.getAbsolutePath(), createCodec(descriptor, name), false);
         }
 
-        return new Pair<FeatureSource,SAMSequenceDictionary>(featureSource,sequenceDictionary);
+        return new Pair<AbstractFeatureReader,SAMSequenceDictionary>(featureSource,sequenceDictionary);
     }
 
     /**
@@ -358,7 +373,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
     private Index createIndexInMemory(File inputFile, FeatureCodec codec) {
         // this can take a while, let them know what we're doing
         logger.info("Creating Tribble index in memory for file " + inputFile);
-        Index idx = IndexFactory.createIndex(inputFile, codec, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
+        Index idx = IndexFactory.createDynamicIndex(inputFile, codec, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
         validateAndUpdateIndexSequenceDictionary(inputFile, idx, dict);
         return idx;
     }

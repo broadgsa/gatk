@@ -3,8 +3,9 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -18,14 +19,19 @@ import java.util.*;
  */
 public class RecalibrationReport {
     private QuantizationInfo quantizationInfo;                                                                          // histogram containing the counts for qual quantization (calculated after recalibration is done)
-    private final LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap;                                    // quick access reference to the read group table and its key manager
-    private final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>();                                      // list of all covariates to be used in this calculation
+    private final RecalibrationTables recalibrationTables;                                                              // quick access reference to the tables
+    private final Covariate[] requestedCovariates;                                                                      // list of all covariates to be used in this calculation
+    private final HashMap<String, Integer> optionalCovariateIndexes;
 
     private final GATKReportTable argumentTable;                                                                              // keep the argument table untouched just for output purposes
     private final RecalibrationArgumentCollection RAC;                                                                        // necessary for quantizing qualities with the same parameter
 
+    private final int[] tempRGarray = new int[2];
+    private final int[] tempQUALarray = new int[3];
+    private final int[] tempCOVarray = new int[4];
+
     public RecalibrationReport(final File RECAL_FILE) {
-        GATKReport report = new GATKReport(RECAL_FILE);
+        final GATKReport report = new GATKReport(RECAL_FILE);
 
         argumentTable = report.getTable(RecalDataManager.ARGUMENT_REPORT_TABLE_TITLE);
         RAC = initializeArgumentCollectionTable(argumentTable);
@@ -36,48 +42,51 @@ public class RecalibrationReport {
         Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalDataManager.initializeCovariates(RAC);       // initialize the required and optional covariates
         ArrayList<Covariate> requiredCovariates = covariates.getFirst();
         ArrayList<Covariate> optionalCovariates = covariates.getSecond();
-        requestedCovariates.addAll(requiredCovariates);                                                                 // add all required covariates to the list of requested covariates
-        requestedCovariates.addAll(optionalCovariates);                                                                 // add all optional covariates to the list of requested covariates
+        requestedCovariates = new Covariate[requiredCovariates.size() + optionalCovariates.size()];
+        optionalCovariateIndexes = new HashMap<String, Integer>(optionalCovariates.size());
+        int covariateIndex = 0;
+        for (final Covariate covariate : requiredCovariates)
+            requestedCovariates[covariateIndex++] = covariate;
+        for (final Covariate covariate : optionalCovariates) {
+            requestedCovariates[covariateIndex] = covariate;
+            final String covariateName = covariate.getClass().getSimpleName().split("Covariate")[0];                    // get the name of the covariate (without the "covariate" part of it) so we can match with the GATKReport
+            optionalCovariateIndexes.put(covariateName, covariateIndex-2);
+            covariateIndex++;
+        }
 
         for (Covariate cov : requestedCovariates)
             cov.initialize(RAC);                                                                                        // initialize any covariate member variables using the shared argument collection
 
-        keysAndTablesMap = new LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>>();
-        ArrayList<Covariate> requiredCovariatesToAdd = new ArrayList<Covariate>(requiredCovariates.size());             // incrementally add the covariates to create the recal tables with 1, 2 and 3 covariates.
-        ArrayList<Covariate> optionalCovariatesToAdd = new ArrayList<Covariate>();                                      // initialize an empty array of optional covariates to create the first few tables
-        for (Covariate covariate : requiredCovariates) {
-            requiredCovariatesToAdd.add(covariate);
-            final Map<BitSet, RecalDatum> table;                                                                        // initializing a new recal table for each required covariate (cumulatively)
-            final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariatesToAdd, optionalCovariatesToAdd);     // initializing it's corresponding key manager
+        recalibrationTables = new RecalibrationTables(requestedCovariates, countReadGroups(report.getTable(RecalDataManager.READGROUP_REPORT_TABLE_TITLE)));
 
-            int nRequiredCovariates = requiredCovariatesToAdd.size();                                                   // the number of required covariates defines which table we are looking at (RG, QUAL or ALL_COVARIATES)
-            final String UNRECOGNIZED_REPORT_TABLE_EXCEPTION = "Unrecognized table. Did you add an extra required covariate? This is a hard check.";
-            if (nRequiredCovariates == 1) {                                                                             // if there is only one required covariate, this is the read group table
-                final GATKReportTable reportTable = report.getTable(RecalDataManager.READGROUP_REPORT_TABLE_TITLE);
-                table = parseReadGroupTable(keyManager, reportTable);
-            }
-            else if (nRequiredCovariates == 2 && optionalCovariatesToAdd.isEmpty()) {                                   // when we have both required covariates and no optional covariates we're at the QUAL table
-                final GATKReportTable reportTable = report.getTable(RecalDataManager.QUALITY_SCORE_REPORT_TABLE_TITLE);
-                table = parseQualityScoreTable(keyManager, reportTable);
-            }
-            else
-                throw new ReviewedStingException(UNRECOGNIZED_REPORT_TABLE_EXCEPTION);
+        parseReadGroupTable(report.getTable(RecalDataManager.READGROUP_REPORT_TABLE_TITLE), recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE));
 
-            keysAndTablesMap.put(keyManager, table);                                                                    // adding the pair key+table to the map
-        }
+        parseQualityScoreTable(report.getTable(RecalDataManager.QUALITY_SCORE_REPORT_TABLE_TITLE), recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE));
 
+        parseAllCovariatesTable(report.getTable(RecalDataManager.ALL_COVARIATES_REPORT_TABLE_TITLE), recalibrationTables);
 
-        final BQSRKeyManager keyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);                   // initializing it's corresponding key manager
-        final GATKReportTable reportTable = report.getTable(RecalDataManager.ALL_COVARIATES_REPORT_TABLE_TITLE);
-        final Map<BitSet, RecalDatum> table = parseAllCovariatesTable(keyManager, reportTable);
-        keysAndTablesMap.put(keyManager, table);
     }
 
-    protected RecalibrationReport(QuantizationInfo quantizationInfo, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap, GATKReportTable argumentTable, RecalibrationArgumentCollection RAC) {
+    protected RecalibrationReport(final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final GATKReportTable argumentTable, final RecalibrationArgumentCollection RAC) {
         this.quantizationInfo = quantizationInfo;
-        this.keysAndTablesMap = keysAndTablesMap;
+        this.recalibrationTables = recalibrationTables;
         this.argumentTable = argumentTable;
         this.RAC = RAC;
+        this.requestedCovariates = null;
+        this.optionalCovariateIndexes = null;
+    }
+
+    /**
+     * Counts the number of unique read groups in the table
+     *
+     * @param reportTable            the GATKReport table containing data for this table
+     * @return the number of unique read groups
+     */
+    private int countReadGroups(final GATKReportTable reportTable) {
+        Set<String> readGroups = new HashSet<String>();
+        for ( int i = 0; i < reportTable.getNumRows(); i++ )
+            readGroups.add(reportTable.get(i, RecalDataManager.READGROUP_COLUMN_NAME).toString());
+        return readGroups.size();
     }
 
     /**
@@ -93,29 +102,20 @@ public class RecalibrationReport {
     *
     * @param other the recalibration report to combine with this one
     */
-    public void combine(RecalibrationReport other) {
-        Iterator<Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>>> thisIterator = keysAndTablesMap.entrySet().iterator();
+    public void combine(final RecalibrationReport other) {
 
-        for (Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> otherEntry : other.getKeysAndTablesMap().entrySet()) {
-            Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> thisEntry = thisIterator.next();
+        for (RecalibrationTables.TableType type : RecalibrationTables.TableType.values()) {
+            final NestedIntegerArray<RecalDatum> myTable = recalibrationTables.getTable(type);
+            final NestedIntegerArray<RecalDatum> otherTable = other.recalibrationTables.getTable(type);
 
-            Map<BitSet, RecalDatum> thisTable = thisEntry.getValue();
-            BQSRKeyManager thisKeyManager = thisEntry.getKey();
-            BQSRKeyManager otherKeyManager = otherEntry.getKey();
+            for (final NestedIntegerArray.Leaf row : otherTable.getAllLeaves()) {
+                final RecalDatum myDatum = myTable.get(row.keys);
 
-            for (Map.Entry<BitSet, RecalDatum> otherTableEntry : otherEntry.getValue().entrySet()) {
-                RecalDatum otherDatum = otherTableEntry.getValue();
-                BitSet otherBitKey = otherTableEntry.getKey();
-                List<Object> otherObjectKey = otherKeyManager.keySetFrom(otherBitKey);
-                
-                BitSet thisBitKey = thisKeyManager.bitSetFromKey(otherObjectKey.toArray());
-                RecalDatum thisDatum = thisTable.get(thisBitKey);
-                
-                if (thisDatum == null)
-                    thisTable.put(thisBitKey, otherDatum);
+                if (myDatum == null)
+                    myTable.put((RecalDatum)row.value, row.keys);
                 else
-                    thisDatum.combine(otherDatum);
-            }            
+                    myDatum.combine((RecalDatum)row.value);
+            }
         }
     }
 
@@ -123,91 +123,88 @@ public class RecalibrationReport {
         return quantizationInfo;
     }
 
-    public LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> getKeysAndTablesMap() {
-        return keysAndTablesMap;
+    public RecalibrationTables getRecalibrationTables() {
+        return recalibrationTables;
     }
 
-    public ArrayList<Covariate> getRequestedCovariates() {
+    public Covariate[] getRequestedCovariates() {
         return requestedCovariates;
     }
 
     /**
      * Compiles the list of keys for the Covariates table and uses the shared parsing utility to produce the actual table
      *
-     * @param keyManager             the key manager for this table
      * @param reportTable            the GATKReport table containing data for this table
-     * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key.
-     */
-    private Map<BitSet, RecalDatum> parseAllCovariatesTable(BQSRKeyManager keyManager, GATKReportTable reportTable) {
-        ArrayList<String> columnNamesOrderedList = new ArrayList<String>(5);
-        columnNamesOrderedList.add(RecalDataManager.READGROUP_COLUMN_NAME);
-        columnNamesOrderedList.add(RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
-        columnNamesOrderedList.add(RecalDataManager.COVARIATE_VALUE_COLUMN_NAME);
-        columnNamesOrderedList.add(RecalDataManager.COVARIATE_NAME_COLUMN_NAME);
-        columnNamesOrderedList.add(RecalDataManager.EVENT_TYPE_COLUMN_NAME);
-        return genericRecalTableParsing(keyManager, reportTable, columnNamesOrderedList, false);
+     * @param recalibrationTables    the recalibration tables
+\     */
+    private void parseAllCovariatesTable(final GATKReportTable reportTable, final RecalibrationTables recalibrationTables) {
+        for ( int i = 0; i < reportTable.getNumRows(); i++ ) {
+            final Object rg = reportTable.get(i, RecalDataManager.READGROUP_COLUMN_NAME);
+            tempCOVarray[0] = requestedCovariates[0].keyFromValue(rg);
+            final Object qual = reportTable.get(i, RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
+            tempCOVarray[1] = requestedCovariates[1].keyFromValue(qual);
+
+            final String covName = (String)reportTable.get(i, RecalDataManager.COVARIATE_NAME_COLUMN_NAME);
+            final int covIndex = optionalCovariateIndexes.get(covName);
+            final Object covValue = reportTable.get(i, RecalDataManager.COVARIATE_VALUE_COLUMN_NAME);
+            tempCOVarray[2] = requestedCovariates[RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + covIndex].keyFromValue(covValue);
+
+            final EventType event = EventType.eventFrom((String)reportTable.get(i, RecalDataManager.EVENT_TYPE_COLUMN_NAME));
+            tempCOVarray[3] = event.index;
+
+            recalibrationTables.getTable(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + covIndex).put(getRecalDatum(reportTable, i, false), tempCOVarray);
+        }
     }
 
     /**
      *
      * Compiles the list of keys for the QualityScore table and uses the shared parsing utility to produce the actual table
-     * @param keyManager             the key manager for this table
      * @param reportTable            the GATKReport table containing data for this table
-     * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key.
+     * @param qualTable               the map representing this table
      */
-    private Map<BitSet, RecalDatum> parseQualityScoreTable(BQSRKeyManager keyManager, GATKReportTable reportTable) {
-        ArrayList<String> columnNamesOrderedList = new ArrayList<String>(3);
-        columnNamesOrderedList.add(RecalDataManager.READGROUP_COLUMN_NAME);
-        columnNamesOrderedList.add(RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
-        columnNamesOrderedList.add(RecalDataManager.EVENT_TYPE_COLUMN_NAME);
-        return genericRecalTableParsing(keyManager, reportTable, columnNamesOrderedList, false);
+    private void parseQualityScoreTable(final GATKReportTable reportTable, final NestedIntegerArray<RecalDatum> qualTable) {
+        for ( int i = 0; i < reportTable.getNumRows(); i++ ) {
+            final Object rg = reportTable.get(i, RecalDataManager.READGROUP_COLUMN_NAME);
+            tempQUALarray[0] = requestedCovariates[0].keyFromValue(rg);
+            final Object qual = reportTable.get(i, RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
+            tempQUALarray[1] = requestedCovariates[1].keyFromValue(qual);
+            final EventType event = EventType.eventFrom((String)reportTable.get(i, RecalDataManager.EVENT_TYPE_COLUMN_NAME));
+            tempQUALarray[2] = event.index;
+
+            qualTable.put(getRecalDatum(reportTable, i, false), tempQUALarray);
+        }
     }
 
     /**
      * Compiles the list of keys for the ReadGroup table and uses the shared parsing utility to produce the actual table
      *
-     * @param keyManager             the key manager for this table
      * @param reportTable            the GATKReport table containing data for this table
-     * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key.
+     * @param rgTable                the map representing this table
      */
-    private Map<BitSet, RecalDatum> parseReadGroupTable(BQSRKeyManager keyManager, GATKReportTable reportTable) {
-        ArrayList<String> columnNamesOrderedList = new ArrayList<String>(2);
-        columnNamesOrderedList.add(RecalDataManager.READGROUP_COLUMN_NAME);
-        columnNamesOrderedList.add(RecalDataManager.EVENT_TYPE_COLUMN_NAME);
-        return genericRecalTableParsing(keyManager, reportTable, columnNamesOrderedList, true);
+    private void parseReadGroupTable(final GATKReportTable reportTable, final NestedIntegerArray<RecalDatum> rgTable) {
+        for ( int i = 0; i < reportTable.getNumRows(); i++ ) {
+            final Object rg = reportTable.get(i, RecalDataManager.READGROUP_COLUMN_NAME);
+            tempRGarray[0] = requestedCovariates[0].keyFromValue(rg);
+            final EventType event = EventType.eventFrom((String)reportTable.get(i, RecalDataManager.EVENT_TYPE_COLUMN_NAME));
+            tempRGarray[1] = event.index;
+
+            rgTable.put(getRecalDatum(reportTable, i, true), tempRGarray);
+        }
     }
 
-    /**
-     * Shared parsing functionality for all tables.
-     *
-     * @param keyManager             the key manager for this table
-     * @param reportTable            the GATKReport table containing data for this table
-     * @param columnNamesOrderedList a list of columns to read from the report table and build as key for this particular table
-     * @return a lookup table indexed by bitsets containing the empirical quality and estimated quality reported for every key.
-     */
-    private Map<BitSet, RecalDatum> genericRecalTableParsing(BQSRKeyManager keyManager, GATKReportTable reportTable, ArrayList<String> columnNamesOrderedList, boolean hasEstimatedQReportedColumn) {
-        Map<BitSet, RecalDatum> result = new HashMap<BitSet, RecalDatum>(reportTable.getNumRows()*2);
+    private RecalDatum getRecalDatum(final GATKReportTable reportTable, final int row, final boolean hasEstimatedQReportedColumn) {
+        final long nObservations = (Long) reportTable.get(row, RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME);
+        final long nErrors = (Long) reportTable.get(row, RecalDataManager.NUMBER_ERRORS_COLUMN_NAME);
+        final double empiricalQuality = (Double) reportTable.get(row, RecalDataManager.EMPIRICAL_QUALITY_COLUMN_NAME);
 
-        for (Object primaryKey : reportTable.getPrimaryKeys()) {
-            int nKeys = columnNamesOrderedList.size();
-            Object [] keySet = new Object[nKeys];
-            for (int i = 0; i < nKeys; i++)
-                keySet[i] = reportTable.get(primaryKey, columnNamesOrderedList.get(i));                                 // all these objects are okay in String format, the key manager will handle them correctly (except for the event type (see below)
-            keySet[keySet.length-1] = EventType.eventFrom((String) keySet[keySet.length-1]);                            // the last key is always the event type. We convert the string ("M", "I" or "D") to an enum object (necessary for the key manager).
-            BitSet bitKey = keyManager.bitSetFromKey(keySet);
+        final double estimatedQReported = hasEstimatedQReportedColumn ?                                                 // the estimatedQreported column only exists in the ReadGroup table
+                (Double) reportTable.get(row, RecalDataManager.ESTIMATED_Q_REPORTED_COLUMN_NAME) :                      // we get it if we are in the read group table
+                Byte.parseByte((String) reportTable.get(row, RecalDataManager.QUALITY_SCORE_COLUMN_NAME));              // or we use the reported quality if we are in any other table
 
-            long nObservations = (Long) reportTable.get(primaryKey, RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME);
-            long nErrors = (Long) reportTable.get(primaryKey, RecalDataManager.NUMBER_ERRORS_COLUMN_NAME);
-            double empiricalQuality = (Double) reportTable.get(primaryKey, RecalDataManager.EMPIRICAL_QUALITY_COLUMN_NAME);
-
-            double estimatedQReported = hasEstimatedQReportedColumn ?                                                   // the estimatedQreported column only exists in the ReadGroup table
-                (Double) reportTable.get(primaryKey, RecalDataManager.ESTIMATED_Q_REPORTED_COLUMN_NAME) :               // we get it if we are in the read group table
-                Byte.parseByte((String) reportTable.get(primaryKey, RecalDataManager.QUALITY_SCORE_COLUMN_NAME));       // or we use the reported quality if we are in any other table
-
-            RecalDatum recalDatum = new RecalDatum(nObservations, nErrors, estimatedQReported, empiricalQuality);
-            result.put(bitKey, recalDatum);
-        }
-        return result;
+        final RecalDatum datum = new RecalDatum(nObservations, nErrors, (byte)1);
+        datum.setEstimatedQReported(estimatedQReported);
+        datum.setEmpiricalQuality(empiricalQuality);
+        return datum;
     }
 
     /**
@@ -217,14 +214,14 @@ public class RecalibrationReport {
      * @return an ArrayList with the quantization mappings from 0 to MAX_QUAL_SCORE
      */
     private QuantizationInfo initializeQuantizationTable(GATKReportTable table) {
-        Byte[] quals  = new Byte[QualityUtils.MAX_QUAL_SCORE + 1];
-        Long[] counts = new Long[QualityUtils.MAX_QUAL_SCORE + 1];
-        for (Object primaryKey : table.getPrimaryKeys()) {
-            Object quantizedObject = table.get(primaryKey, RecalDataManager.QUANTIZED_VALUE_COLUMN_NAME);
-            Object countObject = table.get(primaryKey, RecalDataManager.QUANTIZED_COUNT_COLUMN_NAME);
-            byte originalQual = Byte.parseByte(primaryKey.toString());
-            byte quantizedQual = Byte.parseByte(quantizedObject.toString());
-            long quantizedCount = Long.parseLong(countObject.toString());
+        final Byte[] quals  = new Byte[QualityUtils.MAX_QUAL_SCORE + 1];
+        final Long[] counts = new Long[QualityUtils.MAX_QUAL_SCORE + 1];
+        for ( int i = 0; i < table.getNumRows(); i++ ) {
+            final byte originalQual = (byte)i;
+            final Object quantizedObject = table.get(i, RecalDataManager.QUANTIZED_VALUE_COLUMN_NAME);
+            final Object countObject = table.get(i, RecalDataManager.QUANTIZED_COUNT_COLUMN_NAME);
+            final byte quantizedQual = Byte.parseByte(quantizedObject.toString());
+            final long quantizedCount = Long.parseLong(countObject.toString());
             quals[originalQual] = quantizedQual;
             counts[originalQual] = quantizedCount;
         }
@@ -238,63 +235,64 @@ public class RecalibrationReport {
      * @return a RAC object properly initialized with all the objects in the table
      */
     private RecalibrationArgumentCollection initializeArgumentCollectionTable(GATKReportTable table) {
-        RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
+        final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
 
-        for (Object primaryKey : table.getPrimaryKeys()) {
-            Object value = table.get(primaryKey, RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME);
+        for ( int i = 0; i < table.getNumRows(); i++ ) {
+            final String argument = table.get(i, "Argument").toString();
+            Object value = table.get(i, RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME);
             if (value.equals("null"))
                 value = null;                                                                                           // generic translation of null values that were printed out as strings | todo -- add this capability to the GATKReport
 
-            if (primaryKey.equals("covariate") && value != null)
+            if (argument.equals("covariate") && value != null)
                 RAC.COVARIATES = value.toString().split(",");
 
-            else if (primaryKey.equals("standard_covs"))
-                RAC.USE_STANDARD_COVARIATES = Boolean.parseBoolean((String) value);
+            else if (argument.equals("standard_covs"))
+                RAC.DO_NOT_USE_STANDARD_COVARIATES = Boolean.parseBoolean((String) value);
 
-            else if (primaryKey.equals("solid_recal_mode"))
+            else if (argument.equals("solid_recal_mode"))
                 RAC.SOLID_RECAL_MODE = RecalDataManager.SOLID_RECAL_MODE.recalModeFromString((String) value);
 
-            else if (primaryKey.equals("solid_nocall_strategy"))
+            else if (argument.equals("solid_nocall_strategy"))
                 RAC.SOLID_NOCALL_STRATEGY = RecalDataManager.SOLID_NOCALL_STRATEGY.nocallStrategyFromString((String) value);
 
-            else if (primaryKey.equals("mismatches_context_size"))
+            else if (argument.equals("mismatches_context_size"))
                 RAC.MISMATCHES_CONTEXT_SIZE = Integer.parseInt((String) value);
 
-            else if (primaryKey.equals("insertions_context_size"))
-                RAC.INSERTIONS_CONTEXT_SIZE = Integer.parseInt((String) value);
+            else if (argument.equals("indels_context_size"))
+                RAC.INDELS_CONTEXT_SIZE = Integer.parseInt((String) value);
 
-            else if (primaryKey.equals("deletions_context_size"))
-                RAC.DELETIONS_CONTEXT_SIZE = Integer.parseInt((String) value);
-
-            else if (primaryKey.equals("mismatches_default_quality"))
+            else if (argument.equals("mismatches_default_quality"))
                 RAC.MISMATCHES_DEFAULT_QUALITY = Byte.parseByte((String) value);
 
-            else if (primaryKey.equals("insertions_default_quality"))
+            else if (argument.equals("insertions_default_quality"))
                 RAC.INSERTIONS_DEFAULT_QUALITY = Byte.parseByte((String) value);
 
-            else if (primaryKey.equals("deletions_default_quality"))
+            else if (argument.equals("deletions_default_quality"))
                 RAC.DELETIONS_DEFAULT_QUALITY = Byte.parseByte((String) value);
 
-            else if (primaryKey.equals("low_quality_tail"))
+            else if (argument.equals("low_quality_tail"))
                 RAC.LOW_QUAL_TAIL = Byte.parseByte((String) value);
 
-            else if (primaryKey.equals("default_platform"))
+            else if (argument.equals("default_platform"))
                 RAC.DEFAULT_PLATFORM = (String) value;
 
-            else if (primaryKey.equals("force_platform"))
+            else if (argument.equals("force_platform"))
                 RAC.FORCE_PLATFORM = (String) value;
 
-            else if (primaryKey.equals("quantizing_levels"))
+            else if (argument.equals("quantizing_levels"))
                 RAC.QUANTIZING_LEVELS = Integer.parseInt((String) value);
 
-            else if (primaryKey.equals("keep_intermediate_files"))
+            else if (argument.equals("keep_intermediate_files"))
                 RAC.KEEP_INTERMEDIATE_FILES = Boolean.parseBoolean((String) value);
 
-            else if (primaryKey.equals("no_plots"))
+            else if (argument.equals("no_plots"))
                 RAC.NO_PLOTS = Boolean.parseBoolean((String) value);
 
-            else if (primaryKey.equals("recalibration_report"))
+            else if (argument.equals("recalibration_report"))
                 RAC.recalibrationReport = (value == null) ? null : new File((String) value);
+
+            else if (argument.equals("binary_tag_name"))
+                RAC.BINARY_TAG_NAME = (value == null) ? null : (String) value;
         }
 
         return RAC;
@@ -304,56 +302,19 @@ public class RecalibrationReport {
      * this functionality avoids recalculating the empirical qualities, estimated reported quality
      * and quantization of the quality scores during every call of combine(). Very useful for the BQSRGatherer.
      */
-    public void calculateEmpiricalAndQuantizedQualities() {
-        for (Map<BitSet, RecalDatum> table : keysAndTablesMap.values())
-            for (RecalDatum datum : table.values())
-                datum.calcCombinedEmpiricalQuality();
-
-        quantizationInfo = new QuantizationInfo(keysAndTablesMap, RAC.QUANTIZING_LEVELS);
+    public void calculateQuantizedQualities() {
+        quantizationInfo = new QuantizationInfo(recalibrationTables, RAC.QUANTIZING_LEVELS);
     }
 
     public void output(PrintStream output) {
-        RecalDataManager.outputRecalibrationReport(argumentTable, quantizationInfo, keysAndTablesMap, output);
+        RecalDataManager.outputRecalibrationReport(argumentTable, quantizationInfo, recalibrationTables, requestedCovariates, output);
     }
 
     public RecalibrationArgumentCollection getRAC() {
         return RAC;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (!(o instanceof RecalibrationReport))
-            return false;
-        RecalibrationReport other = (RecalibrationReport) o;
-        if (this == o)
-            return true;
-        return isEqualTable(this.keysAndTablesMap, other.keysAndTablesMap);
-    }
-
-    private boolean isEqualTable(LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> t1, LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> t2) {
-        if (t1.size() != t2.size())
-            return false;
-
-        Iterator<Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>>> t1Iterator = t1.entrySet().iterator();
-        Iterator<Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>>> t2Iterator = t2.entrySet().iterator();
-
-        while (t1Iterator.hasNext() && t2Iterator.hasNext()) {
-            Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> t1MapEntry = t1Iterator.next();
-            Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> t2MapEntry = t2Iterator.next();
-
-            if (!(t1MapEntry.getKey().equals(t2MapEntry.getKey())))
-                return false;
-
-            Map<BitSet, RecalDatum> table2 = t2MapEntry.getValue();
-            for (Map.Entry<BitSet, RecalDatum> t1TableEntry : t1MapEntry.getValue().entrySet()) {
-                BitSet t1Key = t1TableEntry.getKey();
-                if (!table2.containsKey(t1Key))
-                    return false;
-                RecalDatum t1Datum = t1TableEntry.getValue();
-                if (!t1Datum.equals(table2.get(t1Key)))
-                    return false;
-            }
-        }
-        return true;
+    public Covariate[] getCovariates() {
+        return requestedCovariates;
     }
 }

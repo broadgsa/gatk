@@ -30,7 +30,7 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
-import org.broad.tribble.Feature;
+import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -51,13 +51,19 @@ import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -192,7 +198,16 @@ public class GenomeAnalysisEngine {
     private BaseRecalibration baseRecalibration = null;
     public BaseRecalibration getBaseRecalibration() { return baseRecalibration; }
     public boolean hasBaseRecalibration() { return baseRecalibration != null; }
-    public void setBaseRecalibration(File recalFile, int quantizationLevels) { baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels); }
+    public void setBaseRecalibration(final File recalFile, final int quantizationLevels, final boolean disableIndelQuals, final int preserveQLessThan, final boolean emitOriginalQuals) {
+        baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, disableIndelQuals, preserveQLessThan, emitOriginalQuals);
+    }
+
+    /**
+     * Utility method to determine whether this is the lite version of the GATK
+     */
+    public boolean isGATKLite() {
+        return GATKLiteUtils.isGATKLite();
+    }
 
     /**
      * Actually run the GATK with the specified walker.
@@ -204,8 +219,10 @@ public class GenomeAnalysisEngine {
         //monitor.start();
         setStartTime(new java.util.Date());
 
+        final GATKArgumentCollection args = this.getArguments();
+
         // validate our parameters
-        if (this.getArguments() == null) {
+        if (args == null) {
             throw new ReviewedStingException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
         }
 
@@ -213,12 +230,16 @@ public class GenomeAnalysisEngine {
         if (this.walker == null)
             throw new ReviewedStingException("The walker passed to GenomeAnalysisEngine can not be null.");
 
-        if (this.getArguments().nonDeterministicRandomSeed)
+        if (args.nonDeterministicRandomSeed)
             resetRandomGenerator(System.currentTimeMillis());
 
+        // TODO -- REMOVE ME WHEN WE STOP BCF testing
+        if ( args.USE_SLOW_GENOTYPES )
+            GenotypeBuilder.MAKE_FAST_BY_DEFAULT = false;
+
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
-        if (this.getArguments().BQSR_RECAL_FILE != null)
-            setBaseRecalibration(this.getArguments().BQSR_RECAL_FILE, this.getArguments().quantizationLevels);
+        if (args.BQSR_RECAL_FILE != null)
+            setBaseRecalibration(args.BQSR_RECAL_FILE, args.quantizationLevels, args.disableIndelQuals, args.PRESERVE_QSCORES_LESS_THAN, args.emitOriginalQuals);
 
         // Determine how the threads should be divided between CPU vs. IO.
         determineThreadAllocation();
@@ -572,7 +593,6 @@ public class GenomeAnalysisEngine {
      * Setup the intervals to be processed
      */
     protected void initializeIntervals() {
-
         // return if no interval arguments at all
         if ( argCollection.intervals == null && argCollection.excludeIntervals == null )
             return;
@@ -580,17 +600,22 @@ public class GenomeAnalysisEngine {
         // Note that the use of '-L all' is no longer supported.
 
         // if include argument isn't given, create new set of all possible intervals
-        GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null ?
-            GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getReference().getSequenceDictionary()) :
-            loadIntervals(argCollection.intervals, argCollection.intervalSetRule));
+
+        Pair<GenomeLocSortedSet, GenomeLocSortedSet> includeExcludePair = IntervalUtils.parseIntervalBindingsPair(
+                this.referenceDataSource,
+                argCollection.intervals,
+                argCollection.intervalSetRule, argCollection.intervalMerging, argCollection.intervalPadding,
+                argCollection.excludeIntervals);
+
+        GenomeLocSortedSet includeSortedSet = includeExcludePair.getFirst();
+        GenomeLocSortedSet excludeSortedSet = includeExcludePair.getSecond();
 
         // if no exclude arguments, can return parseIntervalArguments directly
-        if ( argCollection.excludeIntervals == null )
+        if ( excludeSortedSet == null )
             intervals = includeSortedSet;
 
         // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
         else {
-            GenomeLocSortedSet excludeSortedSet = loadIntervals(argCollection.excludeIntervals, IntervalSetRule.UNION);
             intervals = includeSortedSet.subtractRegions(excludeSortedSet);
 
             // logging messages only printed when exclude (-XL) arguments are given
@@ -601,28 +626,6 @@ public class GenomeAnalysisEngine {
             logger.info(String.format("Excluding %d loci from original intervals (%.2f%% reduction)",
                     toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
         }
-    }
-
-    /**
-     * Loads the intervals relevant to the current execution
-     * @param argList  argument bindings; might include filenames, intervals in samtools notation, or a combination of the above
-     * @param rule     interval merging rule
-     * @return A sorted, merged list of all intervals specified in this arg list.
-     */
-    protected GenomeLocSortedSet loadIntervals( List<IntervalBinding<Feature>> argList, IntervalSetRule rule ) {
-
-        List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>();
-        for ( IntervalBinding intervalBinding : argList ) {
-            List<GenomeLoc> intervals = intervalBinding.getIntervals(this);
-
-            if ( intervals.isEmpty() ) {
-                logger.warn("The interval file " + intervalBinding.getSource() + " contains no intervals that could be parsed.");
-            }
-
-            allIntervals = IntervalUtils.mergeListsBySetOperator(intervals, allIntervals, rule);
-        }
-
-        return IntervalUtils.sortAndMergeIntervals(genomeLocParser, allIntervals, argCollection.intervalMerging);
     }
 
     /**
@@ -795,7 +798,18 @@ public class GenomeAnalysisEngine {
                                                                             SAMSequenceDictionary sequenceDictionary,
                                                                             GenomeLocParser genomeLocParser,
                                                                             ValidationExclusion.TYPE validationExclusionType) {
-        RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser,validationExclusionType);
+        VCFHeader header = null;
+        if ( getArguments().repairVCFHeader != null ) {
+            try {
+                final PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(getArguments().repairVCFHeader));
+                header = (VCFHeader)new VCFCodec().readHeader(pbs).getHeaderValue();
+                pbs.close();
+            } catch ( IOException e ) {
+                throw new UserException.CouldNotReadInputFile(getArguments().repairVCFHeader, e);
+            }
+        }
+
+        RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser, header, validationExclusionType);
 
         List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTriplet fileDescriptor : referenceMetaDataFiles)
@@ -817,6 +831,15 @@ public class GenomeAnalysisEngine {
      */
     public SAMFileHeader getSAMFileHeader() {
         return readsDataSource.getHeader();
+    }
+
+    public boolean lenientVCFProcessing() {
+        return lenientVCFProcessing(argCollection.unsafe);
+    }
+
+    public static boolean lenientVCFProcessing(final ValidationExclusion.TYPE val) {
+        return val == ValidationExclusion.TYPE.ALL
+                || val == ValidationExclusion.TYPE.LENIENT_VCF_PROCESSING;
     }
 
     /**

@@ -60,6 +60,7 @@ import java.util.*;
  */
 public class VariantContextBuilder {
     // required fields
+    private boolean fullyDecoded = false;
     private String source = null;
     private String contig = null;
     private long start = -1;
@@ -107,7 +108,7 @@ public class VariantContextBuilder {
      * @param parent  Cannot be null
      */
     public VariantContextBuilder(VariantContext parent) {
-        if ( parent == null ) throw new ReviewedStingException("BUG: VariantContext parent argument cannot be null in VariantContextBuilder");
+        if ( parent == null ) throw new ReviewedStingException("BUG: VariantContextBuilder parent argument cannot be null in VariantContextBuilder");
         this.alleles = parent.alleles;
         this.attributes = parent.getAttributes();
         this.attributesCanBeModified = false;
@@ -120,6 +121,29 @@ public class VariantContextBuilder {
         this.source = parent.getSource();
         this.start = parent.getStart();
         this.stop = parent.getEnd();
+        this.fullyDecoded = parent.isFullyDecoded();
+    }
+
+    public VariantContextBuilder(VariantContextBuilder parent) {
+        if ( parent == null ) throw new ReviewedStingException("BUG: VariantContext parent argument cannot be null in VariantContextBuilder");
+        this.alleles = parent.alleles;
+        this.attributesCanBeModified = false;
+        this.contig = parent.contig;
+        this.genotypes = parent.genotypes;
+        this.ID = parent.ID;
+        this.log10PError = parent.log10PError;
+        this.referenceBaseForIndel = parent.referenceBaseForIndel;
+        this.source = parent.source;
+        this.start = parent.start;
+        this.stop = parent.stop;
+        this.fullyDecoded = parent.fullyDecoded;
+
+        this.attributes(parent.attributes);
+        this.filters(parent.filters);
+    }
+
+    public VariantContextBuilder copy() {
+        return new VariantContextBuilder(this);
     }
 
     /**
@@ -135,6 +159,24 @@ public class VariantContextBuilder {
         return this;
     }
 
+    public VariantContextBuilder alleles(final List<String> alleleStrings) {
+        List<Allele> alleles = new ArrayList<Allele>(alleleStrings.size());
+
+        for ( int i = 0; i < alleleStrings.size(); i++ ) {
+            alleles.add(Allele.create(alleleStrings.get(i), i == 0));
+        }
+
+        return alleles(alleles);
+    }
+
+    public VariantContextBuilder alleles(final String ... alleleStrings) {
+        return alleles(Arrays.asList(alleleStrings));
+    }
+
+    public List<Allele> getAlleles() {
+        return new ArrayList<Allele>(alleles);
+    }
+
     /**
      * Tells this builder to use this map of attributes alleles for the resulting VariantContext
      *
@@ -144,7 +186,13 @@ public class VariantContextBuilder {
      * @param attributes
      */
     public VariantContextBuilder attributes(final Map<String, Object> attributes) {
-        this.attributes = attributes;
+        if (attributes != null) {
+            this.attributes = attributes;
+        }
+        else {
+            this.attributes = new HashMap<String, Object>();
+        }
+
         this.attributesCanBeModified = true;
         return this;
     }
@@ -182,6 +230,7 @@ public class VariantContextBuilder {
      * Makes the attributes field modifiable.  In many cases attributes is just a pointer to an immutable
      * collection, so methods that want to add / remove records require the attributes to be copied to a
      */
+    @Ensures({"this.attributesCanBeModified"})
     private void makeAttributesModifiable() {
         if ( ! attributesCanBeModified ) {
             this.attributesCanBeModified = true;
@@ -207,7 +256,14 @@ public class VariantContextBuilder {
      * @return
      */
     public VariantContextBuilder filters(final String ... filters) {
-        filters(new HashSet<String>(Arrays.asList(filters)));
+        filters(new LinkedHashSet<String>(Arrays.asList(filters)));
+        return this;
+    }
+
+    @Requires({"filter != null", "!filter.equals(\"PASS\")"})
+    public VariantContextBuilder filter(final String filter) {
+        if ( this.filters == null ) this.filters = new LinkedHashSet<String>(1);
+        this.filters.add(filter);
         return this;
     }
 
@@ -317,6 +373,10 @@ public class VariantContextBuilder {
         return this;
     }
 
+    public VariantContextBuilder referenceBaseForIndel(final String referenceBaseForIndel) {
+        return referenceBaseForIndel(referenceBaseForIndel.getBytes()[0]);
+    }
+
     /**
      * Tells us that the resulting VariantContext should have source field set to source
      * @param source
@@ -396,6 +456,56 @@ public class VariantContextBuilder {
     }
 
     /**
+     * @see #computeEndFromAlleles(java.util.List, int, int) with endForSymbolicAlleles == -1
+     */
+    public VariantContextBuilder computeEndFromAlleles(final List<Allele> alleles, final int start) {
+        return computeEndFromAlleles(alleles, start, -1);
+    }
+
+    /**
+     * Compute the end position for this VariantContext from the alleles themselves
+     *
+     * @see VariantContextUtils.computeEndFromAlleles()
+     *
+     * assigns this builder the stop position computed.
+     *
+     * @param alleles the list of alleles to consider.  The reference allele must be the first one
+     * @param start the known start position of this event
+     * @param endForSymbolicAlleles the end position to use if any of the alleles is symbolic.  Can be -1
+     *                              if no is expected but will throw an error if one is found
+     * @return this builder
+     */
+    @Requires({"! alleles.isEmpty()", "start > 0", "endForSymbolicAlleles == -1 || endForSymbolicAlleles > 0" })
+    public VariantContextBuilder computeEndFromAlleles(final List<Allele> alleles, final int start, final int endForSymbolicAlleles) {
+        stop(VariantContextUtils.computeEndFromAlleles(alleles, start, endForSymbolicAlleles));
+        return this;
+    }
+
+    /**
+     * @return true if this builder contains fully decoded data
+     *
+     * See VariantContext for more information
+     */
+    public boolean isFullyDecoded() {
+        return fullyDecoded;
+    }
+
+    /**
+     * Sets this builder's fully decoded state to true.
+     *
+     * A fully decoded builder indicates that all fields are represented by their
+     * proper java objects (e.g., Integer(10) not "10").
+     *
+     * See VariantContext for more information
+     *
+     * @param isFullyDecoded
+     */
+    public VariantContextBuilder fullyDecoded(boolean isFullyDecoded) {
+        this.fullyDecoded = isFullyDecoded;
+        return this;
+    }
+
+    /**
      * Takes all of the builder data provided up to this point, and instantiates
      * a freshly allocated VariantContext with all of the builder data.  This
      * VariantContext is validated as appropriate and if not failing QC (and
@@ -407,6 +517,6 @@ public class VariantContextBuilder {
     public VariantContext make() {
         return new VariantContext(source, ID, contig, start, stop, alleles,
                 genotypes, log10PError, filters, attributes,
-                referenceBaseForIndel, toValidate);
+                referenceBaseForIndel, fullyDecoded, toValidate);
     }
 }

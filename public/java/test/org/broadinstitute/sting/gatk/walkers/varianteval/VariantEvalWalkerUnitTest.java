@@ -49,13 +49,13 @@ import java.util.*;
 
 
 public class VariantEvalWalkerUnitTest extends BaseTest {
-    VariantEvalWalker VEwalker;
+    VariantEval VEwalker;
     VariantContext eval;
 
 
     @BeforeMethod
     public void init() {
-        VEwalker = new VariantEvalWalker();
+        VEwalker = new VariantEval();
         eval = new VariantContextBuilder("x", "chr1", 1, 1, Collections.singleton(Allele.create("A", true))).make();
     }
 

@@ -17,8 +17,6 @@ import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -74,9 +72,6 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         boolean foundIndel = false;
         while (li.hasNext()) {
             AlignmentContext context = li.next();
-            if(!context.hasBasePileup())
-                continue;
-
             ReadBackedPileup pileup = context.getBasePileup().getBaseFilteredPileup(10);
             for (PileupElement p : pileup) {
                 if (p.isBeforeInsertion()) {

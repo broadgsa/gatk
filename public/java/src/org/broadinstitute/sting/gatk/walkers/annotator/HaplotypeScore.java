@@ -28,7 +28,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
@@ -60,7 +60,7 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
     private final static int MAX_CONSENSUS_HAPLOTYPES_TO_CONSIDER = 50;
     private final static char REGEXP_WILDCARD = '.';
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if (stratifiedContexts.size() == 0) // size 0 means that call was made by someone else and we have no data here
             return null;
 
@@ -74,9 +74,6 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
 
         final int locus = ref.getLocus().getStart() + (ref.getLocus().getStop() - ref.getLocus().getStart()) / 2;
 
-        if ( !context.hasBasePileup() )
-            return null;
-
         final ReadBackedPileup pileup = context.getBasePileup();
 
         // Compute all haplotypes consistent with the current read pileup
@@ -86,7 +83,7 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
         if (haplotypes != null) {
             for (final Genotype genotype : vc.getGenotypes()) {
                 final AlignmentContext thisContext = stratifiedContexts.get(genotype.getSampleName());
-                if (thisContext != null && thisContext.hasBasePileup()) {
+                if (thisContext != null) {
                     final ReadBackedPileup thisPileup = thisContext.getBasePileup();
                     if (vc.isSNP())
                         scoreRA.add(scoreReadsAgainstHaplotypes(haplotypes, thisPileup, contextSize, locus)); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
@@ -376,7 +373,7 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
             }
         }
 
-        // indel likelihoods are stric log-probs, not phred scored
+        // indel likelihoods are strict log-probs, not phred scored
         double overallScore = 0.0;
         for (final double[] readHaplotypeScores : haplotypeScores) {
             overallScore += MathUtils.arrayMin(readHaplotypeScores);

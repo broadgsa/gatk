@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -51,17 +52,17 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
     protected int N;
     protected int MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
+    protected boolean CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS;
 
     protected Logger logger;
     protected PrintStream verboseWriter;
-
-    protected enum GenotypeType { AA, AB, BB }
 
     protected static final double VALUE_NOT_CALCULATED = Double.NEGATIVE_INFINITY;
 
     protected AlleleFrequencyCalculationModel(final UnifiedArgumentCollection UAC, final int N, final Logger logger, final PrintStream verboseWriter) {
         this.N = N;
         this.MAX_ALTERNATE_ALLELES_TO_GENOTYPE = UAC.MAX_ALTERNATE_ALLELES;
+        this.CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS = UAC.CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS;
         this.logger = logger;
         this.verboseWriter = verboseWriter;
     }
@@ -125,4 +126,83 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
                                                       final List<Allele> allelesToUse,
                                                       final boolean assignGenotypes,
                                                       final int ploidy);
+
+
+    // -------------------------------------------------------------------------------------
+    //
+    // protected classes used to store exact model matrix columns
+    //
+    // -------------------------------------------------------------------------------------
+
+    protected static final int HOM_REF_INDEX = 0;  // AA likelihoods are always first
+
+    // a wrapper around the int array so that we can make it hashable
+    protected static final class ExactACcounts {
+
+        protected final int[] counts;
+        private int hashcode = -1;
+
+        public ExactACcounts(final int[] counts) {
+            this.counts = counts;
+        }
+
+        public int[] getCounts() {
+            return counts;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return (obj instanceof ExactACcounts) && Arrays.equals(counts, ((ExactACcounts) obj).counts);
+        }
+
+        @Override
+        public int hashCode() {
+            if ( hashcode == -1 )
+                hashcode = Arrays.hashCode(counts);
+            return hashcode;
+        }
+
+        @Override
+        public String toString() {
+            StringBuffer sb = new StringBuffer();
+            sb.append(counts[0]);
+            for ( int i = 1; i < counts.length; i++ ) {
+                sb.append("/");
+                sb.append(counts[i]);
+            }
+            return sb.toString();
+        }
+    }
+
+    // This class represents a column in the Exact AC calculation matrix
+    protected static final class ExactACset {
+
+        // the counts of the various alternate alleles which this column represents
+        final ExactACcounts ACcounts;
+
+        // the column of the matrix
+        final double[] log10Likelihoods;
+
+        int sum = -1;
+
+        public ExactACset(final int size, final ExactACcounts ACcounts) {
+            this.ACcounts = ACcounts;
+            log10Likelihoods = new double[size];
+            Arrays.fill(log10Likelihoods, Double.NEGATIVE_INFINITY);
+        }
+
+        // sum of all the non-reference alleles
+        public int getACsum() {
+            if ( sum == -1 ) {
+                sum = 0;
+                for ( int count : ACcounts.getCounts() )
+                    sum += count;
+            }
+            return sum;
+        }
+
+        public boolean equals(Object obj) {
+            return (obj instanceof ExactACset) && ACcounts.equals(((ExactACset)obj).ACcounts);
+        }
+    }
 }

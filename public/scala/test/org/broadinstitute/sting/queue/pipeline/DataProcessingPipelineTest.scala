@@ -36,12 +36,12 @@ class DataProcessingPipelineTest {
     spec.name = "DataProcessingPipeline"
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/DataProcessingPipeline.scala",
-      " -R " + BaseTest.testDir + "exampleFASTA.fasta",
-      " -i " + BaseTest.testDir + "exampleBAM.bam",
-      " -D " + BaseTest.testDir + "exampleDBSNP.vcf",
+      " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
+      " -i " + BaseTest.publicTestDir + "exampleBAM.bam",
+      " -D " + BaseTest.publicTestDir + "exampleDBSNP.vcf",
       " -test ",
       " -p " + projectName).mkString
-    spec.fileMD5s += testOut -> "1f85e76de760167a77ed1d9ab4da2936"
+    spec.fileMD5s += testOut -> "0f0b32e94640a8d548b4c1134ad4c075"
     PipelineTest.executeTest(spec)
   }
 
@@ -53,14 +53,14 @@ class DataProcessingPipelineTest {
     spec.name = "DataProcessingPipeline"
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/DataProcessingPipeline.scala",
-      " -R " + BaseTest.testDir + "exampleFASTA.fasta",
-      " -i " + BaseTest.testDir + "exampleBAM.bam",
-      " -D " + BaseTest.testDir + "exampleDBSNP.vcf",
+      " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
+      " -i " + BaseTest.publicTestDir + "exampleBAM.bam",
+      " -D " + BaseTest.publicTestDir + "exampleDBSNP.vcf",
       " -test ",
       " -bwa /home/unix/carneiro/bin/bwa",
       " -bwape ",
       " -p " + projectName).mkString
-    spec.fileMD5s += testOut -> "57416a0abdf9524bc92834d466529708"
+    spec.fileMD5s += testOut -> "6b4f13d22b45d7d617ee959fdc278ed2"
     PipelineTest.executeTest(spec)
   }
 

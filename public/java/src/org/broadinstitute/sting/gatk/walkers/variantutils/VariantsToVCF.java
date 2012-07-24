@@ -35,7 +35,9 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.Reference;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -43,6 +45,8 @@ import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.util.*;
@@ -78,8 +82,8 @@ import java.util.*;
 public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
     @Output(doc="File to which variants should be written",required=true)
-    protected VCFWriter baseWriter = null;
-    private SortingVCFWriter vcfwriter; // needed because hapmap/dbsnp indel records move
+    protected VariantContextWriter baseWriter = null;
+    private VariantContextWriter vcfwriter; // needed because hapmap/dbsnp indel records move
 
     /**
      * Variants from this input file are used by this tool as input.
@@ -104,12 +108,13 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
     private Set<String> allowedGenotypeFormatStrings = new HashSet<String>();
     private boolean wroteHeader = false;
+    private Set<String> samples;
 
     // for dealing with indels in hapmap
     CloseableIterator<GATKFeature> dbsnpIterator = null;
 
     public void initialize() {
-        vcfwriter = new SortingVCFWriter(baseWriter, 40, false);
+        vcfwriter = VariantContextWriterFactory.sortOnTheFly(baseWriter, 40, false);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -128,7 +133,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
             // set the appropriate sample name if necessary
             if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(variants.getName()) ) {
-                Genotype g = Genotype.modifyName(vc.getGenotype(variants.getName()), sampleName);
+                Genotype g = new GenotypeBuilder(vc.getGenotype(variants.getName())).name(sampleName).make();
                 builder.genotypes(g);
             }
 
@@ -215,8 +220,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
             // setup the header fields
             Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
             hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), Arrays.asList(variants.getName())));
-            //hInfo.add(new VCFHeaderLine("source", "VariantsToVCF"));
-            //hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getID()));
+            hInfo.add(VCFStandardHeaderLines.getFormatLine(VCFConstants.GENOTYPE_KEY));
 
             allowedGenotypeFormatStrings.add(VCFConstants.GENOTYPE_KEY);
             for ( VCFHeaderLine field : hInfo ) {
@@ -225,7 +229,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 }
             }
 
-            Set<String> samples = new LinkedHashSet<String>();
+            samples = new LinkedHashSet<String>();
             if ( sampleName != null ) {
                 samples.add(sampleName);
             } else {
@@ -249,6 +253,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         }
 
         vc = VariantContextUtils.purgeUnallowedGenotypeAttributes(vc, allowedGenotypeFormatStrings);
+        vc = VariantContextUtils.addMissingSamples(vc, samples);
         vcfwriter.add(vc);
     }
 

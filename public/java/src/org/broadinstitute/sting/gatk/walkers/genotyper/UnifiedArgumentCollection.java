@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 
 public class UnifiedArgumentCollection {
@@ -37,7 +38,8 @@ public class UnifiedArgumentCollection {
     /**
      * Controls the model used to calculate the probability that a site is variant plus the various sample genotypes in the data at a given locus.
      */
-    @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ -- EXACT is the default option, while GRID_SEARCH is also available.", required = false)
+    @Advanced
+    @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ", required = false)
     protected AlleleFrequencyCalculationModel.Model AFmodel = AlleleFrequencyCalculationModel.Model.EXACT;
 
     /**
@@ -53,7 +55,7 @@ public class UnifiedArgumentCollection {
      * effectively acts as a cap on the base qualities.
      */
     @Argument(fullName = "pcr_error_rate", shortName = "pcr_error", doc = "The PCR error rate to be used for computing fragment-based likelihoods", required = false)
-    public Double PCR_error = DiploidSNPGenotypeLikelihoodsWithCorrectAlleleOrdering.DEFAULT_PCR_ERROR_RATE;
+    public Double PCR_error = DiploidSNPGenotypeLikelihoods.DEFAULT_PCR_ERROR_RATE;
 
     @Argument(fullName = "genotyping_mode", shortName = "gt_mode", doc = "Specifies how to determine the alternate alleles to use for genotyping", required = false)
     public GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY;
@@ -64,18 +66,15 @@ public class UnifiedArgumentCollection {
     /**
      * The minimum phred-scaled Qscore threshold to separate high confidence from low confidence calls. Only genotypes with
      * confidence >= this threshold are emitted as called sites. A reasonable threshold is 30 for high-pass calling (this
-     * is the default). Note that the confidence (QUAL) values for multi-sample low-pass (e.g. 4x per sample) calling might
-     * be significantly smaller with the new EXACT model than with our older GRID_SEARCH model, as the latter tended to
-     * over-estimate the confidence; for low-pass calling we tend to use much smaller thresholds (e.g. 4).
+     * is the default).
      */
-    @Argument(fullName = "standard_min_confidence_threshold_for_calling", shortName = "stand_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be called", required = false)
+    @Argument(fullName = "standard_min_confidence_threshold_for_calling", shortName = "stand_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants should be called", required = false)
     public double STANDARD_CONFIDENCE_FOR_CALLING = 30.0;
 
     /**
-     * the minimum phred-scaled Qscore threshold to emit low confidence calls. Genotypes with confidence >= this but less
-     * than the calling threshold are emitted but marked as filtered.
+     * This argument allows you to emit low quality calls as filtered records.
      */
-    @Argument(fullName = "standard_min_confidence_threshold_for_emitting", shortName = "stand_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be emitted (and filtered if less than the calling threshold)", required = false)
+    @Argument(fullName = "standard_min_confidence_threshold_for_emitting", shortName = "stand_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants should be emitted (and filtered with LowQual if less than the calling threshold)", required = false)
     public double STANDARD_CONFIDENCE_FOR_EMITTING = 30.0;
 
     /**
@@ -117,6 +116,10 @@ public class UnifiedArgumentCollection {
     @Advanced
     @Argument(fullName = "max_alternate_alleles", shortName = "maxAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
     public int MAX_ALTERNATE_ALLELES = 3;
+
+    @Hidden
+    @Argument(fullName = "cap_max_alternate_alleles_for_indels", shortName = "capMaxAllelesForIndels", doc = "Cap the maximum number of alternate alleles to genotype for indel calls at 2; overrides the --max_alternate_alleles argument; GSA production use only", required = false)
+    public boolean CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS = false;
 
     // indel-related arguments
     /**
@@ -167,6 +170,66 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "ignoreSNPAlleles", shortName = "ignoreSNPAlleles", doc = "expt", required = false)
     public boolean IGNORE_SNP_ALLELES = false;
 
+    /*
+        Generalized ploidy argument (debug only): squash all reads into a single pileup without considering sample info
+     */
+    @Hidden
+    @Argument(fullName = "allReadsSP", shortName = "dl", doc = "expt", required = false)
+    public boolean TREAT_ALL_READS_AS_SINGLE_POOL = false;
+
+    /*
+       Generalized ploidy argument (debug only): When building site error models, ignore lane information and build only
+       sample-level error model
+     */
+
+    @Argument(fullName = "ignoreLaneInfo", shortName = "ignoreLane", doc = "Ignore lane when building error model, error model is then per-site", required = false)
+    public boolean IGNORE_LANE_INFO = false;
+
+    /*
+        Generalized ploidy argument: VCF file that contains truth calls for reference sample. If a reference sample is included through argument -refsample,
+        then this argument is required.
+     */
+    @Input(fullName="reference_sample_calls", shortName = "referenceCalls", doc="VCF file with the truth callset for the reference sample", required=false)
+    RodBinding<VariantContext> referenceSampleRod;
+
+    /*
+        Reference sample name: if included, a site-specific error model will be built in order to improve calling quality. This requires ideally
+        that a bar-coded reference sample be included with the polyploid/pooled data in a sequencing experimental design.
+        If argument is absent, no per-site error model is included and calling is done with a generalization of traditional statistical calling.
+     */
+    @Argument(shortName="refsample", fullName="reference_sample_name", doc="Reference sample name.", required=false)
+    String referenceSampleName;
+
+    /*
+        Sample ploidy - equivalent to number of chromosomes per pool. In pooled experiments this should be = # of samples in pool * individual sample ploidy
+     */
+    @Argument(shortName="ploidy", fullName="sample_ploidy", doc="Plody (number of chromosomes) per sample. For pooled data, set to (Number of samples in each pool * Sample Ploidy).", required=false)
+    int samplePloidy = VariantContextUtils.DEFAULT_PLOIDY;
+
+    @Hidden
+    @Argument(shortName="minqs", fullName="min_quality_score", doc="Min quality score to consider. Smaller numbers process faster. Default: Q1.", required=false)
+    byte minQualityScore= 1;
+
+    @Hidden
+    @Argument(shortName="maxqs", fullName="max_quality_score", doc="Max quality score to consider. Smaller numbers process faster. Default: Q40.", required=false)
+    byte maxQualityScore= 40;
+
+    @Hidden
+    @Argument(shortName="site_prior", fullName="site_quality_prior", doc="Phred-Scaled prior quality of the site. Default: Q20.", required=false)
+    byte phredScaledPrior = 20;
+
+    @Hidden
+    @Argument(shortName = "min_call_power", fullName = "min_power_threshold_for_calling", doc="The minimum confidence in the error model to make a call. Number should be between 0 (no power requirement) and 1 (maximum power required).", required = false)
+    double minPower = 0.95;
+
+    @Hidden
+    @Argument(shortName = "min_depth", fullName = "min_reference_depth", doc="The minimum depth required in the reference sample in order to make a call.", required = false)
+    int minReferenceDepth = 100;
+
+    @Hidden
+    @Argument(shortName="ef", fullName="exclude_filtered_reference_sites", doc="Don't include in the analysis sites where the reference sample VCF is filtered. Default: false.", required=false)
+    boolean EXCLUDE_FILTERED_REFERENCE_SITES = false;
+
 
     // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
     public UnifiedArgumentCollection clone() {
@@ -193,6 +256,19 @@ public class UnifiedArgumentCollection {
         uac.INDEL_HAPLOTYPE_SIZE = INDEL_HAPLOTYPE_SIZE;
         uac.alleles = alleles;
         uac.MAX_ALTERNATE_ALLELES = MAX_ALTERNATE_ALLELES;
+        uac.CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS = CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS;
+        uac.GLmodel = GLmodel;
+        uac.TREAT_ALL_READS_AS_SINGLE_POOL = TREAT_ALL_READS_AS_SINGLE_POOL;
+        uac.referenceSampleRod = referenceSampleRod;
+        uac.referenceSampleName = referenceSampleName;
+        uac.samplePloidy = samplePloidy;
+        uac.maxQualityScore = minQualityScore;
+        uac.maxQualityScore = maxQualityScore;
+        uac.phredScaledPrior = phredScaledPrior;
+        uac.minPower = minPower;
+        uac.minReferenceDepth = minReferenceDepth;
+        uac.EXCLUDE_FILTERED_REFERENCE_SITES = EXCLUDE_FILTERED_REFERENCE_SITES;
+        uac.IGNORE_LANE_INFO = IGNORE_LANE_INFO;
 
         // todo- arguments to remove
         uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;

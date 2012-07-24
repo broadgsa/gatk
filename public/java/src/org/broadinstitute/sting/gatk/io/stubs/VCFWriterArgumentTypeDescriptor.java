@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.io.stubs;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
@@ -45,7 +45,7 @@ import java.util.List;
  * @version 0.1
  */
 public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
-    public static final String NO_HEADER_ARG_NAME = "NO_HEADER";
+    public static final String NO_HEADER_ARG_NAME = "no_cmdline_in_header";
     public static final String SITES_ONLY_ARG_NAME = "sites_only";
     public static final HashSet<String> SUPPORTED_ZIPPED_SUFFIXES = new HashSet<String>();
 
@@ -91,12 +91,12 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
      */
     @Override
     public boolean supports( Class type ) {
-        return VCFWriter.class.equals(type);
+        return VariantContextWriter.class.equals(type);
     }
 
     @Override
     public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
-        return Arrays.asList( createDefaultArgumentDefinition(source),createNoHeaderArgumentDefinition(),createSitesOnlyArgumentDefinition());
+        return Arrays.asList( createDefaultArgumentDefinition(source), createNoCommandLineHeaderArgumentDefinition(),createSitesOnlyArgumentDefinition());
     }
 
     /**
@@ -117,7 +117,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) {
         if(!source.isRequired())
             throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");        
-        VCFWriterStub stub = new VCFWriterStub(engine, defaultOutputStream, false, argumentSources, false, false);
+        VariantContextWriterStub stub = new VariantContextWriterStub(engine, defaultOutputStream, false, argumentSources, false, false);
         engine.addOutput(stub);
         return stub;
     }
@@ -144,12 +144,12 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         // Should we compress the output stream?
         boolean compress = isCompressed(writerFileName);
 
-        boolean skipWritingHeader = argumentIsPresent(createNoHeaderArgumentDefinition(),matches);
+        boolean skipWritingCmdLineHeader = argumentIsPresent(createNoCommandLineHeaderArgumentDefinition(),matches);
         boolean doNotWriteGenotypes = argumentIsPresent(createSitesOnlyArgumentDefinition(),matches);
 
         // Create a stub for the given object.
-        VCFWriterStub stub = (writerFile != null) ? new VCFWriterStub(engine, writerFile, compress, argumentSources, skipWritingHeader, doNotWriteGenotypes)
-                                                  : new VCFWriterStub(engine, defaultOutputStream, compress, argumentSources, skipWritingHeader, doNotWriteGenotypes);
+        VariantContextWriterStub stub = (writerFile != null) ? new VariantContextWriterStub(engine, writerFile, compress, argumentSources, skipWritingCmdLineHeader, doNotWriteGenotypes)
+                                                  : new VariantContextWriterStub(engine, defaultOutputStream, compress, argumentSources, skipWritingCmdLineHeader, doNotWriteGenotypes);
 
         // WARNING: Side effects required by engine!
         parsingEngine.addTags(stub,getArgumentTags(matches));
@@ -162,7 +162,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
      * Creates the optional compression level argument for the BAM file.
      * @return Argument definition for the BAM file itself.  Will not be null.
      */
-    private ArgumentDefinition createNoHeaderArgumentDefinition() {
+    private ArgumentDefinition createNoCommandLineHeaderArgumentDefinition() {
         return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
                                        boolean.class,
                                        NO_HEADER_ARG_NAME,

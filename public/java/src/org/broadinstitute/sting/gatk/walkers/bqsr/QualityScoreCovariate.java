@@ -1,10 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
-import org.broadinstitute.sting.utils.BitSetUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-
-import java.util.BitSet;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -43,28 +40,17 @@ public class QualityScoreCovariate implements RequiredCovariate {
 
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
-    public void initialize(final RecalibrationArgumentCollection RAC) {
-    }
+    public void initialize(final RecalibrationArgumentCollection RAC) {}
 
     @Override
-    public CovariateValues getValues(final GATKSAMRecord read) {
-        int readLength = read.getReadLength();
-
-        BitSet[] mismatches = new BitSet[readLength];
-        BitSet[] insertions = new BitSet[readLength];
-        BitSet[] deletions = new BitSet[readLength];
-
-        byte[] baseQualities = read.getBaseQualities();
-        byte[] baseInsertionQualities = read.getBaseInsertionQualities();
-        byte[] baseDeletionQualities = read.getBaseDeletionQualities();
+    public void recordValues(final GATKSAMRecord read, final ReadCovariates values) {
+        final byte[] baseQualities = read.getBaseQualities();
+        final byte[] baseInsertionQualities = read.getBaseInsertionQualities();
+        final byte[] baseDeletionQualities = read.getBaseDeletionQualities();
 
         for (int i = 0; i < baseQualities.length; i++) {
-            mismatches[i] = BitSetUtils.bitSetFrom(baseQualities[i]);
-            insertions[i] = BitSetUtils.bitSetFrom(baseInsertionQualities[i]);
-            deletions[i] = BitSetUtils.bitSetFrom(baseDeletionQualities[i]);
+            values.addCovariate((int)baseQualities[i], (int)baseInsertionQualities[i], (int)baseDeletionQualities[i], i);
         }
-
-        return new CovariateValues(mismatches, insertions, deletions);
     }
 
     // Used to get the covariate's value from input csv file during on-the-fly recalibration
@@ -74,17 +60,17 @@ public class QualityScoreCovariate implements RequiredCovariate {
     }
 
     @Override
-    public String keyFromBitSet(BitSet key) {
-        return String.format("%d", BitSetUtils.longFrom(key));
+    public String formatKey(final int key) {
+        return String.format("%d", key);
     }
 
     @Override
-    public BitSet bitSetFromKey(Object key) {        
-        return (key instanceof String) ? BitSetUtils.bitSetFrom(Byte.parseByte((String) key)) : BitSetUtils.bitSetFrom((Byte) key);
+    public int keyFromValue(final Object value) {
+        return (value instanceof String) ? (int)Byte.parseByte((String) value) : (int)(Byte) value;
     }
 
     @Override
-    public int numberOfBits() {
-        return BitSetUtils.numberOfBitsToRepresent(QualityUtils.MAX_QUAL_SCORE);
+    public int maximumKeyValue() {
+        return QualityUtils.MAX_QUAL_SCORE;
     }
 }

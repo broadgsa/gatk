@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.utils.codecs.vcf;
 
 import org.apache.log4j.Logger;
+import org.broad.tribble.AsciiFeatureCodec;
 import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.NameAwareCodec;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
@@ -12,21 +12,23 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 
-public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
+public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext> implements NameAwareCodec {
     public final static int MAX_ALLELE_SIZE_BEFORE_WARNING = (int)Math.pow(2, 20);
 
-    protected final static Logger log = Logger.getLogger(VCFCodec.class);
+    protected final static Logger log = Logger.getLogger(AbstractVCFCodec.class);
     protected final static int NUM_STANDARD_FIELDS = 8;  // INFO is the 8th column
-
-    protected VCFHeaderVersion version;
 
     // we have to store the list of strings that make up the header until they're needed
     protected VCFHeader header = null;
+    protected VCFHeaderVersion version = null;
 
     // a mapping of the allele
     protected Map<String, List<Allele>> alleleMap = new HashMap<String, List<Allele>>(3);
@@ -47,12 +49,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
     protected final String[] locParts = new String[6];
 
     // for performance we cache the hashmap of filter encodings for quick lookup
-    protected HashMap<String,LinkedHashSet<String>> filterHash = new HashMap<String,LinkedHashSet<String>>();
-
-    // a mapping of the VCF fields to their type, filter fields, and format fields, for quick lookup to validate against
-    TreeMap<String, VCFHeaderLineType> infoFields = new TreeMap<String, VCFHeaderLineType>();
-    TreeMap<String, VCFHeaderLineType> formatFields = new TreeMap<String, VCFHeaderLineType>();
-    Set<String> filterFields = new HashSet<String>();
+    protected HashMap<String,List<String>> filterHash = new HashMap<String,List<String>>();
 
     // we store a name to give to each of the variant contexts we emit
     protected String name = "Unknown";
@@ -60,6 +57,17 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
     protected int lineNo = 0;
 
     protected Map<String, String> stringCache = new HashMap<String, String>();
+
+    protected boolean warnedAboutNoEqualsForNonFlag = false;
+
+    /**
+     * If true, then we'll magically fix up VCF headers on the fly when we read them in
+     */
+    protected boolean doOnTheFlyModifications = true;
+
+    protected AbstractVCFCodec() {
+        super(VariantContext.class);
+    }
 
     /**
      * Creates a LazyParser for a LazyGenotypesContext to use to decode
@@ -92,36 +100,24 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
     public abstract Object readHeader(LineReader reader);
 
     /**
-     * create a genotype map
-     *
-     * @param str the string
-     * @param alleles the list of alleles
-     * @param chr chrom
-     * @param pos position
-     * @return a mapping of sample name to genotype object
-     */
-    public abstract LazyGenotypesContext.LazyData createGenotypeMap(String str, List<Allele> alleles, String chr, int pos);
-
-
-    /**
      * parse the filter string, first checking to see if we already have parsed it in a previous attempt
      * @param filterString the string to parse
      * @return a set of the filters applied
      */
-    protected abstract Set<String> parseFilters(String filterString);
+    protected abstract List<String> parseFilters(String filterString);
 
     /**
-     * create a VCF header
-     * @param headerStrings a list of strings that represent all the ## entries
-     * @param line the single # line (column names)
-     * @return the count of header lines
+     * create a VCF header from a set of header record lines
+     *
+     * @param headerStrings a list of strings that represent all the ## and # entries
+     * @return a VCFHeader object
      */
-    protected Object createHeader(List<String> headerStrings, String line) {
+    protected VCFHeader parseHeaderFromLines( final List<String> headerStrings, final VCFHeaderVersion version ) {
+        this.version = version;
 
-        headerStrings.add(line);
-
-        Set<VCFHeaderLine> metaData = new TreeSet<VCFHeaderLine>();
+        Set<VCFHeaderLine> metaData = new LinkedHashSet<VCFHeaderLine>();
         Set<String> sampleNames = new LinkedHashSet<String>();
+        int contigCounter = 0;
         // iterate over all the passed in strings
         for ( String str : headerStrings ) {
             if ( !str.startsWith(VCFHeader.METADATA_INDICATOR) ) {
@@ -156,19 +152,16 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
 
             } else {
                 if ( str.startsWith(VCFConstants.INFO_HEADER_START) ) {
-                    final VCFInfoHeaderLine info = new VCFInfoHeaderLine(str.substring(7),version);
+                    final VCFInfoHeaderLine info = new VCFInfoHeaderLine(str.substring(7), version);
                     metaData.add(info);
-                    infoFields.put(info.getID(), info.getType());
                 } else if ( str.startsWith(VCFConstants.FILTER_HEADER_START) ) {
                     final VCFFilterHeaderLine filter = new VCFFilterHeaderLine(str.substring(9), version);
                     metaData.add(filter);
-                    filterFields.add(filter.getID());
                 } else if ( str.startsWith(VCFConstants.FORMAT_HEADER_START) ) {
                     final VCFFormatHeaderLine format = new VCFFormatHeaderLine(str.substring(9), version);
                     metaData.add(format);
-                    formatFields.put(format.getID(), format.getType());
                 } else if ( str.startsWith(VCFConstants.CONTIG_HEADER_START) ) {
-                    final VCFSimpleHeaderLine contig = new VCFSimpleHeaderLine(str.substring(9), version, VCFConstants.CONTIG_HEADER_START.substring(2), null);
+                    final VCFContigHeaderLine contig = new VCFContigHeaderLine(str.substring(9), version, VCFConstants.CONTIG_HEADER_START.substring(2), contigCounter++);
                     metaData.add(contig);
                 } else if ( str.startsWith(VCFConstants.ALT_HEADER_START) ) {
                     final VCFSimpleHeaderLine alt = new VCFSimpleHeaderLine(str.substring(6), version, VCFConstants.ALT_HEADER_START.substring(2), Arrays.asList("ID", "Description"));
@@ -181,9 +174,10 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
             }
         }
 
-        header = new VCFHeader(metaData, sampleNames);
-        header.buildVCFReaderMaps(new ArrayList<String>(sampleNames));
-        return header;
+        this.header = new VCFHeader(metaData, sampleNames);
+        if ( doOnTheFlyModifications )
+            this.header = VCFStandardHeaderLines.repairStandardHeaderLines(this.header);
+        return this.header;
     }
 
     /**
@@ -192,81 +186,19 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
      * @return a feature, (not guaranteed complete) that has the correct start and stop
      */
     public Feature decodeLoc(String line) {
-
-        // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
-        if (line.startsWith(VCFHeader.HEADER_INDICATOR)) return null;
-
-        // our header cannot be null, we need the genotype sample names and counts
-        if (header == null) throw new ReviewedStingException("VCF Header cannot be null when decoding a record");
-
-        final int nParts = ParsingUtils.split(line, locParts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
-
-        if ( nParts != 6 )
-            throw new UserException.MalformedVCF("there aren't enough columns for line " + line, lineNo);
-
-        // get our alleles (because the end position depends on them)
-        final String ref = getCachedString(locParts[3].toUpperCase());
-        final String alts = getCachedString(locParts[4].toUpperCase());
-        final List<Allele> alleles = parseAlleles(ref, alts, lineNo);
-
-        // find out our location
-        int start = 0;
-        try {
-            start = Integer.valueOf(locParts[1]);
-        } catch (Exception e) {
-            generateException("the value in the POS field must be an integer but it was " + locParts[1], lineNo);
-        }
-        int stop = start;
-
-        // ref alleles don't need to be single bases for monomorphic sites
-        if ( alleles.size() == 1 ) {
-            stop = start + alleles.get(0).length() - 1;
-        }
-        // we need to parse the INFO field to check for an END tag if it's a symbolic allele
-        else if ( alleles.size() == 2 && alleles.get(1).isSymbolic() ) {
-            final String[] extraParts = new String[4];
-            final int nExtraParts = ParsingUtils.split(locParts[5], extraParts, VCFConstants.FIELD_SEPARATOR_CHAR, true);
-            if ( nExtraParts < 3 )
-                throw new UserException.MalformedVCF("there aren't enough columns for line " + line, lineNo);
-
-            final Map<String, Object> attrs = parseInfo(extraParts[2]);
-            try {
-                stop = attrs.containsKey(VCFConstants.END_KEY) ? Integer.valueOf(attrs.get(VCFConstants.END_KEY).toString()) : start;
-            } catch (Exception e) {
-                throw new UserException.MalformedVCF("the END value in the INFO field is not valid for line " + line, lineNo);
-            }
-        }
-        // handle multi-positional events
-        else if ( !isSingleNucleotideEvent(alleles) ) {
-            stop = clipAlleles(start, ref, alleles, null, lineNo);
-        }
-
-        return new VCFLocFeature(locParts[0], start, stop);
+        return decodeLine(line, false);
     }
-
-    private final static class VCFLocFeature implements Feature {
-
-        final String chr;
-        final int start, stop;
-
-        private VCFLocFeature(String chr, int start, int stop) {
-            this.chr = chr;
-            this.start = start;
-            this.stop = stop;
-        }
-
-        public String getChr() { return chr; }
-        public int getStart() { return start; }
-        public int getEnd() { return stop; }
-    }
-
 
     /**
      * decode the line into a feature (VariantContext)
      * @param line the line
      * @return a VariantContext
      */
-    public Feature decode(String line) {
+    public VariantContext decode(String line) {
+        return decodeLine(line, true);
+    }
+
+    private final VariantContext decodeLine(final String line, final boolean includeGenotypes) {
         // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
         if (line.startsWith(VCFHeader.HEADER_INDICATOR)) return null;
 
@@ -284,15 +216,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
             throw new UserException.MalformedVCF("there aren't enough columns for line " + line + " (we expected " + (header == null ? NUM_STANDARD_FIELDS : NUM_STANDARD_FIELDS + 1) +
                     " tokens, and saw " + nParts + " )", lineNo);
 
-        return parseVCFLine(parts);
-    }
-
-    protected void generateException(String message) {
-        throw new UserException.MalformedVCF(message, lineNo);
-    }
-
-    protected static void generateException(String message, int lineNo) {
-        throw new UserException.MalformedVCF(message, lineNo);
+        return parseVCFLine(parts, includeGenotypes);
     }
 
     /**
@@ -301,7 +225,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
      * @param parts the parts split up
      * @return a variant context object
      */
-    private VariantContext parseVCFLine(String[] parts) {
+    private VariantContext parseVCFLine(final String[] parts, final boolean includeGenotypes) {
         VariantContextBuilder builder = new VariantContextBuilder();
         builder.source(getName());
 
@@ -323,41 +247,23 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         else
             builder.id(parts[2]);
 
-        String ref = getCachedString(parts[3].toUpperCase());
-        String alts = getCachedString(parts[4].toUpperCase());
+        final String ref = getCachedString(parts[3].toUpperCase());
+        final String alts = getCachedString(parts[4].toUpperCase());
         builder.log10PError(parseQual(parts[5]));
-        builder.filters(parseFilters(getCachedString(parts[6])));
+
+        final List<String> filters = parseFilters(getCachedString(parts[6]));
+        if ( filters != null ) builder.filters(new HashSet<String>(filters));
         final Map<String, Object> attrs = parseInfo(parts[7]);
         builder.attributes(attrs);
 
         // get our alleles, filters, and setup an attribute map
-        List<Allele> alleles = parseAlleles(ref, alts, lineNo);
-
-        // find out our current location, and clip the alleles down to their minimum length
-        int stop = pos;
-        // ref alleles don't need to be single bases for monomorphic sites
-        if ( alleles.size() == 1 ) {
-            stop = pos + alleles.get(0).length() - 1;
-        }
-        // we need to parse the INFO field to check for an END tag if it's a symbolic allele
-        else if ( alleles.size() == 2 && alleles.get(1).isSymbolic() && attrs.containsKey(VCFConstants.END_KEY) ) {
-            try {
-                stop = Integer.valueOf(attrs.get(VCFConstants.END_KEY).toString());
-            } catch (Exception e) {
-                generateException("the END value in the INFO field is not valid");
-            }
-        } else if ( !isSingleNucleotideEvent(alleles) ) {
-            ArrayList<Allele> newAlleles = new ArrayList<Allele>();
-            stop = clipAlleles(pos, ref, alleles, newAlleles, lineNo);
-            alleles = newAlleles;
-        }
-        builder.stop(stop);
-        builder.alleles(alleles);
+        final List<Allele> rawAlleles = parseAlleles(ref, alts, lineNo);
+        final List<Allele> alleles = updateBuilderAllelesAndStop(builder, ref, pos, rawAlleles, attrs);
 
         // do we have genotyping data
-        if (parts.length > NUM_STANDARD_FIELDS) {
+        if (parts.length > NUM_STANDARD_FIELDS && includeGenotypes) {
             final LazyGenotypesContext.LazyParser lazyParser = new LazyVCFGenotypesParser(alleles, chr, pos);
-            final int nGenotypes = header.getGenotypeSamples().size();
+            final int nGenotypes = header.getNGenotypeSamples();
             LazyGenotypesContext lazy = new LazyGenotypesContext(lazyParser, parts[8], nGenotypes);
 
             // did we resort the sample names?  If so, we need to load the genotype data
@@ -378,12 +284,29 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         return vc;
     }
 
-    /**
-     *
-     * @return the type of record
-     */
-    public Class<VariantContext> getFeatureType() {
-        return VariantContext.class;
+    private final List<Allele> updateBuilderAllelesAndStop(final VariantContextBuilder builder,
+                                                           final String ref,
+                                                           final int pos,
+                                                           final List<Allele> rawAlleles,
+                                                           final Map<String, Object> attrs) {
+        int endForSymbolicAlleles = pos; // by default we use the pos
+        if ( attrs.containsKey(VCFConstants.END_KEY) ) {
+            // update stop with the end key if provided
+            try {
+                endForSymbolicAlleles = Integer.valueOf(attrs.get(VCFConstants.END_KEY).toString());
+            } catch (Exception e) {
+                generateException("the END value in the INFO field is not valid");
+            }
+        }
+
+        // find out our current location, and clip the alleles down to their minimum length
+        final VCFAlleleClipper.ClippedAlleles clipped = VCFAlleleClipper.clipAlleles(pos, ref, rawAlleles, endForSymbolicAlleles);
+        if ( clipped.getError() != null )
+            generateException(clipped.getError(), lineNo);
+
+        builder.stop(clipped.getStop());
+        builder.alleles(clipped.getClippedAlleles());
+        return clipped.getClippedAlleles();
     }
 
     /**
@@ -440,12 +363,17 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
                 int eqI = infoFieldArray[i].indexOf("=");
                 if ( eqI != -1 ) {
                     key = infoFieldArray[i].substring(0, eqI);
-                    String str = infoFieldArray[i].substring(eqI+1);
+                    String valueString = infoFieldArray[i].substring(eqI+1);
 
                     // split on the INFO field separator
-                    int infoValueSplitSize = ParsingUtils.split(str, infoValueArray, VCFConstants.INFO_FIELD_ARRAY_SEPARATOR_CHAR, false);
+                    int infoValueSplitSize = ParsingUtils.split(valueString, infoValueArray, VCFConstants.INFO_FIELD_ARRAY_SEPARATOR_CHAR, false);
                     if ( infoValueSplitSize == 1 ) {
                         value = infoValueArray[0];
+                        final VCFInfoHeaderLine headerLine = header.getInfoHeaderLine(key);
+                        if ( headerLine != null && headerLine.getType() == VCFHeaderLineType.Flag && value.equals("0") ) {
+                            // deal with the case where a flag field has =0, such as DB=0, by skipping the add
+                            continue;
+                        }
                     } else {
                         ArrayList<String> valueList = new ArrayList<String>(infoValueSplitSize);
                         for ( int j = 0; j < infoValueSplitSize; j++ )
@@ -454,8 +382,22 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
                     }
                 } else {
                     key = infoFieldArray[i];
-                    value = true;
+                    final VCFInfoHeaderLine headerLine = header.getInfoHeaderLine(key);
+                    if ( headerLine != null && headerLine.getType() != VCFHeaderLineType.Flag ) {
+                        if ( ! warnedAboutNoEqualsForNonFlag ) {
+                            log.warn("Found info key " + key + " without a = value, but the header says the field is of type "
+                                    + headerLine.getType() + " but this construct is only value for FLAG type fields");
+                            warnedAboutNoEqualsForNonFlag = true;
+                        }
+
+                        value = VCFConstants.MISSING_VALUE_v4;
+                    } else {
+                        value = true;
+                    }
                 }
+
+                // this line ensures that key/value pairs that look like key=; are parsed correctly as MISSING
+                if ( "".equals(value) ) value = VCFConstants.MISSING_VALUE_v4;
 
                 attributes.put(key, value);
             }
@@ -609,99 +551,6 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
             alleles.add(allele);
     }
 
-    protected static boolean isSingleNucleotideEvent(List<Allele> alleles) {
-        for ( Allele a : alleles ) {
-            if ( a.length() != 1 )
-                return false;
-        }
-        return true;
-    }
-
-    public static int computeForwardClipping(final List<Allele> unclippedAlleles, final byte ref0) {
-        boolean clipping = true;
-        int symbolicAlleleCount = 0;
-
-        for ( Allele a : unclippedAlleles ) {
-            if ( a.isSymbolic() ) {
-                symbolicAlleleCount++;
-                continue;
-            }
-
-            if ( a.length() < 1 || (a.getBases()[0] != ref0) ) {
-                clipping = false;
-                break;
-            }
-        }
-
-        // don't clip if all alleles are symbolic
-        return (clipping && symbolicAlleleCount != unclippedAlleles.size()) ? 1 : 0;
-    }
-
-    public static int computeReverseClipping(final List<Allele> unclippedAlleles, final byte[] ref, final int forwardClipping, final boolean allowFullClip, final int lineNo) {
-        int clipping = 0;
-        boolean stillClipping = true;
-
-        while ( stillClipping ) {
-            for ( final Allele a : unclippedAlleles ) {
-                if ( a.isSymbolic() )
-                    continue;
-
-                // we need to ensure that we don't reverse clip out all of the bases from an allele because we then will have the wrong
-                // position set for the VariantContext (although it's okay to forward clip it all out, because the position will be fine).
-                if ( a.length() - clipping == 0 )
-                    return clipping - (allowFullClip ? 0 : 1);
-
-                if ( a.length() - clipping <= forwardClipping || a.length() - forwardClipping == 0 ) {
-                    stillClipping = false;
-                }
-                else if ( ref.length == clipping ) {
-                    if ( allowFullClip )
-                        stillClipping = false;
-                    else
-                        generateException("bad alleles encountered", lineNo);
-                }
-                else if ( a.getBases()[a.length()-clipping-1] != ref[ref.length-clipping-1] ) {
-                    stillClipping = false;
-                }
-            }
-            if ( stillClipping )
-                clipping++;
-        }
-
-        return clipping;
-    }
-
-    /**
-     * clip the alleles, based on the reference
-     *
-     * @param position the unadjusted start position (pre-clipping)
-     * @param ref the reference string
-     * @param unclippedAlleles the list of unclipped alleles
-     * @param clippedAlleles output list of clipped alleles
-     * @param lineNo the current line number in the file
-     * @return the new reference end position of this event
-     */
-    protected static int clipAlleles(int position, String ref, List<Allele> unclippedAlleles, List<Allele> clippedAlleles, int lineNo) {
-
-        int forwardClipping = computeForwardClipping(unclippedAlleles, (byte)ref.charAt(0));
-        int reverseClipping = computeReverseClipping(unclippedAlleles, ref.getBytes(), forwardClipping, false, lineNo);
-
-        if ( clippedAlleles != null ) {
-            for ( Allele a : unclippedAlleles ) {
-                if ( a.isSymbolic() ) {
-                    clippedAlleles.add(a);
-                } else {
-                    clippedAlleles.add(Allele.create(Arrays.copyOfRange(a.getBases(), forwardClipping, a.getBases().length-reverseClipping), a.isReference()));
-                }
-            }
-        }
-
-        // the new reference length
-        int refLength = ref.length() - reverseClipping;
-
-        return position+Math.max(refLength - 1,0);
-    }
-
     public final static boolean canDecodeFile(final String potentialInput, final String MAGIC_HEADER_LINE) {
         try {
             return isVCFStream(new FileInputStream(potentialInput), MAGIC_HEADER_LINE) ||
@@ -729,5 +578,134 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec {
         } finally {
             try { stream.close(); } catch ( IOException e ) {}
         }
+    }
+
+
+    /**
+     * create a genotype map
+     *
+     * @param str the string
+     * @param alleles the list of alleles
+     * @return a mapping of sample name to genotype object
+     */
+    public LazyGenotypesContext.LazyData createGenotypeMap(final String str,
+                                                              final List<Allele> alleles,
+                                                              final String chr,
+                                                              final int pos) {
+        if (genotypeParts == null)
+            genotypeParts = new String[header.getColumnCount() - NUM_STANDARD_FIELDS];
+
+        int nParts = ParsingUtils.split(str, genotypeParts, VCFConstants.FIELD_SEPARATOR_CHAR);
+        if ( nParts != genotypeParts.length )
+            generateException("there are " + (nParts-1) + " genotypes while the header requires that " + (genotypeParts.length-1) + " genotypes be present for all records", lineNo);
+
+        ArrayList<Genotype> genotypes = new ArrayList<Genotype>(nParts);
+
+        // get the format keys
+        int nGTKeys = ParsingUtils.split(genotypeParts[0], genotypeKeyArray, VCFConstants.GENOTYPE_FIELD_SEPARATOR_CHAR);
+
+        // cycle through the sample names
+        Iterator<String> sampleNameIterator = header.getGenotypeSamples().iterator();
+
+        // clear out our allele mapping
+        alleleMap.clear();
+
+        // cycle through the genotype strings
+        for (int genotypeOffset = 1; genotypeOffset < nParts; genotypeOffset++) {
+            int GTValueSplitSize = ParsingUtils.split(genotypeParts[genotypeOffset], GTValueArray, VCFConstants.GENOTYPE_FIELD_SEPARATOR_CHAR);
+
+            final String sampleName = sampleNameIterator.next();
+            final GenotypeBuilder gb = new GenotypeBuilder(sampleName);
+
+            // check to see if the value list is longer than the key list, which is a problem
+            if (nGTKeys < GTValueSplitSize)
+                generateException("There are too many keys for the sample " + sampleName + ", keys = " + parts[8] + ", values = " + parts[genotypeOffset]);
+
+            int genotypeAlleleLocation = -1;
+            if (nGTKeys >= 1) {
+                gb.maxAttributes(nGTKeys - 1);
+
+                for (int i = 0; i < nGTKeys; i++) {
+                    final String gtKey = genotypeKeyArray[i];
+                    boolean missing = i >= GTValueSplitSize;
+
+                    // todo -- all of these on the fly parsing of the missing value should be static constants
+                    if (gtKey.equals(VCFConstants.GENOTYPE_KEY)) {
+                        genotypeAlleleLocation = i;
+                    } else if ( missing ) {
+                        // if its truly missing (there no provided value) skip adding it to the attributes
+                    } else if (gtKey.equals(VCFConstants.GENOTYPE_FILTER_KEY)) {
+                        final List<String> filters = parseFilters(getCachedString(GTValueArray[i]));
+                        if ( filters != null ) gb.filters(filters);
+                    } else if ( GTValueArray[i].equals(VCFConstants.MISSING_VALUE_v4) ) {
+                        // don't add missing values to the map
+                    } else {
+                        if (gtKey.equals(VCFConstants.GENOTYPE_QUALITY_KEY)) {
+                            if ( GTValueArray[i].equals(VCFConstants.MISSING_GENOTYPE_QUALITY_v3) )
+                                gb.noGQ();
+                            else
+                                gb.GQ((int)Math.round(Double.valueOf(GTValueArray[i])));
+                        } else if (gtKey.equals(VCFConstants.GENOTYPE_ALLELE_DEPTHS)) {
+                            gb.AD(decodeInts(GTValueArray[i]));
+                        } else if (gtKey.equals(VCFConstants.GENOTYPE_PL_KEY)) {
+                            gb.PL(decodeInts(GTValueArray[i]));
+                        } else if (gtKey.equals(VCFConstants.GENOTYPE_LIKELIHOODS_KEY)) {
+                            gb.PL(GenotypeLikelihoods.fromGLField(GTValueArray[i]).getAsPLs());
+                        } else if (gtKey.equals(VCFConstants.DEPTH_KEY)) {
+                            gb.DP(Integer.valueOf(GTValueArray[i]));
+                        } else {
+                            gb.attribute(gtKey, GTValueArray[i]);
+                        }
+                    }
+                }
+            }
+
+            // check to make sure we found a genotype field if our version is less than 4.1 file
+            if ( version != VCFHeaderVersion.VCF4_1 && genotypeAlleleLocation == -1 )
+                generateException("Unable to find the GT field for the record; the GT field is required in VCF4.0");
+            if ( genotypeAlleleLocation > 0 )
+                generateException("Saw GT field at position " + genotypeAlleleLocation + ", but it must be at the first position for genotypes when present");
+
+            final List<Allele> GTalleles = (genotypeAlleleLocation == -1 ? new ArrayList<Allele>(0) : parseGenotypeAlleles(GTValueArray[genotypeAlleleLocation], alleles, alleleMap));
+            gb.alleles(GTalleles);
+            gb.phased(genotypeAlleleLocation != -1 && GTValueArray[genotypeAlleleLocation].indexOf(VCFConstants.PHASED) != -1);
+
+            // add it to the list
+            try {
+                genotypes.add(gb.make());
+            } catch (TribbleException e) {
+                throw new TribbleException.InternalCodecException(e.getMessage() + ", at position " + chr+":"+pos);
+            }
+        }
+
+        return new LazyGenotypesContext.LazyData(genotypes, header.getSampleNamesInOrder(), header.getSampleNameToOffset());
+    }
+
+
+    private final static String[] INT_DECODE_ARRAY = new String[10000];
+    private final static int[] decodeInts(final String string) {
+        final int nValues = ParsingUtils.split(string, INT_DECODE_ARRAY, ',');
+        final int[] values = new int[nValues];
+        for ( int i = 0; i < nValues; i++ )
+            values[i] = Integer.valueOf(INT_DECODE_ARRAY[i]);
+        return values;
+    }
+
+    /**
+     * Forces all VCFCodecs to not perform any on the fly modifications to the VCF header
+     * of VCF records.  Useful primarily for raw comparisons such as when comparing
+     * raw VCF records
+     */
+    public final void disableOnTheFlyModifications() {
+        doOnTheFlyModifications = false;
+    }
+
+
+    protected void generateException(String message) {
+        throw new UserException.MalformedVCF(message, lineNo);
+    }
+
+    protected static void generateException(String message, int lineNo) {
+        throw new UserException.MalformedVCF(message, lineNo);
     }
 }

@@ -9,13 +9,13 @@ import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.utils.crypt.CryptUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.io.IOUtils;
+import org.testng.Assert;
+import org.testng.Reporter;
+import org.testng.SkipException;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  *
@@ -64,12 +64,6 @@ public abstract class BaseTest {
     public static final String b37GoodNA12878BAM = validationDataLocation + "/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam";
     public static final String b37_NA12878_OMNI = validationDataLocation + "/NA12878.omni.vcf";
 
-    public static final String refseqAnnotationLocation = annotationDataLocation + "refseq/";
-    public static final String hg18Refseq = refseqAnnotationLocation + "refGene-big-table-hg18.txt";
-    public static final String hg19Refseq = refseqAnnotationLocation + "refGene-big-table-hg19.txt";
-    public static final String b36Refseq = refseqAnnotationLocation + "refGene-big-table-b36.txt";
-    public static final String b37Refseq = refseqAnnotationLocation + "refGene-big-table-b37.txt";
-
     public static final String dbsnpDataLocation = GATKDataLocation;
     public static final String b36dbSNP129 = dbsnpDataLocation + "dbsnp_129_b36.vcf";
     public static final String b37dbSNP129 = dbsnpDataLocation + "dbsnp_129_b37.vcf";
@@ -84,12 +78,19 @@ public abstract class BaseTest {
     public static final String hg19Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list";
     public static final String hg19Chr20Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list";
 
-    public static final boolean REQUIRE_NETWORK_CONNECTION = true;
-    public static final String networkTempDir;
-    public static final File networkTempDirFile;
+    public static final boolean REQUIRE_NETWORK_CONNECTION = false;
+    private static final String networkTempDirRoot = "/broad/hptmp/";
+    private static final boolean networkTempDirRootExists = new File(networkTempDirRoot).exists();
+    private static final String networkTempDir;
+    private static final File networkTempDirFile;
 
-    public static final File testDirFile = new File("public/testdata/");
-    public static final String testDir = testDirFile.getAbsolutePath() + "/";
+    private static final String privateTestDirRelative = "private/testdata/";
+    public static final String privateTestDir = new File(privateTestDirRelative).getAbsolutePath() + "/";
+    protected static final String privateTestDirRoot = privateTestDir.replace(privateTestDirRelative, "");
+
+    private static final String publicTestDirRelative = "public/testdata/";
+    public static final String publicTestDir = new File(publicTestDirRelative).getAbsolutePath() + "/";
+    protected static final String publicTestDirRoot = publicTestDir.replace(publicTestDirRelative, "");
 
     public static final String keysDataLocation = validationDataLocation + "keys/";
     public static final String gatkKeyFile = CryptUtils.GATK_USER_KEY_DIRECTORY + "gsamembers_broadinstitute.org.key";
@@ -109,19 +110,22 @@ public abstract class BaseTest {
         // Set the Root logger to only output warnings.
         logger.setLevel(Level.WARN);
 
-        if ( REQUIRE_NETWORK_CONNECTION ) {
-            networkTempDirFile = IOUtils.tempDir("temp.", ".dir", new File("/broad/hptmp/" + System.getProperty("user.name")));
+        if (networkTempDirRootExists) {
+            networkTempDirFile = IOUtils.tempDir("temp.", ".dir", new File(networkTempDirRoot + System.getProperty("user.name")));
             networkTempDirFile.deleteOnExit();
             networkTempDir = networkTempDirFile.getAbsolutePath() + "/";
+        } else {
+            networkTempDir = null;
+            networkTempDirFile = null;
+        }
 
+
+        if ( REQUIRE_NETWORK_CONNECTION ) {
             // find our file sources
             if (!fileExist(hg18Reference) || !fileExist(hg19Reference) || !fileExist(b36KGReference)) {
                 logger.fatal("We can't locate the reference directories.  Aborting!");
                 throw new RuntimeException("BaseTest setup failed: unable to locate the reference directories");
             }
-        } else {
-            networkTempDir = null;
-            networkTempDirFile = null;
         }
     }
 
@@ -254,10 +258,56 @@ public abstract class BaseTest {
      * Creates a temp file that will be deleted on exit after tests are complete.
      * @param name Name of the file.
      * @return A file in the network temporary directory with name, which will be deleted after the program exits.
+     * @throws SkipException when the network is not available.
      */
-    public static File createNetworkTempFile(String name) {
+    public static File tryCreateNetworkTempFile(String name) {
+        if (!networkTempDirRootExists)
+            throw new SkipException("Network temporary directory does not exist: " + networkTempDirRoot);
         File file = new File(networkTempDirFile, name);
         file.deleteOnExit();
         return file;
+    }
+
+    /**
+     * Log this message so that it shows up inline during output as well as in html reports
+     *
+     * @param message
+     */
+    public static void log(final String message) {
+        Reporter.log(message, true);
+    }
+
+    private static final double DEFAULT_FLOAT_TOLERANCE = 1e-1;
+
+    public static final void assertEqualsDoubleSmart(final Object actual, final Double expected) {
+        Assert.assertTrue(actual instanceof Double);
+        assertEqualsDoubleSmart((double)(Double)actual, (double)expected);
+    }
+
+    public static final void assertEqualsDoubleSmart(final Object actual, final Double expected, final double tolerance) {
+        Assert.assertTrue(actual instanceof Double);
+        assertEqualsDoubleSmart((double)(Double)actual, (double)expected, tolerance);
+    }
+
+    public static final void assertEqualsDoubleSmart(final double actual, final double expected) {
+        assertEqualsDoubleSmart(actual, expected, DEFAULT_FLOAT_TOLERANCE);
+    }
+
+    public static final <T> void assertEqualsSet(final Set<T> actual, final Set<T> expected, final String info) {
+        final Set<T> actualSet = new HashSet<T>(actual);
+        final Set<T> expectedSet = new HashSet<T>(expected);
+        Assert.assertTrue(actualSet.equals(expectedSet), info); // note this is necessary due to testng bug for set comps
+    }
+
+    public static final void assertEqualsDoubleSmart(final double actual, final double expected, final double tolerance) {
+        if ( Double.isNaN(expected) ) // NaN == NaN => false unfortunately
+            Assert.assertTrue(Double.isNaN(actual));
+        else if ( Double.isInfinite(expected) ) // NaN == NaN => false unfortunately
+            Assert.assertTrue(Double.isInfinite(actual));
+        else {
+            final double delta = Math.abs(actual - expected);
+            final double ratio = Math.abs(actual / expected - 1.0);
+            Assert.assertTrue(delta < tolerance || ratio < tolerance);
+        }
     }
 }

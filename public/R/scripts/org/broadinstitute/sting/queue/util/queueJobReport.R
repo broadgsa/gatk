@@ -2,6 +2,7 @@ library(gsalib)
 library(ggplot2)
 library(gplots)
 library(tools)
+library(reshape)
 
 #
 # Standard command line switch.  Can we loaded interactively for development

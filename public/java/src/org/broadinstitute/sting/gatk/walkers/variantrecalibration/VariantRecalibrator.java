@@ -37,13 +37,16 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.R.RScriptExecutor;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.codecs.vcf.StandardVCFWriter;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.io.Resource;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -138,8 +141,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     // Outputs
     /////////////////////////////
     @Output(fullName="recal_file", shortName="recalFile", doc="The output recal file used by ApplyRecalibration", required=true)
-    protected File recalFile = null;
-    protected StandardVCFWriter recalWriter = null;
+    protected VariantContextWriter recalWriter = null;
 
     @Output(fullName="tranches_file", shortName="tranchesFile", doc="The output tranches file used by ApplyRecalibration", required=true)
     protected File TRANCHES_FILE;
@@ -223,15 +225,16 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         }
 
         if( !dataManager.checkHasTrainingSet() ) {
-            throw new UserException.CommandLineException( "No training set found! Please provide sets of known polymorphic loci marked with the training=true ROD binding tag. For example, -B:hapmap,VCF,known=false,training=true,truth=true,prior=12.0 hapmapFile.vcf" );
+            throw new UserException.CommandLineException( "No training set found! Please provide sets of known polymorphic loci marked with the training=true ROD binding tag. For example, -resource:hapmap,VCF,known=false,training=true,truth=true,prior=12.0 hapmapFile.vcf" );
         }
         if( !dataManager.checkHasTruthSet() ) {
-            throw new UserException.CommandLineException( "No truth set found! Please provide sets of known polymorphic loci marked with the truth=true ROD binding tag. For example, -B:hapmap,VCF,known=false,training=true,truth=true,prior=12.0 hapmapFile.vcf" );
+            throw new UserException.CommandLineException( "No truth set found! Please provide sets of known polymorphic loci marked with the truth=true ROD binding tag. For example, -resource:hapmap,VCF,known=false,training=true,truth=true,prior=12.0 hapmapFile.vcf" );
         }
 
-        final VCFHeader vcfHeader = new VCFHeader( null, Collections.<String>emptySet() );
-        recalWriter = new StandardVCFWriter(recalFile, getMasterSequenceDictionary(), false);
-        recalWriter.writeHeader(vcfHeader);
+
+        final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        ApplyRecalibration.addVQSRStandardHeaderLines(hInfo);
+        recalWriter.writeHeader( new VCFHeader(hInfo) );
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -339,7 +342,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         // Find the VQSLOD cutoff values which correspond to the various tranches of calls requested by the user
         final int nCallsAtTruth = TrancheManager.countCallsAtTruth( dataManager.getData(), Double.NEGATIVE_INFINITY );
         final TrancheManager.SelectionMetric metric = new TrancheManager.TruthSensitivityMetric( nCallsAtTruth );
-        final List<Tranche> tranches = TrancheManager.findTranches( dataManager.getData(), TS_TRANCHES, metric );
+        final List<Tranche> tranches = TrancheManager.findTranches( dataManager.getData(), TS_TRANCHES, metric, VRAC.MODE );
         tranchesStream.print(Tranche.tranchesString( tranches ));
 
         // Find the filtering lodCutoff for display on the model PDFs. Red variants are those which were below the cutoff and filtered out of the final callset.
@@ -460,7 +463,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         stream.println("dev.off()");
 
         stream.println("if (exists(\"compactPDF\")) {");
-        stream.println("compactPDF(ouputPDF)");
+        stream.println("compactPDF(outputPDF)");
         stream.println("}");
 
         stream.close();

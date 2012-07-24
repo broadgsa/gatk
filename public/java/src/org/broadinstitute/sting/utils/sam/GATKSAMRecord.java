@@ -59,6 +59,8 @@ public class GATKSAMRecord extends BAMRecord {
     private String mReadString = null;
     private GATKSAMReadGroupRecord mReadGroup = null;
     private byte[] reducedReadCounts = null;
+    private int softStart = -1;
+    private int softEnd = -1;
 
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedReadGroup = false;
@@ -171,10 +173,10 @@ public class GATKSAMRecord extends BAMRecord {
                 setBaseQualities(quals);
                 break;
             case BASE_INSERTION:
-                setAttribute( GATKSAMRecord.BQSR_BASE_INSERTION_QUALITIES, SAMUtils.phredToFastq(quals) );
+                setAttribute( GATKSAMRecord.BQSR_BASE_INSERTION_QUALITIES, quals == null ? null : SAMUtils.phredToFastq(quals) );
                 break;
             case BASE_DELETION:
-                setAttribute( GATKSAMRecord.BQSR_BASE_DELETION_QUALITIES, SAMUtils.phredToFastq(quals) );
+                setAttribute( GATKSAMRecord.BQSR_BASE_DELETION_QUALITIES, quals == null ? null : SAMUtils.phredToFastq(quals) );
                 break;
             default:
                 throw new ReviewedStingException("Unrecognized Base Recalibration type: " + errorModel );
@@ -194,12 +196,35 @@ public class GATKSAMRecord extends BAMRecord {
         }
     }
 
+    /**
+     * @return whether or not this read has base insertion or deletion qualities (one of the two is sufficient to return true)
+     */
     public boolean hasBaseIndelQualities() {
         return getAttribute( BQSR_BASE_INSERTION_QUALITIES ) != null || getAttribute( BQSR_BASE_DELETION_QUALITIES ) != null;
     }
 
+    /**
+     * @return the base deletion quality or null if read doesn't have one
+     */
+    public byte[] getExistingBaseInsertionQualities() {
+        return SAMUtils.fastqToPhred( getStringAttribute(BQSR_BASE_INSERTION_QUALITIES));
+    }
+
+    /**
+     * @return the base deletion quality or null if read doesn't have one
+     */
+    public byte[] getExistingBaseDeletionQualities() {
+        return SAMUtils.fastqToPhred( getStringAttribute(BQSR_BASE_DELETION_QUALITIES));
+    }
+
+    /**
+     * Default utility to query the base insertion quality of a read. If the read doesn't have one, it creates an array of default qualities (currently Q45)
+     * and assigns it to the read.
+     *
+     * @return the base insertion quality array
+     */
     public byte[] getBaseInsertionQualities() {
-        byte[] quals = SAMUtils.fastqToPhred( getStringAttribute( BQSR_BASE_INSERTION_QUALITIES ) );
+        byte [] quals = getExistingBaseInsertionQualities();
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
             Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
@@ -209,8 +234,14 @@ public class GATKSAMRecord extends BAMRecord {
         return quals;
     }
 
+    /**
+     * Default utility to query the base deletion quality of a read. If the read doesn't have one, it creates an array of default qualities (currently Q45)
+     * and assigns it to the read.
+     *
+     * @return the base deletion quality array
+     */
     public byte[] getBaseDeletionQualities() {
-        byte[] quals = SAMUtils.fastqToPhred( getStringAttribute( BQSR_BASE_DELETION_QUALITIES ) );
+        byte[] quals = getExistingBaseDeletionQualities();
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
             Arrays.fill(quals, (byte) 45);  // Some day in the future when base insertion and base deletion quals exist the samtools API will
@@ -336,9 +367,15 @@ public class GATKSAMRecord extends BAMRecord {
      * Clears all attributes except ReadGroup of the read.
      */
     public GATKSAMRecord simplify () {
-        GATKSAMReadGroupRecord rg = getReadGroup();
-        this.clearAttributes();
-        setReadGroup(rg);
+        GATKSAMReadGroupRecord rg = getReadGroup();                                                                     // save the read group information
+        byte[] insQuals = (this.getAttribute(BQSR_BASE_INSERTION_QUALITIES) == null) ? null : getBaseInsertionQualities();
+        byte[] delQuals = (this.getAttribute(BQSR_BASE_DELETION_QUALITIES)  == null) ? null : getBaseDeletionQualities();
+        this.clearAttributes();                                                                                         // clear all attributes from the read
+        this.setReadGroup(rg);                                                                                          // restore read group
+        if (insQuals != null)
+           this.setBaseQualities(insQuals, EventType.BASE_INSERTION);                                                   // restore base insertion if we had any
+        if (delQuals != null)
+            this.setBaseQualities(delQuals, EventType.BASE_DELETION);                                                   // restore base deletion if we had any
         return this;
     }
 
@@ -350,15 +387,17 @@ public class GATKSAMRecord extends BAMRecord {
      * @return the unclipped start of the read taking soft clips (but not hard clips) into account
      */
     public int getSoftStart() {
-        int start = this.getUnclippedStart();
-        for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
-            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
-                start += cigarElement.getLength();
-            else
-                break;
+        if (softStart < 0) {
+            int start = this.getUnclippedStart();
+            for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
+                if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                    start += cigarElement.getLength();
+                else
+                    break;
+            }
+            softStart = start;
         }
-
-        return start;
+        return softStart;
     }
 
     /**
@@ -369,23 +408,43 @@ public class GATKSAMRecord extends BAMRecord {
      * @return the unclipped end of the read taking soft clips (but not hard clips) into account
      */
     public int getSoftEnd() {
-        int stop = this.getUnclippedStart();
+        if (softEnd < 0) {
+            int stop = this.getUnclippedStart();
 
-        if (ReadUtils.readIsEntirelyInsertion(this))
-            return stop;
+            if (ReadUtils.readIsEntirelyInsertion(this))
+                return stop;
 
-        int shift = 0;
-        CigarOperator lastOperator = null;
-        for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
-            stop += shift;
-            lastOperator = cigarElement.getOperator();
-            if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP || cigarElement.getOperator() == CigarOperator.HARD_CLIP)
-                shift = cigarElement.getLength();
-            else
-                shift = 0;
+            int shift = 0;
+            CigarOperator lastOperator = null;
+            for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
+                stop += shift;
+                lastOperator = cigarElement.getOperator();
+                if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP || cigarElement.getOperator() == CigarOperator.HARD_CLIP)
+                    shift = cigarElement.getLength();
+                else
+                    shift = 0;
+            }
+            softEnd = (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
         }
+        return softEnd;
+    }
 
-        return (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
+    /**
+     * If the read is hard clipped, the soft start and end will change. You can set manually or just reset the cache
+     * so that the next call to getSoftStart/End will recalculate it lazily.
+     */
+    public void resetSoftStartAndEnd() {
+        softStart = -1;
+        softEnd = -1;
+    }
+
+    /**
+     * If the read is hard clipped, the soft start and end will change. You can set manually or just reset the cache
+     * so that the next call to getSoftStart/End will recalculate it lazily.
+     */
+    public void resetSoftStartAndEnd(int softStart, int softEnd) {
+        this.softStart = softStart;
+        this.softEnd = softEnd;
     }
 
     /**
@@ -428,8 +487,8 @@ public class GATKSAMRecord extends BAMRecord {
      * Use this method if you want to create a new empty GATKSAMRecord based on
      * another GATKSAMRecord
      *
-     * @param read
-     * @return
+     * @param read a read to copy the header from
+     * @return a read with no bases but safe for the GATK
      */
     public static GATKSAMRecord emptyRead(GATKSAMRecord read) {
         GATKSAMRecord emptyRead = new GATKSAMRecord(read.getHeader(),
@@ -472,6 +531,7 @@ public class GATKSAMRecord extends BAMRecord {
     public Object clone() throws CloneNotSupportedException {
         final GATKSAMRecord clone = (GATKSAMRecord) super.clone();
         if (temporaryAttributes != null) {
+            clone.temporaryAttributes = new HashMap<Object, Object>();
             for (Object attribute : temporaryAttributes.keySet())
                 clone.setTemporaryAttribute(attribute, temporaryAttributes.get(attribute));
         }

@@ -1,13 +1,59 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
 
 public class SelectVariantsIntegrationTest extends WalkerTest {
     public static String baseTestString(String args) {
-        return "-T SelectVariants -R " + b36KGReference + " -L 1 -o %s -NO_HEADER" + args;
+        return "-T SelectVariants -R " + b36KGReference + " -L 1 -o %s --no_cmdline_in_header" + args;
+    }
+
+    @Test
+    public void testDiscordanceNoSampleSpecified() {
+        String testFile = privateTestDir + "NA12878.hg19.example1.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + hg19Reference + " -L 20:1012700-1020000 --variant "
+                        + b37hapmapGenotypes + " -disc " + testFile
+                        + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
+                1,
+                Arrays.asList("d88bdae45ae0e74e8d8fd196627e612c")
+        );
+        spec.disableShadowBCF();
+
+        executeTest("testDiscordanceNoSampleSpecified--" + testFile, spec);
+    }
+
+    @Test
+    public void testRepeatedLineSelection() {
+        String testfile = privateTestDir + "test.dup.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString(" -sn A -sn B -sn C --variant " + testfile),
+                1,
+                Arrays.asList("3d98a024bf3aecbd282843e0af89d0e6")
+        );
+
+        executeTest("testRepeatedLineSelection--" + testfile, spec);
+    }
+
+    @Test
+    public void testDiscordance() {
+        String testFile = privateTestDir + "NA12878.hg19.example1.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 --variant "
+                        + b37hapmapGenotypes + " -disc " + testFile
+                        + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
+                1,
+                Arrays.asList("54289033d35d32b8ebbb38c51fbb614c")
+        );
+        spec.disableShadowBCF();
+
+        executeTest("testDiscordance--" + testFile, spec);
     }
 
     @Test
@@ -16,12 +62,25 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-            baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile),
-            1,
-            Arrays.asList("d18516c1963802e92cb9e425c0b75fd6")
+                baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile),
+                1,
+                Arrays.asList("4386fbb258dcef4437495a37f5a83c53")
         );
-
+        spec.disableShadowBCF();
         executeTest("testComplexSelection--" + testfile, spec);
+    }
+
+    @Test
+    public void testNonExistingFieldSelection() {
+        String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString(" -env -ef -select 'foo!=0||DP>0' --variant " + testfile),
+                1,
+                Arrays.asList("44e77cea624cfff2b8acc3a4b30485cb")    // should yield empty vcf because the foo!=0 will yield complete expression false
+        );
+        spec.disableShadowBCF();
+        executeTest("testNonExistingSelection--" + testfile, spec);
     }
 
     @Test
@@ -30,74 +89,40 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-            "-T SelectVariants -R " + b36KGReference + " -L 1:1-1000000 -o %s -NO_HEADER -xl_sn A -xl_sf " + samplesFile + " --variant " + testfile,
-            1,
-            Arrays.asList("730f021fd6ecf1d195dabbee2e233bfd")
+                "-T SelectVariants -R " + b36KGReference + " -L 1:1-1000000 -o %s --no_cmdline_in_header -xl_sn A -xl_sf " + samplesFile + " --variant " + testfile,
+                1,
+                Arrays.asList("1f5c72951a35667c4bdf1be153787e27")
         );
+        spec.disableShadowBCF();
 
         executeTest("testSampleExclusion--" + testfile, spec);
     }
 
-    @Test
-    public void testRepeatedLineSelection() {
-        String testfile = validationDataLocation + "test.dup.vcf";
-
-        WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString(" -sn A -sn B -sn C --variant " + testfile),
-                1,
-                Arrays.asList("5085a2f8cddfeae9f6274f905025184f")
-        );
-
-        executeTest("testRepeatedLineSelection--" + testfile, spec);
-    }
-
-    @Test
-    public void testDiscordance() {
-        String testFile = validationDataLocation + "NA12878.hg19.example1.vcf";
-
-        WalkerTestSpec spec = new WalkerTestSpec(
-                "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 --variant " + b37hapmapGenotypes + " -disc " + testFile + " -o %s -NO_HEADER",
-                1,
-                Arrays.asList("929bbb96381541c162dc7e5462e26ea2")
-        );
-
-        executeTest("testDiscordance--" + testFile, spec);
-    }
-
-    @Test
-    public void testDiscordanceNoSampleSpecified() {
-        String testFile = validationDataLocation + "NA12878.hg19.example1.vcf";
-
-        WalkerTestSpec spec = new WalkerTestSpec(
-                "-T SelectVariants -R " + hg19Reference + " -L 20:1012700-1020000 --variant " + b37hapmapGenotypes + " -disc " + testFile + " -o %s -NO_HEADER",
-                1,
-                Arrays.asList("5d7d899c0c4954ec59104aebfe4addd5")
-        );
-
-        executeTest("testDiscordanceNoSampleSpecified--" + testFile, spec);
-    }
 
     @Test
     public void testConcordance() {
-        String testFile = validationDataLocation + "NA12878.hg19.example1.vcf";
+        String testFile = privateTestDir + "NA12878.hg19.example1.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 -conc " + b37hapmapGenotypes + " --variant " + testFile + " -o %s -NO_HEADER",
+                "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -L 20:1012700-1020000 -conc "
+                        + b37hapmapGenotypes + " --variant " + testFile
+                        + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
                 1,
-                Arrays.asList("d2ba3ea30a810f6f0fbfb1b643292b6a")
+                Arrays.asList("946e7f2e0ae08dc0e931c1634360fc46")
         );
+        spec.disableShadowBCF();
 
         executeTest("testConcordance--" + testFile, spec);
     }
 
     @Test
     public void testVariantTypeSelection() {
-        String testFile = validationDataLocation + "complexExample1.vcf";
+        String testFile = privateTestDir + "complexExample1.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T SelectVariants -R " + b36KGReference + " -restrictAllelesTo MULTIALLELIC -selectType MIXED --variant " + testFile + " -o %s -NO_HEADER",
+                "-T SelectVariants -R " + b36KGReference + " -restrictAllelesTo MULTIALLELIC -selectType MIXED --variant " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("e0b12c0b47a8a7a988b3587b47bfa8cf")
+                Arrays.asList("ca2b70e3171420b08b0a2659bfe2a794")
         );
 
         executeTest("testVariantTypeSelection--" + testFile, spec);
@@ -105,74 +130,89 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
     @Test
     public void testUsingDbsnpName() {
-        String testFile = validationDataLocation + "combine.3.vcf";
+        String testFile = privateTestDir + "combine.3.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T SelectVariants -R " + b36KGReference + " -sn NA12892 --variant:dbsnp " + testFile + " -o %s -NO_HEADER",
+                "-T SelectVariants -R " + b36KGReference + " -sn NA12892 --variant:dbsnp " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("167a1265df820978a74c267df44d5c43")
+                Arrays.asList("d12ae1617deb38f5ed712dc326935b9a")
         );
 
         executeTest("testUsingDbsnpName--" + testFile, spec);
     }
 
     @Test
-    public void testMultipleRecordsAtOnePosition() {
-        String testFile = validationDataLocation + "selectVariants.onePosition.vcf";
+    public void testRegenotype() {
+        String testFile = privateTestDir + "combine.3.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T SelectVariants -R " + b36KGReference + " -select 'KG_FREQ < 0.5' --variant " + testFile + " -o %s -NO_HEADER",
+                "-T SelectVariants -R " + b36KGReference + " -regenotype -sn NA12892 --variant " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("20b52c96f5c48258494d072752b53693")
+                Arrays.asList("c22ad8864d9951403672a24c20d6c3c2")
         );
 
-        executeTest("testMultipleRecordsAtOnePositionFirstIsFiltered--" + testFile, spec);
+        executeTest("testRegenotype--" + testFile, spec);
+    }
+
+    @Test
+    public void testMultipleRecordsAtOnePosition() {
+        String testFile = privateTestDir + "selectVariants.onePosition.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b36KGReference + " -select 'KG_FREQ < 0.5' --variant " + testFile + " -o %s --no_cmdline_in_header",
+                1,
+                Arrays.asList("44f7c47395ca5b2afef5313f592c8cea")
+        );
+
+        executeTest("testMultipleRecordsAtOnePosition--" + testFile, spec);
     }
 
     @Test
     public void testNoGTs() {
-        String testFile = validationDataLocation + "vcf4.1.example.vcf";
+        String testFile = privateTestDir + "vcf4.1.example.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T SelectVariants -R " + b37KGReference + " --variant " + testFile + " -o %s -NO_HEADER",
+                "-T SelectVariants -R " + b37KGReference + " --variant " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("f17885e5cbd5387edb99112047ea43c1")
+                Arrays.asList("ef3c5f75074a5dd2b2cd2715856a2542")
         );
 
-        executeTest("testMultipleRecordsAtOnePositionFirstIsFiltered--" + testFile, spec);
-    }
-
-    @Test
-    public void testParallelization() {
-        String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
-        String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
-        WalkerTestSpec spec;
-
-        spec = new WalkerTestSpec(
-            baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 2"),
-            1,
-            Arrays.asList("d18516c1963802e92cb9e425c0b75fd6")
-        );
-        executeTest("testParallelization (2 threads)--" + testfile, spec);
-
-        spec = new WalkerTestSpec(
-            baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile + " -nt 4"),
-            1,
-            Arrays.asList("d18516c1963802e92cb9e425c0b75fd6")
-        );
-
-        executeTest("testParallelization (4 threads)--" + testfile, spec);
+        executeTest("testNoGTs--" + testFile, spec);
     }
 
     @Test
     public void testSelectFromMultiAllelic() {
-        String testfile = validationDataLocation + "multi-allelic.bi-allelicInGIH.vcf";
-        String samplesFile = validationDataLocation + "GIH.samples.list";
+        String testfile = privateTestDir + "multi-allelic.bi-allelicInGIH.vcf";
+        String samplesFile = privateTestDir + "GIH.samples.list";
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T SelectVariants -R " + b37KGReference + " -o %s -NO_HEADER -sf " + samplesFile + " --excludeNonVariants --variant " + testfile,
+                "-T SelectVariants -R " + b37KGReference + " -o %s --no_cmdline_in_header -sf " + samplesFile + " --excludeNonVariants --variant " + testfile,
                 1,
-                Arrays.asList("3fb50cc1c955491048108956d7087c35")
+                Arrays.asList("3ab35d5e81a29fb5db3e2add11c7e823")
         );
         executeTest("test select from multi allelic with excludeNonVariants --" + testfile, spec);
+    }
+
+    @Test()
+    public void testFileWithoutInfoLineInHeader() {
+        testFileWithoutInfoLineInHeader("testFileWithoutInfoLineInHeader", UserException.class);
+    }
+
+    @Test()
+    public void testFileWithoutInfoLineInHeaderWithOverride() {
+        testFileWithoutInfoLineInHeader("testFileWithoutInfoLineInHeaderWithOverride", null);
+    }
+
+    private void testFileWithoutInfoLineInHeader(final String name, final Class expectedException) {
+        final String testFile = privateTestDir + "missingHeaderLine.vcf";
+        final String cmd = "-T SelectVariants -R " + b36KGReference + " -sn NA12892 --variant:dbsnp "
+                + testFile + " -o %s --no_cmdline_in_header"
+                + (expectedException == null ? " -U LENIENT_VCF_PROCESSING" : "");
+        WalkerTestSpec spec =
+                expectedException != null
+                        ? new WalkerTestSpec(cmd, 1, expectedException)
+                        : new WalkerTestSpec(cmd, 1, Arrays.asList(""));
+        spec.disableShadowBCF();
+
+        executeTest(name, spec);
     }
 }

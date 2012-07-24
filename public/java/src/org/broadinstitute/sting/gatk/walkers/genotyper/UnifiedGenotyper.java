@@ -35,14 +35,16 @@ import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -65,7 +67,7 @@ import java.util.*;
  *
  * <h2>Output</h2>
  * <p>
- * A raw, unfiltered, highly specific callset in VCF format.
+ * A raw, unfiltered, highly sensitive callset in VCF format.
  * </p>
  *
  * <h2>Example generic command for multi-sample SNP calling</h2>
@@ -119,7 +121,7 @@ import java.util.*;
 // TODO -- When LocusIteratorByState gets cleaned up, we should enable multiple @By sources:
 // TODO -- @By( {DataSource.READS, DataSource.REFERENCE_ORDERED_DATA} )
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
-public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatibleWalker {
+public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatible {
 
     @ArgumentCollection
     private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
@@ -148,10 +150,10 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
     public boolean alwaysAppendDbsnpId() { return false; }
 
     /**
-     * A raw, unfiltered, highly specific callset in VCF format.
+     * A raw, unfiltered, highly sensitive callset in VCF format.
      */
     @Output(doc="File to which variants should be written",required=true)
-    protected VCFWriter writer = null;
+    protected VariantContextWriter writer = null;
 
     @Hidden
     @Argument(fullName = "debug_file", shortName = "debug_file", doc = "File to print all of the annotated and detailed debugging output", required = false)
@@ -186,6 +188,8 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
     // the annotation engine
     private VariantAnnotatorEngine annotationEngine;
 
+    private Set<String> samples;
+
     // enable deletions in the pileup
     @Override
     public boolean includeReadsWithDeletionAtLoci() { return true; }
@@ -219,6 +223,44 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
      *
      **/
     public void initialize() {
+
+        // Check for protected modes
+        if (GATKLiteUtils.isGATKLite()) {
+            // no polyploid/pooled mode in GATK Like
+            if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY ||
+                    UAC.referenceSampleName != null ||
+                    UAC.referenceSampleRod.isBound())  {
+                throw new UserException.NotSupportedInGATKLite("Usage of ploidy values different than 2 not supported in this GATK version");
+            }
+            // get all of the unique sample names
+            samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
+
+        } else {
+            // in full mode: check for consistency in ploidy/pool calling arguments
+            // check for correct calculation models
+            if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
+                // polyploidy requires POOL GL and AF calculation models to be specified right now
+                if (UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLSNP && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLINDEL
+                        && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLBOTH)   {
+                    throw new UserException("Incorrect genotype calculation model chosen. Only [POOLSNP|POOLINDEL|POOLBOTH] supported with this walker if sample ploidy != 2");
+                }
+
+                if (UAC.AFmodel != AlleleFrequencyCalculationModel.Model.POOL)
+                    throw new UserException("Incorrect AF Calculation model. Only POOL model supported if sample ploidy != 2");
+
+            }
+            // get all of the unique sample names
+            if (UAC.TREAT_ALL_READS_AS_SINGLE_POOL) {
+                samples.clear();
+                samples.add(GenotypeLikelihoodsCalculationModel.DUMMY_SAMPLE_NAME);
+            } else {
+                samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
+                if (UAC.referenceSampleName != null )
+                    samples.remove(UAC.referenceSampleName);
+            }
+
+        }
+
         // check for a bad max alleles value
         if ( UAC.MAX_ALTERNATE_ALLELES > GenotypeLikelihoods.MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED)
             throw new UserException.BadArgumentValue("max_alternate_alleles", "the maximum possible value is " + GenotypeLikelihoods.MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
@@ -229,65 +271,71 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
                 UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.SNP )
             logger.warn("WARNING: note that the EMIT_ALL_SITES option is intended only for point mutations (SNPs) in DISCOVERY mode or generally when running in GENOTYPE_GIVEN_ALLELES mode; it will by no means produce a comprehensive set of indels in DISCOVERY mode");
         
-        // get all of the unique sample names
-        Set<String> samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
-
-        // initialize the verbose writer
+         // initialize the verbose writer
         if ( verboseWriter != null )
             verboseWriter.println("AFINFO\tLOC\tREF\tALT\tMAF\tF\tAFprior\tMLE\tMAP");
 
         annotationEngine = new VariantAnnotatorEngine(Arrays.asList(annotationClassesToUse), annotationsToUse, annotationsToExclude, this, getToolkit());
-        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples, VariantContextUtils.DEFAULT_PLOIDY);
+        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples, UAC.samplePloidy);
 
         // initialize the header
-        Set<VCFHeaderLine> headerInfo = getHeaderInfo();
+        Set<VCFHeaderLine> headerInfo = getHeaderInfo(UAC, annotationEngine, dbsnp);
 
         // invoke initialize() method on each of the annotation classes, allowing them to add their own header lines
         // and perform any necessary initialization/validation steps
         annotationEngine.invokeAnnotationInitializationMethods(headerInfo);
 
         writer.writeHeader(new VCFHeader(headerInfo, samples));
+
+
     }
 
-    private Set<VCFHeaderLine> getHeaderInfo() {
+    public static Set<VCFHeaderLine> getHeaderInfo(final UnifiedArgumentCollection UAC,
+                                                   final VariantAnnotatorEngine annotationEngine,
+                                                   final DbsnpArgumentCollection dbsnp) {
         Set<VCFHeaderLine> headerInfo = new HashSet<VCFHeaderLine>();
 
         // all annotation fields from VariantAnnotatorEngine
-        headerInfo.addAll(annotationEngine.getVCFAnnotationDescriptions());
+        if ( annotationEngine != null )
+            headerInfo.addAll(annotationEngine.getVCFAnnotationDescriptions());
 
         // annotation (INFO) fields from UnifiedGenotyper
         if ( !UAC.NO_SLOD )
-            headerInfo.add(new VCFInfoHeaderLine(VCFConstants.STRAND_BIAS_KEY, 1, VCFHeaderLineType.Float, "Strand Bias"));
+            VCFStandardHeaderLines.addStandardInfoLines(headerInfo, true, VCFConstants.STRAND_BIAS_KEY);
+
         if ( UAC.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED )
             headerInfo.add(new VCFInfoHeaderLine(UnifiedGenotyperEngine.NUMBER_OF_DISCOVERED_ALLELES_KEY, 1, VCFHeaderLineType.Integer, "Number of alternate alleles discovered (but not necessarily genotyped) at this site"));
-        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DOWNSAMPLED_KEY, 0, VCFHeaderLineType.Flag, "Were any of the samples downsampled?"));
+
+        // add the pool values for each genotype
+        if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
+            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum likelihood expectation (MLE) for the allele counts (not necessarily the same as the AC), for each ALT allele, in the same order as listed, for this pool"));
+            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_ALLELE_FREQUENCY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Maximum likelihood expectation (MLE) for the allele frequency (not necessarily the same as the AF), for each ALT allele, in the same order as listed, for this pool"));
+        }
+        if (UAC.referenceSampleName != null) {
+            headerInfo.add(new VCFInfoHeaderLine(VCFConstants.REFSAMPLE_DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Total reference sample depth"));
+        }
+
+        VCFStandardHeaderLines.addStandardInfoLines(headerInfo, true,
+                VCFConstants.DOWNSAMPLED_KEY,
+                VCFConstants.MLE_ALLELE_COUNT_KEY,
+                VCFConstants.MLE_ALLELE_FREQUENCY_KEY);
 
         // also, check to see whether comp rods were included
-        if ( dbsnp.dbsnp.isBound() )
-            headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DBSNP_KEY, 0, VCFHeaderLineType.Flag, "dbSNP Membership"));
+        if ( dbsnp != null && dbsnp.dbsnp.isBound() )
+            VCFStandardHeaderLines.addStandardInfoLines(headerInfo, true, VCFConstants.DBSNP_KEY);
 
-        // FORMAT and INFO fields
-        headerInfo.addAll(getSupportedHeaderStrings());
+        // FORMAT fields
+        VCFStandardHeaderLines.addStandardFormatLines(headerInfo, true,
+                VCFConstants.GENOTYPE_KEY,
+                VCFConstants.GENOTYPE_QUALITY_KEY,
+                VCFConstants.DEPTH_KEY,
+                VCFConstants.GENOTYPE_PL_KEY);
 
-        // FILTER fields
-        if ( UAC.STANDARD_CONFIDENCE_FOR_EMITTING < UAC.STANDARD_CONFIDENCE_FOR_CALLING )
-            headerInfo.add(new VCFFilterHeaderLine(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME, "Low quality"));
+        // FILTER fields are added unconditionally as it's not always 100% certain the circumstances
+        // where the filters are used.  For example, in emitting all sites the lowQual field is used
+        headerInfo.add(new VCFFilterHeaderLine(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME, "Low quality"));
 
         return headerInfo;
-    }
-
-    /**
-     * return a set of supported format lines; what we currently support for output in the genotype fields of a VCF
-     * @return a set of VCF format lines
-     */
-    private static Set<VCFFormatHeaderLine> getSupportedHeaderStrings() {
-        Set<VCFFormatHeaderLine> result = new HashSet<VCFFormatHeaderLine>();
-        result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
-        result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_QUALITY_KEY, 1, VCFHeaderLineType.Float, "Genotype Quality"));
-        result.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Approximate read depth (reads with MQ=255 or with bad mates are filtered)"));
-        result.add(new VCFFormatHeaderLine(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
-
-        return result;
     }
 
     /**
@@ -299,7 +347,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
      * @return the VariantCallContext object
      */
     public List<VariantCallContext> map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
-        return UG_engine.calculateLikelihoodsAndGenotypes(tracker, refContext, rawContext);
+        return UG_engine.calculateLikelihoodsAndGenotypes(tracker, refContext, rawContext, samples);
     }
 
     public UGStatistics reduceInit() { return new UGStatistics(); }

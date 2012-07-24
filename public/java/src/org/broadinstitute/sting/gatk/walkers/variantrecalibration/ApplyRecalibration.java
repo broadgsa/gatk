@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
@@ -104,7 +105,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> implements T
     // Outputs
     /////////////////////////////
     @Output( doc="The output filtered and recalibrated VCF file in which each variant is annotated with its VQSLOD value", required=true)
-    private VCFWriter vcfWriter = null;
+    private VariantContextWriter vcfWriter = null;
 
     /////////////////////////////
     // Command Line Arguments
@@ -149,19 +150,18 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> implements T
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
-        hInfo.add(new VCFInfoHeaderLine(VariantRecalibrator.VQS_LOD_KEY, 1, VCFHeaderLineType.Float, "Log odds ratio of being a true variant versus being false under the trained gaussian mixture model"));
-        hInfo.add(new VCFInfoHeaderLine(VariantRecalibrator.CULPRIT_KEY, 1, VCFHeaderLineType.String, "The annotation which was the worst performing in the Gaussian mixture model, likely the reason why the variant was filtered out"));
+        addVQSRStandardHeaderLines(hInfo);
         final TreeSet<String> samples = new TreeSet<String>();
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames));
 
         if( tranches.size() >= 2 ) {
             for( int iii = 0; iii < tranches.size() - 1; iii++ ) {
                 final Tranche t = tranches.get(iii);
-                hInfo.add(new VCFFilterHeaderLine(t.name, String.format("Truth sensitivity tranche level at VSQ Lod: " + t.minVQSLod + " <= x < " + tranches.get(iii+1).minVQSLod)));
+                hInfo.add(new VCFFilterHeaderLine(t.name, String.format("Truth sensitivity tranche level for " + t.model.toString() + " model at VQS Lod: " + t.minVQSLod + " <= x < " + tranches.get(iii+1).minVQSLod)));
             }
         }
         if( tranches.size() >= 1 ) {
-            hInfo.add(new VCFFilterHeaderLine(tranches.get(0).name + "+", String.format("Truth sensitivity tranche level at VQS Lod < " + tranches.get(0).minVQSLod)));
+            hInfo.add(new VCFFilterHeaderLine(tranches.get(0).name + "+", String.format("Truth sensitivity tranche level for " + tranches.get(0).model.toString() + " model at VQS Lod < " + tranches.get(0).minVQSLod)));
         } else {
             throw new UserException("No tranches were found in the file or were above the truth sensitivity filter level " + TS_FILTER_LEVEL);
         }
@@ -170,6 +170,12 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> implements T
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
+    }
+
+    public static void addVQSRStandardHeaderLines(final Set<VCFHeaderLine> hInfo) {
+        hInfo.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.END_KEY));
+        hInfo.add(new VCFInfoHeaderLine(VariantRecalibrator.VQS_LOD_KEY, 1, VCFHeaderLineType.Float, "Log odds ratio of being a true variant versus being false under the trained gaussian mixture model"));
+        hInfo.add(new VCFInfoHeaderLine(VariantRecalibrator.CULPRIT_KEY, 1, VCFHeaderLineType.String, "The annotation which was the worst performing in the Gaussian mixture model, likely the reason why the variant was filtered out"));
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -230,7 +236,9 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> implements T
                     filterString = tranches.get(0).name+"+";
                 }
 
-                if( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
+                if( filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
+                    builder.passFilters();
+                } else {
                     builder.filters(filterString);
                 }
 

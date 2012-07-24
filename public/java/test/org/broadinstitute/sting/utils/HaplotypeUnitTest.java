@@ -154,7 +154,7 @@ public class HaplotypeUnitTest extends BaseTest {
         final Allele h1altAllele = Allele.create(alt, false);
         h.setAlignmentStartHapwrtRef(0);
         h.setCigar(cigar);
-        final Haplotype h1 = new Haplotype( h.insertAllele(h1refAllele, h1altAllele, loc - INDEL_PADDING_BASE) );
+        final Haplotype h1 = h.insertAllele(h1refAllele, h1altAllele, loc - INDEL_PADDING_BASE);
         final Haplotype h1expected = new Haplotype(newHap.getBytes());
         Assert.assertEquals(h1, h1expected);
     }

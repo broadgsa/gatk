@@ -133,7 +133,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
     /**
      * Because the realignment algorithm is N^2, allowing too large an interval might take too long to completely realign.
      */
-    @Argument(fullName="maxIntervalSize", shortName="maxInterval", doc="maximum interval size", required=false)
+    @Argument(fullName="maxIntervalSize", shortName="maxInterval", doc="maximum interval size; any intervals larger than this value will be dropped", required=false)
     protected int maxIntervalSize = 500;
 
 
@@ -185,37 +185,35 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
         }
 
         // look at the normal context to get deletions and positions with high entropy
-        if ( context.hasBasePileup() ) {
-            final ReadBackedPileup pileup = context.getBasePileup();
+        final ReadBackedPileup pileup = context.getBasePileup();
 
-            int mismatchQualities = 0, totalQualities = 0;
-            final byte refBase = ref.getBase();
-            for ( PileupElement p : pileup ) {
+        int mismatchQualities = 0, totalQualities = 0;
+        final byte refBase = ref.getBase();
+        for ( PileupElement p : pileup ) {
 
-                // check the ends of the reads to see how far they extend
-                furthestStopPos = Math.max(furthestStopPos, p.getRead().getAlignmentEnd());
+            // check the ends of the reads to see how far they extend
+            furthestStopPos = Math.max(furthestStopPos, p.getRead().getAlignmentEnd());
 
-                // is it a deletion or insertion?
-                if ( p.isDeletion() || p.isBeforeInsertion() ) {
-                    hasIndel = true;
-                    if ( p.isBeforeInsertion() )
-                        hasInsertion = true;
-                }
-
-                // look for mismatches
-                else if ( lookForMismatchEntropy ) {
-                    if ( p.getBase() != refBase )
-                        mismatchQualities += p.getQual();
-                    totalQualities += p.getQual();
-                }
+            // is it a deletion or insertion?
+            if ( p.isDeletion() || p.isBeforeInsertion() ) {
+                hasIndel = true;
+                if ( p.isBeforeInsertion() )
+                    hasInsertion = true;
             }
 
-            // make sure we're supposed to look for high entropy
-            if ( lookForMismatchEntropy &&
-                    pileup.getNumberOfElements() >= minReadsAtLocus &&
-                    (double)mismatchQualities / (double)totalQualities >= mismatchThreshold )
-                hasPointEvent = true;
+            // look for mismatches
+            else if ( lookForMismatchEntropy ) {
+                if ( p.getBase() != refBase )
+                    mismatchQualities += p.getQual();
+                totalQualities += p.getQual();
+            }
         }
+
+        // make sure we're supposed to look for high entropy
+        if ( lookForMismatchEntropy &&
+                pileup.getNumberOfElements() >= minReadsAtLocus &&
+                (double)mismatchQualities / (double)totalQualities >= mismatchThreshold )
+            hasPointEvent = true;
 
         // return null if no event occurred
         if ( !hasIndel && !hasPointEvent )

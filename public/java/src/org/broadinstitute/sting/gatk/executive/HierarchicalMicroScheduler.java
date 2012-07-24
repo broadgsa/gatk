@@ -11,7 +11,6 @@ import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import java.util.Collection;
@@ -256,7 +255,8 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
                     // Specifically catch Tribble I/O exceptions and rethrow them as Reviewed.  We don't expect
                     // any issues here because we created the Tribble output file mere moments ago and expect it to
                     // be completely valid.
-                    throw new ReviewedStingException("Unable to merge temporary Tribble output file.",ex);
+                    final String reason = ex.getMessage();
+                    throw new ReviewedStingException("Unable to merge temporary Tribble output file" + (reason == null ? "." : (" (" + reason + ").")), ex);
                 }
             }
         }

@@ -41,12 +41,12 @@ import java.util.*;
 
 public class VariantAnnotatorEngine {
 
-    private List<InfoFieldAnnotation> requestedInfoAnnotations;
-    private List<GenotypeAnnotation> requestedGenotypeAnnotations;
+    private List<InfoFieldAnnotation> requestedInfoAnnotations = Collections.emptyList();
+    private List<GenotypeAnnotation> requestedGenotypeAnnotations = Collections.emptyList();
     private List<VAExpression> requestedExpressions = new ArrayList<VAExpression>();
 
     private final HashMap<RodBinding<VariantContext>, String> dbAnnotations = new HashMap<RodBinding<VariantContext>, String>();
-    private final AnnotatorCompatibleWalker walker;
+    private final AnnotatorCompatible walker;
     private final GenomeAnalysisEngine toolkit;
 
     private boolean requireStrictAlleleMatch = false;
@@ -75,7 +75,7 @@ public class VariantAnnotatorEngine {
     }
 
     // use this constructor if you want all possible annotations
-    public VariantAnnotatorEngine(List<String> annotationsToExclude, AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit) {
+    public VariantAnnotatorEngine(List<String> annotationsToExclude, AnnotatorCompatible walker, GenomeAnalysisEngine toolkit) {
         this.walker = walker;
         this.toolkit = toolkit;
         requestedInfoAnnotations = AnnotationInterfaceManager.createAllInfoFieldAnnotations();
@@ -85,7 +85,7 @@ public class VariantAnnotatorEngine {
     }
 
     // use this constructor if you want to select specific annotations (and/or interfaces)
-    public VariantAnnotatorEngine(List<String> annotationGroupsToUse, List<String> annotationsToUse, List<String> annotationsToExclude, AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit) {
+    public VariantAnnotatorEngine(List<String> annotationGroupsToUse, List<String> annotationsToUse, List<String> annotationsToExclude, AnnotatorCompatible walker, GenomeAnalysisEngine toolkit) {
         this.walker = walker;
         this.toolkit = toolkit;
         initializeAnnotations(annotationGroupsToUse, annotationsToUse, annotationsToExclude);
@@ -164,8 +164,12 @@ public class VariantAnnotatorEngine {
             descriptions.addAll(annotation.getDescriptions());
         for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations )
             descriptions.addAll(annotation.getDescriptions());
-        for ( String db : dbAnnotations.values() )
-            descriptions.add(new VCFInfoHeaderLine(db, 0, VCFHeaderLineType.Flag, (db.equals(VCFConstants.DBSNP_KEY) ? "dbSNP" : db) + " Membership"));
+        for ( String db : dbAnnotations.values() ) {
+            if ( VCFStandardHeaderLines.getInfoLine(db, false) != null )
+                descriptions.add(VCFStandardHeaderLines.getInfoLine(db));
+            else
+                descriptions.add(new VCFInfoHeaderLine(db, 0, VCFHeaderLineType.Flag, db + " Membership"));
+        }
 
         return descriptions;
     }
@@ -203,8 +207,9 @@ public class VariantAnnotatorEngine {
         // go through all the requested info annotationTypes
         for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
             Map<String, Object> annotationsFromCurrentType = ((ActiveRegionBasedAnnotation)annotationType).annotate(stratifiedContexts, vc);
-            if ( annotationsFromCurrentType != null )
+            if ( annotationsFromCurrentType != null ) {
                 infoAnnotations.putAll(annotationsFromCurrentType);
+            }
         }
 
         // generate a new annotated VC
@@ -216,11 +221,11 @@ public class VariantAnnotatorEngine {
             if ( dbSet.getValue().equals(VCFConstants.DBSNP_KEY) ) {
                 final String rsID = VCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), ref.getLocus()), vc.getType());
                 
-                // put the DB key into the INFO field
-                infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID != null);
-                
                 // add the ID if appropriate
                 if ( rsID != null ) {
+                    // put the DB key into the INFO field
+                    infoAnnotations.put(VCFConstants.DBSNP_KEY, true);
+
                     if ( vc.emptyID() ) {
                         vc = new VariantContextBuilder(vc).id(rsID).make();
                     } else if ( walker.alwaysAppendDbsnpId() && vc.getID().indexOf(rsID) == -1 ) {
@@ -236,7 +241,8 @@ public class VariantAnnotatorEngine {
                         break;
                     }
                 }
-                infoAnnotations.put(dbSet.getValue(), overlapsComp);
+                if ( overlapsComp )
+                    infoAnnotations.put(dbSet.getValue(), overlapsComp);
             }
         }
 
@@ -261,24 +267,22 @@ public class VariantAnnotatorEngine {
     }
 
     private GenotypesContext annotateGenotypes(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
-        if ( requestedGenotypeAnnotations.size() == 0 )
+        if ( requestedGenotypeAnnotations.isEmpty() )
             return vc.getGenotypes();
 
-        GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
+        final GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
         for ( final Genotype genotype : vc.getGenotypes() ) {
             AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
+
             if ( context == null ) {
                 genotypes.add(genotype);
-                continue;
+            } else {
+                final GenotypeBuilder gb = new GenotypeBuilder(genotype);
+                for ( final GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
+                    annotation.annotate(tracker, walker, ref, context, vc, genotype, gb);
+                }
+                genotypes.add(gb.make());
             }
-
-            Map<String, Object> genotypeAnnotations = new HashMap<String, Object>(genotype.getAttributes());
-            for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
-                Map<String, Object> result = annotation.annotate(tracker, walker, ref, context, vc, genotype);
-                if ( result != null )
-                    genotypeAnnotations.putAll(result);
-            }
-            genotypes.add(new Genotype(genotype.getSampleName(), genotype.getAlleles(), genotype.getLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.isPhased()));
         }
 
         return genotypes;

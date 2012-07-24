@@ -49,6 +49,11 @@ trait JavaCommandLineFunction extends CommandLineFunction {
    */
   var javaMemoryLimit: Option[Double] = None
 
+  /**
+   * Max number of GC threads
+   */
+  var javaGCThreads: Option[Int] = None
+
   override def freezeFieldValues() {
     super.freezeFieldValues()
 
@@ -73,6 +78,8 @@ trait JavaCommandLineFunction extends CommandLineFunction {
   }
 
   def javaOpts = optional("-Xmx", javaMemoryLimit.map(gb => (gb * 1024).ceil.toInt), "m", spaceSeparated=false) +
+                 conditional(javaGCThreads.isDefined, "-XX:+UseParallelOldGC") +
+                 optional("-XX:ParallelGCThreads=", javaGCThreads, spaceSeparated=false) +
                  required("-Djava.io.tmpdir=", jobTempDir, spaceSeparated=false)
 
   def commandLine = required("java") +

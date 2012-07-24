@@ -251,7 +251,7 @@ public class VariantContextAdaptors {
 
                 Map<String, Object> attributes = new HashMap<String, Object>();
                 Collection<Genotype> genotypes = new ArrayList<Genotype>();
-                Genotype call = new Genotype(name, genotypeAlleles);
+                Genotype call = GenotypeBuilder.create(name, genotypeAlleles);
 
                 // add the call to the genotype list, and then use this list to create a VariantContext
                 genotypes.add(call);
@@ -344,7 +344,7 @@ public class VariantContextAdaptors {
                     alleles.add(allele2);
                 }
 
-                Genotype g = new Genotype(samples[i], myAlleles);
+                Genotype g = GenotypeBuilder.create(samples[i], myAlleles);
                 genotypes.add(g);
             }
 

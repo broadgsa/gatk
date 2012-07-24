@@ -17,7 +17,7 @@ public class VCFInfoHeaderLine extends VCFCompoundHeaderLine {
         super(name, count, type, description, SupportedHeaderLineType.INFO);
     }
 
-    protected VCFInfoHeaderLine(String line, VCFHeaderVersion version) {
+    public VCFInfoHeaderLine(String line, VCFHeaderVersion version) {
         super(line, version, SupportedHeaderLineType.INFO);
     }
 

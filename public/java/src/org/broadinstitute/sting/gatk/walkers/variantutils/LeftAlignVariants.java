@@ -34,11 +34,17 @@ import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgume
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.Reference;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.util.*;
 
@@ -77,19 +83,19 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Output(doc="File to which variants should be written",required=true)
-    protected VCFWriter baseWriter = null;
+    protected VariantContextWriter baseWriter = null;
 
-    private SortingVCFWriter writer;
+    private VariantContextWriter writer;
 
     public void initialize() {
         String trackName = variantCollection.variants.getName();
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(trackName));
         Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
 
-        Set<VCFHeaderLine> headerLines = vcfHeaders.get(trackName).getMetaData();
+        Set<VCFHeaderLine> headerLines = vcfHeaders.get(trackName).getMetaDataInSortedOrder();
         baseWriter.writeHeader(new VCFHeader(headerLines, samples));
 
-        writer = new SortingVCFWriter(baseWriter, 200);
+        writer = VariantContextWriterFactory.sortOnTheFly(baseWriter, 200);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -217,7 +223,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
                     newA = Allele.NO_CALL;
                 newAlleles.add(newA);
             }
-            newGenotypes.add(Genotype.modifyAlleles(genotype, newAlleles));
+            newGenotypes.add(new GenotypeBuilder(genotype).alleles(newAlleles).make());
         }
 
         return new VariantContextBuilder(vc).alleles(alleleMap.values()).genotypes(newGenotypes).referenceBaseForIndel(refBaseForIndel).make();

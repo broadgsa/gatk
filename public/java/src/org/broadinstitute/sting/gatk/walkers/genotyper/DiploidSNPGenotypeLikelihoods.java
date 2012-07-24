@@ -27,10 +27,10 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import net.sf.samtools.SAMUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.fragments.FragmentCollection;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.fragments.FragmentCollection;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -70,8 +70,8 @@ import static java.lang.Math.pow;
  * From then on, you can call any of the add() routines to update the likelihoods and posteriors in the above
  * model.
  */
-@Deprecated
 public class DiploidSNPGenotypeLikelihoods implements Cloneable {
+
     public final static double DEFAULT_PCR_ERROR_RATE = 1e-4;
 
     protected final static int FIXED_PLOIDY = 2;
@@ -82,36 +82,20 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
     protected boolean VERBOSE = false;
 
     //
-    // The fundamental data arrays associated with a Genotype Likelhoods object
+    // The fundamental data arrays associated with a Genotype Likelihoods object
     //
     protected double[] log10Likelihoods = null;
-    protected double[] log10Posteriors = null;
-
-    protected DiploidSNPGenotypePriors priors = null;
 
     // TODO: don't calculate this each time through
     protected double log10_PCR_error_3;
     protected double log10_1_minus_PCR_error;
 
     /**
-     * Create a new GenotypeLikelhoods object with flat priors for each diploid genotype
+     * Create a new GenotypeLikelhoods object with given PCR error rate for each diploid genotype
      *
-     */
-    public DiploidSNPGenotypeLikelihoods() {
-        this.priors = new DiploidSNPGenotypePriors();
-        log10_PCR_error_3 = log10(DEFAULT_PCR_ERROR_RATE) - log10_3;
-        log10_1_minus_PCR_error = log10(1.0 - DEFAULT_PCR_ERROR_RATE);
-        setToZero();
-    }
-
-    /**
-     * Create a new GenotypeLikelhoods object with given priors and PCR error rate for each diploid genotype
-     *
-     * @param priors          priors
      * @param PCR_error_rate  the PCR error rate
      */
-    public DiploidSNPGenotypeLikelihoods(DiploidSNPGenotypePriors priors, double PCR_error_rate) {
-        this.priors = priors;
+    public DiploidSNPGenotypeLikelihoods(double PCR_error_rate) {
         log10_PCR_error_3 = log10(PCR_error_rate) - log10_3;
         log10_1_minus_PCR_error = log10(1.0 - PCR_error_rate);
         setToZero();
@@ -124,15 +108,12 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
      */
     protected Object clone() throws CloneNotSupportedException {
         DiploidSNPGenotypeLikelihoods c = (DiploidSNPGenotypeLikelihoods)super.clone();
-        c.priors = priors;
         c.log10Likelihoods = log10Likelihoods.clone();
-        c.log10Posteriors = log10Posteriors.clone();
         return c;
     }
 
     protected void setToZero() {
         log10Likelihoods = genotypeZeros.clone();                 // likelihoods are all zeros
-        log10Posteriors = priors.getPriors().clone();     // posteriors are all the priors
     }
 
     /**
@@ -141,102 +122,6 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
      */
     public double[] getLikelihoods() {
         return log10Likelihoods;
-    }
-
-    /**
-     * Returns the likelihood associated with DiploidGenotype g
-     * @param g genotype
-     * @return log10 likelihood as a double
-     */
-    public double getLikelihood(DiploidGenotype g) {
-        return getLikelihoods()[g.ordinal()];
-    }
-
-    /**
-     * Returns an array of posteriors for each genotype, indexed by DiploidGenotype.ordinal values().
-     *
-     * @return raw log10 (not-normalized posteriors) as a double array
-     */
-    public double[] getPosteriors() {
-        return log10Posteriors;
-    }
-
-    /**
-     * Returns the posterior associated with DiploidGenotype g
-     * @param g genotpe
-     * @return raw log10 (not-normalized posteror) as a double
-     */
-    public double getPosterior(DiploidGenotype g) {
-        return getPosteriors()[g.ordinal()];
-    }
-
-
-    /**
-     * Returns an array of posteriors for each genotype, indexed by DiploidGenotype.ordinal values().
-     *
-     * @return normalized posterors as a double array
-     */
-    public double[] getNormalizedPosteriors() {
-        double[] normalized = new double[log10Posteriors.length];
-        double sum = 0.0;
-
-        // for precision purposes, we need to add (or really subtract, since everything is negative)
-        // the largest posterior value from all entries so that numbers don't get too small
-        double maxValue = log10Posteriors[0];
-        for (int i = 1; i < log10Posteriors.length; i++) {
-            if ( maxValue < log10Posteriors[i] )
-                maxValue = log10Posteriors[i];
-        }
-
-        // collect the posteriors
-        for ( DiploidGenotype g : DiploidGenotype.values() ) {
-            double posterior = Math.pow(10, getPosterior(g) - maxValue);
-            normalized[g.ordinal()] = posterior;
-            sum += posterior;
-        }
-
-        // normalize
-        for (int i = 0; i < normalized.length; i++)
-            normalized[i] /= sum;
-
-        return normalized;
-    }
-
-
-
-    public DiploidSNPGenotypePriors getPriorObject() {
-        return priors;
-    }
-
-    /**
-     * Returns an array of priors for each genotype, indexed by DiploidGenotype.ordinal values().
-     *
-     * @return log10 prior as a double array
-     */
-    public double[] getPriors() {
-        return priors.getPriors();
-    }
-
-    /**
-     * Sets the priors
-     * @param priors priors
-     */
-    public void setPriors(DiploidSNPGenotypePriors priors) {
-        this.priors = priors;
-        log10Posteriors = genotypeZeros.clone();
-        for ( DiploidGenotype g : DiploidGenotype.values() ) {
-            int i = g.ordinal();
-            log10Posteriors[i] = priors.getPriors()[i] + log10Likelihoods[i];
-        }
-    }
-
-    /**
-     * Returns the prior associated with DiploidGenotype g
-     * @param g genotype
-     * @return log10 prior as a double
-     */
-    public double getPrior(DiploidGenotype g) {
-        return getPriors()[g.ordinal()];
     }
 
     // -------------------------------------------------------------------------------------
@@ -316,13 +201,12 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
 
     /**
      *
-     * @param obsBase1
-     * @param qual1
-     * @param obsBase2
-     * @param qual2 can be 0, indicating no second base was observed for this fragment
-     * @param nObs The number of times this quad of values was seen.  Generally 1, but reduced reads
-     *  can have nObs > 1 for synthetic reads
-     * @return
+     * @param obsBase1    first observed base
+     * @param qual1       base qual of first observed base
+     * @param obsBase2    second observed base
+     * @param qual2       base qual of second observed base; can be 0, indicating no second base was observed for this fragment
+     * @param nObs        the number of times this quad of values was seen.  Generally 1, but reduced reads can have nObs > 1 for synthetic reads
+     * @return 0 if the base is bad, 1 otherwise
      */
     private int add(byte obsBase1, byte qual1, byte obsBase2, byte qual2, int nObs) {
         // TODO-- Right now we assume that there are at most 2 reads per fragment.  This assumption is fine
@@ -346,7 +230,6 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             double likelihood = likelihoods[g.ordinal()];
             log10Likelihoods[g.ordinal()] += likelihood * nObs;
-            log10Posteriors[g.ordinal()] += likelihood * nObs;
         }
 
         return 1;
@@ -419,16 +302,15 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
                 double p_base = 0.0;
                 p_base += pow(10, log10FourBaseLikelihoods[BaseUtils.simpleBaseToBaseIndex(g.base1)] - ploidyAdjustment);
                 p_base += pow(10, log10FourBaseLikelihoods[BaseUtils.simpleBaseToBaseIndex(g.base2)] - ploidyAdjustment);
-                double likelihood = log10(p_base);
 
+                final double likelihood = log10(p_base);
                 gl.log10Likelihoods[g.ordinal()] += likelihood;
-                gl.log10Posteriors[g.ordinal()] += likelihood;
             }
 
             if ( VERBOSE ) {
                 for ( DiploidGenotype g : DiploidGenotype.values() ) { System.out.printf("%s\t", g); }
                 System.out.println();
-                for ( DiploidGenotype g : DiploidGenotype.values() ) { System.out.printf("%.2f\t", gl.log10Likelihoods[g.ordinal()]); }
+            for ( DiploidGenotype g : DiploidGenotype.values() ) { System.out.printf("%.2f\t", gl.log10Likelihoods[g.ordinal()]); }
                 System.out.println();
             }
 
@@ -508,11 +390,11 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
      * likelihoods for a pileup element.  May return 0 to indicate that the observation is bad, and may
      * cap the quality score by the mapping quality of the read itself.
      *
-     * @param p
-     * @param ignoreBadBases
-     * @param capBaseQualsAtMappingQual
-     * @param minBaseQual
-     * @return
+     * @param p                           Pileup element
+     * @param ignoreBadBases              Should we ignore bad bases?
+     * @param capBaseQualsAtMappingQual   Should we cap the base qualities at the mapping quality of the read?
+     * @param minBaseQual                 Minimum allowed base quality
+     * @return the actual base quality to use
      */
     private static byte qualToUse(PileupElement p, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
         if ( ignoreBadBases && !BaseUtils.isRegularBase( p.getBase() ) )
@@ -568,16 +450,12 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
 
     public boolean validate(boolean throwException) {
         try {
-            priors.validate(throwException);
-
             for ( DiploidGenotype g : DiploidGenotype.values() ) {
                 String bad = null;
 
                 int i = g.ordinal();
                 if ( ! MathUtils.wellFormedDouble(log10Likelihoods[i]) || ! MathUtils.isNegativeOrZero(log10Likelihoods[i]) ) {
                     bad = String.format("Likelihood %f is badly formed", log10Likelihoods[i]);
-                } else if ( ! MathUtils.wellFormedDouble(log10Posteriors[i]) || ! MathUtils.isNegativeOrZero(log10Posteriors[i]) ) {
-                    bad = String.format("Posterior %f is badly formed", log10Posteriors[i]);
                 }
 
                 if ( bad != null ) {

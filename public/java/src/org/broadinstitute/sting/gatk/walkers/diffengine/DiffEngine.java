@@ -147,11 +147,7 @@ public class DiffEngine {
      * @param diffs the list of differences to summarize
      */
     public void reportSummarizedDifferences(List<Difference> diffs, SummaryReportParams params ) {
-        printSummaryReport(summarizeDifferences(diffs), params );
-    }
-
-    public List<Difference> summarizeDifferences(List<Difference> diffs) {
-        return summarizedDifferencesOfPaths(diffs);
+        printSummaryReport(summarizedDifferencesOfPaths(diffs, params.doPairwise, params.maxRawDiffsToSummarize), params );
     }
 
     final protected static String[] diffNameToPath(String diffName) {
@@ -165,10 +161,19 @@ public class DiffEngine {
             diffs.add(new Difference(diff));
         }
 
-        return summarizedDifferencesOfPaths(diffs);
+        return summarizedDifferencesOfPaths(diffs, true, -1);
     }
 
-    protected List<Difference> summarizedDifferencesOfPaths(List<? extends Difference> singletonDiffs) {
+    /**
+     * Computes a minimum set of potential differences between all singleton differences
+     * in singletonDiffs.  Employs an expensive pairwise O(n^2) algorithm.
+     *
+     * @param singletonDiffs
+     * @param maxRawDiffsToSummarize
+     * @return
+     */
+    private Map<String, Difference> initialPairwiseSummaries(final List<? extends Difference> singletonDiffs,
+                                                             final int maxRawDiffsToSummarize) {
         Map<String, Difference> summaries = new HashMap<String, Difference>();
 
         // create the initial set of differences
@@ -184,9 +189,51 @@ public class DiffEngine {
                     Difference sumDiff = new Difference(path, diffPath2.getMaster(), diffPath2.getTest());
                     sumDiff.setCount(0);
                     addSummaryIfMissing(summaries, sumDiff);
+
+                    if ( maxRawDiffsToSummarize != -1 && summaries.size() > maxRawDiffsToSummarize)
+                        return summaries;
                 }
             }
         }
+
+        return summaries;
+    }
+
+    /**
+     * Computes the possible leaf differences among the singleton diffs.
+     *
+     * The leaf differences are all of the form *.*...*.X where all internal
+     * differences are wildcards and the only summarized difference considered
+     * interesting to compute is
+     *
+     * @param singletonDiffs
+     * @param maxRawDiffsToSummarize
+     * @return
+     */
+    private Map<String, Difference> initialLeafSummaries(final List<? extends Difference> singletonDiffs,
+                                                         final int maxRawDiffsToSummarize) {
+        Map<String, Difference> summaries = new HashMap<String, Difference>();
+
+        // create the initial set of differences
+        for ( final Difference d : singletonDiffs ) {
+            final String path = summarizedPath(d.getParts(), 1);
+            Difference sumDiff = new Difference(path, d.getMaster(), d.getTest());
+            sumDiff.setCount(0);
+            addSummaryIfMissing(summaries, sumDiff);
+
+            if ( maxRawDiffsToSummarize != -1 && summaries.size() > maxRawDiffsToSummarize)
+                return summaries;
+        }
+
+        return summaries;
+    }
+
+    protected List<Difference> summarizedDifferencesOfPaths(final List<? extends Difference> singletonDiffs,
+                                                            final boolean doPairwise,
+                                                            final int maxRawDiffsToSummarize) {
+        final Map<String, Difference> summaries = doPairwise
+                ? initialPairwiseSummaries(singletonDiffs, maxRawDiffsToSummarize)
+                : initialLeafSummaries(singletonDiffs, maxRawDiffsToSummarize);
 
         // count differences
         for ( Difference diffPath : singletonDiffs ) {
@@ -235,14 +282,16 @@ public class DiffEngine {
         // now that we have a specific list of values we want to show, display them
         GATKReport report = new GATKReport();
         final String tableName = "differences";
-        report.addTable(tableName, "Summarized differences between the master and test files. See http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine for more information", false);
-        GATKReportTable table = report.getTable(tableName);
-        table.addPrimaryKey("Difference", true);
-        table.addColumn("NumberOfOccurrences", 0);
-        table.addColumn("ExampleDifference", 0);
-        for ( Difference diff : toShow ) {
-            table.set(diff.getPath(), "NumberOfOccurrences", diff.getCount());
-            table.set(diff.getPath(), "ExampleDifference", diff.valueDiffString());
+        report.addTable(tableName, "Summarized differences between the master and test files. See http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine for more information", 3);
+        final GATKReportTable table = report.getTable(tableName);
+        table.addColumn("Difference");
+        table.addColumn("NumberOfOccurrences");
+        table.addColumn("ExampleDifference");
+        for ( final Difference diff : toShow ) {
+            final String key = diff.getPath();
+            table.addRowID(key, true);
+            table.set(key, "NumberOfOccurrences", diff.getCount());
+            table.set(key, "ExampleDifference", diff.valueDiffString());
         }
         GATKReport output = new GATKReport(table);
         output.print(params.out);
@@ -358,17 +407,26 @@ public class DiffEngine {
     }
 
     public static class SummaryReportParams {
-        PrintStream out = System.out;
-        int maxItemsToDisplay = 0;
-        int maxCountOneItems = 0;
-        int minSumDiffToShow = 0;
+        final PrintStream out;
+        final int maxItemsToDisplay;
+        final int maxCountOneItems;
+        final int minSumDiffToShow;
+        final int maxRawDiffsToSummarize;
+        final boolean doPairwise;
         boolean descending = true;
 
-        public SummaryReportParams(PrintStream out, int maxItemsToDisplay, int maxCountOneItems, int minSumDiffToShow) {
+        public SummaryReportParams(PrintStream out,
+                                   int maxItemsToDisplay,
+                                   int maxCountOneItems,
+                                   int minSumDiffToShow,
+                                   int maxRawDiffsToSummarize,
+                                   final boolean doPairwise) {
             this.out = out;
             this.maxItemsToDisplay = maxItemsToDisplay;
             this.maxCountOneItems = maxCountOneItems;
             this.minSumDiffToShow = minSumDiffToShow;
+            this.maxRawDiffsToSummarize = maxRawDiffsToSummarize;
+            this.doPairwise = doPairwise;
         }
 
         public void setDescending(boolean descending) {

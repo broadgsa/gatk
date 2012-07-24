@@ -84,14 +84,14 @@ public class ReadClipperTestUtils {
     }
 
     private static boolean isCigarValid(Cigar cigar) {
-        if (cigar.isValid(null, -1) == null) {                                          // This should take care of most invalid Cigar Strings (picard's "exhaustive" implementation)
+        if (cigar.isValid(null, -1) == null) {                                                                          // This should take care of most invalid Cigar Strings (picard's "exhaustive" implementation)
 
-            Stack<CigarElement> cigarElementStack = new Stack<CigarElement>();          // Stack to invert cigar string to find ending operator
+            Stack<CigarElement> cigarElementStack = new Stack<CigarElement>();                                          // Stack to invert cigar string to find ending operator
             CigarOperator startingOp = null;
             CigarOperator endingOp = null;
 
             // check if it doesn't start with deletions
-            boolean readHasStarted = false;                                             // search the list of elements for the starting operator
+            boolean readHasStarted = false;                                                                             // search the list of elements for the starting operator
             for (CigarElement cigarElement : cigar.getCigarElements()) {
                 if (!readHasStarted) {
                     if (cigarElement.getOperator() != CigarOperator.SOFT_CLIP && cigarElement.getOperator() != CigarOperator.HARD_CLIP) {
@@ -102,19 +102,16 @@ public class ReadClipperTestUtils {
                 cigarElementStack.push(cigarElement);
             }
 
-            readHasStarted = false;                                                     // search the inverted list of elements (stack) for the stopping operator
             while (!cigarElementStack.empty()) {
                 CigarElement cigarElement = cigarElementStack.pop();
                 if (cigarElement.getOperator() != CigarOperator.SOFT_CLIP && cigarElement.getOperator() != CigarOperator.HARD_CLIP) {
-                    readHasStarted = true;
                     endingOp = cigarElement.getOperator();
                     break;
                 }
             }
 
-//            if (startingOp != CigarOperator.DELETION && endingOp != CigarOperator.DELETION && startingOp != CigarOperator.INSERTION && endingOp != CigarOperator.INSERTION)
               if (startingOp != CigarOperator.DELETION && endingOp != CigarOperator.DELETION)
-                  return true;                                                            // we don't accept reads starting or ending in deletions (add any other constraint here)
+                  return true;                                                                                          // we don't accept reads starting or ending in deletions (add any other constraint here)
         }
 
         return false;

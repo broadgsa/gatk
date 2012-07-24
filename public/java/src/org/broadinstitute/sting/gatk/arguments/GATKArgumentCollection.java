@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
@@ -103,6 +104,12 @@ public class GATKArgumentCollection {
      */
     @Argument(fullName = "interval_merging", shortName = "im", doc = "Indicates the interval merging rule we should use for abutting intervals", required = false)
     public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
+
+    /**
+     * For example, '-L chr1:100' with a padding value of 20 would turn into '-L chr1:80-120'.
+     */
+    @Argument(fullName = "interval_padding", shortName = "ip", doc = "Indicates how many basepairs of padding to include around each of the intervals specified with the -L/--intervals argument", required = false)
+    public int intervalPadding = 0;
 
     @Input(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
@@ -184,27 +191,60 @@ public class GATKArgumentCollection {
     @Argument(fullName="useOriginalQualities", shortName = "OQ", doc = "If set, use the original base quality scores from the OQ tag when present instead of the standard scores", required=false)
     public Boolean useOriginalBaseQualities = false;
 
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // BQSR arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
     /**
-     * After the header, data records occur one per line until the end of the file. The first several items on a line are the
-     * values of the individual covariates and will change depending on which covariates were specified at runtime. The last
-     * three items are the data- that is, number of observations for this combination of covariates, number of reference mismatches,
-     * and the raw empirical quality score calculated by phred-scaling the mismatch rate.
+     * Enables on-the-fly recalibrate of base qualities.  The covariates tables are produced by the BaseQualityScoreRecalibrator tool.
+     * Please be aware that one should only run recalibration with the covariates file created on the same input bam(s).
      */
-    @Input(fullName="BQSR", shortName="BQSR", required=false, doc="Filename for the input covariates table recalibration .csv file which enables on the fly base quality score recalibration")
-    public File BQSR_RECAL_FILE = null; // BUGBUG: need a better argument name once we decide how BQSRs v1 and v2 will live in the code base simultaneously
+    @Input(fullName="BQSR", shortName="BQSR", required=false, doc="The input covariates table file which enables on-the-fly base quality score recalibration")
+    public File BQSR_RECAL_FILE = null;
 
     /**
      * Turns on the base quantization module. It requires a recalibration report (-BQSR).
      *
      * A value of 0 here means "do not quantize".
-     * Any value greater than zero will be used to recalculate the quantization using this many levels.
-     * Negative values do nothing (i.e. quantize using the recalibration report's quantization level -- same as not providing this parameter at all)
+     * Any value greater than zero will be used to recalculate the quantization using that many levels.
+     * Negative values mean that we should quantize using the recalibration report's quantization level.
      */
-    @Argument(fullName="quantize_quals", shortName = "qq", doc = "Quantize quality scores to a given number of levels.", required=false)
-    public int quantizationLevels = -1;
+    @Hidden
+    @Argument(fullName="quantize_quals", shortName = "qq", doc = "Quantize quality scores to a given number of levels (with -BQSR)", required=false)
+    public int quantizationLevels = 0;
+
+    /**
+     * Turns off printing of the base insertion and base deletion tags when using the -BQSR argument and only the base substitution qualities will be produced.
+     */
+    @Argument(fullName="disable_indel_quals", shortName = "DIQ", doc = "If true, disables printing of base insertion and base deletion tags (with -BQSR)", required=false)
+    public boolean disableIndelQuals = false;
+
+    /**
+     * By default, the OQ tag in not emitted when using the -BQSR argument.
+     */
+    @Argument(fullName="emit_original_quals", shortName = "EOQ", doc = "If true, enables printing of the OQ tag with the original base qualities (with -BQSR)", required=false)
+    public boolean emitOriginalQuals = false;
+
+    /**
+     * Do not modify quality scores less than this value but rather just write them out unmodified in the recalibrated BAM file.
+     * In general it's unsafe to change qualities scores below < 6, since base callers use these values to indicate random or bad bases.
+     * For example, Illumina writes Q2 bases when the machine has really gone wrong. This would be fine in and of itself,
+     * but when you select a subset of these reads based on their ability to align to the reference and their dinucleotide effect,
+     * your Q2 bin can be elevated to Q8 or Q10, leading to issues downstream.
+     */
+    @Argument(fullName = "preserve_qscores_less_than", shortName = "preserveQ", doc = "Bases with quality scores less than this threshold won't be recalibrated (with -BQSR)", required = false)
+    public int PRESERVE_QSCORES_LESS_THAN = QualityUtils.MIN_USABLE_Q_SCORE;
 
     @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
     public byte defaultBaseQualities = -1;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // Other utility arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
 
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
     public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;
@@ -327,112 +367,27 @@ public class GATKArgumentCollection {
 
     // --------------------------------------------------------------------------------------------------------------
     //
-    // methods
+    // testing BCF2
     //
     // --------------------------------------------------------------------------------------------------------------
 
+    @Argument(fullName="generateShadowBCF",shortName = "generateShadowBCF",doc="If provided, whenever we create a VCFWriter we will also write out a BCF file alongside it, for testing purposes",required=false)
+    @Hidden
+    public boolean generateShadowBCF = false;
+    // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
+
+    @Argument(fullName="useSlowGenotypes",shortName = "useSlowGenotypes",doc="",required=false)
+    @Hidden
+    public boolean USE_SLOW_GENOTYPES = false;
+    // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
+
     /**
-     * test equality between two arg collections.  This function defines the statement:
-     * "not fun to write"
-     *
-     * @param other the other collection
-     *
-     * @return true if they're equal
+     * The file pointed to by this argument must be a VCF file. The GATK will read in just the header of this file
+     * and then use the INFO, FORMAT, and FILTER field values from this file to repair the header file of any other
+     * VCF file that GATK reads in.  This allows us to have in effect a master set of header records and use these
+     * to fill in any missing ones in input VCF files.
      */
-    public boolean equals(GATKArgumentCollection other) {
-        if (other == null) return false;
-        if (other.samFiles.size() != samFiles.size()) {
-            return false;
-        }
-        for (int x = 0; x < samFiles.size(); x++) {
-            if (!samFiles.get(x).equals(other.samFiles.get(x))) {
-                return false;
-            }
-        }
-        if (other.walkerArgs.size() != walkerArgs.size()) {
-            return false;
-        }
-        for (String s : walkerArgs.keySet()) {
-            if (!other.walkerArgs.containsKey(s)) {
-                return false;
-            }
-        }
-        if (!other.samFiles.equals(this.samFiles)) {
-            return false;
-        }
-        if(other.readBufferSize == null || this.readBufferSize == null) {
-            // If either is null, return false if they're both null, otherwise keep going...
-            if(other.readBufferSize != null || this.readBufferSize != null)
-                return false;
-        }
-        else {
-            if(!other.readBufferSize.equals(this.readBufferSize))
-                return false;
-        }
-        if (!(other.readBufferSize == null && this.readBufferSize == null) && (other.readBufferSize == null || this.readBufferSize == null)) {
-            return false;
-        }
-        if (!other.strictnessLevel.equals(this.strictnessLevel)) {
-            return false;
-        }
-        if (!other.referenceFile.equals(this.referenceFile)) {
-            return false;
-        }
-        if ((other.intervals == null && this.intervals != null) || !other.intervals.equals(this.intervals)) {
-            return false;
-        }
-        if (!other.excludeIntervals.equals(this.excludeIntervals)) {
-            return false;
-        }
-        if (!other.unsafe.equals(this.unsafe)) {
-            return false;
-        }
-        if ((other.downsampleFraction == null && this.downsampleFraction != null) ||
-                (other.downsampleFraction != null && !other.downsampleFraction.equals(this.downsampleFraction))) {
-            return false;
-        }
-        if ((other.downsampleCoverage == null && this.downsampleCoverage != null) ||
-                (other.downsampleCoverage != null && !other.downsampleCoverage.equals(this.downsampleCoverage))) {
-            return false;
-        }
-        if (!other.numberOfThreads.equals(this.numberOfThreads)) {
-            return false;
-        }
-        if ((this.numberOfCPUThreads == null && other.numberOfCPUThreads != null) ||
-             this.numberOfCPUThreads.equals(other.numberOfCPUThreads) ) {
-            return false;
-        }
-        if ((this.numberOfIOThreads == null && other.numberOfIOThreads != null) ||
-             this.numberOfIOThreads.equals(other.numberOfIOThreads) ) {
-            return false;
-        }
-        if ((other.numberOfBAMFileHandles == null && this.numberOfBAMFileHandles != null) ||
-                (other.numberOfBAMFileHandles != null && !other.numberOfBAMFileHandles.equals(this.numberOfBAMFileHandles))) {
-            return false;
-        }
-        if (other.intervalMerging != this.intervalMerging) {
-            return false;
-        }
-
-        if (other.phoneHomeType != this.phoneHomeType) {
-            return false;
-        }
-
-        if (intervalSetRule != other.intervalSetRule)
-            return false;
-
-        if ( BAQMode != other.BAQMode ) return false;
-        if ( BAQGOP != other.BAQGOP ) return false;
-
-        if ((other.performanceLog == null && this.performanceLog != null) ||
-                (other.performanceLog != null && !other.performanceLog.equals(this.performanceLog)))
-            return false;
-
-        if (allowIntervalsWithUnindexedBAM != other.allowIntervalsWithUnindexedBAM)
-            return false;
-
-        return true;
-    }
-
+    @Argument(fullName="repairVCFHeader", shortName = "repairVCFHeader", doc="If provided, whenever we read a VCF file we will use the header in this file to repair the header of the input VCF files", required=false)
+    public File repairVCFHeader = null;
 }
 

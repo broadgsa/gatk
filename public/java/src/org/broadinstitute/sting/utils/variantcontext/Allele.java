@@ -160,7 +160,7 @@ public class Allele implements Comparable<Allele> {
                 case 'G': case 'g' : return isRef ? REF_G : ALT_G;
                 case 'T': case 't' : return isRef ? REF_T : ALT_T;
                 case 'N': case 'n' : return isRef ? REF_N : ALT_N;
-                default: throw new IllegalArgumentException("Illegal base: " + (char)bases[0]);
+                default: throw new IllegalArgumentException("Illegal base [" + (char)bases[0] + "] seen in the allele");
             }
         } else {
             return new Allele(bases, isRef);
@@ -226,7 +226,11 @@ public class Allele implements Comparable<Allele> {
      * @return true if the bases represent the well formatted allele
      */
     public static boolean acceptableAlleleBases(String bases) {
-        return acceptableAlleleBases(bases.getBytes());
+        return acceptableAlleleBases(bases.getBytes(), true);
+    }
+
+    public static boolean acceptableAlleleBases(String bases, boolean allowNsAsAcceptable) {
+        return acceptableAlleleBases(bases.getBytes(), allowNsAsAcceptable);
     }
 
     /**
@@ -234,13 +238,22 @@ public class Allele implements Comparable<Allele> {
      * @return true if the bases represent the well formatted allele
      */
     public static boolean acceptableAlleleBases(byte[] bases) {
+        return acceptableAlleleBases(bases, true); // default: N bases are acceptable
+    }
+    
+    public static boolean acceptableAlleleBases(byte[] bases, boolean allowNsAsAcceptable) {
         if ( wouldBeNullAllele(bases) || wouldBeNoCallAllele(bases) || wouldBeSymbolicAllele(bases) )
             return true;
 
-        for ( int i = 0; i < bases.length; i++ ) {
-            switch (bases[i]) {
-                case 'A': case 'C': case 'G': case 'T': case 'N' : case 'a': case 'c': case 'g': case 't': case 'n' :
+        for (byte base :  bases ) {
+            switch (base) {
+                case 'A': case 'C': case 'G': case 'T':  case 'a': case 'c': case 'g': case 't': 
                     break;
+                case 'N' : case 'n' :
+                    if (allowNsAsAcceptable)
+                        break;
+                    else
+                        return false;
                 default:
                     return false;
             }
@@ -323,7 +336,7 @@ public class Allele implements Comparable<Allele> {
      *
      * @return the segregating bases
      */
-    public String getBaseString() { return new String(getBases()); }
+    public String getBaseString() { return isNoCall() ? NO_CALL_STRING : new String(getBases()); }
 
     /**
      * Return the printed representation of this allele.
@@ -333,6 +346,15 @@ public class Allele implements Comparable<Allele> {
      * @return the allele string representation
      */
     public String getDisplayString() { return new String(bases); }
+
+    /**
+     * Same as #getDisplayString() but returns the result as byte[].
+     *
+     * Slightly faster then getDisplayString()
+     *
+     * @return the allele string representation
+     */
+    public byte[] getDisplayBases() { return bases; }
 
     /**
      * @param other  the other allele

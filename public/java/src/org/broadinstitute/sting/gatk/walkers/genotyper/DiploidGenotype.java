@@ -27,16 +27,15 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.BaseUtils;
 
-@Deprecated
 public enum DiploidGenotype {
     AA ('A', 'A'),
     AC ('A', 'C'),
-    AG ('A', 'G'),
-    AT ('A', 'T'),
     CC ('C', 'C'),
+    AG ('A', 'G'),
     CG ('C', 'G'),
-    CT ('C', 'T'),
     GG ('G', 'G'),
+    AT ('A', 'T'),
+    CT ('C', 'T'),
     GT ('G', 'T'),
     TT ('T', 'T');
 

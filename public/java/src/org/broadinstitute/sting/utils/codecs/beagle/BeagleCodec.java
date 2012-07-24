@@ -25,19 +25,16 @@ package org.broadinstitute.sting.utils.codecs.beagle;
  */
 
 
+import org.broad.tribble.AsciiFeatureCodec;
 import org.broad.tribble.Feature;
 import org.broad.tribble.exception.CodecLineParsingException;
-import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -63,7 +60,7 @@ import java.util.regex.Pattern;
  * @author Mark DePristo
  * @since 2010
  */
-public class BeagleCodec implements ReferenceDependentFeatureCodec<BeagleFeature> {
+public class BeagleCodec extends AsciiFeatureCodec<BeagleFeature> implements ReferenceDependentFeatureCodec {
     private String[] header;
     public enum BeagleReaderType {PROBLIKELIHOOD, GENOTYPES, R2};
     private BeagleReaderType readerType;
@@ -72,6 +69,7 @@ public class BeagleCodec implements ReferenceDependentFeatureCodec<BeagleFeature
     private int markerPosition;
     private ArrayList<String> sampleNames;
     private int expectedTokensPerLine;
+    private final static Set<String> HEADER_IDs = new HashSet<String>(Arrays.asList("marker", "I"));
 
     private static final String delimiterRegex = "\\s+";
 
@@ -80,25 +78,16 @@ public class BeagleCodec implements ReferenceDependentFeatureCodec<BeagleFeature
      */
     private GenomeLocParser genomeLocParser;
 
+    public BeagleCodec() {
+        super(BeagleFeature.class);
+    }
+
     /**
      * Set the parser to use when resolving genetic data.
      * @param genomeLocParser The supplied parser.
      */
     public void setGenomeLocParser(GenomeLocParser genomeLocParser) {
         this.genomeLocParser =  genomeLocParser;
-    }    
-
-    public Feature decodeLoc(String line) {
-        return decode(line);
-    }
-    
-    public static String[] readHeader(final File source) throws IOException {
-        FileInputStream is = new FileInputStream(source);
-        try {
-            return readHeader(new AsciiLineReader(is), null);
-        } finally {
-            is.close();
-        }
     }
 
     public Object readHeader(LineReader reader)
@@ -183,11 +172,6 @@ public class BeagleCodec implements ReferenceDependentFeatureCodec<BeagleFeature
 
     private static Pattern MARKER_PATTERN = Pattern.compile("(.+):([0-9]+)");
 
-    @Override
-    public Class<BeagleFeature> getFeatureType() {
-        return BeagleFeature.class;
-    }
-
     public BeagleFeature decode(String line) {
         String[] tokens;
 
@@ -196,7 +180,8 @@ public class BeagleCodec implements ReferenceDependentFeatureCodec<BeagleFeature
         if (tokens.length != expectedTokensPerLine)
             throw new CodecLineParsingException("Incorrect number of fields in Beagle input on line "+line);
 
-
+        if ( HEADER_IDs.contains(tokens[0]) )
+            return null;
 
         BeagleFeature bglFeature = new BeagleFeature();
 
@@ -248,7 +233,4 @@ public class BeagleCodec implements ReferenceDependentFeatureCodec<BeagleFeature
 
         return bglFeature;
     }
-
-    public boolean canDecode(final String potentialInput) { return false; }
-
 }

@@ -30,7 +30,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.RodRequiringAnnotation;
 import org.broadinstitute.sting.utils.Utils;
@@ -203,7 +203,7 @@ public class SnpEff extends InfoFieldAnnotation implements RodRequiringAnnotatio
         }
     }
 
-    public void initialize ( AnnotatorCompatibleWalker walker, GenomeAnalysisEngine toolkit, Set<VCFHeaderLine> headerLines ) {
+    public void initialize ( AnnotatorCompatible walker, GenomeAnalysisEngine toolkit, Set<VCFHeaderLine> headerLines ) {
         // Make sure that we actually have a valid SnpEff rod binding (just in case the user specified -A SnpEff
         // without providing a SnpEff rod via --snpEffFile):
         validateRodBinding(walker.getSnpEffRodBinding());
@@ -225,7 +225,7 @@ public class SnpEff extends InfoFieldAnnotation implements RodRequiringAnnotatio
         headerLines.add(new VCFHeaderLine(OUTPUT_VCF_HEADER_COMMAND_LINE_KEY, snpEffCommandLine.getValue()));
     }
 
-    public Map<String, Object> annotate ( RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc ) {
+    public Map<String, Object> annotate ( RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc ) {
         RodBinding<VariantContext> snpEffRodBinding = walker.getSnpEffRodBinding();
 
         // Get only SnpEff records that start at this locus, not merely span it:

@@ -64,16 +64,16 @@ public class VariantContextUtilsUnitTest extends BaseTest {
     }
 
     private Genotype makeG(String sample, Allele a1, Allele a2) {
-        return new Genotype(sample, Arrays.asList(a1, a2));
+        return GenotypeBuilder.create(sample, Arrays.asList(a1, a2));
     }
 
     private Genotype makeG(String sample, Allele a1, Allele a2, double log10pError, double... pls) {
-        return new Genotype(sample, Arrays.asList(a1, a2), log10pError, pls);
+        return new GenotypeBuilder(sample, Arrays.asList(a1, a2)).log10PError(log10pError).PL(pls).make();
     }
 
 
     private Genotype makeG(String sample, Allele a1, Allele a2, double log10pError) {
-        return new Genotype(sample, Arrays.asList(a1, a2), log10pError);
+        return new GenotypeBuilder(sample, Arrays.asList(a1, a2)).log10PError(log10pError).make();
     }
 
     private VariantContext makeVC(String source, List<Allele> alleles) {
@@ -523,8 +523,8 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         for (Genotype value : actual) {
             Genotype expectedValue = expected.get(value.getSampleName());
 
-            Assert.assertEquals(value.alleles, expectedValue.alleles, "Alleles in Genotype aren't equal");
-            Assert.assertEquals(value.getLog10PError(), expectedValue.getLog10PError(), "GQ values aren't equal");
+            Assert.assertEquals(value.getAlleles(), expectedValue.getAlleles(), "Alleles in Genotype aren't equal");
+            Assert.assertEquals(value.getGQ(), expectedValue.getGQ(), "GQ values aren't equal");
             Assert.assertEquals(value.hasLikelihoods(), expectedValue.hasLikelihoods(), "Either both have likelihoods or both not");
             if ( value.hasLikelihoods() )
                 Assert.assertEquals(value.getLikelihoods().getAsVector(), expectedValue.getLikelihoods().getAsVector(), "Genotype likelihoods aren't equal");

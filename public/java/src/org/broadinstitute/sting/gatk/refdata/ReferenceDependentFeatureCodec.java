@@ -33,7 +33,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
  * A HACK.  Tribble should contain all the information in needs to decode the unqualified position of
  * a feature.
  */
-public interface ReferenceDependentFeatureCodec<T extends org.broad.tribble.Feature> extends FeatureCodec<T> {
+public interface ReferenceDependentFeatureCodec {
     /**
      * Sets the appropriate GenomeLocParser, providing additional context when decoding larger and more variable features.
      * @param genomeLocParser The parser to supply. 

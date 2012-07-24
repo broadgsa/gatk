@@ -1,36 +1,75 @@
+<!--
+  ~ Copyright (c) 2012, The Broad Institute
+  ~
+  ~ Permission is hereby granted, free of charge, to any person
+  ~ obtaining a copy of this software and associated documentation
+  ~ files (the "Software"), to deal in the Software without
+  ~ restriction, including without limitation the rights to use,
+  ~ copy, modify, merge, publish, distribute, sublicense, and/or sell
+  ~ copies of the Software, and to permit persons to whom the
+  ~ Software is furnished to do so, subject to the following
+  ~ conditions:
+  ~
+  ~ The above copyright notice and this permission notice shall be
+  ~ included in all copies or substantial portions of the Software.
+  ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  ~ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+  ~ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  ~ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+  ~ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+  ~ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  ~ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+  ~ OTHER DEALINGS IN THE SOFTWARE.
+  -->
+
 <#include "common.html"/>
 
 <#macro emitGroup group>
-  <table id="hor-minimalist-b">
-  <h2>${group.name}</h2>
-  <p>
-  ${group.summary}  
-  <p>
-  <tr>
-     <th>Name</th>
-     <th>Summary</th>
-  </tr>
-    <#list data as datum>
-        <#if datum.group == group.name>
-            <tr>
-               <td><a href="${datum.filename}">${datum.name}</a></td>
-               <td>${datum.summary}</td>
-            </tr>
-        </#if>
-    </#list>
-  </table>
-</#macro>   
 
-<html>
-<@makeHeader title="GATK documentation index"/>
-<body>
-  <h1>GATK documentation index</h1>
-  <@headerInfo />
-  <#list groups?sort_by("name") as group>
+    <div class="accordion" id="index">
+        <div class="accordion-group">
+            <div class="accordion-heading">
+                <a class="accordion-toggle" data-toggle="collapse" data-parent="#index" href="#${group.id}"><h3>
+                    ${group.name}</h3></a>
+            </div>
+            <div class="accordion-body collapse" id="${group.id}">
+                <div class="accordion-inner">
+                    <p class="lead">${group.summary}
+
+                    <p>
+                        <#if group.id == "GATKwalkers">
+                            <h3>Categories</h3>
+                            <@getCategories map=categories filter="GATK walkers" />
+                            <#else>
+                                <table class="table table-striped table-bordered table-condensed">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Summary</th>
+                                    </tr>
+                                    <#list data as datum>
+                                        <#if datum.group == group.name>
+                                            <tr>
+                                                <td><a href="${datum.filename}">${datum.name}</a></td>
+                                                <td>${datum.summary}</td>
+                                            </tr>
+                                        </#if>
+                                    </#list>
+                                </table>
+                        </#if>
+                </div>
+            </div>
+        </div>
+    </div>
+</#macro>
+
+<@makeHeader title="GATK documentation index" isIndex=true />
+<h1>GATK documentation index
+    <small>${version}</small>
+</h1>
+<hr>
+<#list groups?sort_by("name") as group>
     <@emitGroup group=group/>
-  </#list>
-  
-  <@footerInfo />
-</body>
-</html>
+</#list>
 
+<@footerInfo />
+<@pageFooter />

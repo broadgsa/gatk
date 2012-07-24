@@ -1,11 +1,12 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.readers.AsciiLineReader;
+import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.testng.Assert;
-import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderUnitTest;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderUnitTest;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 
 import org.testng.annotations.Test;
@@ -38,9 +39,9 @@ public class CombineVariantsUnitTest {
                 "##fileformat=VCFv4.0\n"+
                 "##filedate=2010-06-21\n"+
                 "##reference=NCBI36\n"+
-                "##INFO=<ID=GC, Number=0, Type=Flag, Description=\"Overlap with Gencode CCDS coding sequence\">\n"+
+                "##INFO=<ID=GC, Number=1, Type=String, Description=\"Overlap with Gencode CCDS coding sequence\">\n"+
                 "##INFO=<ID=DP, Number=1, Type=Integer, Description=\"Total number of reads in haplotype window\">\n"+
-                "##INFO=<ID=AF, Number=1, Type=String, Description=\"Dindel estimated population allele frequency\">\n"+ // string to integer
+                "##INFO=<ID=AF, Number=1, Type=Float, Description=\"Dindel estimated population allele frequency\">\n"+ // string to integer
                 "##FILTER=<ID=NoQCALL, Description=\"Variant called by Dindel but not confirmed by QCALL\">\n"+
                 "##FORMAT=<ID=GT, Number=1, Type=String, Description=\"Genotype\">\n"+
                 "##FORMAT=<ID=HQ, Number=2, Type=Integer, Description=\"Haplotype quality\">\n"+
@@ -63,7 +64,7 @@ public class CombineVariantsUnitTest {
 
     private VCFHeader createHeader(String headerStr) {
         VCFCodec codec = new VCFCodec();
-        VCFHeader head = (VCFHeader)codec.readHeader(new AsciiLineReader(new StringBufferInputStream(headerStr)));
+        VCFHeader head = (VCFHeader)codec.readHeader(new AsciiLineReader(new PositionalBufferedStream(new StringBufferInputStream(headerStr))));
         return head;
     }
 

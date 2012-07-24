@@ -71,6 +71,11 @@ public class Datum {
         numMismatches += incMismatches;
     }
 
+    synchronized void increment(final boolean isError) {
+        numObservations++;
+        numMismatches += isError ? 1:0;
+    }
+
     //---------------------------------------------------------------------------------------------------------------
     //
     // methods to derive empirical quality score
@@ -80,7 +85,7 @@ public class Datum {
     double empiricalQualDouble() {
         final double doubleMismatches = (double) (numMismatches + SMOOTHING_CONSTANT);
         final double doubleObservations = (double) (numObservations + SMOOTHING_CONSTANT);
-        double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
+        final double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
         return Math.min(empiricalQual, (double) QualityUtils.MAX_RECALIBRATED_Q_SCORE);
     }
 

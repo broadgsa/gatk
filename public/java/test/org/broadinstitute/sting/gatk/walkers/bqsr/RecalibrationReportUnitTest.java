@@ -1,7 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -32,24 +34,18 @@ public class RecalibrationReportUnitTest {
 
         final QuantizationInfo quantizationInfo = new QuantizationInfo(quals, counts);
         final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
-        final LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>> keysAndTablesMap = new LinkedHashMap<BQSRKeyManager, Map<BitSet, RecalDatum>>();
 
         quantizationInfo.noQuantization();
         final List<Covariate> requiredCovariates = new LinkedList<Covariate>();
         final List<Covariate> optionalCovariates = new LinkedList<Covariate>();
-        final List<Covariate> requestedCovariates = new LinkedList<Covariate>();
 
         final ReadGroupCovariate rgCovariate = new ReadGroupCovariate();
         rgCovariate.initialize(RAC);
         requiredCovariates.add(rgCovariate);
-        final BQSRKeyManager rgKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
-        keysAndTablesMap.put(rgKeyManager, new HashMap<BitSet, RecalDatum>());
 
         final QualityScoreCovariate qsCovariate = new QualityScoreCovariate();
         qsCovariate.initialize(RAC);
         requiredCovariates.add(qsCovariate);
-        final BQSRKeyManager qsKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
-        keysAndTablesMap.put(qsKeyManager, new HashMap<BitSet, RecalDatum>());
 
         final ContextCovariate cxCovariate = new ContextCovariate();
         cxCovariate.initialize(RAC);
@@ -57,13 +53,13 @@ public class RecalibrationReportUnitTest {
         final CycleCovariate cyCovariate = new CycleCovariate();
         cyCovariate.initialize(RAC);
         optionalCovariates.add(cyCovariate);
-        BQSRKeyManager cvKeyManager = new BQSRKeyManager(requiredCovariates, optionalCovariates);
-        keysAndTablesMap.put(cvKeyManager, new HashMap<BitSet, RecalDatum>());
 
-        for (Covariate cov : requiredCovariates)
-            requestedCovariates.add(cov);
-        for (Covariate cov : optionalCovariates)
-            requestedCovariates.add(cov);
+        final Covariate[] requestedCovariates = new Covariate[requiredCovariates.size() + optionalCovariates.size()];
+        int covariateIndex = 0;
+        for (final Covariate cov : requiredCovariates)
+            requestedCovariates[covariateIndex++] = cov;
+        for (final Covariate cov : optionalCovariates)
+            requestedCovariates[covariateIndex++] = cov;
 
         final GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord("id");
         rg.setPlatform("illumina");
@@ -74,36 +70,34 @@ public class RecalibrationReportUnitTest {
             readQuals[i] = 20;
         read.setBaseQualities(readQuals);
 
-
-        final int expectedKeys = expectedNumberOfKeys(4, length, RAC.INSERTIONS_CONTEXT_SIZE, RAC.MISMATCHES_CONTEXT_SIZE);
+        final int expectedKeys = expectedNumberOfKeys(4, length, RAC.INDELS_CONTEXT_SIZE, RAC.MISMATCHES_CONTEXT_SIZE);
         int nKeys = 0;                                                                                                  // keep track of how many keys were produced
         final ReadCovariates rc = RecalDataManager.computeCovariates(read, requestedCovariates);
+
+        final RecalibrationTables recalibrationTables = new RecalibrationTables(requestedCovariates);
+        final NestedIntegerArray<RecalDatum> rgTable = recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE);
+        final NestedIntegerArray<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE);
+
         for (int offset = 0; offset < length; offset++) {
-            for (Map.Entry<BQSRKeyManager, Map<BitSet, RecalDatum>> entry : keysAndTablesMap.entrySet()) {
-                BQSRKeyManager keyManager = entry.getKey();
-                Map<BitSet, RecalDatum> table = entry.getValue();
 
-                for (BitSet key : keyManager.bitSetsFromAllKeys(rc.getMismatchesKeySet(offset), EventType.BASE_SUBSTITUTION)) {
-                    table.put(key, RecalDatum.createRandomRecalDatum(10000, 10));
+            for (EventType errorMode : EventType.values()) {
+
+                final int[] covariates = rc.getKeySet(offset, errorMode);
+                final int randomMax = errorMode == EventType.BASE_SUBSTITUTION ? 10000 : 100000;
+
+                rgTable.put(RecalDatum.createRandomRecalDatum(randomMax, 10), covariates[0], errorMode.index);
+                qualTable.put(RecalDatum.createRandomRecalDatum(randomMax, 10), covariates[0], covariates[1], errorMode.index);
+                nKeys += 2;
+                for (int j = 0; j < optionalCovariates.size(); j++) {
+                    final NestedIntegerArray<RecalDatum> covTable = recalibrationTables.getTable(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + j);
+                    covTable.put(RecalDatum.createRandomRecalDatum(randomMax, 10), covariates[0], covariates[1], j, covariates[RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + j], errorMode.index);
                     nKeys++;
                 }
-
-                for (BitSet key : keyManager.bitSetsFromAllKeys(rc.getInsertionsKeySet(offset), EventType.BASE_INSERTION)) {
-                    table.put(key, RecalDatum.createRandomRecalDatum(100000, 10));
-                    nKeys++;
-                }
-
-
-                for (BitSet key : keyManager.bitSetsFromAllKeys(rc.getDeletionsKeySet(offset), EventType.BASE_DELETION)) {
-                    table.put(key,  RecalDatum.createRandomRecalDatum(100000, 10));
-                    nKeys++;
-                }
-
             }
         }
         Assert.assertEquals(nKeys, expectedKeys);
 
-        RecalibrationReport report = new RecalibrationReport(quantizationInfo, keysAndTablesMap, RAC.generateReportTable(), RAC);
+        final RecalibrationReport report = new RecalibrationReport(quantizationInfo, recalibrationTables, RAC.generateReportTable(), RAC);
 
         File output = new File("RecalibrationReportUnitTestOutuput.grp");
         PrintStream out;

@@ -33,6 +33,9 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.codecs.vcf.AbstractVCFCodec;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.help.GATKDocUtils;
 
@@ -82,11 +85,19 @@ public class FeatureManager  {
 
     private final PluginManager<FeatureCodec> pluginManager;
     private final Collection<FeatureDescriptor> featureDescriptors = new TreeSet<FeatureDescriptor>();
+    private final VCFHeader headerForRepairs;
+    private final boolean lenientVCFProcessing;
 
     /**
-     * Construct a FeatureManager
+     * Construct a FeatureManager without a master VCF header
      */
     public FeatureManager() {
+        this(null, false);
+    }
+
+    public FeatureManager(final VCFHeader headerForRepairs, final boolean lenientVCFProcessing) {
+        this.headerForRepairs = headerForRepairs;
+        this.lenientVCFProcessing = lenientVCFProcessing;
         pluginManager = new PluginManager<FeatureCodec>(FeatureCodec.class, "Codecs", "Codec");
 
         for (final String rawName: pluginManager.getPluginsByName().keySet()) {
@@ -244,6 +255,11 @@ public class FeatureManager  {
             ((NameAwareCodec)codex).setName(name);
         if ( codex instanceof ReferenceDependentFeatureCodec )
             ((ReferenceDependentFeatureCodec)codex).setGenomeLocParser(genomeLocParser);
+        if ( codex instanceof VCFCodec )
+            ((VCFCodec)codex).setHeaderForRepairs(headerForRepairs);
+        if ( codex instanceof AbstractVCFCodec && lenientVCFProcessing )
+            ((AbstractVCFCodec)codex).disableOnTheFlyModifications();
+
         return codex;
     }
 }

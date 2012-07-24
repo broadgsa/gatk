@@ -53,20 +53,19 @@ public class ReadLengthDistribution extends ReadWalker<Integer, Integer> {
     private GATKReport report;
 
     public void initialize() {
+        final List<SAMReadGroupRecord> readGroups = getToolkit().getSAMFileHeader().getReadGroups();
+
         report = new GATKReport();
-        report.addTable("ReadLengthDistribution", "Table of read length distributions");
+        report.addTable("ReadLengthDistribution", "Table of read length distributions", 1 + (readGroups.isEmpty() ? 1 : readGroups.size()));
         GATKReportTable table = report.getTable("ReadLengthDistribution");
 
-        table.addPrimaryKey("readLength");
+        table.addColumn("readLength");
 
-        List<SAMReadGroupRecord> readGroups = getToolkit().getSAMFileHeader().getReadGroups();
         if (readGroups.isEmpty())
-            table.addColumn("SINGLE_SAMPLE", 0);
-
+            table.addColumn("SINGLE_SAMPLE");
         else
             for (SAMReadGroupRecord rg : readGroups)
-                table.addColumn(rg.getSample(), 0);
-
+                table.addColumn(rg.getSample());
     }
 
     public boolean filter(ReferenceContext ref, GATKSAMRecord read) {

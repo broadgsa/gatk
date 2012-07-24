@@ -139,11 +139,11 @@ public class TrancheManager {
         }
     }
 
-    public static List<Tranche> findTranches( ArrayList<VariantDatum> data, final double[] tranches, SelectionMetric metric ) {
-        return findTranches( data, tranches, metric, null );
+    public static List<Tranche> findTranches( final ArrayList<VariantDatum> data, final double[] tranches, final SelectionMetric metric, final VariantRecalibratorArgumentCollection.Mode model ) {
+        return findTranches( data, tranches, metric, model, null );
     }
 
-    public static List<Tranche> findTranches( ArrayList<VariantDatum> data, final double[] trancheThresholds, SelectionMetric metric, File debugFile ) {
+    public static List<Tranche> findTranches( final ArrayList<VariantDatum> data, final double[] trancheThresholds, final SelectionMetric metric, final VariantRecalibratorArgumentCollection.Mode model, final File debugFile ) {
         logger.info(String.format("Finding %d tranches for %d variants", trancheThresholds.length, data.size()));
 
         Collections.sort(data);
@@ -153,7 +153,7 @@ public class TrancheManager {
 
         List<Tranche> tranches = new ArrayList<Tranche>();
         for ( double trancheThreshold : trancheThresholds ) {
-            Tranche t = findTranche(data, metric, trancheThreshold);
+            Tranche t = findTranche(data, metric, trancheThreshold, model);
 
             if ( t == null ) {
                 if ( tranches.size() == 0 )
@@ -182,7 +182,7 @@ public class TrancheManager {
         }
     }
 
-    public static Tranche findTranche( final List<VariantDatum> data, final SelectionMetric metric, final double trancheThreshold ) {
+    public static Tranche findTranche( final List<VariantDatum> data, final SelectionMetric metric, final double trancheThreshold, final VariantRecalibratorArgumentCollection.Mode model ) {
         logger.info(String.format("  Tranche threshold %.2f => selection metric threshold %.3f", trancheThreshold, metric.getThreshold(trancheThreshold)));
 
         double metricThreshold = metric.getThreshold(trancheThreshold);
@@ -190,7 +190,7 @@ public class TrancheManager {
         for ( int i = 0; i < n; i++ ) {
             if ( metric.getRunningMetric(i) >= metricThreshold ) {
                 // we've found the largest group of variants with sensitivity >= our target truth sensitivity
-                Tranche t = trancheOfVariants(data, i, trancheThreshold);
+                Tranche t = trancheOfVariants(data, i, trancheThreshold, model);
                 logger.info(String.format("  Found tranche for %.3f: %.3f threshold starting with variant %d; running score is %.3f ",
                         trancheThreshold, metricThreshold, i, metric.getRunningMetric(i)));
                 logger.info(String.format("  Tranche is %s", t));
@@ -201,7 +201,7 @@ public class TrancheManager {
         return null;
     }
 
-    public static Tranche trancheOfVariants( final List<VariantDatum> data, int minI, double ts ) {
+    public static Tranche trancheOfVariants( final List<VariantDatum> data, int minI, double ts, final VariantRecalibratorArgumentCollection.Mode model ) {
         int numKnown = 0, numNovel = 0, knownTi = 0, knownTv = 0, novelTi = 0, novelTv = 0;
 
         double minLod = data.get(minI).lod;
@@ -228,7 +228,7 @@ public class TrancheManager {
         int accessibleTruthSites = countCallsAtTruth(data, Double.NEGATIVE_INFINITY);
         int nCallsAtTruth = countCallsAtTruth(data, minLod);
 
-        return new Tranche(ts, minLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, nCallsAtTruth);
+        return new Tranche(ts, minLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, nCallsAtTruth, model);
     }
 
     public static double fdrToTiTv(double desiredFDR, double targetTiTv) {
