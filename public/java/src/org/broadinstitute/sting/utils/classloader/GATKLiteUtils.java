@@ -41,6 +41,21 @@ public class GATKLiteUtils {
      */
     private GATKLiteUtils() { }
 
+
+    private static Set<String> fullVersionGATKWalkers = new HashSet<String>();
+    static {
+        fullVersionGATKWalkers.add("HaplotypeCaller");
+        fullVersionGATKWalkers.add("ReduceReads");
+    }
+    /**
+     * Utility method to check whether a given walker is only available in the full GATK release
+     *
+     * @param walkerName   the walker class name (not the package) to check
+     */
+    public static boolean isAvailableOnlyInFullGATK(final String walkerName) {
+        return fullVersionGATKWalkers.contains(walkerName);
+    }
+
     /**
      * Utility method to determine whether this is the lite version of the GATK
      */
