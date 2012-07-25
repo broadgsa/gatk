@@ -79,8 +79,14 @@ public class TreeReducer implements Callable {
             else
                 result = walker.treeReduce( lhs.get(), rhs.get() );
         }
-        catch( InterruptedException ex ) { microScheduler.handleException(ex); }
-        catch( ExecutionException ex ) { microScheduler.handleException(ex); }
+        catch( InterruptedException ex ) {
+            microScheduler.notifyOfTraversalError(ex);
+            throw new ReviewedStingException("Hierarchical reduce interrupted", ex);
+        }
+        catch( ExecutionException ex ) {
+            microScheduler.notifyOfTraversalError(ex);
+            throw new ReviewedStingException("Hierarchical reduce failed", ex);
+        }
 
         final long endTime = System.currentTimeMillis();
 

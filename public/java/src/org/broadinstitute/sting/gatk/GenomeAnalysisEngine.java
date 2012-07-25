@@ -281,7 +281,14 @@ public class GenomeAnalysisEngine {
      * @return An instance of the walker.
      */
     public Walker<?, ?> getWalkerByName(String walkerName) {
-        return walkerManager.createByName(walkerName);
+        try {
+            return walkerManager.createByName(walkerName);
+        } catch ( UserException e ) {
+            if ( isGATKLite() && GATKLiteUtils.isAvailableOnlyInFullGATK(walkerName) ) {
+                e = new UserException.NotSupportedInGATKLite("the " + walkerName + " walker is available only in the full version of the GATK");
+            }
+            throw e;
+        }
     }
 
     /**

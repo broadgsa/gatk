@@ -51,10 +51,6 @@ public class ContextCovariate implements StandardCovariate {
     private static final int LENGTH_BITS = 4;
     private static final int LENGTH_MASK = 15;
 
-    // temporary lists to use for creating context covariate keys
-    private final ArrayList<Integer> mismatchKeys = new ArrayList<Integer>(200);
-    private final ArrayList<Integer> indelKeys = new ArrayList<Integer>(200);
-
     // the maximum context size (number of bases) permitted; we need to keep the leftmost base free so that values are
     // not negative and we reserve 4 more bits to represent the length of the context; it takes 2 bits to encode one base.
     static final private int MAX_DNA_CONTEXT = 13;
@@ -91,10 +87,8 @@ public class ContextCovariate implements StandardCovariate {
         if (negativeStrand)
             bases = BaseUtils.simpleReverseComplement(bases);
 
-        mismatchKeys.clear();
-        indelKeys.clear();
-        contextWith(bases, mismatchesContextSize, mismatchKeys, mismatchesKeyMask);
-        contextWith(bases, indelsContextSize, indelKeys, indelsKeyMask);
+        final ArrayList<Integer> mismatchKeys = contextWith(bases, mismatchesContextSize, mismatchesKeyMask);
+        final ArrayList<Integer> indelKeys = contextWith(bases, indelsContextSize, indelsKeyMask);
 
         final int readLength = bases.length;
         for (int i = 0; i < readLength; i++) {
@@ -139,17 +133,19 @@ public class ContextCovariate implements StandardCovariate {
      *
      * @param bases       the bases in the read to build the context from
      * @param contextSize context size to use building the context
-     * @param keys        list to store the keys
      * @param mask        mask for pulling out just the context bits
      */
-    private static void contextWith(final byte[] bases, final int contextSize, final ArrayList<Integer> keys, final int mask) {
+    private static ArrayList<Integer> contextWith(final byte[] bases, final int contextSize, final int mask) {
+
+        final int readLength = bases.length;
+        final ArrayList<Integer> keys = new ArrayList<Integer>(readLength);
 
         // the first contextSize-1 bases will not have enough previous context
-        for (int i = 1; i < contextSize && i <= bases.length; i++)
+        for (int i = 1; i < contextSize && i <= readLength; i++)
             keys.add(-1);
 
-        if (bases.length < contextSize)
-            return;
+        if (readLength < contextSize)
+            return keys;
 
         final int newBaseOffset = 2 * (contextSize - 1) + LENGTH_BITS;
 
@@ -171,7 +167,6 @@ public class ContextCovariate implements StandardCovariate {
             }
         }
 
-        final int readLength = bases.length;
         for (int currentIndex = contextSize; currentIndex < readLength; currentIndex++) {
             final int baseIndex = BaseUtils.simpleBaseToBaseIndex(bases[currentIndex]);
             if (baseIndex == -1) {                    // ignore non-ACGT bases
@@ -191,6 +186,8 @@ public class ContextCovariate implements StandardCovariate {
                 keys.add(-1);
             }
         }
+
+        return keys;
     }
 
     public static int keyFromContext(final String dna) {

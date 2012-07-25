@@ -58,13 +58,11 @@ import java.util.ArrayList;
  * of poor base quality. This walker generates tables based on various user-specified covariates (such as read group,
  * reported quality score, cycle, and dinucleotide). Since there is a large amount of data one can then calculate an empirical
  * probability of error given the particular covariates seen at this site, where p(error) = num mismatches / num observations.
- * The output file is a CSV list of (the several covariate values, num observations, num mismatches, empirical quality score).
+ * The output file is a table (of the several covariate values, num observations, num mismatches, empirical quality score).
  * <p>
  * Note: ReadGroupCovariate and QualityScoreCovariate are required covariates and will be added for the user regardless of whether or not they were specified.
  *
  * <p>
- * See the GATK wiki for a tutorial and example recalibration accuracy plots.
- * http://www.broadinstitute.org/gsa/wiki/index.php/Base_quality_score_recalibration
  *
  * <h2>Input</h2>
  * <p>
@@ -113,16 +111,16 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
     private QuantizationInfo quantizationInfo;                                                                          // an object that keeps track of the information necessary for quality score quantization 
     
     private RecalibrationTables recalibrationTables;
-    
+
     private Covariate[] requestedCovariates;                                                                            // list to hold the all the covariate objects that were requested (required + standard + experimental)
 
     private RecalibrationEngine recalibrationEngine;
 
     private int minimumQToUse;
 
-    protected static final String SKIP_RECORD_ATTRIBUTE = "SKIP";                                                         // used to label reads that should be skipped.
-    protected static final String SEEN_ATTRIBUTE = "SEEN";                                                                // used to label reads as processed.
-    protected static final String COVARS_ATTRIBUTE = "COVARS";                                                            // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
+    protected static final String SKIP_RECORD_ATTRIBUTE = "SKIP";                                                       // used to label reads that should be skipped.
+    protected static final String SEEN_ATTRIBUTE = "SEEN";                                                              // used to label reads as processed.
+    protected static final String COVARS_ATTRIBUTE = "COVARS";                                                          // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
 
     private static final String NO_DBSNP_EXCEPTION = "This calculation is critically dependent on being able to skip over known variant sites. Please provide a VCF file containing known sites of genetic variation.";
 
