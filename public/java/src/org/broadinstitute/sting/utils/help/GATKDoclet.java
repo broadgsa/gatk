@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.utils.help;
 
-import com.google.gson.Gson;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.RootDoc;
 import freemarker.template.Configuration;
@@ -35,8 +34,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.broad.tribble.FeatureCodec;
-import org.broadinstitute.sting.gatk.Categorize;
-import org.broadinstitute.sting.gatk.Category;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.walkers.qc.DocumentationTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -44,16 +41,15 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.*;
-import java.lang.annotation.Annotation;
 import java.util.*;
 
 /**
  * Javadoc Doclet that combines javadoc, GATK ParsingEngine annotations, and FreeMarker
  * templates to produce html formatted GATKDocs for walkers
  * and other classes.
- *
+ * <p/>
  * This document has the following workflow:
- *
+ * <p/>
  * 1 -- walk the javadoc heirarchy, looking for class that have the
  * DocumentedGATKFeature annotation or are in the type heirarchy in the
  * static list of things to document, and are to be documented
@@ -63,7 +59,7 @@ import java.util.*;
  * as well as links to related features via their units.  Writing
  * of a specific class HTML is accomplished by a generate DocumentationHandler
  * 4 -- write out an index of all units, organized by group
- *
+ * <p/>
  * The documented classes are restricted to only those with @DocumentedGATKFeature
  * annotation or are in the STATIC_DOCS class.
  */
@@ -207,12 +203,19 @@ public class GATKDoclet {
 
             myWorkUnits = computeWorkUnits();
 
-            Map<Category, List<Map<String, String>>> catNav = getCategories(new ArrayList<GATKDocWorkUnit>(myWorkUnits));
-
-            processCategories(catNav, myWorkUnits);
+            List<Map<String, String>> groups = new ArrayList<Map<String, String>>();
+            Set<String> seenDocumentationFeatures = new HashSet<String>();
+            List<Map<String, String>> data = new ArrayList<Map<String, String>>();
+            for (GATKDocWorkUnit workUnit : myWorkUnits) {
+                data.add(workUnit.indexDataMap());
+                if (!seenDocumentationFeatures.contains(workUnit.annotation.groupName())) {
+                    groups.add(toMap(workUnit.annotation));
+                    seenDocumentationFeatures.add(workUnit.annotation.groupName());
+                }
+            }
 
             for (GATKDocWorkUnit workUnit : myWorkUnits) {
-                processDocWorkUnit(cfg, workUnit, catNav);
+                processDocWorkUnit(cfg, workUnit, groups, data);
             }
 
             processIndex(cfg, new ArrayList<GATKDocWorkUnit>(myWorkUnits));
@@ -257,43 +260,6 @@ public class GATKDoclet {
         }
     }
 
-    private void processCategories(Map<Category, List<Map<String, String>>> getCategories, Set<GATKDocWorkUnit> classes) throws IOException {
-        List<Object> categories = new LinkedList<Object>();
-        for (Category cat : getCategories.keySet()) {
-            Map<String, Object> properties = new HashMap<String, Object>();
-            properties.put("Name", cat.getDescription());
-            properties.put("UrlSlug", cat.name().toLowerCase().replace('_', '-'));
-            categories.add(properties);
-        }
-        writeJson(DESTINATION_DIR + "/categories.json", categories);
-
-        List<Object> posts = new LinkedList<Object>();
-        for (GATKDocWorkUnit unit : classes) {
-            Map<String, Object> properties = new HashMap<String, Object>();
-            properties.put("Post Title", unit.name + " Documentation");
-            properties.put("Categories", unit.categories);
-            List<String> tags = new ArrayList<String>();
-            tags.add(unit.name);
-            tags.add(unit.group);
-            properties.put("Tags", tags);
-            String body = String.format("<a href='%s'>%s</a><hr /><p>%s</p>",
-                    GATKDocUtils.URL_ROOT_FOR_RELEASE_GATKDOCS + unit.filename, unit.name + " Documentation", unit.summary);
-            properties.put("Body", body);
-            posts.add(properties);
-        }
-
-    }
-
-    private void writeJson(String filename, Object source) throws IOException {
-        Gson gson = new Gson();
-        BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(filename))), 1024 * 1024);
-
-        out.write(gson.toJson(source));
-
-        out.close();
-
-    }
-
     /**
      * Returns the set of all GATKDocWorkUnits that we are going to generate docs for.
      *
@@ -318,10 +284,8 @@ public class GATKDoclet {
             if (handler != null && handler.includeInDocs(doc)) {
                 logger.info("Generating documentation for class " + doc);
                 String filename = handler.getDestinationFilename(doc, clazz);
-                Category[] categories = getClassAnnotationValue(clazz, Categorize.class, "value");
                 GATKDocWorkUnit unit = new GATKDocWorkUnit(doc.name(),
-                        filename, feature.groupName(), (categories == null) ? new ArrayList<Category>() : Arrays.asList(categories),
-                        feature, handler, doc, clazz,
+                        filename, feature.groupName(), feature, handler, doc, clazz,
                         buildTimestamp, absoluteVersion);
                 m.add(unit);
             }
@@ -451,8 +415,6 @@ public class GATKDoclet {
         root.put("timestamp", buildTimestamp);
         root.put("version", absoluteVersion);
 
-        root.put("categories", getCategories(indexData));
-
         return root;
     }
 
@@ -498,14 +460,16 @@ public class GATKDoclet {
      *
      * @param cfg
      * @param unit
+     * @param data
      * @throws IOException
      */
-    private void processDocWorkUnit(Configuration cfg, GATKDocWorkUnit unit, Map<Category, List<Map<String, String>>> categories)
+    private void processDocWorkUnit(Configuration cfg, GATKDocWorkUnit unit, List<Map<String, String>> groups, List<Map<String, String>> data)
             throws IOException {
         //System.out.printf("Processing documentation for class %s%n", unit.classDoc);
 
         unit.handler.processOne(unit);
-        unit.forTemplate.put("catNav", categories);
+        unit.forTemplate.put("groups", groups);
+        unit.forTemplate.put("data", data);
         // Get or create a template
         Template temp = cfg.getTemplate(unit.handler.getTemplateName(unit.classDoc));
 
@@ -518,45 +482,6 @@ public class GATKDoclet {
         } catch (TemplateException e) {
             throw new ReviewedStingException("Failed to create GATK documentation", e);
         }
-    }
-
-    // hack - todo - is there a better way to process annotations?
-    private Category[] getClassAnnotationValue(Class classType, Class annotationType, String attributeName) {
-        Category[] value = null;
-
-        Annotation annotation = classType.getAnnotation(annotationType);
-        if (annotation != null) {
-            try {
-                value = (Category[]) annotation.annotationType().getMethod(attributeName).invoke(annotation);
-            } catch (Exception ex) {
-            }
-        }
-
-        return value;
-    }
-
-    private Map<Category, List<Map<String, String>>> getCategories(List<GATKDocWorkUnit> classes) {
-        Map<Category, List<Map<String, String>>> output = new TreeMap<Category, List<Map<String, String>>>();
-
-        for (Category cat : Category.values()) {
-            output.put(cat, new ArrayList<Map<String, String>>());
-        }
-
-        for (GATKDocWorkUnit unit : classes) {
-            Category[] categories = getClassAnnotationValue(unit.clazz, Categorize.class, "value");
-
-            if (categories != null) {
-                for (Category cat : categories) {
-                    unit.handler.processOne(unit);
-
-                    Map<String, String> datum = unit.indexDataMap();
-
-                    output.get(cat).add(datum);
-                }
-            }
-        }
-
-        return output;
     }
 
     private static String getSimpleVersion(String absoluteVersion) {
