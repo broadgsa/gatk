@@ -40,6 +40,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -91,6 +92,7 @@ import static org.broadinstitute.sting.utils.codecs.vcf.VCFUtils.getVCFHeadersFr
 // Filter out all reads with zero mapping quality
 @ReadFilters({MappingQualityZeroFilter.class})
 
+@DocumentedGATKFeature( groupName = "Variant Discovery Tools" )
 public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingStats> {
     private static final boolean DEBUG = false;
     /**

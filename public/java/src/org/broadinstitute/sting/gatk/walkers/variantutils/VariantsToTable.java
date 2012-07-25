@@ -29,6 +29,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -97,6 +98,7 @@ import java.util.*;
  * @author Mark DePristo
  * @since 2010
  */
+@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools" )
 public class VariantsToTable extends RodWalker<Integer, Integer> {
     /**
      * Variants from this VCF file are used by this tool as input.

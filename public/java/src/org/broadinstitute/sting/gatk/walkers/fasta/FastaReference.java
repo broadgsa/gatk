@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 
 import java.io.PrintStream;
 
@@ -66,6 +67,7 @@ import java.io.PrintStream;
  * </pre>
  *
  */
+@DocumentedGATKFeature( groupName = "Companion Utilities" )
 @WalkerName("FastaReferenceMaker")
 public class FastaReference extends RefWalker<Pair<GenomeLoc, String>, GenomeLoc> {
 

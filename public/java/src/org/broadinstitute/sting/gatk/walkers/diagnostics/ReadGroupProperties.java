@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.Median;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
@@ -94,6 +95,7 @@ import java.util.Map;
  *
  * @author Mark DePristo
  */
+@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools" )
 public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
     @Output
     public PrintStream out;
