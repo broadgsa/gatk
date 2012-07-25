@@ -111,16 +111,16 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
     private QuantizationInfo quantizationInfo;                                                                          // an object that keeps track of the information necessary for quality score quantization 
     
     private RecalibrationTables recalibrationTables;
-    
+
     private Covariate[] requestedCovariates;                                                                            // list to hold the all the covariate objects that were requested (required + standard + experimental)
 
     private RecalibrationEngine recalibrationEngine;
 
     private int minimumQToUse;
 
-    protected static final String SKIP_RECORD_ATTRIBUTE = "SKIP";                                                         // used to label reads that should be skipped.
-    protected static final String SEEN_ATTRIBUTE = "SEEN";                                                                // used to label reads as processed.
-    protected static final String COVARS_ATTRIBUTE = "COVARS";                                                            // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
+    protected static final String SKIP_RECORD_ATTRIBUTE = "SKIP";                                                       // used to label reads that should be skipped.
+    protected static final String SEEN_ATTRIBUTE = "SEEN";                                                              // used to label reads as processed.
+    protected static final String COVARS_ATTRIBUTE = "COVARS";                                                          // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
 
     private static final String NO_DBSNP_EXCEPTION = "This calculation is critically dependent on being able to skip over known variant sites. Please provide a VCF file containing known sites of genetic variation.";
 
