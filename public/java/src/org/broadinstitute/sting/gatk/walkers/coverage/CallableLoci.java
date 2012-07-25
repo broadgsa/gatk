@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.coverage;
 import org.broadinstitute.sting.commandline.Advanced;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -120,7 +121,7 @@ import java.io.PrintStream;
  * @author Mark DePristo
  * @since May 7, 2010
  */
-@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools" )
+@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @By(DataSource.REFERENCE)
 public class CallableLoci extends LocusWalker<CallableLoci.CallableBaseState, CallableLoci.Integrator> {
     @Output

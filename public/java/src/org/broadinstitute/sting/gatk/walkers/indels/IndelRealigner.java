@@ -32,6 +32,7 @@ import net.sf.samtools.util.SequenceUtil;
 import net.sf.samtools.util.StringUtil;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
@@ -110,7 +111,7 @@ import java.util.*;
  *
  * @author ebanks
  */
-@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools" )
+@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_OUTPUT)
 public class IndelRealigner extends ReadWalker<Integer, Integer> {
 

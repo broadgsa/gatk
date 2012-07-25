@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
@@ -98,7 +99,7 @@ import java.util.*;
  * @author Mark DePristo
  * @since 2010
  */
-@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools" )
+@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
 public class VariantsToTable extends RodWalker<Integer, Integer> {
     /**
      * Variants from this VCF file are used by this tool as input.

@@ -32,6 +32,7 @@ import org.apache.commons.jexl2.JexlEngine;
 import org.apache.commons.jexl2.MapContext;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
@@ -127,7 +128,7 @@ import java.util.*;
  *
  */
 
-@DocumentedGATKFeature( groupName = "Cancer-specific Variant Discovery Tools" )
+@DocumentedGATKFeature( groupName = "Cancer-specific Variant Discovery Tools", extraDocs = {CommandLineGATK.class} )
 @ReadFilters({Platform454Filter.class, MappingQualityZeroFilter.class, PlatformUnitFilter.class})
 public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
 //    @Output

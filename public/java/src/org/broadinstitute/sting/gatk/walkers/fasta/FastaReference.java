@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.fasta;
 
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -67,7 +68,7 @@ import java.io.PrintStream;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Companion Utilities" )
+@DocumentedGATKFeature( groupName = "Companion Utilities", extraDocs = {CommandLineGATK.class} )
 @WalkerName("FastaReferenceMaker")
 public class FastaReference extends RefWalker<Pair<GenomeLoc, String>, GenomeLoc> {
 
