@@ -99,4 +99,13 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
                 Arrays.asList("8077eb3bab5ff98f12085eb04176fdc9"));
         executeTest("test deletions", spec);
     }
+
+    @Test
+    public void testUnfilteredBecomesFilteredAndPass() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+            "-T VariantFiltration -o %s --no_cmdline_in_header -R " + b37KGReference
+                    + " --filterExpression 'FS > 60.0' --filterName SNP_FS -V " + privateTestDir + "unfilteredForFiltering.vcf", 1,
+                Arrays.asList("8ed32a2272bab8043a255362335395ef"));
+        executeTest("testUnfilteredBecomesFilteredAndPass", spec);
+    }
 }

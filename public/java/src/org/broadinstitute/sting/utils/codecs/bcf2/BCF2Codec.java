@@ -26,15 +26,12 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -44,12 +41,15 @@ import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Decode BCF2 files
  */
-public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDependentFeatureCodec {
+public final class BCF2Codec implements FeatureCodec<VariantContext> {
     final protected static Logger logger = Logger.getLogger(BCF2Codec.class);
     private final static boolean FORBID_SYMBOLICS = false;
 
@@ -162,7 +162,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
                 contigNames.add(contig.getID());
             }
         } else {
-            logger.info("Didn't find any contig lines in BCF2 file, falling back (dangerously) to GATK reference dictionary");
+            throw new UserException.MalformedBCF2("Didn't find any contig lines in BCF2 file header");
         }
 
         // create the string dictionary
@@ -199,19 +199,6 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
                 ; // do nothing
             }
         }
-    }
-
-    // --------------------------------------------------------------------------------
-    //
-    // Reference dependence
-    //
-    // --------------------------------------------------------------------------------
-
-    @Override
-    public void setGenomeLocParser(final GenomeLocParser genomeLocParser) {
-        // initialize contigNames to standard ones in reference
-        for ( final SAMSequenceRecord contig : genomeLocParser.getContigs().getSequences() )
-            contigNames.add(contig.getSequenceName());
     }
 
     // --------------------------------------------------------------------------------
