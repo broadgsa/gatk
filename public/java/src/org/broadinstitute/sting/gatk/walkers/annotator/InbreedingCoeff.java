@@ -68,6 +68,9 @@ public class InbreedingCoeff extends InfoFieldAnnotation implements StandardAnno
             if ( g.isNoCall() || !g.hasLikelihoods() )
                 continue;
 
+            if (g.getPloidy() != 2) // only work for diploid samples
+                continue;
+
             N++;
             final double[] normalizedLikelihoods = MathUtils.normalizeFromLog10( g.getLikelihoods().getAsVector() );
             refCount += normalizedLikelihoods[idxAA];
