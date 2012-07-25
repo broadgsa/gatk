@@ -80,8 +80,8 @@ public class ShardTraverser implements Callable {
 
             return accumulator;
         } catch(Throwable t) {
-            // Notify that an exception has occurred
-            microScheduler.handleException(new ExecutionException(t));
+            // Notify that an exception has occurred and rethrow it.
+            microScheduler.notifyOfTraversalError(t);
             throw new RuntimeException(t);
         } finally {
             synchronized(this) {

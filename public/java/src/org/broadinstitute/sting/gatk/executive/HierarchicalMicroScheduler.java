@@ -11,13 +11,17 @@ import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 
 /**
  * A microscheduler that schedules shards according to a tree-like structure.
@@ -39,6 +43,11 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     private ThreadLocalOutputTracker outputTracker = new ThreadLocalOutputTracker();
 
     private final Queue<TreeReduceTask> reduceTasks = new LinkedList<TreeReduceTask>();
+
+    /**
+     * An exception that's occurred in this traversal.  If null, no exception has occurred.
+     */
+    private RuntimeException error = null;
 
     /**
      * Queue of incoming shards.
@@ -90,13 +99,11 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         ReduceTree reduceTree = new ReduceTree(this);
         initializeWalker(walker);
 
-        //
-        // exception handling here is a bit complex.  We used to catch and rethrow exceptions all over
-        // the place, but that just didn't work well.  Now we have a specific execution exception (inner class)
-        // to use for multi-threading specific exceptions.  All RuntimeExceptions that occur within the threads are rethrown
-        // up the stack as their underlying causes
-        //
         while (isShardTraversePending() || isTreeReducePending()) {
+            // Check for errors during execution.
+            if(hasTraversalErrorOccurred())
+                throw getTraversalError();
+
             // Too many files sitting around taking up space?  Merge them.
             if (isMergeLimitExceeded())
                 mergeExistingOutput(false);
@@ -123,8 +130,12 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
             result = reduceTree.getResult().get();
             notifyTraversalDone(walker,result);
         }
-        catch( InterruptedException ex ) { handleException(ex); }
-        catch( ExecutionException ex ) { handleException(ex); }
+        catch (ReviewedStingException ex) {
+            throw ex;
+        }
+        catch (Exception ex) {
+            throw new ReviewedStingException("Unable to retrieve result", ex);
+        }
 
         // do final cleanup operations
         outputTracker.close();
@@ -255,8 +266,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
                     // Specifically catch Tribble I/O exceptions and rethrow them as Reviewed.  We don't expect
                     // any issues here because we created the Tribble output file mere moments ago and expect it to
                     // be completely valid.
-                    final String reason = ex.getMessage();
-                    throw new ReviewedStingException("Unable to merge temporary Tribble output file" + (reason == null ? "." : (" (" + reason + ").")), ex);
+                    throw new ReviewedStingException("Unable to merge temporary Tribble output file.",ex);
                 }
             }
         }
@@ -328,39 +338,30 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     }
 
     /**
-     * Handle an exception that occurred in a worker thread as needed by this scheduler.
-     *
-     * The way to use this function in a worker is:
-     *
-     * try { doSomeWork();
-     * catch ( InterruptedException ex ) { hms.handleException(ex); }
-     * catch ( ExecutionException ex ) { hms.handleException(ex); }
-     *
-     * @param ex the exception that occurred in the worker thread
+     * Detects whether an execution error has occurred.
+     * @return True if an error has occurred.  False otherwise.
      */
-    protected final void handleException(InterruptedException ex) {
-        throw new HierarchicalMicroScheduler.ExecutionFailure("Hierarchical reduce interrupted", ex);
+    private synchronized boolean hasTraversalErrorOccurred() {
+        return error != null;
+    }
+
+    private synchronized RuntimeException getTraversalError() {
+        if(!hasTraversalErrorOccurred())
+            throw new ReviewedStingException("User has attempted to retrieve a traversal error when none exists");
+        return error;
     }
 
     /**
-     * Handle an exception that occurred in a worker thread as needed by this scheduler.
-     *
-     * The way to use this function in a worker is:
-     *
-     * try { doSomeWork();
-     * catch ( InterruptedException ex ) { hms.handleException(ex); }
-     * catch ( ExecutionException ex ) { hms.handleException(ex); }
-     *
-     * @param ex the exception that occurred in the worker thread
+     * Allows other threads to notify of an error during traversal.
      */
-    protected final void handleException(ExecutionException ex) {
-        if ( ex.getCause() instanceof RuntimeException )
-            // if the cause was a runtime exception that's what we want to send up the stack
-            throw (RuntimeException )ex.getCause();
+    protected synchronized void notifyOfTraversalError(Throwable error) {
+        // If the error is already a Runtime, pass it along as is.  Otherwise, wrap it.
+        if (error instanceof RuntimeException)
+            this.error = (RuntimeException)error;
         else
-            throw new HierarchicalMicroScheduler.ExecutionFailure("Hierarchical reduce failed", ex);
-    }
+            this.error = new ReviewedStingException("An error occurred during the traversal.", error);
 
+    }
 
 
     /** A small wrapper class that provides the TreeReducer interface along with the FutureTask semantics. */
@@ -378,17 +379,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
         public boolean isReadyForReduce() {
             return treeReducer.isReadyForReduce();
-        }
-    }
-
-    /**
-     * A specific exception class for HMS-specific failures such as
-     * Interrupted or ExecutionFailures that aren't clearly the fault
-     * of the underlying walker code
-     */
-    public static class ExecutionFailure extends ReviewedStingException {
-        public ExecutionFailure(final String s, final Throwable throwable) {
-            super(s, throwable);
         }
     }
 

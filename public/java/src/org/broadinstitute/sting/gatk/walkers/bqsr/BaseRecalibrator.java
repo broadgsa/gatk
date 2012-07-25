@@ -58,13 +58,11 @@ import java.util.ArrayList;
  * of poor base quality. This walker generates tables based on various user-specified covariates (such as read group,
  * reported quality score, cycle, and dinucleotide). Since there is a large amount of data one can then calculate an empirical
  * probability of error given the particular covariates seen at this site, where p(error) = num mismatches / num observations.
- * The output file is a CSV list of (the several covariate values, num observations, num mismatches, empirical quality score).
+ * The output file is a table (of the several covariate values, num observations, num mismatches, empirical quality score).
  * <p>
  * Note: ReadGroupCovariate and QualityScoreCovariate are required covariates and will be added for the user regardless of whether or not they were specified.
  *
  * <p>
- * See the GATK wiki for a tutorial and example recalibration accuracy plots.
- * http://www.broadinstitute.org/gsa/wiki/index.php/Base_quality_score_recalibration
  *
  * <h2>Input</h2>
  * <p>
