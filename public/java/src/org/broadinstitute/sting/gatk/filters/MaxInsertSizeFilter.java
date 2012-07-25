@@ -4,11 +4,10 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 
 /**
- * Created by IntelliJ IDEA.
- * User: chartl
- * Date: 5/2/11
- * Time: 12:20 PM
- * To change this template use File | Settings | File Templates.
+ * Filter out reads that exceed a given max insert size
+ *
+ * @author chartl
+ * @since 5/2/11
  */
 public class MaxInsertSizeFilter extends ReadFilter {
     @Argument(fullName = "maxInsertSize", shortName = "maxInsert", doc="Discard reads with insert size greater than the specified value, defaults to 1000000", required=false)

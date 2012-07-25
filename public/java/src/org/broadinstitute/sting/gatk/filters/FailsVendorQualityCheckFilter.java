@@ -27,11 +27,10 @@ package org.broadinstitute.sting.gatk.filters;
 import net.sf.samtools.SAMRecord;
 
 /**
- * Created by IntelliJ IDEA.
- * User: rpoplin
- * Date: Jul 19, 2010
+ * Filter out reads that fail the vendor quality check.
  *
- * Filter out FailsVendorQualityCheck reads.
+ * @author rpoplin
+ * @since Jul 19, 2010
  */
 
 public class FailsVendorQualityCheckFilter extends ReadFilter {
