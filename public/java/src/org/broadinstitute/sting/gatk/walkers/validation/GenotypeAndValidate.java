@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
@@ -188,13 +189,11 @@ import static org.broadinstitute.sting.utils.IndelUtils.isInsideExtendedIndel;
  * @since ${DATE}
  */
 
+@DocumentedGATKFeature( groupName = "Validation Utilities" )
 @Requires(value={DataSource.READS, DataSource.REFERENCE})
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
-
 @By(DataSource.REFERENCE)
 @Reference(window=@Window(start=-200,stop=200))
-
-
 public class GenotypeAndValidate extends RodWalker<GenotypeAndValidate.CountedData, GenotypeAndValidate.CountedData> implements TreeReducible<GenotypeAndValidate.CountedData> {
 
     /**

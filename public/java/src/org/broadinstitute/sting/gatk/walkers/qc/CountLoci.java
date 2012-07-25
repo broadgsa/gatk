@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 
 import java.io.PrintStream;
 
@@ -37,6 +38,7 @@ import java.io.PrintStream;
  * </pre>
  *
  */
+@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools" )
 public class CountLoci extends LocusWalker<Integer, Long> implements TreeReducible<Long> {
     @Output(doc="Write count to this file instead of STDOUT")
     PrintStream out;

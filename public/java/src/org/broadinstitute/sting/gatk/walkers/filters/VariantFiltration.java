@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 
@@ -75,6 +76,7 @@ import java.util.*;
  * </pre>
  *
  */
+@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools" )
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltration extends RodWalker<Integer, Integer> {
 

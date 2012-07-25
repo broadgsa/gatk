@@ -48,6 +48,7 @@ import org.broadinstitute.sting.utils.codecs.refseq.RefSeqFeature;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -114,6 +115,7 @@ import java.util.*;
 // todo -- alter logarithmic scaling to spread out bins more
 // todo -- allow for user to set linear binning (default is logarithmic)
 // todo -- formatting --> do something special for end bins in getQuantile(int[] foo), this gets mushed into the end+-1 bins for now
+@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools" )
 @By(DataSource.REFERENCE)
 @PartitionBy(PartitionType.NONE)
 @Downsample(by= DownsampleType.NONE, toCoverage=Integer.MAX_VALUE)

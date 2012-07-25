@@ -42,6 +42,7 @@ import org.broadinstitute.sting.utils.clipping.ClippingOp;
 import org.broadinstitute.sting.utils.clipping.ClippingRepresentation;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
@@ -148,6 +149,7 @@ import java.util.regex.Pattern;
  * @author Mark DePristo
  * @since 2010
  */
+@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools" )
 @Requires({DataSource.READS})
 public class ClipReads extends ReadWalker<ClipReads.ReadClipperWithData, ClipReads.ClippingData> {
     /**
