@@ -88,6 +88,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         addHighLevelBindings(root);
         addArgumentBindings(root);
         addRelatedBindings(root);
+        root.put("group", toProcess.group);
 
         toProcess.setHandlerContent((String) root.get("summary"), root);
     }
@@ -109,7 +110,6 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         root.put("description", toProcess.classDoc.commentText().substring(summaryBuilder.toString().length()));
         root.put("timestamp", toProcess.buildTimestamp);
         root.put("version", toProcess.absoluteVersion);
-        root.put("categories", toProcess.categories);
 
         for (Tag tag : toProcess.classDoc.tags()) {
             root.put(tag.name(), tag.text());

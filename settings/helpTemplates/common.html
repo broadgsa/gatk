@@ -28,7 +28,7 @@
 
         -->
 
-    <#global siteRoot = "http://gsa-stage:8080/" />
+    <#global siteRoot = "http://www.broadinstitute.org/gatk/" />
     <#global forum = "http://gatk.vanillaforums.com/" />
 
     <#macro makeHeader title isIndex>
@@ -49,8 +49,8 @@
                     body {
                         padding-top : 60px;
                     }
+                }
             </style>
-
 
         </head>
         <body>
@@ -63,7 +63,7 @@
         </div>
         <div class="container-fluid">
             <?php
-
+    // Output Buffering allows for the website to inject a different header
     ob_clean();
     include '../include/common.php';
     printHeader("${title}", "Guides");
@@ -95,7 +95,7 @@
         ?>
     </#macro>
 
-    <#macro getCategories map filter>
+    <#macro getCategories groups>
         <style>
             #sidenav .accordion-body a {
                 color : gray;
@@ -105,31 +105,20 @@
                 list-style : none;
             }
         </style>
-
         <ul class="nav nav-pills nav-stacked" id="sidenav">
-            <#list 0..(map?keys?size-1) as x>
-                <li><a data-toggle="collapse" data-parent="#sidenav"
-                       href="#${map?keys[x]}">${map?keys[x].getDescription()}</a>
+            <#list groups?sort_by("name") as group>
+                <li><a data-toggle="collapse" data-parent="#sidenav" href="#${group.id}">${group.name}</a>
 
-                    <div id="${map?keys[x]}"
-                    <?php echo (in_array('${map?keys[x]}', $categories)) ? 'class="accordion-body collapse in"'.chr(62) : 'class="accordion-body collapse"'.chr(62);?>
+                    <div id="${group.id}"
+                    <?php echo ($group == '${group.name}')? 'class="accordion-body collapse in"'.chr(62) : 'class="accordion-body collapse"'.chr(62);?>
                     <ul>
-                        <#assign items=map?values[x] />
-                        <#if filter !="all" >
-                            <#list items as datum>
-                                <#if datum.group == filter>
-                                    <li><a href="${datum.filename}" rel="tooltip"
-                                           title="${datum.summary}">${datum.name}</a>
-                                    </li>
-                                </#if>
-                            </#list>
-                            <#else>
-                                <#list items as datum>
-                                    <li><a href="${datum.filename}" rel="tooltip"
-                                           title="${datum.summary}">${datum.name}</a>
-                                    </li>
-                                </#list>
-                        </#if>
+                        <#list data as datum>
+                            <#if datum.group == group.name>
+                                <li>
+                                    <a href="${datum.filename}">${datum.name}</a>
+                                </li>
+                            </#if>
+                        </#list>
                     </ul>
                     </div>
                 </li>
