@@ -8,11 +8,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Created by IntelliJ IDEA.
- * User: asivache
- * Date: Sep 21, 2009
- * Time: 2:54:23 PM
- * To change this template use File | Settings | File Templates.
+ * Filter out reads that have blacklisted platform unit tags. (See code documentation for how to create the blacklist).
+ *
+ * @author asivache
+ * @since Sep 21, 2009
  */
 public class PlatformUnitFilter extends ReadFilter {
     // a hack: use static in order to be able to fill it with the data from command line at runtime
