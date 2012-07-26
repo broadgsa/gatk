@@ -52,7 +52,7 @@
         <dependency org="gov.nist" name="Jama" rev="1.0.2"/>
 
         <!-- Dependencies for the graph aligner -->
-        <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3"/>
+        <dependency org="net.sf.jgrapht" name="jgrapht" rev="0.8.3"/>
 
         <!-- Dependencies for the html walker documention -->
         <dependency org="org.freemarker" name="freemarker" rev="2.3.18"/>
