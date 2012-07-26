@@ -43,7 +43,6 @@ public class Datum {
 
     private static final int SMOOTHING_CONSTANT = 1;                                                                    // used when calculating empirical qualities to avoid division by zero
 
-
     //---------------------------------------------------------------------------------------------------------------
     //
     // constructors
@@ -84,7 +83,7 @@ public class Datum {
 
     double empiricalQualDouble() {
         final double doubleMismatches = (double) (numMismatches + SMOOTHING_CONSTANT);
-        final double doubleObservations = (double) (numObservations + SMOOTHING_CONSTANT);
+        final double doubleObservations = (double) (numObservations + SMOOTHING_CONSTANT + SMOOTHING_CONSTANT); // smoothing is one error and one non-error observation, for example
         final double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
         return Math.min(empiricalQual, (double) QualityUtils.MAX_RECALIBRATED_Q_SCORE);
     }
