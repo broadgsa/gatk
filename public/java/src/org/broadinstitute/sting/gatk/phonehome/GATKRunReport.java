@@ -86,7 +86,7 @@ public class GATKRunReport {
     private static File REPORT_SENTINEL = new File(REPORT_DIR.getAbsolutePath() + "/ENABLE");
 
     // number of milliseconds before the S3 put operation is timed-out:
-    private static final long S3PutTimeOut = 30 * 1000;
+    private static final long S3PutTimeOut = 10 * 1000;
 
 
     /**
