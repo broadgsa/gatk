@@ -82,7 +82,7 @@ import java.util.*;
  *   -o snps.raw.vcf \
  *   -stand_call_conf [50.0] \
  *   -stand_emit_conf 10.0 \
- *   -dcov [50] \
+ *   -dcov [50 for 4x, 200 for >30x WGS or Whole exome] \
  *   [-L targets.interval_list]
  * </pre>
  *
