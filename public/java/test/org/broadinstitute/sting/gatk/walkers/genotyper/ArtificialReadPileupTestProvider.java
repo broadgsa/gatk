@@ -90,7 +90,7 @@ public class ArtificialReadPileupTestProvider {
         return sampleNames;
     }
     public byte getRefByte() {
-        return refBases.substring(offset,offset+1).getBytes()[0];
+        return referenceContext.getBase();
     }
 
     public ReferenceContext getReferenceContext()   { return referenceContext;}
@@ -107,7 +107,7 @@ public class ArtificialReadPileupTestProvider {
         ArrayList<Allele> vcAlleles = new ArrayList<Allele>();
         Allele refAllele, altAllele;
         if (eventLength == 0)  {// SNP case
-            refAllele =Allele.create(refBases.substring(offset,offset+1),true);
+            refAllele =Allele.create(referenceContext.getBase(),true);
             altAllele = Allele.create(altBases.substring(0,1), false);
 
         } else if (eventLength>0){
