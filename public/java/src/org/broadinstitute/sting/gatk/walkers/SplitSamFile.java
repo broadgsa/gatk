@@ -31,8 +31,10 @@ import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
@@ -45,6 +47,7 @@ import java.util.Map;
  * Divides the input data set into separate BAM files, one for each sample in the input data set.  The split
  * files are named concatenating the sample name to the end of the provided outputRoot command-line argument.
  */
+@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @WalkerName("SplitSamFile")
 @Requires({DataSource.READS})
 public class SplitSamFile extends ReadWalker<SAMRecord, Map<String, SAMFileWriter>> {
