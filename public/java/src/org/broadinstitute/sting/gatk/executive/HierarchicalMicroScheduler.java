@@ -358,7 +358,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         if (error instanceof RuntimeException)
             this.error = (RuntimeException)error;
         else
-            this.error = new ReviewedStingException("An error occurred during the traversal.", error);
+            this.error = new ReviewedStingException("An error occurred during the traversal.  Message=" + error.getMessage(), error);
 
     }
 

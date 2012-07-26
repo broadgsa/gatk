@@ -169,7 +169,6 @@ public class WalkerTest extends BaseTest {
         Class expectedException = null;
         boolean includeImplicitArgs = true;
         boolean includeShadowBCF = true;
-        boolean repairHeader = false;
 
         // the default output path for the integration test
         private File outputFileLocation = null;
@@ -211,8 +210,6 @@ public class WalkerTest extends BaseTest {
                         String.format(" -et %s -K %s ", GATKRunReport.PhoneHomeOption.NO_ET, gatkKeyFile));
                 if ( includeShadowBCF && GENERATE_SHADOW_BCF )
                     args = args + " --generateShadowBCF ";
-                if ( repairHeader )
-                    args = args + " --repairVCFHeader public/data/vcfHeaderForRepairs.vcf ";
             }
 
             return args;
@@ -224,7 +221,6 @@ public class WalkerTest extends BaseTest {
          * which will ultimately blow up...
          */
         public void disableShadowBCF() { this.includeShadowBCF = false; }
-        public void repairHeaders() { this.repairHeader = true; }
         public void setOutputFileLocation(File outputFileLocation) {
             this.outputFileLocation = outputFileLocation;
         }        
@@ -367,10 +363,16 @@ public class WalkerTest extends BaseTest {
                     // it's the type we expected
                     //System.out.println(String.format("  => %s PASSED", name));
                 } else {
-                    if ( e.getCause() != null )
-                        e.getCause().printStackTrace(System.out);  // must print to stdout to see the message
-                    Assert.fail(String.format("Test %s expected exception %s but instead got %s with error message %s",
-                            name, expectedException, e.getClass(), e.getMessage()));
+                    final String message = String.format("Test %s expected exception %s but instead got %s with error message %s",
+                            name, expectedException, e.getClass(), e.getMessage());
+                    if ( e.getCause() != null ) {
+                        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        final PrintStream ps = new PrintStream(baos);
+                        e.getCause().printStackTrace(ps);
+                        BaseTest.log(message);
+                        BaseTest.log(baos.toString());
+                    }
+                    Assert.fail(message);
                 }
             } else {
                 // we didn't expect an exception but we got one :-(
