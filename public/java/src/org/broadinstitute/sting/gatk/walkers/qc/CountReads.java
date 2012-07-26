@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
@@ -37,7 +38,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools" )
+@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountReads extends ReadWalker<Integer, Integer> {
     public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker tracker) {

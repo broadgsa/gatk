@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.qc;
 
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
@@ -9,6 +10,7 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.List;
@@ -30,12 +32,13 @@ import java.util.List;
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
- *   -T ReadEndIndels \
+ *   -T CountTerminusEvent \
  *   -o output.txt \
  *   -I input.bam \
  *   [-L input.intervals]
  * </pre>
  */
+@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountTerminusEvent extends ReadWalker<Pair<Long, Long>, Pair<Long, Long>> {
     public Pair<Long, Long> map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker tracker) {

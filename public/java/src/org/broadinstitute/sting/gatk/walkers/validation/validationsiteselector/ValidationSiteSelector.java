@@ -24,6 +24,7 @@
 package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -97,7 +98,7 @@ import java.util.*;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Validation Utilities" )
+@DocumentedGATKFeature( groupName = "Validation Utilities", extraDocs = {CommandLineGATK.class} )
 public class ValidationSiteSelector extends RodWalker<Integer, Integer> {
 
     public enum AF_COMPUTATION_MODE {

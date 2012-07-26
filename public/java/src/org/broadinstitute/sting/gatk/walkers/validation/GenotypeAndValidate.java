@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.validation;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -189,7 +190,7 @@ import static org.broadinstitute.sting.utils.IndelUtils.isInsideExtendedIndel;
  * @since ${DATE}
  */
 
-@DocumentedGATKFeature( groupName = "Validation Utilities" )
+@DocumentedGATKFeature( groupName = "Validation Utilities", extraDocs = {CommandLineGATK.class} )
 @Requires(value={DataSource.READS, DataSource.REFERENCE})
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @By(DataSource.REFERENCE)

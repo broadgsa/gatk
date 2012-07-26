@@ -29,12 +29,14 @@ import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 
 import java.util.Collections;
 import java.util.List;
@@ -63,6 +65,7 @@ import java.util.List;
  * </pre>
  *
  */
+@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 public class CountRODsByRef extends RefWalker<CountRODs.Datum, Pair<ExpandingArrayList<Long>, Long>> {
 
     /**

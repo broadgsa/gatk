@@ -29,6 +29,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -86,7 +87,7 @@ import java.util.*;
  *
  */
 
-@DocumentedGATKFeature( groupName = "Variant Discovery Tools" )
+@DocumentedGATKFeature( groupName = "Variant Discovery Tools", extraDocs = {CommandLineGATK.class} )
 @PartitionBy(PartitionType.LOCUS)
 public class ApplyRecalibration extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
 

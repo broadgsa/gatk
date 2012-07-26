@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.beagle;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -76,7 +77,7 @@ import java.util.*;
  *
  */
 
-@DocumentedGATKFeature( groupName = "Variant Discovery Tools" )
+@DocumentedGATKFeature( groupName = "Variant Discovery Tools", extraDocs = {CommandLineGATK.class} )
 public class ProduceBeagleInput extends RodWalker<Integer, Integer> {
 
     @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();

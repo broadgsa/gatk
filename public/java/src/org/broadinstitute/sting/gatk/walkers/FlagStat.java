@@ -1,8 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
@@ -41,6 +43,7 @@ import java.text.NumberFormat;
  * reads with QC failure flag set, number of duplicates, percentage mapped, etc.
  * @author aaron
  */
+@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS})
 public class FlagStat extends ReadWalker<Integer, Integer> {
     @Output

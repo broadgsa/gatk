@@ -2,12 +2,14 @@ package org.broadinstitute.sting.gatk.walkers.qc;
 
 import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
@@ -17,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Walks over the input data set, counting the number of reads ending in insertions/deletions or soft-clips
+ * Walks over the input data set, counting the number of read events (from the CIGAR operator)
  *
  * <h2>Input</h2>
  * <p>
@@ -26,21 +28,20 @@ import java.util.Map;
  *
  * <h2>Output</h2>
  * <p>
- * Number of reads ending in each category.
- * </p>
+ * Number of reads events for each category
  *
  * <h2>Examples</h2>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
- *   -T ReadEndIndels \
+ *   -T CountReadEvents \
  *   -o output.grp \
  *   -I input.bam \
  *   [-L input.intervals]
  * </pre>
  */
 
-
+@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountReadEvents extends ReadWalker<Map<CigarOperator, ArrayList<Integer>> , Map<Integer, Map<CigarOperator, Long>>> {
     @Output (doc = "GATKReport table output")
