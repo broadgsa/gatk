@@ -247,8 +247,6 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
 
             // Beagle always produces genotype strings based on the strings we input in the likelihood file.
             String refString = vc_input.getReference().getDisplayString();
-            if (refString.length() == 0) // ref was null
-                refString = Allele.NULL_ALLELE_STRING;
 
             Allele bglAlleleA, bglAlleleB;
 

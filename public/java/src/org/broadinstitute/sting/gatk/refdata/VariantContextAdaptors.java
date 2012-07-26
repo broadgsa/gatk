@@ -163,43 +163,45 @@ public class VariantContextAdaptors {
         @Override        
         public VariantContext convert(String name, Object input, ReferenceContext ref) {
             OldDbSNPFeature dbsnp = (OldDbSNPFeature)input;
-            if ( ! Allele.acceptableAlleleBases(dbsnp.getNCBIRefBase()) )
+
+            int index = dbsnp.getStart() - ref.getWindow().getStart() - 1;
+            if ( index < 0 )
+                return null; // we weren't given enough reference context to create the VariantContext
+
+            final byte refBaseForIndel = ref.getBases()[index];
+
+            Allele refAllele;
+            if ( dbsnp.getNCBIRefBase().equals("-") )
+                refAllele = Allele.create(refBaseForIndel);
+            else if ( ! Allele.acceptableAlleleBases(dbsnp.getNCBIRefBase()) )
                 return null;
-            Allele refAllele = Allele.create(dbsnp.getNCBIRefBase(), true);
+            else
+                refAllele = Allele.create(refBaseForIndel + dbsnp.getNCBIRefBase(), true);
 
-            if ( isSNP(dbsnp) || isIndel(dbsnp) || isMNP(dbsnp) || dbsnp.getVariantType().contains("mixed") ) {
-                // add the reference allele
-                List<Allele> alleles = new ArrayList<Allele>();
-                alleles.add(refAllele);
-
-                // add all of the alt alleles
-                boolean sawNullAllele = refAllele.isNull();
-                for ( String alt : getAlternateAlleleList(dbsnp) ) {
-                    if ( ! Allele.acceptableAlleleBases(alt) ) {
-                        //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
-                        return null;
-                    }
-                    Allele altAllele = Allele.create(alt, false);
-                    alleles.add(altAllele);
-                    if ( altAllele.isNull() )
-                        sawNullAllele = true;
-                }
-
-                Map<String, Object> attributes = new HashMap<String, Object>();
-
-                int index = dbsnp.getStart() - ref.getWindow().getStart() - 1;
-                if ( index < 0 )
-                    return null; // we weren't given enough reference context to create the VariantContext
-                Byte refBaseForIndel = new Byte(ref.getBases()[index]);
-
-                final VariantContextBuilder builder = new VariantContextBuilder();
-                builder.source(name).id(dbsnp.getRsID());
-                builder.loc(dbsnp.getChr(), dbsnp.getStart() - (sawNullAllele ? 1 : 0), dbsnp.getEnd() - (refAllele.isNull() ? 1 : 0));
-                builder.alleles(alleles);
-                builder.referenceBaseForIndel(refBaseForIndel);
-                return builder.make();
-            } else
+            boolean addPaddingBase;
+            if ( isSNP(dbsnp) || isMNP(dbsnp) )
+                addPaddingBase = false;
+            else if ( isIndel(dbsnp) || dbsnp.getVariantType().contains("mixed") )
+                addPaddingBase = true;
+            else
                 return null; // can't handle anything else
+
+            final List<Allele> alleles = new ArrayList<Allele>();
+            alleles.add(refAllele);
+
+            // add all of the alt alleles
+            for ( String alt : getAlternateAlleleList(dbsnp) ) {
+                if ( ! Allele.acceptableAlleleBases(alt) ) {
+                    return null;
+                }
+                alleles.add(Allele.create((addPaddingBase ? refBaseForIndel : "") + alt, false));
+            }
+
+            final VariantContextBuilder builder = new VariantContextBuilder();
+            builder.source(name).id(dbsnp.getRsID());
+            builder.loc(dbsnp.getChr(), dbsnp.getStart() - (addPaddingBase ? 1 : 0), dbsnp.getEnd() - (addPaddingBase && refAllele.length() == 1 ? 1 : 0));
+            builder.alleles(alleles);
+            return builder.make();
         }
     }
 
@@ -351,7 +353,7 @@ public class VariantContextAdaptors {
             long end = hapmap.getEnd();
             if ( deletionLength > 0 )
                 end += deletionLength;
-            VariantContext vc = new VariantContextBuilder(name, hapmap.getChr(), hapmap.getStart(), end, alleles).id(hapmap.getName()).genotypes(genotypes).referenceBaseForIndel(refBaseForIndel).make();
+            VariantContext vc = new VariantContextBuilder(name, hapmap.getChr(), hapmap.getStart(), end, alleles).id(hapmap.getName()).genotypes(genotypes).make();
             return vc;
        }
     }

@@ -845,7 +845,6 @@ public class VariantContextUnitTest extends BaseTest {
         Assert.assertEquals(sub.getLog10PError(), vc.getLog10PError());
         Assert.assertEquals(sub.getFilters(), vc.getFilters());
         Assert.assertEquals(sub.getID(), vc.getID());
-        Assert.assertEquals(sub.getReferenceBaseForIndel(), vc.getReferenceBaseForIndel());
         Assert.assertEquals(sub.getAttributes(), vc.getAttributes());
 
         Set<Genotype> expectedGenotypes = new HashSet<Genotype>();

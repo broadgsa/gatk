@@ -162,7 +162,6 @@ class VCFWriter extends IndexingVariantContextWriter {
             vc = new VariantContextBuilder(vc).noGenotypes().make();
 
         try {
-            vc = VCFAlleleClipper.createVariantContextWithPaddedAlleles(vc);
             super.add(vc);
 
             Map<Allele, String> alleleMap = buildAlleleMap(vc);

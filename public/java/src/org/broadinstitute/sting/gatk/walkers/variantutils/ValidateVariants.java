@@ -127,35 +127,16 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
             return;
 
         // get the true reference allele
-        Allele reportedRefAllele = vc.getReference();
-        Allele observedRefAllele = null;
-        // insertions
-        if ( vc.isSimpleInsertion() ) {
-            observedRefAllele = Allele.create(Allele.NULL_ALLELE_STRING);
+        final Allele reportedRefAllele = vc.getReference();
+        final int refLength = reportedRefAllele.length();
+        if ( refLength > 100 ) {
+            logger.info(String.format("Reference allele is too long (%d) at position %s:%d; skipping that record.", refLength, vc.getChr(), vc.getStart()));
+            return;
         }
-        // deletions
-        else if ( vc.isSimpleDeletion() || vc.isMNP() ) {
-            // we can't validate arbitrarily long deletions
-            if ( reportedRefAllele.length() > 100 ) {
-                logger.info(String.format("Reference allele is too long (%d) at position %s:%d; skipping that record.", reportedRefAllele.length(), vc.getChr(), vc.getStart()));
-                return;
-            }
 
-            // deletions are associated with the (position of) the last (preceding) non-deleted base;
-            // hence to get actually deleted bases we need offset = 1
-            int offset = vc.isMNP() ? 0 : 1;
-            byte[] refBytes = ref.getBases();
-            byte[] trueRef = new byte[reportedRefAllele.length()];
-            for (int i = 0; i < reportedRefAllele.length(); i++)
-                trueRef[i] = refBytes[i+offset];
-            observedRefAllele = Allele.create(trueRef, true);
-        }
-        // SNPs, etc. but not mixed types because they are too difficult
-        else if ( !vc.isMixed() ) {
-            byte[] refByte = new byte[1];
-            refByte[0] = ref.getBase();
-            observedRefAllele = Allele.create(refByte, true);
-        }
+        final byte[] observedRefBases = new byte[refLength];
+        System.arraycopy(ref.getBases(), 0, observedRefBases, 0, refLength);
+        final Allele observedRefAllele = Allele.create(observedRefBases);
 
         // get the RS IDs
         Set<String> rsIDs = null;
@@ -168,10 +149,10 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
         try {
             switch( type ) {
                 case ALL:
-                    vc.extraStrictValidation(observedRefAllele, ref.getBase(), rsIDs);
+                    vc.extraStrictValidation(reportedRefAllele, observedRefAllele, rsIDs);
                     break;
                 case REF:
-                    vc.validateReferenceBases(observedRefAllele, ref.getBase());
+                    vc.validateReferenceBases(reportedRefAllele, observedRefAllele);
                     break;
                 case IDS:
                     vc.validateRSIDs(rsIDs);

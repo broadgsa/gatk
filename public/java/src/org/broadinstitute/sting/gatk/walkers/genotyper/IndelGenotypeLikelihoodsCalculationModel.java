@@ -123,7 +123,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         final int endLoc = computeEndLocation(alleleList, loc,allelesArePadded);
         final int eventLength = getEventLength(alleleList);
 
-        final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), endLoc, alleleList).referenceBaseForIndel(ref.getBase());
+        final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), endLoc, alleleList);
 
         // create the genotypes; no-call everyone for now
         GenotypesContext genotypes = GenotypesContext.create();

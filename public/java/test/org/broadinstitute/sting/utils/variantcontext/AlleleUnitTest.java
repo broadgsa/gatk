@@ -37,8 +37,6 @@ import org.testng.annotations.Test;
 //    public Allele(byte[] bases, boolean isRef) {
 //    public Allele(boolean isRef) {
 //    public Allele(String bases, boolean isRef) {
-//    public boolean isNullAllele()       { return length() == 0; }
-//    public boolean isNonNullAllele()    { return ! isNullAllele(); }
 //    public boolean isReference()        { return isRef; }
 //    public boolean isNonReference()     { return ! isReference(); }
 //    public byte[] getBases() { return bases; }
@@ -72,8 +70,6 @@ public class AlleleUnitTest {
         Assert.assertFalse(A.isReference());
         Assert.assertTrue(A.basesMatch("A"));
         Assert.assertEquals(A.length(), 1);
-        Assert.assertTrue(A.isNonNull());
-        Assert.assertFalse(A.isNull());
 
         Assert.assertTrue(ARef.isReference());
         Assert.assertFalse(ARef.isNonReference());
@@ -92,8 +88,8 @@ public class AlleleUnitTest {
         Assert.assertFalse(NoCall.isReference());
         Assert.assertFalse(NoCall.basesMatch("."));
         Assert.assertEquals(NoCall.length(), 0);
-        Assert.assertTrue(NoCall.isNonNull());
-        Assert.assertFalse(NoCall.isNull());
+        Assert.assertTrue(NoCall.isNoCall());
+        Assert.assertFalse(NoCall.isCalled());
     }
 
 
@@ -111,8 +107,6 @@ public class AlleleUnitTest {
         Assert.assertFalse(del.basesMatch("-"));
         Assert.assertTrue(del.basesMatch(""));
         Assert.assertEquals(del.length(), 0);
-        Assert.assertFalse(del.isNonNull());
-        Assert.assertTrue(del.isNull());
     }
 
 

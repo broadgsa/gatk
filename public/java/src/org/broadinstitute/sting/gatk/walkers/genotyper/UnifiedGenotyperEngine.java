@@ -37,7 +37,6 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFAlleleClipper;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -283,7 +282,7 @@ public class UnifiedGenotyperEngine {
             VariantContext vcInput = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, ref, rawContext.getLocation(), false, logger, UAC.alleles);
             if ( vcInput == null )
                 return null;
-            vc = new VariantContextBuilder("UG_call", ref.getLocus().getContig(), vcInput.getStart(), vcInput.getEnd(), vcInput.getAlleles()).referenceBaseForIndel(vcInput.getReferenceBaseForIndel()).make();
+            vc = new VariantContextBuilder("UG_call", ref.getLocus().getContig(), vcInput.getStart(), vcInput.getEnd(), vcInput.getAlleles()).make();
         } else {
             // deal with bad/non-standard reference bases
             if ( !Allele.acceptableAlleleBases(new byte[]{ref.getBase()}) )
@@ -408,11 +407,6 @@ public class UnifiedGenotyperEngine {
         builder.log10PError(phredScaledConfidence/-10.0);
         if ( ! passesCallThreshold(phredScaledConfidence) )
             builder.filters(filter);
-        if ( limitedContext ) {
-            builder.referenceBaseForIndel(vc.getReferenceBaseForIndel());
-        } else {
-            builder.referenceBaseForIndel(refContext.getBase());
-        }
 
         // create the genotypes
         final GenotypesContext genotypes = afcm.get().subsetAlleles(vc, myAlleles, true,ploidy);
@@ -491,10 +485,8 @@ public class UnifiedGenotyperEngine {
         builder.attributes(attributes);
         VariantContext vcCall = builder.make();
 
-        // if we are subsetting alleles (either because there were too many or because some were not polymorphic)
-        // then we may need to trim the alleles (because the original VariantContext may have had to pad at the end).
-        if ( myAlleles.size() != vc.getAlleles().size() && !limitedContext ) // TODO - this function doesn't work with mixed records or records that started as mixed and then became non-mixed
-            vcCall = VCFAlleleClipper.reverseTrimAlleles(vcCall);
+        // TODO -- if we are subsetting alleles (either because there were too many or because some were not polymorphic)
+        // TODO --   then we may need to trim the alleles (because the original VariantContext may have had to pad at the end).
 
         if ( annotationEngine != null && !limitedContext ) {
             // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations

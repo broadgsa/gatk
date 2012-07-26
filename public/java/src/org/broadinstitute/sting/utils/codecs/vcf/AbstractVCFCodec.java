@@ -248,6 +248,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
             builder.id(parts[2]);
 
         final String ref = getCachedString(parts[3].toUpperCase());
+        builder.stop(pos + ref.length() - 1);
         final String alts = getCachedString(parts[4].toUpperCase());
         builder.log10PError(parseQual(parts[5]));
 
@@ -257,8 +258,8 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
         builder.attributes(attrs);
 
         // get our alleles, filters, and setup an attribute map
-        final List<Allele> rawAlleles = parseAlleles(ref, alts, lineNo);
-        final List<Allele> alleles = updateBuilderAllelesAndStop(builder, ref, pos, rawAlleles, attrs);
+        final List<Allele> alleles = parseAlleles(ref, alts, lineNo);
+        builder.alleles(alleles);
 
         // do we have genotyping data
         if (parts.length > NUM_STANDARD_FIELDS && includeGenotypes) {
@@ -275,38 +276,12 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
 
         VariantContext vc = null;
         try {
-            builder.referenceBaseForIndel(ref.getBytes()[0]);
             vc = builder.make();
         } catch (Exception e) {
             generateException(e.getMessage());
         }
 
         return vc;
-    }
-
-    private final List<Allele> updateBuilderAllelesAndStop(final VariantContextBuilder builder,
-                                                           final String ref,
-                                                           final int pos,
-                                                           final List<Allele> rawAlleles,
-                                                           final Map<String, Object> attrs) {
-        int endForSymbolicAlleles = pos; // by default we use the pos
-        if ( attrs.containsKey(VCFConstants.END_KEY) ) {
-            // update stop with the end key if provided
-            try {
-                endForSymbolicAlleles = Integer.valueOf(attrs.get(VCFConstants.END_KEY).toString());
-            } catch (Exception e) {
-                generateException("the END value in the INFO field is not valid");
-            }
-        }
-
-        // find out our current location, and clip the alleles down to their minimum length
-        final VCFAlleleClipper.ClippedAlleles clipped = VCFAlleleClipper.clipAlleles(pos, ref, rawAlleles, endForSymbolicAlleles);
-        if ( clipped.getError() != null )
-            generateException(clipped.getError(), lineNo);
-
-        builder.stop(clipped.getStop());
-        builder.alleles(clipped.getClippedAlleles());
-        return clipped.getClippedAlleles();
     }
 
     /**
