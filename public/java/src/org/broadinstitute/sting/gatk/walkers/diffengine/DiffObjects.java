@@ -27,10 +27,12 @@ package org.broadinstitute.sting.gatk.walkers.diffengine;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -131,6 +133,7 @@ import java.util.List;
  * @author Mark DePristo
  * @since 7/4/11
  */
+@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 public class DiffObjects extends RodWalker<Integer, Integer> {
     /**
      * Writes out a file of the DiffEngine format:

@@ -44,16 +44,15 @@ import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import java.util.*;
 
 /**
+ * All command line parameters accepted by all tools in the GATK.
+ *
  * The GATK engine itself.  Manages map/reduce data access and runs walkers.
  *
  * We run command line GATK programs using this class.  It gets the command line args, parses them, and hands the
  * gatk all the parsed out information.  Pretty much anything dealing with the underlying system should go here,
  * the gatk engine should  deal with any data related information.
  */
-@DocumentedGATKFeature(
-        groupName = "GATK Engine",
-        summary = "Features and arguments for the GATK engine itself, available to all walkers.",
-        extraDocs = { UserException.class })
+@DocumentedGATKFeature(groupName = "GATK Engine")
 public class CommandLineGATK extends CommandLineExecutable {
     @Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
     private String analysisName = null;

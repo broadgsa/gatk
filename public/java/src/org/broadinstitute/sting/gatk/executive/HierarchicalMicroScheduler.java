@@ -17,10 +17,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
+import java.util.concurrent.*;
 
 /**
  * A microscheduler that schedules shards according to a tree-like structure.
@@ -118,6 +115,9 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
                 queueNextShardTraverse(walker, reduceTree);
         }
 
+        if(hasTraversalErrorOccurred())
+            throw getTraversalError();
+
         threadPool.shutdown();
 
         // Merge any lingering output files.  If these files aren't ready,
@@ -128,11 +128,12 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         try {
             result = reduceTree.getResult().get();
             notifyTraversalDone(walker,result);
-        }
-        catch (ReviewedStingException ex) {
+        } catch (ReviewedStingException ex) {
             throw ex;
-        }
-        catch (Exception ex) {
+        } catch ( ExecutionException ex ) {
+            // the thread died and we are failing to get the result, rethrow it as a runtime exception
+            throw toRuntimeException(ex.getCause());
+        } catch (Exception ex) {
             throw new ReviewedStingException("Unable to retrieve result", ex);
         }
 
@@ -353,13 +354,18 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     /**
      * Allows other threads to notify of an error during traversal.
      */
-    protected synchronized void notifyOfTraversalError(Throwable error) {
+    protected synchronized RuntimeException notifyOfTraversalError(Throwable error) {
+        // If the error is already a Runtime, pass it along as is.  Otherwise, wrap it.
+        this.error = toRuntimeException(error);
+        return this.error;
+    }
+
+    private final RuntimeException toRuntimeException(final Throwable error) {
         // If the error is already a Runtime, pass it along as is.  Otherwise, wrap it.
         if (error instanceof RuntimeException)
-            this.error = (RuntimeException)error;
+            return (RuntimeException)error;
         else
-            this.error = new ReviewedStingException("An error occurred during the traversal.", error);
-
+            return new ReviewedStingException("An error occurred during the traversal.  Message=" + error.getMessage(), error);
     }
 
 

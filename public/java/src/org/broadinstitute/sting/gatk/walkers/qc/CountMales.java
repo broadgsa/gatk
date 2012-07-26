@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.samples.Gender;
@@ -31,13 +32,13 @@ import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
- * Walks over the input data set, calculating the number of reads seen for diagnostic purposes.
- * Can also count the number of reads matching a given criterion using read filters (see the
- * --read-filter command line argument).  Simplest example of a read-backed analysis.
+ * Walks over the input data set, calculating the number of reads seen from male samples for diagnostic purposes.
  */
+@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountMales extends ReadWalker<Integer, Integer> {
     public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker tracker) {

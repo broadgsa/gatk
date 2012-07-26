@@ -131,7 +131,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
 
     @Test
     public void testGenerateIndexForUnindexedFile() {
-        File vcfFile = new File(validationDataLocation + "/ROD_validation/always_reindex.vcf");
+        File vcfFile = new File(privateTestDir + "always_reindex.vcf");
         File vcfFileIndex = Tribble.indexFile(vcfFile);
 
         // if we can't write to the directory, don't fault the tester, just pass
@@ -141,7 +141,8 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
         }
         // clean-up our test, and previous tests that may have written the file
         vcfFileIndex.deleteOnExit();
-        if (vcfFileIndex.exists()) vcfFileIndex.delete();
+        if (vcfFileIndex.exists())
+            vcfFileIndex.delete();
 
         try {
             builder.loadIndex(vcfFile, new VCFCodec());
