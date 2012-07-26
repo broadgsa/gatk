@@ -90,7 +90,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
             super(EngineErrorHandlingTestProvider.class);
             this.expectedException = exceptedException;
             this.multiThreaded = multiThreaded;
-            this.iterationsToTest = multiThreaded ? 50 : 1;
+            this.iterationsToTest = multiThreaded ? 1000 : 1;
             setName(String.format("Engine error handling: expected %s, is-multithreaded %b", exceptedException, multiThreaded));
         }
     }
@@ -112,7 +112,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     @Test(dataProvider = "EngineErrorHandlingTestProvider")
     public void testEngineErrorHandlingTestProvider(final EngineErrorHandlingTestProvider cfg) {
         for ( int i = 0; i < cfg.iterationsToTest; i++ ) {
-            final String root = "-T ErrorThrowing -R " + b37KGReference;
+            final String root = "-T ErrorThrowing -R " + exampleFASTA;
             final String args = root + (cfg.multiThreaded ? " -nt 2" : "") + " -E " + cfg.expectedException.getSimpleName();
             WalkerTestSpec spec = new WalkerTestSpec(args, 0, cfg.expectedException);
             executeTest(cfg.toString(), spec);

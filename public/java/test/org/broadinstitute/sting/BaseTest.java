@@ -95,6 +95,8 @@ public abstract class BaseTest {
     public static final String keysDataLocation = validationDataLocation + "keys/";
     public static final String gatkKeyFile = CryptUtils.GATK_USER_KEY_DIRECTORY + "gsamembers_broadinstitute.org.key";
 
+    public static final String exampleFASTA = publicTestDir + "exampleFASTA.fasta";
+
     /** before the class starts up */
     static {
         // setup a basic log configuration
