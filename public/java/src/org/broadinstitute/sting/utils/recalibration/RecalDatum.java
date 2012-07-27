@@ -26,6 +26,7 @@ package org.broadinstitute.sting.utils.recalibration;
  */
 
 import com.google.java.contract.Ensures;
+import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -40,6 +41,17 @@ import java.util.Random;
  * User: rpoplin
  * Date: Nov 3, 2009
  */
+@Invariant({
+        "estimatedQReported >= 0.0",
+        "! Double.isNaN(estimatedQReported)",
+        "! Double.isInfinite(estimatedQReported)",
+        "empiricalQuality >= 0.0 || empiricalQuality == UNINITIALIZED",
+        "! Double.isNaN(empiricalQuality)",
+        "! Double.isInfinite(empiricalQuality)",
+        "numObservations >= 0",
+        "numMismatches >= 0",
+        "numMismatches <= numObservations"
+})
 public class RecalDatum {
     private static final double UNINITIALIZED = -1.0;
 
@@ -74,13 +86,28 @@ public class RecalDatum {
     //
     //---------------------------------------------------------------------------------------------------------------
 
+    /**
+     * Create a new RecalDatum with given observation and mismatch counts, and an reported quality
+     *
+     * @param _numObservations
+     * @param _numMismatches
+     * @param reportedQuality
+     */
     public RecalDatum(final long _numObservations, final long _numMismatches, final byte reportedQuality) {
+        if ( numObservations < 0 ) throw new IllegalArgumentException("numObservations < 0");
+        if ( numMismatches < 0 ) throw new IllegalArgumentException("numMismatches < 0");
+        if ( reportedQuality < 0 ) throw new IllegalArgumentException("reportedQuality < 0");
+
         numObservations = _numObservations;
         numMismatches = _numMismatches;
         estimatedQReported = reportedQuality;
         empiricalQuality = UNINITIALIZED;
     }
 
+    /**
+     * Copy copy into this recal datum, overwriting all of this objects data
+     * @param copy
+     */
     public RecalDatum(final RecalDatum copy) {
         this.numObservations = copy.getNumObservations();
         this.numMismatches = copy.getNumMismatches();
@@ -88,6 +115,12 @@ public class RecalDatum {
         this.empiricalQuality = copy.empiricalQuality;
     }
 
+    /**
+     * Add in all of the data from other into this object, updating the reported quality from the expected
+     * error rate implied by the two reported qualities
+     *
+     * @param other
+     */
     public synchronized void combine(final RecalDatum other) {
         final double sumErrors = this.calcExpectedErrors() + other.calcExpectedErrors();
         increment(other.getNumObservations(), other.getNumMismatches());
@@ -95,26 +128,26 @@ public class RecalDatum {
         empiricalQuality = UNINITIALIZED;
     }
 
-    @Requires("empiricalQuality == UNINITIALIZED")
-    @Ensures("empiricalQuality != UNINITIALIZED")
-    private synchronized final void calcEmpiricalQuality() {
-        // cache the value so we don't call log over and over again
-        final double doubleMismatches = (double) (numMismatches + SMOOTHING_CONSTANT);
-        // smoothing is one error and one non-error observation, for example
-        final double doubleObservations = (double) (numObservations + SMOOTHING_CONSTANT + SMOOTHING_CONSTANT);
-        final double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
-        empiricalQuality = Math.min(empiricalQual, (double) QualityUtils.MAX_RECALIBRATED_Q_SCORE);
-    }
-
     public synchronized void setEstimatedQReported(final double estimatedQReported) {
+        if ( estimatedQReported < 0 ) throw new IllegalArgumentException("estimatedQReported < 0");
+        if ( Double.isInfinite(estimatedQReported) ) throw new IllegalArgumentException("estimatedQReported is infinite");
+        if ( Double.isNaN(estimatedQReported) ) throw new IllegalArgumentException("estimatedQReported is NaN");
+
         this.estimatedQReported = estimatedQReported;
     }
 
     public final double getEstimatedQReported() {
         return estimatedQReported;
     }
+    public final byte getEstimatedQReportedAsByte() {
+        return (byte)(int)(Math.round(getEstimatedQReported()));
+    }
 
     public synchronized void setEmpiricalQuality(final double empiricalQuality) {
+        if ( empiricalQuality < 0 ) throw new IllegalArgumentException("empiricalQuality < 0");
+        if ( Double.isInfinite(empiricalQuality) ) throw new IllegalArgumentException("empiricalQuality is infinite");
+        if ( Double.isNaN(empiricalQuality) ) throw new IllegalArgumentException("empiricalQuality is NaN");
+
         this.empiricalQuality = empiricalQuality;
     }
 
@@ -131,14 +164,6 @@ public class RecalDatum {
 
     public String stringForCSV() {
         return String.format("%s,%d,%.2f", toString(), (byte) Math.floor(getEstimatedQReported()), getEmpiricalQuality() - getEstimatedQReported());
-    }
-
-    private double calcExpectedErrors() {
-        return (double) getNumObservations() * qualToErrorProb(estimatedQReported);
-    }
-
-    private double qualToErrorProb(final double qual) {
-        return Math.pow(10.0, qual / -10.0);
     }
 
     public static RecalDatum createRandomRecalDatum(int maxObservations, int maxErrors) {
@@ -176,6 +201,7 @@ public class RecalDatum {
     }
 
     public synchronized void setNumObservations(final long numObservations) {
+        if ( numObservations < 0 ) throw new IllegalArgumentException("numObservations < 0");
         this.numObservations = numObservations;
         empiricalQuality = UNINITIALIZED;
     }
@@ -184,29 +210,67 @@ public class RecalDatum {
         return numMismatches;
     }
 
+    @Requires({"numMismatches >= 0"})
     public synchronized void setNumMismatches(final long numMismatches) {
+        if ( numMismatches < 0 ) throw new IllegalArgumentException("numMismatches < 0");
         this.numMismatches = numMismatches;
         empiricalQuality = UNINITIALIZED;
     }
 
+    @Requires({"by >= 0"})
     public synchronized void incrementNumObservations(final long by) {
         numObservations += by;
         empiricalQuality = UNINITIALIZED;
     }
 
+    @Requires({"by >= 0"})
     public synchronized void incrementNumMismatches(final long by) {
         numMismatches += by;
         empiricalQuality = UNINITIALIZED;
     }
 
+    @Requires({"incObservations >= 0", "incMismatches >= 0"})
+    @Ensures({"numObservations == old(numObservations) + incObservations", "numMismatches == old(numMismatches) + incMismatches"})
     public synchronized void increment(final long incObservations, final long incMismatches) {
         incrementNumObservations(incObservations);
         incrementNumMismatches(incMismatches);
     }
 
+    @Ensures({"numObservations == old(numObservations) + 1", "numMismatches >= old(numMismatches)"})
     public synchronized void increment(final boolean isError) {
         incrementNumObservations(1);
         if ( isError )
             incrementNumMismatches(1);
+    }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // Private implementation helper functions
+    //
+    // -------------------------------------------------------------------------------------
+
+    /**
+     * Calculate and cache the empirical quality score from mismatches and observations (expensive operation)
+     */
+    @Requires("empiricalQuality == UNINITIALIZED")
+    @Ensures("empiricalQuality != UNINITIALIZED")
+    private synchronized final void calcEmpiricalQuality() {
+        // cache the value so we don't call log over and over again
+        final double doubleMismatches = (double) (numMismatches + SMOOTHING_CONSTANT);
+        // smoothing is one error and one non-error observation, for example
+        final double doubleObservations = (double) (numObservations + SMOOTHING_CONSTANT + SMOOTHING_CONSTANT);
+        final double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
+        empiricalQuality = Math.min(empiricalQual, (double) QualityUtils.MAX_RECALIBRATED_Q_SCORE);
+    }
+
+    /**
+     * calculate the expected number of errors given the estimated Q reported and the number of observations
+     * in this datum.
+     *
+     * @return a positive (potentially fractional) estimate of the number of errors
+     */
+    @Ensures("result >= 0.0")
+    private double calcExpectedErrors() {
+        return (double) getNumObservations() * QualityUtils.qualToErrorProb(estimatedQReported);
     }
 }
