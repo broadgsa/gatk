@@ -47,13 +47,13 @@ public class ActivityProfile {
     GenomeLoc regionStartLoc = null;
     final List<ActivityProfileResult> isActiveList;
     private GenomeLoc lastLoc = null;
-    private static final int FILTER_SIZE = 65;
+    private static final int FILTER_SIZE = 80;
     private static final double[] GaussianKernel;
 
     static {
         GaussianKernel = new double[2*FILTER_SIZE + 1];
         for( int iii = 0; iii < 2*FILTER_SIZE + 1; iii++ ) {
-            GaussianKernel[iii] = MathUtils.NormalDistribution(FILTER_SIZE, 40.0, iii);
+            GaussianKernel[iii] = MathUtils.NormalDistribution(FILTER_SIZE, 55.0, iii);
         }
     }
 
@@ -96,6 +96,16 @@ public class ActivityProfile {
         int iii = 0;
         for( final ActivityProfileResult result : isActiveList ) {
             activeProbArray[iii++] = result.isActiveProb;
+        }
+        iii = 0;
+        for( final ActivityProfileResult result : isActiveList ) {
+            if( result.resultState.equals(ActivityProfileResult.ActivityProfileResultState.HIGH_QUALITY_SOFT_CLIPS) ) { // special code to deal with the problem that high quality soft clipped bases aren't added to pileups
+                final int numHQClips = result.resultValue.intValue();
+                for( int jjj = Math.max(0, iii - numHQClips); jjj < Math.min(activeProbArray.length, iii+numHQClips); jjj++ ) {
+                    activeProbArray[jjj] = Math.max(activeProbArray[jjj], activeProbArray[iii]);
+                }
+            }
+            iii++;
         }
         final double[] filteredProbArray = new double[activeProbArray.length];
         if( !presetRegions ) {
@@ -170,7 +180,7 @@ public class ActivityProfile {
         int cutPoint = -1;
 
         final int size = curEnd - curStart + 1;
-        for( int iii = curStart + (int)(size*0.25); iii < curEnd - (int)(size*0.25); iii++ ) {
+        for( int iii = curStart + (int)(size*0.15); iii < curEnd - (int)(size*0.15); iii++ ) {
             if( isActiveList.get(iii).isActiveProb < minProb ) { minProb = isActiveList.get(iii).isActiveProb; cutPoint = iii; }
         }
         final List<ActiveRegion> leftList = createActiveRegion(isActive, curStart, cutPoint, activeRegionExtension, maxRegionSize, new ArrayList<ActiveRegion>());
