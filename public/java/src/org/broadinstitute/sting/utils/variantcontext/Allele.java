@@ -180,14 +180,9 @@ public class Allele implements Comparable<Allele> {
     public static Allele extend(Allele left, byte[] right) {
         if (left.isSymbolic())
             throw new IllegalArgumentException("Cannot extend a symbolic allele");
-        byte[] bases;
-        if ( left.length() == 0 )
-            bases = right;
-        else {
-            bases = new byte[left.length() + right.length];
-            System.arraycopy(left.getBases(), 0, bases, 0, left.length());
-            System.arraycopy(right, 0, bases, left.length(), right.length);
-        }
+        byte[] bases = new byte[left.length() + right.length];
+        System.arraycopy(left.getBases(), 0, bases, 0, left.length());
+        System.arraycopy(right, 0, bases, left.length(), right.length);
 
         return create(bases, left.isReference());
     }
