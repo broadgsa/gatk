@@ -485,8 +485,10 @@ public class UnifiedGenotyperEngine {
         builder.attributes(attributes);
         VariantContext vcCall = builder.make();
 
-        // TODO -- if we are subsetting alleles (either because there were too many or because some were not polymorphic)
-        // TODO --   then we may need to trim the alleles (because the original VariantContext may have had to pad at the end).
+        // if we are subsetting alleles (either because there were too many or because some were not polymorphic)
+        // then we may need to trim the alleles (because the original VariantContext may have had to pad at the end).
+        if ( myAlleles.size() != vc.getAlleles().size() && !limitedContext )
+            vcCall = VariantContextUtils.reverseTrimAlleles(vcCall);
 
         if ( annotationEngine != null && !limitedContext ) {
             // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations

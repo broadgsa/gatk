@@ -1334,4 +1334,84 @@ public class VariantContextUtils {
             return start + Math.max(ref.length() - 1, 0);
         }
     }
+
+    public static VariantContext reverseTrimAlleles( final VariantContext inputVC ) {
+
+        // TODO - this function doesn't work with mixed records or records that started as mixed and then became non-mixed
+
+        // see whether we need to trim common reference base from all alleles
+
+        final int trimExtent = computeReverseClipping(inputVC.getAlleles(), inputVC.getReference().getDisplayString().getBytes(), 0, false);
+        if ( trimExtent <= 0 || inputVC.getAlleles().size() <= 1 )
+            return inputVC;
+
+        final List<Allele> alleles = new ArrayList<Allele>();
+        final GenotypesContext genotypes = GenotypesContext.create();
+        final Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
+
+        for (final Allele a : inputVC.getAlleles()) {
+            if (a.isSymbolic()) {
+                alleles.add(a);
+                originalToTrimmedAlleleMap.put(a, a);
+            } else {
+                // get bases for current allele and create a new one with trimmed bases
+                final byte[] newBases = Arrays.copyOfRange(a.getBases(), 0, a.length()-trimExtent);
+                final Allele trimmedAllele = Allele.create(newBases, a.isReference());
+                alleles.add(trimmedAllele);
+                originalToTrimmedAlleleMap.put(a, trimmedAllele);
+            }
+        }
+
+        // now we can recreate new genotypes with trimmed alleles
+        for ( final Genotype genotype : inputVC.getGenotypes() ) {
+            final List<Allele> originalAlleles = genotype.getAlleles();
+            final List<Allele> trimmedAlleles = new ArrayList<Allele>();
+            for ( final Allele a : originalAlleles ) {
+                if ( a.isCalled() )
+                    trimmedAlleles.add(originalToTrimmedAlleleMap.get(a));
+                else
+                    trimmedAlleles.add(Allele.NO_CALL);
+            }
+            genotypes.add(new GenotypeBuilder(genotype).alleles(trimmedAlleles).make());
+        }
+
+        return new VariantContextBuilder(inputVC).stop(inputVC.getStart() + alleles.get(0).length() - 1).alleles(alleles).genotypes(genotypes).make();
+    }
+
+    public static int computeReverseClipping(final List<Allele> unclippedAlleles,
+                                             final byte[] ref,
+                                             final int forwardClipping,
+                                             final boolean allowFullClip) {
+        int clipping = 0;
+        boolean stillClipping = true;
+
+        while ( stillClipping ) {
+            for ( final Allele a : unclippedAlleles ) {
+                if ( a.isSymbolic() )
+                    continue;
+
+                // we need to ensure that we don't reverse clip out all of the bases from an allele because we then will have the wrong
+                // position set for the VariantContext (although it's okay to forward clip it all out, because the position will be fine).
+                if ( a.length() - clipping == 0 )
+                    return clipping - (allowFullClip ? 0 : 1);
+
+                if ( a.length() - clipping <= forwardClipping || a.length() - forwardClipping == 0 ) {
+                    stillClipping = false;
+                }
+                else if ( ref.length == clipping ) {
+                    if ( allowFullClip )
+                        stillClipping = false;
+                    else
+                        return -1;
+                }
+                else if ( a.getBases()[a.length()-clipping-1] != ref[ref.length-clipping-1] ) {
+                    stillClipping = false;
+                }
+            }
+            if ( stillClipping )
+                clipping++;
+        }
+
+        return clipping;
+    }
 }
