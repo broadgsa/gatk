@@ -33,20 +33,40 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import java.util.Random;
 
 /**
+ * An individual piece of recalibration data. Each bin counts up the number of observations and the number
+ * of reference mismatches seen for that combination of covariates.
+ *
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Nov 3, 2009
- *
- * An individual piece of recalibration data. Each bin counts up the number of observations and the number of reference mismatches seen for that combination of covariates.
  */
-
-public class RecalDatum extends Datum {
-
+public class RecalDatum {
     private static final double UNINITIALIZED = -1.0;
 
-    private double estimatedQReported;                                                                                  // estimated reported quality score based on combined data's individual q-reporteds and number of observations
-    private double empiricalQuality;                                                                                    // the empirical quality for datums that have been collapsed together (by read group and reported quality, for example)
+    /**
+     * estimated reported quality score based on combined data's individual q-reporteds and number of observations
+     */
+    private double estimatedQReported;
 
+    /**
+     * the empirical quality for datums that have been collapsed together (by read group and reported quality, for example)
+     */
+    private double empiricalQuality;
+
+    /**
+     * number of bases seen in total
+     */
+    long numObservations;
+
+    /**
+     * number of bases seen that didn't match the reference
+     */
+    long numMismatches;
+
+    /**
+     * used when calculating empirical qualities to avoid division by zero
+     */
+    private static final int SMOOTHING_CONSTANT = 1;
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -68,26 +88,24 @@ public class RecalDatum extends Datum {
         this.empiricalQuality = copy.empiricalQuality;
     }
 
-    public void combine(final RecalDatum other) {
+    public synchronized void combine(final RecalDatum other) {
         final double sumErrors = this.calcExpectedErrors() + other.calcExpectedErrors();
         increment(other.numObservations, other.numMismatches);
         estimatedQReported = -10 * Math.log10(sumErrors / this.numObservations);
         empiricalQuality = UNINITIALIZED;
     }
 
-    @Override
-    public void increment(final boolean isError) {
-        super.increment(isError);
-        empiricalQuality = UNINITIALIZED;
-    }
-
     @Requires("empiricalQuality == UNINITIALIZED")
     @Ensures("empiricalQuality != UNINITIALIZED")
-    protected final void calcEmpiricalQuality() {
-        empiricalQuality = empiricalQualDouble();                                                                       // cache the value so we don't call log over and over again
+    private synchronized final void calcEmpiricalQuality() {
+        // cache the value so we don't call log over and over again
+        final double doubleMismatches = (double) (numMismatches + SMOOTHING_CONSTANT);
+        final double doubleObservations = (double) (numObservations + SMOOTHING_CONSTANT);
+        final double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
+        empiricalQuality = Math.min(empiricalQual, (double) QualityUtils.MAX_RECALIBRATED_Q_SCORE);
     }
 
-    public void setEstimatedQReported(final double estimatedQReported) {
+    public synchronized void setEstimatedQReported(final double estimatedQReported) {
         this.estimatedQReported = estimatedQReported;
     }
 
@@ -95,7 +113,7 @@ public class RecalDatum extends Datum {
         return estimatedQReported;
     }
 
-    public void setEmpiricalQuality(final double empiricalQuality) {
+    public synchronized void setEmpiricalQuality(final double empiricalQuality) {
         this.empiricalQuality = empiricalQuality;
     }
 
@@ -144,5 +162,23 @@ public class RecalDatum extends Datum {
         RecalDatum other = (RecalDatum) o;
         return super.equals(o) &&
                MathUtils.compareDoubles(this.empiricalQuality, other.empiricalQuality, 0.001) == 0;
+    }
+
+    //---------------------------------------------------------------------------------------------------------------
+    //
+    // increment methods
+    //
+    //---------------------------------------------------------------------------------------------------------------
+
+    synchronized void increment(final long incObservations, final long incMismatches) {
+        numObservations += incObservations;
+        numMismatches += incMismatches;
+        empiricalQuality = UNINITIALIZED;
+    }
+
+    synchronized void increment(final boolean isError) {
+        numObservations++;
+        numMismatches += isError ? 1:0;
+        empiricalQuality = UNINITIALIZED;
     }
 }
