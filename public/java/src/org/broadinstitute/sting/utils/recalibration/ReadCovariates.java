@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.walkers.bqsr;
+package org.broadinstitute.sting.utils.recalibration;
 
 /**
  * The object temporarily held by a read that describes all of it's covariates.

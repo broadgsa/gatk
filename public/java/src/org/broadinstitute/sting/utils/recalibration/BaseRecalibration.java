@@ -27,7 +27,7 @@ package org.broadinstitute.sting.utils.recalibration;
 
 import net.sf.samtools.SAMTag;
 import net.sf.samtools.SAMUtils;
-import org.broadinstitute.sting.gatk.walkers.bqsr.*;
+import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
@@ -103,7 +103,7 @@ public class BaseRecalibration {
             }
         }
 
-        RecalDataManager.computeCovariates(read, requestedCovariates, readCovariates);                                  // compute all covariates for the read
+        RecalUtils.computeCovariates(read, requestedCovariates, readCovariates);                                  // compute all covariates for the read
         for (final EventType errorModel : EventType.values()) {                                                         // recalibrate all three quality strings
             if (disableIndelQuals && errorModel != EventType.BASE_SUBSTITUTION) {
                 read.setBaseQualities(null, errorModel);

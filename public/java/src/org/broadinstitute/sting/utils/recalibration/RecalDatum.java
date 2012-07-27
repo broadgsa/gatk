@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.walkers.bqsr;
+package org.broadinstitute.sting.utils.recalibration;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -56,12 +56,12 @@ public class RecalDatum {
     /**
      * number of bases seen in total
      */
-    long numObservations;
+    private long numObservations;
 
     /**
      * number of bases seen that didn't match the reference
      */
-    long numMismatches;
+    private long numMismatches;
 
     /**
      * used when calculating empirical qualities to avoid division by zero
@@ -82,16 +82,16 @@ public class RecalDatum {
     }
 
     public RecalDatum(final RecalDatum copy) {
-        this.numObservations = copy.numObservations;
-        this.numMismatches = copy.numMismatches;
+        this.numObservations = copy.getNumObservations();
+        this.numMismatches = copy.getNumMismatches();
         this.estimatedQReported = copy.estimatedQReported;
         this.empiricalQuality = copy.empiricalQuality;
     }
 
     public synchronized void combine(final RecalDatum other) {
         final double sumErrors = this.calcExpectedErrors() + other.calcExpectedErrors();
-        increment(other.numObservations, other.numMismatches);
-        estimatedQReported = -10 * Math.log10(sumErrors / this.numObservations);
+        increment(other.getNumObservations(), other.getNumMismatches());
+        estimatedQReported = -10 * Math.log10(sumErrors / getNumObservations());
         empiricalQuality = UNINITIALIZED;
     }
 
@@ -100,7 +100,8 @@ public class RecalDatum {
     private synchronized final void calcEmpiricalQuality() {
         // cache the value so we don't call log over and over again
         final double doubleMismatches = (double) (numMismatches + SMOOTHING_CONSTANT);
-        final double doubleObservations = (double) (numObservations + SMOOTHING_CONSTANT);
+        // smoothing is one error and one non-error observation, for example
+        final double doubleObservations = (double) (numObservations + SMOOTHING_CONSTANT + SMOOTHING_CONSTANT);
         final double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
         empiricalQuality = Math.min(empiricalQual, (double) QualityUtils.MAX_RECALIBRATED_Q_SCORE);
     }
@@ -125,7 +126,7 @@ public class RecalDatum {
 
     @Override
     public String toString() {
-        return String.format("%d,%d,%d", numObservations, numMismatches, (byte) Math.floor(getEmpiricalQuality()));
+        return String.format("%d,%d,%d", getNumObservations(), getNumMismatches(), (byte) Math.floor(getEmpiricalQuality()));
     }
 
     public String stringForCSV() {
@@ -133,7 +134,7 @@ public class RecalDatum {
     }
 
     private double calcExpectedErrors() {
-        return (double) this.numObservations * qualToErrorProb(estimatedQReported);
+        return (double) getNumObservations() * qualToErrorProb(estimatedQReported);
     }
 
     private double qualToErrorProb(final double qual) {
@@ -170,15 +171,42 @@ public class RecalDatum {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    synchronized void increment(final long incObservations, final long incMismatches) {
-        numObservations += incObservations;
-        numMismatches += incMismatches;
+    public long getNumObservations() {
+        return numObservations;
+    }
+
+    public synchronized void setNumObservations(final long numObservations) {
+        this.numObservations = numObservations;
         empiricalQuality = UNINITIALIZED;
     }
 
-    synchronized void increment(final boolean isError) {
-        numObservations++;
-        numMismatches += isError ? 1:0;
+    public long getNumMismatches() {
+        return numMismatches;
+    }
+
+    public synchronized void setNumMismatches(final long numMismatches) {
+        this.numMismatches = numMismatches;
         empiricalQuality = UNINITIALIZED;
+    }
+
+    public synchronized void incrementNumObservations(final long by) {
+        numObservations += by;
+        empiricalQuality = UNINITIALIZED;
+    }
+
+    public synchronized void incrementNumMismatches(final long by) {
+        numMismatches += by;
+        empiricalQuality = UNINITIALIZED;
+    }
+
+    public synchronized void increment(final long incObservations, final long incMismatches) {
+        incrementNumObservations(incObservations);
+        incrementNumMismatches(incMismatches);
+    }
+
+    public synchronized void increment(final boolean isError) {
+        incrementNumObservations(1);
+        if ( isError )
+            incrementNumMismatches(1);
     }
 }

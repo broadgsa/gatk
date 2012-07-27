@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
+import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 

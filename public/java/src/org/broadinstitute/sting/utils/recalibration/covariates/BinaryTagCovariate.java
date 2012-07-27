@@ -1,5 +1,7 @@
-package org.broadinstitute.sting.gatk.walkers.bqsr;
+package org.broadinstitute.sting.utils.recalibration.covariates;
 
+import org.broadinstitute.sting.utils.recalibration.ReadCovariates;
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 

@@ -1,5 +1,7 @@
-package org.broadinstitute.sting.gatk.walkers.bqsr;
+package org.broadinstitute.sting.utils.recalibration;
 
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
+import org.broadinstitute.sting.utils.recalibration.covariates.*;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -41,7 +43,7 @@ public class ReadCovariatesUnitTest {
         requestedCovariates[2] = coCov;
         requestedCovariates[3] = cyCov;
 
-        ReadCovariates rc = RecalDataManager.computeCovariates(read, requestedCovariates);
+        ReadCovariates rc = RecalUtils.computeCovariates(read, requestedCovariates);
 
         // check that the length is correct
         Assert.assertEquals(rc.getMismatchesKeySet().length, length);

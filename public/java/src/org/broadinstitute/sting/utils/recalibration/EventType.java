@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.walkers.bqsr;
+package org.broadinstitute.sting.utils.recalibration;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 

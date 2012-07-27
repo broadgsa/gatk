@@ -3,7 +3,7 @@ package org.broadinstitute.sting.utils.clipping;
 import com.google.java.contract.Requires;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import org.broadinstitute.sting.gatk.walkers.bqsr.EventType;
+import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;

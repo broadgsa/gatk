@@ -25,10 +25,14 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.classloader.PublicPackageSource;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.recalibration.EventType;
+import org.broadinstitute.sting.utils.recalibration.ReadCovariates;
+import org.broadinstitute.sting.utils.recalibration.RecalDatum;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 

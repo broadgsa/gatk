@@ -29,6 +29,7 @@ import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.recalibration.RecalUtils;
 
 import java.io.File;
 import java.util.Collections;
@@ -100,7 +101,7 @@ public class RecalibrationArgumentCollection {
      * reads which have had the reference inserted because of color space inconsistencies.
      */
     @Argument(fullName = "solid_recal_mode", shortName = "sMode", required = false, doc = "How should we recalibrate solid bases in which the reference was inserted? Options = DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, or REMOVE_REF_BIAS")
-    public RecalDataManager.SOLID_RECAL_MODE SOLID_RECAL_MODE = RecalDataManager.SOLID_RECAL_MODE.SET_Q_ZERO;
+    public RecalUtils.SOLID_RECAL_MODE SOLID_RECAL_MODE = RecalUtils.SOLID_RECAL_MODE.SET_Q_ZERO;
 
     /**
      * CountCovariates and TableRecalibration accept a --solid_nocall_strategy <MODE> flag which governs how the recalibrator handles
@@ -108,7 +109,7 @@ public class RecalibrationArgumentCollection {
      * their color space tag can not be recalibrated.
      */
     @Argument(fullName = "solid_nocall_strategy", shortName = "solid_nocall_strategy", doc = "Defines the behavior of the recalibrator when it encounters no calls in the color space. Options = THROW_EXCEPTION, LEAVE_READ_UNRECALIBRATED, or PURGE_READ", required = false)
-    public RecalDataManager.SOLID_NOCALL_STRATEGY SOLID_NOCALL_STRATEGY = RecalDataManager.SOLID_NOCALL_STRATEGY.THROW_EXCEPTION;
+    public RecalUtils.SOLID_NOCALL_STRATEGY SOLID_NOCALL_STRATEGY = RecalUtils.SOLID_NOCALL_STRATEGY.THROW_EXCEPTION;
 
     /**
      * The context covariate will use a context of this size to calculate it's covariate value for base mismatches
@@ -177,41 +178,41 @@ public class RecalibrationArgumentCollection {
     public GATKReportTable generateReportTable() {
         GATKReportTable argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run", 2);
         argumentsTable.addColumn("Argument");
-        argumentsTable.addColumn(RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME);
+        argumentsTable.addColumn(RecalUtils.ARGUMENT_VALUE_COLUMN_NAME);
         argumentsTable.addRowID("covariate", true);
-        argumentsTable.set("covariate", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, (COVARIATES == null) ? "null" : Utils.join(",", COVARIATES));
+        argumentsTable.set("covariate", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, (COVARIATES == null) ? "null" : Utils.join(",", COVARIATES));
         argumentsTable.addRowID("no_standard_covs", true);
-        argumentsTable.set("no_standard_covs", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, DO_NOT_USE_STANDARD_COVARIATES);
+        argumentsTable.set("no_standard_covs", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, DO_NOT_USE_STANDARD_COVARIATES);
         argumentsTable.addRowID("run_without_dbsnp", true);
-        argumentsTable.set("run_without_dbsnp", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, RUN_WITHOUT_DBSNP);
+        argumentsTable.set("run_without_dbsnp", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, RUN_WITHOUT_DBSNP);
         argumentsTable.addRowID("solid_recal_mode", true);
-        argumentsTable.set("solid_recal_mode", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, SOLID_RECAL_MODE);
+        argumentsTable.set("solid_recal_mode", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, SOLID_RECAL_MODE);
         argumentsTable.addRowID("solid_nocall_strategy", true);
-        argumentsTable.set("solid_nocall_strategy", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, SOLID_NOCALL_STRATEGY);
+        argumentsTable.set("solid_nocall_strategy", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, SOLID_NOCALL_STRATEGY);
         argumentsTable.addRowID("mismatches_context_size", true);
-        argumentsTable.set("mismatches_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_CONTEXT_SIZE);
+        argumentsTable.set("mismatches_context_size", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_CONTEXT_SIZE);
         argumentsTable.addRowID("indels_context_size", true);
-        argumentsTable.set("indels_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, INDELS_CONTEXT_SIZE);
+        argumentsTable.set("indels_context_size", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, INDELS_CONTEXT_SIZE);
         argumentsTable.addRowID("mismatches_default_quality", true);
-        argumentsTable.set("mismatches_default_quality", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_DEFAULT_QUALITY);
+        argumentsTable.set("mismatches_default_quality", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_DEFAULT_QUALITY);
         argumentsTable.addRowID("insertions_default_quality", true);
-        argumentsTable.set("insertions_default_quality", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, INSERTIONS_DEFAULT_QUALITY);
+        argumentsTable.set("insertions_default_quality", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, INSERTIONS_DEFAULT_QUALITY);
         argumentsTable.addRowID("low_quality_tail", true);
-        argumentsTable.set("low_quality_tail", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, LOW_QUAL_TAIL);
+        argumentsTable.set("low_quality_tail", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, LOW_QUAL_TAIL);
         argumentsTable.addRowID("default_platform", true);
-        argumentsTable.set("default_platform", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, DEFAULT_PLATFORM);
+        argumentsTable.set("default_platform", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, DEFAULT_PLATFORM);
         argumentsTable.addRowID("force_platform", true);
-        argumentsTable.set("force_platform", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, FORCE_PLATFORM);
+        argumentsTable.set("force_platform", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, FORCE_PLATFORM);
         argumentsTable.addRowID("quantizing_levels", true);
-        argumentsTable.set("quantizing_levels", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, QUANTIZING_LEVELS);
+        argumentsTable.set("quantizing_levels", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, QUANTIZING_LEVELS);
         argumentsTable.addRowID("keep_intermediate_files", true);
-        argumentsTable.set("keep_intermediate_files", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, KEEP_INTERMEDIATE_FILES);
+        argumentsTable.set("keep_intermediate_files", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, KEEP_INTERMEDIATE_FILES);
         argumentsTable.addRowID("no_plots", true);
-        argumentsTable.set("no_plots", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, NO_PLOTS);
+        argumentsTable.set("no_plots", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, NO_PLOTS);
         argumentsTable.addRowID("recalibration_report", true);
-        argumentsTable.set("recalibration_report", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, recalibrationReport == null ? "null" : recalibrationReport.getAbsolutePath());
+        argumentsTable.set("recalibration_report", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, recalibrationReport == null ? "null" : recalibrationReport.getAbsolutePath());
         argumentsTable.addRowID("binary_tag_name", true);
-        argumentsTable.set("binary_tag_name", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, BINARY_TAG_NAME == null ? "null" : BINARY_TAG_NAME);
+        argumentsTable.set("binary_tag_name", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, BINARY_TAG_NAME == null ? "null" : BINARY_TAG_NAME);
         return argumentsTable;
     }
 

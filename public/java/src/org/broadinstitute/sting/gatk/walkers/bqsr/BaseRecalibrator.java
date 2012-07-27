@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -41,6 +42,9 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.recalibration.QuantizationInfo;
+import org.broadinstitute.sting.utils.recalibration.RecalUtils;
+import org.broadinstitute.sting.utils.recalibration.RecalibrationReport;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -109,7 +113,7 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
     @ArgumentCollection
     private final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();                          // all the command line arguments for BQSR and it's covariates
 
-    private QuantizationInfo quantizationInfo;                                                                          // an object that keeps track of the information necessary for quality score quantization 
+    private QuantizationInfo quantizationInfo;                                                                          // an object that keeps track of the information necessary for quality score quantization
     
     private RecalibrationTables recalibrationTables;
 
@@ -143,12 +147,12 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
             throw new UserException.CommandLineException(NO_DBSNP_EXCEPTION);
 
         if (RAC.LIST_ONLY) {
-            RecalDataManager.listAvailableCovariates(logger);
+            RecalUtils.listAvailableCovariates(logger);
             System.exit(0);
         }
         RAC.recalibrationReport = getToolkit().getArguments().BQSR_RECAL_FILE;                                          // if we have a recalibration file, record it so it goes on the report table
 
-        Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalDataManager.initializeCovariates(RAC);       // initialize the required and optional covariates
+        Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalUtils.initializeCovariates(RAC);       // initialize the required and optional covariates
         ArrayList<Covariate> requiredCovariates = covariates.getFirst();
         ArrayList<Covariate> optionalCovariates = covariates.getSecond();
 
@@ -222,17 +226,17 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
 
                 if (readNotSeen(read)) {
                     read.setTemporaryAttribute(SEEN_ATTRIBUTE, true);
-                    RecalDataManager.parsePlatformForRead(read, RAC);
-                    if (RecalDataManager.isColorSpaceConsistent(RAC.SOLID_NOCALL_STRATEGY, read)) {
+                    RecalUtils.parsePlatformForRead(read, RAC);
+                    if (RecalUtils.isColorSpaceConsistent(RAC.SOLID_NOCALL_STRATEGY, read)) {
                         read.setTemporaryAttribute(SKIP_RECORD_ATTRIBUTE, true);
                         continue;
                     }
-                    read.setTemporaryAttribute(COVARS_ATTRIBUTE, RecalDataManager.computeCovariates(read, requestedCovariates));
+                    read.setTemporaryAttribute(COVARS_ATTRIBUTE, RecalUtils.computeCovariates(read, requestedCovariates));
                 }
 
                 if (!ReadUtils.isSOLiDRead(read) ||                                                                     // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
-                    RAC.SOLID_RECAL_MODE == RecalDataManager.SOLID_RECAL_MODE.DO_NOTHING ||
-                        RecalDataManager.isColorSpaceConsistent(read, offset))
+                    RAC.SOLID_RECAL_MODE == RecalUtils.SOLID_RECAL_MODE.DO_NOTHING ||
+                        RecalUtils.isColorSpaceConsistent(read, offset))
                     recalibrationEngine.updateDataForPileupElement(p, ref.getBase());                                                             // This base finally passed all the checks for a good base, so add it to the big data hashmap
             }
             countedSites++;
@@ -285,10 +289,10 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
         File recalFile = getToolkit().getArguments().BQSR_RECAL_FILE;
         if (recalFile != null) {
             RecalibrationReport report = new RecalibrationReport(recalFile);
-            RecalDataManager.generateRecalibrationPlot(RAC.RECAL_FILE, report.getRecalibrationTables(), recalibrationTables, requestedCovariates, RAC.KEEP_INTERMEDIATE_FILES);
+            RecalUtils.generateRecalibrationPlot(RAC.RECAL_FILE, report.getRecalibrationTables(), recalibrationTables, requestedCovariates, RAC.KEEP_INTERMEDIATE_FILES);
         }
         else
-            RecalDataManager.generateRecalibrationPlot(RAC.RECAL_FILE, recalibrationTables, requestedCovariates, RAC.KEEP_INTERMEDIATE_FILES);
+            RecalUtils.generateRecalibrationPlot(RAC.RECAL_FILE, recalibrationTables, requestedCovariates, RAC.KEEP_INTERMEDIATE_FILES);
     }
 
 
@@ -309,7 +313,7 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
             throw new UserException.CouldNotCreateOutputFile(RAC.RECAL_FILE, "could not be created");
         }
 
-        RecalDataManager.outputRecalibrationReport(RAC, quantizationInfo, recalibrationTables, requestedCovariates, output);
+        RecalUtils.outputRecalibrationReport(RAC, quantizationInfo, recalibrationTables, requestedCovariates, output);
     }
 }
 

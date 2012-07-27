@@ -1,9 +1,10 @@
-package org.broadinstitute.sting.gatk.walkers.bqsr;
+package org.broadinstitute.sting.utils.recalibration;
 
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
+import org.broadinstitute.sting.utils.recalibration.covariates.*;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -72,7 +73,7 @@ public class RecalibrationReportUnitTest {
 
         final int expectedKeys = expectedNumberOfKeys(4, length, RAC.INDELS_CONTEXT_SIZE, RAC.MISMATCHES_CONTEXT_SIZE);
         int nKeys = 0;                                                                                                  // keep track of how many keys were produced
-        final ReadCovariates rc = RecalDataManager.computeCovariates(read, requestedCovariates);
+        final ReadCovariates rc = RecalUtils.computeCovariates(read, requestedCovariates);
 
         final RecalibrationTables recalibrationTables = new RecalibrationTables(requestedCovariates);
         final NestedIntegerArray<RecalDatum> rgTable = recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE);

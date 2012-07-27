@@ -23,11 +23,13 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.walkers.bqsr;
+package org.broadinstitute.sting.utils.recalibration;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
+import org.broadinstitute.sting.utils.recalibration.covariates.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.R.RScriptExecutor;
 import org.broadinstitute.sting.utils.Utils;
@@ -39,7 +41,6 @@ import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.io.Resource;
-import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -59,7 +60,7 @@ import java.util.*;
  * This class holds the parsing methods that are shared between CountCovariates and TableRecalibration.
  */
 
-public class RecalDataManager {
+public class RecalUtils {
     public final static String ARGUMENT_REPORT_TABLE_TITLE = "Arguments";
     public final static String QUANTIZED_REPORT_TABLE_TITLE = "Quantized";
     public final static String READGROUP_REPORT_TABLE_TITLE = "RecalTable0";
@@ -85,13 +86,108 @@ public class RecalDataManager {
 
     private static final String SCRIPT_FILE = "BQSR.R";
 
-    private static final Pair<String, String> covariateValue     = new Pair<String, String>(RecalDataManager.COVARIATE_VALUE_COLUMN_NAME, "%s");
-    private static final Pair<String, String> covariateName      = new Pair<String, String>(RecalDataManager.COVARIATE_NAME_COLUMN_NAME, "%s");
-    private static final Pair<String, String> eventType          = new Pair<String, String>(RecalDataManager.EVENT_TYPE_COLUMN_NAME, "%s");
-    private static final Pair<String, String> empiricalQuality   = new Pair<String, String>(RecalDataManager.EMPIRICAL_QUALITY_COLUMN_NAME, "%.4f");
-    private static final Pair<String, String> estimatedQReported = new Pair<String, String>(RecalDataManager.ESTIMATED_Q_REPORTED_COLUMN_NAME, "%.4f");
-    private static final Pair<String, String> nObservations      = new Pair<String, String>(RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME, "%d");
-    private static final Pair<String, String> nErrors            = new Pair<String, String>(RecalDataManager.NUMBER_ERRORS_COLUMN_NAME, "%d");
+    private static final Pair<String, String> covariateValue     = new Pair<String, String>(RecalUtils.COVARIATE_VALUE_COLUMN_NAME, "%s");
+    private static final Pair<String, String> covariateName      = new Pair<String, String>(RecalUtils.COVARIATE_NAME_COLUMN_NAME, "%s");
+    private static final Pair<String, String> eventType          = new Pair<String, String>(RecalUtils.EVENT_TYPE_COLUMN_NAME, "%s");
+    private static final Pair<String, String> empiricalQuality   = new Pair<String, String>(RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME, "%.4f");
+    private static final Pair<String, String> estimatedQReported = new Pair<String, String>(RecalUtils.ESTIMATED_Q_REPORTED_COLUMN_NAME, "%.4f");
+    private static final Pair<String, String> nObservations      = new Pair<String, String>(RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME, "%d");
+    private static final Pair<String, String> nErrors            = new Pair<String, String>(RecalUtils.NUMBER_ERRORS_COLUMN_NAME, "%d");
+
+    /**
+     * Generates two lists : required covariates and optional covariates based on the user's requests.
+     *
+     * Performs the following tasks in order:
+     *  1. Adds all requierd covariates in order
+     *  2. Check if the user asked to use the standard covariates and adds them all if that's the case
+     *  3. Adds all covariates requested by the user that were not already added by the two previous steps
+     *
+     * @param argumentCollection the argument collection object for the recalibration walker
+     * @return a pair of ordered lists : required covariates (first) and optional covariates (second)
+     */
+    public static Pair<ArrayList<Covariate>, ArrayList<Covariate>> initializeCovariates(RecalibrationArgumentCollection argumentCollection) {
+        final List<Class<? extends Covariate>> covariateClasses = new PluginManager<Covariate>(Covariate.class).getPlugins();
+        final List<Class<? extends RequiredCovariate>> requiredClasses = new PluginManager<RequiredCovariate>(RequiredCovariate.class).getPlugins();
+        final List<Class<? extends StandardCovariate>> standardClasses = new PluginManager<StandardCovariate>(StandardCovariate.class).getPlugins();
+
+        final ArrayList<Covariate> requiredCovariates = addRequiredCovariatesToList(requiredClasses);                   // add the required covariates
+        ArrayList<Covariate> optionalCovariates = new ArrayList<Covariate>();
+        if (!argumentCollection.DO_NOT_USE_STANDARD_COVARIATES)
+            optionalCovariates = addStandardCovariatesToList(standardClasses);                                          // add the standard covariates if -standard was specified by the user
+
+        if (argumentCollection.COVARIATES != null) {                                                                    // parse the -cov arguments that were provided, skipping over the ones already specified
+            for (String requestedCovariateString : argumentCollection.COVARIATES) {
+                boolean foundClass = false;
+                for (Class<? extends Covariate> covClass : covariateClasses) {
+                    if (requestedCovariateString.equalsIgnoreCase(covClass.getSimpleName())) {                          // -cov argument matches the class name for an implementing class
+                        foundClass = true;
+                        if (!requiredClasses.contains(covClass) &&
+                                (argumentCollection.DO_NOT_USE_STANDARD_COVARIATES || !standardClasses.contains(covClass))) {
+                            try {
+                                final Covariate covariate = covClass.newInstance();                                     // now that we've found a matching class, try to instantiate it
+                                optionalCovariates.add(covariate);
+                            } catch (Exception e) {
+                                throw new DynamicClassResolutionException(covClass, e);
+                            }
+                        }
+                    }
+                }
+
+                if (!foundClass) {
+                    throw new UserException.CommandLineException("The requested covariate type (" + requestedCovariateString + ") isn't a valid covariate option. Use --list to see possible covariates.");
+                }
+            }
+        }
+        return new Pair<ArrayList<Covariate>, ArrayList<Covariate>>(requiredCovariates, optionalCovariates);
+    }
+
+    /**
+     * Adds the required covariates to a covariate list
+     *
+     * Note: this method really only checks if the classes object has the expected number of required covariates, then add them by hand.
+     *
+     * @param classes list of classes to add to the covariate list
+     * @return the covariate list
+     */
+    private static ArrayList<Covariate> addRequiredCovariatesToList(List<Class<? extends RequiredCovariate>> classes) {
+        ArrayList<Covariate> dest = new ArrayList<Covariate>(classes.size());
+        if (classes.size() != 2)
+            throw new ReviewedStingException("The number of required covariates has changed, this is a hard change in the code and needs to be inspected");
+
+        dest.add(new ReadGroupCovariate());                                                                             // enforce the order with RG first and QS next.
+        dest.add(new QualityScoreCovariate());
+        return dest;
+    }
+
+    /**
+     * Adds the standard covariates to a covariate list
+     *
+     * @param classes list of classes to add to the covariate list
+     * @return the covariate list
+     */
+    private static ArrayList<Covariate> addStandardCovariatesToList(List<Class<? extends StandardCovariate>> classes) {
+        ArrayList<Covariate> dest = new ArrayList<Covariate>(classes.size());
+        for (Class<?> covClass : classes) {
+            try {
+                final Covariate covariate = (Covariate) covClass.newInstance();
+                dest.add(covariate);
+            } catch (Exception e) {
+                throw new DynamicClassResolutionException(covClass, e);
+            }
+        }
+        return dest;
+    }
+
+    public static void listAvailableCovariates(Logger logger) {
+        // Get a list of all available covariates
+        final List<Class<? extends Covariate>> covariateClasses = new PluginManager<Covariate>(Covariate.class).getPlugins();
+
+        // Print and exit if that's what was requested
+        logger.info("Available covariates:");
+        for (Class<?> covClass : covariateClasses)
+            logger.info(covClass.getSimpleName());
+        logger.info("");
+    }
 
 
     public enum SOLID_RECAL_MODE {
@@ -150,64 +246,6 @@ public class RecalDataManager {
 
             throw new UserException.BadArgumentValue(nocallStrategy, "is not a valid SOLID_NOCALL_STRATEGY value");
         }
-    }
-
-    /**
-     * Generates two lists : required covariates and optional covariates based on the user's requests.
-     *
-     * Performs the following tasks in order:
-     *  1. Adds all requierd covariates in order
-     *  2. Check if the user asked to use the standard covariates and adds them all if that's the case
-     *  3. Adds all covariates requested by the user that were not already added by the two previous steps
-     *
-     * @param argumentCollection the argument collection object for the recalibration walker
-     * @return a pair of ordered lists : required covariates (first) and optional covariates (second)
-     */
-    public static Pair<ArrayList<Covariate>, ArrayList<Covariate>> initializeCovariates(RecalibrationArgumentCollection argumentCollection) {
-        final List<Class<? extends Covariate>> covariateClasses = new PluginManager<Covariate>(Covariate.class).getPlugins();
-        final List<Class<? extends RequiredCovariate>> requiredClasses = new PluginManager<RequiredCovariate>(RequiredCovariate.class).getPlugins();
-        final List<Class<? extends StandardCovariate>> standardClasses = new PluginManager<StandardCovariate>(StandardCovariate.class).getPlugins();
-
-        final ArrayList<Covariate> requiredCovariates = addRequiredCovariatesToList(requiredClasses);                   // add the required covariates
-        ArrayList<Covariate> optionalCovariates = new ArrayList<Covariate>();
-        if (!argumentCollection.DO_NOT_USE_STANDARD_COVARIATES)
-            optionalCovariates = addStandardCovariatesToList(standardClasses);                                          // add the standard covariates if -standard was specified by the user
-
-        if (argumentCollection.COVARIATES != null) {                                                                    // parse the -cov arguments that were provided, skipping over the ones already specified
-            for (String requestedCovariateString : argumentCollection.COVARIATES) {
-                boolean foundClass = false;
-                for (Class<? extends Covariate> covClass : covariateClasses) {
-                    if (requestedCovariateString.equalsIgnoreCase(covClass.getSimpleName())) {                          // -cov argument matches the class name for an implementing class
-                        foundClass = true;
-                        if (!requiredClasses.contains(covClass) &&
-                                (argumentCollection.DO_NOT_USE_STANDARD_COVARIATES || !standardClasses.contains(covClass))) {
-                            try {
-                                final Covariate covariate = covClass.newInstance();                                     // now that we've found a matching class, try to instantiate it
-                                optionalCovariates.add(covariate);
-                            } catch (Exception e) {
-                                throw new DynamicClassResolutionException(covClass, e);
-                            }
-                        }
-                    }
-                }
-
-                if (!foundClass) {
-                    throw new UserException.CommandLineException("The requested covariate type (" + requestedCovariateString + ") isn't a valid covariate option. Use --list to see possible covariates.");
-                }
-            }
-        }
-        return new Pair<ArrayList<Covariate>, ArrayList<Covariate>>(requiredCovariates, optionalCovariates);
-    }
-
-    public static void listAvailableCovariates(Logger logger) {
-        // Get a list of all available covariates
-        final List<Class<? extends Covariate>> covariateClasses = new PluginManager<Covariate>(Covariate.class).getPlugins();
-
-        // Print and exit if that's what was requested
-        logger.info("Available covariates:");
-        for (Class<?> covClass : covariateClasses)
-            logger.info(covClass.getSimpleName());
-        logger.info("");
     }
 
     private static List<GATKReportTable> generateReportTables(final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates) {
@@ -272,8 +310,8 @@ public class RecalDataManager {
                 reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEmpiricalQuality());
                 if (tableIndex == RecalibrationTables.TableType.READ_GROUP_TABLE.index)
                     reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEstimatedQReported());   // we only add the estimated Q reported in the RG table
-                reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.numObservations);
-                reportTable.set(rowIndex, columnNames.get(columnIndex).getFirst(), datum.numMismatches);
+                reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getNumObservations());
+                reportTable.set(rowIndex, columnNames.get(columnIndex).getFirst(), datum.getNumMismatches());
 
                 rowIndex++;
             }
@@ -320,7 +358,7 @@ public class RecalDataManager {
         files.getFirst().close();
 
         final RScriptExecutor executor = new RScriptExecutor();
-        executor.addScript(new Resource(SCRIPT_FILE, RecalDataManager.class));
+        executor.addScript(new Resource(SCRIPT_FILE, RecalUtils.class));
         executor.addArgs(csvFileName.getAbsolutePath());
         executor.addArgs(plotFileName.getAbsolutePath());
         executor.exec();
@@ -480,14 +518,14 @@ public class RecalDataManager {
      */
     public static boolean isColorSpaceConsistent(final SOLID_NOCALL_STRATEGY strategy, final GATKSAMRecord read) {
         if (ReadUtils.isSOLiDRead(read)) {                                                                              // If this is a SOLID read then we have to check if the color space is inconsistent. This is our only sign that SOLID has inserted the reference base
-            if (read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG) == null) {                            // Haven't calculated the inconsistency array yet for this read
-                final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
+            if (read.getAttribute(RecalUtils.COLOR_SPACE_INCONSISTENCY_TAG) == null) {                            // Haven't calculated the inconsistency array yet for this read
+                final Object attr = read.getAttribute(RecalUtils.COLOR_SPACE_ATTRIBUTE_TAG);
                 if (attr != null) {
                     byte[] colorSpace;
                     if (attr instanceof String)
                         colorSpace = ((String) attr).getBytes();
                     else
-                        throw new UserException.MalformedBAM(read, String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
+                        throw new UserException.MalformedBAM(read, String.format("Value encoded by %s in %s isn't a string!", RecalUtils.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
                     
                     byte[] readBases = read.getReadBases();                                                             // Loop over the read and calculate first the inferred bases from the color and then check if it is consistent with the read
                     if (read.getReadNegativeStrandFlag())
@@ -501,7 +539,7 @@ public class RecalDataManager {
                         inconsistency[i] = (byte) (thisBase == readBases[i] ? 0 : 1);
                         prevBase = readBases[i];
                     }
-                    read.setAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG, inconsistency);
+                    read.setAttribute(RecalUtils.COLOR_SPACE_INCONSISTENCY_TAG, inconsistency);
                 }
                 else if (strategy == SOLID_NOCALL_STRATEGY.THROW_EXCEPTION)                                             // if the strategy calls for an exception, throw it
                     throw new UserException.MalformedBAM(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() + " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
@@ -545,7 +583,7 @@ public class RecalDataManager {
      * @return Returns true if the base was inconsistent with the color space
      */
     public static boolean isColorSpaceConsistent(final GATKSAMRecord read, final int offset) {
-        final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG);
+        final Object attr = read.getAttribute(RecalUtils.COLOR_SPACE_INCONSISTENCY_TAG);
         if (attr != null) {
             final byte[] inconsistency = (byte[]) attr;
             // NOTE: The inconsistency array is in the direction of the read, not aligned to the reference!
@@ -691,40 +729,4 @@ public class RecalDataManager {
     }
 
 
-    /**
-     * Adds the required covariates to a covariate list
-     *
-     * Note: this method really only checks if the classes object has the expected number of required covariates, then add them by hand.
-     *
-     * @param classes list of classes to add to the covariate list
-     * @return the covariate list
-     */
-    private static ArrayList<Covariate> addRequiredCovariatesToList(List<Class<? extends RequiredCovariate>> classes) {
-        ArrayList<Covariate> dest = new ArrayList<Covariate>(classes.size());
-        if (classes.size() != 2)
-            throw new ReviewedStingException("The number of required covariates has changed, this is a hard change in the code and needs to be inspected");
-
-        dest.add(new ReadGroupCovariate());                                                                             // enforce the order with RG first and QS next.
-        dest.add(new QualityScoreCovariate());
-        return dest;
-    }
-
-    /**
-     * Adds the standard covariates to a covariate list
-     *
-     * @param classes list of classes to add to the covariate list
-     * @return the covariate list
-     */
-    private static ArrayList<Covariate> addStandardCovariatesToList(List<Class<? extends StandardCovariate>> classes) {
-        ArrayList<Covariate> dest = new ArrayList<Covariate>(classes.size());
-        for (Class<?> covClass : classes) {
-            try {
-                final Covariate covariate = (Covariate) covClass.newInstance();
-                dest.add(covariate);
-            } catch (Exception e) {
-                throw new DynamicClassResolutionException(covClass, e);
-            }
-        }
-        return dest;
-    }
 }
