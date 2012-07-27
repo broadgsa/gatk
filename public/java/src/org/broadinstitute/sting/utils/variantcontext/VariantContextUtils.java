@@ -747,7 +747,7 @@ public class VariantContextUtils {
                 if ( !mappedVCs.containsKey(vc.getType()) )
                     mappedVCs.put(vc.getType(), new ArrayList<VariantContext>());
                 mappedVCs.get(vc.getType()).add(vc);
-                }
+            }
         }
 
         return mappedVCs;
@@ -809,10 +809,10 @@ public class VariantContextUtils {
             //
             // refAllele: ACGTGA
             // myRef:     ACGT
-            // myAlt:     -
+            // myAlt:     A
             //
             // We need to remap all of the alleles in vc to include the extra GA so that
-            // myRef => refAllele and myAlt => GA
+            // myRef => refAllele and myAlt => AGA
             //
 
             Allele myRef = vc.getReference();
@@ -1332,6 +1332,35 @@ public class VariantContextUtils {
             return endForSymbolicAlleles;
         } else {
             return start + Math.max(ref.length() - 1, 0);
+        }
+    }
+
+    public static boolean requiresPaddingBase(final List<String> alleles) {
+
+        // see whether one of the alleles would be null if trimmed through
+
+        for ( final String allele : alleles ) {
+            if ( allele.isEmpty() )
+                return true;
+        }
+
+        int clipping = 0;
+        Character currentBase = null;
+
+        while ( true ) {
+            for ( final String allele : alleles ) {
+                if ( allele.length() - clipping == 0 )
+                    return true;
+
+                char myBase = allele.charAt(clipping);
+                if ( currentBase == null )
+                    currentBase = myBase;
+                else if ( currentBase != myBase )
+                    return false;
+            }
+
+            clipping++;
+            currentBase = null;
         }
     }
 

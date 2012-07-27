@@ -176,7 +176,7 @@ public class Haplotype {
                     newHaplotype[haplotypeInsertLocation+iii] = altAllele.getBases()[iii];
                 }
             } else if( refAllele.length() < altAllele.length() ) { // insertion                
-                final int altAlleleLength = altAllele.length();
+                final int altAlleleLength = altAllele.length() - 1;
                 newHaplotype = new byte[bases.length + altAlleleLength];
                 for( int iii = 0; iii < bases.length; iii++ ) {
                     newHaplotype[iii] = bases[iii];
@@ -185,15 +185,16 @@ public class Haplotype {
                     newHaplotype[iii] = newHaplotype[iii-altAlleleLength];
                 }
                 for( int iii = 0; iii < altAlleleLength; iii++ ) {
-                    newHaplotype[haplotypeInsertLocation+iii] = altAllele.getBases()[iii];
+                    newHaplotype[haplotypeInsertLocation+iii] = altAllele.getBases()[iii+1];
                 }
             } else { // deletion
                 final int shift = refAllele.length() - altAllele.length();
+                final int altAlleleLength = altAllele.length() - 1;
                 newHaplotype = new byte[bases.length - shift];
-                for( int iii = 0; iii < haplotypeInsertLocation + altAllele.length(); iii++ ) {
+                for( int iii = 0; iii < haplotypeInsertLocation + altAlleleLength; iii++ ) {
                     newHaplotype[iii] = bases[iii];
                 }
-                for( int iii = haplotypeInsertLocation + altAllele.length(); iii < newHaplotype.length; iii++ ) {
+                for( int iii = haplotypeInsertLocation + altAlleleLength; iii < newHaplotype.length; iii++ ) {
                     newHaplotype[iii] = bases[iii+shift];
                 }
             }

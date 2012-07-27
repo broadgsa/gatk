@@ -170,31 +170,33 @@ public class VariantContextAdaptors {
 
             final byte refBaseForIndel = ref.getBases()[index];
 
-            Allele refAllele;
-            if ( dbsnp.getNCBIRefBase().equals("-") )
-                refAllele = Allele.create(refBaseForIndel);
-            else if ( ! Allele.acceptableAlleleBases(dbsnp.getNCBIRefBase()) )
-                return null;
-            else
-                refAllele = Allele.create(refBaseForIndel + dbsnp.getNCBIRefBase(), true);
-
             boolean addPaddingBase;
             if ( isSNP(dbsnp) || isMNP(dbsnp) )
                 addPaddingBase = false;
             else if ( isIndel(dbsnp) || dbsnp.getVariantType().contains("mixed") )
-                addPaddingBase = true;
+                addPaddingBase = VariantContextUtils.requiresPaddingBase(stripNullDashes(getAlleleList(dbsnp)));
             else
                 return null; // can't handle anything else
+
+            Allele refAllele;
+            if ( dbsnp.getNCBIRefBase().equals("-") )
+                refAllele = Allele.create(refBaseForIndel, true);
+            else if ( ! Allele.acceptableAlleleBases(dbsnp.getNCBIRefBase()) )
+                return null;
+            else
+                refAllele = Allele.create((addPaddingBase ? (char)refBaseForIndel : "") + dbsnp.getNCBIRefBase(), true);
 
             final List<Allele> alleles = new ArrayList<Allele>();
             alleles.add(refAllele);
 
             // add all of the alt alleles
             for ( String alt : getAlternateAlleleList(dbsnp) ) {
-                if ( ! Allele.acceptableAlleleBases(alt) ) {
+                if ( Allele.wouldBeNullAllele(alt.getBytes()))
+                    alt = "";
+                else if ( ! Allele.acceptableAlleleBases(alt) )
                     return null;
-                }
-                alleles.add(Allele.create((addPaddingBase ? refBaseForIndel : "") + alt, false));
+
+                alleles.add(Allele.create((addPaddingBase ? (char)refBaseForIndel : "") + alt, false));
             }
 
             final VariantContextBuilder builder = new VariantContextBuilder();
@@ -202,6 +204,17 @@ public class VariantContextAdaptors {
             builder.loc(dbsnp.getChr(), dbsnp.getStart() - (addPaddingBase ? 1 : 0), dbsnp.getEnd() - (addPaddingBase && refAllele.length() == 1 ? 1 : 0));
             builder.alleles(alleles);
             return builder.make();
+        }
+
+        private static List<String> stripNullDashes(final List<String> alleles) {
+            final List<String> newAlleles = new ArrayList<String>(alleles.size());
+            for ( final String allele : alleles ) {
+                if ( allele.equals("-") )
+                    newAlleles.add("");
+                else
+                    newAlleles.add(allele);
+            }
+            return newAlleles;
         }
     }
 

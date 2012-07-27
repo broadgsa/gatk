@@ -1129,6 +1129,11 @@ public class VariantContext implements Feature { // to enable tribble integratio
                 else
                     throw new ReviewedStingException(message);
             }
+        } else {
+            final long length = (stop - start) + 1;
+            if ( ! hasSymbolicAlleles() && length != getReference().length() ) {
+                throw new IllegalStateException("BUG: GenomeLoc " + contig + ":" + start + "-" + stop + " has a size == " + length + " but the variation reference allele has length " + getReference().length() + " this = " + this);
+            }
         }
     }
 
@@ -1151,11 +1156,6 @@ public class VariantContext implements Feature { // to enable tribble integratio
         // make sure there's one reference allele
         if ( ! alreadySeenRef )
             throw new IllegalArgumentException("No reference allele found in VariantContext");
-
-        final long length = (stop - start) + 1;
-        if ( ! hasSymbolicAlleles() && length != getReference().length() ) {
-            throw new IllegalStateException("BUG: GenomeLoc " + contig + ":" + start + "-" + stop + " has a size == " + length + " but the variation reference allele has length " + getReference().length() + " this = " + this);
-        }
     }
 
     private void validateGenotypes() {

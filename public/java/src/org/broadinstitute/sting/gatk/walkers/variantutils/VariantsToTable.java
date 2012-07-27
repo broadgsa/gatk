@@ -381,7 +381,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("REF", new Getter() {
             public String get(VariantContext vc) {
                 StringBuilder x = new StringBuilder();
-                x.append(vc.getReference());
+                x.append(vc.getReference().getDisplayString());
                 return x.toString();
             }
         });
