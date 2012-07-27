@@ -103,22 +103,23 @@ public class ArtificialReadPileupTestProvider {
                                                                        boolean addBaseErrors, int phredScaledBaseErrorRate) {
         //    RefMetaDataTracker tracker = new RefMetaDataTracker(null,referenceContext);
 
-
         ArrayList<Allele> vcAlleles = new ArrayList<Allele>();
+        String refBase = refBases.substring(offset,offset+1);    // referenceContext.getBase()?
         Allele refAllele, altAllele;
-        if (eventLength == 0)  {// SNP case
-            refAllele =Allele.create(refBases.substring(offset,offset+1),true);
+        if (eventLength == 0)  {
+            // SNP case
+            refAllele = Allele.create(refBase,true);
             altAllele = Allele.create(altBases.substring(0,1), false);
 
         } else if (eventLength>0){
             // insertion
-            refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
-            altAllele = Allele.create(altBases.substring(0,eventLength), false);
+            refAllele = Allele.create(refBase,true);
+            altAllele = Allele.create(refBase + altBases.substring(0,eventLength), false);
         }
         else {
             // deletion
-            refAllele =Allele.create(refBases.substring(offset,offset+Math.abs(eventLength)),true);
-            altAllele = Allele.create(Allele.NULL_ALLELE_STRING, false);
+            refAllele = Allele.create(refBases.substring(offset,offset+Math.abs(eventLength)),true);
+            altAllele = Allele.create(refBase, false);
         }
         int stop = loc.getStart();
         vcAlleles.add(refAllele);
@@ -127,7 +128,6 @@ public class ArtificialReadPileupTestProvider {
         final VariantContextBuilder builder = new VariantContextBuilder().source("");
         builder.loc(loc.getContig(), loc.getStart(), stop);
         builder.alleles(vcAlleles);
-        builder.referenceBaseForIndel(referenceContext.getBase());
         builder.noGenotypes();
 
         final VariantContext vc = builder.make();

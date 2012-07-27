@@ -255,7 +255,7 @@ public class ConsensusAlleleCounter {
                 else continue; // don't go on with this allele if refBases are non-standard
             } else {
                 // insertion case
-                final String insertionBases = ref.getBase() + s;  // add reference padding
+                final String insertionBases = (char)ref.getBase() + s;  // add reference padding
                 if (Allele.acceptableAlleleBases(insertionBases, false)) { // don't allow N's in insertions
                     refAllele = Allele.create(ref.getBase(), true);
                     altAllele = Allele.create(insertionBases, false);

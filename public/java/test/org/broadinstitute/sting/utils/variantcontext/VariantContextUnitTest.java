@@ -28,27 +28,22 @@ public class VariantContextUnitTest extends BaseTest {
     int snpLocStart = 10;
     int snpLocStop = 10;
 
-    // - / ATC [ref] from 20-23
+    // - / ATC [ref] from 20-22
     String delLoc = "chr1";
     int delLocStart = 20;
-    int delLocStop = 23;
+    int delLocStop = 22;
 
     // - [ref] / ATC from 20-20
     String insLoc = "chr1";
     int insLocStart = 20;
     int insLocStop = 20;
 
-    // - / A / T / ATC [ref] from 20-23
-    String mixedLoc = "chr1";
-    int mixedLocStart = 20;
-    int mixedLocStop = 23;
-
     VariantContextBuilder basicBuilder, snpBuilder, insBuilder;
 
     @BeforeSuite
     public void before() {
-        del = Allele.create("-");
-        delRef = Allele.create("-", true);
+        del = Allele.create("A");
+        delRef = Allele.create("A", true);
 
         A = Allele.create("A");
         C = Allele.create("C");
@@ -62,9 +57,9 @@ public class VariantContextUnitTest extends BaseTest {
 
     @BeforeMethod
     public void beforeTest() {
-        basicBuilder = new VariantContextBuilder("test", snpLoc,snpLocStart, snpLocStop, Arrays.asList(Aref, T)).referenceBaseForIndel((byte)'A');
-        snpBuilder = new VariantContextBuilder("test", snpLoc,snpLocStart, snpLocStop, Arrays.asList(Aref, T)).referenceBaseForIndel((byte)'A');
-        insBuilder = new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, ATC)).referenceBaseForIndel((byte)'A');
+        basicBuilder = new VariantContextBuilder("test", snpLoc,snpLocStart, snpLocStop, Arrays.asList(Aref, T));
+        snpBuilder = new VariantContextBuilder("test", snpLoc,snpLocStart, snpLocStop, Arrays.asList(Aref, T));
+        insBuilder = new VariantContextBuilder("test", insLoc, insLocStart, insLocStop, Arrays.asList(delRef, ATC));
     }
 
     @Test
@@ -213,7 +208,7 @@ public class VariantContextUnitTest extends BaseTest {
     @Test
     public void testCreatingDeletionVariantContext() {
         List<Allele> alleles = Arrays.asList(ATCref, del);
-        VariantContext vc = new VariantContextBuilder("test", delLoc, delLocStart, delLocStop, alleles).referenceBaseForIndel((byte)'A').make();
+        VariantContext vc = new VariantContextBuilder("test", delLoc, delLocStart, delLocStop, alleles).make();
 
         Assert.assertEquals(vc.getChr(), delLoc);
         Assert.assertEquals(vc.getStart(), delLocStart);
@@ -240,8 +235,8 @@ public class VariantContextUnitTest extends BaseTest {
     @Test
     public void testMatchingAlleles() {
         List<Allele> alleles = Arrays.asList(ATCref, del);
-        VariantContext vc = new VariantContextBuilder("test", delLoc, delLocStart, delLocStop, alleles).referenceBaseForIndel((byte)'A').make();
-        VariantContext vc2 = new VariantContextBuilder("test2", delLoc, delLocStart+12, delLocStop+12, alleles).referenceBaseForIndel((byte)'A').make();
+        VariantContext vc = new VariantContextBuilder("test", delLoc, delLocStart, delLocStop, alleles).make();
+        VariantContext vc2 = new VariantContextBuilder("test2", delLoc, delLocStart+12, delLocStop+12, alleles).make();
 
         Assert.assertTrue(vc.hasSameAllelesAs(vc2));
         Assert.assertTrue(vc.hasSameAlternateAllelesAs(vc2));
@@ -470,15 +465,15 @@ public class VariantContextUnitTest extends BaseTest {
 
     @Test
     public void testRepeatAllele() {
-        Allele nullR = Allele.create(Allele.NULL_ALLELE_STRING, true);
-        Allele nullA = Allele.create(Allele.NULL_ALLELE_STRING, false);
-        Allele atc   = Allele.create("ATC", false);
-        Allele atcatc   = Allele.create("ATCATC", false);
-        Allele ccccR = Allele.create("CCCC", true);
-        Allele cc   = Allele.create("CC", false);
-        Allele cccccc   = Allele.create("CCCCCC", false);
-        Allele gagaR   = Allele.create("GAGA", true);
-        Allele gagagaga   = Allele.create("GAGAGAGA", false);
+        Allele nullR = Allele.create("A", true);
+        Allele nullA = Allele.create("A", false);
+        Allele atc   = Allele.create("AATC", false);
+        Allele atcatc   = Allele.create("AATCATC", false);
+        Allele ccccR = Allele.create("ACCCC", true);
+        Allele cc   = Allele.create("ACC", false);
+        Allele cccccc   = Allele.create("ACCCCCC", false);
+        Allele gagaR   = Allele.create("AGAGA", true);
+        Allele gagagaga   = Allele.create("AGAGAGAGA", false);
 
         Pair<List<Integer>,byte[]> result;
         byte[] refBytes = "TATCATCATCGGA".getBytes();
@@ -678,7 +673,7 @@ public class VariantContextUnitTest extends BaseTest {
     @Test(dataProvider = "getAlleles")
     public void testMergeAlleles(GetAllelesTest cfg) {
         final List<Allele> altAlleles = cfg.alleles.subList(1, cfg.alleles.size());
-        final VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, cfg.alleles).referenceBaseForIndel((byte)'A').make();
+        final VariantContext vc = new VariantContextBuilder("test", snpLoc, snpLocStart, snpLocStop, cfg.alleles).make();
 
         Assert.assertEquals(vc.getAlleles(), cfg.alleles, "VC alleles not the same as input alleles");
         Assert.assertEquals(vc.getNAlleles(), cfg.alleles.size(), "VC getNAlleles not the same as input alleles size");

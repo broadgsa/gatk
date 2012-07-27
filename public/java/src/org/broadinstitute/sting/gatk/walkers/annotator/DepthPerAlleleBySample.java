@@ -88,13 +88,13 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         for ( PileupElement p : pileup ) {
             if ( p.isBeforeInsertion() ) {
 
-                final Allele insertion = Allele.create(refBase + p.getEventBases(), false);
+                final Allele insertion = Allele.create((char)refBase + p.getEventBases(), false);
                 if ( alleleCounts.containsKey(insertion) ) {
                     alleleCounts.put(insertion, alleleCounts.get(insertion)+1);
                 }
 
             } else if ( p.isBeforeDeletionStart() ) {
-                if ( p.getEventLength() == refAllele.length() + 1 ) {
+                if ( p.getEventLength() == refAllele.length() - 1 ) {
                     // this is indeed the deletion allele recorded in VC
                     final Allele deletion = Allele.create(refBase);
                     if ( alleleCounts.containsKey(deletion) ) {

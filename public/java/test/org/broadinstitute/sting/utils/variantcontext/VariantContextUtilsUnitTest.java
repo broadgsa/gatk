@@ -99,7 +99,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
     private VariantContext makeVC(String source, List<Allele> alleles, Collection<Genotype> genotypes, Set<String> filters) {
         int start = 10;
         int stop = start; // alleles.contains(ATC) ? start + 3 : start;
-        return new VariantContextBuilder(source, "1", start, stop, alleles).genotypes(genotypes).filters(filters).referenceBaseForIndel(Cref.getBases()[0]).make();
+        return new VariantContextBuilder(source, "1", start, stop, alleles).genotypes(genotypes).filters(filters).make();
     }
 
     // --------------------------------------------------------------------------------

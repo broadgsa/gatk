@@ -90,16 +90,23 @@ public class Allele implements Comparable<Allele> {
         // null alleles are no longer allowed
         if ( wouldBeNullAllele(bases) ) {
             throw new IllegalArgumentException("Null alleles are not supported");
-        } else if ( wouldBeNoCallAllele(bases) ) {
-            bases = EMPTY_ALLELE_BASES;
+        }
+
+        // no-calls are represented as no bases
+        if ( wouldBeNoCallAllele(bases) ) {
+            this.bases = EMPTY_ALLELE_BASES;
             isNoCall = true;
             if ( isRef ) throw new IllegalArgumentException("Cannot tag a NoCall allele as the reference allele");
-        } else if ( wouldBeSymbolicAllele(bases) ) {
+            return;
+        }
+
+        if ( wouldBeSymbolicAllele(bases) ) {
             isSymbolic = true;
             if ( isRef ) throw new IllegalArgumentException("Cannot tag a symbolic allele as the reference allele");
         }
-        else
+        else {
             bases = BaseUtils.convertToUpperCase(bases);
+        }
 
         this.isRef = isRef;
         this.bases = bases;

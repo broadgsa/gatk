@@ -1163,13 +1163,14 @@ public class VariantContextUtils {
         if ( ! vc.isIndel() ) // only indels are tandem repeats
             return null;
 
-        final Allele ref = vc.getReference();
+        final Allele refAllele = vc.getReference();
+        final byte[] refAlleleBases = Arrays.copyOfRange(refAllele.getBases(), 1, refAllele.length());
 
         byte[] repeatUnit = null;
         final ArrayList<Integer> lengths = new ArrayList<Integer>();
 
         for ( final Allele allele : vc.getAlternateAlleles() ) {
-            Pair<int[],byte[]> result = getNumTandemRepeatUnits(ref.getBases(), allele.getBases(), refBasesStartingAtVCWithoutPad.getBytes());
+            Pair<int[],byte[]> result = getNumTandemRepeatUnits(refAlleleBases, Arrays.copyOfRange(allele.getBases(), 1, allele.length()), refBasesStartingAtVCWithoutPad.getBytes());
 
             final int[] repetitionCount = result.first;
             // repetition count = 0 means allele is not a tandem expansion of context
@@ -1184,7 +1185,7 @@ public class VariantContextUtils {
             repeatUnit = result.second;
             if (VERBOSE) {
                 System.out.println("RefContext:"+refBasesStartingAtVCWithoutPad);
-                System.out.println("Ref:"+ref.toString()+" Count:" + String.valueOf(repetitionCount[0]));
+                System.out.println("Ref:"+refAllele.toString()+" Count:" + String.valueOf(repetitionCount[0]));
                 System.out.println("Allele:"+allele.toString()+" Count:" + String.valueOf(repetitionCount[1]));
                 System.out.println("RU:"+new String(repeatUnit));
             }
