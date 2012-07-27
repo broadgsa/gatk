@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.activeregion.ActivityProfile;
+import org.broadinstitute.sting.utils.activeregion.ActivityProfileResult;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -69,8 +70,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                     for(int iii = prevLoc.getStop() + 1; iii < location.getStart(); iii++ ) {
                         final GenomeLoc fakeLoc = engine.getGenomeLocParser().createGenomeLoc(prevLoc.getContig(), iii, iii);
                         if( initialIntervals == null || initialIntervals.overlaps( fakeLoc ) ) {
-                            final double isActiveProb = ( walker.hasPresetActiveRegions() && walker.presetActiveRegions.overlaps(fakeLoc) ? 1.0 : 0.0 );
-                            profile.add(fakeLoc, isActiveProb);
+                            profile.add(fakeLoc, new ActivityProfileResult( walker.hasPresetActiveRegions() && walker.presetActiveRegions.overlaps(fakeLoc) ? 1.0 : 0.0 ));
                         }
                     }
                 }
@@ -86,8 +86,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
 
                 // Call the walkers isActive function for this locus and add them to the list to be integrated later
                 if( initialIntervals == null || initialIntervals.overlaps( location ) ) {
-                    final double isActiveProb = walkerActiveProb(walker, tracker, refContext, locus, location);
-                    profile.add(location, isActiveProb);
+                    profile.add(location, walkerActiveProb(walker, tracker, refContext, locus, location));
                 }
 
                 // Grab all the previously unseen reads from this pileup and add them to the massive read list
@@ -144,11 +143,11 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
     //
     // --------------------------------------------------------------------------------
 
-    private final double walkerActiveProb(final ActiveRegionWalker<M,T> walker,
+    private final ActivityProfileResult walkerActiveProb(final ActiveRegionWalker<M,T> walker,
                                           final RefMetaDataTracker tracker, final ReferenceContext refContext,
                                           final AlignmentContext locus, final GenomeLoc location) {
         if ( walker.hasPresetActiveRegions() ) {
-            return walker.presetActiveRegions.overlaps(location) ? 1.0 : 0.0;
+            return new ActivityProfileResult(walker.presetActiveRegions.overlaps(location) ? 1.0 : 0.0);
         } else {
             return walker.isActive( tracker, refContext, locus );
         }
