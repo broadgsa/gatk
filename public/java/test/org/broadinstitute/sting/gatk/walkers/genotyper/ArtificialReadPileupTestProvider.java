@@ -90,7 +90,7 @@ public class ArtificialReadPileupTestProvider {
         return sampleNames;
     }
     public byte getRefByte() {
-        return refBases.substring(offset,offset+1).getBytes()[0];
+        return referenceContext.getBase();
     }
 
     public ReferenceContext getReferenceContext()   { return referenceContext;}
