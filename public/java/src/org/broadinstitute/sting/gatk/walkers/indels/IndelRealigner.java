@@ -872,7 +872,13 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         for ( VariantContext knownIndel : knownIndelsToTry ) {
             if ( knownIndel == null || !knownIndel.isIndel() || knownIndel.isComplexIndel() )
                 continue;
-            byte[] indelStr = knownIndel.isSimpleInsertion() ? knownIndel.getAlternateAllele(0).getBases() : Utils.dupBytes((byte)'-', knownIndel.getReference().length());
+            final byte[] indelStr;
+            if ( knownIndel.isSimpleInsertion() ) {
+                final byte[] fullAllele = knownIndel.getAlternateAllele(0).getBases();
+                indelStr = Arrays.copyOfRange(fullAllele, 1, fullAllele.length); // remove ref padding
+            } else {
+                indelStr = Utils.dupBytes((byte)'-', knownIndel.getReference().length() - 1);
+            }
             int start = knownIndel.getStart() - leftmostIndex + 1;
             Consensus c = createAlternateConsensus(start, reference, indelStr, knownIndel);
             if ( c != null )

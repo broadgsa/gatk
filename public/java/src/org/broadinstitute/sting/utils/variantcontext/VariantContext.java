@@ -496,7 +496,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
      */
     public boolean isSimpleInsertion() {
         // can't just call !isSimpleDeletion() because of complex indels
-        return getType() == Type.INDEL && isBiallelic() && getReference().length() < getAlternateAllele(0).length();
+        return getType() == Type.INDEL && isBiallelic() && getReference().length() == 1;
     }
 
     /**
@@ -504,7 +504,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
      */
     public boolean isSimpleDeletion() {
         // can't just call !isSimpleInsertion() because of complex indels
-        return getType() == Type.INDEL && isBiallelic() && getReference().length() > getAlternateAllele(0).length();
+        return getType() == Type.INDEL && isBiallelic() && getAlternateAllele(0).length() == 1;
     }
 
     /**
@@ -1120,8 +1120,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
         if ( hasAttribute(VCFConstants.END_KEY) ) {
             final int end = getAttributeAsInt(VCFConstants.END_KEY, -1);
             assert end != -1;
-            if ( end != getEnd() && end != getEnd() + 1 ) {
-                // the end is allowed to 1 bigger because of the padding
+            if ( end != getEnd() ) {
                 final String message = "Badly formed variant context at location " + getChr() + ":"
                         + getStart() + "; getEnd() was " + getEnd()
                         + " but this VariantContext contains an END key with value " + end;
