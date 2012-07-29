@@ -38,9 +38,6 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 
 import java.util.*;
 
@@ -103,39 +100,27 @@ public class ArtificialReadPileupTestProvider {
                                                                        boolean addBaseErrors, int phredScaledBaseErrorRate) {
         //    RefMetaDataTracker tracker = new RefMetaDataTracker(null,referenceContext);
 
-        ArrayList<Allele> vcAlleles = new ArrayList<Allele>();
-        String refBase = refBases.substring(offset,offset+1);    // referenceContext.getBase()?
-        Allele refAllele, altAllele;
+        String refAllele, altAllele;
         if (eventLength == 0)  {
             // SNP case
-            refAllele = Allele.create(refBase,true);
-            altAllele = Allele.create(altBases.substring(0,1), false);
+            refAllele = new String(new byte[]{referenceContext.getBase()});
+            altAllele = new String(altBases.substring(0,1));
 
         } else if (eventLength>0){
             // insertion
-            refAllele = Allele.create(refBase,true);
-            altAllele = Allele.create(refBase + altBases.substring(0,eventLength), false);
+            refAllele = "";
+            altAllele = altBases.substring(0,eventLength);
         }
         else {
             // deletion
-            refAllele = Allele.create(refBases.substring(offset,offset+Math.abs(eventLength)),true);
-            altAllele = Allele.create(refBase, false);
+            refAllele = refBases.substring(offset,offset+Math.abs(eventLength));
+            altAllele = "";
         }
-        int stop = loc.getStart();
-        vcAlleles.add(refAllele);
-        vcAlleles.add(altAllele);
-
-        final VariantContextBuilder builder = new VariantContextBuilder().source("");
-        builder.loc(loc.getContig(), loc.getStart(), stop);
-        builder.alleles(vcAlleles);
-        builder.noGenotypes();
-
-        final VariantContext vc = builder.make();
 
         Map<String,AlignmentContext> contexts = new HashMap<String,AlignmentContext>();
 
         for (String sample: sampleNames) {
-            AlignmentContext context = new AlignmentContext(loc, generateRBPForVariant(loc,vc, altBases, numReadsPerAllele, sample, addBaseErrors, phredScaledBaseErrorRate));
+            AlignmentContext context = new AlignmentContext(loc, generateRBPForVariant(loc, refAllele, altAllele, altBases, numReadsPerAllele, sample, addBaseErrors, phredScaledBaseErrorRate));
             contexts.put(sample,context);
 
         }
@@ -149,73 +134,71 @@ public class ArtificialReadPileupTestProvider {
         rg.setSample(name);
         return rg;
     }
-    private ReadBackedPileup generateRBPForVariant( GenomeLoc loc, VariantContext vc, String altBases,
+
+    private ReadBackedPileup generateRBPForVariant( GenomeLoc loc, String refAllele, String altAllele, String altBases,
                                                     int[] numReadsPerAllele, String sample, boolean addErrors, int phredScaledErrorRate) {
         List<PileupElement> pileupElements = new ArrayList<PileupElement>();
-        int readStart = contigStart;
         int offset = (contigStop-contigStart+1)/2;
-        int refAlleleLength = 0;
-        int readCounter = 0;
-        int alleleCounter = 0;
-        for (Allele allele: vc.getAlleles()) {
-            if (allele.isReference())
-                refAlleleLength = allele.getBases().length;
+        int refAlleleLength = refAllele.length();
 
-            int alleleLength = allele.getBases().length;
-
-            for ( int d = 0; d < numReadsPerAllele[alleleCounter]; d++ ) {
-                byte[] readBases = trueHaplotype(allele, offset, refAlleleLength);
-                if (addErrors)
-                    addBaseErrors(readBases, phredScaledErrorRate);
-
-                byte[] readQuals = new byte[readBases.length];
-                Arrays.fill(readQuals, (byte)phredScaledErrorRate);
-
-                GATKSAMRecord read = new GATKSAMRecord(header);
-                read.setBaseQualities(readQuals);
-                read.setReadBases(readBases);
-                read.setReadName(artificialReadName+readCounter++);
-
-                boolean isBeforeDeletion = false, isBeforeInsertion = false;
-                if (allele.isReference())
-                    read.setCigarString(readBases.length + "M");
-                else {
-                    isBeforeDeletion = alleleLength<refAlleleLength;
-                    isBeforeInsertion = alleleLength>refAlleleLength;
-                    if (isBeforeDeletion || isBeforeInsertion)
-                        read.setCigarString(offset+"M"+ alleleLength + (isBeforeDeletion?"D":"I") +
-                            (readBases.length-offset)+"M");
-                    else // SNP case
-                        read.setCigarString(readBases.length+"M");
-                }
-
-                int eventLength = (isBeforeDeletion?refAlleleLength:(isBeforeInsertion?alleleLength:0));
-                read.setReadPairedFlag(false);
-                read.setAlignmentStart(readStart);
-                read.setMappingQuality(artificialMappingQuality);
-                read.setReferenceName(loc.getContig());
-                read.setReadNegativeStrandFlag(false);
-                read.setAttribute("RG", sampleRG(sample).getReadGroupId());
-
-
-                pileupElements.add(new PileupElement(read,offset,false,isBeforeDeletion, false, isBeforeInsertion,false,false,altBases.substring(0,alleleLength),eventLength));
-            }
-            alleleCounter++;
-        }
-
+        pileupElements.addAll(createPileupElements(refAllele, loc, numReadsPerAllele[0], sample, contigStart, offset, altBases, addErrors, phredScaledErrorRate, refAlleleLength, true));
+        pileupElements.addAll(createPileupElements(altAllele, loc, numReadsPerAllele[1], sample, contigStart, offset, altBases, addErrors, phredScaledErrorRate, refAlleleLength, false));
         return new ReadBackedPileupImpl(loc,pileupElements);
     }
 
-    private byte[] trueHaplotype(Allele allele, int offset, int refAlleleLength) {
+    private List<PileupElement> createPileupElements(String allele, GenomeLoc loc, int numReadsPerAllele, String sample, int readStart, int offset, String altBases, boolean addErrors, int phredScaledErrorRate, int refAlleleLength, boolean isReference) {
+
+        int alleleLength = allele.length();
+        List<PileupElement> pileupElements = new ArrayList<PileupElement>();
+
+        int readCounter = 0;
+        for ( int d = 0; d < numReadsPerAllele; d++ ) {
+            byte[] readBases = trueHaplotype(allele, offset, refAlleleLength);
+            if (addErrors)
+                addBaseErrors(readBases, phredScaledErrorRate);
+
+            byte[] readQuals = new byte[readBases.length];
+            Arrays.fill(readQuals, (byte)phredScaledErrorRate);
+
+            GATKSAMRecord read = new GATKSAMRecord(header);
+            read.setBaseQualities(readQuals);
+            read.setReadBases(readBases);
+            read.setReadName(artificialReadName+readCounter++);
+
+            boolean isBeforeDeletion = false, isBeforeInsertion = false;
+            if (isReference)
+                read.setCigarString(readBases.length + "M");
+            else {
+                isBeforeDeletion = alleleLength<refAlleleLength;
+                isBeforeInsertion = alleleLength>refAlleleLength;
+                if (isBeforeDeletion || isBeforeInsertion)
+                    read.setCigarString(offset+"M"+ alleleLength + (isBeforeDeletion?"D":"I") +
+                            (readBases.length-offset)+"M");
+                else // SNP case
+                    read.setCigarString(readBases.length+"M");
+            }
+
+            int eventLength = (isBeforeDeletion?refAlleleLength:(isBeforeInsertion?alleleLength:0));
+            read.setReadPairedFlag(false);
+            read.setAlignmentStart(readStart);
+            read.setMappingQuality(artificialMappingQuality);
+            read.setReferenceName(loc.getContig());
+            read.setReadNegativeStrandFlag(false);
+            read.setAttribute("RG", sampleRG(sample).getReadGroupId());
+
+
+            pileupElements.add(new PileupElement(read,offset,false,isBeforeDeletion, false, isBeforeInsertion,false,false,altBases.substring(0,alleleLength),eventLength));
+        }
+
+        return pileupElements;
+    }
+
+    private byte[] trueHaplotype(String allele, int offset, int refAlleleLength) {
         // create haplotype based on a particular allele
-        String prefix = refBases.substring(offset);
-        String alleleBases = new String(allele.getBases());
+        String prefix = refBases.substring(0, offset);
         String postfix = refBases.substring(offset+refAlleleLength,refBases.length());
 
-        return (prefix+alleleBases+postfix).getBytes();
-
-
-
+        return (prefix+allele+postfix).getBytes();
     }
 
     private void addBaseErrors(final byte[] readBases, final int phredScaledErrorRate) {

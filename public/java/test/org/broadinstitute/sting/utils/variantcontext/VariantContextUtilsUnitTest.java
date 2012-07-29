@@ -39,7 +39,7 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 public class VariantContextUtilsUnitTest extends BaseTest {
-    Allele Aref, T, C, delRef, Cref, ATC, ATCATC;
+    Allele Aref, T, C, Cref, ATC, ATCATC;
     private GenomeLocParser genomeLocParser;
 
     @BeforeSuite
@@ -56,7 +56,6 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         // alleles
         Aref = Allele.create("A", true);
         Cref = Allele.create("C", true);
-        delRef = Allele.create("-", true);
         T = Allele.create("T");
         C = Allele.create("C");
         ATC = Allele.create("ATC");
@@ -156,28 +155,23 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                 Arrays.asList(Aref, C),
                 Arrays.asList(Aref, T, C)); // in order of appearence
 
-        // The following is actually a pathological case - there's no way on a vcf to represent a null allele that's non-variant.
-        // The code converts this (correctly) to a single-base non-variant vc with whatever base was there as a reference.
-        new MergeAllelesTest(Arrays.asList(delRef),
-                Arrays.asList(Cref));
+        new MergeAllelesTest(Arrays.asList(Aref),
+                Arrays.asList(Aref, ATC),
+                Arrays.asList(Aref, ATC));
 
-        new MergeAllelesTest(Arrays.asList(delRef),
-                Arrays.asList(delRef, ATC),
-                Arrays.asList(delRef, ATC));
-
-        new MergeAllelesTest(Arrays.asList(delRef),
-                Arrays.asList(delRef, ATC, ATCATC),
-                Arrays.asList(delRef, ATC, ATCATC));
+        new MergeAllelesTest(Arrays.asList(Aref),
+                Arrays.asList(Aref, ATC, ATCATC),
+                Arrays.asList(Aref, ATC, ATCATC));
 
         // alleles in the order we see them
-        new MergeAllelesTest(Arrays.asList(delRef, ATCATC),
-                Arrays.asList(delRef, ATC, ATCATC),
-                Arrays.asList(delRef, ATCATC, ATC));
+        new MergeAllelesTest(Arrays.asList(Aref, ATCATC),
+                Arrays.asList(Aref, ATC, ATCATC),
+                Arrays.asList(Aref, ATCATC, ATC));
 
         // same
-        new MergeAllelesTest(Arrays.asList(delRef, ATC),
-                Arrays.asList(delRef, ATCATC),
-                Arrays.asList(delRef, ATC, ATCATC));
+        new MergeAllelesTest(Arrays.asList(Aref, ATC),
+                Arrays.asList(Aref, ATCATC),
+                Arrays.asList(Aref, ATC, ATCATC));
 
         return MergeAllelesTest.getTests(MergeAllelesTest.class);
     }
