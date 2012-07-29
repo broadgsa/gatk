@@ -136,11 +136,42 @@ public class RecalDatum {
         this.estimatedQReported = estimatedQReported;
     }
 
+    public static RecalDatum createRandomRecalDatum(int maxObservations, int maxErrors) {
+        final Random random = new Random();
+        final int nObservations = random.nextInt(maxObservations);
+        final int nErrors = random.nextInt(maxErrors);
+        final int qual = random.nextInt(QualityUtils.MAX_QUAL_SCORE);
+        return new RecalDatum(nObservations, nErrors, (byte)qual);
+    }
+
     public final double getEstimatedQReported() {
         return estimatedQReported;
     }
     public final byte getEstimatedQReportedAsByte() {
         return (byte)(int)(Math.round(getEstimatedQReported()));
+    }
+
+    //---------------------------------------------------------------------------------------------------------------
+    //
+    // Empirical quality score -- derived from the num mismatches and observations
+    //
+    //---------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Returns the error rate (in real space) of this interval, or 0 if there are no obserations
+     * @return the empirical error rate ~= N errors / N obs
+     */
+    @Ensures("result >= 0.0")
+    public double getEmpiricalErrorRate() {
+        if ( numObservations == 0 )
+            return 0.0;
+        else {
+            // cache the value so we don't call log over and over again
+            final double doubleMismatches = (double) (numMismatches + SMOOTHING_CONSTANT);
+            // smoothing is one error and one non-error observation, for example
+            final double doubleObservations = (double) (numObservations + SMOOTHING_CONSTANT + SMOOTHING_CONSTANT);
+            return doubleMismatches / doubleObservations;
+        }
     }
 
     public synchronized void setEmpiricalQuality(final double empiricalQuality) {
@@ -157,6 +188,16 @@ public class RecalDatum {
         return empiricalQuality;
     }
 
+    public final byte getEmpiricalQualityAsByte() {
+        return (byte)(Math.round(getEmpiricalQuality()));
+    }
+
+        //---------------------------------------------------------------------------------------------------------------
+    //
+    // increment methods
+    //
+    //---------------------------------------------------------------------------------------------------------------
+
     @Override
     public String toString() {
         return String.format("%d,%d,%d", getNumObservations(), getNumMismatches(), (byte) Math.floor(getEmpiricalQuality()));
@@ -166,29 +207,21 @@ public class RecalDatum {
         return String.format("%s,%d,%.2f", toString(), (byte) Math.floor(getEstimatedQReported()), getEmpiricalQuality() - getEstimatedQReported());
     }
 
-    public static RecalDatum createRandomRecalDatum(int maxObservations, int maxErrors) {
-        final Random random = new Random();
-        final int nObservations = random.nextInt(maxObservations);
-        final int nErrors = random.nextInt(maxErrors);
-        final int qual = random.nextInt(QualityUtils.MAX_QUAL_SCORE);
-        return new RecalDatum(nObservations, nErrors, (byte)qual);
-    }
-
-    /**
-     * We don't compare the estimated quality reported because it may be different when read from
-     * report tables.
-     *
-     * @param o the other recal datum
-     * @return true if the two recal datums have the same number of observations, errors and empirical quality.
-     */
-    @Override
-    public boolean equals(Object o) {
-        if (!(o instanceof RecalDatum))
-            return false;
-        RecalDatum other = (RecalDatum) o;
-        return super.equals(o) &&
-               MathUtils.compareDoubles(this.empiricalQuality, other.empiricalQuality, 0.001) == 0;
-    }
+//    /**
+//     * We don't compare the estimated quality reported because it may be different when read from
+//     * report tables.
+//     *
+//     * @param o the other recal datum
+//     * @return true if the two recal datums have the same number of observations, errors and empirical quality.
+//     */
+//    @Override
+//    public boolean equals(Object o) {
+//        if (!(o instanceof RecalDatum))
+//            return false;
+//        RecalDatum other = (RecalDatum) o;
+//        return super.equals(o) &&
+//               MathUtils.compareDoubles(this.empiricalQuality, other.empiricalQuality, 0.001) == 0;
+//    }
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -255,11 +288,7 @@ public class RecalDatum {
     @Requires("empiricalQuality == UNINITIALIZED")
     @Ensures("empiricalQuality != UNINITIALIZED")
     private synchronized final void calcEmpiricalQuality() {
-        // cache the value so we don't call log over and over again
-        final double doubleMismatches = (double) (numMismatches + SMOOTHING_CONSTANT);
-        // smoothing is one error and one non-error observation, for example
-        final double doubleObservations = (double) (numObservations + SMOOTHING_CONSTANT + SMOOTHING_CONSTANT);
-        final double empiricalQual = -10 * Math.log10(doubleMismatches / doubleObservations);
+        final double empiricalQual = -10 * Math.log10(getEmpiricalErrorRate());
         empiricalQuality = Math.min(empiricalQual, (double) QualityUtils.MAX_RECALIBRATED_Q_SCORE);
     }
 
