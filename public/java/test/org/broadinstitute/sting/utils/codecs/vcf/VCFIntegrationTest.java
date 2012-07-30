@@ -40,6 +40,17 @@ public class VCFIntegrationTest extends WalkerTest {
     }
 
     @Test(enabled = true)
+    public void testReadingLowerCaseBases() {
+        String testVCF = privateTestDir + "lowercaseBases.vcf";
+
+        String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
+
+        String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("e0e308a25e56bde1c664139bb44ed19d"));
+        executeTest("Test reading VCF with lower-case bases", spec1);
+    }
+
+    @Test(enabled = true)
     public void testReadingAndWriting1000GSVs() {
         String testVCF = privateTestDir + "1000G_SVs.chr1.vcf";
 
