@@ -813,7 +813,8 @@ public class GenomeAnalysisEngine {
                 getWalkerBAQQualityMode(),
                 refReader,
                 getBaseRecalibration(),
-                argCollection.defaultBaseQualities);
+                argCollection.defaultBaseQualities,
+                argCollection.removeProgramRecords);
     }
 
     /**
