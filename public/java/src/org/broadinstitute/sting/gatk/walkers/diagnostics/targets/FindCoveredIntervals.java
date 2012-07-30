@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
 import org.broadinstitute.sting.gatk.walkers.PartitionBy;
 import org.broadinstitute.sting.gatk.walkers.PartitionType;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.activeregion.ActivityProfileResult;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 
 import java.io.PrintStream;
@@ -47,13 +48,13 @@ public class FindCoveredIntervals extends ActiveRegionWalker<GenomeLoc, Long> {
 
     @Override
     // Look to see if the region has sufficient coverage
-    public double isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context) {
+    public ActivityProfileResult isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context) {
 
         int depth = ThresHolder.DEFAULTS.getFilteredCoverage(context.getBasePileup());
 
         // note the linear probability scale
         int coverageThreshold = 20;
-        return Math.min((double) depth / coverageThreshold, 1);
+        return new ActivityProfileResult(Math.min((double) depth / coverageThreshold, 1));
 
     }
 
