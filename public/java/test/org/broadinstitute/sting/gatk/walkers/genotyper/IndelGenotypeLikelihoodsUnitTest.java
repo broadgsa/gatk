@@ -70,7 +70,7 @@ public class IndelGenotypeLikelihoodsUnitTest extends BaseTest {
         List<Allele> alleles = getConsensusAlleles(eventLength,true,10,0.1, altBases);
         
         Assert.assertEquals(alleles.size(),2);
-        Assert.assertEquals(alleles.get(1).getBaseString(), altBases.substring(0,eventLength));
+        Assert.assertEquals(alleles.get(1).getBaseString().substring(1), altBases.substring(0,eventLength));
 
 
 
@@ -79,7 +79,7 @@ public class IndelGenotypeLikelihoodsUnitTest extends BaseTest {
         eventLength = 3;
         alleles = getConsensusAlleles(eventLength,false,10,0.1, altBases);
         Assert.assertEquals(alleles.size(),2);
-        Assert.assertEquals(alleles.get(0).getBaseString(), refBases.substring(pileupProvider.offset,pileupProvider.offset+eventLength));
+        Assert.assertEquals(alleles.get(0).getBaseString().substring(1), refBases.substring(pileupProvider.offset,pileupProvider.offset+eventLength));
 
         // same with min Reads = 11
         alleles = getConsensusAlleles(eventLength,false,11,0.1, altBases);
@@ -97,7 +97,7 @@ public class IndelGenotypeLikelihoodsUnitTest extends BaseTest {
         alleles = getConsensusAlleles(eventLength,true,10,0.1, altBases);
 
         Assert.assertEquals(alleles.size(),2);
-        Assert.assertEquals(alleles.get(1).getBaseString(), altBases.substring(0,eventLength));
+        Assert.assertEquals(alleles.get(1).getBaseString().substring(1), altBases.substring(0,eventLength));
 
         altBases = "CCTCNTGAGA";
         eventLength = 5;

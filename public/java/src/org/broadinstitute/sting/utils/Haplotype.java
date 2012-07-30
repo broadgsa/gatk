@@ -176,7 +176,7 @@ public class Haplotype {
                     newHaplotype[haplotypeInsertLocation+iii] = altAllele.getBases()[iii];
                 }
             } else if( refAllele.length() < altAllele.length() ) { // insertion                
-                final int altAlleleLength = altAllele.length();
+                final int altAlleleLength = altAllele.length() - 1;
                 newHaplotype = new byte[bases.length + altAlleleLength];
                 for( int iii = 0; iii < bases.length; iii++ ) {
                     newHaplotype[iii] = bases[iii];
@@ -185,15 +185,16 @@ public class Haplotype {
                     newHaplotype[iii] = newHaplotype[iii-altAlleleLength];
                 }
                 for( int iii = 0; iii < altAlleleLength; iii++ ) {
-                    newHaplotype[haplotypeInsertLocation+iii] = altAllele.getBases()[iii];
+                    newHaplotype[haplotypeInsertLocation+iii] = altAllele.getBases()[iii+1];
                 }
             } else { // deletion
                 final int shift = refAllele.length() - altAllele.length();
+                final int altAlleleLength = altAllele.length() - 1;
                 newHaplotype = new byte[bases.length - shift];
-                for( int iii = 0; iii < haplotypeInsertLocation + altAllele.length(); iii++ ) {
+                for( int iii = 0; iii < haplotypeInsertLocation + altAlleleLength; iii++ ) {
                     newHaplotype[iii] = bases[iii];
                 }
-                for( int iii = haplotypeInsertLocation + altAllele.length(); iii < newHaplotype.length; iii++ ) {
+                for( int iii = haplotypeInsertLocation + altAlleleLength; iii < newHaplotype.length; iii++ ) {
                     newHaplotype[iii] = bases[iii+shift];
                 }
             }
@@ -204,8 +205,11 @@ public class Haplotype {
         return new Haplotype(newHaplotype);
     }
 
-    public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(List<Allele> alleleList, int startPos, ReferenceContext ref,
-                                                               final int haplotypeSize, final int numPrefBases) {
+    public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(final List<Allele> alleleList,
+                                                                               final int startPos,
+                                                                               final ReferenceContext ref,
+                                                                               final int haplotypeSize,
+                                                                               final int numPrefBases) {
 
         LinkedHashMap<Allele,Haplotype> haplotypeMap = new LinkedHashMap<Allele,Haplotype>();
 
@@ -216,7 +220,6 @@ public class Haplotype {
                 refAllele = a;
                 break;
             }
-
         }
 
         if (refAllele == null)
@@ -224,19 +227,12 @@ public class Haplotype {
 
         byte[] refBases = ref.getBases();
 
+        final int startIdxInReference = 1 + startPos - numPrefBases - ref.getWindow().getStart();
+        final String basesBeforeVariant = new String(Arrays.copyOfRange(refBases, startIdxInReference, startIdxInReference + numPrefBases));
 
-        int startIdxInReference = (int)(1+startPos-numPrefBases-ref.getWindow().getStart());
-        //int numPrefBases = (int)(vc.getStart()-ref.getWindow().getStart()+1); // indel vc starts one before event
-
-
-        byte[] basesBeforeVariant = Arrays.copyOfRange(refBases,startIdxInReference,startIdxInReference+numPrefBases);
-        int startAfter = startIdxInReference+numPrefBases+ refAllele.getBases().length;
         // protect against long events that overrun available reference context
-        if (startAfter > refBases.length)
-            startAfter = refBases.length;
-        byte[] basesAfterVariant = Arrays.copyOfRange(refBases,
-                startAfter, refBases.length);
-
+        final int startAfter = Math.min(startIdxInReference + numPrefBases + refAllele.getBases().length - 1, refBases.length);
+        final String basesAfterVariant = new String(Arrays.copyOfRange(refBases, startAfter, refBases.length));
 
         // Create location for all haplotypes
         final int startLoc = ref.getWindow().getStart() + startIdxInReference;
@@ -244,16 +240,14 @@ public class Haplotype {
 
         final GenomeLoc locus = ref.getGenomeLocParser().createGenomeLoc(ref.getLocus().getContig(),startLoc,stopLoc);
 
-
         for (final Allele a : alleleList) {
 
-            byte[] alleleBases = a.getBases();
+            final byte[] alleleBases = a.getBases();
             // use string concatenation
-            String haplotypeString = new String(basesBeforeVariant) + new String(alleleBases) + new String(basesAfterVariant);
+            String haplotypeString = basesBeforeVariant + new String(Arrays.copyOfRange(alleleBases, 1, alleleBases.length)) + basesAfterVariant;
             haplotypeString = haplotypeString.substring(0,haplotypeSize);
 
-           haplotypeMap.put(a,new Haplotype(haplotypeString.getBytes(), locus));
-
+            haplotypeMap.put(a,new Haplotype(haplotypeString.getBytes(), locus));
         }
 
         return haplotypeMap;

@@ -139,8 +139,8 @@ public class VCFWriterUnitTest extends BaseTest {
         Map<String, Object> attributes = new HashMap<String,Object>();
         GenotypesContext genotypes = GenotypesContext.create(header.getGenotypeSamples().size());
 
-        alleles.add(Allele.create("-",true));
-        alleles.add(Allele.create("CC",false));
+        alleles.add(Allele.create("A",true));
+        alleles.add(Allele.create("ACC",false));
 
         attributes.put("DP","50");
         for (String name : header.getGenotypeSamples()) {
@@ -148,7 +148,7 @@ public class VCFWriterUnitTest extends BaseTest {
             genotypes.add(gt);
         }
         return new VariantContextBuilder("RANDOM", loc.getContig(), loc.getStart(), loc.getStop(), alleles)
-                .genotypes(genotypes).attributes(attributes).referenceBaseForIndel((byte)'A').make();
+                .genotypes(genotypes).attributes(attributes).make();
     }
 
 

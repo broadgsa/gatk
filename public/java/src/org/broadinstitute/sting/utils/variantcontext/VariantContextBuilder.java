@@ -25,9 +25,6 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 import com.google.java.contract.*;
-import org.broad.tribble.Feature;
-import org.broad.tribble.TribbleException;
-import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -74,7 +71,6 @@ public class VariantContextBuilder {
     private Set<String> filters = null;
     private Map<String, Object> attributes = null;
     private boolean attributesCanBeModified = false;
-    private Byte referenceBaseForIndel = null;
 
     /** enum of what must be validated */
     final private EnumSet<VariantContext.Validation> toValidate = EnumSet.noneOf(VariantContext.Validation.class);
@@ -117,7 +113,6 @@ public class VariantContextBuilder {
         this.genotypes = parent.genotypes;
         this.ID = parent.getID();
         this.log10PError = parent.getLog10PError();
-        this.referenceBaseForIndel = parent.getReferenceBaseForIndel();
         this.source = parent.getSource();
         this.start = parent.getStart();
         this.stop = parent.getEnd();
@@ -132,7 +127,6 @@ public class VariantContextBuilder {
         this.genotypes = parent.genotypes;
         this.ID = parent.ID;
         this.log10PError = parent.log10PError;
-        this.referenceBaseForIndel = parent.referenceBaseForIndel;
         this.source = parent.source;
         this.start = parent.start;
         this.stop = parent.stop;
@@ -363,21 +357,6 @@ public class VariantContextBuilder {
     }
 
     /**
-     * Tells us that the resulting VariantContext should use this byte for the reference base
-     * Null means no refBase is available
-     * @param referenceBaseForIndel
-     */
-    public VariantContextBuilder referenceBaseForIndel(final Byte referenceBaseForIndel) {
-        this.referenceBaseForIndel = referenceBaseForIndel;
-        toValidate.add(VariantContext.Validation.REF_PADDING);
-        return this;
-    }
-
-    public VariantContextBuilder referenceBaseForIndel(final String referenceBaseForIndel) {
-        return referenceBaseForIndel(referenceBaseForIndel.getBytes()[0]);
-    }
-
-    /**
      * Tells us that the resulting VariantContext should have source field set to source
      * @param source
      * @return
@@ -401,7 +380,6 @@ public class VariantContextBuilder {
         this.start = start;
         this.stop = stop;
         toValidate.add(VariantContext.Validation.ALLELES);
-        toValidate.add(VariantContext.Validation.REF_PADDING);
         return this;
     }
 
@@ -416,7 +394,6 @@ public class VariantContextBuilder {
         this.start = loc.getStart();
         this.stop = loc.getStop();
         toValidate.add(VariantContext.Validation.ALLELES);
-        toValidate.add(VariantContext.Validation.REF_PADDING);
         return this;
     }
 
@@ -440,7 +417,6 @@ public class VariantContextBuilder {
     public VariantContextBuilder start(final long start) {
         this.start = start;
         toValidate.add(VariantContext.Validation.ALLELES);
-        toValidate.add(VariantContext.Validation.REF_PADDING);
         return this;
     }
 
@@ -517,6 +493,6 @@ public class VariantContextBuilder {
     public VariantContext make() {
         return new VariantContext(source, ID, contig, start, stop, alleles,
                 genotypes, log10PError, filters, attributes,
-                referenceBaseForIndel, fullyDecoded, toValidate);
+                fullyDecoded, toValidate);
     }
 }

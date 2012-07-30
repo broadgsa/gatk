@@ -64,9 +64,9 @@ public class VariantContextUtils {
      * Ensures that VC contains all of the samples in allSamples by adding missing samples to
      * the resulting VC with default diploid ./. genotypes
      *
-     * @param vc
-     * @param allSamples
-     * @return
+     * @param vc            the VariantContext
+     * @param allSamples    all of the samples needed
+     * @return a new VariantContext with missing samples added
      */
     public static VariantContext addMissingSamples(final VariantContext vc, final Set<String> allSamples) {
         // TODO -- what's the fastest way to do this calculation?
@@ -376,9 +376,9 @@ public class VariantContextUtils {
 
     /**
      * @deprecated use variant context builder version instead
-     * @param vc
-     * @param keysToPreserve
-     * @return
+     * @param vc                  the variant context
+     * @param keysToPreserve      the keys to preserve
+     * @return a pruned version of the original variant context
      */
     @Deprecated
     public static VariantContext pruneVariantContext(final VariantContext vc, Collection<String> keysToPreserve ) {
@@ -486,14 +486,13 @@ public class VariantContextUtils {
         if ( genotypeMergeOptions == GenotypeMergeType.REQUIRE_UNIQUE )
             verifyUniqueSampleNames(unsortedVCs);
 
-        final List<VariantContext> prepaddedVCs = sortVariantContextsByPriority(unsortedVCs, priorityListOfVCs, genotypeMergeOptions);
+        final List<VariantContext> preFilteredVCs = sortVariantContextsByPriority(unsortedVCs, priorityListOfVCs, genotypeMergeOptions);
         // Make sure all variant contexts are padded with reference base in case of indels if necessary
         final List<VariantContext> VCs = new ArrayList<VariantContext>();
 
-        for (final VariantContext vc : prepaddedVCs) {
-            // also a reasonable place to remove filtered calls, if needed
+        for (final VariantContext vc : preFilteredVCs) {
             if ( ! filteredAreUncalled || vc.isNotFiltered() )
-                VCs.add(VCFAlleleClipper.createVariantContextWithPaddedAlleles(vc));
+                VCs.add(vc);
         }
         if ( VCs.size() == 0 ) // everything is filtered out and we're filteredAreUncalled
             return null;
@@ -546,9 +545,6 @@ public class VariantContextUtils {
             log10PError = Math.min(log10PError, vc.isVariant() ? vc.getLog10PError() : 1);
 
             filters.addAll(vc.getFilters());
-
-            if ( referenceBaseForIndel == null )
-                referenceBaseForIndel = vc.getReferenceBaseForIndel();
 
             //
             // add attributes
@@ -661,10 +657,9 @@ public class VariantContextUtils {
         builder.genotypes(genotypes);
         builder.log10PError(log10PError);
         builder.filters(filters).attributes(mergeInfoWithMaxAC ? attributesWithMaxAC : attributes);
-        builder.referenceBaseForIndel(referenceBaseForIndel);
 
         // Trim the padded bases of all alleles if necessary
-        final VariantContext merged = createVariantContextWithTrimmedAlleles(builder.make());
+        final VariantContext merged = builder.make();
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
     }
@@ -698,73 +693,6 @@ public class VariantContextUtils {
         }
 
         return true;
-    }
-
-    private static VariantContext createVariantContextWithTrimmedAlleles(VariantContext inputVC) {
-        // see if we need to trim common reference base from all alleles
-        boolean trimVC;
-
-        // We need to trim common reference base from all alleles in all genotypes if a ref base is common to all alleles
-        Allele refAllele = inputVC.getReference();
-        if (!inputVC.isVariant())
-            trimVC = false;
-        else if (refAllele.isNull())
-            trimVC = false;
-        else {
-            trimVC = VCFAlleleClipper.shouldClipFirstBaseP(inputVC.getAlternateAlleles(), (byte) inputVC.getReference().getDisplayString().charAt(0));
-         }
-
-        // nothing to do if we don't need to trim bases
-        if (trimVC) {
-            List<Allele> alleles = new ArrayList<Allele>();
-            GenotypesContext genotypes = GenotypesContext.create();
-
-            Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
-
-            for (final Allele a : inputVC.getAlleles()) {
-                if (a.isSymbolic()) {
-                    alleles.add(a);
-                    originalToTrimmedAlleleMap.put(a, a);
-                } else {
-                    // get bases for current allele and create a new one with trimmed bases
-                    byte[] newBases = Arrays.copyOfRange(a.getBases(), 1, a.length());
-                    Allele trimmedAllele = Allele.create(newBases, a.isReference());
-                    alleles.add(trimmedAllele);
-                    originalToTrimmedAlleleMap.put(a, trimmedAllele);
-                }
-            }
-
-            // detect case where we're trimming bases but resulting vc doesn't have any null allele. In that case, we keep original representation
-            // example: mixed records such as {TA*,TGA,TG}
-            boolean hasNullAlleles = false;
-
-            for (final Allele a: originalToTrimmedAlleleMap.values()) {
-                if (a.isNull())
-                    hasNullAlleles = true;
-             }
-
-             if (!hasNullAlleles)
-               return inputVC;
-           // now we can recreate new genotypes with trimmed alleles
-            for ( final Genotype genotype : inputVC.getGenotypes() ) {
-
-                List<Allele> originalAlleles = genotype.getAlleles();
-                List<Allele> trimmedAlleles = new ArrayList<Allele>();
-                for ( final Allele a : originalAlleles ) {
-                    if ( a.isCalled() )
-                        trimmedAlleles.add(originalToTrimmedAlleleMap.get(a));
-                    else
-                        trimmedAlleles.add(Allele.NO_CALL);
-                }
-                genotypes.add(new GenotypeBuilder(genotype).alleles(trimmedAlleles).make());
-
-            }
-
-            final VariantContextBuilder builder = new VariantContextBuilder(inputVC);
-            return builder.alleles(alleles).genotypes(genotypes).referenceBaseForIndel(new Byte(inputVC.getReference().getBases()[0])).make();
-        }
-
-        return inputVC;
     }
 
     public static GenotypesContext stripPLs(GenotypesContext genotypes) {
@@ -819,7 +747,7 @@ public class VariantContextUtils {
                 if ( !mappedVCs.containsKey(vc.getType()) )
                     mappedVCs.put(vc.getType(), new ArrayList<VariantContext>());
                 mappedVCs.get(vc.getType()).add(vc);
-                }
+            }
         }
 
         return mappedVCs;
@@ -881,10 +809,10 @@ public class VariantContextUtils {
             //
             // refAllele: ACGTGA
             // myRef:     ACGT
-            // myAlt:     -
+            // myAlt:     A
             //
             // We need to remap all of the alleles in vc to include the extra GA so that
-            // myRef => refAllele and myAlt => GA
+            // myRef => refAllele and myAlt => AGA
             //
 
             Allele myRef = vc.getReference();
@@ -979,7 +907,7 @@ public class VariantContextUtils {
         HashMap<Allele, Allele> alleleMap = new HashMap<Allele, Allele>(vc.getAlleles().size());
         for ( Allele originalAllele : vc.getAlleles() ) {
             Allele newAllele;
-            if ( originalAllele.isNoCall() || originalAllele.isNull() )
+            if ( originalAllele.isNoCall() )
                 newAllele = originalAllele;
             else
                 newAllele = Allele.create(BaseUtils.simpleReverseComplement(originalAllele.getBases()), originalAllele.isReference());
@@ -1235,13 +1163,14 @@ public class VariantContextUtils {
         if ( ! vc.isIndel() ) // only indels are tandem repeats
             return null;
 
-        final Allele ref = vc.getReference();
+        final Allele refAllele = vc.getReference();
+        final byte[] refAlleleBases = Arrays.copyOfRange(refAllele.getBases(), 1, refAllele.length());
 
         byte[] repeatUnit = null;
         final ArrayList<Integer> lengths = new ArrayList<Integer>();
 
         for ( final Allele allele : vc.getAlternateAlleles() ) {
-            Pair<int[],byte[]> result = getNumTandemRepeatUnits(ref.getBases(), allele.getBases(), refBasesStartingAtVCWithoutPad.getBytes());
+            Pair<int[],byte[]> result = getNumTandemRepeatUnits(refAlleleBases, Arrays.copyOfRange(allele.getBases(), 1, allele.length()), refBasesStartingAtVCWithoutPad.getBytes());
 
             final int[] repetitionCount = result.first;
             // repetition count = 0 means allele is not a tandem expansion of context
@@ -1256,7 +1185,7 @@ public class VariantContextUtils {
             repeatUnit = result.second;
             if (VERBOSE) {
                 System.out.println("RefContext:"+refBasesStartingAtVCWithoutPad);
-                System.out.println("Ref:"+ref.toString()+" Count:" + String.valueOf(repetitionCount[0]));
+                System.out.println("Ref:"+refAllele.toString()+" Count:" + String.valueOf(repetitionCount[0]));
                 System.out.println("Allele:"+allele.toString()+" Count:" + String.valueOf(repetitionCount[1]));
                 System.out.println("RU:"+new String(repeatUnit));
             }
@@ -1404,5 +1333,114 @@ public class VariantContextUtils {
         } else {
             return start + Math.max(ref.length() - 1, 0);
         }
+    }
+
+    public static boolean requiresPaddingBase(final List<String> alleles) {
+
+        // see whether one of the alleles would be null if trimmed through
+
+        for ( final String allele : alleles ) {
+            if ( allele.isEmpty() )
+                return true;
+        }
+
+        int clipping = 0;
+        Character currentBase = null;
+
+        while ( true ) {
+            for ( final String allele : alleles ) {
+                if ( allele.length() - clipping == 0 )
+                    return true;
+
+                char myBase = allele.charAt(clipping);
+                if ( currentBase == null )
+                    currentBase = myBase;
+                else if ( currentBase != myBase )
+                    return false;
+            }
+
+            clipping++;
+            currentBase = null;
+        }
+    }
+
+    public static VariantContext reverseTrimAlleles( final VariantContext inputVC ) {
+
+        // TODO - this function doesn't work with mixed records or records that started as mixed and then became non-mixed
+
+        // see whether we need to trim common reference base from all alleles
+
+        final int trimExtent = computeReverseClipping(inputVC.getAlleles(), inputVC.getReference().getDisplayString().getBytes(), 0, false);
+        if ( trimExtent <= 0 || inputVC.getAlleles().size() <= 1 )
+            return inputVC;
+
+        final List<Allele> alleles = new ArrayList<Allele>();
+        final GenotypesContext genotypes = GenotypesContext.create();
+        final Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
+
+        for (final Allele a : inputVC.getAlleles()) {
+            if (a.isSymbolic()) {
+                alleles.add(a);
+                originalToTrimmedAlleleMap.put(a, a);
+            } else {
+                // get bases for current allele and create a new one with trimmed bases
+                final byte[] newBases = Arrays.copyOfRange(a.getBases(), 0, a.length()-trimExtent);
+                final Allele trimmedAllele = Allele.create(newBases, a.isReference());
+                alleles.add(trimmedAllele);
+                originalToTrimmedAlleleMap.put(a, trimmedAllele);
+            }
+        }
+
+        // now we can recreate new genotypes with trimmed alleles
+        for ( final Genotype genotype : inputVC.getGenotypes() ) {
+            final List<Allele> originalAlleles = genotype.getAlleles();
+            final List<Allele> trimmedAlleles = new ArrayList<Allele>();
+            for ( final Allele a : originalAlleles ) {
+                if ( a.isCalled() )
+                    trimmedAlleles.add(originalToTrimmedAlleleMap.get(a));
+                else
+                    trimmedAlleles.add(Allele.NO_CALL);
+            }
+            genotypes.add(new GenotypeBuilder(genotype).alleles(trimmedAlleles).make());
+        }
+
+        return new VariantContextBuilder(inputVC).stop(inputVC.getStart() + alleles.get(0).length() - 1).alleles(alleles).genotypes(genotypes).make();
+    }
+
+    public static int computeReverseClipping(final List<Allele> unclippedAlleles,
+                                             final byte[] ref,
+                                             final int forwardClipping,
+                                             final boolean allowFullClip) {
+        int clipping = 0;
+        boolean stillClipping = true;
+
+        while ( stillClipping ) {
+            for ( final Allele a : unclippedAlleles ) {
+                if ( a.isSymbolic() )
+                    continue;
+
+                // we need to ensure that we don't reverse clip out all of the bases from an allele because we then will have the wrong
+                // position set for the VariantContext (although it's okay to forward clip it all out, because the position will be fine).
+                if ( a.length() - clipping == 0 )
+                    return clipping - (allowFullClip ? 0 : 1);
+
+                if ( a.length() - clipping <= forwardClipping || a.length() - forwardClipping == 0 ) {
+                    stillClipping = false;
+                }
+                else if ( ref.length == clipping ) {
+                    if ( allowFullClip )
+                        stillClipping = false;
+                    else
+                        return -1;
+                }
+                else if ( a.getBases()[a.length()-clipping-1] != ref[ref.length-clipping-1] ) {
+                    stillClipping = false;
+                }
+            }
+            if ( stillClipping )
+                clipping++;
+        }
+
+        return clipping;
     }
 }

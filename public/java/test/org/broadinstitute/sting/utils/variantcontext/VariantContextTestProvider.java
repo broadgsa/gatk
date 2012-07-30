@@ -225,10 +225,10 @@ public class VariantContextTestProvider {
         add(builder());
         add(builder().alleles("A"));
         add(builder().alleles("A", "C", "T"));
-        add(builder().alleles("-", "C").referenceBaseForIndel("A"));
-        add(builder().alleles("-", "CAGT").referenceBaseForIndel("A"));
-        add(builder().loc("1", 10, 11).alleles("C", "-").referenceBaseForIndel("A"));
-        add(builder().loc("1", 10, 13).alleles("CGT", "-").referenceBaseForIndel("A"));
+        add(builder().alleles("A", "AC"));
+        add(builder().alleles("A", "ACAGT"));
+        add(builder().loc("1", 10, 11).alleles("AC", "A"));
+        add(builder().loc("1", 10, 13).alleles("ACGT", "A"));
 
         // make sure filters work
         add(builder().unfiltered());
@@ -302,8 +302,8 @@ public class VariantContextTestProvider {
 
         sites.add(builder().alleles("A").make());
         sites.add(builder().alleles("A", "C", "T").make());
-        sites.add(builder().alleles("-", "C").referenceBaseForIndel("A").make());
-        sites.add(builder().alleles("-", "CAGT").referenceBaseForIndel("A").make());
+        sites.add(builder().alleles("A", "AC").make());
+        sites.add(builder().alleles("A", "ACAGT").make());
 
         for ( VariantContext site : sites ) {
             addGenotypes(site);

@@ -239,7 +239,7 @@ public class ProduceBeagleInput extends RodWalker<Integer, Integer> {
         if ( markers != null ) markers.append(marker).append("\t").append(Integer.toString(markerCounter++)).append("\t");
         for ( Allele allele : preferredVC.getAlleles() ) {
             String bglPrintString;
-            if (allele.isNoCall() || allele.isNull())
+            if (allele.isNoCall())
                 bglPrintString = "-";
             else
                 bglPrintString = allele.getBaseString();  // get rid of * in case of reference allele

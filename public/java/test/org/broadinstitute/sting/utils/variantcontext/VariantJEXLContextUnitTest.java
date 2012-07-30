@@ -56,7 +56,7 @@ public class VariantJEXLContextUnitTest extends BaseTest {
 
     Allele A, Aref, T, Tref;
 
-    Allele del, delRef, ATC, ATCref;
+    Allele ATC, ATCref;
     // A [ref] / T at 10
 
     GenomeLoc snpLoc;
@@ -84,9 +84,6 @@ public class VariantJEXLContextUnitTest extends BaseTest {
 
     @BeforeMethod
     public void before() {
-        del = Allele.create("-");
-        delRef = Allele.create("-", true);
-
         A = Allele.create("A");
         Aref = Allele.create("A", true);
         T = Allele.create("T");
