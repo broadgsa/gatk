@@ -275,13 +275,16 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
     public void onTraversalDone(Long result) {
         logger.info("Calculating quantized quality scores...");
         quantizeQualityScores();
+
+        logger.info("Writing recalibration report...");
+        generateReport();
+        logger.info("...done!");
+
         if (!RAC.NO_PLOTS) {
             logger.info("Generating recalibration plots...");
             generatePlots();
         }
-        logger.info("Writing recalibration report...");
-        generateReport();
-        logger.info("...done!");
+
         logger.info("Processed: " + result + " sites");
     }
 
