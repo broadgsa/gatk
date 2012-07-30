@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.diagnostics.targets;
 
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -33,9 +34,11 @@ import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
 import org.broadinstitute.sting.gatk.walkers.PartitionBy;
 import org.broadinstitute.sting.gatk.walkers.PartitionType;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 
 import java.io.PrintStream;
 
+@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @PartitionBy(PartitionType.CONTIG)
 @ActiveRegionExtension(extension = 0, maxRegion = 50000)
 public class FindCoveredIntervals extends ActiveRegionWalker<GenomeLoc, Long> {
