@@ -655,4 +655,52 @@ public class VariantContextUtilsUnitTest extends BaseTest {
          // test alleles are equal
         Assert.assertEquals(VariantContextUtils.isTandemRepeat(cfg.vc, cfg.ref.getBytes()), cfg.isTrueRepeat);
     }
+
+    // --------------------------------------------------------------------------------
+    //
+    // basic allele clipping test
+    //
+    // --------------------------------------------------------------------------------
+
+    private class ReverseClippingPositionTestProvider extends TestDataProvider {
+        final String ref;
+        final List<Allele> alleles = new ArrayList<Allele>();
+        final int expectedClip;
+
+        private ReverseClippingPositionTestProvider(final int expectedClip, final String ref, final String... alleles) {
+            super(ReverseClippingPositionTestProvider.class);
+            this.ref = ref;
+            for ( final String allele : alleles )
+                this.alleles.add(Allele.create(allele));
+            this.expectedClip = expectedClip;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("ref=%s allele=%s reverse clip %d", ref, alleles, expectedClip);
+        }
+    }
+
+    @DataProvider(name = "ReverseClippingPositionTestProvider")
+    public Object[][] makeReverseClippingPositionTestProvider() {
+        // pair clipping
+        new ReverseClippingPositionTestProvider(0, "ATT", "CCG");
+        new ReverseClippingPositionTestProvider(1, "ATT", "CCT");
+        new ReverseClippingPositionTestProvider(2, "ATT", "CTT");
+        new ReverseClippingPositionTestProvider(2, "ATT", "ATT");  // cannot completely clip allele
+
+        // triplets
+        new ReverseClippingPositionTestProvider(0, "ATT", "CTT", "CGG");
+        new ReverseClippingPositionTestProvider(1, "ATT", "CTT", "CGT"); // the T can go
+        new ReverseClippingPositionTestProvider(2, "ATT", "CTT", "CTT"); // both Ts can go
+
+        return ReverseClippingPositionTestProvider.getTests(ReverseClippingPositionTestProvider.class);
+    }
+
+
+    @Test(dataProvider = "ReverseClippingPositionTestProvider")
+    public void testReverseClippingPositionTestProvider(ReverseClippingPositionTestProvider cfg) {
+        int result = VariantContextUtils.computeReverseClipping(cfg.alleles, cfg.ref.getBytes(), 0, false);
+        Assert.assertEquals(result, cfg.expectedClip);
+    }
 }
