@@ -3,10 +3,12 @@ package org.broadinstitute.sting.gatk.examples;
 
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -17,8 +19,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Computes the coverage per sample.
+ * Computes the coverage per sample for every position (use with -L argument!).
  */
+@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 public class CoverageBySample extends LocusWalker<Integer, Integer> {
     @Output
     protected PrintStream out;    

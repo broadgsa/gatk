@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.diagnostics.targets;
 import net.sf.picard.util.PeekableIterator;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -36,6 +37,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 
@@ -80,6 +82,7 @@ import java.util.*;
  * @author Mauricio Carneiro, Roger Zurawicki
  * @since 5/8/12
  */
+@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @By(value = DataSource.READS)
 @PartitionBy(PartitionType.INTERVAL)
 public class DiagnoseTargets extends LocusWalker<Long, Long> {
