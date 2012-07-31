@@ -25,6 +25,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -262,20 +263,33 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
                 sequenceInvalid = true;
                 invReason.add("SITE_IS_FILTERED");
             }
+
+            String refString = validate.getReference().getDisplayString();
+            String altString = validate.getAlternateAllele(0).getDisplayString();
+
             if ( validate.isIndel() ) {
                 sequence.append(Character.toUpperCase((char)ref.getBase()));
                 rawSequence.append(Character.toUpperCase((char)ref.getBase()));
+                final byte[] refAllele = validate.getReference().getBases();
+                refString = new String(Arrays.copyOfRange(refAllele, 1, refAllele.length));
+                if ( refString.isEmpty() )
+                    refString = "-";
+                final byte[] altAllele = validate.getAlternateAllele(0).getBases();
+                altString = new String(Arrays.copyOfRange(altAllele, 1, altAllele.length));
+                if ( altString.isEmpty() )
+                    altString = "-";
             }
+
             sequence.append('[');
-            sequence.append(validate.getAlternateAllele(0).toString());
+            sequence.append(altString);
             sequence.append('/');
-            sequence.append(validate.getReference().toString());
+            sequence.append(refString);
             sequence.append(']');
             // do this to the raw sequence to -- the indeces will line up that way
             rawSequence.append('[');
-            rawSequence.append(validate.getAlternateAllele(0).getBaseString());
+            rawSequence.append(altString);
             rawSequence.append('/');
-            rawSequence.append(validate.getReference().getBaseString());
+            rawSequence.append(refString);
             rawSequence.append(']');
             allelePos = ref.getLocus();
             if ( indelCounter > 0 ) {

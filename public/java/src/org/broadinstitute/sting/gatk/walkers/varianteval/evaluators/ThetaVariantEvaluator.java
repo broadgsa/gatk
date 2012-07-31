@@ -56,7 +56,7 @@ public class ThetaVariantEvaluator extends VariantEvaluator {
                 //increment stats for pairwise mismatches
 
                 for (Allele allele : genotype.getAlleles()) {
-                    if (allele.isNonNull() && allele.isCalled()) {
+                    if (allele.isCalled()) {
                         String alleleString = allele.toString();
                         alleleCounts.putIfAbsent(alleleString, 0);
                         alleleCounts.put(alleleString, alleleCounts.get(alleleString) + 1);

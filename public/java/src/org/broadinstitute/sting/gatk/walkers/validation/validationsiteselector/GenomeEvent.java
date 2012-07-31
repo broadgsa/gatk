@@ -26,7 +26,6 @@ package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -40,14 +39,11 @@ public class GenomeEvent implements Comparable {
     final protected GenomeLoc loc;
     /** A set of the alleles segregating in this context */
     final protected List<Allele> alleles;
-    final protected Byte refBase;
 //    final protected HashMap<String, Object> attributes;
 
-    public GenomeEvent(GenomeLocParser parser, final String contig, final int start, final int stop, final List<Allele> alleles, HashMap<String, Object> attributes,
-                       byte base) {
+    public GenomeEvent(GenomeLocParser parser, final String contig, final int start, final int stop, final List<Allele> alleles, HashMap<String, Object> attributes) {
         this.loc = parser.createGenomeLoc(contig, start, stop);
         this.alleles = alleles;
-        this.refBase = base;
 //        this.attributes = attributes;
     }
 
@@ -68,7 +64,7 @@ public class GenomeEvent implements Comparable {
 
     public VariantContext createVariantContextFromEvent() {
         return new VariantContextBuilder("event", loc.getContig(), loc.getStart(), loc.getStop(), alleles)
-                .log10PError(0.0).referenceBaseForIndel(refBase).make();
+                .log10PError(0.0).make();
 
     }
 }

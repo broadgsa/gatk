@@ -1131,12 +1131,13 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
         List<Allele> alleles = new ArrayList<Allele>(2); // actual observed (distinct!) alleles at the site
         List<Allele> homref_alleles = null; // when needed, will contain two identical copies of ref allele - needed to generate hom-ref genotype
 
+        final byte referencePaddingBase = refBases[(int)start-1];
 
         if ( call.getVariant() == null ) {
-            // we will need to cteate genotype with two (hom) ref alleles (below).
+            // we will need to create genotype with two (hom) ref alleles (below).
             // we can not use 'alleles' list here, since that list is supposed to contain
             // only *distinct* alleles observed at the site or VCFContext will frown upon us...
-            alleles.add( Allele.create(refBases[(int)start-1],true) );
+            alleles.add( Allele.create(referencePaddingBase,true) );
             homref_alleles = new ArrayList<Allele>(2);
             homref_alleles.add( alleles.get(0));
             homref_alleles.add( alleles.get(0));
@@ -1145,7 +1146,7 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
             // (Genotype will tell us whether it is an actual call or not!)
             int event_length = call.getVariant().lengthOnRef();
             if ( event_length < 0 ) event_length = 0;
-            fillAlleleList(alleles,call);
+            fillAlleleList(alleles,call,referencePaddingBase);
             stop += event_length;
         }
 
@@ -1165,7 +1166,7 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
             filters.add("NoCall");
         }
         VariantContext vc = new VariantContextBuilder("IGv2_Indel_call", refName, start, stop, alleles)
-                .genotypes(genotypes).filters(filters).referenceBaseForIndel(refBases[(int)start-1]).make();
+                .genotypes(genotypes).filters(filters).make();
         vcf.add(vc);
     }
 
@@ -1175,16 +1176,16 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
      * @param l
      * @param call
      */
-    private void fillAlleleList(List<Allele> l, IndelPrecall call) {
+    private void fillAlleleList(List<Allele> l, IndelPrecall call, byte referencePaddingBase) {
         int event_length = call.getVariant().lengthOnRef();
         if ( event_length == 0 ) { // insertion
 
-            l.add( Allele.create(Allele.NULL_ALLELE_STRING,true) );
-            l.add( Allele.create(call.getVariant().getBases(), false ));
+            l.add( Allele.create(referencePaddingBase,true) );
+            l.add( Allele.create(referencePaddingBase + call.getVariant().getBases(), false ));
 
         } else { //deletion:
-            l.add( Allele.create(call.getVariant().getBases(), true ));
-            l.add( Allele.create(Allele.NULL_ALLELE_STRING,false) );
+            l.add( Allele.create(referencePaddingBase + call.getVariant().getBases(), true ));
+            l.add( Allele.create(referencePaddingBase,false) );
         }
     }
 
@@ -1218,19 +1219,20 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
 //        }
         boolean homRefT = ( tCall.getVariant() == null );
         boolean homRefN = ( nCall.getVariant() == null );
+        final byte referencePaddingBase = refBases[(int)start-1];
         if ( tCall.getVariant() == null && nCall.getVariant() == null) {
             // no indel at all  ; create base-representation ref/ref alleles for genotype construction
-            alleles.add( Allele.create(refBases[(int)start-1],true) );
+            alleles.add( Allele.create(referencePaddingBase,true) );
         } else {
             // we got indel(s)
             int event_length = 0;
             if ( tCall.getVariant() != null ) {
                 // indel in tumor
                 event_length = tCall.getVariant().lengthOnRef();
-                fillAlleleList(alleles, tCall);
+                fillAlleleList(alleles, tCall, referencePaddingBase);
             } else {
                 event_length = nCall.getVariant().lengthOnRef();
-                fillAlleleList(alleles, nCall);
+                fillAlleleList(alleles, nCall, referencePaddingBase);
             }
             if ( event_length > 0 ) stop += event_length;
         }
@@ -1262,7 +1264,7 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
         }
 
         VariantContext vc = new VariantContextBuilder("IGv2_Indel_call", refName, start, stop, alleles)
-                .genotypes(genotypes).filters(filters).attributes(attrs).referenceBaseForIndel(refBases[(int)start-1]).make();
+                .genotypes(genotypes).filters(filters).attributes(attrs).make();
         vcf.add(vc);
     }
 

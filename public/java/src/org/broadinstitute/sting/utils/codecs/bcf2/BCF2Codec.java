@@ -306,27 +306,6 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
     }
 
     /**
-     * Annoying routine that deals with allele clipping from the BCF2 encoding to the standard
-     * GATK encoding.
-     *
-     * @param position
-     * @param ref
-     * @param unclippedAlleles
-     * @return
-     */
-    @Requires({"position > 0", "ref != null && ref.length() > 0", "! unclippedAlleles.isEmpty()"})
-    @Ensures("result.size() == unclippedAlleles.size()")
-    protected List<Allele> clipAllelesIfNecessary(final int position,
-                                                  final String ref,
-                                                  final List<Allele> unclippedAlleles) {
-        // the last argument of 1 allows us to safely ignore the end, because we are
-        // ultimately going to use the end in the record itself
-        final VCFAlleleClipper.ClippedAlleles clipped = VCFAlleleClipper.clipAlleles(position, ref, unclippedAlleles, 1);
-        if ( clipped.getError() != null ) error(clipped.getError());
-        return clipped.getClippedAlleles();
-    }
-
-    /**
      * Decode the alleles from this BCF2 file and put the results in builder
      * @param builder
      * @param pos
@@ -353,11 +332,9 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
         }
         assert ref != null;
 
-        alleles = clipAllelesIfNecessary(pos, ref, alleles);
         builder.alleles(alleles);
 
         assert ref.length() > 0;
-        builder.referenceBaseForIndel(ref.getBytes()[0]);
 
         return alleles;
     }

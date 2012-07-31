@@ -149,7 +149,7 @@ public class VariantsToBeagleUnphased extends RodWalker<Integer, Integer> {
 
         // write out the alleles at this site
         for ( Allele allele : vc.getAlleles() ) {
-            beagleOut.append(allele.isNoCall() || allele.isNull() ? "-" : allele.getBaseString()).append(" ");
+            beagleOut.append(allele.isNoCall() ? "-" : allele.getBaseString()).append(" ");
         }
 
         // write out sample level genotypes
