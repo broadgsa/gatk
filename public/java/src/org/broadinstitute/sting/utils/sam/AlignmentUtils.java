@@ -30,6 +30,7 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.walkers.bqsr.EventType;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -403,6 +404,40 @@ public class AlignmentUtils {
             }
         }
         return alignment;
+    }
+
+    public static int calcNumHighQualitySoftClips( final GATKSAMRecord read, final byte qualThreshold ) {
+
+        int numHQSoftClips = 0;
+        int alignPos = 0;
+        final Cigar cigar = read.getCigar();
+        final byte[] qual = read.getBaseQualities( EventType.BASE_SUBSTITUTION );
+
+        for( int iii = 0; iii < cigar.numCigarElements(); iii++ ) {
+
+            final CigarElement ce = cigar.getCigarElement(iii);
+            final int elementLength = ce.getLength();
+
+            switch( ce.getOperator() ) {
+                case S:
+                    for( int jjj = 0; jjj < elementLength; jjj++ ) {
+                        if( qual[alignPos++] > qualThreshold ) { numHQSoftClips++; }
+                    }
+                    break;
+                case M:
+                case I:
+                    alignPos += elementLength;
+                    break;
+                case H:
+                case P:
+                case D:
+                case N:
+                    break;
+                default:
+                    throw new ReviewedStingException("Unsupported cigar operator: " + ce.getOperator());
+            }
+        }
+        return numHQSoftClips;
     }
 
     public static int calcAlignmentByteArrayOffset(final Cigar cigar, final PileupElement pileupElement, final int alignmentStart, final int refLocus) {

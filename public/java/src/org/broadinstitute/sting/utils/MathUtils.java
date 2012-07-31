@@ -1596,7 +1596,17 @@ public class MathUtils {
             result += v1[k].doubleValue() * v2[k].doubleValue();
 
         return result;
+    }
 
+    public static double dotProduct(double[] v1, double[] v2) {
+        if (v1.length != v2.length)
+            throw new UserException("BUG: vectors v1, v2 of different size in vectorSum()");
+
+        double result = 0.0;
+        for (int k = 0; k < v1.length; k++)
+            result += v1[k] * v2[k];
+
+        return result;
     }
 
     public static double[] vectorLog10(double v1[]) {

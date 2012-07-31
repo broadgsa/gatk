@@ -279,7 +279,6 @@ public class LocusIteratorByState extends LocusIterator {
      */
     private void lazyLoadNextAlignmentContext() {
         while (nextAlignmentContext == null && readStates.hasNext()) {
-            // this call will set hasExtendedEvents to true if it picks up a read with indel right before the current position on the ref:
             readStates.collectPendingReads();
 
             final GenomeLoc location = getLocation();
@@ -378,7 +377,7 @@ public class LocusIteratorByState extends LocusIterator {
                 CigarOperator op = state.stepForwardOnGenome();
                 if (op == null) {
                     // we discard the read only when we are past its end AND indel at the end of the read (if any) was
-                    // already processed. Keeping the read state that retunred null upon stepForwardOnGenome() is safe
+                    // already processed. Keeping the read state that returned null upon stepForwardOnGenome() is safe
                     // as the next call to stepForwardOnGenome() will return null again AND will clear hadIndel() flag.
                     it.remove();                                                // we've stepped off the end of the object
                 }
