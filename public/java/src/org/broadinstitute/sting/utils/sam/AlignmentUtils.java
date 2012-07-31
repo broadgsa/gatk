@@ -476,7 +476,6 @@ public class AlignmentUtils {
                     }
                     break;
                 case D:
-                case N:
                     if (!isDeletion) {
                         alignmentPos += elementLength;
                     } else {
@@ -498,6 +497,7 @@ public class AlignmentUtils {
                     break;
                 case H:
                 case P:
+                case N:
                     break;
                 default:
                     throw new ReviewedStingException("Unsupported cigar operator: " + ce.getOperator());
@@ -516,16 +516,13 @@ public class AlignmentUtils {
             final int elementLength = ce.getLength();
 
             switch (ce.getOperator()) {
-                case I:
-                case S:
-                    break;
                 case D:
                 case N:
-                    alignmentLength += elementLength;
-                    break;
                 case M:
                     alignmentLength += elementLength;
                     break;
+                case I:
+                case S:
                 case H:
                 case P:
                     break;

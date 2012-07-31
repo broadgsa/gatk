@@ -62,6 +62,7 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
         if (stub.getGenerateMD5())
             factory.setCreateMd5File(true);
         // Adjust max records in RAM.
+        // TODO -- this doesn't actually work because of a bug in Picard; do not use until fixed
         if(stub.getMaxRecordsInRam() != null)
             factory.setMaxRecordsInRam(stub.getMaxRecordsInRam());
 
