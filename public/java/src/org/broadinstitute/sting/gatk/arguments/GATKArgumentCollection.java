@@ -249,8 +249,11 @@ public class GATKArgumentCollection {
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
     public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;
 
-    @Argument(fullName = "remove_program_records", shortName = "rpr", doc = "Should we remove program records from the SAM header", required = false)
+    @Argument(fullName = "remove_program_records", shortName = "rpr", doc = "Should we override the Walker's default and remove program records from the SAM header", required = false)
     public boolean removeProgramRecords = false;
+
+    @Argument(fullName = "keep_program_records", shortName = "kpr", doc = "Should we override the Walker's default and keep program records from the SAM header", required = false)
+    public boolean keepProgramRecords = false;
 
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations: nothing will be checked at runtime.  For expert users only who know what they are doing.  We do not support usage of this argument.", required = false)
     public ValidationExclusion.TYPE unsafe;

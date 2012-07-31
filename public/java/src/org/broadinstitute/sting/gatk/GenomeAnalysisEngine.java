@@ -797,6 +797,15 @@ public class GenomeAnalysisEngine {
         if ( getWalkerBAQApplicationTime() == BAQ.ApplicationTime.FORBIDDEN && argCollection.BAQMode != BAQ.CalculationMode.OFF)
             throw new UserException.BadArgumentValue("baq", "Walker cannot accept BAQ'd base qualities, and yet BAQ mode " + argCollection.BAQMode + " was requested.");
 
+        if (argCollection.removeProgramRecords && argCollection.keepProgramRecords)
+            throw new UserException.BadArgumentValue("rpr / kpr", "Cannot enable both options");
+
+        // LocusWalkers don't use program records, so remove them by default to save memory
+        boolean removeProgramRecords = (this.walker instanceof LocusWalker) || argCollection.removeProgramRecords;
+
+        if (argCollection.keepProgramRecords)
+            removeProgramRecords = false;
+
         return new SAMDataSource(
                 samReaderIDs,
                 threadAllocation,
@@ -814,7 +823,7 @@ public class GenomeAnalysisEngine {
                 refReader,
                 getBaseRecalibration(),
                 argCollection.defaultBaseQualities,
-                argCollection.removeProgramRecords);
+                removeProgramRecords);
     }
 
     /**
