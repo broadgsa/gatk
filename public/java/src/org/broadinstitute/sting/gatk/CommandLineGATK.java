@@ -130,12 +130,12 @@ public class CommandLineGATK extends CommandLineExecutable {
 
         // can't close tribble index when writing
         if ( message.indexOf("Unable to close index for") != -1 )
-            exitSystemWithUserError(new UserException(t.getCause().getMessage()));
+            exitSystemWithUserError(new UserException(t.getCause() == null ? message : t.getCause().getMessage()));
 
         // disk is full
         if ( message.indexOf("No space left on device") != -1 )
             exitSystemWithUserError(new UserException(t.getMessage()));
-        if ( t.getCause().getMessage().indexOf("No space left on device") != -1 )
+        if ( t.getCause() != null && t.getCause().getMessage().indexOf("No space left on device") != -1 )
             exitSystemWithUserError(new UserException(t.getCause().getMessage()));
     }
 
