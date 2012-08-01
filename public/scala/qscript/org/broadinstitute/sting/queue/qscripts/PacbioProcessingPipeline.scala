@@ -166,6 +166,7 @@ class PacbioProcessingPipeline extends QScript {
     this.knownSites :+= dbSNP
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "ContextCovariate")
     this.input_file :+= inBam
+    this.disable_indel_quals = true
     this.out = outRecalFile
     this.analysisName = queueLogDir + outRecalFile + ".covariates"
     this.jobName = queueLogDir + outRecalFile + ".covariates"
@@ -178,7 +179,6 @@ class PacbioProcessingPipeline extends QScript {
     this.input_file :+= inBam
     this.BQSR = inRecalFile
     this.out = outBam
-    this.disable_indel_quals = true
     this.isIntermediate = false
     this.analysisName = queueLogDir + outBam + ".recalibration"
     this.jobName = queueLogDir + outBam + ".recalibration"
