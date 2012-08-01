@@ -274,6 +274,38 @@ public class GenomeAnalysisEngine {
         //return result;
     }
 
+    // TODO -- Let's move this to a utility class in unstable - but which one?
+    // **************************************************************************************
+    // *                            Handle Deprecated Walkers                               *
+    // **************************************************************************************
+
+    // Mapping from walker name to major version number where the walker first disappeared
+    private static Map<String, String> deprecatedGATKWalkers = new HashMap<String, String>();
+    static {
+        deprecatedGATKWalkers.put("CountCovariates", "2.0");
+        deprecatedGATKWalkers.put("TableRecalibration", "2.0");
+    }
+
+    /**
+     * Utility method to check whether a given walker has been deprecated in a previous GATK release
+     *
+     * @param walkerName   the walker class name (not the full package) to check
+     */
+    public static boolean isDeprecatedWalker(final String walkerName) {
+        return deprecatedGATKWalkers.containsKey(walkerName);
+    }
+
+    /**
+     * Utility method to check whether a given walker has been deprecated in a previous GATK release
+     *
+     * @param walkerName   the walker class name (not the full package) to check
+     */
+    public static String getDeprecatedMajorVersionNumber(final String walkerName) {
+        return deprecatedGATKWalkers.get(walkerName);
+    }
+
+    // **************************************************************************************
+
     /**
      * Retrieves an instance of the walker based on the walker name.
      *
@@ -286,6 +318,9 @@ public class GenomeAnalysisEngine {
         } catch ( UserException e ) {
             if ( isGATKLite() && GATKLiteUtils.isAvailableOnlyInFullGATK(walkerName) ) {
                 e = new UserException.NotSupportedInGATKLite("the " + walkerName + " walker is available only in the full version of the GATK");
+            }
+            else if ( isDeprecatedWalker(walkerName) ) {
+                e = new UserException.DeprecatedWalker(walkerName, getDeprecatedMajorVersionNumber(walkerName));
             }
             throw e;
         }
