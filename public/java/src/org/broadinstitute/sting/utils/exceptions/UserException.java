@@ -316,9 +316,9 @@ public class UserException extends ReviewedStingException {
 
 
 
-    public static class MissingWalker extends UserException {
-        public MissingWalker(String walkerName, String message) {
-            super(String.format("Walker %s is not available: %s", walkerName, message));
+    public static class DeprecatedWalker extends UserException {
+        public DeprecatedWalker(String walkerName, String version) {
+            super(String.format("Walker %s is no longer available in the GATK; it has been deprecated since version %s", walkerName, version));
         }
     }
 
