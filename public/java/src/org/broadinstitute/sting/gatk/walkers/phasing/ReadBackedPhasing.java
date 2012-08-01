@@ -288,7 +288,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
     private VariantContext reduceVCToSamples(VariantContext vc, Set<String> samplesToPhase) {
 //        for ( String sample : samplesToPhase )
 //            logger.debug(String.format("  Sample %s has genotype %s, het = %s", sample, vc.getGenotype(sample), vc.getGenotype(sample).isHet() ));
-        VariantContext subvc = vc.subContextFromSamples(samplesToPhase, true);
+        VariantContext subvc = vc.subContextFromSamples(samplesToPhase);
 //        logger.debug("original VC = " + vc);
 //        logger.debug("sub      VC = " + subvc);
         return VariantContextUtils.pruneVariantContext(subvc, KEYS_TO_KEEP_IN_REDUCED_VCF);
