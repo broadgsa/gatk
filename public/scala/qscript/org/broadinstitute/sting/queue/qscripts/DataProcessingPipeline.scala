@@ -347,6 +347,7 @@ class DataProcessingPipeline extends QScript {
     this.knownSites ++= qscript.dbSNP
     this.covariate ++= Seq("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "ContextCovariate")
     this.input_file :+= inBam
+    this.disable_indel_quals = true
     this.out = outRecalFile
     if (!defaultPlatform.isEmpty) this.default_platform = defaultPlatform
     if (!qscript.intervalString.isEmpty) this.intervalsString ++= Seq(qscript.intervalString)
@@ -359,7 +360,6 @@ class DataProcessingPipeline extends QScript {
   case class recal (inBam: File, inRecalFile: File, outBam: File) extends PrintReads with CommandLineGATKArgs {
     this.input_file :+= inBam
     this.BQSR = inRecalFile
-    this.disable_indel_quals = true
     this.baq = CalculationMode.CALCULATE_AS_NECESSARY
     this.out = outBam
     if (!qscript.intervalString.isEmpty) this.intervalsString ++= Seq(qscript.intervalString)
