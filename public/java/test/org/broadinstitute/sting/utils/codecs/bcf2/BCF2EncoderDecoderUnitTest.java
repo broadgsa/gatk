@@ -351,7 +351,7 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
     public void testEncodingListOfString(List<String> strings, String expected) throws IOException {
         final String collapsed = BCF2Utils.collapseStringList(strings);
         Assert.assertEquals(collapsed, expected);
-        Assert.assertEquals(BCF2Utils.exploreStringList(collapsed), strings);
+        Assert.assertEquals(BCF2Utils.explodeStringList(collapsed), strings);
     }
 
     // -----------------------------------------------------------------

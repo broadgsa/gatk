@@ -79,22 +79,18 @@ public final class BCF2Utils {
         final Set<String> seen = new HashSet<String>();
         final ArrayList<String> dict = new ArrayList<String>();
 
-        boolean sawPASS = false;
+        dict.add(VCFConstants.PASSES_FILTERS_v4); // special case the special PASS field
+
         // set up the strings dictionary
         for ( VCFHeaderLine line : header.getMetaDataInInputOrder() ) {
             if ( line instanceof VCFIDHeaderLine && ! (line instanceof VCFContigHeaderLine) ) {
                 final VCFIDHeaderLine idLine = (VCFIDHeaderLine)line;
                 if ( ! seen.contains(idLine.getID())) {
-                    sawPASS = sawPASS || idLine.getID().equals(VCFConstants.PASSES_FILTERS_v4);
                     dict.add(idLine.getID());
                     seen.add(idLine.getID());
                 }
             }
         }
-
-
-        if ( ! sawPASS )
-            dict.add(VCFConstants.PASSES_FILTERS_v4); // special case the special PASS field
 
         return dict;
     }
@@ -177,7 +173,7 @@ public final class BCF2Utils {
      */
     @Requires({"collapsed != null", "isCollapsedString(collapsed)"})
     @Ensures("result != null")
-    public static final List<String> exploreStringList(final String collapsed) {
+    public static final List<String> explodeStringList(final String collapsed) {
         assert isCollapsedString(collapsed);
         final String[] exploded = collapsed.substring(1).split(",");
         return Arrays.asList(exploded);
