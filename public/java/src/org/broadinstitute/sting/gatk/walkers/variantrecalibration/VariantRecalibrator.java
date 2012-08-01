@@ -63,7 +63,7 @@ import java.util.*;
  * The purpose of the variant recalibrator is to assign a well-calibrated probability to each variant call in a call set.
  * One can then create highly accurate call sets by filtering based on this single estimate for the accuracy of each call.
  * The approach taken by variant quality score recalibration is to develop a continuous, covarying estimate of the relationship
- * between SNP call annotations (QD, SB, HaplotypeScore, HRun, for example) and the the probability that a SNP is a true genetic
+ * between SNP call annotations (QD, MQ, HaplotypeScore, and ReadPosRankSum, for example) and the the probability that a SNP is a true genetic
  * variant versus a sequencing or data processing artifact. This model is determined adaptively based on "true sites" provided
  * as input, typically HapMap 3 sites and those sites found to be polymorphic on the Omni 2.5M SNP chip array. This adaptive
  * error model can then be applied to both known and novel variation discovered in the call set of interest to evaluate the
