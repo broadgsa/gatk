@@ -53,6 +53,11 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
     final protected static Logger logger = Logger.getLogger(BCF2Codec.class);
     private final static boolean FORBID_SYMBOLICS = false;
 
+    private final static int ALLOWED_MAJOR_VERSION = 2;
+    private final static int MIN_MINOR_VERSION = 1;
+
+    private BCFVersion bcfVersion = null;
+
     private VCFHeader header = null;
 
     /**
@@ -131,8 +136,16 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
     public FeatureCodecHeader readHeader( final PositionalBufferedStream inputStream ) {
         try {
             // note that this reads the magic as well, and so does double duty
-            if ( ! BCF2Utils.startsWithBCF2Magic(inputStream) )
-                error("Input stream does not begin with BCF2 magic");
+            bcfVersion = BCFVersion.readBCFVersion(inputStream);
+            if ( bcfVersion == null )
+                error("Input stream does not contain a BCF encoded file; BCF magic header info not found");
+
+            if ( bcfVersion.getMajorVersion() != ALLOWED_MAJOR_VERSION )
+                error("BCF2Codec can only process BCF2 files, this file has major version " + bcfVersion.getMajorVersion());
+            if ( bcfVersion.getMinorVersion() < MIN_MINOR_VERSION )
+                error("BCF2Codec can only process BCF2 files with minor version >= " + MIN_MINOR_VERSION + " but this file has minor version " + bcfVersion.getMinorVersion());
+
+            logger.info("BCF version " + bcfVersion);
 
             final int headerSizeInBytes = BCF2Utils.readInt(BCF2Type.INT32.getSizeInBytes(), inputStream);
 
@@ -187,7 +200,8 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
         FileInputStream fis = null;
         try {
             fis = new FileInputStream(path);
-            return BCF2Utils.startsWithBCF2Magic(fis);
+            final BCFVersion version = BCFVersion.readBCFVersion(fis);
+            return version != null && version.getMajorVersion() == ALLOWED_MAJOR_VERSION;
         } catch ( FileNotFoundException e ) {
             return false;
         } catch ( IOException e ) {
@@ -196,7 +210,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
             try {
                 if ( fis != null ) fis.close();
             } catch ( IOException e ) {
-                ; // do nothing
+                // do nothing
             }
         }
     }

@@ -57,7 +57,7 @@ public class VCFIntegrationTest extends WalkerTest {
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
 
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
-        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList(""));
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("bdab26dd7648a806dbab01f64db2bdab"));
         executeTest("Test reading and writing 1000G Phase I SVs", spec1);
     }
 
