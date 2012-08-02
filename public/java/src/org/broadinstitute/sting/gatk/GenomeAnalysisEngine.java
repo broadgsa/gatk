@@ -800,8 +800,7 @@ public class GenomeAnalysisEngine {
         if (argCollection.removeProgramRecords && argCollection.keepProgramRecords)
             throw new UserException.BadArgumentValue("rpr / kpr", "Cannot enable both options");
 
-        // LocusWalkers don't use program records, so remove them by default to save memory
-        boolean removeProgramRecords = (this.walker instanceof LocusWalker) || argCollection.removeProgramRecords;
+        boolean removeProgramRecords = argCollection.removeProgramRecords || walker.getClass().isAnnotationPresent(RemoveProgramRecords.class);
 
         if (argCollection.keepProgramRecords)
             removeProgramRecords = false;
