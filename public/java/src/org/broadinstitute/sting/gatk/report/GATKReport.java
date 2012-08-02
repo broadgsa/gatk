@@ -89,9 +89,9 @@ public class GATKReport {
             reader = new BufferedReader(new FileReader(file));
             reportHeader = reader.readLine();
         } catch (FileNotFoundException e) {
-            throw new ReviewedStingException("Could not open file : " + file);
+            throw new UserException.CouldNotReadInputFile(file, "it does not exist");
         } catch (IOException e) { 
-            throw new ReviewedStingException("Could not read file : " + file);                            
+            throw new UserException.CouldNotReadInputFile(file, e);
         }   
 
 
