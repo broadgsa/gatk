@@ -1,5 +1,8 @@
-package org.broadinstitute.sting.gatk.walkers.bqsr;
+package org.broadinstitute.sting.utils.recalibration;
 
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
+import org.broadinstitute.sting.utils.recalibration.covariates.ContextCovariate;
+import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.clipping.ClippingRepresentation;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;

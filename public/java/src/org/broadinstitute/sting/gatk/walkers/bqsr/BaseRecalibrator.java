@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -41,6 +42,9 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.recalibration.QuantizationInfo;
+import org.broadinstitute.sting.utils.recalibration.RecalUtils;
+import org.broadinstitute.sting.utils.recalibration.RecalibrationReport;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -58,7 +62,7 @@ import java.util.ArrayList;
  * This walker is designed to work as the first pass in a two-pass processing step. It does a by-locus traversal operating
  * only at sites that are not in dbSNP. We assume that all reference mismatches we see are therefore errors and indicative
  * of poor base quality. This walker generates tables based on various user-specified covariates (such as read group,
- * reported quality score, cycle, and dinucleotide). Since there is a large amount of data one can then calculate an empirical
+ * reported quality score, cycle, and context). Since there is a large amount of data one can then calculate an empirical
  * probability of error given the particular covariates seen at this site, where p(error) = num mismatches / num observations.
  * The output file is a table (of the several covariate values, num observations, num mismatches, empirical quality score).
  * <p>
@@ -90,7 +94,7 @@ import java.util.ArrayList;
  * <h2>Examples</h2>
  * <pre>
  * java -Xmx4g -jar GenomeAnalysisTK.jar \
- *   -T BaseQualityScoreRecalibrator \
+ *   -T BaseRecalibrator \
  *   -I my_reads.bam \
  *   -R resources/Homo_sapiens_assembly18.fasta \
  *   -knownSites bundle/hg18/dbsnp_132.hg18.vcf \
@@ -109,7 +113,7 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
     @ArgumentCollection
     private final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();                          // all the command line arguments for BQSR and it's covariates
 
-    private QuantizationInfo quantizationInfo;                                                                          // an object that keeps track of the information necessary for quality score quantization 
+    private QuantizationInfo quantizationInfo;                                                                          // an object that keeps track of the information necessary for quality score quantization
     
     private RecalibrationTables recalibrationTables;
 
@@ -143,12 +147,12 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
             throw new UserException.CommandLineException(NO_DBSNP_EXCEPTION);
 
         if (RAC.LIST_ONLY) {
-            RecalDataManager.listAvailableCovariates(logger);
+            RecalUtils.listAvailableCovariates(logger);
             System.exit(0);
         }
         RAC.recalibrationReport = getToolkit().getArguments().BQSR_RECAL_FILE;                                          // if we have a recalibration file, record it so it goes on the report table
 
-        Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalDataManager.initializeCovariates(RAC);       // initialize the required and optional covariates
+        Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalUtils.initializeCovariates(RAC);       // initialize the required and optional covariates
         ArrayList<Covariate> requiredCovariates = covariates.getFirst();
         ArrayList<Covariate> optionalCovariates = covariates.getSecond();
 
@@ -222,17 +226,17 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
 
                 if (readNotSeen(read)) {
                     read.setTemporaryAttribute(SEEN_ATTRIBUTE, true);
-                    RecalDataManager.parsePlatformForRead(read, RAC);
-                    if (RecalDataManager.isColorSpaceConsistent(RAC.SOLID_NOCALL_STRATEGY, read)) {
+                    RecalUtils.parsePlatformForRead(read, RAC);
+                    if (RecalUtils.isColorSpaceConsistent(RAC.SOLID_NOCALL_STRATEGY, read)) {
                         read.setTemporaryAttribute(SKIP_RECORD_ATTRIBUTE, true);
                         continue;
                     }
-                    read.setTemporaryAttribute(COVARS_ATTRIBUTE, RecalDataManager.computeCovariates(read, requestedCovariates));
+                    read.setTemporaryAttribute(COVARS_ATTRIBUTE, RecalUtils.computeCovariates(read, requestedCovariates));
                 }
 
                 if (!ReadUtils.isSOLiDRead(read) ||                                                                     // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
-                    RAC.SOLID_RECAL_MODE == RecalDataManager.SOLID_RECAL_MODE.DO_NOTHING ||
-                        RecalDataManager.isColorSpaceConsistent(read, offset))
+                    RAC.SOLID_RECAL_MODE == RecalUtils.SOLID_RECAL_MODE.DO_NOTHING ||
+                        RecalUtils.isColorSpaceConsistent(read, offset))
                     recalibrationEngine.updateDataForPileupElement(p, ref.getBase());                                                             // This base finally passed all the checks for a good base, so add it to the big data hashmap
             }
             countedSites++;
@@ -271,13 +275,16 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
     public void onTraversalDone(Long result) {
         logger.info("Calculating quantized quality scores...");
         quantizeQualityScores();
+
+        logger.info("Writing recalibration report...");
+        generateReport();
+        logger.info("...done!");
+
         if (!RAC.NO_PLOTS) {
             logger.info("Generating recalibration plots...");
             generatePlots();
         }
-        logger.info("Writing recalibration report...");
-        generateReport();
-        logger.info("...done!");
+
         logger.info("Processed: " + result + " sites");
     }
 
@@ -285,10 +292,10 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
         File recalFile = getToolkit().getArguments().BQSR_RECAL_FILE;
         if (recalFile != null) {
             RecalibrationReport report = new RecalibrationReport(recalFile);
-            RecalDataManager.generateRecalibrationPlot(RAC.RECAL_FILE, report.getRecalibrationTables(), recalibrationTables, requestedCovariates, RAC.KEEP_INTERMEDIATE_FILES);
+            RecalUtils.generateRecalibrationPlot(RAC.RECAL_FILE, report.getRecalibrationTables(), recalibrationTables, requestedCovariates, RAC.KEEP_INTERMEDIATE_FILES);
         }
         else
-            RecalDataManager.generateRecalibrationPlot(RAC.RECAL_FILE, recalibrationTables, requestedCovariates, RAC.KEEP_INTERMEDIATE_FILES);
+            RecalUtils.generateRecalibrationPlot(RAC.RECAL_FILE, recalibrationTables, requestedCovariates, RAC.KEEP_INTERMEDIATE_FILES);
     }
 
 
@@ -309,7 +316,7 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
             throw new UserException.CouldNotCreateOutputFile(RAC.RECAL_FILE, "could not be created");
         }
 
-        RecalDataManager.outputRecalibrationReport(RAC, quantizationInfo, recalibrationTables, requestedCovariates, output);
+        RecalUtils.outputRecalibrationReport(RAC, quantizationInfo, recalibrationTables, requestedCovariates, output);
     }
 }
 

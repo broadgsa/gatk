@@ -168,6 +168,28 @@ public class PluginManager<PluginType> {
             String pluginName = getName(pluginClass);
             pluginsByName.put(pluginName, pluginClass);
         }
+
+        // sort the plugins so the order of elements is deterministic
+        sortPlugins(plugins);
+        sortPlugins(interfaces);
+    }
+
+    /**
+     * Sorts, in place, the list of plugins according to getName() on each element
+     *
+     * @param unsortedPlugins
+     */
+    private final void sortPlugins(final List<Class<? extends PluginType>> unsortedPlugins) {
+        Collections.sort(unsortedPlugins, new ComparePluginsByName());
+    }
+
+    private final class ComparePluginsByName implements Comparator<Class<? extends PluginType>> {
+        @Override
+        public int compare(final Class<? extends PluginType> aClass, final Class<? extends PluginType> aClass1) {
+            String pluginName1 = getName(aClass);
+            String pluginName2 = getName(aClass1);
+            return pluginName1.compareTo(pluginName2);
+        }
     }
 
     /**

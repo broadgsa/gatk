@@ -28,7 +28,7 @@ public class Novelty extends VariantStratifier implements StandardStratification
             final Collection<VariantContext> knownComps = tracker.getValues(knowns, ref.getLocus());
             for ( final VariantContext c : knownComps ) {
                 // loop over sites, looking for something that matches the type eval
-                if ( eval.getType() == c.getType() ) {
+                if ( eval.getType() == c.getType() || eval.getType() == VariantContext.Type.NO_VARIATION ) {
                     return KNOWN_STATES;
                 }
             }

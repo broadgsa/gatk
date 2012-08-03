@@ -1,11 +1,9 @@
-package org.broadinstitute.sting.gatk.walkers.bqsr;
+package org.broadinstitute.sting.utils.recalibration;
 
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
-import org.broadinstitute.sting.utils.recalibration.QualQuantizer;
-import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 
 import java.util.Arrays;
 import java.util.List;
@@ -41,7 +39,7 @@ public class QuantizationInfo {
         for (final RecalDatum value : qualTable.getAllValues()) {
             final RecalDatum datum = value;
             final int empiricalQual = MathUtils.fastRound(datum.getEmpiricalQuality());                                 // convert the empirical quality to an integer ( it is already capped by MAX_QUAL )
-            qualHistogram[empiricalQual] += datum.numObservations;                                                      // add the number of observations for every key
+            qualHistogram[empiricalQual] += datum.getNumObservations();                                                      // add the number of observations for every key
         }
         empiricalQualCounts = Arrays.asList(qualHistogram);                                                             // histogram with the number of observations of the empirical qualities
         quantizeQualityScores(quantizationLevels);
@@ -70,15 +68,15 @@ public class QuantizationInfo {
     }
 
     public GATKReportTable generateReportTable() {
-        GATKReportTable quantizedTable = new GATKReportTable(RecalDataManager.QUANTIZED_REPORT_TABLE_TITLE, "Quality quantization map", 3);
-        quantizedTable.addColumn(RecalDataManager.QUALITY_SCORE_COLUMN_NAME);
-        quantizedTable.addColumn(RecalDataManager.QUANTIZED_COUNT_COLUMN_NAME);
-        quantizedTable.addColumn(RecalDataManager.QUANTIZED_VALUE_COLUMN_NAME);
+        GATKReportTable quantizedTable = new GATKReportTable(RecalUtils.QUANTIZED_REPORT_TABLE_TITLE, "Quality quantization map", 3);
+        quantizedTable.addColumn(RecalUtils.QUALITY_SCORE_COLUMN_NAME);
+        quantizedTable.addColumn(RecalUtils.QUANTIZED_COUNT_COLUMN_NAME);
+        quantizedTable.addColumn(RecalUtils.QUANTIZED_VALUE_COLUMN_NAME);
 
         for (int qual = 0; qual <= QualityUtils.MAX_QUAL_SCORE; qual++) {
-            quantizedTable.set(qual, RecalDataManager.QUALITY_SCORE_COLUMN_NAME, qual);
-            quantizedTable.set(qual, RecalDataManager.QUANTIZED_COUNT_COLUMN_NAME, empiricalQualCounts.get(qual));
-            quantizedTable.set(qual, RecalDataManager.QUANTIZED_VALUE_COLUMN_NAME, quantizedQuals.get(qual));
+            quantizedTable.set(qual, RecalUtils.QUALITY_SCORE_COLUMN_NAME, qual);
+            quantizedTable.set(qual, RecalUtils.QUANTIZED_COUNT_COLUMN_NAME, empiricalQualCounts.get(qual));
+            quantizedTable.set(qual, RecalUtils.QUANTIZED_VALUE_COLUMN_NAME, quantizedQuals.get(qual));
         }
         return quantizedTable;
     }

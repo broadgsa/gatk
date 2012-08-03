@@ -50,6 +50,7 @@ import java.util.*;
 
 public class UnifiedGenotyperEngine {
     public static final String LOW_QUAL_FILTER_NAME = "LowQual";
+    private static final String GPSTRING = "GeneralPloidy";
 
     public static final String NUMBER_OF_DISCOVERED_ALLELES_KEY = "NDA";
 
@@ -273,7 +274,7 @@ public class UnifiedGenotyperEngine {
             glcm.set(getGenotypeLikelihoodsCalculationObject(logger, UAC));
         }
 
-        return glcm.get().get(model.name()).getLikelihoods(tracker, refContext, stratifiedContexts, type, alternateAllelesToUse, useBAQedPileup && BAQEnabledOnCMDLine, genomeLocParser);
+        return glcm.get().get(model.name().toUpperCase()).getLikelihoods(tracker, refContext, stratifiedContexts, type, alternateAllelesToUse, useBAQedPileup && BAQEnabledOnCMDLine, genomeLocParser);
     }
 
     private VariantCallContext generateEmptyContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, AlignmentContext rawContext) {
@@ -640,6 +641,9 @@ public class UnifiedGenotyperEngine {
         if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") )
             modelPrefix = UAC.GLmodel.name().toUpperCase().replaceAll("BOTH","");
 
+        if (!UAC.GLmodel.name().contains(GPSTRING) && UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY)
+            modelPrefix = GPSTRING + modelPrefix;
+
         // if we're genotyping given alleles and we have a requested SNP at this position, do SNP
         if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
             final VariantContext vcInput = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, refContext, rawContext.getLocation(), false, logger, UAC.alleles);
@@ -648,17 +652,13 @@ public class UnifiedGenotyperEngine {
 
             if ( vcInput.isSNP() )  {
                 // ignore SNPs if the user chose INDEL mode only
-                if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") )
+                if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") || UAC.GLmodel.name().toUpperCase().contains("SNP") )
                     models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"SNP"));
-                else if ( UAC.GLmodel.name().toUpperCase().contains("SNP") )
-                    models.add(UAC.GLmodel);
-            }
+             }
             else if ( vcInput.isIndel() || vcInput.isMixed() ) {
                 // ignore INDELs if the user chose SNP mode only
-                if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") )
+                if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") || UAC.GLmodel.name().toUpperCase().contains("INDEL") )
                     models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"INDEL"));
-                else if (UAC.GLmodel.name().toUpperCase().contains("INDEL"))
-                    models.add(UAC.GLmodel);
             }
             // No support for other types yet
         }
@@ -668,7 +668,7 @@ public class UnifiedGenotyperEngine {
                 models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"INDEL"));
             }
             else {
-                models.add(UAC.GLmodel);
+                models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+UAC.GLmodel.name().toUpperCase()));
             }
         }
 
@@ -730,12 +730,19 @@ public class UnifiedGenotyperEngine {
     }
 
     private static AlleleFrequencyCalculationModel getAlleleFrequencyCalculationObject(int N, Logger logger, PrintStream verboseWriter, UnifiedArgumentCollection UAC) {
+
         List<Class<? extends AlleleFrequencyCalculationModel>> afClasses = new PluginManager<AlleleFrequencyCalculationModel>(AlleleFrequencyCalculationModel.class).getPlugins();
+
+        // user-specified name
+        String afModelName = UAC.AFmodel.name();
+
+        if (!afModelName.contains(GPSTRING) && UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY)
+            afModelName = GPSTRING + afModelName;
 
         for (int i = 0; i < afClasses.size(); i++) {
             Class<? extends AlleleFrequencyCalculationModel> afClass = afClasses.get(i);
             String key = afClass.getSimpleName().replace("AFCalculationModel","").toUpperCase();
-            if (UAC.AFmodel.name().equalsIgnoreCase(key)) {
+            if (afModelName.equalsIgnoreCase(key)) {
                 try {
                     Object args[] = new Object[]{UAC,N,logger,verboseWriter};
                     Constructor c = afClass.getDeclaredConstructor(UnifiedArgumentCollection.class, int.class, Logger.class, PrintStream.class);

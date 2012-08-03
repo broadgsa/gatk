@@ -30,12 +30,12 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.walkers.bqsr.EventType;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.recalibration.EventType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -476,7 +476,6 @@ public class AlignmentUtils {
                     }
                     break;
                 case D:
-                case N:
                     if (!isDeletion) {
                         alignmentPos += elementLength;
                     } else {
@@ -498,6 +497,7 @@ public class AlignmentUtils {
                     break;
                 case H:
                 case P:
+                case N:
                     break;
                 default:
                     throw new ReviewedStingException("Unsupported cigar operator: " + ce.getOperator());
@@ -516,16 +516,13 @@ public class AlignmentUtils {
             final int elementLength = ce.getLength();
 
             switch (ce.getOperator()) {
-                case I:
-                case S:
-                    break;
                 case D:
                 case N:
-                    alignmentLength += elementLength;
-                    break;
                 case M:
                     alignmentLength += elementLength;
                     break;
+                case I:
+                case S:
                 case H:
                 case P:
                     break;

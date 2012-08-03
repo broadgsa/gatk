@@ -82,7 +82,7 @@ import java.util.*;
  *   -o snps.raw.vcf \
  *   -stand_call_conf [50.0] \
  *   -stand_emit_conf 10.0 \
- *   -dcov [50] \
+ *   -dcov [50 for 4x, 200 for >30x WGS or Whole exome] \
  *   [-L targets.interval_list]
  * </pre>
  *
@@ -241,7 +241,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
         } else {
             // in full mode: check for consistency in ploidy/pool calling arguments
             // check for correct calculation models
-            if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
+/*            if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
                 // polyploidy requires POOL GL and AF calculation models to be specified right now
                 if (UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLSNP && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLINDEL
                         && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLBOTH)   {
@@ -252,6 +252,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
                     throw new UserException("Incorrect AF Calculation model. Only POOL model supported if sample ploidy != 2");
 
             }
+  */
             // get all of the unique sample names
             if (UAC.TREAT_ALL_READS_AS_SINGLE_POOL) {
                 samples.clear();
