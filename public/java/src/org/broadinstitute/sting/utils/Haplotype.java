@@ -40,6 +40,7 @@ public class Haplotype {
     protected final double[] quals;
     private GenomeLoc genomeLocation = null;
     private HashMap<String, double[]> readLikelihoodsPerSample = null;
+    private HashMap<String, int[]> readCountsPerSample = null;
     private HashMap<Integer, VariantContext> eventMap = null;
     private boolean isRef = false;
     private Cigar cigar;
@@ -83,18 +84,27 @@ public class Haplotype {
         return Arrays.hashCode(bases);
     }
 
-    public void addReadLikelihoods( final String sample, final double[] readLikelihoods ) {
+    public void addReadLikelihoods( final String sample, final double[] readLikelihoods, final int[] readCounts ) {
         if( readLikelihoodsPerSample == null ) {
             readLikelihoodsPerSample = new HashMap<String, double[]>();
         }
         readLikelihoodsPerSample.put(sample, readLikelihoods);
+        if( readCountsPerSample == null ) {
+            readCountsPerSample = new HashMap<String, int[]>();
+        }
+        readCountsPerSample.put(sample, readCounts);
     }
 
     @Ensures({"result != null"})
     public double[] getReadLikelihoods( final String sample ) {
         return readLikelihoodsPerSample.get(sample);
     }
-    
+
+    @Ensures({"result != null"})
+    public int[] getReadCounts( final String sample ) {
+        return readCountsPerSample.get(sample);
+    }
+
     public Set<String> getSampleKeySet() {
         return readLikelihoodsPerSample.keySet();
     }
