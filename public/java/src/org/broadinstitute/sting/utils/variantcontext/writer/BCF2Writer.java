@@ -31,6 +31,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Codec;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Type;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
+import org.broadinstitute.sting.utils.codecs.bcf2.BCFVersion;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -83,6 +84,9 @@ import java.util.*;
  * @since 06/12
  */
 class BCF2Writer extends IndexingVariantContextWriter {
+    public static final int MAJOR_VERSION = 2;
+    public static final int MINOR_VERSION = 1;
+
     /**
      * If true, we will write out the undecoded raw bytes for a genotypes block, if it
      * is found in the input VC.  This can be very dangerous as the genotype encoding
@@ -153,7 +157,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
             writer.close();
 
             final byte[] headerBytes = capture.toByteArray();
-            outputStream.write(BCF2Utils.MAGIC_HEADER_LINE);
+            new BCFVersion(MAJOR_VERSION, MINOR_VERSION).write(outputStream);
             BCF2Utils.encodeRawBytes(headerBytes.length, BCF2Type.INT32, outputStream);
             outputStream.write(headerBytes);
         } catch (IOException e) {

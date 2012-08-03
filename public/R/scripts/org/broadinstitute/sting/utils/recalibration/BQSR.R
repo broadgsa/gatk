@@ -1,4 +1,5 @@
 library("ggplot2")
+library("tools") #For compactPDF in R 2.13+
 
 args <- commandArgs(TRUE)
 data <- read.csv(args[1])

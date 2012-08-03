@@ -62,7 +62,7 @@ import java.util.ArrayList;
  * This walker is designed to work as the first pass in a two-pass processing step. It does a by-locus traversal operating
  * only at sites that are not in dbSNP. We assume that all reference mismatches we see are therefore errors and indicative
  * of poor base quality. This walker generates tables based on various user-specified covariates (such as read group,
- * reported quality score, cycle, and dinucleotide). Since there is a large amount of data one can then calculate an empirical
+ * reported quality score, cycle, and context). Since there is a large amount of data one can then calculate an empirical
  * probability of error given the particular covariates seen at this site, where p(error) = num mismatches / num observations.
  * The output file is a table (of the several covariate values, num observations, num mismatches, empirical quality score).
  * <p>
@@ -94,7 +94,7 @@ import java.util.ArrayList;
  * <h2>Examples</h2>
  * <pre>
  * java -Xmx4g -jar GenomeAnalysisTK.jar \
- *   -T BaseQualityScoreRecalibrator \
+ *   -T BaseRecalibrator \
  *   -I my_reads.bam \
  *   -R resources/Homo_sapiens_assembly18.fasta \
  *   -knownSites bundle/hg18/dbsnp_132.hg18.vcf \

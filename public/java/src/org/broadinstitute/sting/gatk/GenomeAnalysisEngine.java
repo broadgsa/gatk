@@ -797,6 +797,14 @@ public class GenomeAnalysisEngine {
         if ( getWalkerBAQApplicationTime() == BAQ.ApplicationTime.FORBIDDEN && argCollection.BAQMode != BAQ.CalculationMode.OFF)
             throw new UserException.BadArgumentValue("baq", "Walker cannot accept BAQ'd base qualities, and yet BAQ mode " + argCollection.BAQMode + " was requested.");
 
+        if (argCollection.removeProgramRecords && argCollection.keepProgramRecords)
+            throw new UserException.BadArgumentValue("rpr / kpr", "Cannot enable both options");
+
+        boolean removeProgramRecords = argCollection.removeProgramRecords || walker.getClass().isAnnotationPresent(RemoveProgramRecords.class);
+
+        if (argCollection.keepProgramRecords)
+            removeProgramRecords = false;
+
         return new SAMDataSource(
                 samReaderIDs,
                 threadAllocation,
@@ -813,7 +821,8 @@ public class GenomeAnalysisEngine {
                 getWalkerBAQQualityMode(),
                 refReader,
                 getBaseRecalibration(),
-                argCollection.defaultBaseQualities);
+                argCollection.defaultBaseQualities,
+                removeProgramRecords);
     }
 
     /**

@@ -38,7 +38,6 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.R.RScriptExecutor;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
@@ -48,7 +47,6 @@ import org.broadinstitute.sting.utils.io.Resource;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -65,7 +63,7 @@ import java.util.*;
  * The purpose of the variant recalibrator is to assign a well-calibrated probability to each variant call in a call set.
  * One can then create highly accurate call sets by filtering based on this single estimate for the accuracy of each call.
  * The approach taken by variant quality score recalibration is to develop a continuous, covarying estimate of the relationship
- * between SNP call annotations (QD, SB, HaplotypeScore, HRun, for example) and the the probability that a SNP is a true genetic
+ * between SNP call annotations (QD, MQ, HaplotypeScore, and ReadPosRankSum, for example) and the the probability that a SNP is a true genetic
  * variant versus a sequencing or data processing artifact. This model is determined adaptively based on "true sites" provided
  * as input, typically HapMap 3 sites and those sites found to be polymorphic on the Omni 2.5M SNP chip array. This adaptive
  * error model can then be applied to both known and novel variation discovered in the call set of interest to evaluate the
@@ -73,14 +71,8 @@ import java.util.*;
  * the log odds ratio of being a true variant versus being false under the trained Gaussian mixture model.
  *
  * <p>
- * NOTE: Please see our <a href="http://www.broadinstitute.org/gsa/wiki/index.php/Best_Practice_Variant_Detection_with_the_GATK_v3">best practices wiki page</a> for our recommendations on which annotations to use for specific project designs.
- *
- * <p>
  * NOTE: In order to create the model reporting plots Rscript needs to be in your environment PATH (this is the scripting version of R, not the interactive version).
  * See <a target="r-project" href="http://www.r-project.org">http://www.r-project.org</a> for more info on how to download and install R.
- *
- * <p>
- * See <a href="http://www.broadinstitute.org/gsa/wiki/index.php/Variant_quality_score_recalibration">the GATK wiki for a tutorial and example recalibration accuracy plots.</a>
  *
  * <h2>Input</h2>
  * <p>
@@ -90,7 +82,7 @@ import java.util.*;
  *
  * <h2>Output</h2>
  * <p>
- * A recalibration table file in CSV format that is used by the ApplyRecalibration walker.
+ * A recalibration table file in VCF format that is used by the ApplyRecalibration walker.
  * <p>
  * A tranches file which shows various metrics of the recalibration callset as a function of making several slices through the data.
  *
@@ -102,8 +94,9 @@ import java.util.*;
  *   -input NA12878.HiSeq.WGS.bwa.cleaned.raw.subset.b37.vcf \
  *   -resource:hapmap,known=false,training=true,truth=true,prior=15.0 hapmap_3.3.b37.sites.vcf \
  *   -resource:omni,known=false,training=true,truth=false,prior=12.0 1000G_omni2.5.b37.sites.vcf \
- *   -resource:dbsnp,known=true,training=false,truth=false,prior=8.0 dbsnp_132.b37.vcf \
- *   -an QD -an HaplotypeScore -an MQRankSum -an ReadPosRankSum -an MQ \
+ *   -resource:dbsnp,known=true,training=false,truth=false,prior=6.0 dbsnp_135.b37.vcf \
+ *   -an QD -an HaplotypeScore -an MQRankSum -an ReadPosRankSum -an FS -an MQ -an InbreedingCoeff \
+ *   -mode SNP \
  *   -recalFile path/to/output.recal \
  *   -tranchesFile path/to/output.tranches \
  *   -rscriptFile path/to/output.plots.R
@@ -187,9 +180,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Advanced
     @Argument(fullName = "trustAllPolymorphic", shortName = "allPoly", doc = "Trust that all the input training sets' unfiltered records contain only polymorphic sites to drastically speed up the computation.", required = false)
     protected Boolean TRUST_ALL_POLYMORPHIC = false;
-    //@Hidden
-    //@Argument(fullName = "projectConsensus", shortName = "projectConsensus", doc = "Perform 1000G project consensus. This implies an extra prior factor based on the individual participant callsets passed in with consensus=true rod binding tags.", required = false)
-    //protected Boolean PERFORM_PROJECT_CONSENSUS = false;
 
     /////////////////////////////
     // Private Member Variables
@@ -255,7 +245,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
         for( final VariantContext vc : tracker.getValues(input, context.getLocation()) ) {
             if( vc != null && ( vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters()) ) ) {
-                if( checkRecalibrationMode( vc, VRAC.MODE ) ) {
+                if( VariantDataManager.checkVariationClass( vc, VRAC.MODE ) ) {
                     final VariantDatum datum = new VariantDatum();
 
                     // Populate the datum with lots of fields from the VariantContext, unfortunately the VC is too big so we just pull in only the things we absolutely need.
@@ -268,10 +258,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     // Loop through the training data sets and if they overlap this loci then update the prior and training status appropriately
                     dataManager.parseTrainingSets( tracker, context.getLocation(), vc, datum, TRUST_ALL_POLYMORPHIC );
                     double priorFactor = QualityUtils.qualToProb( datum.prior );
-                    //if( PERFORM_PROJECT_CONSENSUS ) { // BUGBUG: need to resurrect this functionality?
-                    //    final double consensusPrior = QualityUtils.qualToProb( 1.0 + 5.0 * datum.consensusCount );
-                    //    priorFactor = 1.0 - ((1.0 - priorFactor) * (1.0 - consensusPrior));
-                    //}
                     datum.prior = Math.log10( priorFactor ) - Math.log10( 1.0 - priorFactor );
 
                     mapList.add( datum );
@@ -280,12 +266,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         }
 
         return mapList;
-    }
-
-    public static boolean checkRecalibrationMode( final VariantContext vc, final VariantRecalibratorArgumentCollection.Mode mode ) {
-        return mode == VariantRecalibratorArgumentCollection.Mode.BOTH ||
-                (mode == VariantRecalibratorArgumentCollection.Mode.SNP && vc.isSNP()) ||
-	            (mode == VariantRecalibratorArgumentCollection.Mode.INDEL && (vc.isIndel() || vc.isMixed()));
     }
 
     //---------------------------------------------------------------------------------------------------------------

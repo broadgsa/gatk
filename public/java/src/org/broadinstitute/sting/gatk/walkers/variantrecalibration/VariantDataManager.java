@@ -31,6 +31,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -273,9 +274,35 @@ public class VariantDataManager {
     }
 
     private boolean isValidVariant( final VariantContext evalVC, final VariantContext trainVC, final boolean TRUST_ALL_POLYMORPHIC) {
-        return trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() &&
-                        ((evalVC.isSNP() && trainVC.isSNP()) || ((evalVC.isIndel()||evalVC.isMixed()) && (trainVC.isIndel()||trainVC.isMixed()))) &&
+        return trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() && checkVariationClass( evalVC, trainVC ) &&
                         (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphicInSamples());
+    }
+
+    protected static boolean checkVariationClass( final VariantContext evalVC, final VariantContext trainVC ) {
+        switch( trainVC.getType() ) {
+            case SNP:
+            case MNP:
+                return checkVariationClass( evalVC, VariantRecalibratorArgumentCollection.Mode.SNP );
+            case INDEL:
+            case MIXED:
+            case SYMBOLIC:
+                return checkVariationClass( evalVC, VariantRecalibratorArgumentCollection.Mode.INDEL );
+            default:
+                return false;
+        }
+    }
+
+    protected static boolean checkVariationClass( final VariantContext evalVC, final VariantRecalibratorArgumentCollection.Mode mode ) {
+        switch( mode ) {
+            case SNP:
+                return evalVC.isSNP() || evalVC.isMNP();
+            case INDEL:
+                return evalVC.isIndel() || evalVC.isMixed() || evalVC.isSymbolic();
+            case BOTH:
+                return true;
+            default:
+                throw new ReviewedStingException( "Encountered unknown recal mode: " + mode );
+        }
     }
 
     public void writeOutRecalibrationTable( final VariantContextWriter recalWriter ) {

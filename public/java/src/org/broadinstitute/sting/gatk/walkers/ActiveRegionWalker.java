@@ -32,6 +32,7 @@ import java.util.List;
 @PartitionBy(PartitionType.READ)
 @ActiveRegionExtension(extension=50,maxRegion=1500)
 @ReadFilters({UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class, FailsVendorQualityCheckFilter.class, MappingQualityUnavailableFilter.class})
+@RemoveProgramRecords
 public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
 
     @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this interval list file", required = false)

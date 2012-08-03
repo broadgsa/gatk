@@ -202,7 +202,7 @@ public final class BCF2Decoder {
                 return null;
             else {
                 final String s = new String(bytes, 0, goodLength);
-                return BCF2Utils.isCollapsedString(s) ? BCF2Utils.exploreStringList(s) : s;
+                return BCF2Utils.isCollapsedString(s) ? BCF2Utils.explodeStringList(s) : s;
             }
         } catch ( IOException e ) {
             throw new ReviewedStingException("readByte failure", e);

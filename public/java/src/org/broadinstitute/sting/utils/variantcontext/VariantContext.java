@@ -334,12 +334,14 @@ public class VariantContext implements Feature { // to enable tribble integratio
      * in this VC is returned as the set of alleles in the subContext, even if
      * some of those alleles aren't in the samples
      *
+     * WARNING: BE CAREFUL WITH rederiveAllelesFromGenotypes UNLESS YOU KNOW WHAT YOU ARE DOING?
+     *
      * @param sampleNames    the sample names
-     * @param rederiveAllelesFromGenotypes if true, returns the alleles to just those in use by the samples
+     * @param rederiveAllelesFromGenotypes if true, returns the alleles to just those in use by the samples, true should be default
      * @return new VariantContext subsetting to just the given samples
      */
     public VariantContext subContextFromSamples(Set<String> sampleNames, final boolean rederiveAllelesFromGenotypes ) {
-        if ( sampleNames.containsAll(getSampleNames()) ) {
+        if ( sampleNames.containsAll(getSampleNames()) && ! rederiveAllelesFromGenotypes ) {
             return this; // fast path when you don't have any work to do
         } else {
             VariantContextBuilder builder = new VariantContextBuilder(this);
@@ -355,8 +357,18 @@ public class VariantContext implements Feature { // to enable tribble integratio
         }
     }
 
+    /**
+     * @see #subContextFromSamples(java.util.Set, boolean) with rederiveAllelesFromGenotypes = true
+     *
+     * @param sampleNames
+     * @return
+     */
+    public VariantContext subContextFromSamples(final Set<String> sampleNames) {
+        return subContextFromSamples(sampleNames, true);
+    }
+
     public VariantContext subContextFromSample(String sampleName) {
-        return subContextFromSamples(Collections.singleton(sampleName), true);
+        return subContextFromSamples(Collections.singleton(sampleName));
     }
 
     /**
