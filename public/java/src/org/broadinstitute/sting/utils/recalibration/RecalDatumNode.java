@@ -4,10 +4,12 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.commons.math.stat.inference.ChiSquareTestImpl;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Set;
 
 /**
@@ -17,13 +19,18 @@ import java.util.Set;
  * @since 07/27/12
  */
 public class RecalDatumNode<T extends RecalDatum> {
-    private final static boolean USE_CHI2 = true;
     protected static Logger logger = Logger.getLogger(RecalDatumNode.class);
+
+    /**
+     * fixedPenalty is this value if it's considered fixed
+     */
     private final static double UNINITIALIZED = Double.NEGATIVE_INFINITY;
+
     private final T recalDatum;
     private double fixedPenalty = UNINITIALIZED;
     private final Set<RecalDatumNode<T>> subnodes;
 
+    @Requires({"recalDatum != null"})
     public RecalDatumNode(final T recalDatum) {
         this(recalDatum, new HashSet<RecalDatumNode<T>>());
     }
@@ -33,28 +40,45 @@ public class RecalDatumNode<T extends RecalDatum> {
         return recalDatum.toString();
     }
 
+    @Requires({"recalDatum != null", "subnodes != null"})
     public RecalDatumNode(final T recalDatum, final Set<RecalDatumNode<T>> subnodes) {
         this(recalDatum, UNINITIALIZED, subnodes);
     }
 
+    @Requires({"recalDatum != null"})
     protected RecalDatumNode(final T recalDatum, final double fixedPenalty) {
         this(recalDatum, fixedPenalty, new HashSet<RecalDatumNode<T>>());
     }
 
+    @Requires({"recalDatum != null", "subnodes != null"})
     protected RecalDatumNode(final T recalDatum, final double fixedPenalty, final Set<RecalDatumNode<T>> subnodes) {
         this.recalDatum = recalDatum;
         this.fixedPenalty = fixedPenalty;
         this.subnodes = new HashSet<RecalDatumNode<T>>(subnodes);
     }
 
+    /**
+     * Get the recal data associated with this node
+     * @return
+     */
+    @Ensures("result != null")
     public T getRecalDatum() {
         return recalDatum;
     }
 
+    /**
+     * The set of all subnodes of this tree.  May be modified.
+     * @return
+     */
+    @Ensures("result != null")
     public Set<RecalDatumNode<T>> getSubnodes() {
         return subnodes;
     }
 
+    /**
+     * Return the fixed penalty, if set, or else the the calculated penalty for this node
+     * @return
+     */
     public double getPenalty() {
         if ( fixedPenalty != UNINITIALIZED )
             return fixedPenalty;
@@ -62,6 +86,17 @@ public class RecalDatumNode<T extends RecalDatum> {
             return calcPenalty();
     }
 
+    /**
+     * Set the fixed penalty for this node to a fresh calculation from calcPenalty
+     *
+     * This is important in the case where you want to compute the penalty from a full
+     * tree and then chop the tree up afterwards while considering the previous penalties.
+     * If you don't call this function then manipulating the tree may result in the
+     * penalty functions changing with changes in the tree.
+     *
+     * @param doEntireTree recurse into all subnodes?
+     * @return the fixed penalty for this node
+     */
     public double calcAndSetFixedPenalty(final boolean doEntireTree) {
         fixedPenalty = calcPenalty();
         if ( doEntireTree )
@@ -70,15 +105,41 @@ public class RecalDatumNode<T extends RecalDatum> {
         return fixedPenalty;
     }
 
+    /**
+     * Add node to the set of subnodes of this node
+     * @param sub
+     */
+    @Requires("sub != null")
     public void addSubnode(final RecalDatumNode<T> sub) {
         subnodes.add(sub);
     }
 
+    /**
+     * Is this a leaf node (i.e., has no subnodes)?
+     * @return
+     */
     public boolean isLeaf() {
         return subnodes.isEmpty();
     }
 
-    public int getNumBranches() {
+    /**
+     * Is this node immediately above only leaf nodes?
+     *
+     * @return
+     */
+    public boolean isAboveOnlyLeaves() {
+        for ( final RecalDatumNode<T> sub : subnodes )
+            if ( ! sub.isLeaf() )
+                return false;
+        return true;
+    }
+
+    /**
+     * What's the immediate number of subnodes from this node?
+     * @return
+     */
+    @Ensures("result >= 0")
+    public int getNumSubnodes() {
         return subnodes.size();
     }
 
@@ -88,6 +149,8 @@ public class RecalDatumNode<T extends RecalDatum> {
      * This algorithm assumes that penalties have been fixed before pruning, as leaf nodes by
      * definition have 0 penalty unless they represent a pruned tree with underlying -- but now
      * pruned -- subtrees
+     *
+     * TODO -- can we really just add together the chi2 values?
      *
      * @return
      */
@@ -102,6 +165,10 @@ public class RecalDatumNode<T extends RecalDatum> {
         }
     }
 
+    /**
+     * What's the longest branch from this node to any leaf?
+     * @return
+     */
     public int maxDepth() {
         int subMax = 0;
         for ( final RecalDatumNode<T> sub : subnodes )
@@ -109,6 +176,11 @@ public class RecalDatumNode<T extends RecalDatum> {
         return subMax + 1;
     }
 
+    /**
+     * What's the shortest branch from this node to any leaf?  Includes this node
+     * @return
+     */
+    @Ensures("result > 0")
     public int minDepth() {
         if ( isLeaf() )
             return 1;
@@ -120,6 +192,11 @@ public class RecalDatumNode<T extends RecalDatum> {
         }
     }
 
+    /**
+     * Return the number of nodes, including this one, reachable from this node
+     * @return
+     */
+    @Ensures("result > 0")
     public int size() {
         int size = 1;
         for ( final RecalDatumNode<T> sub : subnodes )
@@ -127,6 +204,12 @@ public class RecalDatumNode<T extends RecalDatum> {
         return size;
     }
 
+    /**
+     * Count the number of leaf nodes reachable from this node
+     *
+     * @return
+     */
+    @Ensures("result >= 0")
     public int numLeaves() {
         if ( isLeaf() )
             return 1;
@@ -138,44 +221,37 @@ public class RecalDatumNode<T extends RecalDatum> {
         }
     }
 
+    /**
+     * Calculate the chi^2 penalty among subnodes of this node.  The chi^2 value
+     * indicates the degree of independence of the implied error rates among the
+     * immediate subnodes
+     *
+     * @return the chi2 penalty, or 0.0 if it cannot be calculated
+     */
     private double calcPenalty() {
-        if ( USE_CHI2 )
-            return calcPenaltyChi2();
-        else
-            return calcPenaltyLog10(getRecalDatum().getEmpiricalErrorRate());
-    }
-
-    private double calcPenaltyChi2() {
         if ( isLeaf() )
+            return 0.0;
+        else if ( subnodes.size() == 1 )
+            // only one value, so its free to merge away
             return 0.0;
         else {
             final long[][] counts = new long[subnodes.size()][2];
 
             int i = 0;
-            for ( RecalDatumNode<T> subnode : subnodes ) {
-                counts[i][0] = subnode.getRecalDatum().getNumMismatches();
-                counts[i][1] = subnode.getRecalDatum().getNumObservations();
+            for ( final RecalDatumNode<T> subnode : subnodes ) {
+                // use the yates correction to help avoid all zeros => NaN
+                counts[i][0] = subnode.getRecalDatum().getNumMismatches() + 1;
+                counts[i][1] = subnode.getRecalDatum().getNumObservations() + 2;
                 i++;
             }
 
             final double chi2 = new ChiSquareTestImpl().chiSquare(counts);
 
-//            StringBuilder x = new StringBuilder();
-//            StringBuilder y = new StringBuilder();
-//            for ( int k = 0; k < counts.length; k++) {
-//                if ( k != 0 ) {
-//                    x.append(", ");
-//                    y.append(", ");
-//                }
-//                x.append(counts[k][0]);
-//                y.append(counts[k][1]);
-//            }
-//            logger.info("x = c(" + x.toString() + ")");
-//            logger.info("y = c(" + y.toString() + ")");
-//            logger.info("chi2 = " + chi2);
+            // make sure things are reasonable and fail early if not
+            if (Double.isInfinite(chi2) || Double.isNaN(chi2))
+                throw new ReviewedStingException("chi2 value is " + chi2 + " at " + getRecalDatum());
 
             return chi2;
-            //return Math.log10(chi2);
         }
     }
 
@@ -216,11 +292,17 @@ public class RecalDatumNode<T extends RecalDatum> {
         }
     }
 
+    /**
+     * Return a freshly allocated tree prunes to have no more than maxDepth from the root to any leaf
+     *
+     * @param maxDepth
+     * @return
+     */
     public RecalDatumNode<T> pruneToDepth(final int maxDepth) {
         if ( maxDepth < 1 )
             throw new IllegalArgumentException("maxDepth < 1");
         else {
-            final Set<RecalDatumNode<T>> subPruned = new HashSet<RecalDatumNode<T>>(getNumBranches());
+            final Set<RecalDatumNode<T>> subPruned = new HashSet<RecalDatumNode<T>>(getNumSubnodes());
             if ( maxDepth > 1 )
                 for ( final RecalDatumNode<T> sub : subnodes )
                     subPruned.add(sub.pruneToDepth(maxDepth - 1));
@@ -228,12 +310,21 @@ public class RecalDatumNode<T extends RecalDatum> {
         }
     }
 
+    /**
+     * Return a freshly allocated tree with to no more than maxElements in order of penalty
+     *
+     * Note that nodes must have fixed penalties to this algorithm will fail.
+     *
+     * @param maxElements
+     * @return
+     */
     public RecalDatumNode<T> pruneByPenalty(final int maxElements) {
         RecalDatumNode<T> root = this;
 
         while ( root.size() > maxElements ) {
             // remove the lowest penalty element, and continue
             root = root.removeLowestPenaltyNode();
+            logger.debug("pruneByPenalty root size is now " + root.size() + " of max " + maxElements);
         }
 
         // our size is below the target, so we are good, return
@@ -241,15 +332,15 @@ public class RecalDatumNode<T extends RecalDatum> {
     }
 
     /**
-     * Find the lowest penalty node in the tree, and return a tree without it
+     * Find the lowest penalty above leaf node in the tree, and return a tree without it
      *
      * Note this excludes the current (root) node
      *
      * @return
      */
     private RecalDatumNode<T> removeLowestPenaltyNode() {
-        final Pair<RecalDatumNode<T>, Double> nodeToRemove = getMinPenaltyNode();
-        logger.info("Removing " + nodeToRemove.getFirst() + " with penalty " + nodeToRemove.getSecond());
+        final Pair<RecalDatumNode<T>, Double> nodeToRemove = getMinPenaltyAboveLeafNode();
+        //logger.info("Removing " + nodeToRemove.getFirst() + " with penalty " + nodeToRemove.getSecond());
 
         final Pair<RecalDatumNode<T>, Boolean> result = removeNode(nodeToRemove.getFirst());
 
@@ -262,20 +353,37 @@ public class RecalDatumNode<T extends RecalDatum> {
         return oneRemoved;
     }
 
-    private Pair<RecalDatumNode<T>, Double> getMinPenaltyNode() {
-        final double myValue = isLeaf() ? Double.MAX_VALUE : getPenalty();
-        Pair<RecalDatumNode<T>, Double> maxNode = new Pair<RecalDatumNode<T>, Double>(this, myValue);
-
-        for ( final RecalDatumNode<T> sub : subnodes ) {
-            final Pair<RecalDatumNode<T>, Double> subFind = sub.getMinPenaltyNode();
-            if ( subFind.getSecond() < maxNode.getSecond() ) {
-                maxNode = subFind;
+    /**
+     * Finds in the tree the node with the lowest penalty whose subnodes are all leaves
+     *
+     * @return
+     */
+    private Pair<RecalDatumNode<T>, Double> getMinPenaltyAboveLeafNode() {
+        if ( isLeaf() )
+            // not allowed to remove leafs directly
+            return null;
+        if ( isAboveOnlyLeaves() )
+            // we only consider removing nodes above all leaves
+            return new Pair<RecalDatumNode<T>, Double>(this, getPenalty());
+        else {
+            // just recurse, taking the result with the min penalty of all subnodes
+            Pair<RecalDatumNode<T>, Double> minNode = null;
+            for ( final RecalDatumNode<T> sub : subnodes ) {
+                final Pair<RecalDatumNode<T>, Double> subFind = sub.getMinPenaltyAboveLeafNode();
+                if ( subFind != null && (minNode == null || subFind.getSecond() < minNode.getSecond()) ) {
+                    minNode = subFind;
+                }
             }
+            return minNode;
         }
-
-        return maxNode;
     }
 
+    /**
+     * Return a freshly allocated tree without the node nodeToRemove
+     *
+     * @param nodeToRemove
+     * @return
+     */
     private Pair<RecalDatumNode<T>, Boolean> removeNode(final RecalDatumNode<T> nodeToRemove) {
         if ( this == nodeToRemove ) {
             if ( isLeaf() )
@@ -288,7 +396,7 @@ public class RecalDatumNode<T extends RecalDatum> {
             boolean removedSomething = false;
 
             // our sub nodes with the penalty node removed
-            final Set<RecalDatumNode<T>> sub = new HashSet<RecalDatumNode<T>>(getNumBranches());
+            final Set<RecalDatumNode<T>> sub = new HashSet<RecalDatumNode<T>>(getNumSubnodes());
 
             for ( final RecalDatumNode<T> sub1 : subnodes ) {
                 if ( removedSomething ) {
@@ -304,6 +412,31 @@ public class RecalDatumNode<T extends RecalDatum> {
 
             final RecalDatumNode<T> node = new RecalDatumNode<T>(getRecalDatum(), fixedPenalty, sub);
             return new Pair<RecalDatumNode<T>, Boolean>(node, removedSomething);
+        }
+    }
+
+    /**
+     * Return a collection of all of the data in the leaf nodes of this tree
+     *
+     * @return
+     */
+    public Collection<T> getAllLeaves() {
+        final LinkedList<T> list = new LinkedList<T>();
+        getAllLeavesRec(list);
+        return list;
+    }
+
+    /**
+     * Helpful recursive function for getAllLeaves()
+     *
+     * @param list the destination for the list of leaves
+     */
+    private void getAllLeavesRec(final LinkedList<T> list) {
+        if ( isLeaf() )
+            list.add(getRecalDatum());
+        else {
+            for ( final RecalDatumNode<T> sub : subnodes )
+                sub.getAllLeavesRec(list);
         }
     }
 }

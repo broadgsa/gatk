@@ -208,11 +208,23 @@ public class GATKReportTable {
     }
 
     /**
-     * Verifies that a table or column name has only alphanumeric characters - no spaces or special characters allowed
-     *
-     * @param name the name of the table or column
-     * @return true if the name is valid, false if otherwise
+     * Create a new GATKReportTable with the same structure
+     * @param tableToCopy
      */
+    public GATKReportTable(final GATKReportTable tableToCopy, final boolean copyData) {
+        this(tableToCopy.getTableName(), tableToCopy.getTableDescription(), tableToCopy.getNumColumns(), tableToCopy.sortByRowID);
+        for ( final GATKReportColumn column : tableToCopy.getColumnInfo() )
+            addColumn(column.getColumnName(), column.getFormat());
+        if ( copyData )
+            throw new IllegalArgumentException("sorry, copying data in GATKReportTable isn't supported");
+    }
+
+        /**
+        * Verifies that a table or column name has only alphanumeric characters - no spaces or special characters allowed
+        *
+        * @param name the name of the table or column
+        * @return true if the name is valid, false if otherwise
+        */
     private boolean isValidName(String name) {
         Pattern p = Pattern.compile(INVALID_TABLE_NAME_REGEX);
         Matcher m = p.matcher(name);
@@ -488,6 +500,17 @@ public class GATKReportTable {
      */
     public Object get(final Object rowID, final String columnName) {
         return get(rowIdToIndex.get(rowID), columnNameToIndex.get(columnName));
+    }
+
+    /**
+     * Get a value from the given position in the table
+     *
+     * @param rowIndex       the row ID
+     * @param columnName  the name of the column
+     * @return the value stored at the specified position in the table
+     */
+    public Object get(final int rowIndex, final String columnName) {
+        return get(rowIndex, columnNameToIndex.get(columnName));
     }
 
     /**
