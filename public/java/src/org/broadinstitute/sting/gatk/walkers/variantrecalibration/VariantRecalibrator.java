@@ -245,7 +245,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
         for( final VariantContext vc : tracker.getValues(input, context.getLocation()) ) {
             if( vc != null && ( vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters()) ) ) {
-                if( checkRecalibrationMode( vc, VRAC.MODE ) ) {
+                if( VariantDataManager.checkVariationClass( vc, VRAC.MODE ) ) {
                     final VariantDatum datum = new VariantDatum();
 
                     // Populate the datum with lots of fields from the VariantContext, unfortunately the VC is too big so we just pull in only the things we absolutely need.
@@ -266,12 +266,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         }
 
         return mapList;
-    }
-
-    public static boolean checkRecalibrationMode( final VariantContext vc, final VariantRecalibratorArgumentCollection.Mode mode ) {
-        return mode == VariantRecalibratorArgumentCollection.Mode.BOTH ||
-                (mode == VariantRecalibratorArgumentCollection.Mode.SNP && vc.isSNP()) ||
-	            (mode == VariantRecalibratorArgumentCollection.Mode.INDEL && (vc.isIndel() || vc.isMixed()));
     }
 
     //---------------------------------------------------------------------------------------------------------------
