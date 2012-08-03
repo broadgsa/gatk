@@ -77,7 +77,9 @@ public final class BCF2Utils {
         final Set<String> seen = new HashSet<String>();
         final ArrayList<String> dict = new ArrayList<String>();
 
-        dict.add(VCFConstants.PASSES_FILTERS_v4); // special case the special PASS field
+        // special case the special PASS field which doesn't show up in the FILTER field definitions
+        seen.add(VCFConstants.PASSES_FILTERS_v4);
+        dict.add(VCFConstants.PASSES_FILTERS_v4);
 
         // set up the strings dictionary
         for ( VCFHeaderLine line : header.getMetaDataInInputOrder() ) {
