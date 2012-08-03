@@ -324,7 +324,8 @@ public class RecalDatumNode<T extends RecalDatum> {
         while ( root.size() > maxElements ) {
             // remove the lowest penalty element, and continue
             root = root.removeLowestPenaltyNode();
-            logger.debug("pruneByPenalty root size is now " + root.size() + " of max " + maxElements);
+            if ( logger.isDebugEnabled() )
+                logger.debug("pruneByPenalty root size is now " + root.size() + " of max " + maxElements);
         }
 
         // our size is below the target, so we are good, return
