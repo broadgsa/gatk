@@ -196,7 +196,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> implements T
 
         for( final VariantContext vc : VCs ) {
 
-            if( VariantRecalibrator.checkRecalibrationMode( vc, MODE ) && (vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
+            if( VariantDataManager.checkVariationClass( vc, MODE ) && (vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
 
                 final VariantContext recalDatum = getMatchingRecalVC(vc, recals);
                 if( recalDatum == null ) {
