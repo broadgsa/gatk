@@ -21,22 +21,42 @@ public class AdaptiveContext {
      * observation and error counts of their parent.
      *
      * This algorithm produces data consistent with the standard output in a BQSR recal
-     * file for the Context covariate
+     * file for the Context covariate.
+     *
+     * Suppose you have input tree
+     *
+     * - x
+     *   - A
+     *     - C
+     *     - T
+     *   - C
+     *     - T
+     *
+     * This will produce the following contexts with fill depth of 2
+     *
+     * AA <- gets A info
+     * CA <- gets CA info
+     * GA <- gets A info
+     * TA <- get TA info
+     * .. for all 16 contexts
      *
      * @param root
      * @param fillDepth
      * @return
      */
-    public static RecalDatumNode<ContextDatum> fillToDepth(final RecalDatumNode<ContextDatum> root, final int fillDepth) {
+    public static RecalDatumNode<ContextDatum> fillToDepth(final RecalDatumNode<ContextDatum> root,
+                                                           final int fillDepth,
+                                                           final boolean debugWriteN) {
         if ( root == null ) throw new IllegalArgumentException("root is null");
         if ( fillDepth < 0 ) throw new IllegalArgumentException("fillDepth is < 0");
 
-        return fillToDepthRec(root, fillDepth, 0);
+        return fillToDepthRec(root, fillDepth, 0, debugWriteN);
     }
 
     private static RecalDatumNode<ContextDatum> fillToDepthRec(final RecalDatumNode<ContextDatum> parent,
                                                               final int fillDepth,
-                                                              final int currentDepth) {
+                                                              final int currentDepth,
+                                                              final boolean debugWriteN) {
         // three cases:
         //   We are in the tree and so just recursively build
         //   We have reached our depth goal, so just return the parent since we are done
@@ -47,24 +67,25 @@ public class AdaptiveContext {
             final RecalDatumNode<ContextDatum> newParent = new RecalDatumNode<ContextDatum>(parent.getRecalDatum());
 
             for ( final String base : Arrays.asList("A", "C", "G", "T")) {
+                final String subContextBases = base + parent.getRecalDatum().context;
                 ContextDatum subContext;
                 Set<RecalDatumNode<ContextDatum>> subContexts;
 
-                final RecalDatumNode<ContextDatum> subNode = findSubcontext(parent.getRecalDatum().context + base, parent);
+                final RecalDatumNode<ContextDatum> subNode = findSubcontext(subContextBases, parent);
                 if ( subNode != null ) {
                     // we have a subnode corresponding to the expected one, just copy and recurse
                     subContext = subNode.getRecalDatum();
                     subContexts = subNode.getSubnodes();
                 } else {
                     // have to create a new one
-                    subContext = new ContextDatum(parent.getRecalDatum().context + base,
+                    subContext = new ContextDatum(debugWriteN ? ("N" + parent.getRecalDatum().context ) : subContextBases,
                             parent.getRecalDatum().getNumObservations(), parent.getRecalDatum().getNumMismatches());
                     subContexts = Collections.emptySet();
                 }
 
                 newParent.addSubnode(
                         fillToDepthRec(new RecalDatumNode<ContextDatum>(subContext, subContexts),
-                                fillDepth, currentDepth + 1));
+                                fillDepth, currentDepth + 1, debugWriteN));
             }
             return newParent;
         } else {
@@ -119,7 +140,7 @@ public class AdaptiveContext {
                 parent = new RecalDatumNode<ContextDatum>(new ContextDatum(parentContext, 0, 0));
                 contextToNodes.put(parentContext, parent);
 
-                if ( parentContext != ContextDatum.ROOT_CONTEXT )
+                if ( ! parent.getRecalDatum().isRootContext() )
                     remaining.add(parent);
                 else
                     root = parent;

@@ -166,6 +166,28 @@ public class RecalDatumNode<T extends RecalDatum> {
     }
 
     /**
+     * The maximum penalty among all nodes
+     * @return
+     */
+    public double maxPenalty() {
+        double max = getPenalty();
+        for ( final RecalDatumNode<T> sub : subnodes )
+            max = Math.max(max, sub.maxPenalty());
+        return max;
+    }
+
+    /**
+     * The minimum penalty among all nodes
+     * @return
+     */
+    public double minPenalty() {
+        double min = getPenalty();
+        for ( final RecalDatumNode<T> sub : subnodes )
+            min = Math.min(min, sub.minPenalty());
+        return min;
+    }
+
+    /**
      * What's the longest branch from this node to any leaf?
      * @return
      */
