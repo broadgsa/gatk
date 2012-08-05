@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
+import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -160,49 +161,17 @@ public class Haplotype {
     }
 
     @Requires({"refInsertLocation >= 0"})
-    public Haplotype insertAllele( final Allele refAllele, final Allele altAllele, int refInsertLocation ) {
-
-        if( refAllele.length() != altAllele.length() ) { refInsertLocation++; }
+    public Haplotype insertAllele( final Allele refAllele, final Allele altAllele, final int refInsertLocation ) {
+        // refInsertLocation is in ref haplotype offset coordinates NOT genomic coordinates
         final int haplotypeInsertLocation = ReadUtils.getReadCoordinateForReferenceCoordinate(alignmentStartHapwrtRef, cigar, refInsertLocation, ReadUtils.ClippingTail.RIGHT_TAIL, true);
-        if( haplotypeInsertLocation == -1 ) { // desired change falls inside deletion so don't bother creating a new haplotype
-            return new Haplotype(bases.clone());
+        if( haplotypeInsertLocation == -1 || haplotypeInsertLocation + refAllele.length() >= bases.length ) { // desired change falls inside deletion so don't bother creating a new haplotype
+            return null;
         }
-        byte[] newHaplotype;
-
-        try {
-            if( refAllele.length() == altAllele.length() ) { // SNP or MNP
-                newHaplotype = bases.clone();
-                for( int iii = 0; iii < altAllele.length(); iii++ ) {
-                    newHaplotype[haplotypeInsertLocation+iii] = altAllele.getBases()[iii];
-                }
-            } else if( refAllele.length() < altAllele.length() ) { // insertion                
-                final int altAlleleLength = altAllele.length() - 1;
-                newHaplotype = new byte[bases.length + altAlleleLength];
-                for( int iii = 0; iii < bases.length; iii++ ) {
-                    newHaplotype[iii] = bases[iii];
-                }
-                for( int iii = newHaplotype.length - 1; iii > haplotypeInsertLocation + altAlleleLength - 1; iii-- ) {
-                    newHaplotype[iii] = newHaplotype[iii-altAlleleLength];
-                }
-                for( int iii = 0; iii < altAlleleLength; iii++ ) {
-                    newHaplotype[haplotypeInsertLocation+iii] = altAllele.getBases()[iii+1];
-                }
-            } else { // deletion
-                final int shift = refAllele.length() - altAllele.length();
-                final int altAlleleLength = altAllele.length() - 1;
-                newHaplotype = new byte[bases.length - shift];
-                for( int iii = 0; iii < haplotypeInsertLocation + altAlleleLength; iii++ ) {
-                    newHaplotype[iii] = bases[iii];
-                }
-                for( int iii = haplotypeInsertLocation + altAlleleLength; iii < newHaplotype.length; iii++ ) {
-                    newHaplotype[iii] = bases[iii+shift];
-                }
-            }
-        } catch (Exception e) { // event already on haplotype is too large/complex to insert another allele, most likely because of not enough reference padding
-            return new Haplotype(bases.clone());
-        }
-
-        return new Haplotype(newHaplotype);
+        byte[] newHaplotypeBases = new byte[]{};
+        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, 0, haplotypeInsertLocation)); // bases before the variant
+        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, altAllele.getBases()); // the alt allele of the variant
+        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, haplotypeInsertLocation + refAllele.length(), bases.length)); // bases after the variant
+        return new Haplotype(newHaplotypeBases);
     }
 
     public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(final List<Allele> alleleList,

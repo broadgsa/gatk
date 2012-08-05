@@ -331,7 +331,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         // Find the filtering lodCutoff for display on the model PDFs. Red variants are those which were below the cutoff and filtered out of the final callset.
         double lodCutoff = 0.0;
         for( final Tranche tranche : tranches ) {
-            if( MathUtils.compareDoubles(tranche.ts, TS_FILTER_LEVEL, 0.0001)==0 ) {
+            if( MathUtils.compareDoubles(tranche.ts, TS_FILTER_LEVEL, 0.0001) == 0 ) {
                 lodCutoff = tranche.minVQSLod;
             }
         }
