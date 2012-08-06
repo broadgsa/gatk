@@ -237,7 +237,12 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
         // parse out the required fields
         final String chr = getCachedString(parts[0]);
         builder.chr(chr);
-        int pos = Integer.valueOf(parts[1]);
+        int pos = -1;
+        try {
+            pos = Integer.valueOf(parts[1]);
+        } catch (NumberFormatException e) {
+            generateException(parts[1] + " is not a valid start position in the VCF format");
+        }
         builder.start(pos);
 
         if ( parts[2].length() == 0 )

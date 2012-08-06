@@ -210,6 +210,13 @@ public class MathUtils {
         return total;
     }
 
+    public static int sum(byte[] x) {
+        int total = 0;
+        for (byte v : x)
+            total += (int)v;
+        return total;
+    }
+
     /**
      * Calculates the log10 cumulative sum of an array with log10 probabilities
      *
