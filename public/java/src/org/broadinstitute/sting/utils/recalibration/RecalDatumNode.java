@@ -166,6 +166,28 @@ public class RecalDatumNode<T extends RecalDatum> {
     }
 
     /**
+     * The maximum penalty among all nodes
+     * @return
+     */
+    public double maxPenalty() {
+        double max = getPenalty();
+        for ( final RecalDatumNode<T> sub : subnodes )
+            max = Math.max(max, sub.maxPenalty());
+        return max;
+    }
+
+    /**
+     * The minimum penalty among all nodes
+     * @return
+     */
+    public double minPenalty() {
+        double min = getPenalty();
+        for ( final RecalDatumNode<T> sub : subnodes )
+            min = Math.min(min, sub.minPenalty());
+        return min;
+    }
+
+    /**
      * What's the longest branch from this node to any leaf?
      * @return
      */
@@ -324,7 +346,8 @@ public class RecalDatumNode<T extends RecalDatum> {
         while ( root.size() > maxElements ) {
             // remove the lowest penalty element, and continue
             root = root.removeLowestPenaltyNode();
-            logger.debug("pruneByPenalty root size is now " + root.size() + " of max " + maxElements);
+            if ( logger.isDebugEnabled() )
+                logger.debug("pruneByPenalty root size is now " + root.size() + " of max " + maxElements);
         }
 
         // our size is below the target, so we are good, return
