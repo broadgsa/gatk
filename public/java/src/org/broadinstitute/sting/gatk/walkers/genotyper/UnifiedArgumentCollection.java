@@ -146,12 +146,12 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "indel_heterozygosity", shortName = "indelHeterozygosity", doc = "Heterozygosity for indel calling", required = false)
     public double INDEL_HETEROZYGOSITY = 1.0/8000;
 
-    @Hidden
-    @Argument(fullName = "indelGapContinuationPenalty", shortName = "indelGCP", doc = "Indel gap continuation penalty", required = false)
+    @Advanced
+    @Argument(fullName = "indelGapContinuationPenalty", shortName = "indelGCP", doc = "Indel gap continuation penalty, as Phred-scaled probability.  I.e., 30 => 10^-30/10", required = false)
     public byte INDEL_GAP_CONTINUATION_PENALTY = 10;
 
-    @Hidden
-    @Argument(fullName = "indelGapOpenPenalty", shortName = "indelGOP", doc = "Indel gap open penalty", required = false)
+    @Advanced
+    @Argument(fullName = "indelGapOpenPenalty", shortName = "indelGOP", doc = "Indel gap open penalty, as Phred-scaled probability.  I.e., 30 => 10^-30/10", required = false)
     public byte INDEL_GAP_OPEN_PENALTY = 45;
 
     @Hidden
