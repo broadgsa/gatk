@@ -114,11 +114,11 @@ public class UnifiedArgumentCollection {
      * that you not play around with this parameter.
      */
     @Advanced
-    @Argument(fullName = "max_alternate_alleles", shortName = "maxAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
+    @Argument(fullName = "max_alternate_alleles", shortName = "maxAltAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
     public int MAX_ALTERNATE_ALLELES = 3;
 
     @Hidden
-    @Argument(fullName = "cap_max_alternate_alleles_for_indels", shortName = "capMaxAllelesForIndels", doc = "Cap the maximum number of alternate alleles to genotype for indel calls at 2; overrides the --max_alternate_alleles argument; GSA production use only", required = false)
+    @Argument(fullName = "cap_max_alternate_alleles_for_indels", shortName = "capMaxAltAllelesForIndels", doc = "Cap the maximum number of alternate alleles to genotype for indel calls at 2; overrides the --max_alternate_alleles argument; GSA production use only", required = false)
     public boolean CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS = false;
 
     // indel-related arguments
