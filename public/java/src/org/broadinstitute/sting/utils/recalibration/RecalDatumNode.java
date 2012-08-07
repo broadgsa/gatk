@@ -169,10 +169,10 @@ public class RecalDatumNode<T extends RecalDatum> {
      * The maximum penalty among all nodes
      * @return
      */
-    public double maxPenalty() {
-        double max = getPenalty();
+    public double maxPenalty(final boolean leafOnly) {
+        double max = ! leafOnly || isLeaf() ? getPenalty() : Double.MIN_VALUE;
         for ( final RecalDatumNode<T> sub : subnodes )
-            max = Math.max(max, sub.maxPenalty());
+            max = Math.max(max, sub.maxPenalty(leafOnly));
         return max;
     }
 
@@ -180,10 +180,10 @@ public class RecalDatumNode<T extends RecalDatum> {
      * The minimum penalty among all nodes
      * @return
      */
-    public double minPenalty() {
-        double min = getPenalty();
+    public double minPenalty(final boolean leafOnly) {
+        double min = ! leafOnly || isLeaf() ? getPenalty() : Double.MAX_VALUE;
         for ( final RecalDatumNode<T> sub : subnodes )
-            min = Math.min(min, sub.minPenalty());
+            min = Math.min(min, sub.minPenalty(leafOnly));
         return min;
     }
 
@@ -251,7 +251,7 @@ public class RecalDatumNode<T extends RecalDatum> {
      * @return the chi2 penalty, or 0.0 if it cannot be calculated
      */
     private double calcPenalty() {
-        if ( isLeaf() )
+        if ( isLeaf() || freeToMerge() )
             return 0.0;
         else if ( subnodes.size() == 1 )
             // only one value, so its free to merge away
@@ -274,6 +274,22 @@ public class RecalDatumNode<T extends RecalDatum> {
                 throw new ReviewedStingException("chi2 value is " + chi2 + " at " + getRecalDatum());
 
             return chi2;
+        }
+    }
+
+    /**
+     * Is this node free to merge because its rounded Q score is the same as all nodes below
+     * @return
+     */
+    private boolean freeToMerge() {
+        if ( isLeaf() ) // leaves are free to merge
+            return true;
+        else {
+            final byte myQual = getRecalDatum().getEmpiricalQualityAsByte();
+            for ( final RecalDatumNode<T> sub : subnodes )
+                if ( sub.getRecalDatum().getEmpiricalQualityAsByte() != myQual )
+                    return false;
+            return true;
         }
     }
 
@@ -346,8 +362,6 @@ public class RecalDatumNode<T extends RecalDatum> {
         while ( root.size() > maxElements ) {
             // remove the lowest penalty element, and continue
             root = root.removeLowestPenaltyNode();
-            if ( logger.isDebugEnabled() )
-                logger.debug("pruneByPenalty root size is now " + root.size() + " of max " + maxElements);
         }
 
         // our size is below the target, so we are good, return
@@ -363,7 +377,8 @@ public class RecalDatumNode<T extends RecalDatum> {
      */
     private RecalDatumNode<T> removeLowestPenaltyNode() {
         final Pair<RecalDatumNode<T>, Double> nodeToRemove = getMinPenaltyAboveLeafNode();
-        //logger.info("Removing " + nodeToRemove.getFirst() + " with penalty " + nodeToRemove.getSecond());
+        if ( logger.isDebugEnabled() )
+            logger.debug("Removing " + nodeToRemove.getFirst() + " with penalty " + nodeToRemove.getSecond());
 
         final Pair<RecalDatumNode<T>, Boolean> result = removeNode(nodeToRemove.getFirst());
 
