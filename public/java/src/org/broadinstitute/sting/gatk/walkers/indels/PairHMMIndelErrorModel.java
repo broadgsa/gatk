@@ -351,7 +351,9 @@ public class PairHMMIndelErrorModel {
                             previousHaplotypeSeen = haplotypeBases.clone();
 
                             readLikelihood = pairHMM.computeReadLikelihoodGivenHaplotype(haplotypeBases, readBases, readQuals,
-                                    contextLogGapOpenProbabilities, contextLogGapOpenProbabilities, contextLogGapContinuationProbabilities,
+                                    (read.hasBaseIndelQualities() ? read.getBaseInsertionQualities() : contextLogGapOpenProbabilities),
+                                    (read.hasBaseIndelQualities() ? read.getBaseDeletionQualities() : contextLogGapOpenProbabilities),
+                                    contextLogGapContinuationProbabilities,
                                     startIndexInHaplotype, matchMetricArray, XMetricArray, YMetricArray);
 
 

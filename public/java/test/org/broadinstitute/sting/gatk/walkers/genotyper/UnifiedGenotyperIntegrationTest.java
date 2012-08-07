@@ -355,6 +355,19 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         executeTest("test GENOTYPE_GIVEN_ALLELES with no evidence in reads", spec);
     }
 
+    @Test
+    public void testBaseIndelQualityScores() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                baseCommandIndelsb37 +
+                        " -I " + privateTestDir + "NA12878.100kb.BQSRv2.example.bam" +
+                        " -o %s" +
+                        " -L 20:10,000,000-10,100,000",
+                1,
+                Arrays.asList("b3c923ed9efa04b85fc18a9b45c8d2a6"));
+
+        executeTest(String.format("test UG with base indel quality scores"), spec);
+    }
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // testing SnpEff
