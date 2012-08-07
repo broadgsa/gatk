@@ -216,6 +216,7 @@ final class CommonInfo {
         Object x = getAttribute(key);
         if ( x == null ) return defaultValue;
         if ( x instanceof Double ) return (Double)x;
+        if ( x instanceof Integer ) return (Integer)x;
         return Double.valueOf((String)x); // throws an exception if this isn't a string
     }
 

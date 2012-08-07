@@ -167,7 +167,6 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
 
         // create the config offsets
         if ( ! header.getContigLines().isEmpty() ) {
-            logger.info("Found contig lines in BCF2 file, using those");
             contigNames.clear();
             for ( final VCFContigHeaderLine contig : header.getContigLines()) {
                 if ( contig.getID() == null || contig.getID().equals("") )
