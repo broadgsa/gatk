@@ -426,10 +426,10 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         Map<String,Set<Sample>> families = this.getSampleDB().getFamilies();
         Set<Sample> family;
         ArrayList<Sample> parents;
-        for(String familyID : families.keySet()){
-            family = families.get(familyID);
+        for(Map.Entry<String,Set<Sample>> familyEntry : families.entrySet()){
+            family = familyEntry.getValue();
             if(family.size()<2 || family.size()>3){
-                logger.info(String.format("Caution: Family %s has %d members; At the moment Phase By Transmission only supports trios and parent/child pairs. Family skipped.",familyID,family.size()));
+                logger.info(String.format("Caution: Family %s has %d members; At the moment Phase By Transmission only supports trios and parent/child pairs. Family skipped.",familyEntry.getKey(),family.size()));
             }
             else{
                 for(Sample familyMember : family){
@@ -438,7 +438,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                         if(family.containsAll(parents))
                             this.trios.add(familyMember);
                         else
-                            logger.info(String.format("Caution: Family %s skipped as it is not a trio nor a parent/child pair; At the moment Phase By Transmission only supports trios and parent/child pairs. Family skipped.",familyID));
+                            logger.info(String.format("Caution: Family %s skipped as it is not a trio nor a parent/child pair; At the moment Phase By Transmission only supports trios and parent/child pairs. Family skipped.",familyEntry.getKey()));
                         break;
                     }
                 }
