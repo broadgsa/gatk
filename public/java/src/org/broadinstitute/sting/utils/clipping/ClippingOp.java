@@ -538,7 +538,7 @@ public class ClippingOp {
         return 0;
     }
 
-    private class CigarShift {
+    private static class CigarShift {
         private Cigar cigar;
         private int shiftFromStart;
         private int shiftFromEnd;

@@ -574,7 +574,7 @@ public class ClipReads extends ReadWalker<ClipReads.ReadClipperWithData, ClipRea
         }
     }
 
-    public class ReadClipperWithData extends ReadClipper {
+    public static class ReadClipperWithData extends ReadClipper {
         private ClippingData data;
 
         public ReadClipperWithData(GATKSAMRecord read, List<SeqToClip> clipSeqs) {

@@ -103,7 +103,7 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
         return map;
     }
 
-    private class HaplotypeComparator implements Comparator<Haplotype> {
+    private static class HaplotypeComparator implements Comparator<Haplotype> {
 
         public int compare(Haplotype a, Haplotype b) {
             if (a.getQualitySum() < b.getQualitySum())
