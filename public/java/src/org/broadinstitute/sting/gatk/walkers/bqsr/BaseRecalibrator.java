@@ -246,9 +246,9 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
     }
 
     /**
-     * Initialize the reduce step by creating a PrintStream from the filename specified as an argument to the walker.
+     * Initialize the reduce step by returning 0L
      *
-     * @return returns A PrintStream created from the -recalFile filename argument specified to the walker
+     * @return returns 0L
      */
     public Long reduceInit() {
         return 0L;
