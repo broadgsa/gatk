@@ -34,15 +34,13 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Filters a lifted-over VCF file for ref bases that have been changed.
@@ -66,7 +64,7 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(trackName));
         Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
 
-        final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey(trackName) ? vcfHeaders.get(trackName).getMetaDataInSortedOrder() : null, samples);
+        final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey(trackName) ? vcfHeaders.get(trackName).getMetaDataInSortedOrder() : Collections.<VCFHeaderLine>emptySet(), samples);
         writer.writeHeader(vcfHeader);
     }
 
