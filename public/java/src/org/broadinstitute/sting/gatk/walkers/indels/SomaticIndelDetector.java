@@ -1304,7 +1304,7 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
 
     @Override
     public Integer reduceInit() {
-        return new Integer(0);
+        return 0;
     }
 
 

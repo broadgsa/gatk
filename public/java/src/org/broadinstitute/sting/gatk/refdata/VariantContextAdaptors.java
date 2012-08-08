@@ -309,7 +309,6 @@ public class VariantContextAdaptors {
             int index = hapmap.getStart() - ref.getWindow().getStart();
             if ( index < 0 )
                 return null; // we weren't given enough reference context to create the VariantContext
-            Byte refBaseForIndel = new Byte(ref.getBases()[index]);
 
             HashSet<Allele> alleles = new HashSet<Allele>();
             Allele refSNPAllele = Allele.create(ref.getBase(), true);
