@@ -88,6 +88,7 @@ public class GATKRunReport {
     // number of milliseconds before the S3 put operation is timed-out:
     private static final long S3PutTimeOut = 10 * 1000;
 
+    public static final String PHONE_HOME_DOCS_URL = "http://gatkforums.broadinstitute.org/discussion/1250/what-is-phone-home-and-how-does-it-affect-me#latest";
 
     /**
      * our log
