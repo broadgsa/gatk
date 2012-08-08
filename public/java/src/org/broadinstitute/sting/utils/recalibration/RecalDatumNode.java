@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils.recalibration;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
+import org.apache.commons.math.MathException;
 import org.apache.commons.math.stat.inference.ChiSquareTestImpl;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -19,6 +20,7 @@ import java.util.Set;
  * @since 07/27/12
  */
 public class RecalDatumNode<T extends RecalDatum> {
+    private final static double SMALLEST_CHI2_PVALUE = 1e-300;
     protected static Logger logger = Logger.getLogger(RecalDatumNode.class);
 
     /**
@@ -150,8 +152,6 @@ public class RecalDatumNode<T extends RecalDatum> {
      * definition have 0 penalty unless they represent a pruned tree with underlying -- but now
      * pruned -- subtrees
      *
-     * TODO -- can we really just add together the chi2 values?
-     *
      * @return
      */
     public double totalPenalty() {
@@ -169,10 +169,10 @@ public class RecalDatumNode<T extends RecalDatum> {
      * The maximum penalty among all nodes
      * @return
      */
-    public double maxPenalty() {
-        double max = getPenalty();
+    public double maxPenalty(final boolean leafOnly) {
+        double max = ! leafOnly || isLeaf() ? getPenalty() : Double.MIN_VALUE;
         for ( final RecalDatumNode<T> sub : subnodes )
-            max = Math.max(max, sub.maxPenalty());
+            max = Math.max(max, sub.maxPenalty(leafOnly));
         return max;
     }
 
@@ -180,10 +180,10 @@ public class RecalDatumNode<T extends RecalDatum> {
      * The minimum penalty among all nodes
      * @return
      */
-    public double minPenalty() {
-        double min = getPenalty();
+    public double minPenalty(final boolean leafOnly) {
+        double min = ! leafOnly || isLeaf() ? getPenalty() : Double.MAX_VALUE;
         for ( final RecalDatumNode<T> sub : subnodes )
-            min = Math.min(min, sub.minPenalty());
+            min = Math.min(min, sub.minPenalty(leafOnly));
         return min;
     }
 
@@ -244,14 +244,15 @@ public class RecalDatumNode<T extends RecalDatum> {
     }
 
     /**
-     * Calculate the chi^2 penalty among subnodes of this node.  The chi^2 value
-     * indicates the degree of independence of the implied error rates among the
+     * Calculate the phred-scaled p-value for a chi^2 test for independent among subnodes of this node.
+     *
+     * The chi^2 value indicates the degree of independence of the implied error rates among the
      * immediate subnodes
      *
-     * @return the chi2 penalty, or 0.0 if it cannot be calculated
+     * @return the phred-scaled p-value for chi2 penalty, or 0.0 if it cannot be calculated
      */
     private double calcPenalty() {
-        if ( isLeaf() )
+        if ( isLeaf() || freeToMerge() )
             return 0.0;
         else if ( subnodes.size() == 1 )
             // only one value, so its free to merge away
@@ -267,13 +268,34 @@ public class RecalDatumNode<T extends RecalDatum> {
                 i++;
             }
 
-            final double chi2 = new ChiSquareTestImpl().chiSquare(counts);
+            try {
+                final double chi2PValue = new ChiSquareTestImpl().chiSquareTest(counts);
+                final double penalty = -10 * Math.log10(Math.max(chi2PValue, SMALLEST_CHI2_PVALUE));
 
-            // make sure things are reasonable and fail early if not
-            if (Double.isInfinite(chi2) || Double.isNaN(chi2))
-                throw new ReviewedStingException("chi2 value is " + chi2 + " at " + getRecalDatum());
+                // make sure things are reasonable and fail early if not
+                if (Double.isInfinite(penalty) || Double.isNaN(penalty))
+                    throw new ReviewedStingException("chi2 value is " + chi2PValue + " at " + getRecalDatum());
 
-            return chi2;
+                return penalty;
+            } catch ( MathException e ) {
+                throw new ReviewedStingException("Failed in calculating chi2 value", e);
+            }
+        }
+    }
+
+    /**
+     * Is this node free to merge because its rounded Q score is the same as all nodes below
+     * @return
+     */
+    private boolean freeToMerge() {
+        if ( isLeaf() ) // leaves are free to merge
+            return true;
+        else {
+            final byte myQual = getRecalDatum().getEmpiricalQualityAsByte();
+            for ( final RecalDatumNode<T> sub : subnodes )
+                if ( sub.getRecalDatum().getEmpiricalQualityAsByte() != myQual )
+                    return false;
+            return true;
         }
     }
 
@@ -346,13 +368,55 @@ public class RecalDatumNode<T extends RecalDatum> {
         while ( root.size() > maxElements ) {
             // remove the lowest penalty element, and continue
             root = root.removeLowestPenaltyNode();
-            if ( logger.isDebugEnabled() )
-                logger.debug("pruneByPenalty root size is now " + root.size() + " of max " + maxElements);
         }
 
         // our size is below the target, so we are good, return
         return root;
     }
+
+    /**
+     * Return a freshly allocated tree where all mergable nodes with < maxPenalty are merged
+     *
+     * Note that nodes must have fixed penalties to this algorithm will fail.
+     *
+     * @param maxPenaltyIn the maximum penalty we are allowed to incur for a merge
+     * @param applyBonferroniCorrection if true, we will adjust penalty by the phred-scaled bonferroni correction
+     *                                  for the size of the initial tree.  That is, if there are 10 nodes in the
+     *                                  tree and maxPenalty is 20 we will actually enforce 10^-2 / 10 = 10^-3 = 30
+     *                                  penalty for multiple testing
+     * @return
+     */
+    public RecalDatumNode<T> pruneToNoMoreThanPenalty(final double maxPenaltyIn, final boolean applyBonferroniCorrection) {
+        RecalDatumNode<T> root = this;
+
+        final double bonferroniCorrection = 10 * Math.log10(this.size());
+        final double maxPenalty = applyBonferroniCorrection ? maxPenaltyIn + bonferroniCorrection : maxPenaltyIn;
+
+        if ( applyBonferroniCorrection )
+        logger.info(String.format("Applying Bonferroni correction for %d nodes = %.2f to initial penalty %.2f for total " +
+                "corrected max penalty of %.2f", this.size(), bonferroniCorrection, maxPenaltyIn, maxPenalty));
+
+        while ( true ) {
+            final Pair<RecalDatumNode<T>, Double> minPenaltyNode = root.getMinPenaltyAboveLeafNode();
+
+            if ( minPenaltyNode == null || minPenaltyNode.getSecond() > maxPenalty ) {
+                // nothing to merge, or the best candidate is above our max allowed
+                if ( minPenaltyNode == null )
+                    if ( logger.isDebugEnabled() ) logger.debug("Stopping because no candidates could be found");
+                else
+                    if ( logger.isDebugEnabled() ) logger.debug("Stopping because node " + minPenaltyNode.getFirst() + " has penalty " + minPenaltyNode.getSecond() + " > max " + maxPenalty);
+                break;
+            } else {
+                // remove the lowest penalty element, and continue
+                if ( logger.isDebugEnabled() ) logger.debug("Removing node " + minPenaltyNode.getFirst() + " with penalty " + minPenaltyNode.getSecond());
+                root = root.removeLowestPenaltyNode();
+            }
+        }
+
+        // no more candidates exist with penalty < maxPenalty
+        return root;
+    }
+
 
     /**
      * Find the lowest penalty above leaf node in the tree, and return a tree without it
@@ -363,7 +427,8 @@ public class RecalDatumNode<T extends RecalDatum> {
      */
     private RecalDatumNode<T> removeLowestPenaltyNode() {
         final Pair<RecalDatumNode<T>, Double> nodeToRemove = getMinPenaltyAboveLeafNode();
-        //logger.info("Removing " + nodeToRemove.getFirst() + " with penalty " + nodeToRemove.getSecond());
+        if ( logger.isDebugEnabled() )
+            logger.debug("Removing " + nodeToRemove.getFirst() + " with penalty " + nodeToRemove.getSecond());
 
         final Pair<RecalDatumNode<T>, Boolean> result = removeNode(nodeToRemove.getFirst());
 
@@ -379,7 +444,7 @@ public class RecalDatumNode<T extends RecalDatum> {
     /**
      * Finds in the tree the node with the lowest penalty whose subnodes are all leaves
      *
-     * @return
+     * @return the node and its penalty, or null if no such node exists
      */
     private Pair<RecalDatumNode<T>, Double> getMinPenaltyAboveLeafNode() {
         if ( isLeaf() )

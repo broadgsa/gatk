@@ -235,7 +235,7 @@ public class VariantDataManager {
         double value;
 
         try {
-            value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
+            value = vc.getAttributeAsDouble( annotationKey, Double.NaN );
             if( Double.isInfinite(value) ) { value = Double.NaN; }
             if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // Integer valued annotations must be jittered a bit to work in this GMM
                   value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
