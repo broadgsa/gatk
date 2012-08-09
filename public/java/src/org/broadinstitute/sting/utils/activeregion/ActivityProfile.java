@@ -46,7 +46,6 @@ public class ActivityProfile {
     final boolean presetRegions;
     GenomeLoc regionStartLoc = null;
     final List<ActivityProfileResult> isActiveList;
-    private GenomeLoc lastLoc = null;
     private static final int FILTER_SIZE = 80;
     private static final double[] GaussianKernel;
 
@@ -75,8 +74,6 @@ public class ActivityProfile {
     public void add(final GenomeLoc loc, final ActivityProfileResult result) {
         if ( loc.size() != 1 )
             throw new ReviewedStingException("Bad add call to ActivityProfile: loc " + loc + " size != 1" );
-        if ( lastLoc != null && loc.getStart() != lastLoc.getStop() + 1 )
-            throw new ReviewedStingException("Bad add call to ActivityProfile: lastLoc added " + lastLoc + " and next is " + loc);
         isActiveList.add(result);
         if( regionStartLoc == null ) {
             regionStartLoc = loc;

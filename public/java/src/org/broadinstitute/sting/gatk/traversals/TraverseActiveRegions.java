@@ -29,7 +29,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
     /**
      * our log, which we want to capture anything from this class
      */
-    protected static Logger logger = Logger.getLogger(TraversalEngine.class);
+    protected final static Logger logger = Logger.getLogger(TraversalEngine.class);
 
     private final LinkedList<org.broadinstitute.sting.utils.activeregion.ActiveRegion> workQueue = new LinkedList<org.broadinstitute.sting.utils.activeregion.ActiveRegion>();
     private final LinkedHashSet<GATKSAMRecord> myReads = new LinkedHashSet<GATKSAMRecord>();

@@ -36,7 +36,7 @@ import java.util.*;
  */
 
 public class PairHMM {
-    private static final int MAX_CACHED_QUAL = (int)Byte.MAX_VALUE;
+    private static final int MAX_CACHED_QUAL = (int)Byte.MAX_VALUE - 1;
     private static final byte DEFAULT_GOP = (byte) 45;
     private static final byte DEFAULT_GCP = (byte) 10;
     private static final double BANDING_TOLERANCE = 22.0;
