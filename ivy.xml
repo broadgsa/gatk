@@ -87,7 +87,7 @@
         <dependency org="com.google.code.caliper" name="caliper" rev="1.0-SNAPSHOT" conf="test"/>
 
         <!-- Contracts for Java and dependencies -->
-        <dependency org="com.google.code.cofoja" name="cofoja" rev="1.0-20110609"/>
+        <dependency org="com.google.code.cofoja" name="cofoja" rev="1.0-r139"/>
         <dependency org="asm" name="asm-all" rev="3.3.1"/>
 
         <!-- POI, for reading pipeline files -->
