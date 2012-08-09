@@ -37,8 +37,6 @@ import org.testng.annotations.Test;
 //    public Allele(byte[] bases, boolean isRef) {
 //    public Allele(boolean isRef) {
 //    public Allele(String bases, boolean isRef) {
-//    public boolean isNullAllele()       { return length() == 0; }
-//    public boolean isNonNullAllele()    { return ! isNullAllele(); }
 //    public boolean isReference()        { return isRef; }
 //    public boolean isNonReference()     { return ! isReference(); }
 //    public byte[] getBases() { return bases; }
@@ -49,13 +47,10 @@ import org.testng.annotations.Test;
  * Basic unit test for RecalData
  */
 public class AlleleUnitTest {
-    Allele ARef, del, delRef, A, T, ATIns, ATCIns, NoCall;
+    Allele ARef, A, T, ATIns, ATCIns, NoCall;
     
     @BeforeSuite
     public void before() {
-        del = Allele.create("-");
-        delRef = Allele.create("-", true);
-
         A = Allele.create("A");
         ARef = Allele.create("A", true);
         T = Allele.create("T");
@@ -72,8 +67,6 @@ public class AlleleUnitTest {
         Assert.assertFalse(A.isReference());
         Assert.assertTrue(A.basesMatch("A"));
         Assert.assertEquals(A.length(), 1);
-        Assert.assertTrue(A.isNonNull());
-        Assert.assertFalse(A.isNull());
 
         Assert.assertTrue(ARef.isReference());
         Assert.assertFalse(ARef.isNonReference());
@@ -92,8 +85,8 @@ public class AlleleUnitTest {
         Assert.assertFalse(NoCall.isReference());
         Assert.assertFalse(NoCall.basesMatch("."));
         Assert.assertEquals(NoCall.length(), 0);
-        Assert.assertTrue(NoCall.isNonNull());
-        Assert.assertFalse(NoCall.isNull());
+        Assert.assertTrue(NoCall.isNoCall());
+        Assert.assertFalse(NoCall.isCalled());
     }
 
 
@@ -103,16 +96,6 @@ public class AlleleUnitTest {
         Assert.assertEquals(ATCIns.length(), 3);
         Assert.assertEquals(ATIns.getBases(), "AT".getBytes());
         Assert.assertEquals(ATCIns.getBases(), "ATC".getBytes());
-
-        Assert.assertTrue(del.isNonReference());
-        Assert.assertFalse(delRef.isNonReference());
-        Assert.assertFalse(del.isReference());
-        Assert.assertTrue(delRef.isReference());
-        Assert.assertFalse(del.basesMatch("-"));
-        Assert.assertTrue(del.basesMatch(""));
-        Assert.assertEquals(del.length(), 0);
-        Assert.assertFalse(del.isNonNull());
-        Assert.assertTrue(del.isNull());
     }
 
 
@@ -122,18 +105,6 @@ public class AlleleUnitTest {
         Allele a2 = Allele.create("A".getBytes());
         Allele a3 = Allele.create("A");
         Allele a4 = Allele.create("A", true);
-
-        Assert.assertTrue(a1.equals(a2));
-        Assert.assertTrue(a1.equals(a3));
-        Assert.assertFalse(a1.equals(a4));
-    }
-
-    @Test
-    public void testDelConstructors() {
-        Allele a1 = Allele.create("-");
-        Allele a2 = Allele.create("-".getBytes());
-        Allele a3 = Allele.create("");
-        Allele a4 = Allele.create("", true);
 
         Assert.assertTrue(a1.equals(a2));
         Assert.assertTrue(a1.equals(a3));
@@ -156,18 +127,12 @@ public class AlleleUnitTest {
     public void testEquals() {
         Assert.assertTrue(ARef.basesMatch(A));
         Assert.assertFalse(ARef.equals(A));
-        Assert.assertFalse(ARef.equals(del));
         Assert.assertFalse(ARef.equals(ATIns));
         Assert.assertFalse(ARef.equals(ATCIns));
 
         Assert.assertTrue(T.basesMatch(T));
         Assert.assertFalse(T.basesMatch(A));
         Assert.assertFalse(T.equals(A));
-
-        Assert.assertTrue(del.basesMatch(del));
-        Assert.assertTrue(del.basesMatch(delRef));
-        Assert.assertTrue(del.equals(del));
-        Assert.assertFalse(del.equals(delRef));
 
         Assert.assertTrue(ATIns.equals(ATIns));
         Assert.assertFalse(ATIns.equals(ATCIns));
@@ -209,7 +174,6 @@ public class AlleleUnitTest {
     public void testExtend() {
         Assert.assertEquals("AT", Allele.extend(Allele.create("A"), "T".getBytes()).toString());
         Assert.assertEquals("ATA", Allele.extend(Allele.create("A"), "TA".getBytes()).toString());
-        Assert.assertEquals("A", Allele.extend(Allele.create("-"), "A".getBytes()).toString());
         Assert.assertEquals("A", Allele.extend(Allele.NO_CALL, "A".getBytes()).toString());
         Assert.assertEquals("ATCGA", Allele.extend(Allele.create("AT"), "CGA".getBytes()).toString());
         Assert.assertEquals("ATCGA", Allele.extend(Allele.create("ATC"), "GA".getBytes()).toString());

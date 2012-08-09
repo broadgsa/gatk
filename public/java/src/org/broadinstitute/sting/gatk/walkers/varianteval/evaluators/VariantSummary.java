@@ -29,7 +29,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEval;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -150,7 +150,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
     }
 
 
-    public void initialize(VariantEvalWalker walker) {
+    public void initialize(VariantEval walker) {
         super.initialize(walker);
 
         nSamples = walker.getSampleNamesForEvaluation().size();

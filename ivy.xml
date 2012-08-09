@@ -23,86 +23,90 @@
   -->
 
 <ivy-module version="1.0">
-  <info organisation="org.broadinstitute" module="Sting"/>
-  <configurations defaultconfmapping="test->default">
-    <conf name="default" description="the core dependencies for the GATK"/>
-    <conf name="test" extends="default" description="external dependencies used for testing and metrics" />
-    <conf name="scala" extends="default" description="the dependencies for scala"/>
-    <conf name="queue" extends="scala" description="the dependencies for Queue"/>
-  </configurations>
-  <dependencies defaultconf="default">
-    <dependency org="net.sf" name="sam" rev="latest.integration"/>
-    <dependency org="net.sf" name="picard" rev="latest.integration"/>
-    <dependency org="edu.mit.broad" name="picard-private-parts" rev="latest.integration"/>
+    <info organisation="org.broadinstitute" module="Sting"/>
+    <configurations defaultconfmapping="test->default">
+        <conf name="default" description="the core dependencies for the GATK"/>
+        <conf name="test" extends="default" description="external dependencies used for testing and metrics"/>
+        <conf name="scala" extends="default" description="the dependencies for scala"/>
+        <conf name="queue" extends="scala" description="the dependencies for Queue"/>
+    </configurations>
+    <dependencies defaultconf="default">
+        <dependency org="net.sf" name="sam" rev="latest.integration"/>
+        <dependency org="net.sf" name="picard" rev="latest.integration"/>
+        <dependency org="edu.mit.broad" name="picard-private-parts" rev="latest.integration"/>
 
-    <!-- Tribble -->
-    <dependency org="org.broad" name="tribble" rev="latest.integration"/>
+        <!-- Tribble -->
+        <dependency org="org.broad" name="tribble" rev="latest.integration"/>
 
-    <dependency org="log4j" name="log4j" rev="1.2.15"/>
-    <dependency org="javax.mail" name="mail" rev="1.4.4"/>
-    <dependency org="colt" name="colt" rev="1.2.0"/>
-    <!-- <dependency org="jboss" name="javassist" rev="3.7.ga"/> -->
-    <dependency org="org.simpleframework" name="simple-xml" rev="2.0.4"/>
-    <dependency org="org.apache.bcel" name="bcel" rev="5.2"/>
+        <dependency org="log4j" name="log4j" rev="1.2.15"/>
+        <dependency org="javax.mail" name="mail" rev="1.4.4"/>
+        <dependency org="colt" name="colt" rev="1.2.0"/>
+        <!-- <dependency org="jboss" name="javassist" rev="3.7.ga"/> -->
+        <dependency org="org.simpleframework" name="simple-xml" rev="2.0.4"/>
+        <dependency org="org.apache.bcel" name="bcel" rev="5.2"/>
 
-    <!-- Dependencies for reflections mvn repository -->
-    <dependency org="org.reflections" name="reflections" rev="0.9.5-RC2"/>
+        <!-- Dependencies for reflections mvn repository -->
+        <dependency org="org.reflections" name="reflections" rev="0.9.5-RC2"/>
 
-    <!-- Matrix package from math.nist.gov -->
-    <dependency org="gov.nist" name="Jama" rev="1.0.2"/>
+        <!-- Matrix package from math.nist.gov -->
+        <dependency org="gov.nist" name="Jama" rev="1.0.2"/>
 
-    <!-- Dependencies for the graph aligner -->  
-    <dependency org="org.jgrapht" name="jgrapht-jdk1.5" rev="0.7.3"/>
+        <!-- Dependencies for the graph aligner -->
+        <dependency org="net.sf.jgrapht" name="jgrapht" rev="0.8.3"/>
 
-    <!-- Dependencies for the html walker documention -->  
-    <dependency org="org.freemarker" name="freemarker" rev="2.3.18"/>
-     
-    <!-- Commons Dependencies -->  
-    <dependency org="org.apache.commons" name="commons-email" rev="1.2"/>
-    <dependency org="org.apache.commons" name="commons-jexl" rev="2.1.1"/>
-    <dependency org="commons-lang" name="commons-lang" rev="2.5"/>
-    <dependency org="commons-logging" name="commons-logging" rev="1.1.1"/>
-    <dependency org="commons-io" name="commons-io" rev="2.1"/>
-    <dependency org="org.apache.commons" name="commons-math" rev="2.2" />
+        <!-- Dependencies for the html walker documention -->
+        <dependency org="org.freemarker" name="freemarker" rev="2.3.18"/>
 
-    <!-- Lucene core utilities -->
-    <!-- <dependency org="org.apache.lucene" name="lucene-core" rev="3.0.3"/> -->
+        <!-- Commons Dependencies -->
+        <dependency org="org.apache.commons" name="commons-email" rev="1.2"/>
+        <dependency org="org.apache.commons" name="commons-jexl" rev="2.1.1"/>
+        <dependency org="commons-lang" name="commons-lang" rev="2.5"/>
+        <dependency org="commons-logging" name="commons-logging" rev="1.1.1"/>
+        <dependency org="commons-io" name="commons-io" rev="2.1"/>
+        <dependency org="org.apache.commons" name="commons-math" rev="2.2"/>
 
-    <!-- Dependencies for LSF, DRMAA, and other C libraries -->
-    <dependency org="net.java.dev.jna" name="jna" rev="3.2.7"/>
+        <!-- Lucene core utilities -->
+        <!-- <dependency org="org.apache.lucene" name="lucene-core" rev="3.0.3"/> -->
 
-    <!-- Dependencies for amazon.com S3 support -->
-    <dependency org="net.java.dev.jets3t" name="jets3t" rev="0.8.1"/>
+        <!-- Dependencies for LSF, DRMAA, and other C libraries -->
+        <dependency org="net.java.dev.jna" name="jna" rev="3.2.7"/>
 
-    <!-- Dependencies for GridEngine -->
-    <dependency org="net.sf.gridscheduler" name="drmaa" rev="latest.integration"/>
+        <!-- Dependencies for amazon.com S3 support -->
+        <dependency org="net.java.dev.jets3t" name="jets3t" rev="0.8.1"/>
 
-    <!-- Scala dependancies -->
-    <dependency org="org.scala-lang" name="scala-compiler" rev="2.8.1"/>
-    <dependency org="org.scala-lang" name="scala-library" rev="2.8.1"/>
+        <!-- Dependencies for GridEngine -->
+        <dependency org="net.sf.gridscheduler" name="drmaa" rev="latest.integration"/>
 
-    <!-- testing and evaluation dependencies -->
-    <dependency org="org.testng" name="testng" rev="5.14.1" conf="test" />
-    <dependency org="org.uncommons" name="reportng" rev="1.1.2" conf="test" />
-    <dependency org="com.google.code.caliper" name="caliper" rev="1.0-SNAPSHOT" conf="test" />
+        <!-- Scala dependancies -->
+        <dependency org="org.scala-lang" name="scala-compiler" rev="2.8.1"/>
+        <dependency org="org.scala-lang" name="scala-library" rev="2.8.1"/>
 
-    <!-- Contracts for Java and dependencies -->
-    <dependency org="com.google.code.cofoja" name="cofoja" rev="1.0-20110609" />
-    <dependency org="asm" name="asm-all" rev="3.3.1" />
+        <!-- testing and evaluation dependencies -->
+        <dependency org="org.testng" name="testng" rev="5.14.1" conf="test"/>
+        <dependency org="org.uncommons" name="reportng" rev="1.1.2" conf="test"/>
+        <dependency org="com.google.code.caliper" name="caliper" rev="1.0-SNAPSHOT" conf="test"/>
 
-    <!-- POI, for reading pipeline files -->
-    <dependency org="org.apache.poi" name="poi" rev="3.8-beta3" />
-    <dependency org="org.apache.poi" name="poi-ooxml" rev="3.8-beta3" />
+        <!-- Contracts for Java and dependencies -->
+        <dependency org="com.google.code.cofoja" name="cofoja" rev="1.0-r139"/>
+        <dependency org="asm" name="asm-all" rev="3.3.1"/>
 
-    <!-- snpEff annotator for pipelines -->
-    <dependency org="net.sf.snpeff" name="snpeff" rev="2.0.5" />
+        <!-- POI, for reading pipeline files -->
+        <dependency org="org.apache.poi" name="poi" rev="3.8-beta3"/>
+        <dependency org="org.apache.poi" name="poi-ooxml" rev="3.8-beta3"/>
 
-    <!-- MongoDB for the GXDB project -->
-    <dependency org="org.mongodb" name="mongo-java-driver" rev="2.7.3"/>
+        <!-- snpEff annotator for pipelines -->
+        <dependency org="net.sf.snpeff" name="snpeff" rev="2.0.5"/>
 
-    <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
-    <exclude org="javax.servlet" />
-    <exclude org="javax.jms" />
-    <exclude org="com.sun.*" />
-  </dependencies>
+        <!-- MongoDB for the GXDB project -->
+        <dependency org="org.mongodb" name="mongo-java-driver" rev="2.7.3"/>
+
+        <!-- GSON and HTTP for talking to the REST API on Vanilla Forums -->
+        <dependency org="com.google.code.gson" name="gson" rev="2.2.2"/>
+        <dependency org="org.apache.httpcomponents" name="httpclient" rev="4.1.1"/>
+
+        <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
+        <exclude org="javax.servlet"/>
+        <exclude org="javax.jms"/>
+        <exclude org="com.sun.*"/>
+    </dependencies>
 </ivy-module>

@@ -432,6 +432,37 @@ public class BaseUtils {
     }
 
     /**
+     * Returns the uppercased version of the bases
+     *
+     * @param bases   the bases
+     * @return the upper cased version
+     */
+    static public byte[] convertToUpperCase(final byte[] bases) {
+        for ( int i = 0; i < bases.length; i++ ) {
+            if ( (char)bases[i] >= 'a' )
+                bases[i] = toUpperCaseBase(bases[i]);
+        }
+        return bases;
+    }
+
+    static public byte toUpperCaseBase(final byte base) {
+        switch (base) {
+            case 'a':
+                return 'A';
+            case 'c':
+                return 'C';
+            case 'g':
+                return 'G';
+            case 't':
+                return 'T';
+            case 'n':
+                return 'N';
+            default:
+                return base;
+        }
+    }
+
+    /**
      * Returns the index of the most common base in the basecounts array. To be used with
      * pileup.getBaseCounts.
      *

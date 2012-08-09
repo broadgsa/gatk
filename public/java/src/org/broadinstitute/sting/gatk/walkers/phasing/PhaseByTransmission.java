@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.phasing;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -12,6 +13,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -72,6 +74,7 @@ import java.util.*;
  * </pre>
  *
  */
+@DocumentedGATKFeature( groupName = "Variant Discovery Tools", extraDocs = {CommandLineGATK.class} )
 public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMap<Byte,Integer>> {
 
     @ArgumentCollection
@@ -342,9 +345,10 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         private Genotype getPhasedGenotype(Allele refAllele, Allele altAllele, Genotype genotype, double transmissionProb, Genotype phasedGenotype){
 
             int phredScoreTransmission = -1;
-            if(transmissionProb != NO_TRANSMISSION_PROB)
-                phredScoreTransmission = MathUtils.probabilityToPhredScale(1-(transmissionProb));
-
+            if(transmissionProb != NO_TRANSMISSION_PROB){
+                double dphredScoreTransmission = MathUtils.log10ProbabilityToPhredScale(Math.log10(1-(transmissionProb)));
+                phredScoreTransmission = dphredScoreTransmission < Byte.MAX_VALUE ? (byte)dphredScoreTransmission : Byte.MAX_VALUE;
+            }
            //Handle null, missing and unavailable genotypes
            //Note that only cases where a null/missing/unavailable genotype was passed in the first place can lead to a null/missing/unavailable
            //genotype so it is safe to return the original genotype in this case.
@@ -410,7 +414,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         buildMatrices();
 
         if(mvFile != null)
-            mvFile.println("#CHROM\tPOS\tFILTER\tAC\tFAMILY\tTP\tMOTHER_GT\tMOTHER_DP\tMOTHER_RAD\tMOTHER_AAD\tMOTHER_HRPL\tMOTHER_HETPL\tMOTHER_HAPL\tFATHER_GT\tFATHER_DP\tFATHER_RAD\tFATHER_AAD\tFATHER_HRPL\tFATHER_HETPL\tFATHER_HAPL\tCHILD_GT\tCHILD_DP\tCHILD_RAD\tCHILD_AAD\tCHILD_HRPL\tCHILD_HETPL\tCHILD_HAPL");
+            mvFile.println("CHROM\tPOS\tAC\tFAMILY\tTP\tMOTHER_GT\tMOTHER_DP\tMOTHER_AD\tMOTHER_PL\tFATHER_GT\tFATHER_DP\tFATHER_AD\tFATHER_PL\tCHILD_GT\tCHILD_DP\tCHILD_AD\tCHILD_PL");
 
     }
 
@@ -422,10 +426,10 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
         Map<String,Set<Sample>> families = this.getSampleDB().getFamilies();
         Set<Sample> family;
         ArrayList<Sample> parents;
-        for(String familyID : families.keySet()){
-            family = families.get(familyID);
+        for(Map.Entry<String,Set<Sample>> familyEntry : families.entrySet()){
+            family = familyEntry.getValue();
             if(family.size()<2 || family.size()>3){
-                logger.info(String.format("Caution: Family %s has %d members; At the moment Phase By Transmission only supports trios and parent/child pairs. Family skipped.",familyID,family.size()));
+                logger.info(String.format("Caution: Family %s has %d members; At the moment Phase By Transmission only supports trios and parent/child pairs. Family skipped.",familyEntry.getKey(),family.size()));
             }
             else{
                 for(Sample familyMember : family){
@@ -434,7 +438,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                         if(family.containsAll(parents))
                             this.trios.add(familyMember);
                         else
-                            logger.info(String.format("Caution: Family %s skipped as it is not a trio nor a parent/child pair; At the moment Phase By Transmission only supports trios and parent/child pairs. Family skipped.",familyID));
+                            logger.info(String.format("Caution: Family %s skipped as it is not a trio nor a parent/child pair; At the moment Phase By Transmission only supports trios and parent/child pairs. Family skipped.",familyEntry.getKey()));
                         break;
                     }
                 }
@@ -776,7 +780,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
             return metricsCounters;
 
         final VariantContext vc = tracker.getFirstValue(variantCollection.variants, context.getLocation());
-        if (vc == null)
+        if (vc == null || !vc.isBiallelic())
             return metricsCounters;
 
         final VariantContextBuilder builder = new VariantContextBuilder(vc);
@@ -805,8 +809,8 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                 if(father != null){
                     genotypesContext.replace(phasedFather);
                     updateTrioMetricsCounters(phasedMother,phasedFather,phasedChild,mvCount,metricsCounters);
-                    mvfLine = String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s:%s:%s:%s\t%s:%s:%s:%s\t%s:%s:%s:%s",
-                            vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),
+                    mvfLine = String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
+                            vc.getChr(),vc.getStart(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.getFamilyID(),
                             phasedMother.getExtendedAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getDP(),Arrays.asList(phasedMother.getAD()),
                             phasedMother.getLikelihoodsString(), phasedFather.getGenotypeString(),phasedFather.getDP(),Arrays.asList(phasedFather.getAD()),phasedFather.getLikelihoodsString(),
                             phasedChild.getGenotypeString(),Arrays.asList(phasedChild.getDP()),phasedChild.getAD(),phasedChild.getLikelihoodsString());
@@ -817,8 +821,8 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                     updatePairMetricsCounters(phasedMother,phasedChild,mvCount,metricsCounters);
                     if(!(phasedMother.getType()==mother.getType() && phasedChild.getType()==child.getType()))
                         metricsCounters.put(NUM_GENOTYPES_MODIFIED,metricsCounters.get(NUM_GENOTYPES_MODIFIED)+1);
-                    mvfLine = String.format("%s\t%d\t%s\t%s\t%s\t%s\t%s:%s:%s:%s\t.:.:.:.\t%s:%s:%s:%s",
-                            vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),
+                    mvfLine = String.format("%s\t%d\t%s\t%s\t%s\t%s:%s:%s:%s\t.\t.\t.\t.\t%s\t%s\t%s\t%s",
+                            vc.getChr(),vc.getStart(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.getFamilyID(),
                             phasedMother.getExtendedAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedMother.getGenotypeString(),phasedMother.getDP(),Arrays.asList(phasedMother.getAD()),phasedMother.getLikelihoodsString(),
                             phasedChild.getGenotypeString(),phasedChild.getDP(),Arrays.asList(phasedChild.getAD()),phasedChild.getLikelihoodsString());
                 }
@@ -828,15 +832,15 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                 updatePairMetricsCounters(phasedFather,phasedChild,mvCount,metricsCounters);
                 if(!(phasedFather.getType()==father.getType() && phasedChild.getType()==child.getType()))
                     metricsCounters.put(NUM_GENOTYPES_MODIFIED,metricsCounters.get(NUM_GENOTYPES_MODIFIED)+1);
-                mvfLine =   String.format("%s\t%d\t%s\t%s\t%s\t%s\t.:.:.:.\t%s:%s:%s:%s\t%s:%s:%s:%s",
-                        vc.getChr(),vc.getStart(),vc.getFilters(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.toString(),
+                mvfLine =   String.format("%s\t%d\t%s\t%s\t%s\t.\t.\t.\t.\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s",
+                        vc.getChr(),vc.getStart(),vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY),sample.getFamilyID(),
                         phasedFather.getExtendedAttribute(TRANSMISSION_PROBABILITY_TAG_NAME),phasedFather.getGenotypeString(),phasedFather.getDP(),Arrays.asList(phasedFather.getAD()),phasedFather.getLikelihoodsString(),
                         phasedChild.getGenotypeString(),phasedChild.getDP(),Arrays.asList(phasedChild.getAD()),phasedChild.getLikelihoodsString());
             }
 
             //Report violation if set so
             //TODO: ADAPT FOR PAIRS TOO!!
-            if(mvCount>0 && mvFile != null)
+            if(mvCount>0 && mvFile != null && !vc.isFiltered())
                 mvFile.println(mvfLine);
         }
 

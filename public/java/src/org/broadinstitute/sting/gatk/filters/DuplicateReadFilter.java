@@ -28,11 +28,10 @@ import net.sf.samtools.SAMRecord;
  */
 
 /**
- * Created by IntelliJ IDEA.
- * User: rpoplin
- * Date: Dec 9, 2009
- *
  * Filter out duplicate reads.
+ *
+ * @author rpoplin
+ * @since Dec 9, 2009
  */
 
 public class DuplicateReadFilter extends ReadFilter {

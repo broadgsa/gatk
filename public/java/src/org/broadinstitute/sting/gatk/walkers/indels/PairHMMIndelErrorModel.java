@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.indels;
 
+import com.google.java.contract.Ensures;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.MathUtils;
@@ -175,7 +176,8 @@ public class PairHMMIndelErrorModel {
         
     }
 
-    public synchronized double[][] computeGeneralReadHaplotypeLikelihoods(final ReadBackedPileup pileup, 
+    @Ensures("result != null && result.length == pileup.getNumberOfElements()")
+    public synchronized double[][] computeGeneralReadHaplotypeLikelihoods(final ReadBackedPileup pileup,
                                                                           final LinkedHashMap<Allele, Haplotype> haplotypeMap, 
                                                                           final ReferenceContext ref,
                                                                           final int eventLength, 
@@ -349,7 +351,9 @@ public class PairHMMIndelErrorModel {
                             previousHaplotypeSeen = haplotypeBases.clone();
 
                             readLikelihood = pairHMM.computeReadLikelihoodGivenHaplotype(haplotypeBases, readBases, readQuals,
-                                    contextLogGapOpenProbabilities, contextLogGapOpenProbabilities, contextLogGapContinuationProbabilities,
+                                    (read.hasBaseIndelQualities() ? read.getBaseInsertionQualities() : contextLogGapOpenProbabilities),
+                                    (read.hasBaseIndelQualities() ? read.getBaseDeletionQualities() : contextLogGapOpenProbabilities),
+                                    contextLogGapContinuationProbabilities,
                                     startIndexInHaplotype, matchMetricArray, XMetricArray, YMetricArray);
 
 

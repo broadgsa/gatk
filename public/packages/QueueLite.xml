@@ -32,11 +32,9 @@
         <modules>
             <module file="QueueEngine.xml"/>
             <module file="GATKEngine.xml"/>
-            <module file="AnalyzeCovariates.xml"/>
         </modules>
     </executable>
     <release>
-        <executable directory="/local/gsa-engineering/test_releases/queuelite" symlink="current" />
-        <archive directory="/local/gsa-engineering/test_releases/queuelite" symlink="QueueLite-latest.tar.bz2" />
+        <archive directory="/web/ftp/pub/gsa/Queue" symlink="QueueLite-latest.tar.bz2" />
     </release>
 </package>

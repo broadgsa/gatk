@@ -52,6 +52,7 @@ public class VariantDatum implements Comparable<VariantDatum> {
     public int worstAnnotation;
     public MultivariateGaussian assignment; // used in K-means implementation 
 
+    @Override
     public int compareTo( final VariantDatum other ) {
         return Double.compare(this.lod, other.lod);
     }

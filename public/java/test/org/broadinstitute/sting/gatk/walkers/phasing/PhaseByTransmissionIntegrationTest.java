@@ -29,7 +29,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 2,
-                Arrays.asList("cd112ec37a9e28d366aff29a85fdcaa0","f8721f4f5d3bae2848ae15c3f120709b")
+                Arrays.asList("f4b0b5471e03306ee2fad27d88b217b6","f8721f4f5d3bae2848ae15c3f120709b")
         );
         executeTest("testTrueNegativeMV", spec);
     }
@@ -48,7 +48,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 2,
-                Arrays.asList("27ccd6feb51de7e7dcdf35f4697fa4eb","547fdfef393f3045a96d245ef6af8acb")
+                Arrays.asList("dbc64776dcc9e01a468b61e4e0db8277","547fdfef393f3045a96d245ef6af8acb")
         );
         executeTest("testTruePositiveMV", spec);
     }
@@ -67,7 +67,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 2,
-                Arrays.asList("719d681bb0a52a40bc854bba107c5c94","9529e2bf214d72e792d93fbea22a3b91")
+                Arrays.asList("37793e78861bb0bc070884da67dc10e6","9529e2bf214d72e792d93fbea22a3b91")
         );
         executeTest("testFalsePositiveMV", spec);
     }
@@ -86,7 +86,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 2,
-                Arrays.asList("7f4a277aee2c7398fcfa84d6c98d5fb3","8c157d79dd00063d2932f0d2b96f53d8")
+                Arrays.asList("e4da7639bb542d6440975da12b94973f","8c157d79dd00063d2932f0d2b96f53d8")
         );
         executeTest("testSpecialCases", spec);
     }
@@ -108,7 +108,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 2,
-                Arrays.asList("44e09d2f9e4d8a9488226d03a97fe999","343e418850ae4a687ebef2acd55fcb07")
+                Arrays.asList("ab92b714471a000285577d540e1fdc2e","343e418850ae4a687ebef2acd55fcb07")
         );
         executeTest("testPriorOption", spec);
     }
@@ -149,7 +149,7 @@ public class PhaseByTransmissionIntegrationTest extends WalkerTest {
                         "-fatherAlleleFirst"
                 ),
                 2,
-                Arrays.asList("60ced3d078792a150a03640b62926857","52ffa82428e63ade22ea37b72ae58492")
+                Arrays.asList("4b937c1b4e96602a7479b07b59254d06","52ffa82428e63ade22ea37b72ae58492")
         );
         executeTest("testFatherAlleleFirst", spec);
     }

@@ -51,6 +51,7 @@ import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -197,7 +198,16 @@ public class GenomeAnalysisEngine {
     private BaseRecalibration baseRecalibration = null;
     public BaseRecalibration getBaseRecalibration() { return baseRecalibration; }
     public boolean hasBaseRecalibration() { return baseRecalibration != null; }
-    public void setBaseRecalibration(final File recalFile, final int quantizationLevels, final boolean noIndelQuals) { baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, noIndelQuals); }
+    public void setBaseRecalibration(final File recalFile, final int quantizationLevels, final boolean disableIndelQuals, final int preserveQLessThan, final boolean emitOriginalQuals) {
+        baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, disableIndelQuals, preserveQLessThan, emitOriginalQuals);
+    }
+
+    /**
+     * Utility method to determine whether this is the lite version of the GATK
+     */
+    public boolean isGATKLite() {
+        return GATKLiteUtils.isGATKLite();
+    }
 
     /**
      * Actually run the GATK with the specified walker.
@@ -209,8 +219,10 @@ public class GenomeAnalysisEngine {
         //monitor.start();
         setStartTime(new java.util.Date());
 
+        final GATKArgumentCollection args = this.getArguments();
+
         // validate our parameters
-        if (this.getArguments() == null) {
+        if (args == null) {
             throw new ReviewedStingException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
         }
 
@@ -218,16 +230,16 @@ public class GenomeAnalysisEngine {
         if (this.walker == null)
             throw new ReviewedStingException("The walker passed to GenomeAnalysisEngine can not be null.");
 
-        if (this.getArguments().nonDeterministicRandomSeed)
+        if (args.nonDeterministicRandomSeed)
             resetRandomGenerator(System.currentTimeMillis());
 
         // TODO -- REMOVE ME WHEN WE STOP BCF testing
-        if ( this.getArguments().USE_SLOW_GENOTYPES )
+        if ( args.USE_SLOW_GENOTYPES )
             GenotypeBuilder.MAKE_FAST_BY_DEFAULT = false;
 
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
-        if (this.getArguments().BQSR_RECAL_FILE != null)
-            setBaseRecalibration(this.getArguments().BQSR_RECAL_FILE, this.getArguments().quantizationLevels, this.getArguments().noIndelQuals);
+        if (args.BQSR_RECAL_FILE != null)
+            setBaseRecalibration(args.BQSR_RECAL_FILE, args.quantizationLevels, args.disableIndelQuals, args.PRESERVE_QSCORES_LESS_THAN, args.emitOriginalQuals);
 
         // Determine how the threads should be divided between CPU vs. IO.
         determineThreadAllocation();
@@ -262,6 +274,38 @@ public class GenomeAnalysisEngine {
         //return result;
     }
 
+    // TODO -- Let's move this to a utility class in unstable - but which one?
+    // **************************************************************************************
+    // *                            Handle Deprecated Walkers                               *
+    // **************************************************************************************
+
+    // Mapping from walker name to major version number where the walker first disappeared
+    private static Map<String, String> deprecatedGATKWalkers = new HashMap<String, String>();
+    static {
+        deprecatedGATKWalkers.put("CountCovariates", "2.0");
+        deprecatedGATKWalkers.put("TableRecalibration", "2.0");
+    }
+
+    /**
+     * Utility method to check whether a given walker has been deprecated in a previous GATK release
+     *
+     * @param walkerName   the walker class name (not the full package) to check
+     */
+    public static boolean isDeprecatedWalker(final String walkerName) {
+        return deprecatedGATKWalkers.containsKey(walkerName);
+    }
+
+    /**
+     * Utility method to check whether a given walker has been deprecated in a previous GATK release
+     *
+     * @param walkerName   the walker class name (not the full package) to check
+     */
+    public static String getDeprecatedMajorVersionNumber(final String walkerName) {
+        return deprecatedGATKWalkers.get(walkerName);
+    }
+
+    // **************************************************************************************
+
     /**
      * Retrieves an instance of the walker based on the walker name.
      *
@@ -269,7 +313,17 @@ public class GenomeAnalysisEngine {
      * @return An instance of the walker.
      */
     public Walker<?, ?> getWalkerByName(String walkerName) {
-        return walkerManager.createByName(walkerName);
+        try {
+            return walkerManager.createByName(walkerName);
+        } catch ( UserException e ) {
+            if ( isGATKLite() && GATKLiteUtils.isAvailableOnlyInFullGATK(walkerName) ) {
+                e = new UserException.NotSupportedInGATKLite("the " + walkerName + " walker is available only in the full version of the GATK");
+            }
+            else if ( isDeprecatedWalker(walkerName) ) {
+                e = new UserException.DeprecatedWalker(walkerName, getDeprecatedMajorVersionNumber(walkerName));
+            }
+            throw e;
+        }
     }
 
     /**
@@ -743,6 +797,14 @@ public class GenomeAnalysisEngine {
         if ( getWalkerBAQApplicationTime() == BAQ.ApplicationTime.FORBIDDEN && argCollection.BAQMode != BAQ.CalculationMode.OFF)
             throw new UserException.BadArgumentValue("baq", "Walker cannot accept BAQ'd base qualities, and yet BAQ mode " + argCollection.BAQMode + " was requested.");
 
+        if (argCollection.removeProgramRecords && argCollection.keepProgramRecords)
+            throw new UserException.BadArgumentValue("rpr / kpr", "Cannot enable both options");
+
+        boolean removeProgramRecords = argCollection.removeProgramRecords || walker.getClass().isAnnotationPresent(RemoveProgramRecords.class);
+
+        if (argCollection.keepProgramRecords)
+            removeProgramRecords = false;
+
         return new SAMDataSource(
                 samReaderIDs,
                 threadAllocation,
@@ -759,7 +821,8 @@ public class GenomeAnalysisEngine {
                 getWalkerBAQQualityMode(),
                 refReader,
                 getBaseRecalibration(),
-                argCollection.defaultBaseQualities);
+                argCollection.defaultBaseQualities,
+                removeProgramRecords);
     }
 
     /**

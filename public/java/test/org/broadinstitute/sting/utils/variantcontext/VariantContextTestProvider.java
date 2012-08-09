@@ -225,10 +225,10 @@ public class VariantContextTestProvider {
         add(builder());
         add(builder().alleles("A"));
         add(builder().alleles("A", "C", "T"));
-        add(builder().alleles("-", "C").referenceBaseForIndel("A"));
-        add(builder().alleles("-", "CAGT").referenceBaseForIndel("A"));
-        add(builder().loc("1", 10, 11).alleles("C", "-").referenceBaseForIndel("A"));
-        add(builder().loc("1", 10, 13).alleles("CGT", "-").referenceBaseForIndel("A"));
+        add(builder().alleles("A", "AC"));
+        add(builder().alleles("A", "ACAGT"));
+        add(builder().loc("1", 10, 11).alleles("AC", "A"));
+        add(builder().loc("1", 10, 13).alleles("ACGT", "A"));
 
         // make sure filters work
         add(builder().unfiltered());
@@ -302,8 +302,8 @@ public class VariantContextTestProvider {
 
         sites.add(builder().alleles("A").make());
         sites.add(builder().alleles("A", "C", "T").make());
-        sites.add(builder().alleles("-", "C").referenceBaseForIndel("A").make());
-        sites.add(builder().alleles("-", "CAGT").referenceBaseForIndel("A").make());
+        sites.add(builder().alleles("A", "AC").make());
+        sites.add(builder().alleles("A", "ACAGT").make());
 
         for ( VariantContext site : sites ) {
             addGenotypes(site);
@@ -597,23 +597,41 @@ public class VariantContextTestProvider {
     }
 
     public static void testReaderWriter(final VariantContextIOTest tester, final VariantContextTestData data) throws IOException {
+        testReaderWriter(tester, data.header, data.vcs, data.vcs, true);
+    }
+
+    public static void testReaderWriter(final VariantContextIOTest tester,
+                                        final VCFHeader header,
+                                        final List<VariantContext> expected,
+                                        final Iterable<VariantContext> vcs,
+                                        final boolean recurse) throws IOException {
         final File tmpFile = File.createTempFile("testReaderWriter", tester.getExtension());
         tmpFile.deleteOnExit();
 
-        // todo -- test all options
-
-        // write
+        // write expected to disk
         final EnumSet<Options> options = EnumSet.of(Options.INDEX_ON_THE_FLY);
         final VariantContextWriter writer = tester.makeWriter(tmpFile, options);
-        writer.writeHeader(data.header);
-        final List<VariantContext> expected = data.vcs;
-        for ( VariantContext vc : expected )
-            writer.add(vc);
-        writer.close();
+        writeVCsToFile(writer, header, vcs);
 
-        final Iterable<VariantContext> actual = readAllVCs(tmpFile, tester.makeCodec()).getSecond();
+        // ensure writing of expected == actual
+        final Pair<VCFHeader, Iterable<VariantContext>> p = readAllVCs(tmpFile, tester.makeCodec());
+        final Iterable<VariantContext> actual = p.getSecond();
         assertEquals(actual, expected);
 
+        if ( recurse ) {
+            // if we are doing a recursive test, grab a fresh iterator over the written values
+            final Iterable<VariantContext> read = readAllVCs(tmpFile, tester.makeCodec()).getSecond();
+            testReaderWriter(tester, p.getFirst(), expected, read, false);
+        }
+    }
+
+    private static void writeVCsToFile(final VariantContextWriter writer, final VCFHeader header, final Iterable<VariantContext> vcs) {
+        // write
+        writer.writeHeader(header);
+        for ( VariantContext vc : vcs )
+            if (vc != null)
+                writer.add(vc);
+        writer.close();
     }
 
     /**
@@ -722,6 +740,8 @@ public class VariantContextTestProvider {
         Assert.assertEquals(actual.getAlleles(), expected.getAlleles(), "alleles");
 
         assertAttributesEquals(actual.getAttributes(), expected.getAttributes());
+        Assert.assertEquals(actual.filtersWereApplied(), expected.filtersWereApplied(), "filtersWereApplied");
+        Assert.assertEquals(actual.isFiltered(), expected.isFiltered(), "isFiltered");
         BaseTest.assertEqualsSet(actual.getFilters(), expected.getFilters(), "filters");
         BaseTest.assertEqualsDoubleSmart(actual.getPhredScaledQual(), expected.getPhredScaledQual());
 

@@ -26,9 +26,11 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
 
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -64,33 +66,38 @@ class BCF2LazyGenotypesDecoder implements LazyGenotypesContext.LazyParser {
         if ( logger.isDebugEnabled() )
             logger.debug("Decoding BCF genotypes for " + nSamples + " samples with " + nFields + " fields each");
 
-        // load our byte[] data into the decoder
-        final BCF2Decoder decoder = new BCF2Decoder(((BCF2Codec.LazyData)data).bytes);
+        try {
 
-        for ( int i = 0; i < nSamples; i++ )
-            builders[i].reset(true);
+            // load our byte[] data into the decoder
+            final BCF2Decoder decoder = new BCF2Decoder(((BCF2Codec.LazyData)data).bytes);
 
-        for ( int i = 0; i < nFields; i++ ) {
-            // get the field name
-            final int offset = (Integer) decoder.decodeTypedValue();
-            final String field = codec.getDictionaryString(offset);
+            for ( int i = 0; i < nSamples; i++ )
+                builders[i].reset(true);
 
-            // the type of each element
-            final byte typeDescriptor = decoder.readTypeDescriptor();
-            final int numElements = decoder.decodeNumberOfElements(typeDescriptor);
-            final BCF2GenotypeFieldDecoders.Decoder fieldDecoder = codec.getGenotypeFieldDecoder(field);
-            try {
-                fieldDecoder.decode(siteAlleles, field, decoder, typeDescriptor, numElements, builders);
-            } catch ( ClassCastException e ) {
-                throw new UserException.MalformedBCF2("BUG: expected encoding of field " + field
-                        + " inconsistent with the value observed in the decoded value");
+            for ( int i = 0; i < nFields; i++ ) {
+                // get the field name
+                final int offset = (Integer) decoder.decodeTypedValue();
+                final String field = codec.getDictionaryString(offset);
+
+                // the type of each element
+                final byte typeDescriptor = decoder.readTypeDescriptor();
+                final int numElements = decoder.decodeNumberOfElements(typeDescriptor);
+                final BCF2GenotypeFieldDecoders.Decoder fieldDecoder = codec.getGenotypeFieldDecoder(field);
+                try {
+                    fieldDecoder.decode(siteAlleles, field, decoder, typeDescriptor, numElements, builders);
+                } catch ( ClassCastException e ) {
+                    throw new UserException.MalformedBCF2("BUG: expected encoding of field " + field
+                            + " inconsistent with the value observed in the decoded value");
+                }
             }
+
+            final ArrayList<Genotype> genotypes = new ArrayList<Genotype>(nSamples);
+            for ( final GenotypeBuilder gb : builders )
+                genotypes.add(gb.make());
+
+            return new LazyGenotypesContext.LazyData(genotypes, codec.getHeader().getSampleNamesInOrder(), codec.getHeader().getSampleNameToOffset());
+        } catch ( IOException e ) {
+            throw new ReviewedStingException("Unexpected IOException parsing already read genotypes data block", e);
         }
-
-        final ArrayList<Genotype> genotypes = new ArrayList<Genotype>(nSamples);
-        for ( final GenotypeBuilder gb : builders )
-            genotypes.add(gb.make());
-
-        return new LazyGenotypesContext.LazyData(genotypes, codec.getHeader().getSampleNamesInOrder(), codec.getHeader().getSampleNameToOffset());
     }
 }

@@ -39,6 +39,28 @@ public class VCFIntegrationTest extends WalkerTest {
         executeTest("Test reading and writing breakpoint VCF", spec1);
     }
 
+    @Test(enabled = true)
+    public void testReadingLowerCaseBases() {
+        String testVCF = privateTestDir + "lowercaseBases.vcf";
+
+        String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
+
+        String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("e0e308a25e56bde1c664139bb44ed19d"));
+        executeTest("Test reading VCF with lower-case bases", spec1);
+    }
+
+    @Test(enabled = true)
+    public void testReadingAndWriting1000GSVs() {
+        String testVCF = privateTestDir + "1000G_SVs.chr1.vcf";
+
+        String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
+
+        String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("bdab26dd7648a806dbab01f64db2bdab"));
+        executeTest("Test reading and writing 1000G Phase I SVs", spec1);
+    }
+
     @Test
     public void testReadingAndWritingSamtools() {
         String testVCF = privateTestDir + "samtools.vcf";
@@ -46,7 +68,7 @@ public class VCFIntegrationTest extends WalkerTest {
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
 
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
-        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("0f82ac11852e7f958c1a0ce52398c2ae"));
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("38697c195e7abf18d95dcc16c8e6d284"));
         executeTest("Test reading and writing samtools vcf", spec1);
     }
 
@@ -55,16 +77,16 @@ public class VCFIntegrationTest extends WalkerTest {
         String testVCF = privateTestDir + "ex2.vcf";
         String baseCommand = "-R " + b36KGReference + " --no_cmdline_in_header -o %s ";
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
-        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("9773d6a121cfcb18d090965bc520f120"));
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("e8f721ce81e4fdadba13c5291027057f"));
         executeTest("Test writing samtools WEx BCF example", spec1);
     }
 
-    @Test(enabled = false)
+    @Test(enabled = true)
     public void testReadingSamtoolsWExBCFExample() {
         String testVCF = privateTestDir + "ex2.bcf";
         String baseCommand = "-R " + b36KGReference + " --no_cmdline_in_header -o %s ";
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
-        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("63a2e0484ae37b0680514f53e0bf0c94"));
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("0439e2b4ccc63bb4ba7c283cd9ab1b25"));
         executeTest("Test reading samtools WEx BCF example", spec1);
     }
 

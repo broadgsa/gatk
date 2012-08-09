@@ -26,15 +26,12 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -44,14 +41,22 @@ import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Decode BCF2 files
  */
-public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceDependentFeatureCodec {
+public final class BCF2Codec implements FeatureCodec<VariantContext> {
     final protected static Logger logger = Logger.getLogger(BCF2Codec.class);
     private final static boolean FORBID_SYMBOLICS = false;
+
+    private final static int ALLOWED_MAJOR_VERSION = 2;
+    private final static int MIN_MINOR_VERSION = 1;
+
+    private BCFVersion bcfVersion = null;
 
     private VCFHeader header = null;
 
@@ -108,18 +113,22 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
 
     @Override
     public VariantContext decode( final PositionalBufferedStream inputStream ) {
-        recordNo++;
-        final VariantContextBuilder builder = new VariantContextBuilder();
+        try {
+            recordNo++;
+            final VariantContextBuilder builder = new VariantContextBuilder();
 
-        final int sitesBlockSize = decoder.readBlockSize(inputStream);
-        final int genotypeBlockSize = decoder.readBlockSize(inputStream);
-        decoder.readNextBlock(sitesBlockSize, inputStream);
-        decodeSiteLoc(builder);
-        final SitesInfoForDecoding info = decodeSitesExtendedInfo(builder);
+            final int sitesBlockSize = decoder.readBlockSize(inputStream);
+            final int genotypeBlockSize = decoder.readBlockSize(inputStream);
+            decoder.readNextBlock(sitesBlockSize, inputStream);
+            decodeSiteLoc(builder);
+            final SitesInfoForDecoding info = decodeSitesExtendedInfo(builder);
 
-        decoder.readNextBlock(genotypeBlockSize, inputStream);
-        createLazyGenotypesDecoder(info, builder);
-        return builder.fullyDecoded(true).make();
+            decoder.readNextBlock(genotypeBlockSize, inputStream);
+            createLazyGenotypesDecoder(info, builder);
+            return builder.fullyDecoded(true).make();
+        } catch ( IOException e ) {
+            throw new UserException.CouldNotReadInputFile("Failed to read BCF file", e);
+        }
     }
 
     @Override
@@ -131,10 +140,18 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
     public FeatureCodecHeader readHeader( final PositionalBufferedStream inputStream ) {
         try {
             // note that this reads the magic as well, and so does double duty
-            if ( ! BCF2Utils.startsWithBCF2Magic(inputStream) )
-                error("Input stream does not begin with BCF2 magic");
+            bcfVersion = BCFVersion.readBCFVersion(inputStream);
+            if ( bcfVersion == null )
+                error("Input stream does not contain a BCF encoded file; BCF magic header info not found");
 
-            final int headerSizeInBytes = BCF2Utils.readInt(BCF2Type.INT32.getSizeInBytes(), inputStream);
+            if ( bcfVersion.getMajorVersion() != ALLOWED_MAJOR_VERSION )
+                error("BCF2Codec can only process BCF2 files, this file has major version " + bcfVersion.getMajorVersion());
+            if ( bcfVersion.getMinorVersion() < MIN_MINOR_VERSION )
+                error("BCF2Codec can only process BCF2 files with minor version >= " + MIN_MINOR_VERSION + " but this file has minor version " + bcfVersion.getMinorVersion());
+
+            logger.info("BCF version " + bcfVersion);
+
+            final int headerSizeInBytes = BCF2Type.INT32.read(inputStream);
 
             if ( headerSizeInBytes <= 0 || headerSizeInBytes > MAX_HEADER_SIZE) // no bigger than 8 MB
                 error("BCF2 header has invalid length: " + headerSizeInBytes + " must be >= 0 and < "+ MAX_HEADER_SIZE);
@@ -154,7 +171,6 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
 
         // create the config offsets
         if ( ! header.getContigLines().isEmpty() ) {
-            logger.info("Found contig lines in BCF2 file, using those");
             contigNames.clear();
             for ( final VCFContigHeaderLine contig : header.getContigLines()) {
                 if ( contig.getID() == null || contig.getID().equals("") )
@@ -162,7 +178,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
                 contigNames.add(contig.getID());
             }
         } else {
-            logger.info("Didn't find any contig lines in BCF2 file, falling back (dangerously) to GATK reference dictionary");
+            throw new UserException.MalformedBCF2("Didn't find any contig lines in BCF2 file header");
         }
 
         // create the string dictionary
@@ -187,7 +203,8 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
         FileInputStream fis = null;
         try {
             fis = new FileInputStream(path);
-            return BCF2Utils.startsWithBCF2Magic(fis);
+            final BCFVersion version = BCFVersion.readBCFVersion(fis);
+            return version != null && version.getMajorVersion() == ALLOWED_MAJOR_VERSION;
         } catch ( FileNotFoundException e ) {
             return false;
         } catch ( IOException e ) {
@@ -196,22 +213,9 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
             try {
                 if ( fis != null ) fis.close();
             } catch ( IOException e ) {
-                ; // do nothing
+                // do nothing
             }
         }
-    }
-
-    // --------------------------------------------------------------------------------
-    //
-    // Reference dependence
-    //
-    // --------------------------------------------------------------------------------
-
-    @Override
-    public void setGenomeLocParser(final GenomeLocParser genomeLocParser) {
-        // initialize contigNames to standard ones in reference
-        for ( final SAMSequenceRecord contig : genomeLocParser.getContigs().getSequences() )
-            contigNames.add(contig.getSequenceName());
     }
 
     // --------------------------------------------------------------------------------
@@ -234,7 +238,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
      * @return
      */
     @Requires({"builder != null"})
-    private final void decodeSiteLoc(final VariantContextBuilder builder) {
+    private final void decodeSiteLoc(final VariantContextBuilder builder) throws IOException {
         final int contigOffset = decoder.decodeInt(BCF2Type.INT32);
         final String contig = lookupContigName(contigOffset);
         builder.chr(contig);
@@ -253,7 +257,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
      */
     @Requires({"builder != null", "decoder != null"})
     @Ensures({"result != null", "result.isValid()"})
-    private final SitesInfoForDecoding decodeSitesExtendedInfo(final VariantContextBuilder builder) {
+    private final SitesInfoForDecoding decodeSitesExtendedInfo(final VariantContextBuilder builder) throws IOException {
         final Object qual = decoder.decodeSingleValue(BCF2Type.FLOAT);
         if ( qual != null ) {
             builder.log10PError(((Double)qual) / -10.0);
@@ -309,34 +313,13 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
      * Decode the id field in this BCF2 file and store it in the builder
      * @param builder
      */
-    private void decodeID( final VariantContextBuilder builder ) {
+    private void decodeID( final VariantContextBuilder builder ) throws IOException {
         final String id = (String)decoder.decodeTypedValue();
 
         if ( id == null )
             builder.noID();
         else
             builder.id(id);
-    }
-
-    /**
-     * Annoying routine that deals with allele clipping from the BCF2 encoding to the standard
-     * GATK encoding.
-     *
-     * @param position
-     * @param ref
-     * @param unclippedAlleles
-     * @return
-     */
-    @Requires({"position > 0", "ref != null && ref.length() > 0", "! unclippedAlleles.isEmpty()"})
-    @Ensures("result.size() == unclippedAlleles.size()")
-    protected List<Allele> clipAllelesIfNecessary(final int position,
-                                                  final String ref,
-                                                  final List<Allele> unclippedAlleles) {
-        // the last argument of 1 allows us to safely ignore the end, because we are
-        // ultimately going to use the end in the record itself
-        final VCFAlleleClipper.ClippedAlleles clipped = VCFAlleleClipper.clipAlleles(position, ref, unclippedAlleles, 1);
-        if ( clipped.getError() != null ) error(clipped.getError());
-        return clipped.getClippedAlleles();
     }
 
     /**
@@ -347,7 +330,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
      * @return the alleles
      */
     @Requires("nAlleles > 0")
-    private List<Allele> decodeAlleles( final VariantContextBuilder builder, final int pos, final int nAlleles ) {
+    private List<Allele> decodeAlleles( final VariantContextBuilder builder, final int pos, final int nAlleles ) throws IOException {
         // TODO -- probably need inline decoder for efficiency here (no sense in going bytes -> string -> vector -> bytes
         List<Allele> alleles = new ArrayList<Allele>(nAlleles);
         String ref = null;
@@ -366,11 +349,9 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
         }
         assert ref != null;
 
-        alleles = clipAllelesIfNecessary(pos, ref, alleles);
         builder.alleles(alleles);
 
         assert ref.length() > 0;
-        builder.referenceBaseForIndel(ref.getBytes()[0]);
 
         return alleles;
     }
@@ -379,7 +360,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
      * Decode the filter field of this BCF2 file and store the result in the builder
      * @param builder
      */
-    private void decodeFilter( final VariantContextBuilder builder ) {
+    private void decodeFilter( final VariantContextBuilder builder ) throws IOException {
         final Object value = decoder.decodeTypedValue();
 
         if ( value == null )
@@ -406,7 +387,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
      * @param numInfoFields
      */
     @Requires("numInfoFields >= 0")
-    private void decodeInfo( final VariantContextBuilder builder, final int numInfoFields ) {
+    private void decodeInfo( final VariantContextBuilder builder, final int numInfoFields ) throws IOException {
         if ( numInfoFields == 0 )
             // fast path, don't bother doing any work if there are no fields
             return;
@@ -466,7 +447,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
     }
 
     @Ensures("result != null")
-    private final String getDictionaryString() {
+    private final String getDictionaryString() throws IOException {
         return getDictionaryString((Integer) decoder.decodeTypedValue());
     }
 
@@ -515,6 +496,6 @@ public final class BCF2Codec implements FeatureCodec<VariantContext>, ReferenceD
     }
 
     private final void error(final String message) throws RuntimeException {
-        throw new UserException.MalformedBCF2(String.format("At record %d with position %d:", recordNo, pos, message));
+        throw new UserException.MalformedBCF2(String.format("%s, at record %d with position %d:", message, recordNo, pos));
     }
 }

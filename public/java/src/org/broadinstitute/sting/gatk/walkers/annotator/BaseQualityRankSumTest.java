@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
@@ -15,7 +16,7 @@ import java.util.*;
  * The u-based z-approximation from the Mann-Whitney Rank Sum Test for base qualities (ref bases vs. bases of the alternate allele).
  * Note that the base quality rank sum test can not be calculated for homozygous sites.
  */
-public class BaseQualityRankSumTest extends RankSumTest {
+public class BaseQualityRankSumTest extends RankSumTest implements StandardAnnotation {
     public List<String> getKeyNames() { return Arrays.asList("BaseQRankSum"); }
 
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("BaseQRankSum", 1, VCFHeaderLineType.Float, "Z-score from Wilcoxon rank sum test of Alt Vs. Ref base qualities")); }
@@ -64,12 +65,12 @@ public class BaseQualityRankSumTest extends RankSumTest {
                 // by design, first element in LinkedHashMap was ref allele
                 double refLikelihood=0.0, altLikelihood=Double.NEGATIVE_INFINITY;
 
-                for (Allele a : el.keySet()) {
+                for (Map.Entry<Allele, Double> entry : el.entrySet()) {
 
-                    if (a.isReference())
-                        refLikelihood =el.get(a);
+                    if (entry.getKey().isReference())
+                        refLikelihood = entry.getValue();
                     else {
-                        double like = el.get(a);
+                        double like = entry.getValue();
                         if (like >= altLikelihood)
                             altLikelihood = like;
                     }

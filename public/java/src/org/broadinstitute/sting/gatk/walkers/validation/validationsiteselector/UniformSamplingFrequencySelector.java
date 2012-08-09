@@ -65,7 +65,7 @@ public class UniformSamplingFrequencySelector extends FrequencyModeSelector {
         }
         // create bare-bones event and log in corresponding bin
         // attributes contains AC,AF,AN pulled from original vc, and we keep them here and log in output file for bookkeeping purposes
-        GenomeEvent event = new GenomeEvent(parser, vc.getChr(), vc.getStart(), vc.getEnd(),vc.getAlleles(), attributes, vc.getReferenceBaseForIndel());
+        GenomeEvent event = new GenomeEvent(parser, vc.getChr(), vc.getStart(), vc.getEnd(),vc.getAlleles(), attributes);
         binnedEventArray.add(event);
 
     }

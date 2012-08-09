@@ -29,7 +29,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ActiveRegionBasedAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
@@ -55,7 +55,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
     private static final String FS = "FS";
     private static final double MIN_PVALUE = 1E-320;
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( !vc.isVariant() )
             return null;
 
@@ -255,11 +255,8 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             for (PileupElement p : sample.getValue().getBasePileup()) {
-                if ( p.isDeletion() || p.getRead().isReducedRead() ) // ignore deletions and reduced reads
+                if ( ! RankSumTest.isUsableBase(p, false) || p.getRead().isReducedRead() ) // ignore deletions and reduced reads
                     continue;
-
-                if ( p.getRead().getMappingQuality() < 20 || p.getQual() < 20 )
-                    continue; // todo -- fixme, should take filtered context!
 
                 Allele base = Allele.create(p.getBase(), false);
                 boolean isFW = !p.getRead().getReadNegativeStrandFlag();
@@ -294,16 +291,14 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
         
         int[][] table = new int[2][2];
 
-        for ( String sample : stratifiedContexts.keySet() ) {
-            final AlignmentContext context = stratifiedContexts.get(sample);
+        for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
+            final AlignmentContext context = sample.getValue();
             if ( context == null )
                 continue;
 
             final ReadBackedPileup pileup = context.getBasePileup();
             for ( final PileupElement p : pileup ) {
-                if ( p.getRead().isReducedRead() ) // ignore reduced reads
-                    continue;
-                if ( p.getRead().getMappingQuality() < 20 )
+                if ( ! RankSumTest.isUsableBase(p, true) || p.getRead().isReducedRead() ) // ignore reduced reads
                     continue;
                 if ( indelLikelihoodMap.containsKey(p) ) {
                     // to classify a pileup element as ref or alt, we look at the likelihood associated with the allele associated to this element.
@@ -318,12 +313,12 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
                     double refLikelihood=0.0, altLikelihood=Double.NEGATIVE_INFINITY;
 
-                    for (Allele a : el.keySet()) {
+                    for (Map.Entry<Allele,Double> entry : el.entrySet()) {
 
-                        if (a.isReference())
-                            refLikelihood =el.get(a);
+                        if (entry.getKey().isReference())
+                            refLikelihood = entry.getValue();
                         else {
-                            double like = el.get(a);
+                            double like = entry.getValue();
                             if (like >= altLikelihood)
                                 altLikelihood = like;
                         }

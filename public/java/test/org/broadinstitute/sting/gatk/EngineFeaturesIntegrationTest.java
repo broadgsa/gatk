@@ -90,7 +90,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
             super(EngineErrorHandlingTestProvider.class);
             this.expectedException = exceptedException;
             this.multiThreaded = multiThreaded;
-            this.iterationsToTest = multiThreaded ? 10 : 1;
+            this.iterationsToTest = multiThreaded ? 1000 : 1;
             setName(String.format("Engine error handling: expected %s, is-multithreaded %b", exceptedException, multiThreaded));
         }
     }
@@ -110,9 +110,9 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     // Loop over errors to throw, make sure they are the errors we get back from the engine, regardless of NT type
     //
     @Test(dataProvider = "EngineErrorHandlingTestProvider")
-    public void testEngineErrorHandlingTestProvider(EngineErrorHandlingTestProvider cfg) {
+    public void testEngineErrorHandlingTestProvider(final EngineErrorHandlingTestProvider cfg) {
         for ( int i = 0; i < cfg.iterationsToTest; i++ ) {
-            final String root = "-T ErrorThrowing -R " + b37KGReference;
+            final String root = "-T ErrorThrowing -R " + exampleFASTA;
             final String args = root + (cfg.multiThreaded ? " -nt 2" : "") + " -E " + cfg.expectedException.getSimpleName();
             WalkerTestSpec spec = new WalkerTestSpec(args, 0, cfg.expectedException);
             executeTest(cfg.toString(), spec);

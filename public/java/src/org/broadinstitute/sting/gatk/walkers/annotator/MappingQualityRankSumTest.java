@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
@@ -16,7 +17,7 @@ import java.util.*;
  * The u-based z-approximation from the Mann-Whitney Rank Sum Test for mapping qualities (reads with ref bases vs. those with the alternate allele)
  * Note that the mapping quality rank sum test can not be calculated for homozygous sites.
  */
-public class MappingQualityRankSumTest extends RankSumTest {
+public class MappingQualityRankSumTest extends RankSumTest implements StandardAnnotation {
 
     public List<String> getKeyNames() { return Arrays.asList("MQRankSum"); }
 
@@ -60,12 +61,12 @@ public class MappingQualityRankSumTest extends RankSumTest {
                 // by design, first element in LinkedHashMap was ref allele
                 double refLikelihood=0.0, altLikelihood=Double.NEGATIVE_INFINITY;
 
-                for (Allele a : el.keySet()) {
+                for (Map.Entry<Allele,Double> a : el.entrySet()) {
 
-                    if (a.isReference())
-                        refLikelihood =el.get(a);
+                    if (a.getKey().isReference())
+                        refLikelihood = a.getValue();
                     else {
-                        double like = el.get(a);
+                        double like = a.getValue();
                         if (like >= altLikelihood)
                             altLikelihood = like;
                     }

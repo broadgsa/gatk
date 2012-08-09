@@ -713,11 +713,11 @@ public class SWPairwiseAlignment {
             System.err.println("Only one "+argname+" argument is allowed");
             System.exit(1);
         }
-        if ( l.get(0).equals("true") ) return new Boolean(true);
-        if ( l.get(0).equals("false") ) return new Boolean(false);
+        if ( l.get(0).equals("true") ) return Boolean.valueOf(true);
+        if ( l.get(0).equals("false") ) return Boolean.valueOf(false);
         System.err.println("Can not parse value provided for "+argname+" argument ("+l.get(0)+"); true/false are allowed");
         System.exit(1);
-        return null;
+        return Boolean.valueOf(false); // This value isn't used because it is preceded by System.exit(1)
     }
 
 /* ##############################################

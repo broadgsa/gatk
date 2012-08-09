@@ -27,11 +27,14 @@ package org.broadinstitute.sting.gatk.walkers.varianteval;
 import org.broadinstitute.sting.WalkerTest;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
+import org.testng.annotations.DataProvider;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class VariantEvalIntegrationTest extends WalkerTest {
-    private static String variantEvalTestDataRoot = validationDataLocation + "VariantEval/";
+    private static String variantEvalTestDataRoot = privateTestDir + "VariantEval/";
     private static String fundamentalTestVCF = variantEvalTestDataRoot + "FundamentalsTest.annotated.db.subset.snps_and_indels.vcf";
     private static String fundamentalTestSNPsVCF = variantEvalTestDataRoot + "FundamentalsTest.annotated.db.subset.final.vcf";
     private static String fundamentalTestSNPsWithMLEVCF = variantEvalTestDataRoot + "FundamentalsTest.annotated.db.subset.final.withMLE.vcf";
@@ -119,7 +122,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("e62a3bd9914d48e2bb2fb4f5dfc5ebc0")
+                Arrays.asList("40abbc9be663aed8ee1158f832463ca8")
         );
         executeTest("testFundamentalsCountVariantsSNPsandIndelsWithNovelty", spec);
     }
@@ -141,7 +144,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("087a2d9943c53e7f49663667c3305c7e")
+                Arrays.asList("106a0e8753e839c0a2c030eb4b165fa9")
         );
         executeTest("testFundamentalsCountVariantsSNPsandIndelsWithNoveltyAndFilter", spec);
     }
@@ -613,4 +616,37 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test public void testWithAC0() { testIncludingAC0(true, "c786128cfe4d3e28cdbc15c5c838ad20"); }
     @Test public void testWithoutAC0() { testIncludingAC0(false, "7bc505c07d9aee49571ad4b3fc9f7feb"); }
 
+    //
+    // Test validation report is doing the right thing with sites only and genotypes files
+    // where the validation comp has more genotypes than eval
+    //
+    @Test(dataProvider = "testValidationReportData")
+    public void testValidationReport(final String name, final String eval, final String comp, final String md5) {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "-eval " + eval,
+                        "-comp " + comp,
+                        "-L 20:10,000,000-10,000,010 -noST -noEV -EV ValidationReport -o %s"
+                ),
+                1,
+                Arrays.asList(md5));
+        executeTest("testValidationReport with " + name, spec);
+    }
+
+    @DataProvider(name = "testValidationReportData")
+    public Object[][] testValidationReportData() {
+        final String compGenotypes = privateTestDir + "/validationReportComp.vcf";
+        final String compSites = privateTestDir + "/validationReportComp.noGenotypes.vcf";
+        final String evalGenotypes = privateTestDir + "/validationReportEval.vcf";
+        final String evalSites = privateTestDir + "/validationReportEval.noGenotypes.vcf";
+
+        List<Object[]> tests = new ArrayList<Object[]>();
+        tests.add(new Object[]{"sites/sites", evalSites, compSites, "0b32e19efce28087cdc7b58e17ed633a"});
+        tests.add(new Object[]{"sites/genotypes", evalSites, compGenotypes, "e2ffecee4a3acd0da7dd7fe10a59b2bc"});
+        tests.add(new Object[]{"genotypes/sites", evalGenotypes, compSites, "f0dbb848a94b451e42765b0cb9d09ee2"});
+        tests.add(new Object[]{"genotypes/genotypes", evalGenotypes, compGenotypes, "73790b530595fcbd467a88475ea9717f"});
+        return tests.toArray(new Object[][]{});
+    }
 }

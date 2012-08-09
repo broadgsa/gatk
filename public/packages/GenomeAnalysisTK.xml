@@ -33,12 +33,8 @@
       <module file="GATKEngine.xml"/>
     </modules>
   </executable>
-  <modules>
-    <module file="AnalyzeCovariates.xml"/>
-  </modules>
   <release>
-    <!-- TODO: determine the real directory where the protected GATK release should go -->
-    <executable directory="/local/gsa-engineering/test_releases/gatk" symlink="current" />
-    <archive directory="/local/gsa-engineering/test_releases/gatk" symlink="GenomeAnalysisTK-latest.tar.bz2" />
+    <executable directory="/humgen/gsa-hpprojects/GATK/bin" symlink="current" />
+    <archive directory="/humgen/gsa-hpprojects/GATK/bin" symlink="GenomeAnalysisTK-latest.tar.bz2" />
   </release>
 </package>

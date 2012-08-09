@@ -24,7 +24,9 @@
 
 package org.broadinstitute.sting.gatk.walkers.diagnostics.targets;
 
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -33,30 +35,34 @@ import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
 import org.broadinstitute.sting.gatk.walkers.PartitionBy;
 import org.broadinstitute.sting.gatk.walkers.PartitionType;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
+import org.broadinstitute.sting.utils.activeregion.ActivityProfileResult;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 
 import java.io.PrintStream;
 
+@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @PartitionBy(PartitionType.CONTIG)
 @ActiveRegionExtension(extension = 0, maxRegion = 50000)
 public class FindCoveredIntervals extends ActiveRegionWalker<GenomeLoc, Long> {
     @Output(required = true)
     private PrintStream out;
 
+    @Argument(fullName = "coverage_threshold", shortName = "cov", doc = "The minimum allowable coverage to be considered covered", required = false)
+    private int coverageThreshold = 20;
+
     @Override
     // Look to see if the region has sufficient coverage
-    public double isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context) {
+    public ActivityProfileResult isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context) {
 
         int depth = ThresHolder.DEFAULTS.getFilteredCoverage(context.getBasePileup());
 
         // note the linear probability scale
-        int coverageThreshold = 20;
-        return Math.min((double) depth / coverageThreshold, 1);
+        return new ActivityProfileResult(Math.min(depth / coverageThreshold, 1));
 
     }
 
     @Override
-    public GenomeLoc map(final ActiveRegion activeRegion, final RefMetaDataTracker tracker) {
+    public GenomeLoc map(final org.broadinstitute.sting.utils.activeregion.ActiveRegion activeRegion, final RefMetaDataTracker tracker) {
         if (activeRegion.isActive)
             return activeRegion.getLocation();
         else
@@ -72,7 +78,7 @@ public class FindCoveredIntervals extends ActiveRegionWalker<GenomeLoc, Long> {
     public Long reduce(final GenomeLoc value, Long reduce) {
         if (value != null) {
             out.println(value.toString());
-            return reduce++;
+            return ++reduce;
         } else
             return reduce;
     }

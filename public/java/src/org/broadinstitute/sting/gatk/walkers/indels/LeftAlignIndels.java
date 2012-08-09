@@ -29,10 +29,12 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -65,24 +67,13 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  * </pre>
  *
  */
+@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
 public class LeftAlignIndels extends ReadWalker<Integer, Integer> {
 
     @Output(required=false, doc="Output bam")
     protected StingSAMFileWriter writer = null;
 
-    /**
-     * If set too low, the tool may run out of system file descriptors needed to perform sorting; if too high, the tool
-     * may run out of memory.  We recommend that you additionally tell Java to use a temp directory with plenty of available
-     * space (by setting java.io.tempdir on the command-line).
-     */
-    @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="max reads allowed to be kept in memory at a time by the output writer", required=false)
-    protected int MAX_RECORDS_IN_RAM = 500000;
-
-    public void initialize() {
-        // set up the output writer
-        if ( writer != null )
-            writer.setMaxRecordsInRam(MAX_RECORDS_IN_RAM);
-    }
+    public void initialize() {}
 
     private void emit(final SAMRecord read) {
         if ( writer != null )

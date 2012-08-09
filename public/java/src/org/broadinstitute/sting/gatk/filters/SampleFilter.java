@@ -31,6 +31,9 @@ import org.broadinstitute.sting.commandline.Argument;
 
 import java.util.Set;
 
+/**
+ * Filter out all reads except those with this sample
+ */
 public class SampleFilter extends ReadFilter {
     @Argument(fullName = "sample_to_keep", shortName = "goodSM", doc="The name of the sample(s) to keep, filtering out all others", required=true)
     private Set SAMPLES_TO_KEEP = null;

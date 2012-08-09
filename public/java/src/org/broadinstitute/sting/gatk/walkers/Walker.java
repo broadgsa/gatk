@@ -49,10 +49,7 @@ import java.util.List;
 @ReadFilters(MalformedReadFilter.class)
 @PartitionBy(PartitionType.NONE)
 @BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
-@DocumentedGATKFeature(
-        groupName = "GATK walkers",
-        summary = "General tools available for running on the command line as part of the GATK package",
-        extraDocs = {CommandLineGATK.class})
+@DocumentedGATKFeature(groupName = "Uncategorized", extraDocs = {CommandLineGATK.class})
 public abstract class Walker<MapType, ReduceType> {
     final protected static Logger logger = Logger.getLogger(Walker.class);
     private GenomeAnalysisEngine toolkit;

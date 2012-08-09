@@ -646,7 +646,7 @@
         <jar jarfile="${dist.dir}/vcf.jar">
             <fileset dir="${java.classes}">
               <include name="org/broadinstitute/sting/utils/codecs/vcf/**/*.class"/>
-<!--               <include name="org/broadinstitute/sting/utils/codecs/bcf2/**/*.class"/> -->
+              <include name="org/broadinstitute/sting/utils/codecs/bcf2/**/*.class"/>
               <include name="org/broadinstitute/sting/utils/variantcontext/**/*.class"/>
               <include name="org/broadinstitute/sting/utils/exceptions/**"/>
 	          <include name="org/broadinstitute/sting/utils/help/DocumentedGATKFeature.class"/>
@@ -677,20 +677,6 @@
 
         <jar jarfile="${dist.dir}/Aligner.jar">
             <fileset dir="${java.classes}" includes="**/alignment/**/*.class" />
-        </jar>
-
-        <jar jarfile="${dist.dir}/AnalyzeCovariates.jar" whenmanifestonly="skip">
-            <fileset dir="${java.classes}">
-                <include name="**/analyzecovariates/**/*.class" />
-                <include name="**/gatk/walkers/recalibration/*.class" />
-            </fileset>
-            <fileset dir="${R.script.staging.dir}">
-                <include name="**/analyzecovariates/**/*.R"/>
-                <include name="**/gatk/walkers/recalibration/**/*.R"/>
-            </fileset>
-            <manifest>
-                <attribute name="Main-Class" value="org.broadinstitute.sting.analyzecovariates.AnalyzeCovariates" />
-            </manifest>
         </jar>
 
         <subant target="dist" genericantfile="build.xml">
@@ -748,12 +734,6 @@
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar" update="true">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}"/>
-            </manifest>
-        </jar>
-
-        <jar jarfile="${dist.dir}/AnalyzeCovariates.jar" update="true" whenmanifestonly="skip">
-            <manifest>
-                <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
         </jar>
     </target>
@@ -1249,11 +1229,7 @@
     </target>
 
 
-    <target name="committests">
-        <antcall target="unittest" inheritAll="false"/>
-        <antcall target="integrationtest" inheritAll="false"/>
-        <antcall target="pipelinetest" inheritAll="false"/>
-    </target>
+    <target name="committests" depends="unittest,integrationtest,pipelinetest" />
 
     <!-- Order of the dependencies is significant in the *.release.tests targets -->
     <target name="gatkfull.binary.release.tests" depends="init.usecontracts,package.gatk.full,init.testgatkjar,unittest,integrationtest" />

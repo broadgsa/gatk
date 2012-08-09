@@ -123,12 +123,12 @@ public class ActivityProfileUnitTest extends BaseTest {
         for ( int i = 0; i < cfg.probs.size(); i++ ) {
             double p = cfg.probs.get(i);
             GenomeLoc loc = genomeLocParser.createGenomeLoc(cfg.regionStart.getContig(), cfg.regionStart.getStart() + i, cfg.regionStart.getStart() + i);
-            profile.add(loc, p);
+            profile.add(loc, new ActivityProfileResult(p));
         }
         Assert.assertEquals(profile.regionStartLoc, genomeLocParser.createGenomeLoc(cfg.regionStart.getContig(), cfg.regionStart.getStart(), cfg.regionStart.getStart() ));
 
         Assert.assertEquals(profile.size(), cfg.probs.size());
-        Assert.assertEquals(profile.isActiveList, cfg.probs);
+        assertProbsAreEqual(profile.isActiveList, cfg.probs);
 
         assertRegionsAreEqual(profile.createActiveRegions(0, 100), cfg.expectedRegions);
     }
@@ -137,6 +137,13 @@ public class ActivityProfileUnitTest extends BaseTest {
         Assert.assertEquals(actual.size(), expected.size());
         for ( int i = 0; i < actual.size(); i++ ) {
             Assert.assertTrue(actual.get(i).equalExceptReads(expected.get(i)));
+        }
+    }
+
+    private void assertProbsAreEqual(List<ActivityProfileResult> actual, List<Double> expected) {
+        Assert.assertEquals(actual.size(), expected.size());
+        for ( int i = 0; i < actual.size(); i++ ) {
+            Assert.assertEquals(actual.get(i).isActiveProb, expected.get(i));
         }
     }
 

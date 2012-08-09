@@ -129,39 +129,40 @@ public final class BCF2Decoder {
     //
     // ----------------------------------------------------------------------
 
-    public final Object decodeTypedValue() {
+    public final Object decodeTypedValue() throws IOException {
         final byte typeDescriptor = readTypeDescriptor();
         return decodeTypedValue(typeDescriptor);
     }
 
-    public final Object decodeTypedValue(final byte typeDescriptor) {
+    public final Object decodeTypedValue(final byte typeDescriptor) throws IOException {
         final int size = decodeNumberOfElements(typeDescriptor);
         return decodeTypedValue(typeDescriptor, size);
     }
 
-    public final Object decodeTypedValue(final byte typeDescriptor, final int size) {
-        final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
-
-        assert size >= 0;
-
+    @Requires("size >= 0")
+    public final Object decodeTypedValue(final byte typeDescriptor, final int size) throws IOException {
         if ( size == 0 ) {
+            // missing value => null in java
             return null;
-        } else if ( type == BCF2Type.CHAR ) { // special case string decoding for efficiency
-            return decodeLiteralString(size);
-        } else if ( size == 1 ) {
-            return decodeSingleValue(type);
         } else {
-            final ArrayList<Object> ints = new ArrayList<Object>(size);
-            for ( int i = 0; i < size; i++ ) {
-                final Object val = decodeSingleValue(type);
-                if ( val == null ) continue; // auto-pruning.  We remove trailing nulls
-                ints.add(val);
+            final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
+            if ( type == BCF2Type.CHAR ) { // special case string decoding for efficiency
+                return decodeLiteralString(size);
+            } else if ( size == 1 ) {
+                return decodeSingleValue(type);
+            } else {
+                final ArrayList<Object> ints = new ArrayList<Object>(size);
+                for ( int i = 0; i < size; i++ ) {
+                    final Object val = decodeSingleValue(type);
+                    if ( val == null ) continue; // auto-pruning.  We remove trailing nulls
+                    ints.add(val);
+                }
+                return ints.isEmpty() ? null : ints; // return null when all of the values are null
             }
-            return ints.isEmpty() ? null : ints; // return null when all of the values are null
         }
     }
 
-    public final Object decodeSingleValue(final BCF2Type type) {
+    public final Object decodeSingleValue(final BCF2Type type) throws IOException {
         // TODO -- decodeTypedValue should integrate this routine
         final int value = decodeInt(type);
 
@@ -201,7 +202,7 @@ public final class BCF2Decoder {
                 return null;
             else {
                 final String s = new String(bytes, 0, goodLength);
-                return BCF2Utils.isCollapsedString(s) ? BCF2Utils.exploreStringList(s) : s;
+                return BCF2Utils.isCollapsedString(s) ? BCF2Utils.explodeStringList(s) : s;
             }
         } catch ( IOException e ) {
             throw new ReviewedStingException("readByte failure", e);
@@ -209,7 +210,7 @@ public final class BCF2Decoder {
     }
 
     @Ensures("result >= 0")
-    public final int decodeNumberOfElements(final byte typeDescriptor) {
+    public final int decodeNumberOfElements(final byte typeDescriptor) throws IOException {
         if ( BCF2Utils.sizeIsOverflow(typeDescriptor) )
             // -1 ensures we explode immediately with a bad size if the result is missing
             return decodeInt(readTypeDescriptor(), -1);
@@ -227,15 +228,15 @@ public final class BCF2Decoder {
      * @return
      */
     @Requires("BCF2Utils.decodeSize(typeDescriptor) == 1")
-    public final int decodeInt(final byte typeDescriptor, final int missingValue) {
+    public final int decodeInt(final byte typeDescriptor, final int missingValue) throws IOException {
         final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
         final int i = decodeInt(type);
         return i == type.getMissingBytes() ? missingValue : i;
     }
 
     @Requires("type != null")
-    public final int decodeInt(final BCF2Type type) {
-        return BCF2Utils.readInt(type.getSizeInBytes(), recordStream);
+    public final int decodeInt(final BCF2Type type) throws IOException {
+        return type.read(recordStream);
     }
 
     /**
@@ -256,8 +257,8 @@ public final class BCF2Decoder {
      *                  int elements are still forced to do a fresh allocation as well.
      * @return see description
      */
-    @Requires({"BCF2Type.INTEGERS.contains(type)", "size >= 0", "type != null"})
-    public final int[] decodeIntArray(final int size, final BCF2Type type, int[] maybeDest) {
+    @Requires({"type != null", "type.isIntegerType()", "size >= 0"})
+    public final int[] decodeIntArray(final int size, final BCF2Type type, int[] maybeDest) throws IOException {
         if ( size == 0 ) {
             return null;
         } else {
@@ -289,12 +290,12 @@ public final class BCF2Decoder {
         }
     }
 
-    public final int[] decodeIntArray(final byte typeDescriptor, final int size) {
+    public final int[] decodeIntArray(final byte typeDescriptor, final int size) throws IOException {
         final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
         return decodeIntArray(size, type, null);
     }
 
-    public final double rawFloatToFloat(final int rawFloat) {
+    private double rawFloatToFloat(final int rawFloat) {
         return (double)Float.intBitsToFloat(rawFloat);
     }
 
@@ -310,8 +311,8 @@ public final class BCF2Decoder {
      * @param inputStream
      * @return
      */
-    public final int readBlockSize(final InputStream inputStream) {
-        return BCF2Utils.readInt(4, inputStream);
+    public final int readBlockSize(final InputStream inputStream) throws IOException {
+        return BCF2Type.INT32.read(inputStream);
     }
 
     /**
@@ -344,7 +345,7 @@ public final class BCF2Decoder {
         }
     }
 
-    public final byte readTypeDescriptor() {
+    public final byte readTypeDescriptor() throws IOException {
         return BCF2Utils.readByte(recordStream);
     }
 }

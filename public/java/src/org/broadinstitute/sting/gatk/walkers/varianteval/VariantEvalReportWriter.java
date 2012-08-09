@@ -183,13 +183,13 @@ public class VariantEvalReportWriter {
                     throw new ReviewedStingException("Datamap is empty for analysis " + scanner.getAnalysis());
                 
                 // add DataPoint's for each field marked as such
-                for (final Field field : datamap.keySet()) {
+                for (final Map.Entry<Field, DataPoint> field : datamap.entrySet()) {
                     try {
-                        field.setAccessible(true);
+                        field.getKey().setAccessible(true);
 
                         // this is an atomic value, add a column for it
-                        final String format = datamap.get(field).format();
-                        table.addColumn(field.getName(), format);
+                        final String format = field.getValue().format();
+                        table.addColumn(field.getKey().getName(), format);
                     } catch (SecurityException e) {
                         throw new StingException("SecurityException: " + e);
                     }

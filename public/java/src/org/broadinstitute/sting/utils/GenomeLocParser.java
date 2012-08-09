@@ -304,11 +304,11 @@ public final class GenomeLocParser {
             return vglHelper(exceptOnError, String.format("The contig index %d is greater than the stored sequence count (%d)", contigIndex, contigInfo.getNSequences()));
 
         if ( mustBeOnReference ) {
-            if (start < 0)
-                return vglHelper(exceptOnError, String.format("The start position %d is less than 0", start));
+            if (start < 1)
+                return vglHelper(exceptOnError, String.format("The start position %d is less than 1", start));
 
-            if (stop < 0)
-                return vglHelper(exceptOnError, String.format("The stop position %d is less than 0", stop));
+            if (stop < 1)
+                return vglHelper(exceptOnError, String.format("The stop position %d is less than 1", stop));
 
             int contigSize = contigInfo.getSequence(contigIndex).getSequenceLength();
             if (start > contigSize || stop > contigSize)

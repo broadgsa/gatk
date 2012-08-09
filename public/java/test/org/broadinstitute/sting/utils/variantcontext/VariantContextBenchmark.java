@@ -152,7 +152,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
                     public void run(final VariantContext vc) {
                         if ( samples == null )
                             samples = new HashSet<String>(new ArrayList<String>(vc.getSampleNames()).subList(0, nSamplesToTake));
-                        VariantContext sub = vc.subContextFromSamples(samples, true);
+                        VariantContext sub = vc.subContextFromSamples(samples);
                         sub.getNSamples();
                     }
                 };

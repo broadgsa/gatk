@@ -13,17 +13,22 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
         String recalMD5;
         String cutVCFMD5;
         public VRTest(String inVCF, String tranchesMD5, String recalMD5, String cutVCFMD5) {
-            this.inVCF = validationDataLocation + inVCF;
+            this.inVCF = inVCF;
             this.tranchesMD5 = tranchesMD5;
             this.recalMD5 = recalMD5;
             this.cutVCFMD5 = cutVCFMD5;
         }
+
+        @Override
+        public String toString() {
+            return "VRTest{inVCF='" + inVCF +"'}";
+        }
     }
 
-    VRTest lowPass = new VRTest("phase1.projectConsensus.chr20.raw.snps.vcf",
-            "62f81e7d2082fbc71cae0101c27fefad",  // tranches
-            "b9709e4180e56abc691b208bd3e8626c",  // recal file
-            "75c178345f70ca2eb90205662fbdf968"); // cut VCF
+    VRTest lowPass = new VRTest(validationDataLocation + "phase1.projectConsensus.chr20.raw.snps.vcf",
+            "f360ce3eb2b0b887301be917a9843e2b",  // tranches
+            "287fea5ea066bf3fdd71f5ce9b58eab3",  // recal file
+            "356b9570817b9389da71fbe991d8b2f5"); // cut VCF
 
     @DataProvider(name = "VRTest")
     public Object[][] createData1() {
@@ -69,14 +74,72 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
         executeTest("testApplyRecalibration-"+params.inVCF, spec);
     }
 
-    VRTest indel = new VRTest("combined.phase1.chr20.raw.indels.sites.vcf",
+    VRTest bcfTest = new VRTest(privateTestDir + "vqsr.bcf_test.snps.unfiltered.bcf",
+            "a8ce3cd3dccafdf7d580bcce7d660a9a",  // tranches
+            "1cdf8c9ee77d91d1ba7f002573108bad",  // recal file
+            "62fda105e14b619a1c263855cf56af1d"); // cut VCF
+
+    @DataProvider(name = "VRBCFTest")
+    public Object[][] createVRBCFTest() {
+        return new Object[][]{ {bcfTest} };
+        //return new Object[][]{ {yriTrio}, {lowPass} }; // Add hg19 chr20 trio calls here
+    }
+
+    @Test(dataProvider = "VRBCFTest")
+    public void testVariantRecalibratorWithBCF(VRTest params) {
+        //System.out.printf("PARAMS FOR %s is %s%n", vcf, clusterFile);
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-R " + b37KGReference +
+                        " -resource:known=true,prior=10.0 " + GATKDataLocation + "dbsnp_132_b37.leftAligned.vcf" +
+                        " -resource:truth=true,training=true,prior=15.0 " + comparisonDataLocation + "Validated/HapMap/3.3/sites_r27_nr.b37_fwd.vcf" +
+                        " -resource:training=true,truth=true,prior=12.0 " + comparisonDataLocation + "Validated/Omni2.5_chip/Omni25_sites_1525_samples.b37.vcf" +
+                        " -T VariantRecalibrator" +
+                        " -input " + params.inVCF +
+                        " -L 20:10,000,000-20,000,000" +
+                        " --no_cmdline_in_header" +
+                        " -an AC " + // integer value
+                        " -an QD -an ReadPosRankSum -an FS -an InbreedingCoeff " + // floats value
+                        " -mG 2 "+
+                        " -recalFile %s" +
+                        " -tranchesFile %s",
+                2,
+                Arrays.asList("bcf", "txt"),
+                Arrays.asList(params.recalMD5, params.tranchesMD5));
+        executeTest("testVariantRecalibrator-"+params.inVCF, spec).getFirst();
+    }
+
+    @Test(dataProvider = "VRBCFTest", dependsOnMethods="testVariantRecalibratorWithBCF")
+    public void testApplyRecalibrationWithBCF(VRTest params) {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-R " + b37KGReference +
+                        " -T ApplyRecalibration" +
+                        " -L 20:10,000,000-20,000,000" +
+                        " --no_cmdline_in_header" +
+                        " -input " + params.inVCF +
+                        " -U LENIENT_VCF_PROCESSING -o %s" +
+                        " -tranchesFile " + getMd5DB().getMD5FilePath(params.tranchesMD5, null) +
+                        " -recalFile " + getMd5DB().getMD5FilePath(params.recalMD5, null),
+                Arrays.asList(params.cutVCFMD5));
+        spec.disableShadowBCF();
+        executeTest("testApplyRecalibration-"+params.inVCF, spec);
+    }
+
+
+    VRTest indelUnfiltered = new VRTest(
+            validationDataLocation + "combined.phase1.chr20.raw.indels.unfiltered.sites.vcf", // all FILTERs as .
             "b7589cd098dc153ec64c02dcff2838e4",  // tranches
             "a04a9001f62eff43d363f4d63769f3ee",  // recal file
-            "888eb042dd33b807bcbb8630896fda94"); // cut VCF
+            "64f576881e21323dd4078262604717a2"); // cut VCF
+
+    VRTest indelFiltered = new VRTest(
+            validationDataLocation + "combined.phase1.chr20.raw.indels.filtered.sites.vcf", // all FILTERs as PASS
+            "b7589cd098dc153ec64c02dcff2838e4",  // tranches
+            "a04a9001f62eff43d363f4d63769f3ee",  // recal file
+            "af22c55d91394c56a222fd40d6d54781"); // cut VCF
 
     @DataProvider(name = "VRIndelTest")
-    public Object[][] createData2() {
-        return new Object[][]{ {indel} };
+    public Object[][] createTestVariantRecalibratorIndel() {
+        return new Object[][]{ {indelUnfiltered}, {indelFiltered} };
     }
 
     @Test(dataProvider = "VRIndelTest")

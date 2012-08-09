@@ -25,9 +25,7 @@
 
 package org.broadinstitute.sting.utils.recalibration;
 
-import org.broadinstitute.sting.gatk.walkers.bqsr.Covariate;
-import org.broadinstitute.sting.gatk.walkers.bqsr.EventType;
-import org.broadinstitute.sting.gatk.walkers.bqsr.RecalDatum;
+import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 
 /**

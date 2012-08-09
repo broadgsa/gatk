@@ -28,11 +28,10 @@ import net.sf.samtools.SAMRecord;
  */
 
 /**
- * Created by IntelliJ IDEA.
- * User: rpoplin
- * Date: Nov 19, 2009
+ * Filter out reads that don't have base an original quality quality score tag (usually added by BQSR)
  *
- * Filter out reads that don't have Original Quality scores inside. 
+ * @author rpoplin
+ * @since Nov 19, 2009
  */
 public class NoOriginalQualityScoresFilter extends ReadFilter {
     public boolean filterOut( final SAMRecord read ) {

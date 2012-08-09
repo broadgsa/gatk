@@ -191,9 +191,12 @@ public final class BCF2Encoder {
     @Requires("size >= 0")
     @Ensures("encodeStream.size() > old(encodeStream.size())")
     public final void encodeType(final int size, final BCF2Type type) throws IOException {
-        final byte typeByte = BCF2Utils.encodeTypeDescriptor(size, type);
-        encodeStream.write(typeByte);
-        if ( BCF2Utils.willOverflow(size) ) {
+        if ( size <= BCF2Utils.MAX_INLINE_ELEMENTS ) {
+            final int typeByte = BCF2Utils.encodeTypeDescriptor(size, type);
+            encodeStream.write(typeByte);
+        } else {
+            final int typeByte = BCF2Utils.encodeTypeDescriptor(BCF2Utils.OVERFLOW_ELEMENT_MARKER, type);
+            encodeStream.write(typeByte);
             // write in the overflow size
             encodeTypedInt(size);
         }
@@ -201,12 +204,12 @@ public final class BCF2Encoder {
 
     @Ensures("encodeStream.size() > old(encodeStream.size())")
     public final void encodeRawInt(final int value, final BCF2Type type) throws IOException {
-        BCF2Utils.encodeRawBytes(value, type, encodeStream);
+        type.write(value, encodeStream);
     }
 
     @Ensures("encodeStream.size() > old(encodeStream.size())")
     public final void encodeRawBytes(final int value, final BCF2Type type) throws IOException {
-        BCF2Utils.encodeRawBytes(value, type, encodeStream);
+        type.write(value, encodeStream);
     }
 
     // --------------------------------------------------------------------------------

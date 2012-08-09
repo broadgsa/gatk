@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.recalibration.EventType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -405,6 +406,40 @@ public class AlignmentUtils {
         return alignment;
     }
 
+    public static int calcNumHighQualitySoftClips( final GATKSAMRecord read, final byte qualThreshold ) {
+
+        int numHQSoftClips = 0;
+        int alignPos = 0;
+        final Cigar cigar = read.getCigar();
+        final byte[] qual = read.getBaseQualities( EventType.BASE_SUBSTITUTION );
+
+        for( int iii = 0; iii < cigar.numCigarElements(); iii++ ) {
+
+            final CigarElement ce = cigar.getCigarElement(iii);
+            final int elementLength = ce.getLength();
+
+            switch( ce.getOperator() ) {
+                case S:
+                    for( int jjj = 0; jjj < elementLength; jjj++ ) {
+                        if( qual[alignPos++] > qualThreshold ) { numHQSoftClips++; }
+                    }
+                    break;
+                case M:
+                case I:
+                    alignPos += elementLength;
+                    break;
+                case H:
+                case P:
+                case D:
+                case N:
+                    break;
+                default:
+                    throw new ReviewedStingException("Unsupported cigar operator: " + ce.getOperator());
+            }
+        }
+        return numHQSoftClips;
+    }
+
     public static int calcAlignmentByteArrayOffset(final Cigar cigar, final PileupElement pileupElement, final int alignmentStart, final int refLocus) {
         return calcAlignmentByteArrayOffset( cigar, pileupElement.getOffset(), pileupElement.isInsertionAtBeginningOfRead(), pileupElement.isDeletion(), alignmentStart, refLocus );
     }
@@ -441,7 +476,6 @@ public class AlignmentUtils {
                     }
                     break;
                 case D:
-                case N:
                     if (!isDeletion) {
                         alignmentPos += elementLength;
                     } else {
@@ -463,6 +497,7 @@ public class AlignmentUtils {
                     break;
                 case H:
                 case P:
+                case N:
                     break;
                 default:
                     throw new ReviewedStingException("Unsupported cigar operator: " + ce.getOperator());
@@ -481,16 +516,13 @@ public class AlignmentUtils {
             final int elementLength = ce.getLength();
 
             switch (ce.getOperator()) {
-                case I:
-                case S:
-                    break;
                 case D:
                 case N:
-                    alignmentLength += elementLength;
-                    break;
                 case M:
                     alignmentLength += elementLength;
                     break;
+                case I:
+                case S:
                 case H:
                 case P:
                     break;

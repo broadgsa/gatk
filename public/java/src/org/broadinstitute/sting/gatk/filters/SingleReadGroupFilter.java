@@ -30,11 +30,11 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 
 /**
- * Created by IntelliJ IDEA.
- * User: rpoplin
- * Date: Nov 27, 2009
- *
  * Only use reads from the specified read group.
+ *
+ * @author rpoplin
+ * @since Nov 27, 2009
+ *
  */
 
 public class SingleReadGroupFilter extends ReadFilter {

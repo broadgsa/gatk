@@ -223,7 +223,7 @@ public class QualQuantizer {
 
         @Override
         public int compareTo(final QualInterval qualInterval) {
-            return new Integer(this.qStart).compareTo(qualInterval.qStart);
+            return Integer.valueOf(this.qStart).compareTo(qualInterval.qStart);
         }
 
         /**

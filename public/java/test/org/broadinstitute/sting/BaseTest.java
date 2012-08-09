@@ -95,6 +95,8 @@ public abstract class BaseTest {
     public static final String keysDataLocation = validationDataLocation + "keys/";
     public static final String gatkKeyFile = CryptUtils.GATK_USER_KEY_DIRECTORY + "gsamembers_broadinstitute.org.key";
 
+    public static final String exampleFASTA = publicTestDir + "exampleFASTA.fasta";
+
     /** before the class starts up */
     static {
         // setup a basic log configuration
@@ -280,12 +282,12 @@ public abstract class BaseTest {
     private static final double DEFAULT_FLOAT_TOLERANCE = 1e-1;
 
     public static final void assertEqualsDoubleSmart(final Object actual, final Double expected) {
-        Assert.assertTrue(actual instanceof Double);
+        Assert.assertTrue(actual instanceof Double, "Not a double");
         assertEqualsDoubleSmart((double)(Double)actual, (double)expected);
     }
 
     public static final void assertEqualsDoubleSmart(final Object actual, final Double expected, final double tolerance) {
-        Assert.assertTrue(actual instanceof Double);
+        Assert.assertTrue(actual instanceof Double, "Not a double");
         assertEqualsDoubleSmart((double)(Double)actual, (double)expected, tolerance);
     }
 
@@ -301,13 +303,13 @@ public abstract class BaseTest {
 
     public static final void assertEqualsDoubleSmart(final double actual, final double expected, final double tolerance) {
         if ( Double.isNaN(expected) ) // NaN == NaN => false unfortunately
-            Assert.assertTrue(Double.isNaN(actual));
+            Assert.assertTrue(Double.isNaN(actual), "expected is nan, actual is not");
         else if ( Double.isInfinite(expected) ) // NaN == NaN => false unfortunately
-            Assert.assertTrue(Double.isInfinite(actual));
+            Assert.assertTrue(Double.isInfinite(actual), "expected is infinite, actual is not");
         else {
             final double delta = Math.abs(actual - expected);
             final double ratio = Math.abs(actual / expected - 1.0);
-            Assert.assertTrue(delta < tolerance || ratio < tolerance);
+            Assert.assertTrue(delta < tolerance || ratio < tolerance, "expected = " + expected + " actual = " + actual + " not within tolerance " + tolerance);
         }
     }
 }

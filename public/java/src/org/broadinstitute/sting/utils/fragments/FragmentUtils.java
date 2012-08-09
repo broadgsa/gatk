@@ -4,7 +4,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.walkers.bqsr.EventType;
+import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -134,17 +134,36 @@ public class FragmentUtils {
 
         GATKSAMRecord firstRead = overlappingPair.get(0);
         GATKSAMRecord secondRead = overlappingPair.get(1);
-        if( !(secondRead.getUnclippedStart() <= firstRead.getUnclippedEnd() && secondRead.getUnclippedStart() >= firstRead.getUnclippedStart() && secondRead.getUnclippedEnd() >= firstRead.getUnclippedEnd()) ) {
+   /*
+        System.out.println("read 0 unclipped start:"+overlappingPair.get(0).getUnclippedStart());
+        System.out.println("read 0 unclipped end:"+overlappingPair.get(0).getUnclippedEnd());
+        System.out.println("read 1 unclipped start:"+overlappingPair.get(1).getUnclippedStart());
+        System.out.println("read 1 unclipped end:"+overlappingPair.get(1).getUnclippedEnd());
+        System.out.println("read 0 start:"+overlappingPair.get(0).getAlignmentStart());
+        System.out.println("read 0 end:"+overlappingPair.get(0).getAlignmentEnd());
+        System.out.println("read 1 start:"+overlappingPair.get(1).getAlignmentStart());
+        System.out.println("read 1 end:"+overlappingPair.get(1).getAlignmentEnd());
+     */
+        if( !(secondRead.getSoftStart() <= firstRead.getSoftEnd() && secondRead.getSoftStart() >= firstRead.getSoftStart() && secondRead.getSoftEnd() >= firstRead.getSoftEnd()) ) {
             firstRead = overlappingPair.get(1); // swap them
             secondRead = overlappingPair.get(0);
         }
-        if( !(secondRead.getUnclippedStart() <= firstRead.getUnclippedEnd() && secondRead.getUnclippedStart() >= firstRead.getUnclippedStart() && secondRead.getUnclippedEnd() >= firstRead.getUnclippedEnd()) ) {
+        if( !(secondRead.getSoftStart() <= firstRead.getSoftEnd() && secondRead.getSoftStart() >= firstRead.getSoftStart() && secondRead.getSoftEnd() >= firstRead.getSoftEnd()) ) {
             return overlappingPair; // can't merge them, yet:  AAAAAAAAAAA-BBBBBBBBBBB-AAAAAAAAAAAAAA, B is contained entirely inside A
         }
         if( firstRead.getCigarString().contains("I") || firstRead.getCigarString().contains("D") || secondRead.getCigarString().contains("I") || secondRead.getCigarString().contains("D") ) {
             return overlappingPair; // fragments contain indels so don't merge them
         }
 
+/*        // check for inconsistent start positions between uncliped/soft alignment starts
+        if (secondRead.getAlignmentStart() >= firstRead.getAlignmentStart() && secondRead.getUnclippedStart() < firstRead.getUnclippedStart())
+            return overlappingPair;
+        if (secondRead.getAlignmentStart() <= firstRead.getAlignmentStart() && secondRead.getUnclippedStart() > firstRead.getUnclippedStart())
+            return overlappingPair;
+
+        if (secondRead.getUnclippedStart() < firstRead.getAlignmentEnd() && secondRead.getAlignmentStart() >= firstRead.getAlignmentEnd())
+            return overlappingPair;
+  */
         final Pair<Integer, Boolean> pair = ReadUtils.getReadCoordinateForReferenceCoordinate(firstRead, secondRead.getSoftStart());
 
         final int firstReadStop = ( pair.getSecond() ? pair.getFirst() + 1 : pair.getFirst() );

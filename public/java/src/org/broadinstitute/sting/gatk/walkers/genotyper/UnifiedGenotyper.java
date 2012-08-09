@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -35,15 +36,17 @@ import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -66,7 +69,7 @@ import java.util.*;
  *
  * <h2>Output</h2>
  * <p>
- * A raw, unfiltered, highly specific callset in VCF format.
+ * A raw, unfiltered, highly sensitive callset in VCF format.
  * </p>
  *
  * <h2>Example generic command for multi-sample SNP calling</h2>
@@ -79,7 +82,7 @@ import java.util.*;
  *   -o snps.raw.vcf \
  *   -stand_call_conf [50.0] \
  *   -stand_emit_conf 10.0 \
- *   -dcov [50] \
+ *   -dcov [50 for 4x, 200 for >30x WGS or Whole exome] \
  *   [-L targets.interval_list]
  * </pre>
  *
@@ -113,6 +116,7 @@ import java.util.*;
  *
  */
 
+@DocumentedGATKFeature( groupName = "Variant Discovery Tools", extraDocs = {CommandLineGATK.class} )
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
 @ReadFilters( {BadMateFilter.class, MappingQualityUnavailableFilter.class} )
 @Reference(window=@Window(start=-200,stop=200))
@@ -120,7 +124,7 @@ import java.util.*;
 // TODO -- When LocusIteratorByState gets cleaned up, we should enable multiple @By sources:
 // TODO -- @By( {DataSource.READS, DataSource.REFERENCE_ORDERED_DATA} )
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
-public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatibleWalker {
+public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatible {
 
     @ArgumentCollection
     private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
@@ -149,7 +153,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
     public boolean alwaysAppendDbsnpId() { return false; }
 
     /**
-     * A raw, unfiltered, highly specific callset in VCF format.
+     * A raw, unfiltered, highly sensitive callset in VCF format.
      */
     @Output(doc="File to which variants should be written",required=true)
     protected VariantContextWriter writer = null;
@@ -222,6 +226,45 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
      *
      **/
     public void initialize() {
+
+        // Check for protected modes
+        if (GATKLiteUtils.isGATKLite()) {
+            // no polyploid/pooled mode in GATK Like
+            if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY ||
+                    UAC.referenceSampleName != null ||
+                    UAC.referenceSampleRod.isBound())  {
+                throw new UserException.NotSupportedInGATKLite("Usage of ploidy values different than 2 not supported in this GATK version");
+            }
+            // get all of the unique sample names
+            samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
+
+        } else {
+            // in full mode: check for consistency in ploidy/pool calling arguments
+            // check for correct calculation models
+/*            if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
+                // polyploidy requires POOL GL and AF calculation models to be specified right now
+                if (UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLSNP && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLINDEL
+                        && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLBOTH)   {
+                    throw new UserException("Incorrect genotype calculation model chosen. Only [POOLSNP|POOLINDEL|POOLBOTH] supported with this walker if sample ploidy != 2");
+                }
+
+                if (UAC.AFmodel != AlleleFrequencyCalculationModel.Model.POOL)
+                    throw new UserException("Incorrect AF Calculation model. Only POOL model supported if sample ploidy != 2");
+
+            }
+  */
+            // get all of the unique sample names
+            if (UAC.TREAT_ALL_READS_AS_SINGLE_POOL) {
+                samples.clear();
+                samples.add(GenotypeLikelihoodsCalculationModel.DUMMY_SAMPLE_NAME);
+            } else {
+                samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
+                if (UAC.referenceSampleName != null )
+                    samples.remove(UAC.referenceSampleName);
+            }
+
+        }
+
         // check for a bad max alleles value
         if ( UAC.MAX_ALTERNATE_ALLELES > GenotypeLikelihoods.MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED)
             throw new UserException.BadArgumentValue("max_alternate_alleles", "the maximum possible value is " + GenotypeLikelihoods.MAX_ALT_ALLELES_THAT_CAN_BE_GENOTYPED);
@@ -232,15 +275,12 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
                 UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.SNP )
             logger.warn("WARNING: note that the EMIT_ALL_SITES option is intended only for point mutations (SNPs) in DISCOVERY mode or generally when running in GENOTYPE_GIVEN_ALLELES mode; it will by no means produce a comprehensive set of indels in DISCOVERY mode");
         
-        // get all of the unique sample names
-        samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
-
-        // initialize the verbose writer
+         // initialize the verbose writer
         if ( verboseWriter != null )
             verboseWriter.println("AFINFO\tLOC\tREF\tALT\tMAF\tF\tAFprior\tMLE\tMAP");
 
         annotationEngine = new VariantAnnotatorEngine(Arrays.asList(annotationClassesToUse), annotationsToUse, annotationsToExclude, this, getToolkit());
-        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples, VariantContextUtils.DEFAULT_PLOIDY);
+        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples, UAC.samplePloidy);
 
         // initialize the header
         Set<VCFHeaderLine> headerInfo = getHeaderInfo(UAC, annotationEngine, dbsnp);
@@ -250,6 +290,8 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
         annotationEngine.invokeAnnotationInitializationMethods(headerInfo);
 
         writer.writeHeader(new VCFHeader(headerInfo, samples));
+
+
     }
 
     public static Set<VCFHeaderLine> getHeaderInfo(final UnifiedArgumentCollection UAC,
@@ -267,6 +309,15 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
 
         if ( UAC.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED )
             headerInfo.add(new VCFInfoHeaderLine(UnifiedGenotyperEngine.NUMBER_OF_DISCOVERED_ALLELES_KEY, 1, VCFHeaderLineType.Integer, "Number of alternate alleles discovered (but not necessarily genotyped) at this site"));
+
+        // add the pool values for each genotype
+        if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
+            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_PER_SAMPLE_ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum likelihood expectation (MLE) for the alternate allele count, in the same order as listed, for each individual sample"));
+            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_PER_SAMPLE_ALLELE_FRACTION_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Maximum likelihood expectation (MLE) for the alternate allele fraction, in the same order as listed, for each individual sample"));
+        }
+        if (UAC.referenceSampleName != null) {
+            headerInfo.add(new VCFInfoHeaderLine(VCFConstants.REFSAMPLE_DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Total reference sample depth"));
+        }
 
         VCFStandardHeaderLines.addStandardInfoLines(headerInfo, true,
                 VCFConstants.DOWNSAMPLED_KEY,

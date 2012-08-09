@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.exceptions;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -75,6 +76,12 @@ public class UserException extends ReviewedStingException {
     public static class BadInput extends UserException {
         public BadInput(String message) {
             super(String.format("Bad input: %s", message));
+        }
+    }
+
+    public static class NotSupportedInGATKLite extends UserException {
+        public NotSupportedInGATKLite(String message) {
+            super(String.format("GATK Lite does not support all of the features of the full version: %s", message));
         }
     }
 
@@ -310,9 +317,9 @@ public class UserException extends ReviewedStingException {
 
 
 
-    public static class MissingWalker extends UserException {
-        public MissingWalker(String walkerName, String message) {
-            super(String.format("Walker %s is not available: %s", walkerName, message));
+    public static class DeprecatedWalker extends UserException {
+        public DeprecatedWalker(String walkerName, String version) {
+            super(String.format("Walker %s is no longer available in the GATK; it has been deprecated since version %s", walkerName, version));
         }
     }
 
@@ -345,8 +352,8 @@ public class UserException extends ReviewedStingException {
     public static class UnreadableKeyException extends UserException {
         public UnreadableKeyException ( File f, Exception e ) {
             super(String.format("Key file %s cannot be read (possibly the key file is corrupt?). Error was: %s. " +
-                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home for help.",
-                                f.getAbsolutePath(), getMessage(e)));
+                                "Please see %s for help.",
+                                f.getAbsolutePath(), getMessage(e), GATKRunReport.PHONE_HOME_DOCS_URL));
         }
 
         public UnreadableKeyException ( String message, Exception e ) {
@@ -355,8 +362,8 @@ public class UserException extends ReviewedStingException {
 
         public UnreadableKeyException ( String message ) {
             super(String.format("Key file cannot be read (possibly the key file is corrupt?): %s. " +
-                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home for help.",
-                                message));
+                                "Please see %s for help.",
+                                message, GATKRunReport.PHONE_HOME_DOCS_URL));
         }
     }
 
@@ -364,9 +371,8 @@ public class UserException extends ReviewedStingException {
         public KeySignatureVerificationException ( File f ) {
             super(String.format("The signature in key file %s failed cryptographic verification. " +
                                 "If this key was valid in the past, it's likely been revoked. " +
-                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home " +
-                                "for help.",
-                                f.getAbsolutePath()));
+                                "Please see %s for help.",
+                                f.getAbsolutePath(), GATKRunReport.PHONE_HOME_DOCS_URL));
         }
     }
 }

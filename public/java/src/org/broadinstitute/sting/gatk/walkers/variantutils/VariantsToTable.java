@@ -25,10 +25,12 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -97,6 +99,7 @@ import java.util.*;
  * @author Mark DePristo
  * @since 2010
  */
+@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
 public class VariantsToTable extends RodWalker<Integer, Integer> {
     /**
      * Variants from this VCF file are used by this tool as input.
@@ -378,7 +381,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("REF", new Getter() {
             public String get(VariantContext vc) {
                 StringBuilder x = new StringBuilder();
-                x.append(vc.getAlleleStringWithRefPadding(vc.getReference()));
+                x.append(vc.getReference().getDisplayString());
                 return x.toString();
             }
         });
@@ -390,7 +393,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
                 for ( int i = 0; i < n; i++ ) {
                     if ( i != 0 ) x.append(",");
-                    x.append(vc.getAlleleStringWithRefPadding(vc.getAlternateAllele(i)));
+                    x.append(vc.getAlternateAllele(i));
                 }
                 return x.toString();
             }
@@ -432,11 +435,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     private static Object splitAltAlleles(VariantContext vc) {
         final int numAltAlleles = vc.getAlternateAlleles().size();
         if ( numAltAlleles == 1 )
-            return vc.getAlleleStringWithRefPadding(vc.getAlternateAllele(0));
+            return vc.getAlternateAllele(0);
 
-        final List<String> alleles = new ArrayList<String>(numAltAlleles);
-        for ( Allele allele : vc.getAlternateAlleles() )
-            alleles.add(vc.getAlleleStringWithRefPadding(allele));
-        return alleles;
+        return vc.getAlternateAlleles();
     }
 }

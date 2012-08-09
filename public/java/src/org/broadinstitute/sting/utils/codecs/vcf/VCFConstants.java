@@ -36,6 +36,8 @@ public final class VCFConstants {
     public static final String MLE_ALLELE_COUNT_KEY = "MLEAC";
     public static final String ALLELE_FREQUENCY_KEY = "AF";
     public static final String MLE_ALLELE_FREQUENCY_KEY = "MLEAF";
+    public static final String MLE_PER_SAMPLE_ALLELE_COUNT_KEY = "MLPSAC";
+    public static final String MLE_PER_SAMPLE_ALLELE_FRACTION_KEY = "MLPSAF";
     public static final String ALLELE_NUMBER_KEY = "AN";
     public static final String RMS_BASE_QUALITY_KEY = "BQ";
     public static final String CIGAR_KEY = "CIGAR";
@@ -119,4 +121,5 @@ public final class VCFConstants {
     public static final int MAX_GENOTYPE_QUAL = 99;
 
     public static final Double VCF_ENCODING_EPSILON = 0.00005; // when we consider fields equal(), used in the Qual compare
+    public static final String REFSAMPLE_DEPTH_KEY = "REFDEPTH";
 }

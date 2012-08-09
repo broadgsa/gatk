@@ -28,7 +28,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEval;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.StandardEval;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.RequiredStratification;
@@ -45,10 +45,10 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import java.util.*;
 
 public class VariantEvalUtils {
-    private final VariantEvalWalker variantEvalWalker;
+    private final VariantEval variantEvalWalker;
     Logger logger;
 
-    public VariantEvalUtils(VariantEvalWalker variantEvalWalker) {
+    public VariantEvalUtils(VariantEval variantEvalWalker) {
         this.variantEvalWalker = variantEvalWalker;
         this.logger = variantEvalWalker.getLogger();
     }
@@ -197,7 +197,9 @@ public class VariantEvalUtils {
      * @return a new VariantContext with just the requested samples
      */
     public VariantContext getSubsetOfVariantContext(VariantContext vc, Set<String> sampleNames) {
-        return ensureAnnotations(vc, vc.subContextFromSamples(sampleNames, false));
+        // if we want to preserve AC0 sites as polymorphic we need to not rederive alleles
+        final boolean deriveAlleles = variantEvalWalker.ignoreAC0Sites();
+        return ensureAnnotations(vc, vc.subContextFromSamples(sampleNames, deriveAlleles));
     }
 
     public VariantContext ensureAnnotations(final VariantContext vc, final VariantContext vcsub) {
@@ -216,7 +218,7 @@ public class VariantEvalUtils {
             VariantContextBuilder builder = new VariantContextBuilder(vcsub);
 
             if ( isSingleton )
-                builder.attribute(VariantEvalWalker.IS_SINGLETON_KEY, true);
+                builder.attribute(VariantEval.IS_SINGLETON_KEY, true);
 
             if ( ! hasChrCountAnnotations )
                 VariantContextUtils.calculateChromosomeCounts(builder, true);
@@ -262,15 +264,11 @@ public class VariantEvalUtils {
                 // First, filter the VariantContext to represent only the samples for evaluation
                 VariantContext vcsub = vc;
 
-                if (subsetBySample && vc.hasGenotypes()) {
-                    if ( variantEvalWalker.isSubsettingToSpecificSamples() )
-                        vcsub = getSubsetOfVariantContext(vc, variantEvalWalker.getSampleNamesForEvaluation());
-                    else
-                        vcsub = ensureAnnotations(vc, vc);
-                }
+                if (subsetBySample && vc.hasGenotypes())
+                    vcsub = getSubsetOfVariantContext(vc, variantEvalWalker.getSampleNamesForEvaluation());
 
                 if ((byFilter || !vcsub.isFiltered())) {
-                    addMapping(mapping, VariantEvalWalker.getAllSampleName(), vcsub);
+                    addMapping(mapping, VariantEval.getAllSampleName(), vcsub);
                 }
 
                 // Now, if stratifying, split the subsetted vc per sample and add each as a new context
