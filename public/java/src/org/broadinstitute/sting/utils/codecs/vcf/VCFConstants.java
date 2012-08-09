@@ -36,6 +36,8 @@ public final class VCFConstants {
     public static final String MLE_ALLELE_COUNT_KEY = "MLEAC";
     public static final String ALLELE_FREQUENCY_KEY = "AF";
     public static final String MLE_ALLELE_FREQUENCY_KEY = "MLEAF";
+    public static final String MLE_PER_SAMPLE_ALLELE_COUNT_KEY = "MLPSAC";
+    public static final String MLE_PER_SAMPLE_ALLELE_FRACTION_KEY = "MLPSAF";
     public static final String ALLELE_NUMBER_KEY = "AN";
     public static final String RMS_BASE_QUALITY_KEY = "BQ";
     public static final String CIGAR_KEY = "CIGAR";
