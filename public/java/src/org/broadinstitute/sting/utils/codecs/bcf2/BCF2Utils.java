@@ -97,9 +97,8 @@ public final class BCF2Utils {
 
     @Requires({"nElements >= 0", "type != null"})
     public static byte encodeTypeDescriptor(final int nElements, final BCF2Type type ) {
-        int encodeSize = Math.min(nElements, OVERFLOW_ELEMENT_MARKER);
-        byte typeByte = (byte)((0x0F & encodeSize) << 4 | (type.getID() & 0x0F));
-        return typeByte;
+        final int encodeSize = nElements > MAX_INLINE_ELEMENTS ? OVERFLOW_ELEMENT_MARKER : nElements;
+        return (byte)((0x0F & encodeSize) << 4 | (type.getID() & 0x0F));
     }
 
     @Ensures("result >= 0")
@@ -121,18 +120,8 @@ public final class BCF2Utils {
         return decodeSize(typeDescriptor) == OVERFLOW_ELEMENT_MARKER;
     }
 
-    @Requires("nElements >= 0")
-    public static boolean willOverflow(final long nElements) {
-        return nElements > MAX_INLINE_ELEMENTS;
-    }
-
-    public static byte readByte(final InputStream stream) {
-        // TODO -- shouldn't be capturing error here
-        try {
-            return (byte)(stream.read() & 0xFF);
-        } catch ( IOException e ) {
-            throw new ReviewedStingException("readByte failure", e);
-        }
+    public static byte readByte(final InputStream stream) throws IOException {
+        return (byte)(stream.read() & 0xFF);
     }
 
     /**
@@ -295,7 +284,7 @@ public final class BCF2Utils {
 
 
     @Requires({"stream != null", "bytesForEachInt > 0"})
-    public static int readInt(int bytesForEachInt, final InputStream stream) {
+    public static int readInt(int bytesForEachInt, final InputStream stream) throws IOException {
         switch ( bytesForEachInt ) {
             case 1: {
                 return (byte)(readByte(stream));

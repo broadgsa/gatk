@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
 
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -105,12 +106,12 @@ public class BCF2GenotypeFieldDecoders {
                            final BCF2Decoder decoder,
                            final byte typeDescriptor,
                            final int numElements,
-                           final GenotypeBuilder[] gbs);
+                           final GenotypeBuilder[] gbs) throws IOException;
     }
 
     private class GTDecoder implements Decoder {
         @Override
-        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) {
+        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) throws IOException {
             if ( ENABLE_FASTPATH_GT && siteAlleles.size() == 2 && numElements == 2 && gbs.length >= MIN_SAMPLES_FOR_FASTPATH_GENOTYPES )
                 fastBiallelicDiploidDecode(siteAlleles, decoder, typeDescriptor, gbs);
             else {
@@ -135,7 +136,7 @@ public class BCF2GenotypeFieldDecoders {
         private final void fastBiallelicDiploidDecode(final List<Allele> siteAlleles,
                                                       final BCF2Decoder decoder,
                                                       final byte typeDescriptor,
-                                                      final GenotypeBuilder[] gbs) {
+                                                      final GenotypeBuilder[] gbs) throws IOException {
             final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
 
             final int nPossibleGenotypes = 3 * 3;
@@ -177,7 +178,7 @@ public class BCF2GenotypeFieldDecoders {
                                          final int ploidy,
                                          final BCF2Decoder decoder,
                                          final byte typeDescriptor,
-                                         final GenotypeBuilder[] gbs) {
+                                         final GenotypeBuilder[] gbs) throws IOException {
             final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
 
             // a single cache for the encoded genotypes, since we don't actually need this vector
@@ -216,7 +217,7 @@ public class BCF2GenotypeFieldDecoders {
 
     private class DPDecoder implements Decoder {
         @Override
-        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) {
+        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) throws IOException {
             for ( final GenotypeBuilder gb : gbs ) {
                 // the -1 is for missing
                 gb.DP(decoder.decodeInt(typeDescriptor, -1));
@@ -226,7 +227,7 @@ public class BCF2GenotypeFieldDecoders {
 
     private class GQDecoder implements Decoder {
         @Override
-        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) {
+        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) throws IOException {
             for ( final GenotypeBuilder gb : gbs ) {
                 // the -1 is for missing
                 gb.GQ(decoder.decodeInt(typeDescriptor, -1));
@@ -236,7 +237,7 @@ public class BCF2GenotypeFieldDecoders {
 
     private class ADDecoder implements Decoder {
         @Override
-        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) {
+        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) throws IOException {
             for ( final GenotypeBuilder gb : gbs ) {
                 gb.AD(decoder.decodeIntArray(typeDescriptor, numElements));
             }
@@ -245,7 +246,7 @@ public class BCF2GenotypeFieldDecoders {
 
     private class PLDecoder implements Decoder {
         @Override
-        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) {
+        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) throws IOException {
             for ( final GenotypeBuilder gb : gbs ) {
                 gb.PL(decoder.decodeIntArray(typeDescriptor, numElements));
             }
@@ -254,7 +255,7 @@ public class BCF2GenotypeFieldDecoders {
 
     private class GenericDecoder implements Decoder {
         @Override
-        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) {
+        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) throws IOException {
             for ( final GenotypeBuilder gb : gbs ) {
                 Object value = decoder.decodeTypedValue(typeDescriptor, numElements);
                 if ( value != null ) { // don't add missing values
@@ -273,7 +274,7 @@ public class BCF2GenotypeFieldDecoders {
 
     private class FTDecoder implements Decoder {
         @Override
-        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) {
+        public void decode(final List<Allele> siteAlleles, final String field, final BCF2Decoder decoder, final byte typeDescriptor, final int numElements, final GenotypeBuilder[] gbs) throws IOException {
             for ( final GenotypeBuilder gb : gbs ) {
                 Object value = decoder.decodeTypedValue(typeDescriptor, numElements);
                 assert value == null || value instanceof String;

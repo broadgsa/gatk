@@ -193,7 +193,7 @@ public final class BCF2Encoder {
     public final void encodeType(final int size, final BCF2Type type) throws IOException {
         final byte typeByte = BCF2Utils.encodeTypeDescriptor(size, type);
         encodeStream.write(typeByte);
-        if ( BCF2Utils.willOverflow(size) ) {
+        if ( size > BCF2Utils.MAX_INLINE_ELEMENTS ) {
             // write in the overflow size
             encodeTypedInt(size);
         }

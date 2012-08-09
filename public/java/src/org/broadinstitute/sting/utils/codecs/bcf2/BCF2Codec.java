@@ -113,18 +113,22 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
 
     @Override
     public VariantContext decode( final PositionalBufferedStream inputStream ) {
-        recordNo++;
-        final VariantContextBuilder builder = new VariantContextBuilder();
+        try {
+            recordNo++;
+            final VariantContextBuilder builder = new VariantContextBuilder();
 
-        final int sitesBlockSize = decoder.readBlockSize(inputStream);
-        final int genotypeBlockSize = decoder.readBlockSize(inputStream);
-        decoder.readNextBlock(sitesBlockSize, inputStream);
-        decodeSiteLoc(builder);
-        final SitesInfoForDecoding info = decodeSitesExtendedInfo(builder);
+            final int sitesBlockSize = decoder.readBlockSize(inputStream);
+            final int genotypeBlockSize = decoder.readBlockSize(inputStream);
+            decoder.readNextBlock(sitesBlockSize, inputStream);
+            decodeSiteLoc(builder);
+            final SitesInfoForDecoding info = decodeSitesExtendedInfo(builder);
 
-        decoder.readNextBlock(genotypeBlockSize, inputStream);
-        createLazyGenotypesDecoder(info, builder);
-        return builder.fullyDecoded(true).make();
+            decoder.readNextBlock(genotypeBlockSize, inputStream);
+            createLazyGenotypesDecoder(info, builder);
+            return builder.fullyDecoded(true).make();
+        } catch ( IOException e ) {
+            throw new UserException.CouldNotReadInputFile("Failed to read BCF file", e);
+        }
     }
 
     @Override
@@ -234,7 +238,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
      * @return
      */
     @Requires({"builder != null"})
-    private final void decodeSiteLoc(final VariantContextBuilder builder) {
+    private final void decodeSiteLoc(final VariantContextBuilder builder) throws IOException {
         final int contigOffset = decoder.decodeInt(BCF2Type.INT32);
         final String contig = lookupContigName(contigOffset);
         builder.chr(contig);
@@ -253,7 +257,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
      */
     @Requires({"builder != null", "decoder != null"})
     @Ensures({"result != null", "result.isValid()"})
-    private final SitesInfoForDecoding decodeSitesExtendedInfo(final VariantContextBuilder builder) {
+    private final SitesInfoForDecoding decodeSitesExtendedInfo(final VariantContextBuilder builder) throws IOException {
         final Object qual = decoder.decodeSingleValue(BCF2Type.FLOAT);
         if ( qual != null ) {
             builder.log10PError(((Double)qual) / -10.0);
@@ -309,7 +313,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
      * Decode the id field in this BCF2 file and store it in the builder
      * @param builder
      */
-    private void decodeID( final VariantContextBuilder builder ) {
+    private void decodeID( final VariantContextBuilder builder ) throws IOException {
         final String id = (String)decoder.decodeTypedValue();
 
         if ( id == null )
@@ -326,7 +330,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
      * @return the alleles
      */
     @Requires("nAlleles > 0")
-    private List<Allele> decodeAlleles( final VariantContextBuilder builder, final int pos, final int nAlleles ) {
+    private List<Allele> decodeAlleles( final VariantContextBuilder builder, final int pos, final int nAlleles ) throws IOException {
         // TODO -- probably need inline decoder for efficiency here (no sense in going bytes -> string -> vector -> bytes
         List<Allele> alleles = new ArrayList<Allele>(nAlleles);
         String ref = null;
@@ -356,7 +360,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
      * Decode the filter field of this BCF2 file and store the result in the builder
      * @param builder
      */
-    private void decodeFilter( final VariantContextBuilder builder ) {
+    private void decodeFilter( final VariantContextBuilder builder ) throws IOException {
         final Object value = decoder.decodeTypedValue();
 
         if ( value == null )
@@ -383,7 +387,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
      * @param numInfoFields
      */
     @Requires("numInfoFields >= 0")
-    private void decodeInfo( final VariantContextBuilder builder, final int numInfoFields ) {
+    private void decodeInfo( final VariantContextBuilder builder, final int numInfoFields ) throws IOException {
         if ( numInfoFields == 0 )
             // fast path, don't bother doing any work if there are no fields
             return;
@@ -443,7 +447,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
     }
 
     @Ensures("result != null")
-    private final String getDictionaryString() {
+    private final String getDictionaryString() throws IOException {
         return getDictionaryString((Integer) decoder.decodeTypedValue());
     }
 
