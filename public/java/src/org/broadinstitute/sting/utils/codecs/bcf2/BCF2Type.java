@@ -57,7 +57,7 @@ public enum BCF2Type {
 
         @Override
         public void write(final int value, final OutputStream out) throws IOException {
-            //To change body of implemented methods use File | Settings | File Templates.
+            out.write(0xFF & value);   // TODO -- do we need this operation?
         }
     },
 
@@ -71,7 +71,9 @@ public enum BCF2Type {
 
         @Override
         public void write(final int value, final OutputStream out) throws IOException {
-            //To change body of implemented methods use File | Settings | File Templates.
+            // TODO -- optimization -- should we put this in a local buffer?
+            out.write((0x00FF & value));
+            out.write((0xFF00 & value) >> 8);
         }
     },
 
@@ -87,7 +89,10 @@ public enum BCF2Type {
 
         @Override
         public void write(final int value, final OutputStream out) throws IOException {
-            //To change body of implemented methods use File | Settings | File Templates.
+            out.write((0x000000FF & value));
+            out.write((0x0000FF00 & value) >> 8);
+            out.write((0x00FF0000 & value) >> 16);
+            out.write((0xFF000000 & value) >> 24);
         }
     },
 
@@ -99,7 +104,7 @@ public enum BCF2Type {
 
         @Override
         public void write(final int value, final OutputStream out) throws IOException {
-            //To change body of implemented methods use File | Settings | File Templates.
+            INT32.write(value, out);
         }
     },
 
@@ -111,7 +116,7 @@ public enum BCF2Type {
 
         @Override
         public void write(final int value, final OutputStream out) throws IOException {
-            //To change body of implemented methods use File | Settings | File Templates.
+            INT8.write(value, out);
         }
     };
 

@@ -95,10 +95,9 @@ public final class BCF2Utils {
         return dict;
     }
 
-    @Requires({"nElements >= 0", "type != null"})
+    @Requires({"nElements >= 0", "nElements <= OVERFLOW_ELEMENT_MARKER", "type != null"})
     public static byte encodeTypeDescriptor(final int nElements, final BCF2Type type ) {
-        final int encodeSize = nElements > MAX_INLINE_ELEMENTS ? OVERFLOW_ELEMENT_MARKER : nElements;
-        return (byte)((0x0F & encodeSize) << 4 | (type.getID() & 0x0F));
+        return (byte)((0x0F & nElements) << 4 | (type.getID() & 0x0F));
     }
 
     @Ensures("result >= 0")
@@ -216,18 +215,18 @@ public final class BCF2Utils {
 
     @Ensures("result.isIntegerType()")
     public static BCF2Type determineIntegerType(final int[] values) {
-        // literally a copy of the code below, but there's no general way to unify lists and arrays in java
-        BCF2Type maxType = BCF2Type.INT8;
-        for ( final int value : values ) {
-            final BCF2Type type1 = determineIntegerType(value);
-            switch ( type1 ) {
-                case INT8: break;
-                case INT16: maxType = BCF2Type.INT16; break;
-                case INT32: return BCF2Type.INT32; // fast path for largest possible value
-                default: throw new ReviewedStingException("Unexpected integer type " + type1 );
-            }
+        // find the min and max values in the array
+        int max = 0, min = 0;
+        for ( final int v : values ) {
+            if ( v > max ) max = v;
+            if ( v < min ) min = v;
         }
-        return maxType;
+
+        final BCF2Type maxType = determineIntegerType(max);
+        final BCF2Type minType = determineIntegerType(min);
+
+        // INT8 < INT16 < INT32 so this returns the larger of the two
+        return maxType.compareTo(minType) >= 0 ? maxType : minType;
     }
 
     /**
@@ -280,32 +279,5 @@ public final class BCF2Utils {
         if ( o == null ) return Collections.emptyList();
         else if ( o instanceof List ) return (List<Object>)o;
         else return Collections.singletonList(o);
-    }
-
-    public static void encodeRawBytes(final int value, final BCF2Type type, final OutputStream encodeStream) throws IOException {
-        switch ( type.getSizeInBytes() ) {
-            case 1:
-                encodeStream.write(0xFF & value);
-                break;
-            case 2:
-                encodeStream.write((0x00FF & value));
-                encodeStream.write((0xFF00 & value) >> 8);
-                break;
-            case 4:
-                encodeStream.write((0x000000FF & value));
-                encodeStream.write((0x0000FF00 & value) >> 8);
-                encodeStream.write((0x00FF0000 & value) >> 16);
-                encodeStream.write((0xFF000000 & value) >> 24);
-                break;
-            default:
-                throw new ReviewedStingException("BUG: unexpected type size " + type);
-        }
-// general case for reference
-//        for ( int i = type.getSizeInBytes() - 1; i >= 0; i-- ) {
-//            final int shift = i * 8;
-//            int mask = 0xFF << shift;
-//            int byteValue = (mask & value) >> shift;
-//            encodeStream.write(byteValue);
-//        }
     }
 }

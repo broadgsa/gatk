@@ -158,7 +158,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
             final byte[] headerBytes = capture.toByteArray();
             new BCFVersion(MAJOR_VERSION, MINOR_VERSION).write(outputStream);
-            BCF2Utils.encodeRawBytes(headerBytes.length, BCF2Type.INT32, outputStream);
+            BCF2Type.INT32.write(headerBytes.length, outputStream);
             outputStream.write(headerBytes);
         } catch (IOException e) {
             throw new UserException.CouldNotCreateOutputFile("BCF2 stream", "Got IOException while trying to write BCF2 header", e);
@@ -359,8 +359,8 @@ class BCF2Writer extends IndexingVariantContextWriter {
      */
     @Requires({"infoBlock.length > 0", "genotypesBlock.length >= 0"})
     private void writeBlock(final byte[] infoBlock, final byte[] genotypesBlock) throws IOException {
-        BCF2Utils.encodeRawBytes(infoBlock.length, BCF2Type.INT32, outputStream);
-        BCF2Utils.encodeRawBytes(genotypesBlock.length, BCF2Type.INT32, outputStream);
+        BCF2Type.INT32.write(infoBlock.length, outputStream);
+        BCF2Type.INT32.write(genotypesBlock.length, outputStream);
         outputStream.write(infoBlock);
         outputStream.write(genotypesBlock);
     }

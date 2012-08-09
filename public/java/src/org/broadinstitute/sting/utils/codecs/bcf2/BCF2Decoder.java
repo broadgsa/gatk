@@ -295,7 +295,7 @@ public final class BCF2Decoder {
         return decodeIntArray(size, type, null);
     }
 
-    public final double rawFloatToFloat(final int rawFloat) {
+    private double rawFloatToFloat(final int rawFloat) {
         return (double)Float.intBitsToFloat(rawFloat);
     }
 
