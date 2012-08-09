@@ -148,8 +148,8 @@ public class ConsensusAlleleCounter {
                     boolean foundKey = false;
                     // copy of hashmap into temp arrayList
                     ArrayList<Pair<String,Integer>> cList = new ArrayList<Pair<String,Integer>>();
-                    for (String s : consensusIndelStrings.keySet()) {
-                        cList.add(new Pair<String, Integer>(s,consensusIndelStrings.get(s)));
+                    for (Map.Entry<String, Integer> s : consensusIndelStrings.entrySet()) {
+                        cList.add(new Pair<String, Integer>(s.getKey(), s.getValue()));
                     }
 
                     if (read.getAlignmentEnd() == loc.getStart()) {

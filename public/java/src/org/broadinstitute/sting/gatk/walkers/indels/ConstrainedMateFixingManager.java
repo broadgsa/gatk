@@ -124,7 +124,7 @@ public class ConstrainedMateFixingManager {
         return first;
     }
 
-    private class SAMRecordHashObject {
+    private static class SAMRecordHashObject {
         public SAMRecord record;
         public boolean wasModified;
 

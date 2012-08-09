@@ -401,10 +401,11 @@ public class RecalDatumNode<T extends RecalDatum> {
 
             if ( minPenaltyNode == null || minPenaltyNode.getSecond() > maxPenalty ) {
                 // nothing to merge, or the best candidate is above our max allowed
-                if ( minPenaltyNode == null )
+                if ( minPenaltyNode == null ) {
                     if ( logger.isDebugEnabled() ) logger.debug("Stopping because no candidates could be found");
-                else
+                } else {
                     if ( logger.isDebugEnabled() ) logger.debug("Stopping because node " + minPenaltyNode.getFirst() + " has penalty " + minPenaltyNode.getSecond() + " > max " + maxPenalty);
+                }
                 break;
             } else {
                 // remove the lowest penalty element, and continue

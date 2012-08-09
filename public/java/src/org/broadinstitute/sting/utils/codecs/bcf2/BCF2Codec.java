@@ -492,6 +492,6 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
     }
 
     private final void error(final String message) throws RuntimeException {
-        throw new UserException.MalformedBCF2(String.format("At record %d with position %d:", recordNo, pos, message));
+        throw new UserException.MalformedBCF2(String.format("%s, at record %d with position %d:", message, recordNo, pos));
     }
 }

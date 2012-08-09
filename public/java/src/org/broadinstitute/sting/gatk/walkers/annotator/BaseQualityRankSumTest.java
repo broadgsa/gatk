@@ -65,12 +65,12 @@ public class BaseQualityRankSumTest extends RankSumTest implements StandardAnnot
                 // by design, first element in LinkedHashMap was ref allele
                 double refLikelihood=0.0, altLikelihood=Double.NEGATIVE_INFINITY;
 
-                for (Allele a : el.keySet()) {
+                for (Map.Entry<Allele, Double> entry : el.entrySet()) {
 
-                    if (a.isReference())
-                        refLikelihood =el.get(a);
+                    if (entry.getKey().isReference())
+                        refLikelihood = entry.getValue();
                     else {
-                        double like = el.get(a);
+                        double like = entry.getValue();
                         if (like >= altLikelihood)
                             altLikelihood = like;
                     }

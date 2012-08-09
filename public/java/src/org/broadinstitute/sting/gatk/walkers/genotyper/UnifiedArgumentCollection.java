@@ -263,7 +263,6 @@ public class UnifiedArgumentCollection {
         uac.referenceSampleName = referenceSampleName;
         uac.samplePloidy = samplePloidy;
         uac.maxQualityScore = minQualityScore;
-        uac.maxQualityScore = maxQualityScore;
         uac.phredScaledPrior = phredScaledPrior;
         uac.minPower = minPower;
         uac.minReferenceDepth = minReferenceDepth;

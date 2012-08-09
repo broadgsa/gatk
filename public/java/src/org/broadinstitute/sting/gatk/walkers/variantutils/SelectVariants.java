@@ -329,7 +329,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
 
     /* Private class used to store the intermediate variants in the integer random selection process */
-    private class RandomVariantStructure {
+    private static class RandomVariantStructure {
         private VariantContext vc;
 
         RandomVariantStructure(VariantContext vcP) {

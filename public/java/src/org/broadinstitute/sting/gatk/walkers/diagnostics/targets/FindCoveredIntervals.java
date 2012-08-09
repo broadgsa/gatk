@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.diagnostics.targets;
 
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -46,6 +47,9 @@ public class FindCoveredIntervals extends ActiveRegionWalker<GenomeLoc, Long> {
     @Output(required = true)
     private PrintStream out;
 
+    @Argument(fullName = "coverage_threshold", shortName = "cov", doc = "The minimum allowable coverage to be considered covered", required = false)
+    private int coverageThreshold = 20;
+
     @Override
     // Look to see if the region has sufficient coverage
     public ActivityProfileResult isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context) {
@@ -53,8 +57,7 @@ public class FindCoveredIntervals extends ActiveRegionWalker<GenomeLoc, Long> {
         int depth = ThresHolder.DEFAULTS.getFilteredCoverage(context.getBasePileup());
 
         // note the linear probability scale
-        int coverageThreshold = 20;
-        return new ActivityProfileResult(Math.min((double) depth / coverageThreshold, 1));
+        return new ActivityProfileResult(Math.min(depth / coverageThreshold, 1));
 
     }
 

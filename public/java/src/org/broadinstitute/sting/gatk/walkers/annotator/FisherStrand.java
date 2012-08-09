@@ -291,8 +291,8 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
         
         int[][] table = new int[2][2];
 
-        for ( String sample : stratifiedContexts.keySet() ) {
-            final AlignmentContext context = stratifiedContexts.get(sample);
+        for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
+            final AlignmentContext context = sample.getValue();
             if ( context == null )
                 continue;
 
@@ -313,12 +313,12 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
                     double refLikelihood=0.0, altLikelihood=Double.NEGATIVE_INFINITY;
 
-                    for (Allele a : el.keySet()) {
+                    for (Map.Entry<Allele,Double> entry : el.entrySet()) {
 
-                        if (a.isReference())
-                            refLikelihood =el.get(a);
+                        if (entry.getKey().isReference())
+                            refLikelihood = entry.getValue();
                         else {
-                            double like = el.get(a);
+                            double like = entry.getValue();
                             if (like >= altLikelihood)
                                 altLikelihood = like;
                         }

@@ -329,7 +329,7 @@ public class SequenceDictionaryUtils {
      */
     private static class CompareSequenceRecordsByIndex implements Comparator<SAMSequenceRecord> {
         public int compare(SAMSequenceRecord x, SAMSequenceRecord y) {
-            return new Integer(x.getSequenceIndex()).compareTo(y.getSequenceIndex());
+            return Integer.valueOf(x.getSequenceIndex()).compareTo(y.getSequenceIndex());
         }
     }
 

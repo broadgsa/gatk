@@ -87,11 +87,11 @@ public class ReadPosRankSumTest extends RankSumTest implements StandardAnnotatio
                 LinkedHashMap<Allele, Double> el = indelLikelihoodMap.get(p);           // retrieve likelihood information corresponding to this read
                 double refLikelihood = 0.0, altLikelihood = Double.NEGATIVE_INFINITY;   // by design, first element in LinkedHashMap was ref allele
 
-                for (Allele a : el.keySet()) {
-                    if (a.isReference())
-                        refLikelihood = el.get(a);
+                for (Map.Entry<Allele,Double> a : el.entrySet()) {
+                    if (a.getKey().isReference())
+                        refLikelihood = a.getValue();
                     else {
-                        double like = el.get(a);
+                        double like = a.getValue();
                         if (like >= altLikelihood)
                             altLikelihood = like;
                     }
@@ -100,7 +100,6 @@ public class ReadPosRankSumTest extends RankSumTest implements StandardAnnotatio
                 int readPos = getOffsetFromClippedReadStart(p.getRead(), p.getOffset());
                 final int numAlignedBases = getNumAlignedBases(p.getRead());
 
-                int rp = readPos;
                 if (readPos > numAlignedBases / 2) {
                     readPos = numAlignedBases - (readPos + 1);
                 }
