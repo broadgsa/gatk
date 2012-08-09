@@ -282,26 +282,6 @@ public final class BCF2Utils {
         else return Collections.singletonList(o);
     }
 
-
-    @Requires({"stream != null", "bytesForEachInt > 0"})
-    public static int readInt(int bytesForEachInt, final InputStream stream) throws IOException {
-        switch ( bytesForEachInt ) {
-            case 1: {
-                return (byte)(readByte(stream));
-            } case 2: {
-                final int b2 = readByte(stream) & 0xFF;
-                final int b1 = readByte(stream) & 0xFF;
-                return (short)((b1 << 8) | b2);
-            } case 4: {
-                final int b4 = readByte(stream) & 0xFF;
-                final int b3 = readByte(stream) & 0xFF;
-                final int b2 = readByte(stream) & 0xFF;
-                final int b1 = readByte(stream) & 0xFF;
-                return (int)(b1 << 24 | b2 << 16 | b3 << 8 | b4);
-            } default: throw new ReviewedStingException("Unexpected size during decoding");
-        }
-    }
-
     public static void encodeRawBytes(final int value, final BCF2Type type, final OutputStream encodeStream) throws IOException {
         switch ( type.getSizeInBytes() ) {
             case 1:

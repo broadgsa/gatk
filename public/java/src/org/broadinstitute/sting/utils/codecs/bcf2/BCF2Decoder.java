@@ -236,7 +236,7 @@ public final class BCF2Decoder {
 
     @Requires("type != null")
     public final int decodeInt(final BCF2Type type) throws IOException {
-        return BCF2Utils.readInt(type.getSizeInBytes(), recordStream);
+        return type.read(recordStream);
     }
 
     /**
@@ -312,7 +312,7 @@ public final class BCF2Decoder {
      * @return
      */
     public final int readBlockSize(final InputStream inputStream) throws IOException {
-        return BCF2Utils.readInt(4, inputStream);
+        return BCF2Type.INT32.read(inputStream);
     }
 
     /**

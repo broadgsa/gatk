@@ -151,7 +151,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
 
             logger.info("BCF version " + bcfVersion);
 
-            final int headerSizeInBytes = BCF2Utils.readInt(BCF2Type.INT32.getSizeInBytes(), inputStream);
+            final int headerSizeInBytes = BCF2Type.INT32.read(inputStream);
 
             if ( headerSizeInBytes <= 0 || headerSizeInBytes > MAX_HEADER_SIZE) // no bigger than 8 MB
                 error("BCF2 header has invalid length: " + headerSizeInBytes + " must be >= 0 and < "+ MAX_HEADER_SIZE);
