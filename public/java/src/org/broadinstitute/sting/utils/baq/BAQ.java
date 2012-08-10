@@ -551,7 +551,7 @@ public class BAQ {
             switch (elt.getOperator()) {
                 case N:  return null; // cannot handle these
                 case H : case P : case D: break; // ignore pads, hard clips, and deletions
-                case I : case S: case M:
+                case I : case S: case M: case EQ: case X:
                     int prev = readI;
                     readI += elt.getLength();
                     if ( includeClippedBases || elt.getOperator() != CigarOperator.S) {

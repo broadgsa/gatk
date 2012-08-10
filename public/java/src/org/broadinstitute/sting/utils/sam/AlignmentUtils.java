@@ -39,7 +39,6 @@ import org.broadinstitute.sting.utils.recalibration.EventType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 
 
 public class AlignmentUtils {
@@ -71,9 +70,18 @@ public class AlignmentUtils {
             if (readIdx > endOnRead) break;
 
             CigarElement ce = c.getCigarElement(i);
+            final int elementLength = ce.getLength();
             switch (ce.getOperator()) {
+                case X:
+                    mc.numMismatches += elementLength;
+                    for (int j = 0; j < elementLength; j++)
+                        mc.mismatchQualities += r.getBaseQualities()[readIdx+j];
+                case EQ:
+                    refIndex += elementLength;
+                    readIdx += elementLength;
+                break;
                 case M:
-                    for (int j = 0; j < ce.getLength(); j++, refIndex++, readIdx++) {
+                    for (int j = 0; j < elementLength; j++, refIndex++, readIdx++) {
                         if (refIndex >= refSeq.length)
                             continue;
                         if (readIdx < startOnRead) continue;
@@ -92,11 +100,11 @@ public class AlignmentUtils {
                     break;
                 case I:
                 case S:
-                    readIdx += ce.getLength();
+                    readIdx += elementLength;
                     break;
                 case D:
                 case N:
-                    refIndex += ce.getLength();
+                    refIndex += elementLength;
                     break;
                 case H:
                 case P:
@@ -164,6 +172,8 @@ public class AlignmentUtils {
             CigarElement ce = c.getCigarElement(i);
             int cigarElementLength = ce.getLength();
             switch (ce.getOperator()) {
+                case EQ:
+                case X:
                 case M:
                     for (int j = 0; j < cigarElementLength; j++, readIndex++, currentPos++) {
                         // are we past the ref window?
@@ -202,111 +212,6 @@ public class AlignmentUtils {
         }
 
         return sum;
-    }
-
-    /**
-     * Returns the number of mismatches in the pileup element within the given reference context.
-     *
-     * @param read          the SAMRecord
-     * @param ref           the reference context
-     * @param maxMismatches the maximum number of surrounding mismatches we tolerate to consider a base good
-     * @param windowSize    window size (on each side) to test
-     * @return a bitset representing which bases are good
-     */
-    public static BitSet mismatchesInRefWindow(SAMRecord read, ReferenceContext ref, int maxMismatches, int windowSize) {
-        // first determine the positions with mismatches
-        int readLength = read.getReadLength();
-        BitSet mismatches = new BitSet(readLength);
-
-        // it's possible we aren't starting at the beginning of a read,
-        //  and we don't need to look at any of the previous context outside our window
-        //  (although we do need future context)
-        int readStartPos = Math.max(read.getAlignmentStart(), ref.getLocus().getStart() - windowSize);
-        int currentReadPos = read.getAlignmentStart();
-
-        byte[] refBases = ref.getBases();
-        int refIndex = readStartPos - ref.getWindow().getStart();
-        if (refIndex < 0) {
-            throw new IllegalStateException("When calculating mismatches, we somehow don't have enough previous reference context for read " + read.getReadName() + " at position " + ref.getLocus());
-        }
-
-        byte[] readBases = read.getReadBases();
-        int readIndex = 0;
-
-        Cigar c = read.getCigar();
-
-        for (int i = 0; i < c.numCigarElements(); i++) {
-            CigarElement ce = c.getCigarElement(i);
-            int cigarElementLength = ce.getLength();
-            switch (ce.getOperator()) {
-                case M:
-                    for (int j = 0; j < cigarElementLength; j++, readIndex++) {
-                        // skip over unwanted bases
-                        if (currentReadPos++ < readStartPos)
-                            continue;
-
-                        // this is possible if reads extend beyond the contig end
-                        if (refIndex >= refBases.length)
-                            break;
-
-                        byte refChr = refBases[refIndex];
-                        byte readChr = readBases[readIndex];
-                        if (readChr != refChr)
-                            mismatches.set(readIndex);
-
-                        refIndex++;
-                    }
-                    break;
-                case I:
-                case S:
-                    readIndex += cigarElementLength;
-                    break;
-                case D:
-                case N:
-                    if (currentReadPos >= readStartPos)
-                        refIndex += cigarElementLength;
-                    currentReadPos += cigarElementLength;
-                    break;
-                case H:
-                case P:
-                    break;
-            }
-        }
-
-        // all bits are set to false by default
-        BitSet result = new BitSet(readLength);
-
-        int currentPos = 0, leftPos = 0, rightPos;
-        int mismatchCount = 0;
-
-        // calculate how many mismatches exist in the windows to the left/right
-        for (rightPos = 1; rightPos <= windowSize && rightPos < readLength; rightPos++) {
-            if (mismatches.get(rightPos))
-                mismatchCount++;
-        }
-        if (mismatchCount <= maxMismatches)
-            result.set(currentPos);
-
-        // now, traverse over the read positions
-        while (currentPos < readLength) {
-            // add a new rightmost position
-            if (rightPos < readLength && mismatches.get(rightPos++))
-                mismatchCount++;
-            // re-penalize the previous position
-            if (mismatches.get(currentPos++))
-                mismatchCount++;
-            // don't penalize the current position
-            if (mismatches.get(currentPos))
-                mismatchCount--;
-            // subtract the leftmost position
-            if (leftPos < currentPos - windowSize && mismatches.get(leftPos++))
-                mismatchCount--;
-
-            if (mismatchCount <= maxMismatches)
-                result.set(currentPos);
-        }
-
-        return result;
     }
 
     /**
@@ -367,45 +272,6 @@ public class AlignmentUtils {
         return n;
     }
 
-    public static byte[] alignmentToByteArray(final Cigar cigar, final byte[] read, final byte[] ref) {
-
-        final byte[] alignment = new byte[read.length];
-        int refPos = 0;
-        int alignPos = 0;
-
-        for (int iii = 0; iii < cigar.numCigarElements(); iii++) {
-
-            final CigarElement ce = cigar.getCigarElement(iii);
-            final int elementLength = ce.getLength();
-
-            switch (ce.getOperator()) {
-                case I:
-                case S:
-                    for (int jjj = 0; jjj < elementLength; jjj++) {
-                        alignment[alignPos++] = '+';
-                    }
-                    break;
-                case D:
-                case N:
-                    refPos += elementLength;
-                    break;
-                case M:
-                    for (int jjj = 0; jjj < elementLength; jjj++) {
-                        alignment[alignPos] = ref[refPos];
-                        alignPos++;
-                        refPos++;
-                    }
-                    break;
-                case H:
-                case P:
-                    break;
-                default:
-                    throw new ReviewedStingException("Unsupported cigar operator: " + ce.getOperator());
-            }
-        }
-        return alignment;
-    }
-
     public static int calcNumHighQualitySoftClips( final GATKSAMRecord read, final byte qualThreshold ) {
 
         int numHQSoftClips = 0;
@@ -426,6 +292,8 @@ public class AlignmentUtils {
                     break;
                 case M:
                 case I:
+                case EQ:
+                case X:
                     alignPos += elementLength;
                     break;
                 case H:
@@ -488,6 +356,8 @@ public class AlignmentUtils {
                     }
                     break;
                 case M:
+                case EQ:
+                case X:
                     if (pos + elementLength - 1 >= pileupOffset) {
                         return alignmentPos + (pileupOffset - pos);
                     } else {
@@ -519,6 +389,8 @@ public class AlignmentUtils {
                 case D:
                 case N:
                 case M:
+                case EQ:
+                case X:
                     alignmentLength += elementLength;
                     break;
                 case I:
@@ -565,6 +437,8 @@ public class AlignmentUtils {
                     }
                     break;
                 case M:
+                case EQ:
+                case X:
                     for (int jjj = 0; jjj < elementLength; jjj++) {
                         alignment[alignPos] = read[readPos];
                         alignPos++;
@@ -798,6 +672,8 @@ public class AlignmentUtils {
 
             switch (ce.getOperator()) {
                 case M:
+                case EQ:
+                case X:
                     readIndex += length;
                     refIndex += length;
                     totalRefBases += length;
