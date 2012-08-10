@@ -142,10 +142,10 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         cvExecuteTest("combineComplexSites 1:" + new File(file1).getName() + " 2:" + new File(file2).getName() + " args = " + args, spec);
     }
 
-    @Test public void complexTestFull() { combineComplexSites("", "151a4970367dd3e73ba3e7f3c2f874f6"); }
-    @Test public void complexTestMinimal() { combineComplexSites(" -minimalVCF", "c0625e092b878b3d3eb1703c48e216b7"); }
-    @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "6978329d6a1033ac16f83b49072c679b"); }
-    @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "6978329d6a1033ac16f83b49072c679b"); }
+    @Test public void complexTestFull() { combineComplexSites("", "9d989053826ffe5bef7c4e05ac51bcca"); }
+    @Test public void complexTestMinimal() { combineComplexSites(" -minimalVCF", "4f38d9fd30a7ae83e2a7dec265a28772"); }
+    @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "46bbbbb8fc9ae6467a4f8fe35b8d7d14"); }
+    @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "46bbbbb8fc9ae6467a4f8fe35b8d7d14"); }
 
     @Test
     public void combineDBSNPDuplicateSites() {
