@@ -195,6 +195,8 @@ public class LocusIteratorByState extends LocusIterator {
                     done = true;
                     break;
                 case M:
+                case EQ:
+                case X:
                     readOffset++;
                     genomeOffset++;
                     done = true;

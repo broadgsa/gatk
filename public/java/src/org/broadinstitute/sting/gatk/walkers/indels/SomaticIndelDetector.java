@@ -2057,7 +2057,9 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
                     break; // do not count gaps or clipped bases
                 case I:
                 case M:
-                    readLength += cel.getLength();
+                case EQ:
+                case X:
+                        readLength += cel.getLength();
                     break; // advance along the gapless block in the alignment
                 default :
                     throw new IllegalArgumentException("Unexpected operator in cigar string: "+cel.getOperator());
@@ -2094,7 +2096,9 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
 
                     break;
                 case M:
-                    for ( int k = 0; k < ce.getLength(); k++, posOnRef++, posOnRead++ ) {
+                case EQ:
+                case X:
+                        for ( int k = 0; k < ce.getLength(); k++, posOnRef++, posOnRead++ ) {
                         if ( readBases[posOnRead] != ref[posOnRef] )  { // mismatch!
                             mms++;
                             mismatch_flags[posOnRef] = 1;

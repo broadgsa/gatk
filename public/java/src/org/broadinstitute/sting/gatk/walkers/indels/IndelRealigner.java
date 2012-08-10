@@ -1025,7 +1025,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 elements.add(ce);
                 break;
             case M:
-                altIdx += elementLength;
+            case EQ:
+            case X:
+                    altIdx += elementLength;
             case N:
                 if ( reference.length < refIdx + elementLength )
                     ok_flag = false;
@@ -1287,6 +1289,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 int elementLength = ce.getLength();
                 switch ( ce.getOperator() ) {
                     case M:
+                    case EQ:
+                    case X:
                         for (int k = 0 ; k < elementLength ; k++, refIdx++, altIdx++ ) {
                             if ( refIdx >= reference.length )
                                 break;
@@ -1432,6 +1436,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         fromIndex += elementLength;
                         break;
                     case M:
+                    case EQ:
+                    case X:
                     case I:
                         System.arraycopy(actualReadBases, fromIndex, readBases, toIndex, elementLength);
                         System.arraycopy(actualBaseQuals, fromIndex, baseQuals, toIndex, elementLength);
