@@ -155,7 +155,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
 
     protected void addPileupToCumulativeStats(AbstractReadBackedPileup<RBP, PE> pileup) {
         size += pileup.getNumberOfElements();
-        abstractSize += pileup.depthOfCoverage();
+        abstractSize = pileup.depthOfCoverage() + (abstractSize == -1 ? 0 : abstractSize);
         nDeletions += pileup.getNumberOfDeletions();
         nMQ0Reads += pileup.getNumberOfMappingQualityZeroReads();
     }
