@@ -326,8 +326,22 @@ public class RecalUtils {
     }
 
     public static void outputRecalibrationReport(final RecalibrationArgumentCollection RAC, final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, final PrintStream outputFile) {
-        outputRecalibrationReport(RAC.generateReportTable(), quantizationInfo.generateReportTable(), generateReportTables(recalibrationTables, requestedCovariates), outputFile);
+        outputRecalibrationReport(RAC.generateReportTable(covariateNames(requestedCovariates)), quantizationInfo.generateReportTable(), generateReportTables(recalibrationTables, requestedCovariates), outputFile);
     }
+
+    /**
+     * Return a human-readable string representing the used covariates
+     *
+     * @param requestedCovariates a vector of covariates
+     * @return a non-null comma-separated string
+     */
+    public static String covariateNames(final Covariate[] requestedCovariates) {
+        final List<String> names = new ArrayList<String>(requestedCovariates.length);
+        for ( final Covariate cov : requestedCovariates )
+            names.add(cov.getClass().getSimpleName());
+        return Utils.join(",", names);
+    }
+
 
     public static void outputRecalibrationReport(final GATKReportTable argumentTable, final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, final PrintStream outputFile) {
         outputRecalibrationReport(argumentTable, quantizationInfo.generateReportTable(), generateReportTables(recalibrationTables, requestedCovariates), outputFile);
@@ -352,7 +366,7 @@ public class RecalUtils {
         return new Pair<PrintStream, File>(deltaTableStream, deltaTableFileName);
     }
 
-    private static void outputRecalibrationPlot(Pair<PrintStream, File> files, boolean keepIntermediates) {
+    private static void outputRecalibrationPlot(final File gatkReportFilename, Pair<PrintStream, File> files, boolean keepIntermediates) {
         final File csvFileName = files.getSecond();
         final File plotFileName = new File(csvFileName + ".pdf");
         files.getFirst().close();
@@ -360,6 +374,7 @@ public class RecalUtils {
         final RScriptExecutor executor = new RScriptExecutor();
         executor.addScript(new Resource(SCRIPT_FILE, RecalUtils.class));
         executor.addArgs(csvFileName.getAbsolutePath());
+        executor.addArgs(gatkReportFilename.getAbsolutePath());
         executor.addArgs(plotFileName.getAbsolutePath());
         executor.exec();
 
@@ -372,14 +387,14 @@ public class RecalUtils {
     public static void generateRecalibrationPlot(final File filename, final RecalibrationTables original, final Covariate[] requestedCovariates, final boolean keepIntermediates) {
         final Pair<PrintStream, File> files = initializeRecalibrationPlot(filename);
         writeCSV(files.getFirst(), original, "ORIGINAL", requestedCovariates, true);
-        outputRecalibrationPlot(files, keepIntermediates);
+        outputRecalibrationPlot(filename, files, keepIntermediates);
     }
 
     public static void generateRecalibrationPlot(final File filename, final RecalibrationTables original, final RecalibrationTables recalibrated, final Covariate[] requestedCovariates, final boolean keepIntermediates) {
         final Pair<PrintStream, File> files = initializeRecalibrationPlot(filename);
         writeCSV(files.getFirst(), recalibrated, "RECALIBRATED", requestedCovariates, true);
         writeCSV(files.getFirst(), original, "ORIGINAL", requestedCovariates, false);
-        outputRecalibrationPlot(files, keepIntermediates);
+        outputRecalibrationPlot(filename, files, keepIntermediates);
     }
 
     private static void writeCSV(final PrintStream deltaTableFile, final RecalibrationTables recalibrationTables, final String recalibrationMode, final Covariate[] requestedCovariates, final boolean printHeader) {

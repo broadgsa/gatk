@@ -1,8 +1,18 @@
 library("ggplot2")
+library(gplots)
+library("reshape")
+library("grid")
 library("tools") #For compactPDF in R 2.13+
+library(gsalib)
 
-args <- commandArgs(TRUE)
+
+if ( interactive() ) {
+  args <- c("NA12878.6.1.dedup.realign.recal.bqsr.grp.csv", "NA12878.6.1.dedup.realign.recal.bqsr.grp", NA)
+} else {
+  args <- commandArgs(TRUE)
+} 
 data <- read.csv(args[1])
+gsa.report <- gsa.read.gatkreport(args[2])
 data <- within(data, EventType <- factor(EventType, levels = rev(levels(EventType))))
 
 numRG = length(unique(data$ReadGroup))
@@ -82,20 +92,45 @@ for(cov in levels(data$CovariateName)) {    # for each covariate in turn
     
     p <- ggplot(d, aes(x=CovariateValue)) +
       xlab(paste(cov,"Covariate")) +
-      ylab("Number of Observations") +
+      ylab("No. of Observations (area normalized)") +
       blankTheme
-    d <- p + geom_histogram(aes(fill=Recalibration,weight=Observations),alpha=0.6,binwidth=1,position="identity") + scale_fill_manual(values=c("maroon1","blue")) + facet_grid(.~EventType) +     
-      scale_y_continuous(formatter="comma")
-    
+    d <- p + geom_histogram(aes(fill=Recalibration,weight=Observations,y=..ndensity..),alpha=0.6,binwidth=1,position="identity")
+    d <- d + scale_fill_manual(values=c("maroon1","blue"))
+    d <- d + facet_grid(.~EventType) 
+#    d <- d + scale_y_continuous(formatter="comma")
   }
 }
 
-pdf(args[2],height=9,width=15)
+if ( ! is.na(args[3]) )
+  pdf(args[3],height=9,width=15)
+
+#frame()
+textplot(gsa.report$Arguments, show.rownames=F)
+title(
+  main="GATK BaseRecalibration report",
+  sub=date())
+
 distributeGraphRows(list(a,b,c), c(1,1,1))
 distributeGraphRows(list(d,e,f), c(1,1,1))
-dev.off()
 
+# format the overall information
+rt0 <- data.frame(
+  ReadGroup = gsa.report$RecalTable0$ReadGroup,
+  EventType = gsa.report$RecalTable0$EventType,
+  EmpiricalQuality = sprintf("%.1f", gsa.report$RecalTable0$EmpiricalQuality),
+  EstimatedQReported = sprintf("%.1f", gsa.report$RecalTable0$EstimatedQReported),
+  Observations = sprintf("%.2e", gsa.report$RecalTable0$Observations),
+  Errors = sprintf("%.2e", gsa.report$RecalTable0$Errors))  
+textplot(t(rt0), show.colnames=F)
+title("Overall error rates by event type")
 
-if (exists('compactPDF')) {
-  compactPDF(args[2])
+# plot per quality score recalibration table
+textplot(gsa.report$RecalTable1, show.rownames=F)
+title("Rrror rates by event type and initial quality score")
+
+if ( ! is.na(args[3]) ) {
+  dev.off()
+  if (exists('compactPDF')) {
+    compactPDF(args[2])
+  }
 }

@@ -175,12 +175,12 @@ public class RecalibrationArgumentCollection {
 
     public File recalibrationReport = null;
 
-    public GATKReportTable generateReportTable() {
+    public GATKReportTable generateReportTable(final String covariateNames) {
         GATKReportTable argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run", 2);
         argumentsTable.addColumn("Argument");
         argumentsTable.addColumn(RecalUtils.ARGUMENT_VALUE_COLUMN_NAME);
         argumentsTable.addRowID("covariate", true);
-        argumentsTable.set("covariate", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, (COVARIATES == null) ? "null" : Utils.join(",", COVARIATES));
+        argumentsTable.set("covariate", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, covariateNames);
         argumentsTable.addRowID("no_standard_covs", true);
         argumentsTable.set("no_standard_covs", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, DO_NOT_USE_STANDARD_COVARIATES);
         argumentsTable.addRowID("run_without_dbsnp", true);
