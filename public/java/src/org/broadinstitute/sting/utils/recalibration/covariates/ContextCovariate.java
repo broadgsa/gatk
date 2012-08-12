@@ -66,7 +66,7 @@ public class ContextCovariate implements StandardCovariate {
         mismatchesContextSize = RAC.MISMATCHES_CONTEXT_SIZE;
         indelsContextSize = RAC.INDELS_CONTEXT_SIZE;
 
-        logger.info("Context sizes: base substitution model " + mismatchesContextSize + ", indel substitution model " + indelsContextSize);
+        logger.info("\t\tContext sizes: base substitution model " + mismatchesContextSize + ", indel substitution model " + indelsContextSize);
 
         if (mismatchesContextSize > MAX_DNA_CONTEXT)
             throw new UserException.BadArgumentValue("mismatches_context_size", String.format("context size cannot be bigger than %d, but was %d", MAX_DNA_CONTEXT, mismatchesContextSize));
