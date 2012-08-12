@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils.recalibration.covariates;
 
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.recalibration.ReadCovariates;
 import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -43,6 +44,7 @@ import java.util.ArrayList;
  */
 
 public class ContextCovariate implements StandardCovariate {
+    private final static Logger logger = Logger.getLogger(ContextCovariate.class);
 
     private int mismatchesContextSize;
     private int indelsContextSize;
@@ -63,6 +65,9 @@ public class ContextCovariate implements StandardCovariate {
     public void initialize(final RecalibrationArgumentCollection RAC) {
         mismatchesContextSize = RAC.MISMATCHES_CONTEXT_SIZE;
         indelsContextSize = RAC.INDELS_CONTEXT_SIZE;
+
+        logger.info("Context sizes: base substitution model " + mismatchesContextSize + ", indel substitution model " + indelsContextSize);
+
         if (mismatchesContextSize > MAX_DNA_CONTEXT)
             throw new UserException.BadArgumentValue("mismatches_context_size", String.format("context size cannot be bigger than %d, but was %d", MAX_DNA_CONTEXT, mismatchesContextSize));
         if (indelsContextSize > MAX_DNA_CONTEXT)
