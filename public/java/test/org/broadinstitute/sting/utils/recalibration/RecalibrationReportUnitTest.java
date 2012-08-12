@@ -98,7 +98,7 @@ public class RecalibrationReportUnitTest {
         }
         Assert.assertEquals(nKeys, expectedKeys);
 
-        final RecalibrationReport report = new RecalibrationReport(quantizationInfo, recalibrationTables, RAC.generateReportTable(), RAC);
+        final RecalibrationReport report = new RecalibrationReport(quantizationInfo, recalibrationTables, RAC.generateReportTable("ignore"), RAC);
 
         File output = new File("RecalibrationReportUnitTestOutuput.grp");
         PrintStream out;
