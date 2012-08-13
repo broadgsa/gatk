@@ -126,7 +126,7 @@ title("Overall error rates by event type")
 
 # plot per quality score recalibration table
 textplot(gsa.report$RecalTable1, show.rownames=F)
-title("Rrror rates by event type and initial quality score")
+title("Error rates by event type and initial quality score")
 
 if ( ! is.na(args[3]) ) {
   dev.off()
