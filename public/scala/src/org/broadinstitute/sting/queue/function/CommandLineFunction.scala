@@ -137,11 +137,16 @@ trait CommandLineFunction extends QFunction with Logging {
     if (residentRequest.isEmpty)
       residentRequest = memoryLimit
 
-    if (residentLimit.isEmpty)
-      residentLimit = residentRequest.map( _ * 1.2 )
+    if (residentLimit.isEmpty || residentLimit == residentRequest)
+      residentLimit = residentRequest.map(residentLimitBuffer)
 
     super.freezeFieldValues()
   }
+
+  /**
+   * @return A function that decides how much memory cushion to add to the residentRequest to create the residentLimit
+   */
+  def residentLimitBuffer: (Double => Double) = (1.2 * _)
 
   /**
    * Safely construct a full required command-line argument with consistent quoting, whitespace separation, etc.
@@ -223,7 +228,7 @@ trait CommandLineFunction extends QFunction with Logging {
    */
   protected def conditional( condition: Boolean, param: Any, escape: Boolean = true, format: String = "%s" ): String = {
     if ( condition ) {
-      " %s ".format(formatArgument("", param, "", false, escape, format))
+      " %s ".format(formatArgument("", param, "", spaceSeparated = false, escape = escape, paramFormat = format))
     }
     else {
       ""

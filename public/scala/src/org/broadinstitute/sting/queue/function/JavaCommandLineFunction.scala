@@ -54,6 +54,16 @@ trait JavaCommandLineFunction extends CommandLineFunction {
    */
   var javaGCThreads: Option[Int] = None
 
+  /**
+   * Max percent of time spent in garbage collection
+   */
+  var javaGCTimeLimit: Option[Int] = None
+
+  /**
+   * Min percent of max heap freed during a garbage collection
+   */
+  var javaGCHeapFreeLimit: Option[Int] = None
+
   override def freezeFieldValues() {
     super.freezeFieldValues()
 
@@ -62,6 +72,37 @@ trait JavaCommandLineFunction extends CommandLineFunction {
 
     if (javaMainClass != null && javaClasspath.isEmpty)
       javaClasspath = JavaCommandLineFunction.currentClasspath
+
+    if (!this.qSettings.disableDefaultJavaGCOptimizations) {
+      // By default set the GC threads to 4
+      if (javaGCThreads.isEmpty)
+        javaGCThreads = Some(4)
+
+      // By default exit if more than 50% of time in GC
+      if (javaGCTimeLimit.isEmpty)
+        javaGCTimeLimit = Some(50)
+
+      // By default exit if GC does not free up 10% of the heap
+      if (javaGCHeapFreeLimit.isEmpty)
+        javaGCHeapFreeLimit = Some(10)
+    }
+  }
+
+
+  override def copySettingsTo(function: QFunction) {
+    super.copySettingsTo(function)
+    function match {
+      case java: JavaCommandLineFunction =>
+        if (java.javaMemoryLimit.isEmpty)
+          java.javaMemoryLimit = this.javaMemoryLimit
+        if (java.javaGCThreads.isEmpty)
+          java.javaGCThreads = this.javaGCThreads
+        if (java.javaGCTimeLimit.isEmpty)
+          java.javaGCTimeLimit = this.javaGCTimeLimit
+        if (java.javaGCHeapFreeLimit.isEmpty)
+          java.javaGCHeapFreeLimit = this.javaGCHeapFreeLimit
+      case _ => /* ignore */
+    }
   }
 
   /**
@@ -77,10 +118,13 @@ trait JavaCommandLineFunction extends CommandLineFunction {
       null
   }
 
-  def javaOpts = optional("-Xmx", javaMemoryLimit.map(gb => (gb * 1024).ceil.toInt), "m", spaceSeparated=false) +
-                 conditional(javaGCThreads.isDefined, "-XX:+UseParallelOldGC") +
-                 optional("-XX:ParallelGCThreads=", javaGCThreads, spaceSeparated=false) +
-                 required("-Djava.io.tmpdir=", jobTempDir, spaceSeparated=false)
+  def javaOpts = Array(
+    optional("-Xmx", javaMemoryLimit.map(gb => (gb * 1024).ceil.toInt), "m", spaceSeparated=false),
+    conditional(javaGCThreads.isDefined || javaGCTimeLimit.isDefined || javaGCHeapFreeLimit.isDefined, "-XX:+UseParallelOldGC"),
+    optional("-XX:ParallelGCThreads=", javaGCThreads, spaceSeparated=false),
+    optional("-XX:GCTimeLimit=", javaGCTimeLimit, spaceSeparated=false),
+    optional("-XX:GCHeapFreeLimit=", javaGCHeapFreeLimit, spaceSeparated=false),
+    required("-Djava.io.tmpdir=", jobTempDir, spaceSeparated=false)).mkString("")
 
   def commandLine = required("java") +
                     javaOpts +

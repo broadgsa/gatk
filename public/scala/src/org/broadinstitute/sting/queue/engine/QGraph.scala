@@ -116,7 +116,7 @@ class QGraph extends Logging {
         val isReady = numMissingValues == 0
 
         if (this.jobGraph.edgeSet.isEmpty) {
-          logger.warn("Nothing to run! Were any Functions added?");
+          logger.warn("Nothing to run! Were any Functions added?")
         } else if (settings.getStatus) {
           logger.info("Checking pipeline status.")
           logStatus()
@@ -320,7 +320,7 @@ class QGraph extends Logging {
     if (settings.startFromScratch)
       logger.info("Will remove outputs from previous runs.")
 
-    updateGraphStatus(false)
+    updateGraphStatus(cleanOutputs = false)
 
     var readyJobs = getReadyJobs
     while (running && readyJobs.size > 0) {
@@ -361,7 +361,7 @@ class QGraph extends Logging {
    * Logs job statuses by traversing the graph and looking for status-related files
    */
   private def logStatus() {
-    updateGraphStatus(false)
+    updateGraphStatus(cleanOutputs = false)
     doStatus(status => logger.info(status))
   }
 
@@ -388,7 +388,7 @@ class QGraph extends Logging {
       if (settings.startFromScratch)
         logger.info("Removing outputs from previous runs.")
 
-      updateGraphStatus(true)
+      updateGraphStatus(cleanOutputs = true)
 
       var readyJobs = TreeSet.empty[FunctionEdge](functionOrdering)
       readyJobs ++= getReadyJobs
@@ -473,7 +473,7 @@ class QGraph extends Logging {
       logStatusCounts()
       deleteCleanup(-1)
     } catch {
-      case e =>
+      case e: Throwable =>
         logger.error("Uncaught error running jobs.", e)
         throw e
     } finally {
@@ -662,11 +662,12 @@ class QGraph extends Logging {
   private def checkRetryJobs(failed: Set[FunctionEdge]) {
     if (settings.retries > 0) {
       for (failedJob <- failed) {
-        if (failedJob.function.jobRestartable && failedJob.retries < settings.retries) {
-          failedJob.retries += 1
-          failedJob.resetToPending(true)
+        if (failedJob.function.jobRestartable && failedJob.function.retries < settings.retries) {
+          failedJob.function.retries += 1
+          failedJob.function.setupRetry()
+          failedJob.resetToPending(cleanOutputs = true)
           logger.info("Reset for retry attempt %d of %d: %s".format(
-            failedJob.retries, settings.retries, failedJob.function.description))
+            failedJob.function.retries, settings.retries, failedJob.function.description))
           statusCounts.failed -= 1
           statusCounts.pending += 1
         } else {
@@ -733,7 +734,7 @@ class QGraph extends Logging {
   private def emailDescription(edge: FunctionEdge) = {
     val description = new StringBuilder
     if (settings.retries > 0)
-      description.append("Attempt %d of %d.%n".format(edge.retries + 1, settings.retries + 1))
+      description.append("Attempt %d of %d.%n".format(edge.function.retries + 1, settings.retries + 1))
     description.append(edge.function.description)
     description.toString()
   }
@@ -1077,7 +1078,7 @@ class QGraph extends Logging {
               runner.checkUnknownStatus()
             }
           } catch {
-            case e => /* ignore */
+            case e: Throwable => /* ignore */
           }
       }
     }
@@ -1119,20 +1120,20 @@ class QGraph extends Logging {
               try {
                 manager.tryStop(managerRunners)
               } catch {
-                case e => /* ignore */
+                case e: Throwable => /* ignore */
               }
             for (runner <- managerRunners) {
               try {
                 runner.cleanup()
               } catch {
-                case e => /* ignore */
+                case e: Throwable => /* ignore */
               }
             }
           } finally {
             try {
               manager.exit()
             } catch {
-              case e => /* ignore */
+              case e: Throwable => /* ignore */
             }
           }
         }

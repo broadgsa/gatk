@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.queue.pipeline.examples
 
-import org.testng.annotations.Test
+import org.testng.annotations.{DataProvider, Test}
 import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
 import org.broadinstitute.sting.BaseTest
 
@@ -43,42 +43,53 @@ class ExampleUnifiedGenotyperPipelineTest {
     PipelineTest.executeTest(spec)
   }
 
-  @Test
-  def testUnifiedGenotyperWithGatkIntervals() {
+  @DataProvider(name = "ugIntervals")
+  def getUnifiedGenotyperIntervals =
+    Array(
+      Array("gatk_intervals", BaseTest.validationDataLocation + "intervalTest.intervals"),
+      Array("bed_intervals", BaseTest.validationDataLocation + "intervalTest.bed"),
+      Array("vcf_intervals", BaseTest.validationDataLocation + "intervalTest.1.vcf")
+    ).asInstanceOf[Array[Array[Object]]]
+
+  @Test(dataProvider = "ugIntervals")
+  def testUnifiedGenotyperWithIntervals(intervalsName: String, intervalsPath: String) {
     val spec = new PipelineTestSpec
-    spec.name = "unifiedgenotyper_with_gatk_intervals"
+    spec.name = "unifiedgenotyper_with_" + intervalsName
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
       " -I " + BaseTest.validationDataLocation + "OV-0930.normal.chunk.bam",
       " -R " + BaseTest.hg18Reference,
-      " -L " + BaseTest.validationDataLocation + "intervalTest.intervals").mkString
+      " -L " + intervalsPath).mkString
     spec.jobRunners = Seq("Lsf706")
     PipelineTest.executeTest(spec)
   }
 
   @Test
-  def testUnifiedGenotyperWithBedIntervals() {
+  def testUnifiedGenotyperNoGCOpt() {
     val spec = new PipelineTestSpec
-    spec.name = "unifiedgenotyper_with_bed_intervals"
+    spec.name = "unifiedgenotyper_no_gc_opt"
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
-      " -I " + BaseTest.validationDataLocation + "OV-0930.normal.chunk.bam",
-      " -R " + BaseTest.hg18Reference,
-      " -L " + BaseTest.validationDataLocation + "intervalTest.bed").mkString
-    spec.jobRunners = Seq("Lsf706")
+      " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
+      " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
+      " -noGCOpt").mkString
+    spec.jobRunners = PipelineTest.allJobRunners
     PipelineTest.executeTest(spec)
   }
 
-  @Test
-  def testUnifiedGenotyperWithVcfIntervals() {
+  @DataProvider(name="resMemReqParams")
+  def getResMemReqParam = Array(Array("mem_free"), Array("virtual_free")).asInstanceOf[Array[Array[Object]]]
+
+  @Test(dataProvider = "resMemReqParams")
+  def testUnifiedGenotyperResMemReqParam(reqParam: String) {
     val spec = new PipelineTestSpec
-    spec.name = "unifiedgenotyper_with_vcf_intervals"
+    spec.name = "unifiedgenotyper_" + reqParam
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleUnifiedGenotyper.scala",
-      " -I " + BaseTest.validationDataLocation + "OV-0930.normal.chunk.bam",
-      " -R " + BaseTest.hg18Reference,
-      " -L " + BaseTest.validationDataLocation + "intervalTest.1.vcf").mkString
-    spec.jobRunners = Seq("Lsf706")
+      " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
+      " -I " + BaseTest.publicTestDir + "exampleBAM.bam",
+      " -resMemReqParam " + reqParam).mkString
+    spec.jobRunners = Seq("GridEngine")
     PipelineTest.executeTest(spec)
   }
 }
