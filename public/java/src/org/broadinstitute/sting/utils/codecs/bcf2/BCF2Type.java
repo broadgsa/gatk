@@ -48,7 +48,7 @@ public enum BCF2Type {
         }
     },
 
-    INT8 (1, 1, 0xFFFFFF80,        -128,        127) {
+    INT8 (1, 1, 0xFFFFFF80,        -127,        127) {
         @Override
         public int read(final InputStream in) throws IOException {
             return BCF2Utils.readByte(in);
@@ -60,7 +60,7 @@ public enum BCF2Type {
         }
     },
 
-    INT16(2, 2, 0xFFFF8000,      -32768,      32767) {
+    INT16(2, 2, 0xFFFF8000,      -32767,      32767) {
         @Override
         public int read(final InputStream in) throws IOException {
             final int b2 = BCF2Utils.readByte(in) & 0xFF;
@@ -76,7 +76,7 @@ public enum BCF2Type {
         }
     },
 
-    INT32(3, 4, 0x80000000, -2147483648, 2147483647) {
+    INT32(3, 4, 0x80000000, -2147483647, 2147483647) {
         @Override
         public int read(final InputStream in) throws IOException {
             final int b4 = BCF2Utils.readByte(in) & 0xFF;
