@@ -121,12 +121,6 @@ public class SelectHeaders extends RodWalker<Integer, Integer> implements TreeRe
     public Set<String> XLheaderNames;
 
     /**
-     * Note that reference inclusion takes precedence over other header matching. If set other reference lines may be excluded but the file name will still be added.
-     */
-    @Argument(fullName = "include_reference_name", shortName = "irn", doc = "If set the reference file name minus the file extension will be added to the headers", required = false)
-    public boolean includeReference;
-
-    /**
      * Note that interval name inclusion takes precedence over other header matching. If set other interval lines may be excluded but the intervals will still be added.
      */
     @Argument(fullName = "include_interval_names", shortName = "iln", doc = "If set the interval file name minus the file extension, or the command line intervals, will be added to the headers", required = false)
@@ -161,10 +155,6 @@ public class SelectHeaders extends RodWalker<Integer, Integer> implements TreeRe
 
         // Select only the headers requested by name or expression.
         headerLines = new LinkedHashSet<VCFHeaderLine>(getSelectedHeaders(headerLines));
-
-        // Optionally add in the reference.
-        if (includeReference && getToolkit().getArguments().referenceFile != null)
-            headerLines.add(new VCFHeaderLine(VCFHeader.REFERENCE_KEY, FilenameUtils.getBaseName(getToolkit().getArguments().referenceFile.getName())));
 
         // Optionally add in the intervals.
         if (includeIntervals && getToolkit().getArguments().intervals != null) {
@@ -205,7 +195,7 @@ public class SelectHeaders extends RodWalker<Integer, Integer> implements TreeRe
             selectedHeaders = ListFileUtils.excludeMatching(selectedHeaders, headerKey, XLheaderNames, true);
 
         // always include the contig lines
-        selectedHeaders = VCFUtils.withUpdatedContigsAsLines(selectedHeaders, getToolkit().getArguments().referenceFile, getToolkit().getMasterSequenceDictionary());
+        selectedHeaders = VCFUtils.withUpdatedContigsAsLines(selectedHeaders, getToolkit().getArguments().referenceFile, getToolkit().getMasterSequenceDictionary(), true);
         return selectedHeaders;
     }
 
