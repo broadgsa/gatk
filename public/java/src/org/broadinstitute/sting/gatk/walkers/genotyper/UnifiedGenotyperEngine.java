@@ -646,15 +646,17 @@ public class UnifiedGenotyperEngine {
 
         // if we're genotyping given alleles and we have a requested SNP at this position, do SNP
         if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
-            final VariantContext vcInput = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, refContext, rawContext.getLocation(), false, logger, UAC.alleles);
-            if ( vcInput == null )
+            final VariantContext vcInput = getVCFromAllelesRod(tracker, refContext, rawContext.getLocation(), false, logger, UAC.alleles);
+            if ( vcInput == null ) {
+                models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"SNP"));
                 return models;
+            }
 
             if ( vcInput.isSNP() )  {
                 // ignore SNPs if the user chose INDEL mode only
                 if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") || UAC.GLmodel.name().toUpperCase().contains("SNP") )
                     models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"SNP"));
-             }
+            }
             else if ( vcInput.isIndel() || vcInput.isMixed() ) {
                 // ignore INDELs if the user chose SNP mode only
                 if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") || UAC.GLmodel.name().toUpperCase().contains("INDEL") )
@@ -759,7 +761,7 @@ public class UnifiedGenotyperEngine {
 
     public static VariantContext getVCFromAllelesRod(RefMetaDataTracker tracker, ReferenceContext ref, GenomeLoc loc, boolean requireSNP, Logger logger, final RodBinding<VariantContext> allelesBinding) {
         if ( tracker == null || ref == null || logger == null )
-            throw new ReviewedStingException("Bad arguments: tracker=" + tracker + " ref=" + ref + " logger=" + logger);
+            return null;
         VariantContext vc = null;
 
         // search for usable record
