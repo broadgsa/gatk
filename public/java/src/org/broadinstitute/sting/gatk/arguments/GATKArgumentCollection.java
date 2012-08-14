@@ -57,8 +57,6 @@ public class GATKArgumentCollection {
     public GATKArgumentCollection() {
     }
 
-    public Map<String, String> walkerArgs = new HashMap<String, String>();
-
     // parameters and their defaults
     @Input(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
     public List<String> samFiles = new ArrayList<String>();
