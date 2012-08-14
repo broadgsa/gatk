@@ -888,20 +888,8 @@ public class VariantContextTestProvider {
         }
     }
 
-    private static final List<List<Allele>> makeAllGenotypes(final List<Allele> alleles, final int highestPloidy) {
-        final List<List<Allele>> combinations = new ArrayList<List<Allele>>();
-        if ( highestPloidy == 1 ) {
-            for ( final Allele a : alleles )
-                combinations.add(Collections.singletonList(a));
-        } else {
-            final List<List<Allele>> sub = makeAllGenotypes(alleles, highestPloidy - 1);
-            for ( List<Allele> subI : sub ) {
-                for ( final Allele a : alleles ) {
-                    combinations.add(Utils.cons(a, subI));
-                }
-            }
-        }
-        return combinations;
+    private static List<List<Allele>> makeAllGenotypes(final List<Allele> alleles, final int highestPloidy) {
+        return Utils.makeCombinations(alleles, highestPloidy);
     }
 
     public static void assertEquals(final VCFHeader actual, final VCFHeader expected) {

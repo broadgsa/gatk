@@ -733,6 +733,36 @@ public class Utils {
     }
 
     /**
+     * Make all combinations of N size of objects
+     *
+     * if objects = [A, B, C]
+     * if N = 1 => [[A], [B], [C]]
+     * if N = 2 => [[A, A], [B, A], [C, A], [A, B], [B, B], [C, B], [A, C], [B, C], [C, C]]
+     *
+     * @param objects
+     * @param n
+     * @param <T>
+     * @return
+     */
+    public static <T> List<List<T>> makeCombinations(final List<T> objects, final int n) {
+        final List<List<T>> combinations = new ArrayList<List<T>>();
+
+        if ( n == 1 ) {
+            for ( final T o : objects )
+                combinations.add(Collections.singletonList(o));
+        } else {
+            final List<List<T>> sub = makeCombinations(objects, n - 1);
+            for ( List<T> subI : sub ) {
+                for ( final T a : objects ) {
+                    combinations.add(Utils.cons(a, subI));
+                }
+            }
+        }
+
+        return combinations;
+    }
+
+    /**
      * Convenience function that formats the novelty rate as a %.2f string
      *
      * @param known number of variants from all that are known
