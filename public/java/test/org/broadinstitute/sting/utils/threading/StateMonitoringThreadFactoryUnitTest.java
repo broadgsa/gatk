@@ -23,6 +23,7 @@
  */
 package org.broadinstitute.sting.utils.threading;
 
+import org.apache.log4j.Priority;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -30,7 +31,6 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -40,6 +40,7 @@ import java.util.concurrent.*;
  * Tests for the state monitoring thread factory.
  */
 public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
+    // the duration of the tests -- 100 ms is tolerable given the number of tests we are doing
     private final static long THREAD_TARGET_DURATION_IN_MILLISECOND = 100;
     final static Object GLOBAL_LOCK = new Object();
 
@@ -68,10 +69,16 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
         }
     }
 
+    /**
+     * Test helper threading class that puts the thread into RUNNING, BLOCKED, or WAITING state as
+     * requested for input argument
+     */
     private static class StateTestThread implements Callable<Double> {
         private final Thread.State stateToImplement;
 
         private StateTestThread(final Thread.State stateToImplement) {
+            if ( ! StateMonitoringThreadFactory.TRACKED_STATES.contains(stateToImplement) )
+                throw new IllegalArgumentException("Unexpected state " + stateToImplement);
             this.stateToImplement = stateToImplement;
         }
 
@@ -92,6 +99,7 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
                 case BLOCKED:
                     if ( StateMonitoringThreadFactory.DEBUG ) logger.warn("Blocking...");
                     synchronized (GLOBAL_LOCK) {
+                        // the GLOBAL_LOCK must be held by the unit test itself for this to properly block
                         if ( StateMonitoringThreadFactory.DEBUG ) logger.warn("  ... done blocking");
                     }
                     return 0.0;
@@ -103,7 +111,7 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
 
     @DataProvider(name = "StateTest")
     public Object[][] createStateTest() {
-        for ( final int nThreads : Arrays.asList(1, 2, 3, 4, 5) ) {
+        for ( final int nThreads : Arrays.asList(1, 2, 3, 4) ) {
             for (final List<Thread.State> states : Utils.makeCombinations(StateMonitoringThreadFactory.TRACKED_STATES, nThreads) ) {
                 //if ( Collections.frequency(states, Thread.State.BLOCKED) > 0)
                     new StateTest(states);
@@ -125,7 +133,7 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
             for ( final Thread.State threadToRunState : test.getStatesForThreads() )
             threadPool.submit(new StateTestThread(threadToRunState));
 
-            // lock has to be here for the whole running of the threads but end before the sleep so the blocked threads
+            // lock has to be here for the whole running of the activeThreads but end before the sleep so the blocked activeThreads
             // can block for their allotted time
             threadPool.shutdown();
             Thread.sleep(THREAD_TARGET_DURATION_IN_MILLISECOND);
@@ -133,29 +141,35 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
         //logger.warn("  Releasing lock");
         threadPool.awaitTermination(10, TimeUnit.SECONDS);
         //logger.warn("  done awaiting termination");
-        //logger.warn("  waiting for all threads to complete");
+        //logger.warn("  waiting for all activeThreads to complete");
         factory.waitForAllThreadsToComplete();
-        //logger.warn("  done waiting for threads");
+        //logger.warn("  done waiting for activeThreads");
 
         // make sure we counted everything properly
         final long totalTime = factory.getTotalTime();
         final long minTime = (THREAD_TARGET_DURATION_IN_MILLISECOND - 10) * test.getNStates();
+        final long maxTime = (THREAD_TARGET_DURATION_IN_MILLISECOND + 10) * test.getNStates();
         //logger.warn("Testing total time");
         Assert.assertTrue(totalTime >= minTime, "Factory results not properly accumulated: totalTime = " + totalTime + " < minTime = " + minTime);
+        Assert.assertTrue(totalTime <= maxTime, "Factory results not properly accumulated: totalTime = " + totalTime + " > maxTime = " + maxTime);
 
         for (final Thread.State state : StateMonitoringThreadFactory.TRACKED_STATES ) {
             final double min = test.minStateFraction(state);
             final double max = test.maxStateFraction(state);
             final double obs = factory.getStateFraction(state);
-            logger.warn("  Checking " + state
-                    + " min " + String.format("%.2f", min)
-                    + " max " + String.format("%.2f", max)
-                    + " obs " + String.format("%.2f", obs)
-                    + " factor = " + factory);
+//            logger.warn("  Checking " + state
+//                    + " min " + String.format("%.2f", min)
+//                    + " max " + String.format("%.2f", max)
+//                    + " obs " + String.format("%.2f", obs)
+//                    + " factor = " + factory);
             Assert.assertTrue(obs >= min, "Too little time spent in state " + state + " obs " + obs + " min " + min);
             Assert.assertTrue(obs <= max, "Too much time spent in state " + state + " obs " + obs + " max " + min);
         }
 
-        Assert.assertEquals(factory.getNThreads(), test.getNStates());
+        // we actually ran the expected number of activeThreads
+        Assert.assertEquals(factory.getNThreadsCreated(), test.getNStates());
+
+        // should be called to ensure we don't format / NPE on output
+        factory.printUsageInformation(logger, Priority.INFO);
     }
 }
