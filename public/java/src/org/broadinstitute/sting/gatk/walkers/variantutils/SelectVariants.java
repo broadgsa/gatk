@@ -730,7 +730,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         if ( vc.getAlleles().size() != sub.getAlleles().size() )
             newGC = VariantContextUtils.stripPLs(sub.getGenotypes());
 
-        //Remove a fraction of the genotypes if needed
+        // if we have fewer samples in the selected VC than in the original VC, we need to strip out the MLE tags
+        if ( vc.getNSamples() != sub.getNSamples() ) {
+            builder.rmAttribute(VCFConstants.MLE_ALLELE_COUNT_KEY);
+            builder.rmAttribute(VCFConstants.MLE_ALLELE_FREQUENCY_KEY);
+        }
+
+        // Remove a fraction of the genotypes if needed
         if ( fractionGenotypes > 0 ){
             ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
             for ( Genotype genotype : newGC ) {
@@ -767,17 +773,21 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         VariantContextUtils.calculateChromosomeCounts(builder, false);
 
+        boolean sawDP = false;
         int depth = 0;
         for (String sample : originalVC.getSampleNames()) {
             Genotype g = originalVC.getGenotype(sample);
 
             if ( ! g.isFiltered() ) {
-                if ( g.hasDP() )
+                if ( g.hasDP() ) {
                     depth += g.getDP();
+                    sawDP = true;
+                }
             }
         }
 
-        builder.attribute("DP", depth);
+        if ( sawDP )
+            builder.attribute("DP", depth);
     }
 
     private void randomlyAddVariant(int rank, VariantContext vc) {

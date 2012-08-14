@@ -155,6 +155,32 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testRemoveMLE() {
+        String testFile = privateTestDir + "vcfexample.withMLE.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b36KGReference + " -sn NA12892 --variant " + testFile + " -o %s --no_cmdline_in_header",
+                1,
+                Arrays.asList("")
+        );
+
+        executeTest("testRegenotype--" + testFile, spec);
+    }
+
+    @Test
+    public void testRemoveMLEAndRegenotype() {
+        String testFile = privateTestDir + "vcfexample.withMLE.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b36KGReference + " -regenotype -sn NA12892 --variant " + testFile + " -o %s --no_cmdline_in_header",
+                1,
+                Arrays.asList("")
+        );
+
+        executeTest("testRegenotype--" + testFile, spec);
+    }
+
+    @Test
     public void testMultipleRecordsAtOnePosition() {
         String testFile = privateTestDir + "selectVariants.onePosition.vcf";
 
