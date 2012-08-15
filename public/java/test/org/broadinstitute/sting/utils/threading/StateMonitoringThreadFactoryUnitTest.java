@@ -147,8 +147,8 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
 
         // make sure we counted everything properly
         final long totalTime = factory.getTotalTime();
-        final long minTime = (THREAD_TARGET_DURATION_IN_MILLISECOND - 10) * test.getNStates();
-        final long maxTime = (THREAD_TARGET_DURATION_IN_MILLISECOND + 10) * test.getNStates();
+        final long minTime = (long)(THREAD_TARGET_DURATION_IN_MILLISECOND * 0.5) * test.getNStates();
+        final long maxTime = (long)(THREAD_TARGET_DURATION_IN_MILLISECOND * 1.5) * test.getNStates();
         //logger.warn("Testing total time");
         Assert.assertTrue(totalTime >= minTime, "Factory results not properly accumulated: totalTime = " + totalTime + " < minTime = " + minTime);
         Assert.assertTrue(totalTime <= maxTime, "Factory results not properly accumulated: totalTime = " + totalTime + " > maxTime = " + maxTime);
