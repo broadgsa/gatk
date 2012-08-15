@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.io.stubs.VariantContextWriterStub;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCounts;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -99,7 +100,7 @@ import java.util.*;
  */
 @DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-50,stop=50))
-public class CombineVariants extends RodWalker<Integer, Integer> {
+public class CombineVariants extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
     /**
      * The VCF files to merge together
      *
@@ -311,6 +312,11 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
     public Integer reduce(Integer counter, Integer sum) {
         return counter + sum;
+    }
+
+    @Override
+    public Integer treeReduce(Integer lhs, Integer rhs) {
+        return reduce(lhs, rhs);
     }
 
     public void onTraversalDone(Integer sum) {}

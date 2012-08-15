@@ -50,7 +50,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     private void cvExecuteTest(final String name, final WalkerTestSpec spec) {
         spec.disableShadowBCF();
-        executeTest(name, spec);
+        executeTestParallel(name, spec);
     }
 
     public void test1InOut(String file, String md5) {
