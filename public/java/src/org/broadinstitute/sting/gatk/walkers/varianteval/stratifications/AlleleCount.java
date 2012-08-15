@@ -51,6 +51,10 @@ public class AlleleCount extends VariantStratifier {
                     AC = Math.max(AC, eval.getCalledChrCount(allele));
             }
 
+            // make sure that the AC isn't invalid
+            if ( AC > eval.getCalledChrCount() )
+                throw new UserException.MalformedVCF(String.format("The AC or MLEAC value (%d) at position %s:%d is larger than the possible called chromosome count (%d)", AC, eval.getChr(), eval.getStart(), eval.getCalledChrCount()));
+
             return Collections.singletonList((Object) AC);
         } else {
             return Collections.emptyList();

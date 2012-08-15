@@ -585,6 +585,21 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         executeTest("testStandardIndelEval", spec);
     }
 
+    @Test
+    public void testBadACValue() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "-eval " + privateTestDir + "vcfexample.withBadAC.vcf",
+                        "-noST -ST AlleleCount",
+                        "-noEV -EV VariantSummary"
+                ),
+                0,
+                UserException.class);
+        executeTest("testBadACValue", spec);
+    }
+
 
     @Test()
     public void testIncompatibleEvalAndStrat() {

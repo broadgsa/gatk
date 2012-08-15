@@ -34,7 +34,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(" -sn A -sn B -sn C --variant " + testfile),
                 1,
-                Arrays.asList("3d98a024bf3aecbd282843e0af89d0e6")
+                Arrays.asList("125d1c9fa111cd38dfa2ff3900f16b57")
         );
 
         executeTest("testRepeatedLineSelection--" + testfile, spec);
@@ -49,7 +49,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
                         + b37hapmapGenotypes + " -disc " + testFile
                         + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
                 1,
-                Arrays.asList("54289033d35d32b8ebbb38c51fbb614c")
+                Arrays.asList("c0b937edb6a8b6392d477511d4f1ebcf")
         );
         spec.disableShadowBCF();
 
@@ -135,7 +135,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -sn NA12892 --variant:dbsnp " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("d12ae1617deb38f5ed712dc326935b9a")
+                Arrays.asList("a554459c9ccafb9812ff6d8c06c11726")
         );
 
         executeTest("testUsingDbsnpName--" + testFile, spec);
@@ -148,10 +148,36 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -regenotype -sn NA12892 --variant " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("c22ad8864d9951403672a24c20d6c3c2")
+                Arrays.asList("52cb2f150559ca1457e9df7ec153dbb452cb2f150559ca1457e9df7ec153dbb4")
         );
 
         executeTest("testRegenotype--" + testFile, spec);
+    }
+
+    @Test
+    public void testRemoveMLE() {
+        String testFile = privateTestDir + "vcfexample.withMLE.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b36KGReference + " -sn NA12892 --variant " + testFile + " -o %s --no_cmdline_in_header",
+                1,
+                Arrays.asList("a554459c9ccafb9812ff6d8c06c11726")
+        );
+
+        executeTest("testRemoveMLE--" + testFile, spec);
+    }
+
+    @Test
+    public void testRemoveMLEAndRegenotype() {
+        String testFile = privateTestDir + "vcfexample.withMLE.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b36KGReference + " -regenotype -sn NA12892 --variant " + testFile + " -o %s --no_cmdline_in_header",
+                1,
+                Arrays.asList("52cb2f150559ca1457e9df7ec153dbb4")
+        );
+
+        executeTest("testRemoveMLEAndRegenotype--" + testFile, spec);
     }
 
     @Test
