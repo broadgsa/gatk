@@ -335,7 +335,6 @@ public abstract class BCF2FieldEncoder {
             else if (value instanceof List) {
                 final List<String> l = (List<String>)value;
                 if ( l.isEmpty() ) return "";
-                else if ( l.size() == 1 ) return (String)l.get(0);
                 else return BCF2Utils.collapseStringList(l);
             } else
                 return (String)value;

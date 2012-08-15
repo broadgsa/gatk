@@ -87,14 +87,6 @@ class BCF2Writer extends IndexingVariantContextWriter {
     public static final int MAJOR_VERSION = 2;
     public static final int MINOR_VERSION = 1;
 
-    /**
-     * If true, we will write out the undecoded raw bytes for a genotypes block, if it
-     * is found in the input VC.  This can be very dangerous as the genotype encoding
-     * depends on the exact ordering of the header.
-     *
-     * TODO -- enable when the new smart VCF header code is created by Eric Banks
-     */
-    private final static boolean WRITE_UNDECODED_GENOTYPE_BLOCK = false;
     final protected static Logger logger = Logger.getLogger(BCF2Writer.class);
     final private static boolean ALLOW_MISSING_CONTIG_LINES = false;
 
@@ -107,6 +99,13 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
     private final BCF2Encoder encoder = new BCF2Encoder(); // initialized after the header arrives
     final BCF2FieldWriterManager fieldManager = new BCF2FieldWriterManager();
+
+    /**
+     * cached results for whether we can write out raw genotypes data.
+     */
+    private VCFHeader lastVCFHeaderOfUnparsedGenotypes = null;
+    private boolean canPassOnUnparsedGenotypeDataForLastVCFHeader = false;
+
 
     public BCF2Writer(final File location, final OutputStream output, final SAMSequenceDictionary refDict, final boolean enableOnTheFlyIndexing, final boolean doNotWriteGenotypes) {
         super(writerName(location, output), location, output, refDict, enableOnTheFlyIndexing);
@@ -247,13 +246,39 @@ class BCF2Writer extends IndexingVariantContextWriter {
         return encoder.getRecordBytes();
     }
 
+
+    /**
+     * Can we safely write on the raw (undecoded) genotypes of an input VC?
+     *
+     * The cache depends on the undecoded lazy data header == lastVCFHeaderOfUnparsedGenotypes, in
+     * which case we return the previous result.  If it's not cached, we use the BCF2Util to
+     * compare the VC header with our header (expensive) and cache it.
+     *
+     * @param lazyData
+     * @return
+     */
+    private boolean canSafelyWriteRawGenotypesBytes(final BCF2Codec.LazyData lazyData) {
+        if ( lazyData.header != lastVCFHeaderOfUnparsedGenotypes ) {
+            // result is already cached
+            canPassOnUnparsedGenotypeDataForLastVCFHeader = BCF2Utils.headerLinesAreOrderedConsistently(this.header,lazyData.header);
+            lastVCFHeaderOfUnparsedGenotypes = lazyData.header;
+        }
+
+        return canPassOnUnparsedGenotypeDataForLastVCFHeader;
+    }
+
     private BCF2Codec.LazyData getLazyData(final VariantContext vc) {
         if ( vc.getGenotypes().isLazyWithData() ) {
-                LazyGenotypesContext lgc = (LazyGenotypesContext)vc.getGenotypes();
-            if ( WRITE_UNDECODED_GENOTYPE_BLOCK && lgc.getUnparsedGenotypeData() instanceof BCF2Codec.LazyData )
+            final LazyGenotypesContext lgc = (LazyGenotypesContext)vc.getGenotypes();
+
+            if ( lgc.getUnparsedGenotypeData() instanceof BCF2Codec.LazyData &&
+                    canSafelyWriteRawGenotypesBytes((BCF2Codec.LazyData) lgc.getUnparsedGenotypeData())) {
+                //logger.info("Passing on raw BCF2 genotypes data");
                 return (BCF2Codec.LazyData)lgc.getUnparsedGenotypeData();
-            else
+            } else {
+                //logger.info("Decoding raw BCF2 genotypes data");
                 lgc.decode(); // WARNING -- required to avoid keeping around bad lazy data for too long
+            }
         }
 
         return null;

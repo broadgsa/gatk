@@ -131,17 +131,21 @@ public final class BCF2Utils {
      * @param strings size > 1 list of strings
      * @return
      */
-    @Requires({"strings != null", "strings.size() > 1"})
+    @Requires({"strings != null"})
     @Ensures("result != null")
     public static String collapseStringList(final List<String> strings) {
-        final StringBuilder b = new StringBuilder();
-        for ( final String s : strings ) {
-            if ( s != null ) {
-                assert s.indexOf(",") == -1; // no commas in individual strings
-                b.append(",").append(s);
+        if ( strings.isEmpty() ) return "";
+        else if ( strings.size() == 1 ) return strings.get(0);
+        else {
+            final StringBuilder b = new StringBuilder();
+            for ( final String s : strings ) {
+                if ( s != null ) {
+                    assert s.indexOf(",") == -1; // no commas in individual strings
+                    b.append(",").append(s);
+                }
             }
+            return b.toString();
         }
-        return b.toString();
     }
 
     /**
@@ -163,7 +167,7 @@ public final class BCF2Utils {
 
     @Requires("s != null")
     public static boolean isCollapsedString(final String s) {
-        return s.charAt(0) == ',';
+        return s.length() > 0 && s.charAt(0) == ',';
     }
 
     /**
@@ -279,5 +283,50 @@ public final class BCF2Utils {
         if ( o == null ) return Collections.emptyList();
         else if ( o instanceof List ) return (List<Object>)o;
         else return Collections.singletonList(o);
+    }
+
+    /**
+     * Are the elements and their order in the output and input headers consistent so that
+     * we can write out the raw genotypes block without decoding and recoding it?
+     *
+     * If the order of INFO, FILTER, or contrig elements in the output header is different than
+     * in the input header we must decode the blocks using the input header and then recode them
+     * based on the new output order.
+     *
+     * If they are consistent, we can simply pass through the raw genotypes block bytes, which is
+     * a *huge* performance win for large blocks.
+     *
+     * Many common operations on BCF2 files (merging them for -nt, selecting a subset of records, etc)
+     * don't modify the ordering of the header fields and so can safely pass through the genotypes
+     * undecoded.  Some operations -- those at add filters or info fields -- can change the ordering
+     * of the header fields and so produce invalid BCF2 files if the genotypes aren't decoded
+     */
+    public static boolean headerLinesAreOrderedConsistently(final VCFHeader outputHeader, final VCFHeader genotypesBlockHeader) {
+        // first, we have to have the same samples in the same order
+        if ( ! nullAsEmpty(outputHeader.getSampleNamesInOrder()).equals(nullAsEmpty(genotypesBlockHeader.getSampleNamesInOrder())) )
+            return false;
+
+        final Iterator<? extends VCFIDHeaderLine> outputLinesIt = outputHeader.getIDHeaderLines().iterator();
+        final Iterator<? extends VCFIDHeaderLine> inputLinesIt = genotypesBlockHeader.getIDHeaderLines().iterator();
+
+        while ( inputLinesIt.hasNext() ) {
+            if ( ! outputLinesIt.hasNext() ) // missing lines in output
+                return false;
+
+            final VCFIDHeaderLine outputLine = outputLinesIt.next();
+            final VCFIDHeaderLine inputLine = inputLinesIt.next();
+
+            if ( ! inputLine.getClass().equals(outputLine.getClass()) || ! inputLine.getID().equals(outputLine.getID()) )
+                return false;
+        }
+
+        return true;
+    }
+
+    private static <T> List<T> nullAsEmpty(List<T> l) {
+        if ( l == null )
+            return Collections.emptyList();
+        else
+            return l;
     }
 }

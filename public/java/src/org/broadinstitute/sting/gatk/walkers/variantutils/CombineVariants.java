@@ -67,6 +67,12 @@ import java.util.*;
  * VCF and then run SelectVariants to extract the common records with -select 'set == "Intersection"', as worked out
  * in the detailed example on the wiki.
  *
+ * Note that CombineVariants supports multi-threaded parallelism (8/15/12).  This is particularly useful
+ * when converting from VCF to BCF2, which can be expensive.  In this case each thread spends CPU time
+ * doing the conversion, and the GATK engine is smart enough to merge the partial BCF2 blocks together
+ * efficiency.  However, since this merge runs in only one thread, you can quickly reach diminishing
+ * returns with the number of parallel threads.  -nt 4 works well but -nt 8 may be too much.
+ *
  * <h2>Input</h2>
  * <p>
  * One or more variant sets to combine.

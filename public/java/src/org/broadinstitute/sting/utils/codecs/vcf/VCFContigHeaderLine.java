@@ -47,8 +47,8 @@ public class VCFContigHeaderLine extends VCFSimpleHeaderLine {
         this.contigIndex = contigIndex;
     }
 
-    public VCFContigHeaderLine(final String key, final Map<String, String> mapping, int contigIndex) {
-        super(key, mapping, null);
+    public VCFContigHeaderLine(final Map<String, String> mapping, int contigIndex) {
+        super(VCFHeader.CONTIG_KEY, mapping, null);
         this.contigIndex = contigIndex;
     }
 

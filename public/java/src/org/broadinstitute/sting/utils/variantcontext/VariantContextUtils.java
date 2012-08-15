@@ -504,7 +504,7 @@ public class VariantContextUtils {
         Byte referenceBaseForIndel = null;
 
         final Set<Allele> alleles = new LinkedHashSet<Allele>();
-        final Set<String> filters = new TreeSet<String>();
+        final Set<String> filters = new HashSet<String>();
         final Map<String, Object> attributes = new TreeMap<String, Object>();
         final Set<String> inconsistentAttributes = new HashSet<String>();
         final Set<String> variantSources = new HashSet<String>(); // contains the set of sources we found in our set of VCs that are variant
@@ -656,7 +656,8 @@ public class VariantContextUtils {
         builder.alleles(alleles);
         builder.genotypes(genotypes);
         builder.log10PError(log10PError);
-        builder.filters(filters).attributes(mergeInfoWithMaxAC ? attributesWithMaxAC : attributes);
+        builder.filters(filters.isEmpty() ? filters : new TreeSet<String>(filters));
+        builder.attributes(mergeInfoWithMaxAC ? attributesWithMaxAC : attributes);
 
         // Trim the padded bases of all alleles if necessary
         final VariantContext merged = builder.make();

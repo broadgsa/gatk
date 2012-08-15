@@ -32,7 +32,6 @@ import net.sf.samtools.util.StringUtil;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.net.InetAddress;
@@ -742,19 +741,23 @@ public class Utils {
      * @param objects
      * @param n
      * @param <T>
+     * @param withReplacement if false, the resulting permutations will only contain unique objects from objects
      * @return
      */
-    public static <T> List<List<T>> makeCombinations(final List<T> objects, final int n) {
+    public static <T> List<List<T>> makePermutations(final List<T> objects, final int n, final boolean withReplacement) {
         final List<List<T>> combinations = new ArrayList<List<T>>();
 
-        if ( n == 1 ) {
+        if ( n <= 0 )
+            ;
+        else if ( n == 1 ) {
             for ( final T o : objects )
                 combinations.add(Collections.singletonList(o));
         } else {
-            final List<List<T>> sub = makeCombinations(objects, n - 1);
+            final List<List<T>> sub = makePermutations(objects, n - 1, withReplacement);
             for ( List<T> subI : sub ) {
                 for ( final T a : objects ) {
-                    combinations.add(Utils.cons(a, subI));
+                    if ( withReplacement || ! subI.contains(a) )
+                        combinations.add(Utils.cons(a, subI));
                 }
             }
         }

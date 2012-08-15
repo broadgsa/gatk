@@ -39,7 +39,7 @@ import java.util.*;
  * @author Mark DePristo
  * @since 5/12
  */
-class BCF2LazyGenotypesDecoder implements LazyGenotypesContext.LazyParser {
+public class BCF2LazyGenotypesDecoder implements LazyGenotypesContext.LazyParser {
     final protected static Logger logger = Logger.getLogger(BCF2LazyGenotypesDecoder.class);
 
     // the essential information for us to use to decode the genotypes data

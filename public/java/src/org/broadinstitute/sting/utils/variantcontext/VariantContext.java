@@ -1351,7 +1351,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
     private final Map<String, Object> fullyDecodeAttributes(final Map<String, Object> attributes,
                                                             final VCFHeader header,
                                                             final boolean lenientDecoding) {
-        final Map<String, Object> newAttributes = new HashMap<String, Object>(attributes.size());
+        final Map<String, Object> newAttributes = new HashMap<String, Object>(10);
 
         for ( final Map.Entry<String, Object> attr : attributes.entrySet() ) {
             final String field = attr.getKey();

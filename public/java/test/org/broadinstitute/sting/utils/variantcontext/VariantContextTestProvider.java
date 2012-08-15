@@ -197,7 +197,7 @@ public class VariantContextTestProvider {
         addHeaderLine(metaData, "FT", 1, VCFHeaderLineType.String);
 
         // prep the header
-        metaData.add(new VCFContigHeaderLine(VCFHeader.CONTIG_KEY, Collections.singletonMap("ID", "1"), 0));
+        metaData.add(new VCFContigHeaderLine(Collections.singletonMap("ID", "1"), 0));
 
         metaData.add(new VCFFilterHeaderLine("FILTER1"));
         metaData.add(new VCFFilterHeaderLine("FILTER2"));
@@ -889,7 +889,7 @@ public class VariantContextTestProvider {
     }
 
     private static List<List<Allele>> makeAllGenotypes(final List<Allele> alleles, final int highestPloidy) {
-        return Utils.makeCombinations(alleles, highestPloidy);
+        return Utils.makePermutations(alleles, highestPloidy, true);
     }
 
     public static void assertEquals(final VCFHeader actual, final VCFHeader expected) {

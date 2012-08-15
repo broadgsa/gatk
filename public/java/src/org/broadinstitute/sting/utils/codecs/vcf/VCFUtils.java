@@ -301,7 +301,7 @@ public class VCFUtils {
         map.put("ID", contig.getSequenceName());
         map.put("length", String.valueOf(contig.getSequenceLength()));
         if ( assembly != null ) map.put("assembly", assembly);
-        return new VCFContigHeaderLine(VCFHeader.CONTIG_KEY, map, contig.getSequenceIndex());
+        return new VCFContigHeaderLine(map, contig.getSequenceIndex());
     }
 
     private static String getReferenceAssembly(final String refPath) {
