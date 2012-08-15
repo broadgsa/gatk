@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.variantcontext.writer.Options;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -185,6 +186,9 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
         if ( doNotWriteGenotypes ) options.add(Options.DO_NOT_WRITE_GENOTYPES);
         if ( engine.lenientVCFProcessing() ) options.add(Options.ALLOW_MISSING_FIELDS_IN_HEADER);
         if ( indexOnTheFly && ! isCompressed() ) options.add(Options.INDEX_ON_THE_FLY);
+
+        if ( getFile() != null && VariantContextWriterFactory.isBCFOutput(getFile()) )
+            options.add(Options.FORCE_BCF);
 
         return options.isEmpty() ? EnumSet.noneOf(Options.class) : EnumSet.copyOf(options);
     }

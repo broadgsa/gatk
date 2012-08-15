@@ -76,7 +76,7 @@ public class BCF2FieldWriterManager {
         if ( map.containsKey(field) )
             throw new ReviewedStingException("BUG: field " + field + " already seen in VCFHeader while building BCF2 field encoders");
         map.put(field, writer);
-        logger.info(writer);
+        if ( logger.isDebugEnabled() ) logger.debug(writer);
     }
 
     // -----------------------------------------------------------------
