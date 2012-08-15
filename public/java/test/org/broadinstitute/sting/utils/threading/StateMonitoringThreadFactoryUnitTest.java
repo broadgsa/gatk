@@ -112,7 +112,7 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
     @DataProvider(name = "StateTest")
     public Object[][] createStateTest() {
         for ( final int nThreads : Arrays.asList(1, 2, 3, 4) ) {
-            for (final List<Thread.State> states : Utils.makeCombinations(StateMonitoringThreadFactory.TRACKED_STATES, nThreads) ) {
+            for (final List<Thread.State> states : Utils.makePermutations(StateMonitoringThreadFactory.TRACKED_STATES, nThreads, true) ) {
                 //if ( Collections.frequency(states, Thread.State.BLOCKED) > 0)
                     new StateTest(states);
             }
@@ -121,7 +121,7 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
         return StateTest.getTests(StateTest.class);
     }
 
-    @Test(enabled = true, dataProvider = "StateTest")
+    @Test(enabled = false, dataProvider = "StateTest")
     public void testStateTest(final StateTest test) throws InterruptedException {
         // allows us to test blocking
         final StateMonitoringThreadFactory factory = new StateMonitoringThreadFactory(test.getNStates());
