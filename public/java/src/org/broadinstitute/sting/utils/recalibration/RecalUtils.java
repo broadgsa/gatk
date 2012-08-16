@@ -524,46 +524,71 @@ public class RecalUtils {
 
     /**
      * Parse through the color space of the read and add a new tag to the SAMRecord that says which bases are 
-     * inconsistent with the color space. If there is no call in the color space, this method returns true meaning
+     * inconsistent with the color space. If there is a no call in the color space, this method returns false meaning
      * this read should be skipped
      *
      * @param strategy the strategy used for SOLID no calls
      * @param read     The SAMRecord to parse
-     * @return whether or not this read should be skipped   
+     * @return true if this read is consistent or false if this read should be skipped
      */
     public static boolean isColorSpaceConsistent(final SOLID_NOCALL_STRATEGY strategy, final GATKSAMRecord read) {
-        if (ReadUtils.isSOLiDRead(read)) {                                                                              // If this is a SOLID read then we have to check if the color space is inconsistent. This is our only sign that SOLID has inserted the reference base
-            if (read.getAttribute(RecalUtils.COLOR_SPACE_INCONSISTENCY_TAG) == null) {                            // Haven't calculated the inconsistency array yet for this read
-                final Object attr = read.getAttribute(RecalUtils.COLOR_SPACE_ATTRIBUTE_TAG);
-                if (attr != null) {
-                    byte[] colorSpace;
-                    if (attr instanceof String)
-                        colorSpace = ((String) attr).getBytes();
-                    else
-                        throw new UserException.MalformedBAM(read, String.format("Value encoded by %s in %s isn't a string!", RecalUtils.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
-                    
-                    byte[] readBases = read.getReadBases();                                                             // Loop over the read and calculate first the inferred bases from the color and then check if it is consistent with the read
-                    if (read.getReadNegativeStrandFlag())
-                        readBases = BaseUtils.simpleReverseComplement(read.getReadBases());
+        if (!ReadUtils.isSOLiDRead(read))                                                                               // If this is a SOLID read then we have to check if the color space is inconsistent. This is our only sign that SOLID has inserted the reference base
+            return true;
 
-                    final byte[] inconsistency = new byte[readBases.length];
-                    int i;
-                    byte prevBase = colorSpace[0];                                                                      // The sentinel
-                    for (i = 0; i < readBases.length; i++) {
-                        final byte thisBase = getNextBaseFromColor(read, prevBase, colorSpace[i + 1]);
-                        inconsistency[i] = (byte) (thisBase == readBases[i] ? 0 : 1);
-                        prevBase = readBases[i];
-                    }
-                    read.setAttribute(RecalUtils.COLOR_SPACE_INCONSISTENCY_TAG, inconsistency);
-                }
-                else if (strategy == SOLID_NOCALL_STRATEGY.THROW_EXCEPTION)                                             // if the strategy calls for an exception, throw it
-                    throw new UserException.MalformedBAM(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() + " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
-
+        if (read.getAttribute(RecalUtils.COLOR_SPACE_INCONSISTENCY_TAG) == null) {                                      // Haven't calculated the inconsistency array yet for this read
+            final Object attr = read.getAttribute(RecalUtils.COLOR_SPACE_ATTRIBUTE_TAG);
+            if (attr != null) {
+                byte[] colorSpace;
+                if (attr instanceof String)
+                    colorSpace = ((String) attr).getBytes();
                 else
-                    return true;                                                                                       // otherwise, just skip the read
+                    throw new UserException.MalformedBAM(read, String.format("Value encoded by %s in %s isn't a string!", RecalUtils.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
+
+                final boolean badColor = hasNoCallInColorSpace(colorSpace);
+                if (badColor) {
+                    if (strategy == SOLID_NOCALL_STRATEGY.LEAVE_READ_UNRECALIBRATED) {
+                        return false; // can't recalibrate a SOLiD read with no calls in the color space, and the user wants to skip over them
+                    }
+                    else if (strategy == SOLID_NOCALL_STRATEGY.PURGE_READ) {
+                        read.setReadFailsVendorQualityCheckFlag(true);
+                        return false;
+                    }
+                }
+
+                byte[] readBases = read.getReadBases();                                                                 // Loop over the read and calculate first the inferred bases from the color and then check if it is consistent with the read
+                if (read.getReadNegativeStrandFlag())
+                    readBases = BaseUtils.simpleReverseComplement(read.getReadBases());
+
+                final byte[] inconsistency = new byte[readBases.length];
+                int i;
+                byte prevBase = colorSpace[0];                                                                          // The sentinel
+                for (i = 0; i < readBases.length; i++) {
+                    final byte thisBase = getNextBaseFromColor(read, prevBase, colorSpace[i + 1]);
+                    inconsistency[i] = (byte) (thisBase == readBases[i] ? 0 : 1);
+                    prevBase = readBases[i];
+                }
+                read.setAttribute(RecalUtils.COLOR_SPACE_INCONSISTENCY_TAG, inconsistency);
+            }
+            else if (strategy == SOLID_NOCALL_STRATEGY.THROW_EXCEPTION)                                                 // if the strategy calls for an exception, throw it
+                throw new UserException.MalformedBAM(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() + " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
+
+            else
+                return false;                                                                                           // otherwise, just skip the read
+        }
+
+        return true;
+    }
+
+    private static boolean hasNoCallInColorSpace(final byte[] colorSpace) {
+        final int length = colorSpace.length;
+        for (int i = 1; i < length; i++) {  // skip the sentinal
+            final byte color = colorSpace[i];
+            if (color != (byte) '0' && color != (byte) '1' && color != (byte) '2' && color != (byte) '3') {
+                return true; // There is a bad color in this SOLiD read
             }
         }
-        return false;
+
+        return false; // There aren't any color no calls in this SOLiD read
     }
 
     /**

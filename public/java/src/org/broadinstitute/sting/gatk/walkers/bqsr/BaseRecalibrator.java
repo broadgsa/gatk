@@ -227,7 +227,7 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
                 if (readNotSeen(read)) {
                     read.setTemporaryAttribute(SEEN_ATTRIBUTE, true);
                     RecalUtils.parsePlatformForRead(read, RAC);
-                    if (RecalUtils.isColorSpaceConsistent(RAC.SOLID_NOCALL_STRATEGY, read)) {
+                    if (!RecalUtils.isColorSpaceConsistent(RAC.SOLID_NOCALL_STRATEGY, read)) {
                         read.setTemporaryAttribute(SKIP_RECORD_ATTRIBUTE, true);
                         continue;
                     }
