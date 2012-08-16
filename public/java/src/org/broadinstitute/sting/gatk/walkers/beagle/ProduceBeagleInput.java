@@ -351,7 +351,6 @@ public class ProduceBeagleInput extends RodWalker<Integer, Integer> {
     }
 
     public static class CachingFormatter {
-        private int maxCacheSize = 0;
         private String format;
         private LRUCache<Double, String> cache;
 
@@ -379,7 +378,6 @@ public class ProduceBeagleInput extends RodWalker<Integer, Integer> {
         }
 
         public CachingFormatter(String format, int maxCacheSize) {
-            this.maxCacheSize = maxCacheSize;
             this.format = format;
             this.cache = new LRUCache<Double, String>(maxCacheSize);
         }

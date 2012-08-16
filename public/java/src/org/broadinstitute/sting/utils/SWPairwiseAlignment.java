@@ -377,59 +377,6 @@ public class SWPairwiseAlignment {
         return w_open+(k-1)*w_extend; // gap
     }
 
-    private void print(int[][] s) {
-        for ( int i = 0 ; i < s.length ; i++) {
-            for ( int j = 0; j < s[i].length ; j++ ) {
-                System.out.printf(" %4d",s[i][j]);
-            }
-            System.out.println();
-        }
-    }
-
-    private void print(double[][] s) {
-        for ( int i = 0 ; i < s.length ; i++) {
-            for ( int j = 0; j < s[i].length ; j++ ) {
-                System.out.printf(" %4g",s[i][j]);
-            }
-            System.out.println();
-        }
-    }
-
-    private void print(int[][] s, String a, String b) {
-
-        System.out.print("        ");
-        for ( int j = 1 ; j < s[0].length ; j++) System.out.printf(" %4c",b.charAt(j-1)) ;
-        System.out.println();
-
-        for ( int i = 0 ; i < s.length ; i++) {
-            if ( i > 0 ) System.out.print(a.charAt(i-1));
-            else System.out.print(' ');
-            System.out.print("  ");
-            for ( int j = 0; j < s[i].length ; j++ ) {
-                System.out.printf(" %4d",s[i][j]);
-            }
-            System.out.println();
-        }
-    }
-
-
-    private void print(double[][] s, String a, String b) {
-
-        System.out.print("");
-        for ( int j = 1 ; j < s[0].length ; j++) System.out.printf(" %4c",b.charAt(j-1)) ;
-        System.out.println();
-
-        for ( int i = 0 ; i < s.length ; i++) {
-            if ( i > 0 ) System.out.print(a.charAt(i-1));
-            else System.out.print(' ');
-            System.out.print("  ");
-            for ( int j = 0; j < s[i].length ; j++ ) {
-                System.out.printf(" %2.1f",s[i][j]);
-            }
-            System.out.println();
-        }
-    }
-
     private void print(double[] s, byte[] a, byte[] b) {
            int n = a.length+1;
            int m = b.length+1;
