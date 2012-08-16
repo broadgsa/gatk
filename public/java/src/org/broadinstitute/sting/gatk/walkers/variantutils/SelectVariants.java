@@ -568,7 +568,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             VariantContext sub = subsetRecord(vc, EXCLUDE_NON_VARIANTS);
 
             if ( REGENOTYPE && sub.isPolymorphicInSamples() && hasPLs(sub) ) {
-                final VariantContextBuilder builder = new VariantContextBuilder(UG_engine.calculateGenotypes(null, ref, context, sub)).filters(sub.getFiltersMaybeNull());
+                final VariantContextBuilder builder = new VariantContextBuilder(UG_engine.calculateGenotypes(sub)).filters(sub.getFiltersMaybeNull());
                 addAnnotations(builder, sub);
                 sub = builder.make();
             }

@@ -38,7 +38,6 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -257,6 +256,16 @@ public class UnifiedGenotyperEngine {
         final GenotypeLikelihoodsCalculationModel.Model model = models.get(0);
         final Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
         return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model);
+    }
+
+    /**
+     * Compute genotypes at a given locus.
+     *
+     * @param vc         the GL-annotated variant context
+     * @return the VariantCallContext object
+     */
+    public VariantCallContext calculateGenotypes(VariantContext vc) {
+        return calculateGenotypes(null, null, null, null, vc, GenotypeLikelihoodsCalculationModel.Model.valueOf("SNP"), false);
     }
 
 
@@ -647,10 +656,8 @@ public class UnifiedGenotyperEngine {
         // if we're genotyping given alleles and we have a requested SNP at this position, do SNP
         if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
             final VariantContext vcInput = getVCFromAllelesRod(tracker, refContext, rawContext.getLocation(), false, logger, UAC.alleles);
-            if ( vcInput == null ) {
-                models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"SNP"));
+            if ( vcInput == null )
                 return models;
-            }
 
             if ( vcInput.isSNP() )  {
                 // ignore SNPs if the user chose INDEL mode only
