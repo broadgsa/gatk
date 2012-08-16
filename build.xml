@@ -70,10 +70,6 @@
     <property name="R.package.path" value="org/broadinstitute/sting/utils/R" />
     <property name="R.script.staging.dir" value="${build.dir}/R/stage" />
 
-    <!-- Properties used for external builds -->
-    <property name="external.build.dir" value="${java.classes}" />
-    <property name="external.dist.dir" value="${dist.dir}" />
-
     <!-- Packaging system properties -->
     <property name="package.xml.dir" value="${public.dir}/packages" />
     <property name="package.output.dir" value="${dist.dir}/packages" />
@@ -210,6 +206,14 @@
     <fileset id="external.source.files" dir="${external.dir}" erroronmissingdir="false">
         <include name="**/*.java" />
     </fileset>
+
+    <path id="external.build.dir">
+        <path path="${java.classes}" />
+    </path>
+
+    <path id="external.dist.dir">
+        <path path="${dist.dir}" />
+    </path>
 
     <!-- GATK dependencies consist of 3rd party plugins plus compiled GATK classes -->
     <path id="external.gatk.classpath">
@@ -425,8 +429,8 @@
 
     <target name="gatk.compile.external.source" depends="gatk.compile.internal.source" if="include.external">
         <subant target="compile" genericantfile="build.xml">
-            <property name="build.dir" value="${external.build.dir}" />
-            <property name="dist.dir" value="${external.dist.dir}" />
+            <property name="build.dir" refid="external.build.dir" />
+            <property name="dist.dir" refid="external.dist.dir" />
             <property name="gatk.classpath" refid="external.gatk.classpath" />
             <fileset dir="${external.dir}" includes="*/build.xml" erroronmissingdir="false" />
         </subant>
@@ -675,9 +679,9 @@
         </jar>
 
         <subant target="dist" genericantfile="build.xml">
-            <property name="build.dir" value="${external.build.dir}" />
-            <property name="dist.dir" value="${external.dist.dir}" />
-            <property name="gatk.classpath" value="${external.gatk.classpath}" />
+            <property name="build.dir" refid="external.build.dir" />
+            <property name="dist.dir" refid="external.dist.dir" />
+            <property name="gatk.classpath" refid="external.gatk.classpath" />
             <fileset dir="${external.dir}" includes="*/build.xml" erroronmissingdir="false" />
         </subant>
     </target>
