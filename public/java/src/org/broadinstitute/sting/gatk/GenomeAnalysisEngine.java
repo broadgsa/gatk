@@ -849,20 +849,9 @@ public class GenomeAnalysisEngine {
                                                                             SAMSequenceDictionary sequenceDictionary,
                                                                             GenomeLocParser genomeLocParser,
                                                                             ValidationExclusion.TYPE validationExclusionType) {
-        VCFHeader header = null;
-        if ( getArguments().repairVCFHeader != null ) {
-            try {
-                final PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(getArguments().repairVCFHeader));
-                header = (VCFHeader)new VCFCodec().readHeader(pbs).getHeaderValue();
-                pbs.close();
-            } catch ( IOException e ) {
-                throw new UserException.CouldNotReadInputFile(getArguments().repairVCFHeader, e);
-            }
-        }
+        final RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser, validationExclusionType);
 
-        RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser, header, validationExclusionType);
-
-        List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
+        final List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTriplet fileDescriptor : referenceMetaDataFiles)
             dataSources.add(new ReferenceOrderedDataSource(fileDescriptor,
                                                            builder,
