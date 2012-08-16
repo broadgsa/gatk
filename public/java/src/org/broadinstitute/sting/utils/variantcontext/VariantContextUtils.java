@@ -505,7 +505,7 @@ public class VariantContextUtils {
 
         final Set<Allele> alleles = new LinkedHashSet<Allele>();
         final Set<String> filters = new HashSet<String>();
-        final Map<String, Object> attributes = new TreeMap<String, Object>();
+        final Map<String, Object> attributes = new LinkedHashMap<String, Object>();
         final Set<String> inconsistentAttributes = new HashSet<String>();
         final Set<String> variantSources = new HashSet<String>(); // contains the set of sources we found in our set of VCs that are variant
         final Set<String> rsIDs = new LinkedHashSet<String>(1); // most of the time there's one id
@@ -513,7 +513,7 @@ public class VariantContextUtils {
         GenomeLoc loc = getLocation(genomeLocParser,first);
         int depth = 0;
         int maxAC = -1;
-        final Map<String, Object> attributesWithMaxAC = new TreeMap<String, Object>();
+        final Map<String, Object> attributesWithMaxAC = new LinkedHashMap<String, Object>();
         double log10PError = 1;
         VariantContext vcWithMaxAC = null;
         GenotypesContext genotypes = GenotypesContext.create();
@@ -657,7 +657,7 @@ public class VariantContextUtils {
         builder.genotypes(genotypes);
         builder.log10PError(log10PError);
         builder.filters(filters.isEmpty() ? filters : new TreeSet<String>(filters));
-        builder.attributes(mergeInfoWithMaxAC ? attributesWithMaxAC : attributes);
+        builder.attributes(new TreeMap<String, Object>(mergeInfoWithMaxAC ? attributesWithMaxAC : attributes));
 
         // Trim the padded bases of all alleles if necessary
         final VariantContext merged = builder.make();
