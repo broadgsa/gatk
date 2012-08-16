@@ -92,7 +92,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     GenomeLocSortedSet targetIntervals = null;
 
     /** our log, which we want to capture anything from this class */
-    protected static Logger logger = Logger.getLogger(TraversalEngine.class);
+    protected static final Logger logger = Logger.getLogger(TraversalEngine.class);
 
     protected GenomeAnalysisEngine engine;
 
@@ -354,7 +354,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
 
         synchronized(performanceLogLock) {
             // Ignore multiple calls to reset the same lock.
-            if(performanceLogFile != null && performanceLogFile.equals(fileName))
+            if(performanceLogFile != null && performanceLogFile.equals(file))
                 return;
 
             // Close an existing log

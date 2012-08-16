@@ -45,7 +45,6 @@ import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -56,7 +55,7 @@ public class ReferenceDataSource {
     private IndexedFastaSequenceFile reference;
 
     /** our log, which we want to capture anything from this class */
-    protected static org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(ReferenceDataSource.class);
+    protected static final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(ReferenceDataSource.class);
 
     /**
      * Create reference data source from fasta file

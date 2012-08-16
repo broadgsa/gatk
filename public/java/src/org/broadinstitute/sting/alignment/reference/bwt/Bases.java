@@ -12,10 +12,10 @@ import java.util.*;
  */
 public class Bases implements Iterable<Byte>
 {
-    public static byte A = 'A';
-    public static byte C = 'C';
-    public static byte G = 'G';
-    public static byte T = 'T';
+    public static final byte A = 'A';
+    public static final byte C = 'C';
+    public static final byte G = 'G';
+    public static final byte T = 'T';
 
     public static final Bases instance = new Bases();
 

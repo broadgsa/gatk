@@ -53,8 +53,8 @@ public class ReadUtils {
     private ReadUtils() {
     }
 
-    private static int DEFAULT_ADAPTOR_SIZE = 100;
-    public static int CLIPPING_GOAL_NOT_REACHED = -1;
+    private static final int DEFAULT_ADAPTOR_SIZE = 100;
+    public static final int CLIPPING_GOAL_NOT_REACHED = -1;
 
     public static int getMeanRepresentativeReadCount(GATKSAMRecord read) {
         if (!read.isReducedRead())

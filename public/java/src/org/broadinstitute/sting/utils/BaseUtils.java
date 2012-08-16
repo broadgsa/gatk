@@ -67,10 +67,10 @@ public class BaseUtils {
     public static final byte DELETION_INDEX = 4;
     public static final byte NO_CALL_INDEX = 5; // (this is 'N')
 
-    public static int gIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'G');
-    public static int cIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'C');
-    public static int aIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'A');
-    public static int tIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'T');
+    public static final int aIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'A');
+    public static final int cIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'C');
+    public static final int gIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'G');
+    public static final int tIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'T');
 
     /// In genetics, a transition is a mutation changing a purine to another purine nucleotide (A <-> G) or
     // a pyrimidine to another pyrimidine nucleotide (C <-> T).

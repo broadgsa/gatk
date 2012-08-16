@@ -78,9 +78,9 @@ public class FindCoveredIntervals extends ActiveRegionWalker<GenomeLoc, Long> {
     public Long reduce(final GenomeLoc value, Long reduce) {
         if (value != null) {
             out.println(value.toString());
-            return ++reduce;
-        } else
-            return reduce;
+            reduce++;
+        }
+        return reduce;
     }
 
     @Override

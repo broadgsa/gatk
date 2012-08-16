@@ -120,8 +120,8 @@ public abstract class ParsingMethod {
      */
     private static final String TAG_TEXT = "[\\w\\-\\.\\=]*";
 
-    public static ParsingMethod FullNameParsingMethod = new ParsingMethod(Pattern.compile(String.format("\\s*--(%1$s)(?:\\:(%2$s(?:,%2$s)*))?\\s*",ARGUMENT_TEXT,TAG_TEXT)),
+    public static final ParsingMethod FullNameParsingMethod = new ParsingMethod(Pattern.compile(String.format("\\s*--(%1$s)(?:\\:(%2$s(?:,%2$s)*))?\\s*",ARGUMENT_TEXT,TAG_TEXT)),
                                                                           ArgumentDefinitions.FullNameDefinitionMatcher) {};
-    public static ParsingMethod ShortNameParsingMethod = new ParsingMethod(Pattern.compile(String.format("\\s*-(%1$s)(?:\\:(%2$s(?:,%2$s)*))?\\s*",ARGUMENT_TEXT,TAG_TEXT)),
+    public static final ParsingMethod ShortNameParsingMethod = new ParsingMethod(Pattern.compile(String.format("\\s*-(%1$s)(?:\\:(%2$s(?:,%2$s)*))?\\s*",ARGUMENT_TEXT,TAG_TEXT)),
                                                                            ArgumentDefinitions.ShortNameDefinitionMatcher) {};
 }

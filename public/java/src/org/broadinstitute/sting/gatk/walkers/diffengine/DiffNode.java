@@ -224,7 +224,7 @@ public class DiffNode extends DiffValue {
         // X=(A=A B=B C=(D=D))
         String[] parts = tree.split("=", 2);
         if ( parts.length != 2 )
-            throw new ReviewedStingException("Unexpected tree structure: " + tree + " parts=" + parts);
+            throw new ReviewedStingException("Unexpected tree structure: " + tree);
         String name = parts[0];
         String value = parts[1];
 

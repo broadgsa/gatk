@@ -372,7 +372,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     // ----------------------------------------------------------------------------------------------------
 
     public static abstract class Getter { public abstract String get(VariantContext vc); }
-    public static Map<String, Getter> getters = new HashMap<String, Getter>();
+    public static final Map<String, Getter> getters = new HashMap<String, Getter>();
 
     static {
         // #CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT

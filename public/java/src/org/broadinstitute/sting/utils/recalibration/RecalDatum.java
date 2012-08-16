@@ -94,8 +94,8 @@ public class RecalDatum {
      * @param reportedQuality
      */
     public RecalDatum(final long _numObservations, final long _numMismatches, final byte reportedQuality) {
-        if ( numObservations < 0 ) throw new IllegalArgumentException("numObservations < 0");
-        if ( numMismatches < 0 ) throw new IllegalArgumentException("numMismatches < 0");
+        if ( _numObservations < 0 ) throw new IllegalArgumentException("numObservations < 0");
+        if ( _numMismatches < 0 ) throw new IllegalArgumentException("numMismatches < 0");
         if ( reportedQuality < 0 ) throw new IllegalArgumentException("reportedQuality < 0");
 
         numObservations = _numObservations;

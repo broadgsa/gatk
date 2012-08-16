@@ -31,7 +31,6 @@ import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgume
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCounts;
@@ -312,10 +311,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
 
     @Hidden
-    @Argument(fullName="outMVFile", shortName="outMVFile", doc="", required=false)
-    private String outMVFile = null;
-
-    @Hidden
     @Argument(fullName="fullyDecode", doc="If true, the incoming VariantContext will be fully decoded", required=false)
     private boolean fullyDecode = false;
 
@@ -368,8 +363,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private int nVariantsAdded = 0;
     private int positionToAdd = 0;
     private RandomVariantStructure [] variantArray;
-
-    private PrintStream outMVFileStream = null;
 
     //Random number generator for the genotypes to remove
     private Random randomGenotypes = new Random();
@@ -527,23 +520,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
             if (MENDELIAN_VIOLATIONS && mv.countViolations(this.getSampleDB().getFamilies(samples),vc) < 1)
                 break;
-
-            if (outMVFile != null){
-                for( String familyId : mv.getViolationFamilies()){
-                    for(Sample sample : this.getSampleDB().getFamily(familyId)){
-                        if(sample.getParents().size() > 0){
-                            outMVFileStream.format("MV@%s:%d. REF=%s, ALT=%s, AC=%d, momID=%s, dadID=%s, childID=%s, momG=%s, momGL=%s, dadG=%s, dadGL=%s, " +
-                                    "childG=%s childGL=%s\n",vc.getChr(), vc.getStart(),
-                                    vc.getReference().getDisplayString(), vc.getAlternateAllele(0).getDisplayString(),  vc.getCalledChrCount(vc.getAlternateAllele(0)),
-                                    sample.getMaternalID(), sample.getPaternalID(), sample.getID(),
-                                    vc.getGenotype(sample.getMaternalID()).toBriefString(), vc.getGenotype(sample.getMaternalID()).getLikelihoods().getAsString(),
-                                    vc.getGenotype(sample.getPaternalID()).toBriefString(), vc.getGenotype(sample.getPaternalID()).getLikelihoods().getAsString(),
-                                    vc.getGenotype(sample.getID()).toBriefString(),vc.getGenotype(sample.getID()).getLikelihoods().getAsString()  );
-
-                        }
-                    }
-                }
-            }
 
             if (DISCORDANCE_ONLY) {
                 Collection<VariantContext> compVCs = tracker.getValues(discordanceTrack, context.getLocation());
