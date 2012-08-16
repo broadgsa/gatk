@@ -194,6 +194,9 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
             }
 
             source.close();
+            file.delete(); // this should be last to aid in debugging when the process fails
+        } catch (UserException e) {
+            throw new ReviewedStingException("BUG: intermediate file " + file + " is malformed, got error while reading", e);
         } catch (IOException e) {
             throw new UserException.CouldNotReadInputFile(file, "Error reading file in VCFWriterStorage: ", e);
         }
