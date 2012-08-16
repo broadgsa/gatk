@@ -51,7 +51,6 @@ import java.util.Map;
  */
 public final class BCF2Codec implements FeatureCodec<VariantContext> {
     final protected static Logger logger = Logger.getLogger(BCF2Codec.class);
-    private final static boolean FORBID_SYMBOLICS = false;
 
     private final static int ALLOWED_MAJOR_VERSION = 2;
     private final static int MIN_MINOR_VERSION = 1;
@@ -178,7 +177,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
                 contigNames.add(contig.getID());
             }
         } else {
-            throw new UserException.MalformedBCF2("Didn't find any contig lines in BCF2 file header");
+            error("Didn't find any contig lines in BCF2 file header");
         }
 
         // create the string dictionary
@@ -271,7 +270,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
         final int nSamples = nFormatSamples & 0x00FFFFF;
 
         if ( header.getNGenotypeSamples() != nSamples )
-            throw new UserException.MalformedBCF2("GATK currently doesn't support reading BCF2 files with " +
+            error("GATK currently doesn't support reading BCF2 files with " +
                     "different numbers of samples per record.  Saw " + header.getNGenotypeSamples() +
                     " samples in header but have a record with " + nSamples + " samples");
 
@@ -343,9 +342,6 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
             if ( isRef ) ref = alleleBases;
 
             alleles.add(allele);
-
-            if ( FORBID_SYMBOLICS && allele.isSymbolic() )
-                throw new ReviewedStingException("LIMITATION: GATK BCF2 codec does not yet support symbolic alleles");
         }
         assert ref != null;
 
@@ -496,7 +492,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
         return gtFieldDecoders.getDecoder(field);
     }
 
-    private final void error(final String message) throws RuntimeException {
+    private void error(final String message) throws RuntimeException {
         throw new UserException.MalformedBCF2(String.format("%s, at record %d with position %d:", message, recordNo, pos));
     }
 }

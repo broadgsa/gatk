@@ -61,6 +61,7 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
     protected final File file;
     protected OutputStream stream;
     protected final VariantContextWriter writer;
+    boolean closed = false;
 
     /**
      * Constructs an object which will write directly into the output file provided by the stub.
@@ -172,10 +173,13 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
         if(file != null)
             logger.debug("Closing temporary file " + file.getAbsolutePath());
         writer.close();
+        closed = true;
     }
 
     public void mergeInto(VariantContextWriterStorage target) {
         try {
+            if ( ! closed )
+                throw new ReviewedStingException("Writer not closed, but we are merging into the file!");
             final String targetFilePath = target.file != null ? target.file.getAbsolutePath() : "/dev/stdin";
             logger.debug(String.format("Merging %s into %s",file.getAbsolutePath(),targetFilePath));
 
@@ -194,6 +198,9 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
             }
 
             source.close();
+            file.delete(); // this should be last to aid in debugging when the process fails
+        } catch (UserException e) {
+            throw new ReviewedStingException("BUG: intermediate file " + file + " is malformed, got error while reading", e);
         } catch (IOException e) {
             throw new UserException.CouldNotReadInputFile(file, "Error reading file in VCFWriterStorage: ", e);
         }
