@@ -53,8 +53,8 @@ import java.util.*;
  */
 public class ChromosomeCounts extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
 
-    protected static final String[] keyNames = { VCFConstants.ALLELE_NUMBER_KEY, VCFConstants.ALLELE_COUNT_KEY, VCFConstants.ALLELE_FREQUENCY_KEY };
-    protected static final VCFInfoHeaderLine[] descriptions = {
+    public static final String[] keyNames = { VCFConstants.ALLELE_NUMBER_KEY, VCFConstants.ALLELE_COUNT_KEY, VCFConstants.ALLELE_FREQUENCY_KEY };
+    public static final VCFInfoHeaderLine[] descriptions = {
             VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_FREQUENCY_KEY),
             VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_COUNT_KEY),
             VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_NUMBER_KEY) };
