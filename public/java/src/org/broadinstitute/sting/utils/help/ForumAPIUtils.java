@@ -135,6 +135,7 @@ public class ForumAPIUtils {
                 System.out.println(line);
             }
 
+            br.close();
             httpClient.getConnectionManager().shutdown();
             return output;
 

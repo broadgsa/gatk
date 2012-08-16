@@ -270,6 +270,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                     inStream.read(readGenotypes);
                     outBed.write(readGenotypes);
                 }
+                inStream.close();
             } catch (IOException e) {
                 throw new ReviewedStingException("Error reading form temp file for input.",e);
             }

@@ -305,7 +305,7 @@ public class ConstrainedMateFixingManager {
     }
 
     public static boolean iSizeTooBigToMove(SAMRecord read, int maxInsertSizeForMovingReadPairs) {
-        return ( read.getReadPairedFlag() && ! read.getMateUnmappedFlag() && read.getReferenceName() != read.getMateReferenceName() ) // maps to different chromosomes
+        return ( read.getReadPairedFlag() && ! read.getMateUnmappedFlag() && !read.getReferenceName().equals(read.getMateReferenceName()) ) // maps to different chromosomes
                 || Math.abs(read.getInferredInsertSize()) > maxInsertSizeForMovingReadPairs;     // we won't try to move such a read
     }
 
