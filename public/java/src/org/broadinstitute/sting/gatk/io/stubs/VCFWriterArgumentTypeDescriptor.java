@@ -47,6 +47,7 @@ import java.util.List;
 public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public static final String NO_HEADER_ARG_NAME = "no_cmdline_in_header";
     public static final String SITES_ONLY_ARG_NAME = "sites_only";
+    public static final String FORCE_BCF = "bcf";
     public static final HashSet<String> SUPPORTED_ZIPPED_SUFFIXES = new HashSet<String>();
 
     //
@@ -96,7 +97,11 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
-        return Arrays.asList( createDefaultArgumentDefinition(source), createNoCommandLineHeaderArgumentDefinition(),createSitesOnlyArgumentDefinition());
+        return Arrays.asList(
+                createDefaultArgumentDefinition(source),
+                createNoCommandLineHeaderArgumentDefinition(),
+                createSitesOnlyArgumentDefinition(),
+                createBCFArgumentDefinition() );
     }
 
     /**
@@ -117,7 +122,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) {
         if(!source.isRequired())
             throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");        
-        VariantContextWriterStub stub = new VariantContextWriterStub(engine, defaultOutputStream, false, argumentSources, false, false);
+        VariantContextWriterStub stub = new VariantContextWriterStub(engine, defaultOutputStream, argumentSources);
         engine.addOutput(stub);
         return stub;
     }
@@ -141,15 +146,15 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         if(writerFile == null && !source.isRequired())
             throw new MissingArgumentValueException(defaultArgumentDefinition);
 
-        // Should we compress the output stream?
-        boolean compress = isCompressed(writerFileName);
-
-        boolean skipWritingCmdLineHeader = argumentIsPresent(createNoCommandLineHeaderArgumentDefinition(),matches);
-        boolean doNotWriteGenotypes = argumentIsPresent(createSitesOnlyArgumentDefinition(),matches);
-
         // Create a stub for the given object.
-        VariantContextWriterStub stub = (writerFile != null) ? new VariantContextWriterStub(engine, writerFile, compress, argumentSources, skipWritingCmdLineHeader, doNotWriteGenotypes)
-                                                  : new VariantContextWriterStub(engine, defaultOutputStream, compress, argumentSources, skipWritingCmdLineHeader, doNotWriteGenotypes);
+        final VariantContextWriterStub stub = (writerFile != null)
+                ? new VariantContextWriterStub(engine, writerFile, argumentSources)
+                : new VariantContextWriterStub(engine, defaultOutputStream, argumentSources);
+
+        stub.setCompressed(isCompressed(writerFileName));
+        stub.setDoNotWriteGenotypes(argumentIsPresent(createSitesOnlyArgumentDefinition(),matches));
+        stub.setSkipWritingCommandLineHeader(argumentIsPresent(createNoCommandLineHeaderArgumentDefinition(),matches));
+        stub.setForceBCF(argumentIsPresent(createBCFArgumentDefinition(),matches));
 
         // WARNING: Side effects required by engine!
         parsingEngine.addTags(stub,getArgumentTags(matches));
@@ -159,8 +164,8 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     /**
-     * Creates the optional compression level argument for the BAM file.
-     * @return Argument definition for the BAM file itself.  Will not be null.
+     * Creates the optional no_header argument for the VCF file.
+     * @return Argument definition for the VCF file itself.  Will not be null.
      */
     private ArgumentDefinition createNoCommandLineHeaderArgumentDefinition() {
         return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
@@ -179,8 +184,8 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     /**
-     * Creates the optional compression level argument for the BAM file.
-     * @return Argument definition for the BAM file itself.  Will not be null.
+     * Creates the optional sites_only argument definition
+     * @return Argument definition for the VCF file itself.  Will not be null.
      */
     private ArgumentDefinition createSitesOnlyArgumentDefinition() {
         return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
@@ -196,6 +201,26 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                                        null,
                                        null,
                                        null );
+    }
+
+    /**
+     * Creates the optional bcf argument definition
+     * @return Argument definition for the VCF file itself.  Will not be null.
+     */
+    private ArgumentDefinition createBCFArgumentDefinition() {
+        return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
+                boolean.class,
+                FORCE_BCF,
+                FORCE_BCF,
+                "force BCF output, regardless of the file's extension",
+                false,
+                true,
+                false,
+                true,
+                null,
+                null,
+                null,
+                null );
     }
 
     /**
