@@ -183,7 +183,7 @@ public class UnifiedGenotyperEngine {
             for ( final GenotypeLikelihoodsCalculationModel.Model model : models ) {
                 final Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
                 if ( stratifiedContexts == null ) {
-                    results.add(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ? generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext) : null);
+                    results.add(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ? generateEmptyContext(tracker, refContext, null, rawContext) : null);
                 }
                 else {
                     final VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
@@ -202,7 +202,7 @@ public class UnifiedGenotyperEngine {
         final List<VariantCallContext> withAllSamples = new ArrayList<VariantCallContext>(calls.size());
         for ( final VariantCallContext call : calls ) {
             if ( call == null )
-                withAllSamples.add(call);
+                withAllSamples.add(null);
             else {
                 final VariantContext withoutMissing = VariantContextUtils.addMissingSamples(call, allSamples);
                 withAllSamples.add(new VariantCallContext(withoutMissing, call.confidentlyCalled, call.shouldEmit));

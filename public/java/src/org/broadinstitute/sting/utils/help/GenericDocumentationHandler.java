@@ -587,7 +587,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     private List<Map<String, Object>> docForEnumArgument(Class enumClass) {
         ClassDoc doc = this.getDoclet().getClassDocForClass(enumClass);
         if (doc == null) //  || ! doc.isEnum() )
-            throw new RuntimeException("Tried to get docs for enum " + enumClass + " but got instead: " + doc);
+            throw new RuntimeException("Tried to get docs for enum " + enumClass + " but got null instead");
 
         List<Map<String, Object>> bindings = new ArrayList<Map<String, Object>>();
         for (final FieldDoc field : doc.fields(false)) {

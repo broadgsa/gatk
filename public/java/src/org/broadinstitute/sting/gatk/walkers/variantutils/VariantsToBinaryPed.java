@@ -8,8 +8,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.R.RScriptExecutorException;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -18,7 +16,6 @@ import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.*;
@@ -95,7 +92,6 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         // write to the fam file, the first six columns of the standard ped file
         // first, load data from the input meta data file
         Map<String,Map<String,String>> metaValues = new HashMap<String,Map<String,String>>();
-        Set<String> samplesToUse = new HashSet<String>();
         logger.debug("Reading in metadata...");
         try {
             if ( metaDataFile.getAbsolutePath().endsWith(".fam") ) {

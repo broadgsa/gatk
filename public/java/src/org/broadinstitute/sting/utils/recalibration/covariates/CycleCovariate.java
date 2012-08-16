@@ -51,7 +51,7 @@ public class CycleCovariate implements StandardCovariate {
 
     private static final int MAXIMUM_CYCLE_VALUE = 1000;
     private static final int CUSHION_FOR_INDELS = 4;
-    private static String default_platform = null;
+    private String default_platform = null;
 
     private static final EnumSet<NGSPlatform> DISCRETE_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.ILLUMINA, NGSPlatform.SOLID, NGSPlatform.PACBIO, NGSPlatform.COMPLETE_GENOMICS);
     private static final EnumSet<NGSPlatform> FLOW_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.LS454, NGSPlatform.ION_TORRENT);
