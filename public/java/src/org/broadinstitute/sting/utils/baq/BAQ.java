@@ -68,7 +68,7 @@ public class BAQ {
     }
 
     // Phred scaled now (changed 1/10/2011)
-    public static final double DEFAULT_GOP = 40;
+    public static double DEFAULT_GOP = 40;
 
     /*  Takes a Phred Scale quality score and returns the error probability.
      *
