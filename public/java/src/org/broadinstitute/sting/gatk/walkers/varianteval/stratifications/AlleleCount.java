@@ -19,6 +19,8 @@ import java.util.*;
  * it computes the AC from the genotypes themselves.  If no AC can be computed, 0 is used.
  */
 public class AlleleCount extends VariantStratifier {
+    int nchrom;
+
     @Override
     public void initialize() {
         // we can only work with a single eval VCF, and it must have genotypes
@@ -26,7 +28,8 @@ public class AlleleCount extends VariantStratifier {
             throw new UserException.BadArgumentValue("AlleleCount", "AlleleCount stratification only works with a single eval vcf");
 
         // There are 2 x n sample chromosomes for diploids
-        int nchrom = getVariantEvalWalker().getSampleNamesForEvaluation().size() * 2;
+        // TODO -- generalize to handle multiple ploidy
+        nchrom = getVariantEvalWalker().getSampleNamesForEvaluation().size() * 2;
         if ( nchrom < 2 )
             throw new UserException.BadArgumentValue("AlleleCount", "AlleleCount stratification requires an eval vcf with at least one sample");
 
@@ -52,8 +55,10 @@ public class AlleleCount extends VariantStratifier {
             }
 
             // make sure that the AC isn't invalid
-            if ( AC > eval.getCalledChrCount() )
-                throw new UserException.MalformedVCF(String.format("The AC or MLEAC value (%d) at position %s:%d is larger than the possible called chromosome count (%d)", AC, eval.getChr(), eval.getStart(), eval.getCalledChrCount()));
+            if ( AC > nchrom )
+                throw new UserException.MalformedVCF(String.format("The AC or MLEAC value (%d) at position %s:%d " +
+                        "is larger than the number of chromosomes over all samples (%d)", AC,
+                        eval.getChr(), eval.getStart(), nchrom));
 
             return Collections.singletonList((Object) AC);
         } else {
