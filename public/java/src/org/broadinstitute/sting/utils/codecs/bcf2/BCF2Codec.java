@@ -118,6 +118,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
 
             final int sitesBlockSize = decoder.readBlockSize(inputStream);
             final int genotypeBlockSize = decoder.readBlockSize(inputStream);
+
             decoder.readNextBlock(sitesBlockSize, inputStream);
             decodeSiteLoc(builder);
             final SitesInfoForDecoding info = decodeSitesExtendedInfo(builder);
