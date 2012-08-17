@@ -93,7 +93,7 @@ public class GATKRunReport {
     /**
      * our log
      */
-    protected static Logger logger = Logger.getLogger(GATKRunReport.class);
+    protected static final Logger logger = Logger.getLogger(GATKRunReport.class);
 
 
     @Element(required = false, name = "id")

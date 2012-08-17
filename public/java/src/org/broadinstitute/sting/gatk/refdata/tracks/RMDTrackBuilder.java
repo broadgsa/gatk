@@ -89,17 +89,15 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * please talk through your approach with the SE team.
      * @param dict Sequence dictionary to use.
      * @param genomeLocParser Location parser to use.
-     * @param headerForRepairs a VCF header that should be used to repair VCF headers.  Can be null
      * @param validationExclusionType Types of validations to exclude, for sequence dictionary verification.
      */
     public RMDTrackBuilder(final SAMSequenceDictionary dict,
                            final GenomeLocParser genomeLocParser,
-                           final VCFHeader headerForRepairs,
                            ValidationExclusion.TYPE validationExclusionType) {
         this.dict = dict;
         this.validationExclusionType = validationExclusionType;
         this.genomeLocParser = genomeLocParser;
-        this.featureManager = new FeatureManager(headerForRepairs, GenomeAnalysisEngine.lenientVCFProcessing(validationExclusionType));
+        this.featureManager = new FeatureManager(GenomeAnalysisEngine.lenientVCFProcessing(validationExclusionType));
     }
 
     /**
@@ -109,18 +107,6 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      */
     public FeatureManager getFeatureManager() {
         return featureManager;
-    }
-
-    /**
-     * Same as full constructor but makes one without a header for repairs
-     * @param dict
-     * @param genomeLocParser
-     * @param validationExclusionType
-     */
-    public RMDTrackBuilder(final SAMSequenceDictionary dict,
-                           final GenomeLocParser genomeLocParser,
-                           ValidationExclusion.TYPE validationExclusionType) {
-        this(dict, genomeLocParser, null, validationExclusionType);
     }
 
     /**

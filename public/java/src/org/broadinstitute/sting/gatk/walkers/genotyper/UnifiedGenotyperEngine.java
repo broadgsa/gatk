@@ -188,7 +188,7 @@ public class UnifiedGenotyperEngine {
                 perReadAlleleLikelihoodMap.clear();
                 final Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
                 if ( stratifiedContexts == null ) {
-                    results.add(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ? generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext) : null);
+                    results.add(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ? generateEmptyContext(tracker, refContext, null, rawContext) : null);
                 }
                 else {
                     final VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model, perReadAlleleLikelihoodMap);
@@ -207,7 +207,7 @@ public class UnifiedGenotyperEngine {
         final List<VariantCallContext> withAllSamples = new ArrayList<VariantCallContext>(calls.size());
         for ( final VariantCallContext call : calls ) {
             if ( call == null )
-                withAllSamples.add(call);
+                withAllSamples.add(null);
             else {
                 final VariantContext withoutMissing = VariantContextUtils.addMissingSamples(call, allSamples);
                 withAllSamples.add(new VariantCallContext(withoutMissing, call.confidentlyCalled, call.shouldEmit));
@@ -258,8 +258,7 @@ public class UnifiedGenotyperEngine {
     public VariantCallContext calculateGenotypes(final RefMetaDataTracker tracker,
                                                  final ReferenceContext refContext,
                                                  final AlignmentContext rawContext,
-                                                 final VariantContext vc,
-                                                 final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
+                                                 final VariantContext vc) {
         final List<GenotypeLikelihoodsCalculationModel.Model> models = getGLModelsToUse(tracker, refContext, rawContext);
         if ( models.isEmpty() ) {
             return null;
@@ -268,16 +267,21 @@ public class UnifiedGenotyperEngine {
         // return the first one
         final GenotypeLikelihoodsCalculationModel.Model model = models.get(0);
         final Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
-        return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, perReadAlleleLikelihoodMap);
+        return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, null);
     }
 
-    public VariantCallContext calculateGenotypes(final RefMetaDataTracker tracker,
-                                                 final ReferenceContext refContext,
-                                                 final AlignmentContext rawContext,
-                                                 final VariantContext vc) {
-        return calculateGenotypes(tracker, refContext, rawContext, vc, null);
+    /**
+     * Compute genotypes at a given locus.
+     *
+     * @param vc         the GL-annotated variant context
+     * @return the VariantCallContext object
+     */
+    public VariantCallContext calculateGenotypes(VariantContext vc) {
+        return calculateGenotypes(null, null, null, null, vc, GenotypeLikelihoodsCalculationModel.Model.valueOf("SNP"), null);
     }
-        // ---------------------------------------------------------------------------------------------------------
+
+
+    // ---------------------------------------------------------------------------------------------------------
     //
     // Private implementation helpers
     //
@@ -684,10 +688,8 @@ public class UnifiedGenotyperEngine {
         // if we're genotyping given alleles and we have a requested SNP at this position, do SNP
         if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
             final VariantContext vcInput = getVCFromAllelesRod(tracker, refContext, rawContext.getLocation(), false, logger, UAC.alleles);
-            if ( vcInput == null ) {
-                models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"SNP"));
+            if ( vcInput == null )
                 return models;
-            }
 
             if ( vcInput.isSNP() )  {
                 // ignore SNPs if the user chose INDEL mode only

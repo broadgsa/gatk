@@ -92,7 +92,7 @@ public class VCFIntegrationTest extends WalkerTest {
 
     //
     //
-    // Tests to ensure that -U LENIENT_VCF_PROCESS and header repairs are working
+    // Tests to ensure that -U LENIENT_VCF_PROCESS
     //
     //
 
@@ -104,11 +104,6 @@ public class VCFIntegrationTest extends WalkerTest {
     @Test
     public void testPassingOnVCFWithoutHeadersWithLenientProcessing() {
         runVCFWithoutHeaders("-U LENIENT_VCF_PROCESSING", "6de8cb7457154dd355aa55befb943f88", null, true);
-    }
-
-    @Test
-    public void testPassingOnVCFWithoutHeadersRepairingHeaders() {
-        runVCFWithoutHeaders("-repairVCFHeader " + privateTestDir + "vcfexample2.justHeader.vcf", "ff61e9cad6653c7f93d82d391f7ecdcb", null, false);
     }
 
     private void runVCFWithoutHeaders(final String moreArgs, final String expectedMD5, final Class expectedException, final boolean disableBCF) {

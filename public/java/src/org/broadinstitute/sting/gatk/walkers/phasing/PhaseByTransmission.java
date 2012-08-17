@@ -645,7 +645,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
                                 bestChildGenotype.clear();
                                 bestChildGenotype.add(childGenotype.getKey());
                             }
-                            else if(configurationLikelihood == bestConfigurationLikelihood) {
+                            else if(MathUtils.compareDoubles(configurationLikelihood, bestConfigurationLikelihood) == 0) {
                                 bestFirstParentGenotype.add(firstParentGenotype.getKey());
                                 bestSecondParentGenotype.add(secondParentGenotype.getKey());
                                 bestChildGenotype.add(childGenotype.getKey());

@@ -264,7 +264,7 @@ class SampleStatistics {
             return false;
 
         // different contigs
-        if (read.getMateReferenceIndex() != read.getReferenceIndex())
+        if (!read.getMateReferenceIndex().equals(read.getReferenceIndex()))
             return false;
 
         // unmapped

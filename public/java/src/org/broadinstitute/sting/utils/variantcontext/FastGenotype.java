@@ -172,7 +172,7 @@ public final class FastGenotype extends Genotype {
      * @param values
      * @return
      */
-    private final static boolean validADorPLField(final int[] values) {
+    private static boolean validADorPLField(final int[] values) {
         if ( values != null )
             for ( int v : values )
                 if ( v < 0 )

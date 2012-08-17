@@ -24,7 +24,7 @@ import java.util.List;
 public class TraverseReadPairs<M,T> extends TraversalEngine<M,T, ReadPairWalker<M,T>,ReadShardDataProvider> {
 
     /** our log, which we want to capture anything from this class */
-    protected static Logger logger = Logger.getLogger(TraverseReadPairs.class);
+    protected static final Logger logger = Logger.getLogger(TraverseReadPairs.class);
 
     @Override
     protected String getTraversalType() {

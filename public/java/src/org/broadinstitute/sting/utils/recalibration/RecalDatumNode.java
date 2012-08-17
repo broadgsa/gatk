@@ -21,7 +21,7 @@ import java.util.Set;
  */
 public class RecalDatumNode<T extends RecalDatum> {
     private final static double SMALLEST_CHI2_PVALUE = 1e-300;
-    protected static Logger logger = Logger.getLogger(RecalDatumNode.class);
+    protected static final Logger logger = Logger.getLogger(RecalDatumNode.class);
 
     /**
      * fixedPenalty is this value if it's considered fixed

@@ -233,10 +233,6 @@ public class GenomeAnalysisEngine {
         if (args.nonDeterministicRandomSeed)
             resetRandomGenerator(System.currentTimeMillis());
 
-        // TODO -- REMOVE ME WHEN WE STOP BCF testing
-        if ( args.USE_SLOW_GENOTYPES )
-            GenotypeBuilder.MAKE_FAST_BY_DEFAULT = false;
-
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
         if (args.BQSR_RECAL_FILE != null)
             setBaseRecalibration(args.BQSR_RECAL_FILE, args.quantizationLevels, args.disableIndelQuals, args.PRESERVE_QSCORES_LESS_THAN, args.emitOriginalQuals);
@@ -849,20 +845,9 @@ public class GenomeAnalysisEngine {
                                                                             SAMSequenceDictionary sequenceDictionary,
                                                                             GenomeLocParser genomeLocParser,
                                                                             ValidationExclusion.TYPE validationExclusionType) {
-        VCFHeader header = null;
-        if ( getArguments().repairVCFHeader != null ) {
-            try {
-                final PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(getArguments().repairVCFHeader));
-                header = (VCFHeader)new VCFCodec().readHeader(pbs).getHeaderValue();
-                pbs.close();
-            } catch ( IOException e ) {
-                throw new UserException.CouldNotReadInputFile(getArguments().repairVCFHeader, e);
-            }
-        }
+        final RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser, validationExclusionType);
 
-        RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser, header, validationExclusionType);
-
-        List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
+        final List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTriplet fileDescriptor : referenceMetaDataFiles)
             dataSources.add(new ReferenceOrderedDataSource(fileDescriptor,
                                                            builder,

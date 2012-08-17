@@ -53,7 +53,7 @@ public abstract class ArgumentTypeDescriptor {
     /**
      * our log, which we want to capture anything from org.broadinstitute.sting
      */
-    protected static Logger logger = Logger.getLogger(ArgumentTypeDescriptor.class);
+    protected static final Logger logger = Logger.getLogger(ArgumentTypeDescriptor.class);
 
     /**
      * Fetch the given descriptor from the descriptor repository.

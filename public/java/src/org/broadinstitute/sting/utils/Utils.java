@@ -563,7 +563,6 @@ public class Utils {
         List<T> t = new ArrayList<T>(c.keySet());
         Collections.sort(t);
 
-        List<V> l = new ArrayList<V>();
         List<String> pairs = new ArrayList<String>();
         for ( T k : t ) {
             pairs.add(k + "=" + c.get(k));

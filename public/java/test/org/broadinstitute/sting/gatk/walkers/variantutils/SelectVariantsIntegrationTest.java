@@ -148,7 +148,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -regenotype -sn NA12892 --variant " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("52cb2f150559ca1457e9df7ec153dbb452cb2f150559ca1457e9df7ec153dbb4")
+                Arrays.asList("52cb2f150559ca1457e9df7ec153dbb4")
         );
 
         executeTest("testRegenotype--" + testFile, spec);

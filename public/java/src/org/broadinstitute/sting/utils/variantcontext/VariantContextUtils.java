@@ -730,7 +730,7 @@ public class VariantContextUtils {
                         vcList.remove(k);
                         // avoid having empty lists
                         if (vcList.size() == 0)
-                            mappedVCs.remove(vcList);
+                            mappedVCs.remove(type);
                         if ( !mappedVCs.containsKey(vc.getType()) )
                             mappedVCs.put(vc.getType(), new ArrayList<VariantContext>());
                         mappedVCs.get(vc.getType()).add(otherVC);

@@ -118,7 +118,7 @@ class WindowedData {
                 rec.getAlignmentStart(),
                 stop);
         states = new ArrayList<RMDDataState>();
-        if (provider != null && provider.getReferenceOrderedData() != null)
+        if (provider.getReferenceOrderedData() != null)
             for (ReferenceOrderedDataSource dataSource : provider.getReferenceOrderedData())
                 states.add(new RMDDataState(dataSource, dataSource.seek(range)));
     }

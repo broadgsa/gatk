@@ -789,7 +789,7 @@ public class MathUtils {
         for (byte v : vals) {
             sum += v;
         }
-        return (byte) Math.floor(sum / vals.length);
+        return (byte) (sum / vals.length);
     }
 
     public static double averageDouble(List<Double> vals) {
@@ -1066,7 +1066,6 @@ public class MathUtils {
         // the list is assumed *not* to be sorted
 
         final Comparable x = list.get(orderStat);
-        ListIterator iterator = list.listIterator();
         ArrayList lessThanX = new ArrayList();
         ArrayList equalToX = new ArrayList();
         ArrayList greaterThanX = new ArrayList();

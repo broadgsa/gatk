@@ -208,6 +208,7 @@ public class FastaSequenceIndexBuilder {
                         break;
                 }
             }
+            in.close();
             return sequenceIndex;
         }
         catch (IOException e) {
