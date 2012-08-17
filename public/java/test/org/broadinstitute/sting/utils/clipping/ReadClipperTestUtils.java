@@ -4,6 +4,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
@@ -37,17 +38,22 @@ public class ReadClipperTestUtils {
         return ArtificialSAMUtils.createArtificialRead(Utils.arrayFromArrayWithLength(BASES, cigar.getReadLength()), Utils.arrayFromArrayWithLength(QUALS, cigar.getReadLength()), cigar.toString());
     }
 
-    /**
-     * This function generates every valid permutation of cigar strings with a given length.
-     *
-     * A valid cigar object obeys the following rules:
-     *  - No Hard/Soft clips in the middle of the read
-     *  - No deletions in the beginning / end of the read
-     *  - No repeated adjacent element (e.g. 1M2M -> this should be 3M)
-     *
-     * @param maximumLength the maximum number of elements in the cigar
-     * @return a list with all valid Cigar objects
-     */
+    public static GATKSAMRecord makeReadFromCigar(String cigarString) {
+        return makeReadFromCigar(cigarFromString(cigarString));
+    }
+
+        /**
+        * This function generates every valid permutation of cigar strings with a given length.
+        *
+        * A valid cigar object obeys the following rules:
+        *  - No Hard/Soft clips in the middle of the read
+        *  - No deletions in the beginning / end of the read
+        *  - No repeated adjacent element (e.g. 1M2M -> this should be 3M)
+        *  - No consecutive I/D elements
+        *
+        * @param maximumLength the maximum number of elements in the cigar
+        * @return a list with all valid Cigar objects
+        */
     public static List<Cigar> generateCigarList(int maximumLength) {
         int numCigarElements = cigarElements.length;
         LinkedList<Cigar> cigarList = new LinkedList<Cigar>();
@@ -137,7 +143,10 @@ public class ReadClipperTestUtils {
         CigarElement lastElement = null;
         int lastElementLength = 0;
         for (CigarElement cigarElement : rawCigar.getCigarElements()) {
-            if (lastElement != null && lastElement.getOperator() == cigarElement.getOperator())
+            if (lastElement != null &&
+                    ((lastElement.getOperator() == cigarElement.getOperator()) ||
+                     (lastElement.getOperator() == CigarOperator.I && cigarElement.getOperator() == CigarOperator.D) ||
+                     (lastElement.getOperator() == CigarOperator.D && cigarElement.getOperator() == CigarOperator.I)))
                 lastElementLength += cigarElement.getLength();
             else
             {
@@ -191,7 +200,7 @@ public class ReadClipperTestUtils {
     /**
      * Checks whether or not the read has any cigar element that is not H or S
      *
-     * @param read
+     * @param read the read
      * @return true if it has any M, I or D, false otherwise
      */
     public static boolean readHasNonClippedBases(GATKSAMRecord read) {
@@ -199,6 +208,80 @@ public class ReadClipperTestUtils {
             if (cigarElement.getOperator() != CigarOperator.SOFT_CLIP && cigarElement.getOperator() != CigarOperator.HARD_CLIP)
                 return true;
         return false;
+    }
+
+    public static Cigar cigarFromString(String cigarString) {
+        Cigar cigar = new Cigar();
+
+        boolean isNumber = false;
+        int number = 0;
+        for (int i = 0; i < cigarString.length(); i++) {
+            char x = cigarString.charAt(i);
+
+            if (x >= '0' && x <='9') {
+                if (isNumber) {
+                    number *= 10;
+                }
+                else {
+                    isNumber = true;
+                }
+                number += x - '0';
+            }
+
+            else {
+                CigarElement e;
+                switch (x) {
+                    case 'M':
+                    case 'm':
+                        e = new CigarElement(number, CigarOperator.M);
+                    break;
+
+                    case 'I':
+                    case 'i':
+                        e = new CigarElement(number, CigarOperator.I);
+                    break;
+
+                    case 'D':
+                    case 'd':
+                        e = new CigarElement(number, CigarOperator.D);
+                    break;
+
+                    case 'S':
+                    case 's':
+                        e = new CigarElement(number, CigarOperator.S);
+                    break;
+
+                    case 'N':
+                    case 'n':
+                        e = new CigarElement(number, CigarOperator.N);
+                    break;
+
+                    case 'H':
+                    case 'h':
+                        e = new CigarElement(number, CigarOperator.H);
+                    break;
+
+                    case 'P':
+                    case 'p':
+                        e = new CigarElement(number, CigarOperator.P);
+                    break;
+
+                    case '=':
+                        e = new CigarElement(number, CigarOperator.EQ);
+                    break;
+
+                    case 'X':
+                    case 'x':
+                        e = new CigarElement(number, CigarOperator.X);
+                    break;
+
+                    default:
+                        throw new ReviewedStingException("Unrecognized cigar operator: " + x + " (number: " + number + ")");
+                }
+                cigar.add(e);
+            }
+        }
+        return cigar;
     }
 
 
