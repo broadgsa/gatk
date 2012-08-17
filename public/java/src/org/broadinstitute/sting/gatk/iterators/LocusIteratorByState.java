@@ -159,7 +159,7 @@ public class LocusIteratorByState extends LocusIterator {
                     return stepForwardOnGenome();
                 } else {
                     if (curElement != null && curElement.getOperator() == CigarOperator.D)
-                        throw new UserException.MalformedBAM(read, "read ends with deletion. Cigar: " + read.getCigarString() + ". This is an indication of a malformed file, but the SAM spec allows reads ending in deletion. If you are sure you want to use this read, re-run your analysis with the extra option: -rf BadCigar");
+                        throw new UserException.MalformedBAM(read, "read ends with deletion. Cigar: " + read.getCigarString() + ". Although the SAM spec technically permits such reads, this is often indicative of malformed files. If you are sure you want to use this file, re-run your analysis with the extra option: -rf BadCigar");
                         
                     // Reads that contain indels model the genomeOffset as the following base in the reference.  Because
                     // we fall into this else block only when indels end the read, increment genomeOffset  such that the
@@ -185,7 +185,7 @@ public class LocusIteratorByState extends LocusIterator {
                     break;
                 case D: // deletion w.r.t. the reference
                     if (readOffset < 0)             // we don't want reads starting with deletion, this is a malformed cigar string
-                        throw new UserException.MalformedBAM(read, "Read starting with deletion. Cigar: " + read.getCigarString() + ". This is an indication of a malformed file, but the SAM spec allows reads starting in deletion. If you are sure you want to use this read, re-run your analysis with the extra option: -rf BadCigar");
+                        throw new UserException.MalformedBAM(read, "read starts with deletion. Cigar: " + read.getCigarString() + ". Although the SAM spec technically permits such reads, this is often indicative of malformed files. If you are sure you want to use this file, re-run your analysis with the extra option: -rf BadCigar");
                     // should be the same as N case
                     genomeOffset++;
                     done = true;
