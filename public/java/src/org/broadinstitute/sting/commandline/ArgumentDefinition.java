@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.lang.annotation.Annotation;
 import java.util.List;
@@ -147,6 +148,9 @@ public class ArgumentDefinition {
         this.exclusiveOf = exclusiveOf;
         this.validation = validation;
         this.validOptions = validOptions;
+
+        validateName(shortName);
+        validateName(fullName);
     }
 
     /**
@@ -191,6 +195,9 @@ public class ArgumentDefinition {
             shortName = defaultShortName;
         else
             shortName = null;
+
+        validateName(shortName);
+        validateName(fullName);
 
         this.ioType = ioType;
         this.argumentType = argumentType;
@@ -276,5 +283,15 @@ public class ArgumentDefinition {
     public static String getValidationRegex( Annotation annotation ) {
         String validation = (String)CommandLineUtils.getValue(annotation, "validation");
         return validation.trim().length() > 0 ? validation.trim() : null;
+    }
+
+    /**
+     * Make sure the argument's name is valid
+     *
+     * @param name
+     */
+    private void validateName(final String name) {
+        if ( name != null && name.startsWith("-") )
+            throw new ReviewedStingException("Invalid argument definition: " + name + " begins with a -");
     }
 }
