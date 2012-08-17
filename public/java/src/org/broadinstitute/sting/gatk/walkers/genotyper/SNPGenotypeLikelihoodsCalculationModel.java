@@ -62,7 +62,10 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                                          final AlignmentContextUtils.ReadOrientation contextType,
                                          final List<Allele> allAllelesToUse,
                                          final boolean useBAQedPileup,
-                                         final GenomeLocParser locParser) {
+                                         final GenomeLocParser locParser,
+                                         final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
+
+        perReadAlleleLikelihoodMap.clear(); // not used in SNP model, sanity check to delete any older data
 
         final byte refBase = ref.getBase();
         final int indexOfRefBase = BaseUtils.simpleBaseToBaseIndex(refBase);

@@ -31,6 +31,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
+import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -178,7 +179,18 @@ public class VariantAnnotatorEngine {
         this.requireStrictAlleleMatch = requireStrictAlleleMatch;
     }
 
-    public VariantContext annotateContext(final RefMetaDataTracker tracker, final ReferenceContext ref, final Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public  VariantContext annotateContext(final RefMetaDataTracker tracker,
+                                           final ReferenceContext ref,
+                                           final Map<String, AlignmentContext> stratifiedContexts,
+                                           VariantContext vc) {
+        return annotateContext(tracker, ref, stratifiedContexts, vc, null);
+    }
+
+    public VariantContext annotateContext(final RefMetaDataTracker tracker,
+                                          final ReferenceContext ref,
+                                          final Map<String, AlignmentContext> stratifiedContexts,
+                                          VariantContext vc,
+                                          final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
 
         // annotate db occurrences
@@ -189,7 +201,7 @@ public class VariantAnnotatorEngine {
 
         // go through all the requested info annotationTypes
         for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
-            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, walker, ref, stratifiedContexts, vc);
+            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, walker, ref, stratifiedContexts, vc, perReadAlleleLikelihoodMap);
             if ( annotationsFromCurrentType != null )
                 infoAnnotations.putAll(annotationsFromCurrentType);
         }
@@ -201,7 +213,7 @@ public class VariantAnnotatorEngine {
         return builder.genotypes(annotateGenotypes(tracker, ref, stratifiedContexts, vc)).make();
     }
 
-    public VariantContext annotateContext(final Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, VariantContext vc) {
+    public VariantContext annotateContext(final Map<String, PerReadAlleleLikelihoodMap> stratifiedContexts, VariantContext vc) {
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
 
         // go through all the requested info annotationTypes

@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ActiveRegionBa
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
+import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
@@ -61,7 +62,12 @@ public class ChromosomeCounts extends InfoFieldAnnotation implements StandardAnn
 
     private Set<String> founderIds = new HashSet<String>();
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(final RefMetaDataTracker tracker,
+                                        final AnnotatorCompatible walker,
+                                        final ReferenceContext ref,
+                                        final Map<String, AlignmentContext> stratifiedContexts,
+                                        final VariantContext vc,
+                                        final Map<String, PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap ) {
         if ( ! vc.hasGenotypes() )
             return null;
 
@@ -71,13 +77,6 @@ public class ChromosomeCounts extends InfoFieldAnnotation implements StandardAnn
     public void initialize ( AnnotatorCompatible walker, GenomeAnalysisEngine toolkit, Set<VCFHeaderLine> headerLines ){
         //If families were given, get the founders ids
         founderIds = ((Walker)walker).getSampleDB().getFounderIds();
-    }
-
-    public Map<String, Object> annotate(Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, VariantContext vc) {
-        if ( ! vc.hasGenotypes() )
-            return null;
-
-        return VariantContextUtils.calculateChromosomeCounts(vc, new HashMap<String, Object>(), true);
     }
 
     public List<String> getKeyNames() {

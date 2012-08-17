@@ -625,6 +625,10 @@ public class MathUtils {
         return maxElementIndex(array, array.length);
     }
 
+    public static int maxElementIndex(final byte[] array) {
+        return maxElementIndex(array, array.length);
+    }
+
     public static int maxElementIndex(final int[] array, int endIndex) {
         if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
@@ -637,6 +641,24 @@ public class MathUtils {
 
         return maxI;
     }
+
+    public static int maxElementIndex(final byte[] array, int endIndex) {
+        if (array == null || array.length == 0)
+            throw new IllegalArgumentException("Array cannot be null!");
+
+        int maxI = 0;
+        for (int i = 1; i < endIndex; i++) {
+            if (array[i] > array[maxI])
+                maxI = i;
+        }
+
+        return maxI;
+    }
+
+    public static byte arrayMax(final byte[] array) {
+        return array[maxElementIndex(array)];
+    }
+
 
     public static double arrayMax(final double[] array) {
         return array[maxElementIndex(array)];

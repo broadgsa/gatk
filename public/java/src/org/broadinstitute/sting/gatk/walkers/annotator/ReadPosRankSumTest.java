@@ -6,6 +6,7 @@ import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
+import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.gatk.walkers.indels.PairHMMIndelErrorModel;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
@@ -32,98 +33,55 @@ public class ReadPosRankSumTest extends RankSumTest implements StandardAnnotatio
         return Arrays.asList(new VCFInfoHeaderLine("ReadPosRankSum", 1, VCFHeaderLineType.Float, "Z-score from Wilcoxon rank sum test of Alt vs. Ref read position bias"));
     }
 
-    protected void fillQualsFromPileup(byte ref, List<Byte> alts, ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
-        for (final PileupElement p : pileup) {
-            if (isUsableBase(p)) {
-                int readPos = AlignmentUtils.calcAlignmentByteArrayOffset(p.getRead().getCigar(), p, 0, 0);
-                final int numAlignedBases = AlignmentUtils.getNumAlignedBases(p.getRead());
-                if (readPos > numAlignedBases / 2)
-                    readPos = numAlignedBases - (readPos + 1);
+    protected void fillQualsFromPileup(final List<Allele> allAlleles,
+                                       final int refLoc,
+                                       final ReadBackedPileup pileup,
+                                       final PerReadAlleleLikelihoodMap alleleLikelihoodMap,
+                                       final List<Double> refQuals, final List<Double> altQuals) {
 
+        if (alleleLikelihoodMap == null) {
+            // use fast SNP-based version if we don't have per-read allele likelihoods
+            for ( final PileupElement p : pileup ) {
+                if ( isUsableBase(p) ) {
+                    int readPos = AlignmentUtils.calcAlignmentByteArrayOffset(p.getRead().getCigar(), p, 0, 0);
 
-                if ( p.getBase() == ref )
-                    refQuals.add((double) readPos);
-                else if ( alts.contains(p.getBase()) )
-                    altQuals.add((double) readPos);
-            }
-        }
-    }
+                    readPos = getFinalReadPosition(p.getRead(),readPos);
 
-    protected void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final int refLoc, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, final List<Double> altQuals) {
-        for ( final Map.Entry<Allele, List<GATKSAMRecord>> alleleBin : stratifiedContext.entrySet() ) {
-            final boolean matchesRef = ref.equals(alleleBin.getKey());
-            final boolean matchesAlt = alts.contains(alleleBin.getKey());
-            if ( !matchesRef && !matchesAlt )
-                continue;
-
-            for ( final GATKSAMRecord read : alleleBin.getValue() ) {
-                final int offset = ReadUtils.getReadCoordinateForReferenceCoordinate( read.getSoftStart(), read.getCigar(), refLoc, ReadUtils.ClippingTail.RIGHT_TAIL, true );
-                if ( offset == ReadUtils.CLIPPING_GOAL_NOT_REACHED )
-                    continue;
-                int readPos = AlignmentUtils.calcAlignmentByteArrayOffset( read.getCigar(), offset, false, false, 0, 0 );
-
-                final int numAlignedBases = AlignmentUtils.getNumAlignedBasesCountingSoftClips( read );
-                if (readPos > numAlignedBases / 2)
-                    readPos = numAlignedBases - (readPos + 1);
-
-                if ( matchesRef )
-                    refQuals.add((double) readPos);
-                else
-                    altQuals.add((double) readPos);
-            }
-        }
-    }
-
-    protected void fillIndelQualsFromPileup(ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
-        // equivalent is whether indel likelihoods for reads corresponding to ref allele are more likely than reads corresponding to alt allele
-        // to classify a pileup element as ref or alt, we look at the likelihood associated with the allele associated to this element.
-        // A pileup element then has a list of pairs of form (Allele, likelihood of this allele).
-        // To classify a pileup element as Ref or Alt, we look at the likelihood of corresponding alleles.
-        // If likelihood of ref allele > highest likelihood of all alt alleles  + epsilon, then this pielup element is "ref"
-        // otherwise  if highest alt allele likelihood is > ref likelihood + epsilon, then this pileup element it "alt"
-        final HashMap<PileupElement, LinkedHashMap<Allele, Double>> indelLikelihoodMap = IndelGenotypeLikelihoodsCalculationModel.getIndelLikelihoodMap();
-        for (final PileupElement p : pileup) {
-            if (indelLikelihoodMap.containsKey(p)) {
-                LinkedHashMap<Allele, Double> el = indelLikelihoodMap.get(p);           // retrieve likelihood information corresponding to this read
-                double refLikelihood = 0.0, altLikelihood = Double.NEGATIVE_INFINITY;   // by design, first element in LinkedHashMap was ref allele
-
-                for (Map.Entry<Allele,Double> a : el.entrySet()) {
-                    if (a.getKey().isReference())
-                        refLikelihood = a.getValue();
-                    else {
-                        double like = a.getValue();
-                        if (like >= altLikelihood)
-                            altLikelihood = like;
+                    if ( allAlleles.get(0).equals(Allele.create(p.getBase())) ) {
+                        refQuals.add((double)readPos);
+                    } else if ( allAlleles.contains(Allele.create(p.getBase()))) {
+                        altQuals.add((double)readPos);
                     }
                 }
-
-                int readPos = getOffsetFromClippedReadStart(p.getRead(), p.getOffset());
-                final int numAlignedBases = getNumAlignedBases(p.getRead());
-
-                if (readPos > numAlignedBases / 2) {
-                    readPos = numAlignedBases - (readPos + 1);
-                }
-                //if (DEBUG) System.out.format("R:%s start:%d C:%s offset:%d rp:%d readPos:%d alignedB:%d\n",p.getRead().getReadName(),p.getRead().getAlignmentStart(),p.getRead().getCigarString(),p.getOffset(), rp, readPos, numAlignedBases);
-
-
-                // if event is beyond span of read just return and don't consider this element. This can happen, for example, with reads
-                // where soft clipping still left strings of low quality bases but these are later removed by indel-specific clipping.
-                // if (readPos < -1)
-                //    return;
-                if (refLikelihood > (altLikelihood + INDEL_LIKELIHOOD_THRESH)) {
-                    refQuals.add((double) readPos);
-                    //if (DEBUG)  System.out.format("REF like: %4.1f, pos: %d\n",refLikelihood,readPos);
-                } else if (altLikelihood > (refLikelihood + INDEL_LIKELIHOOD_THRESH)) {
-                    altQuals.add((double) readPos);
-                    //if (DEBUG)    System.out.format("ALT like: %4.1f, pos: %d\n",refLikelihood,readPos);
-
-                }
-
-
             }
+            return;
+        }
+
+        for (Map.Entry<PileupElement,Map<Allele,Double>> el : alleleLikelihoodMap.getLikelihoodReadMap().entrySet()) {
+            int readPos = getOffsetFromClippedReadStart(el.getKey().getRead(), el.getKey().getOffset());
+            readPos = getFinalReadPosition(el.getKey().getRead(),readPos);
+
+            final Allele a = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue());
+            if (a.isNoCall())
+                continue; // read is non-informative
+            if (a.isReference())
+                refQuals.add((double)readPos);
+            else if (allAlleles.contains(a))
+                altQuals.add((double)readPos);
+
         }
     }
 
+    int getFinalReadPosition(GATKSAMRecord read, int initialReadPosition) {
+        final int numAlignedBases = getNumAlignedBases(read);
+
+        int readPos = initialReadPosition;
+        if (initialReadPosition > numAlignedBases / 2) {
+            readPos = numAlignedBases - (initialReadPosition + 1);
+        }
+        return readPos;
+
+    }
     int getNumClippedBasesAtStart(SAMRecord read) {
         // compute total number of clipped bases (soft or hard clipped)
         // check for hard clips (never consider these bases):

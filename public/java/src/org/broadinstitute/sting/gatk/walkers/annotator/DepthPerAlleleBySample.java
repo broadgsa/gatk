@@ -42,7 +42,13 @@ import java.util.List;
  */
 public class DepthPerAlleleBySample extends GenotypeAnnotation implements StandardAnnotation {
 
-    public void annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g, GenotypeBuilder gb) {
+    public void annotate(final RefMetaDataTracker tracker,
+                         final AnnotatorCompatible walker,
+                         final ReferenceContext ref,
+                         final AlignmentContext stratifiedContext,
+                         final VariantContext vc,
+                         final Genotype g,
+                         final GenotypeBuilder gb) {
         if ( g == null || !g.isCalled() )
             return;
 

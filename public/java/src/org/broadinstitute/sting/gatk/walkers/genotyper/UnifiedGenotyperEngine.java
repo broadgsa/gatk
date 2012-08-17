@@ -177,19 +177,23 @@ public class UnifiedGenotyperEngine {
         final List<VariantCallContext> results = new ArrayList<VariantCallContext>(2);
 
         final List<GenotypeLikelihoodsCalculationModel.Model> models = getGLModelsToUse(tracker, refContext, rawContext);
+
+        final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap = new HashMap<String,PerReadAlleleLikelihoodMap>();
+
         if ( models.isEmpty() ) {
             results.add(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ? generateEmptyContext(tracker, refContext, null, rawContext) : null);
         }
         else {
             for ( final GenotypeLikelihoodsCalculationModel.Model model : models ) {
+                perReadAlleleLikelihoodMap.clear();
                 final Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
                 if ( stratifiedContexts == null ) {
                     results.add(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ? generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext) : null);
                 }
                 else {
-                    final VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
+                    final VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model, perReadAlleleLikelihoodMap);
                     if ( vc != null )
-                        results.add(calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, true));
+                        results.add(calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, true, perReadAlleleLikelihoodMap));
                 }
             }        
         }
@@ -219,9 +223,13 @@ public class UnifiedGenotyperEngine {
      * @param tracker    the meta data tracker
      * @param refContext the reference base
      * @param rawContext contextual information around the locus
+     * @param perReadAlleleLikelihoodMap    Map to store per-sample, per-read, per-allele likelihoods (only used for indels)
      * @return the VariantContext object
      */
-    public VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
+    public VariantContext calculateLikelihoods(final RefMetaDataTracker tracker,
+                                               final ReferenceContext refContext,
+                                               final AlignmentContext rawContext,
+                                               final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
         final List<GenotypeLikelihoodsCalculationModel.Model> models = getGLModelsToUse(tracker, refContext, rawContext);
         if ( models.isEmpty() ) {
             return null;
@@ -231,7 +239,7 @@ public class UnifiedGenotyperEngine {
             final Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
             // return the first valid one we encounter
             if ( stratifiedContexts != null )
-                return calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
+                return calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model, perReadAlleleLikelihoodMap);
 
         }
 
@@ -247,7 +255,11 @@ public class UnifiedGenotyperEngine {
      * @param vc         the GL-annotated variant context
      * @return the VariantCallContext object
      */
-    public VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, VariantContext vc) {
+    public VariantCallContext calculateGenotypes(final RefMetaDataTracker tracker,
+                                                 final ReferenceContext refContext,
+                                                 final AlignmentContext rawContext,
+                                                 final VariantContext vc,
+                                                 final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
         final List<GenotypeLikelihoodsCalculationModel.Model> models = getGLModelsToUse(tracker, refContext, rawContext);
         if ( models.isEmpty() ) {
             return null;
@@ -256,25 +268,37 @@ public class UnifiedGenotyperEngine {
         // return the first one
         final GenotypeLikelihoodsCalculationModel.Model model = models.get(0);
         final Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
-        return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model);
+        return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, perReadAlleleLikelihoodMap);
     }
 
-
-    // ---------------------------------------------------------------------------------------------------------
+    public VariantCallContext calculateGenotypes(final RefMetaDataTracker tracker,
+                                                 final ReferenceContext refContext,
+                                                 final AlignmentContext rawContext,
+                                                 final VariantContext vc) {
+        return calculateGenotypes(tracker, refContext, rawContext, vc, null);
+    }
+        // ---------------------------------------------------------------------------------------------------------
     //
     // Private implementation helpers
     //
     // ---------------------------------------------------------------------------------------------------------
 
     // private method called by both UnifiedGenotyper and UGCalcLikelihoods entry points into the engine
-    private VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, AlignmentContext> stratifiedContexts, AlignmentContextUtils.ReadOrientation type, List<Allele> alternateAllelesToUse, boolean useBAQedPileup, final GenotypeLikelihoodsCalculationModel.Model model) {
+    private VariantContext calculateLikelihoods(final RefMetaDataTracker tracker,
+                                                final ReferenceContext refContext,
+                                                final Map<String, AlignmentContext> stratifiedContexts,
+                                                final AlignmentContextUtils.ReadOrientation type,
+                                                final List<Allele> alternateAllelesToUse,
+                                                final boolean useBAQedPileup,
+                                                final GenotypeLikelihoodsCalculationModel.Model model,
+                                                final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
 
         // initialize the data for this thread if that hasn't been done yet
         if ( glcm.get() == null ) {
             glcm.set(getGenotypeLikelihoodsCalculationObject(logger, UAC));
         }
 
-        return glcm.get().get(model.name().toUpperCase()).getLikelihoods(tracker, refContext, stratifiedContexts, type, alternateAllelesToUse, useBAQedPileup && BAQEnabledOnCMDLine, genomeLocParser);
+        return glcm.get().get(model.name().toUpperCase()).getLikelihoods(tracker, refContext, stratifiedContexts, type, alternateAllelesToUse, useBAQedPileup && BAQEnabledOnCMDLine, genomeLocParser, perReadAlleleLikelihoodMap);
     }
 
     private VariantCallContext generateEmptyContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, AlignmentContext rawContext) {
@@ -305,12 +329,22 @@ public class UnifiedGenotyperEngine {
         return new VariantCallContext(vc, false);
     }
 
-    public VariantCallContext calculateGenotypes(VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model) {
-        return calculateGenotypes(null, null, null, null, vc, model);
+    public VariantCallContext calculateGenotypes(final VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model, final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
+        return calculateGenotypes(null, null, null, null, vc, model, perReadAlleleLikelihoodMap);
     }
 
-    public VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model) {
-        return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, false);
+    public VariantCallContext calculateGenotypes(final VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model) {
+        return calculateGenotypes(null, null, null, null, vc, model, null);
+    }
+
+    public VariantCallContext calculateGenotypes(final RefMetaDataTracker tracker,
+                                                 final ReferenceContext refContext,
+                                                 final AlignmentContext rawContext,
+                                                 final Map<String, AlignmentContext> stratifiedContexts,
+                                                 final VariantContext vc,
+                                                 final GenotypeLikelihoodsCalculationModel.Model model,
+                                                 final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
+        return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, false,perReadAlleleLikelihoodMap);
     }
 
     /**
@@ -324,8 +358,11 @@ public class UnifiedGenotyperEngine {
      * @param inheritAttributesFromInputVC       Output VC will contain attributes inherited from input vc
      * @return                                   VC with assigned genotypes
      */
-    public VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model,
-                                                 final boolean inheritAttributesFromInputVC) {
+    public VariantCallContext calculateGenotypes(final RefMetaDataTracker tracker, final ReferenceContext refContext,
+                                                 final AlignmentContext rawContext, Map<String, AlignmentContext> stratifiedContexts,
+                                                 final VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model,
+                                                 final boolean inheritAttributesFromInputVC,
+                                                 final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
 
         boolean limitedContext = tracker == null || refContext == null || rawContext == null || stratifiedContexts == null;
 
@@ -451,7 +488,7 @@ public class UnifiedGenotyperEngine {
             List<Allele> allAllelesToUse = builder.make().getAlleles();
             
             // the forward lod
-            VariantContext vcForward = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.FORWARD, allAllelesToUse, false, model);
+            VariantContext vcForward = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.FORWARD, allAllelesToUse, false, model, perReadAlleleLikelihoodMap);
             AFresult.reset();
             afcm.get().getLog10PNonRef(vcForward, getAlleleFrequencyPriors(model), AFresult);
             //double[] normalizedLog10Posteriors = MathUtils.normalizeFromLog10(AFresult.log10AlleleFrequencyPosteriors, true);
@@ -460,7 +497,7 @@ public class UnifiedGenotyperEngine {
             //if ( DEBUG_SLOD ) System.out.println("forwardLog10PofNull=" + forwardLog10PofNull + ", forwardLog10PofF=" + forwardLog10PofF);
 
             // the reverse lod
-            VariantContext vcReverse = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.REVERSE, allAllelesToUse, false, model);
+            VariantContext vcReverse = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.REVERSE, allAllelesToUse, false, model, perReadAlleleLikelihoodMap);
             AFresult.reset();
             afcm.get().getLog10PNonRef(vcReverse, getAlleleFrequencyPriors(model), AFresult);
             //normalizedLog10Posteriors = MathUtils.normalizeFromLog10(AFresult.log10AlleleFrequencyPosteriors, true);
@@ -496,7 +533,7 @@ public class UnifiedGenotyperEngine {
             final ReadBackedPileup pileup = rawContext.getBasePileup();
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
 
-            vcCall = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall);
+            vcCall = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall, perReadAlleleLikelihoodMap);
         }
 
         return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
