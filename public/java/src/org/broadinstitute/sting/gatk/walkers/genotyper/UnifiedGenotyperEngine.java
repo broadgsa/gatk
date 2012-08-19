@@ -474,10 +474,17 @@ public class UnifiedGenotyperEngine {
         // add the MLE AC and AF annotations
         if ( alleleCountsofMLE.size() > 0 ) {
             attributes.put(VCFConstants.MLE_ALLELE_COUNT_KEY, alleleCountsofMLE);
-            final double AN = (double)builder.make().getCalledChrCount();
+            final int AN = builder.make().getCalledChrCount();
+
+            // let's sanity check that we don't have an invalid MLE value in there
+            for ( int MLEAC : alleleCountsofMLE ) {
+                if ( MLEAC > AN )
+                    throw new ReviewedStingException(String.format("MLEAC value (%d) is larger than AN (%d) at position %s:%d", MLEAC, AN, loc.getContig(), loc.getStart()));
+            }
+
             final ArrayList<Double> MLEfrequencies = new ArrayList<Double>(alleleCountsofMLE.size());
             for ( int AC : alleleCountsofMLE )
-                MLEfrequencies.add((double)AC / AN);
+                MLEfrequencies.add((double)AC / (double)AN);
             attributes.put(VCFConstants.MLE_ALLELE_FREQUENCY_KEY, MLEfrequencies);
         }
 

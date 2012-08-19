@@ -29,8 +29,18 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 
+import java.util.Iterator;
+
 /**
  * Filter out reads with wonky cigar strings.
+ *
+ *  - No reads with Hard/Soft clips in the middle of the cigar
+ *  - No reads starting with deletions (with or without preceding clips)
+ *  - No reads ending in deletions (with or without follow-up clips)
+ *  - No reads that are fully hard or soft clipped
+ *  - No reads that have consecutive indels in the cigar (II, DD, ID or DI)
+ *
+ *  ps: apparently an empty cigar is okay...
  *
  * @author ebanks
  * @version 0.1
@@ -40,28 +50,72 @@ public class BadCigarFilter extends ReadFilter {
 
     public boolean filterOut(final SAMRecord rec) {
         final Cigar c = rec.getCigar();
-        if( c.isEmpty() ) { return false; }                                                                             // if there is no Cigar then it can't be bad
 
-        boolean previousElementWasIndel = false;
-        CigarOperator lastOp = c.getCigarElement(0).getOperator();
-
-        if (lastOp == CigarOperator.D)                                                                                  // filter out reads starting with deletion
-            return true;
-        
-        for (CigarElement ce : c.getCigarElements()) {
-            CigarOperator op = ce.getOperator();
-            if (op == CigarOperator.D || op == CigarOperator.I) {
-                if (previousElementWasIndel)
-                    return true;                                                                                        // filter out reads with adjacent I/D
-
-                previousElementWasIndel = true;
-            }
-            else                                                                                                        // this is a regular base (match/mismatch/hard or soft clip)
-                previousElementWasIndel = false;                                                                        // reset the previous element
-
-            lastOp = op;
+        // if there is no Cigar then it can't be bad
+        if( c.isEmpty() ) {
+            return false;
         }
 
-        return lastOp == CigarOperator.D;
+        Iterator<CigarElement> elementIterator = c.getCigarElements().iterator();
+
+        CigarOperator firstOp = CigarOperator.H;
+        while (elementIterator.hasNext() && (firstOp == CigarOperator.H || firstOp == CigarOperator.S)) {
+            CigarOperator op = elementIterator.next().getOperator();
+
+            // No reads with Hard/Soft clips in the middle of the cigar
+            if (firstOp != CigarOperator.H && op == CigarOperator.H) {
+                    return true;
+            }
+            firstOp = op;
+        }
+
+        // No reads starting with deletions (with or without preceding clips)
+        if (firstOp == CigarOperator.D) {
+            return true;
+        }
+
+        boolean hasMeaningfulElements = (firstOp != CigarOperator.H && firstOp != CigarOperator.S);
+        boolean previousElementWasIndel = firstOp == CigarOperator.I;
+        CigarOperator lastOp = firstOp;
+        CigarOperator previousOp = firstOp;
+
+        while (elementIterator.hasNext()) {
+            CigarOperator op = elementIterator.next().getOperator();
+
+            if (op != CigarOperator.S && op != CigarOperator.H) {
+
+                // No reads with Hard/Soft clips in the middle of the cigar
+                if (previousOp == CigarOperator.S || previousOp == CigarOperator.H)
+                    return true;
+
+                lastOp = op;
+
+                if (!hasMeaningfulElements && op.consumesReadBases()) {
+                    hasMeaningfulElements = true;
+                }
+
+                if (op == CigarOperator.I || op == CigarOperator.D) {
+
+                    // No reads that have consecutive indels in the cigar (II, DD, ID or DI)
+                    if (previousElementWasIndel) {
+                        return true;
+                    }
+                    previousElementWasIndel = true;
+                }
+                else {
+                    previousElementWasIndel = false;
+                }
+            }
+            // No reads with Hard/Soft clips in the middle of the cigar
+            else if (op == CigarOperator.S && previousOp == CigarOperator.H) {
+                return true;
+            }
+
+            previousOp = op;
+        }
+
+        // No reads ending in deletions (with or without follow-up clips)
+        // No reads that are fully hard or soft clipped
+        return lastOp == CigarOperator.D || !hasMeaningfulElements;
     }
 }

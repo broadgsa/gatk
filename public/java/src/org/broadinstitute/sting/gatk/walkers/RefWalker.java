@@ -8,7 +8,7 @@ package org.broadinstitute.sting.gatk.walkers;
  * To change this template use File | Settings | File Templates.
  */
 @By(DataSource.REFERENCE)
-@Requires({DataSource.REFERENCE, DataSource.REFERENCE_BASES})
+@Requires({DataSource.REFERENCE})
 @Allows(DataSource.REFERENCE)
 public abstract class RefWalker<MapType, ReduceType> extends LocusWalker<MapType, ReduceType> {
 }

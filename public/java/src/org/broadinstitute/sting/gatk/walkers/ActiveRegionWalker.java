@@ -28,7 +28,7 @@ import java.util.List;
  */
 
 @By(DataSource.READS)
-@Requires({DataSource.READS, DataSource.REFERENCE_BASES})
+@Requires({DataSource.READS, DataSource.REFERENCE})
 @PartitionBy(PartitionType.READ)
 @ActiveRegionExtension(extension=50,maxRegion=1500)
 @ReadFilters({UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class, FailsVendorQualityCheckFilter.class, MappingQualityUnavailableFilter.class})

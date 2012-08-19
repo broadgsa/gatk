@@ -82,7 +82,7 @@ public final class BCF2Decoder {
     public void skipNextBlock(final int blockSizeInBytes, final InputStream stream) {
         try {
             final int bytesRead = (int)stream.skip(blockSizeInBytes);
-            validateReadBytes(bytesRead, blockSizeInBytes);
+            validateReadBytes(bytesRead, 1, blockSizeInBytes);
         } catch ( IOException e ) {
             throw new UserException.CouldNotReadInputFile("I/O error while reading BCF2 file", e);
         }
@@ -316,17 +316,37 @@ public final class BCF2Decoder {
     }
 
     /**
+     * Read all bytes for a BCF record block into a byte[], and return it
      *
-     * @param inputStream
-     * @return
+     * Is smart about reading from the stream multiple times to fill the buffer, if necessary
+     *
+     * @param blockSizeInBytes number of bytes to read
+     * @param inputStream the stream to read from
+     * @return a non-null byte[] containing exactly blockSizeInBytes bytes from the inputStream
      */
-    private final static byte[] readRecordBytes(final int blockSizeInBytes, final InputStream inputStream) {
+    @Requires({"blockSizeInBytes >= 0", "inputStream != null"})
+    @Ensures("result != null")
+    private static byte[] readRecordBytes(final int blockSizeInBytes, final InputStream inputStream) {
         assert blockSizeInBytes >= 0;
 
         final byte[] record = new byte[blockSizeInBytes];
         try {
-            final int bytesRead = inputStream.read(record);
-            validateReadBytes(bytesRead, blockSizeInBytes);
+            int bytesRead = 0;
+            int nReadAttempts = 0; // keep track of how many times we've read
+
+            // because we might not read enough bytes from the file in a single go, do it in a loop until we get EOF
+            while ( bytesRead < blockSizeInBytes ) {
+                final int read1 = inputStream.read(record, bytesRead, blockSizeInBytes - bytesRead);
+                if ( read1 == -1 )
+                    validateReadBytes(bytesRead, nReadAttempts, blockSizeInBytes);
+                else
+                    bytesRead += read1;
+            }
+
+            if ( nReadAttempts > 1 ) // TODO -- remove me
+                logger.warn("Required multiple read attempts to actually get the entire BCF2 block, unexpected behavior");
+
+            validateReadBytes(bytesRead, nReadAttempts, blockSizeInBytes);
         } catch ( IOException e ) {
             throw new UserException.CouldNotReadInputFile("I/O error while reading BCF2 file", e);
         }
@@ -334,14 +354,20 @@ public final class BCF2Decoder {
         return record;
     }
 
-    private final static void validateReadBytes(final int actuallyRead, final int expected) {
+    /**
+     * Make sure we read the right number of bytes, or throw an error
+     *
+     * @param actuallyRead
+     * @param nReadAttempts
+     * @param expected
+     */
+    private static void validateReadBytes(final int actuallyRead, final int nReadAttempts, final int expected) {
         assert expected >= 0;
 
         if ( actuallyRead < expected ) {
-            throw new UserException.MalformedBCF2(String.format("Failed to read next complete record: %s",
-                    actuallyRead == -1 ?
-                            "premature end of input stream" :
-                            String.format("expected %d bytes but read only %d", expected, actuallyRead)));
+            throw new UserException.MalformedBCF2(
+                    String.format("Failed to read next complete record: expected %d bytes but read only %d after %d iterations",
+                            expected, actuallyRead, nReadAttempts));
         }
     }
 

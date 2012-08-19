@@ -16,8 +16,18 @@ package org.broadinstitute.sting.gatk.walkers;
  * Allow user to choose between a number of different data sources.
  */
 public enum DataSource {
+    /**
+     * Does this walker require read (BAM) data to work?
+     */
     READS,
+
+    /**
+     * Does this walker require reference data to work?
+     */
     REFERENCE,
-    REFERENCE_BASES,         // Do I actually need the reference bases passed to the walker?
+
+    /**
+     * Does this walker require reference order data (VCF) to work?
+     */
     REFERENCE_ORDERED_DATA
 }

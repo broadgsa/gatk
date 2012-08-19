@@ -340,6 +340,17 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class CouldNotCreateReferenceFAIorDictForGzippedRef extends UserException {
+        public CouldNotCreateReferenceFAIorDictForGzippedRef(final File f) {
+            super("Although the GATK can process .gz reference sequences, it currently cannot create FAI " +
+                    "or DICT files for them.  In order to use the GATK with reference.fasta.gz you will need to " +
+                    "create .dict and .fai files for reference.fasta.gz and name them reference.fasta.gz.fai and " +
+                    "reference.dict.  Potentially the easiest way to do this is to uncompress reference.fasta, " +
+                    "run the GATK to create the .dict and .fai files, and copy them to the appropriate location. " +
+                    "Sorry for the inconvenience.");
+        }
+    }
+
     public static class CouldNotCreateReferenceIndexFileBecauseOfLock extends UserException.CouldNotCreateReferenceIndexFile {
         public CouldNotCreateReferenceIndexFileBecauseOfLock(File f) {
             super(f, "could not be written because an exclusive file lock could not be obtained. " +

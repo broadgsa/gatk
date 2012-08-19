@@ -107,7 +107,7 @@ import java.util.ArrayList;
 @BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
 @By(DataSource.READS)
 @ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class})                                   // only look at covered loci, not every loci of the reference file
-@Requires({DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES})                                         // filter out all reads with zero or unavailable mapping quality
+@Requires({DataSource.READS, DataSource.REFERENCE})                                         // filter out all reads with zero or unavailable mapping quality
 @PartitionBy(PartitionType.LOCUS)                                                                                       // this walker requires both -I input.bam and -R reference.fasta
 public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeReducible<Long> {
     @ArgumentCollection
