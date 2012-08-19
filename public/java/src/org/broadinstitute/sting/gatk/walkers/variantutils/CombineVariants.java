@@ -73,6 +73,13 @@ import java.util.*;
  * efficiency.  However, since this merge runs in only one thread, you can quickly reach diminishing
  * returns with the number of parallel threads.  -nt 4 works well but -nt 8 may be too much.
  *
+ * Some fine details about the merging algorithm:
+ *   <ul>
+ *   <li> As of GATK 2.1, when merging multiple VCF records at a site, the combined VCF record has the QUAL of
+ *      the first VCF record with a non-MISSING QUAL value.  The previous behavior was to take the
+ *      max QUAL, which resulted in sometime strange downstream confusion</li>
+ *   </ul>
+ *
  * <h2>Input</h2>
  * <p>
  * One or more variant sets to combine.

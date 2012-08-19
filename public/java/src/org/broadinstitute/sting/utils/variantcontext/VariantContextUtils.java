@@ -514,7 +514,7 @@ public class VariantContextUtils {
         int depth = 0;
         int maxAC = -1;
         final Map<String, Object> attributesWithMaxAC = new LinkedHashMap<String, Object>();
-        double log10PError = 1;
+        double log10PError = CommonInfo.NO_LOG10_PERROR;
         VariantContext vcWithMaxAC = null;
         GenotypesContext genotypes = GenotypesContext.create();
 
@@ -542,7 +542,9 @@ public class VariantContextUtils {
 
             mergeGenotypes(genotypes, vc, alleleMapping, genotypeMergeOptions == GenotypeMergeType.UNIQUIFY);
 
-            log10PError = Math.min(log10PError, vc.isVariant() ? vc.getLog10PError() : 1);
+            // We always take the QUAL of the first VC with a non-MISSING qual for the combined value
+            if ( log10PError == CommonInfo.NO_LOG10_PERROR )
+                log10PError =  vc.getLog10PError();
 
             filters.addAll(vc.getFilters());
 
