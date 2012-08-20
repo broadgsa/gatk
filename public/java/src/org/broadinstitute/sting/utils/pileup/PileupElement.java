@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.pileup;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -220,7 +221,7 @@ public class PileupElement implements Comparable<PileupElement> {
             if (isDeletion() && (offset + 1 >= read.getReadLength()) )  // deletion in the end of the read
                 throw new UserException.MalformedBAM(read, String.format("Adjacent I/D events in read %s -- cigar: %s", read.getReadName(), read.getCigarString()));
 
-            representativeCount = (isDeletion()) ? Math.round((read.getReducedCount(offset) + read.getReducedCount(offset + 1)) / 2) : read.getReducedCount(offset);
+            representativeCount = (isDeletion()) ? MathUtils.fastRound((read.getReducedCount(offset) + read.getReducedCount(offset + 1)) / 2.0) : read.getReducedCount(offset);
         }
         return representativeCount;
     }

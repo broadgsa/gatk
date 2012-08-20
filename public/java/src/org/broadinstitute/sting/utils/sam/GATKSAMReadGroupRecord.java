@@ -13,7 +13,7 @@ import org.broadinstitute.sting.utils.NGSPlatform;
  */
 public class GATKSAMReadGroupRecord extends SAMReadGroupRecord {
 
-    public static String LANE_TAG = "LN";
+    public static final String LANE_TAG = "LN";
     
     // the SAMReadGroupRecord data we're caching
     private String mSample = null;

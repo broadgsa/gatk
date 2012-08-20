@@ -65,6 +65,8 @@ public class FeatureToGATKFeatureIterator implements CloseableIterator<GATKFeatu
 
     @Override
     public void close() {
-        // we don't close them anymore
+        // The private adapted iterator may not be passed on by the method constructing this object,
+        // leaving only this adapter to close the wrapped iterator.
+        iterator.close();
     }
 }

@@ -4,7 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.samples.Sample;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEval;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.MendelianViolation;
@@ -104,7 +104,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     MendelianViolation mv;
     Map<String,Set<Sample>> families;
 
-    public void initialize(VariantEvalWalker walker) {
+    public void initialize(VariantEval walker) {
         super.initialize(walker);
         mv = new MendelianViolation(walker.getMendelianViolationQualThreshold(),false);
         families = walker.getSampleDB().getFamilies();

@@ -68,17 +68,16 @@ public class GATKReportDiffableReader implements DiffableReader {
         tableRoot.add("Description", table.getTableDescription());
         tableRoot.add("NumberOfRows", table.getNumRows());
 
-        for (GATKReportColumn column : table.getColumns().values()) {
+        for ( GATKReportColumn column : table.getColumnInfo() ) {
             DiffNode columnRoot = DiffNode.empty(column.getColumnName(), tableRoot);
 
             columnRoot.add("Width", column.getColumnFormat().getWidth());
             // NOTE: as the values are trimmed during parsing left/right alignment is not currently preserved
-            columnRoot.add("Displayable", column.isDisplayable());
+            columnRoot.add("Displayable", true);
 
-            int n = 1;
-            for (Object elt : column.values()) {
-                String name = column.getColumnName() + n++;
-                columnRoot.add(name, elt.toString());
+            for ( int i = 0; i < table.getNumRows(); i++ ) {
+                String name = column.getColumnName() + (i+1);
+                columnRoot.add(name, table.get(i, column.getColumnName()).toString());
             }
 
             tableRoot.add(columnRoot);
@@ -91,8 +90,10 @@ public class GATKReportDiffableReader implements DiffableReader {
     public boolean canRead(File file) {
         try {
             final String HEADER = GATKReport.GATKREPORT_HEADER_PREFIX;
-            char[] buff = new char[HEADER.length()];
-            new FileReader(file).read(buff, 0, HEADER.length());
+            final char[] buff = new char[HEADER.length()];
+            final FileReader FR = new FileReader(file);
+            FR.read(buff, 0, HEADER.length());
+            FR.close();
             String firstLine = new String(buff);
             return firstLine.startsWith(HEADER);
         } catch (IOException e) {

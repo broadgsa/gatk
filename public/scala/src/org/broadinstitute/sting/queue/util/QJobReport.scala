@@ -40,6 +40,7 @@ trait QJobReport extends Logging {
   self: QFunction =>
 
   protected var reportGroup: String = null
+  protected var userReportFeatures: Map[String, String] = Map()
   protected var reportFeatures: Map[String, String] = Map()
   protected var reportEnabled: Boolean = true
 
@@ -49,46 +50,49 @@ trait QJobReport extends Logging {
 
   def setRunInfo(info: JobRunInfo) {
     //logger.info("info " + info)
-    reportFeatures = Map(
+    val runtimeFeatures = Map(
       "iteration" -> 1,
       "analysisName" -> getReportGroup,
       "jobName" -> QJobReport.workAroundSameJobNames(this),
       "intermediate" -> self.isIntermediate,
       "exechosts" -> info.getExecHosts,
-      "startTime" -> info.getStartTime.getTime,
-      "doneTime" -> info.getDoneTime.getTime,
+      "startTime" -> info.getStartTime,
+      "doneTime" -> info.getDoneTime,
       "formattedStartTime" -> info.getFormattedStartTime,
       "formattedDoneTime" -> info.getFormattedDoneTime,
-      "runtime" -> info.getRuntimeInMs).mapValues((x:Any) => if (x != null) x.toString else "null") ++ reportFeatures
+      "runtime" -> info.getRuntimeInMs).mapValues((x:Any) => if (x != null) x.toString else "null")
+    reportFeatures = runtimeFeatures ++ userReportFeatures
     // note -- by adding reportFeatures second we override iteration
     // (or any other binding) with the user provided value
   }
 
   /** The report Group is the analysis name transform to only contain valid GATKReportTable characters */
   def getReportGroup = self.analysisName.replaceAll(GATKReportTable.INVALID_TABLE_NAME_REGEX, "_")
-  def getReportFeatures = reportFeatures
 
-  def getReportFeatureNames: Seq[String] = getReportFeatures.keys.toSeq
+  def getReportFeatureNames: Seq[String] = reportFeatures.keys.toSeq
   def getReportFeature(key: String): String = {
-    getReportFeatures.get(key) match {
+    reportFeatures.get(key) match {
       case Some(x) => x
-      case None => throw new RuntimeException("Get called with key %s but no value was found".format(key))
+      case None =>
+        logger.warn("getReportFeature called with key %s but no value was found for group %s.  This can be caused by adding user-defined job features to a job with a generic name used elsewhere in the Queue script.  To fix the problem make sure that each group of commands with user-specific features has a unique analysisName".format(key, reportGroup))
+        "NA"
     }
   }
 
   def getReportName: String = getReportFeature("jobName")
 
   def configureJobReport(features: Map[String, Any]) {
-    this.reportFeatures = features.mapValues(_.toString)
+    this.userReportFeatures = features.mapValues(_.toString)
   }
 
   def addJobReportBinding(key: String, value: Any) {
-    this.reportFeatures += (key -> value.toString)
+    this.userReportFeatures += (key -> value.toString)
   }
 
   // copy the QJobReport information -- todo : what's the best way to do this?
   override def copySettingsTo(function: QFunction) {
     self.copySettingsTo(function)
+    function.userReportFeatures = this.userReportFeatures
     function.reportFeatures = this.reportFeatures
   }
 }
@@ -139,13 +143,12 @@ object QJobReport {
 
     // create a table for each group of logs
     for ( (group, groupLogs) <- groupLogs(logs) ) {
-      report.addTable(group, "Job logs for " + group)
-      val table: GATKReportTable = report.getTable(group)
-      table.addPrimaryKey("jobName", false)
       val keys = logKeys(groupLogs)
+      report.addTable(group, "Job logs for " + group, keys.size)
+      val table: GATKReportTable = report.getTable(group)
 
       // add the columns
-      keys.foreach(table.addColumn(_, 0))
+      keys.foreach(table.addColumn(_))
       for (log <- groupLogs) {
         for ( key <- keys )
           table.set(log.getReportName, key, log.getReportFeature(key))

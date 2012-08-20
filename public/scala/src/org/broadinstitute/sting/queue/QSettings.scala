@@ -55,11 +55,17 @@ class QSettings {
   @Argument(fullName="memory_limit", shortName="memLimit", doc="Default memory limit for jobs, in gigabytes.", required=false)
   var memoryLimit: Option[Double] = None
 
+  @Argument(fullName="memory_limit_threshold", shortName="memLimitThresh", doc="After passing this threshold stop increasing memory limit for jobs, in gigabytes.", required=false)
+  var memoryLimitThreshold: Option[Double] = None
+
   @Argument(fullName="resident_memory_limit", shortName="resMemLimit", doc="Default resident memory limit for jobs, in gigabytes.", required=false)
   var residentLimit: Option[Double] = None
 
   @Argument(fullName="resident_memory_request", shortName="resMemReq", doc="Default resident memory request for jobs, in gigabytes.", required=false)
   var residentRequest: Option[Double] = None
+
+  @Argument(fullName="resident_memory_request_parameter", shortName="resMemReqParam", doc="Parameter for resident memory requests. By default not requested.", required=false)
+  var residentRequestParameter: String = _
 
   /** The name of the parallel environment (required for SGE, for example) */
   @Argument(fullName="job_parallel_env", shortName="jobParaEnv", doc="An SGE style parallel environment to use for jobs requesting more than 1 core.  Equivalent to submitting jobs with -pe ARG nt for jobs with nt > 1", required=false)
@@ -67,6 +73,9 @@ class QSettings {
 
   @Argument(fullName="dontRequestMultipleCores", shortName="multiCoreJerk", doc="If provided, Queue will not request multiple processors for jobs using multiple processors.  Sometimes you eat the bear, sometimes the bear eats you.", required=false)
   var dontRequestMultipleCores: Boolean = false
+
+  @Argument(fullName="disableDefaultJavaGCOptimizations", shortName="noGCOpt", doc="If provided, Queue will not ensure that java GC threads are limited and that the a minimum amount of time is spent in GC.")
+  var disableDefaultJavaGCOptimizations = false
 
   @Argument(fullName="run_directory", shortName="runDir", doc="Root directory to run functions from.", required=false)
   var runDirectory = new File(".")

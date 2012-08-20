@@ -59,8 +59,8 @@ class DevNullOutputPipelineTest {
     spec.name = "devnulloutput"
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/DevNullOutput.scala",
-      " -R " + BaseTest.testDir + "exampleFASTA.fasta",
-      " -I " + BaseTest.testDir + "exampleBAM.bam").mkString
+      " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
+      " -I " + BaseTest.publicTestDir + "exampleBAM.bam").mkString
     spec.jobRunners = PipelineTest.allJobRunners
     PipelineTest.executeTest(spec)
   }

@@ -41,11 +41,6 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
   var runner: JobRunner[_] =_
 
   /**
-   * The number of times this edge has been run.
-   */
-  var retries = 0
-
-  /**
    * The depth of this edge in the graph.
    */
   var depth = -1
@@ -87,14 +82,14 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
       runner.init()
       runner.start()
     } catch {
-      case e =>
+      case e: Throwable =>
         currentStatus = RunnerStatus.FAILED
         try {
           runner.cleanup()
           function.failOutputs.foreach(_.createNewFile())
           writeStackTrace(e)
         } catch {
-          case _ => /* ignore errors in the exception handler */
+          case _: Throwable => /* ignore errors in the exception handler */
         }
         logger.error("Error: " + function.description, e)
     }
@@ -114,7 +109,7 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
               runner.cleanup()
               function.failOutputs.foreach(_.createNewFile())
             } catch {
-              case _ => /* ignore errors in the error handler */
+              case _: Throwable => /* ignore errors in the error handler */
             }
             logger.error("Error: " + function.description)
             tailError()
@@ -123,19 +118,19 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
               runner.cleanup()
               function.doneOutputs.foreach(_.createNewFile())
             } catch {
-              case _ => /* ignore errors in the done handler */
+              case _: Throwable => /* ignore errors in the done handler */
             }
             logger.info("Done: " + function.description)
           }
         } catch {
-          case e =>
+          case e: Throwable =>
             currentStatus = RunnerStatus.FAILED
             try {
               runner.cleanup()
               function.failOutputs.foreach(_.createNewFile())
               writeStackTrace(e)
             } catch {
-              case _ => /* ignore errors in the exception handler */
+              case _: Throwable => /* ignore errors in the exception handler */
             }
             logger.error("Error retrieving status: " + function.description, e)
         }
@@ -168,6 +163,7 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
     currentStatus = RunnerStatus.PENDING
     if (cleanOutputs)
       function.deleteOutputs()
+    function.jobErrorLines = Nil
     runner = null
   }
 
@@ -189,6 +185,7 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
       val tailLines = IOUtils.tail(errorFile, maxLines)
       val nl = "%n".format()
       val summary = if (tailLines.size > maxLines) "Last %d lines".format(maxLines) else "Contents"
+      this.function.jobErrorLines = collection.JavaConversions.asScalaIterable(tailLines).toSeq
       logger.error("%s of %s:%n%s".format(summary, errorFile, StringUtils.join(tailLines, nl)))
     } else {
       logger.error("Unable to access log file: %s".format(errorFile))

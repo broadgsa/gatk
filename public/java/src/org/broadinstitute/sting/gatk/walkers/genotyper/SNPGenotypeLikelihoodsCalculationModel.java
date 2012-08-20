@@ -35,7 +35,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -43,7 +42,6 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -62,19 +60,16 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                                          final ReferenceContext ref,
                                          final Map<String, AlignmentContext> contexts,
                                          final AlignmentContextUtils.ReadOrientation contextType,
-                                         final List<Allele> alternateAllelesToUse,
+                                         final List<Allele> allAllelesToUse,
                                          final boolean useBAQedPileup,
                                          final GenomeLocParser locParser) {
 
         final byte refBase = ref.getBase();
         final int indexOfRefBase = BaseUtils.simpleBaseToBaseIndex(refBase);
+        // handle non-standard reference bases
+        if ( indexOfRefBase == -1 )
+            return null;
         final Allele refAllele = Allele.create(refBase, true);
-
-        // start making the VariantContext
-        final GenomeLoc loc = ref.getLocus();
-        final List<Allele> alleles = new ArrayList<Allele>();
-        alleles.add(refAllele);
-        final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles);
 
         // calculate the GLs
         ArrayList<SampleGenotypeData> GLs = new ArrayList<SampleGenotypeData>(contexts.size());
@@ -90,9 +85,16 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                 GLs.add(new SampleGenotypeData(sample.getKey(), GL, getFilteredDepth(pileup)));
         }
 
+        // start making the VariantContext
+        final GenomeLoc loc = ref.getLocus();
+        final List<Allele> alleles = new ArrayList<Allele>();
+        alleles.add(refAllele);
+
+
+        final VariantContextBuilder builder = new VariantContextBuilder("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles);
         // find the alternate allele(s) that we should be using
-        if ( alternateAllelesToUse != null ) {
-            alleles.addAll(alternateAllelesToUse);
+        if ( allAllelesToUse != null ) {
+            alleles.addAll(allAllelesToUse.subList(1,allAllelesToUse.size()));   // this includes ref allele
         } else if ( useAlleleFromVCF ) {
             final VariantContext vc = UnifiedGenotyperEngine.getVCFromAllelesRod(tracker, ref, ref.getLocus(), true, logger, UAC.alleles);
 
@@ -156,12 +158,11 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                 myLikelihoods[i] = allLikelihoods[PLordering[i]];
 
             // normalize in log space so that max element is zero.
-            final GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(MathUtils.normalizeFromLog10(myLikelihoods, false, true));
-
-            final HashMap<String, Object> attributes = new HashMap<String, Object>();
-            attributes.put(VCFConstants.DEPTH_KEY, sampleData.depth);
-            attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
-            genotypes.add(new Genotype(sampleData.name, noCall, Genotype.NO_LOG10_PERROR, null, attributes, false));
+            final GenotypeBuilder gb = new GenotypeBuilder(sampleData.name);
+            final double[] genotypeLikelihoods = MathUtils.normalizeFromLog10(myLikelihoods, false, true);
+            gb.PL(genotypeLikelihoods);
+            gb.DP(sampleData.depth);
+            genotypes.add(gb.make());
         }
 
         return builder.genotypes(genotypes).make();
@@ -207,7 +208,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         return new ReadBackedPileupImpl( pileup.getLocation(), BAQedElements );
     }
 
-    public class BAQedPileupElement extends PileupElement {
+    public static class BAQedPileupElement extends PileupElement {
         public BAQedPileupElement( final PileupElement PE ) {
             super(PE.getRead(), PE.getOffset(), PE.isDeletion(), PE.isBeforeDeletedBase(), PE.isAfterDeletedBase(), PE.isBeforeInsertion(), PE.isAfterInsertion(), PE.isNextToSoftClip());
         }

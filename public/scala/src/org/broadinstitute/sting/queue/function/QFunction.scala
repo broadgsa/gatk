@@ -112,6 +112,18 @@ trait QFunction extends Logging with QJobReport {
   /** File to redirect any errors.  Defaults to <jobName>.out */
   var jobErrorFile: File = _
 
+  /** Errors (if any) from the last failed run of jobErrorFiles. */
+  var jobErrorLines: Seq[String] = Nil
+
+  /**
+   * The number of times this function has previously been run.
+   */
+  var retries = 0
+
+  /** Change settings for the next run. Retries will be set to the number of times the function was run and jobErrorLines may contain the error text. */
+  def setupRetry() {
+  }
+
   /**
    * Description of this command line function.
    */

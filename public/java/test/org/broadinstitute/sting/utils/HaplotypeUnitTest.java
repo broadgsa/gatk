@@ -31,6 +31,8 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -53,11 +55,11 @@ public class HaplotypeUnitTest extends BaseTest {
         h1CigarList.add(new CigarElement(bases.length(), CigarOperator.M));
         final Cigar h1Cigar = new Cigar(h1CigarList);
         String h1bases = "AACTTCTGGTCAACTGGTCAACTGGTCAACTGGTCA";
-        basicInsertTest("-", "ACTT", 1, h1Cigar, bases, h1bases);
-        h1bases = "ACTGGTCACTTAACTGGTCAACTGGTCAACTGGTCA";
-        basicInsertTest("-", "ACTT", 7, h1Cigar, bases, h1bases);
+        basicInsertTest("A", "AACTT", 0, h1Cigar, bases, h1bases);
+        h1bases = "ACTGGTCAACTTACTGGTCAACTGGTCAACTGGTCA";
+        basicInsertTest("A", "AACTT", 7, h1Cigar, bases, h1bases);
         h1bases = "ACTGGTCAACTGGTCAAACTTCTGGTCAACTGGTCA";
-        basicInsertTest("-", "ACTT", 17, h1Cigar, bases, h1bases);
+        basicInsertTest("A", "AACTT", 16, h1Cigar, bases, h1bases);
     }
 
     @Test
@@ -68,11 +70,11 @@ public class HaplotypeUnitTest extends BaseTest {
         h1CigarList.add(new CigarElement(bases.length(), CigarOperator.M));
         final Cigar h1Cigar = new Cigar(h1CigarList);
         String h1bases = "ATCAACTGGTCAACTGGTCAACTGGTCA";
-        basicInsertTest("ACTT", "-", 1, h1Cigar, bases, h1bases);
-        h1bases = "ACTGGTCGGTCAACTGGTCAACTGGTCA";
-        basicInsertTest("ACTT", "-", 7, h1Cigar, bases, h1bases);
+        basicInsertTest("ACTGG", "A", 0, h1Cigar, bases, h1bases);
+        h1bases = "ACTGGTCAGTCAACTGGTCAACTGGTCA";
+        basicInsertTest("AACTG", "A", 7, h1Cigar, bases, h1bases);
         h1bases = "ACTGGTCAACTGGTCAATCAACTGGTCA";
-        basicInsertTest("ACTT", "-", 17, h1Cigar, bases, h1bases);
+        basicInsertTest("ACTGG", "A", 16, h1Cigar, bases, h1bases);
     }
 
     @Test
@@ -102,11 +104,11 @@ public class HaplotypeUnitTest extends BaseTest {
         h1CigarList.add(new CigarElement(7 + 4, CigarOperator.M));
         final Cigar h1Cigar = new Cigar(h1CigarList);
         String h1bases = "AACTTTCG" + "CCGGCCGGCC" + "ATCGATCG" + "AGGGGGA" + "AGGC";
-        basicInsertTest("-", "ACTT", 1, h1Cigar, bases, h1bases);
+        basicInsertTest("A", "AACTT", 0, h1Cigar, bases, h1bases);
         h1bases = "ATCG" + "CCGGCCGGCC" + "ATCACTTGATCG" + "AGGGGGA" + "AGGC";
-        basicInsertTest("-", "ACTT", 7, h1Cigar, bases, h1bases);
+        basicInsertTest("C", "CACTT", 6, h1Cigar, bases, h1bases);
         h1bases = "ATCG" + "CCGGCCGGCC" + "ATCGATCG" + "AGACTTGGGGA" + "AGGC";
-        basicInsertTest("-", "ACTT", 17, h1Cigar, bases, h1bases);
+        basicInsertTest("G", "GACTT", 16, h1Cigar, bases, h1bases);
     }
 
     @Test
@@ -120,12 +122,12 @@ public class HaplotypeUnitTest extends BaseTest {
         h1CigarList.add(new CigarElement(3, CigarOperator.D));
         h1CigarList.add(new CigarElement(7 + 4, CigarOperator.M));
         final Cigar h1Cigar = new Cigar(h1CigarList);
-        String h1bases = "A" + "CGGCCGGCC" + "ATCGATCG" + "AGGGGGA" + "AGGC";
-        basicInsertTest("ACTT", "-", 1, h1Cigar, bases, h1bases);
-        h1bases = "ATCG" + "CCGGCCGGCC" + "ATCG" + "AGGGGGA" + "AGGC";
-        basicInsertTest("ACTT", "-", 7, h1Cigar, bases, h1bases);
+        String h1bases = "A" + "CCGGCCGGCC" + "ATCGATCG" + "AGGGGGA" + "AGGC";
+        basicInsertTest("ATCG", "A", 0, h1Cigar, bases, h1bases);
+        h1bases = "ATCG" + "CCGGCCGGCC" + "ATAAAG" + "AGGGGGA" + "AGGC";
+        basicInsertTest("CGATC", "AAA", 6, h1Cigar, bases, h1bases);
         h1bases = "ATCG" + "CCGGCCGGCC" + "ATCGATCG" + "AGA" + "AGGC";
-        basicInsertTest("ACTT", "-", 17, h1Cigar, bases, h1bases);
+        basicInsertTest("GGGGG", "G", 16, h1Cigar, bases, h1bases);
     }
 
     @Test
@@ -148,13 +150,16 @@ public class HaplotypeUnitTest extends BaseTest {
     }
 
     private void basicInsertTest(String ref, String alt, int loc, Cigar cigar, String hap, String newHap) {
-        final int INDEL_PADDING_BASE = (ref.length() == alt.length() ? 0 : 1);
         final Haplotype h = new Haplotype(hap.getBytes());
         final Allele h1refAllele = Allele.create(ref, true);
         final Allele h1altAllele = Allele.create(alt, false);
+        final ArrayList<Allele> alleles = new ArrayList<Allele>();
+        alleles.add(h1refAllele);
+        alleles.add(h1altAllele);
+        final VariantContext vc = new VariantContextBuilder().alleles(alleles).loc("1", loc, loc + h1refAllele.getBases().length - 1).make();
         h.setAlignmentStartHapwrtRef(0);
         h.setCigar(cigar);
-        final Haplotype h1 = new Haplotype( h.insertAllele(h1refAllele, h1altAllele, loc - INDEL_PADDING_BASE) );
+        final Haplotype h1 = h.insertAllele(vc.getReference(), vc.getAlternateAllele(0), loc);
         final Haplotype h1expected = new Haplotype(newHap.getBytes());
         Assert.assertEquals(h1, h1expected);
     }

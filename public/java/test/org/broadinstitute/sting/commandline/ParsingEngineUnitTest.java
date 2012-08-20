@@ -764,23 +764,6 @@ public class ParsingEngineUnitTest extends BaseTest {
         Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
     }
 
-    @Test
-    public void variantContextBindingArgumentTestVCF3() {
-        final String[] commandLine = new String[] {"-V:vcf3",NON_EXISTANT_FILENAME_VCF};
-
-        parsingEngine.addArgumentSource( VariantContextRodBindingArgProvider.class );
-        parsingEngine.parse( commandLine );
-        parsingEngine.validate();
-
-        VariantContextRodBindingArgProvider argProvider = new VariantContextRodBindingArgProvider();
-        parsingEngine.loadArgumentsIntoObject( argProvider );
-
-        Assert.assertEquals(argProvider.binding.getName(), "binding", "Name isn't set properly");
-        Assert.assertEquals(argProvider.binding.getSource(), NON_EXISTANT_FILENAME_VCF, "Source isn't set to its expected value");
-        Assert.assertEquals(argProvider.binding.getType(), VariantContext.class, "Type isn't set to its expected value");
-        Assert.assertEquals(argProvider.binding.getTags().getPositionalTags().size(), 1, "Tags aren't correctly set");
-    }
-
     private class ListRodBindingArgProvider {
         @Input(fullName = "binding", shortName="V", required=false)
         public List<RodBinding<Feature>> bindings;
@@ -861,8 +844,8 @@ public class ParsingEngineUnitTest extends BaseTest {
         Assert.assertEquals(argProvider.bindings.get(1).getName(), "foo2", "Name isn't set properly");
     }
 
-    private final static String HISEQ_VCF = testDir + "HiSeq.10000.vcf";
-    private final static String TRANCHES_FILE = testDir + "tranches.6.txt";
+    private final static String HISEQ_VCF = privateTestDir + "HiSeq.10000.vcf";
+    private final static String TRANCHES_FILE = privateTestDir + "tranches.6.txt";
 
     @Test
     public void variantContextBindingTestDynamicTyping1() {

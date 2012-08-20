@@ -46,7 +46,7 @@ public class ActiveRegion implements HasGenomeLocation, Comparable<ActiveRegion>
     }
     
     public void hardClipToActiveRegion() {
-        final ArrayList<GATKSAMRecord> clippedReads = ReadClipper.hardClipToRegion( reads, activeRegionLoc.getStart(), activeRegionLoc.getStop() );
+        final ArrayList<GATKSAMRecord> clippedReads = ReadClipper.hardClipToRegion( reads, extendedLoc.getStart(), extendedLoc.getStop() );
         reads.clear();
         reads.addAll(clippedReads);
     }
@@ -58,9 +58,9 @@ public class ActiveRegion implements HasGenomeLocation, Comparable<ActiveRegion>
     }
 
     public byte[] getActiveRegionReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
-        return referenceReader.getSubsequenceAt( activeRegionLoc.getContig(),
-                Math.max(1, activeRegionLoc.getStart() - padding),
-                Math.min(referenceReader.getSequenceDictionary().getSequence(activeRegionLoc.getContig()).getSequenceLength(), activeRegionLoc.getStop() + padding) ).getBases();
+        return referenceReader.getSubsequenceAt( extendedLoc.getContig(),
+                Math.max(1, extendedLoc.getStart() - padding),
+                Math.min(referenceReader.getSequenceDictionary().getSequence(extendedLoc.getContig()).getSequenceLength(), extendedLoc.getStop() + padding) ).getBases();
     }
 
     public byte[] getFullReference( final IndexedFastaSequenceFile referenceReader ) {
@@ -90,11 +90,11 @@ public class ActiveRegion implements HasGenomeLocation, Comparable<ActiveRegion>
     public void removeAll( final ArrayList<GATKSAMRecord> readsToRemove ) { reads.removeAll( readsToRemove ); }
 
     public boolean equalExceptReads(final ActiveRegion other) {
-        if ( ! activeRegionLoc.equals(other.activeRegionLoc)) return false;
+        if ( activeRegionLoc.compareTo(other.activeRegionLoc) != 0 ) return false;
         if ( isActive != other.isActive ) return false;
         if ( genomeLocParser != other.genomeLocParser ) return false;
         if ( extension != other.extension ) return false;
-        if ( ! extendedLoc.equals(other.extendedLoc) ) return false;
+        if ( extendedLoc.compareTo(other.extendedLoc) != 0 ) return false;
         return true;
     }
 }

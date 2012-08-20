@@ -4,7 +4,7 @@ import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import org.broadinstitute.sting.gatk.walkers.bqsr.EventType;
+import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -285,7 +285,10 @@ public class ClippingOp {
 
     @Requires({"start <= stop", "start == 0 || stop == read.getReadLength() - 1"})
     private GATKSAMRecord hardClip(GATKSAMRecord read, int start, int stop) {
-        if (start == 0 && stop == read.getReadLength() - 1)
+        final int firstBaseAfterSoftClips = read.getAlignmentStart() - read.getSoftStart();
+        final int lastBaseBeforeSoftClips = read.getSoftEnd() - read.getSoftStart();
+
+        if (start == firstBaseAfterSoftClips && stop == lastBaseBeforeSoftClips)                                        // note that if the read has no soft clips, these constants will be 0 and read length - 1 (beauty of math).
             return GATKSAMRecord.emptyRead(read);
 
 
@@ -309,6 +312,7 @@ public class ClippingOp {
             throw new ReviewedStingException("Where did the clone go?");
         }
 
+        hardClippedRead.resetSoftStartAndEnd();                                                                         // reset the cached soft start and end because they may have changed now that the read was hard clipped. No need to calculate them now. They'll be lazily calculated on the next call to getSoftStart()/End()
         hardClippedRead.setBaseQualities(newQuals);
         hardClippedRead.setReadBases(newBases);
         hardClippedRead.setCigar(cigarShift.cigar);
@@ -534,7 +538,7 @@ public class ClippingOp {
         return 0;
     }
 
-    private class CigarShift {
+    private static class CigarShift {
         private Cigar cigar;
         private int shiftFromStart;
         private int shiftFromEnd;

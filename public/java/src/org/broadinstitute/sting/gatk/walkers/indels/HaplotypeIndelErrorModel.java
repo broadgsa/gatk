@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
 public class HaplotypeIndelErrorModel {
 
@@ -427,8 +428,8 @@ public class HaplotypeIndelErrorModel {
             // for each read/haplotype combination, compute likelihoods, ie -10*log10(Pr(R | Hi))
             // = sum_j(-10*log10(Pr(R_j | Hi) since reads are assumed to be independent
             int j=0;
-            for (Allele a: haplotypesInVC.keySet()) {
-                readLikelihoods[i][j]= computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(a), read);
+            for (Map.Entry<Allele,Haplotype> a: haplotypesInVC.entrySet()) {
+                readLikelihoods[i][j]= computeReadLikelihoodGivenHaplotype(a.getValue(), read);
                 if (DEBUG) {
                     System.out.print(read.getReadName()+" ");
 

@@ -35,8 +35,8 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker;
-import org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker;
+import org.broadinstitute.sting.gatk.walkers.qc.CountLoci;
+import org.broadinstitute.sting.gatk.walkers.qc.CountReads;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -99,7 +99,7 @@ public class GATKWalkerBenchmark extends ReadProcessingBenchmark {
     private enum WalkerType {
         COUNT_READS {
             @Override
-            Walker create() { return new CountReadsWalker(); }
+            Walker create() { return new CountReads(); }
         },
         COUNT_BASES_IN_READ {
             @Override
@@ -108,8 +108,8 @@ public class GATKWalkerBenchmark extends ReadProcessingBenchmark {
         COUNT_LOCI {
             @Override
             Walker create() {
-                CountLociWalker walker = new CountLociWalker();
-                JVMUtils.setFieldValue(JVMUtils.findField(CountLociWalker.class,"out"),walker,System.out);
+                CountLoci walker = new CountLoci();
+                JVMUtils.setFieldValue(JVMUtils.findField(CountLoci.class,"out"),walker,System.out);
                 return walker;
             }
         };

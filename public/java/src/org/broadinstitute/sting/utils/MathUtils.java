@@ -55,7 +55,7 @@ public class MathUtils {
     private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / 0.001;
     private static final double MAX_JACOBIAN_TOLERANCE = 8.0;
     private static final int JACOBIAN_LOG_TABLE_SIZE = (int) (MAX_JACOBIAN_TOLERANCE / JACOBIAN_LOG_TABLE_STEP) + 1;
-    private static final int MAXN = 11000;
+    private static final int MAXN = 50000;
     private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
 
     static {
@@ -207,6 +207,13 @@ public class MathUtils {
         long total = 0;
         for (int v : x)
             total += v;
+        return total;
+    }
+
+    public static int sum(byte[] x) {
+        int total = 0;
+        for (byte v : x)
+            total += (int)v;
         return total;
     }
 
@@ -760,7 +767,7 @@ public class MathUtils {
         for (byte v : vals) {
             sum += v;
         }
-        return (byte) Math.floor(sum / vals.length);
+        return (byte) (sum / vals.length);
     }
 
     public static double averageDouble(List<Double> vals) {
@@ -1037,7 +1044,6 @@ public class MathUtils {
         // the list is assumed *not* to be sorted
 
         final Comparable x = list.get(orderStat);
-        ListIterator iterator = list.listIterator();
         ArrayList lessThanX = new ArrayList();
         ArrayList equalToX = new ArrayList();
         ArrayList greaterThanX = new ArrayList();
@@ -1596,7 +1602,17 @@ public class MathUtils {
             result += v1[k].doubleValue() * v2[k].doubleValue();
 
         return result;
+    }
 
+    public static double dotProduct(double[] v1, double[] v2) {
+        if (v1.length != v2.length)
+            throw new UserException("BUG: vectors v1, v2 of different size in vectorSum()");
+
+        double result = 0.0;
+        for (int k = 0; k < v1.length; k++)
+            result += v1[k] * v2[k];
+
+        return result;
     }
 
     public static double[] vectorLog10(double v1[]) {

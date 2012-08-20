@@ -3,12 +3,12 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFStandardHeaderLines;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -24,19 +24,17 @@ import java.util.Map;
  */
 public class MappingQualityZero extends InfoFieldAnnotation implements StandardAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
             return null;
 
         int mq0 = 0;
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             final AlignmentContext context = sample.getValue();
-            if ( context.hasBasePileup() ) {
-                final ReadBackedPileup pileup = context.getBasePileup();
-                for (PileupElement p : pileup ) {
-                    if ( p.getMappingQual() == 0 )
-                        mq0++;
-                }
+            final ReadBackedPileup pileup = context.getBasePileup();
+            for (PileupElement p : pileup ) {
+                if ( p.getMappingQual() == 0 )
+                    mq0++;
             }
         }
         Map<String, Object> map = new HashMap<String, Object>();
@@ -46,5 +44,7 @@ public class MappingQualityZero extends InfoFieldAnnotation implements StandardA
 
     public List<String> getKeyNames() { return Arrays.asList(VCFConstants.MAPPING_QUALITY_ZERO_KEY); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Integer, "Total Mapping Quality Zero Reads")); }
+    public List<VCFInfoHeaderLine> getDescriptions() {
+        return Arrays.asList(VCFStandardHeaderLines.getInfoLine(getKeyNames().get(0)));
+    }
 }

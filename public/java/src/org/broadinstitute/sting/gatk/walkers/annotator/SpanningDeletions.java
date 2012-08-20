@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
@@ -22,7 +22,7 @@ import java.util.Map;
  */
 public class SpanningDeletions extends InfoFieldAnnotation implements StandardAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
             return null;
 
@@ -35,11 +35,9 @@ public class SpanningDeletions extends InfoFieldAnnotation implements StandardAn
         int depth = 0;
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             AlignmentContext context = sample.getValue();
-            if ( context.hasBasePileup() ) {
-                final ReadBackedPileup pileup = context.getBasePileup();
-                deletions += pileup.getNumberOfDeletions();
-                depth += pileup.getNumberOfElements();
-            }
+            final ReadBackedPileup pileup = context.getBasePileup();
+            deletions += pileup.getNumberOfDeletions();
+            depth += pileup.getNumberOfElements();
         }
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), String.format("%.2f", depth == 0 ? 0.0 : (double)deletions/(double)depth));

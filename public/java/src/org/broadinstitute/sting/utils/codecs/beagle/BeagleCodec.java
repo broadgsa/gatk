@@ -34,30 +34,45 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
- * TODO GUILLERMO DEL ANGEL
+ * Codec for Beagle imputation engine
  *
  * <p>
- * Codec Description
+ * Reads in tabular files with site markers and genotype posteriors, genotypes and phasing that Beagle produced
  * </p>
  *
  * <p>
- * See also: @see <a href="http://vcftools.sourceforge.net/specs.html">VCF specification</a><br>
+ * See also: @see <a href="http://faculty.washington.edu/browning/beagle/beagle.html">BEAGLE home page</a><br>
  * </p>
 
  * </p>
  *
- * <h2>File format example</h2>
+ * <h2>File format example for phased genotypes file</h2>
  * <pre>
- *     line 1
- *     line 2
- *     line 3
+ *     dummy header
+ *      20:60251 T T T T T T
+ *      20:60321 G G G G G G
+ *      20:60467 G G G G G G
  * </pre>
  *
+ * <h2>File format example for genotype posteriors</h2>
+ * <pre>
+ *     marker alleleA alleleB NA07056 NA07056 NA07056
+ *     20:60251 T C 0.9962 0.0038 0 0.99245 0.00755 0 0.99245 0.00755 0
+ *     20:60321 G T 0.98747 0.01253 0 0.99922 0.00078 0 0.99368 0.00632 0
+ *     20:60467 G C 0.97475 0.02525 0 0.98718 0.01282 0 0.98718 0.01282 0
+ * </pre>
+ *
+ * <h2>File format example for r2 file
+ * <pre>
+ *      20:60251        0.747
+ *      20:60321        0.763
+ *      20:60467        0.524
+ * </pre>
+ * </h2>
  * @author Mark DePristo
  * @since 2010
  */
@@ -70,6 +85,7 @@ public class BeagleCodec extends AsciiFeatureCodec<BeagleFeature> implements Ref
     private int markerPosition;
     private ArrayList<String> sampleNames;
     private int expectedTokensPerLine;
+    private final static Set<String> HEADER_IDs = new HashSet<String>(Arrays.asList("marker", "I"));
 
     private static final String delimiterRegex = "\\s+";
 
@@ -180,7 +196,8 @@ public class BeagleCodec extends AsciiFeatureCodec<BeagleFeature> implements Ref
         if (tokens.length != expectedTokensPerLine)
             throw new CodecLineParsingException("Incorrect number of fields in Beagle input on line "+line);
 
-
+        if ( HEADER_IDs.contains(tokens[0]) )
+            return null;
 
         BeagleFeature bglFeature = new BeagleFeature();
 
@@ -232,7 +249,4 @@ public class BeagleCodec extends AsciiFeatureCodec<BeagleFeature> implements Ref
 
         return bglFeature;
     }
-
-    public boolean canDecode(final String potentialInput) { return false; }
-
 }

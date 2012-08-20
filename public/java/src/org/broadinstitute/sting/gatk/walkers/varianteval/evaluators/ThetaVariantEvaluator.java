@@ -41,7 +41,7 @@ public class ThetaVariantEvaluator extends VariantEvaluator {
         ConcurrentMap<String, Integer> alleleCounts = new ConcurrentHashMap<String, Integer>();
 
         int numHetsHere = 0;
-        float numGenosHere = 0;
+        int numGenosHere = 0;
         int numIndsHere = 0;
 
         for (final Genotype genotype : vc.getGenotypes()) {
@@ -56,7 +56,7 @@ public class ThetaVariantEvaluator extends VariantEvaluator {
                 //increment stats for pairwise mismatches
 
                 for (Allele allele : genotype.getAlleles()) {
-                    if (allele.isNonNull() && allele.isCalled()) {
+                    if (allele.isCalled()) {
                         String alleleString = allele.toString();
                         alleleCounts.putIfAbsent(alleleString, 0);
                         alleleCounts.put(alleleString, alleleCounts.get(alleleString) + 1);
@@ -68,7 +68,7 @@ public class ThetaVariantEvaluator extends VariantEvaluator {
             //only if have one called genotype at least
             this.numSites++;
 
-            this.totalHet += numHetsHere / numGenosHere;
+            this.totalHet += numHetsHere / (double)numGenosHere;
 
             //compute based on num sites
             float harmonicFactor = 0;
@@ -79,7 +79,7 @@ public class ThetaVariantEvaluator extends VariantEvaluator {
 
             //now compute pairwise mismatches
             float numPairwise = 0;
-            float numDiffs = 0;
+            int numDiffs = 0;
             for (String allele1 : alleleCounts.keySet()) {
                 int allele1Count = alleleCounts.get(allele1);
 

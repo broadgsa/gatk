@@ -4,12 +4,12 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ActiveRegionBasedAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFStandardHeaderLines;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -38,13 +38,13 @@ import java.util.Map;
  */
 public class DepthOfCoverage extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
             return null;
 
         int depth = 0;
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() )
-            depth += sample.getValue().hasBasePileup() ? sample.getValue().getBasePileup().depthOfCoverage() : 0;
+            depth += sample.getValue().getBasePileup().depthOfCoverage();
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), String.format("%d", depth));
         return map;
@@ -68,5 +68,7 @@ public class DepthOfCoverage extends InfoFieldAnnotation implements StandardAnno
 
     public List<String> getKeyNames() { return Arrays.asList(VCFConstants.DEPTH_KEY); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Integer, "Approximate read depth; some reads may have been filtered")); }
+    public List<VCFInfoHeaderLine> getDescriptions() {
+        return Arrays.asList(VCFStandardHeaderLines.getInfoLine(getKeyNames().get(0)));
+    }
 }

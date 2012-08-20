@@ -90,6 +90,11 @@ public class SAMDataSource {
     private final SAMFileReader.ValidationStringency validationStringency;
 
     /**
+     * Do we want to remove the program records from this data source?
+     */
+    private final boolean removeProgramRecords;
+
+    /**
      * Store BAM indices for each reader present.
      */
     private final Map<SAMReaderID,GATKBAMIndex> bamIndices = new HashMap<SAMReaderID,GATKBAMIndex>();
@@ -200,7 +205,8 @@ public class SAMDataSource {
                 BAQ.QualityMode.DONT_MODIFY,
                 null, // no BAQ
                 null, // no BQSR
-                (byte) -1);
+                (byte) -1,
+                false);
     }
 
     /**
@@ -233,7 +239,8 @@ public class SAMDataSource {
             BAQ.QualityMode qmode,
             IndexedFastaSequenceFile refReader,
             BaseRecalibration bqsrApplier,
-            byte defaultBaseQualities) {
+            byte defaultBaseQualities,
+            boolean removeProgramRecords) {
         this.readMetrics = new ReadMetrics();
         this.genomeLocParser = genomeLocParser;
 
@@ -249,6 +256,7 @@ public class SAMDataSource {
             dispatcher = null;
 
         validationStringency = strictness;
+        this.removeProgramRecords = removeProgramRecords;
         if(readBufferSize != null)
             ReadShard.setReadBufferSize(readBufferSize);
         else {
@@ -664,12 +672,12 @@ public class SAMDataSource {
                                                         IndexedFastaSequenceFile refReader,
                                                         BaseRecalibration bqsrApplier,
                                                         byte defaultBaseQualities) {
-        if (useOriginalBaseQualities || defaultBaseQualities >= 0)
-            // only wrap if we are replacing the original qualities or using a default base quality
-            wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
 
-        // NOTE: this (and other filtering) should be done before on-the-fly sorting
-        //  as there is no reason to sort something that we will end of throwing away
+        // *********************************************************************************** //
+        // *  NOTE: ALL FILTERING SHOULD BE DONE BEFORE ANY ITERATORS THAT MODIFY THE READS! * //
+        // *     (otherwise we will process something that we may end up throwing away)      * //
+        // *********************************************************************************** //
+
         if (downsamplingFraction != null)
             wrappedIterator = new DownsampleIterator(wrappedIterator, downsamplingFraction);
 
@@ -678,13 +686,17 @@ public class SAMDataSource {
         if (!noValidationOfReadOrder && enableVerification)
             wrappedIterator = new VerifyingSamIterator(genomeLocParser,wrappedIterator);
 
+        wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
+
+        if (useOriginalBaseQualities || defaultBaseQualities >= 0)
+            // only wrap if we are replacing the original qualities or using a default base quality
+            wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
+
         if (bqsrApplier != null)
             wrappedIterator = new BQSRSamIterator(wrappedIterator, bqsrApplier);
 
         if (cmode != BAQ.CalculationMode.OFF)
             wrappedIterator = new BAQSamIterator(refReader, wrappedIterator, cmode, qmode);
-
-        wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
 
         return wrappedIterator;
     }
@@ -744,7 +756,7 @@ public class SAMDataSource {
         private synchronized void createNewResource() {
             if(allResources.size() > maxEntries)
                 throw new ReviewedStingException("Cannot create a new resource pool.  All resources are in use.");
-            SAMReaders readers = new SAMReaders(readerIDs, validationStringency);
+            SAMReaders readers = new SAMReaders(readerIDs, validationStringency, removeProgramRecords);
             allResources.add(readers);
             availableResources.add(readers);
         }
@@ -773,9 +785,11 @@ public class SAMDataSource {
         /**
          * Derive a new set of readers from the Reads metadata.
          * @param readerIDs reads to load.
+         * TODO: validationStringency is not used here
          * @param validationStringency validation stringency.
+         * @param removeProgramRecords indicate whether to clear program records from the readers
          */
-        public SAMReaders(Collection<SAMReaderID> readerIDs, SAMFileReader.ValidationStringency validationStringency) {
+        public SAMReaders(Collection<SAMReaderID> readerIDs, SAMFileReader.ValidationStringency validationStringency, boolean removeProgramRecords) {
             final int totalNumberOfFiles = readerIDs.size();
             int readerNumber = 1;
             final SimpleTimer timer = new SimpleTimer().start();
@@ -786,6 +800,9 @@ public class SAMDataSource {
             long lastTick = timer.currentTime();
             for(final SAMReaderID readerID: readerIDs) {
                 final ReaderInitializer init = new ReaderInitializer(readerID).call();
+                if (removeProgramRecords) {
+                    init.reader.getFileHeader().setProgramRecords(new ArrayList<SAMProgramRecord>());
+                }
                 if (threadAllocation.getNumIOThreads() > 0) {
                     inputStreams.put(init.readerID, init.blockInputStream); // get from initializer
                 }

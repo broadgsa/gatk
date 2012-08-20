@@ -1,22 +1,21 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.R.RScriptExecutorException;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.*;
@@ -27,6 +26,7 @@ import java.util.*;
  * work efficiently on large VCFs (or at least give a progress bar). This
  * produces a binary ped file in individual major mode.
  */
+@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
 public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
@@ -92,7 +92,6 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         // write to the fam file, the first six columns of the standard ped file
         // first, load data from the input meta data file
         Map<String,Map<String,String>> metaValues = new HashMap<String,Map<String,String>>();
-        Set<String> samplesToUse = new HashSet<String>();
         logger.debug("Reading in metadata...");
         try {
             if ( metaDataFile.getAbsolutePath().endsWith(".fam") ) {
@@ -271,6 +270,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                     inStream.read(readGenotypes);
                     outBed.write(readGenotypes);
                 }
+                inStream.close();
             } catch (IOException e) {
                 throw new ReviewedStingException("Error reading form temp file for input.",e);
             }
@@ -288,8 +288,8 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
 
     private byte getStandardEncoding(Genotype g, int offset) {
         byte b;
-        if ( g.hasAttribute(VCFConstants.GENOTYPE_QUALITY_KEY) && ((Integer) g.getAttribute(VCFConstants.GENOTYPE_QUALITY_KEY)) < minGenotypeQuality ) {
-            b = NO_CALL;
+        if ( g.hasGQ() && g.getGQ() < minGenotypeQuality ) {
+                b = NO_CALL;
         } else if ( g.isHomRef() ) {
             b = HOM_REF;
         } else if ( g.isHomVar() ) {
@@ -305,7 +305,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
 
     private byte getFlippedEncoding(Genotype g, int offset) {
         byte b;
-        if ( g.hasAttribute(VCFConstants.GENOTYPE_QUALITY_KEY) && ((Integer) g.getAttribute(VCFConstants.GENOTYPE_QUALITY_KEY)) < minGenotypeQuality ) {
+        if ( g.hasGQ() && g.getGQ() < minGenotypeQuality ) {
             b = NO_CALL;
         } else if ( g.isHomRef() ) {
             b = HOM_VAR;

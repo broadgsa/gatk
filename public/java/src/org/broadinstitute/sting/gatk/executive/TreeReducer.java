@@ -66,21 +66,27 @@ public class TreeReducer implements Callable {
      * @return Result of the reduce.
      */
     public Object call() {
-        Object result = null;
+        Object result;
 
         final long startTime = System.currentTimeMillis();
 
         try {
             if( lhs == null )
-                result = lhs.get();
+                result = null;
                 // todo -- what the hell is this above line?  Shouldn't it be the two below?
 //            if( lhs == null )
 //                throw new IllegalStateException(String.format("Insufficient data on which to reduce; lhs = %s, rhs = %s", lhs, rhs) );
             else
                 result = walker.treeReduce( lhs.get(), rhs.get() );
         }
-        catch( InterruptedException ex ) { microScheduler.handleException(ex); }
-        catch( ExecutionException ex ) { microScheduler.handleException(ex); }
+        catch( InterruptedException ex ) {
+            microScheduler.notifyOfTraversalError(ex);
+            throw new ReviewedStingException("Hierarchical reduce interrupted", ex);
+        }
+        catch( ExecutionException ex ) {
+            microScheduler.notifyOfTraversalError(ex);
+            throw new ReviewedStingException("Hierarchical reduce failed", ex);
+        }
 
         final long endTime = System.currentTimeMillis();
 

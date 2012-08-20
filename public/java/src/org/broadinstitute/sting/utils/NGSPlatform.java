@@ -81,6 +81,7 @@ public enum NGSPlatform {
      * @return an NGSPlatform object matching the PL field of the header, of UNKNOWN if there was no match
      */
     public static final NGSPlatform fromReadGroup(SAMReadGroupRecord rg) {
+        if ( rg == null ) return UNKNOWN;
         return fromReadGroupPL(rg.getPlatform());
     }
 

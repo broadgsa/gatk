@@ -35,8 +35,8 @@ import java.util.Arrays;
 public class GATKKeyIntegrationTest extends WalkerTest {
 
     public static final String BASE_COMMAND = String.format("-T PrintReads -R %s -I %s -o %%s",
-                                                            testDir + "exampleFASTA.fasta",
-                                                            testDir + "exampleBAM.bam");
+                                                            publicTestDir + "exampleFASTA.fasta",
+                                                            publicTestDir + "exampleBAM.bam");
     public static final String MD5_UPON_SUCCESSFUL_RUN = "b9dc5bf6753ca2819e70b056eaf61258";
 
 

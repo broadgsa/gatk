@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -34,6 +35,8 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
@@ -80,6 +83,7 @@ import java.util.*;
  * </pre>
  *
  */
+@DocumentedGATKFeature( groupName = "Validation Utilities", extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=0,stop=40))
 public class VariantValidationAssessor extends RodWalker<VariantContext,Integer> {
 
@@ -87,7 +91,7 @@ public class VariantValidationAssessor extends RodWalker<VariantContext,Integer>
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Output(doc="File to which variants should be written",required=true)
-    protected VCFWriter vcfwriter = null;
+    protected VariantContextWriter vcfwriter = null;
 
     @Argument(fullName="maxHardy", doc="Maximum phred-scaled Hardy-Weinberg violation pvalue to consider an assay valid", required=false)
     protected double maxHardy = 20.0;
@@ -169,8 +173,8 @@ public class VariantValidationAssessor extends RodWalker<VariantContext,Integer>
         hInfo.add(new VCFInfoHeaderLine("HetPct", 1, VCFHeaderLineType.Float, "Percent of heterozygous genotypes"));
         hInfo.add(new VCFInfoHeaderLine("HomVarPct", 1, VCFHeaderLineType.Float, "Percent homozygous variant genotypes"));
         hInfo.add(new VCFInfoHeaderLine("HW", 1, VCFHeaderLineType.Float, "Phred-scaled Hardy-Weinberg violation p-value"));
-        hInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_COUNT_KEY, 1, VCFHeaderLineType.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
-        hInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_NUMBER_KEY, 1, VCFHeaderLineType.Integer, "Total number of alleles in called genotypes"));
+        hInfo.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_COUNT_KEY));
+        hInfo.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_NUMBER_KEY));
         hInfo.add(new VCFFilterHeaderLine("HardyWeinbergViolation", "The validation is in Hardy-Weinberg violation"));
         hInfo.add(new VCFFilterHeaderLine("HighNoCallRate", "The validation no-call rate is too high"));
         hInfo.add(new VCFFilterHeaderLine("TooManyHomVars", "The validation homozygous variant rate is too high"));

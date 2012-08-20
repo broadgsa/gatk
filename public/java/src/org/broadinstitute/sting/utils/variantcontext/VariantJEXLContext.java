@@ -192,8 +192,8 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
                 infoMap.put("isHomRef", g.isHomRef() ? "1" : "0");
                 infoMap.put("isHet", g.isHet() ? "1" : "0");
                 infoMap.put("isHomVar", g.isHomVar() ? "1" : "0");
-                infoMap.put(VCFConstants.GENOTYPE_QUALITY_KEY, new Double(g.getPhredScaledQual()));
-                for ( Map.Entry<String, Object> e : g.getAttributes().entrySet() ) {
+                infoMap.put(VCFConstants.GENOTYPE_QUALITY_KEY, g.getGQ());
+                for ( Map.Entry<String, Object> e : g.getExtendedAttributes().entrySet() ) {
                     if ( e.getValue() != null && !e.getValue().equals(VCFConstants.MISSING_VALUE_v4) )
                         infoMap.put(e.getKey(), e.getValue());
                 }
@@ -264,9 +264,16 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
         // if the context is null, we need to create it to evaluate the JEXL expression
         if (this.jContext == null) createContext();
         try {
-            jexl.put (exp, (Boolean) exp.exp.evaluate(jContext));
+            final Boolean value = (Boolean) exp.exp.evaluate(jContext);
+            // treat errors as no match
+            jexl.put(exp, value == null ? false : value);
         } catch (Exception e) {
-            throw new UserException.CommandLineException(String.format("Invalid JEXL expression detected for %s with message %s", exp.name, e.getMessage()));
+            // if exception happens because variable is undefined (i.e. field in expression is not present), evaluate to FALSE
+            // todo - might be safer if we explicitly checked for an exception type, but Apache's API doesn't seem to have that ability
+            if (e.getMessage().contains("undefined variable"))
+                jexl.put(exp,false);
+            else
+                throw new UserException.CommandLineException(String.format("Invalid JEXL expression detected for %s with message %s", exp.name, e.getMessage()));
         }
     }
 

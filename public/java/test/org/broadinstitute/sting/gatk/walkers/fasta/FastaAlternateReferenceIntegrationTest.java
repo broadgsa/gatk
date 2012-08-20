@@ -26,7 +26,7 @@ public class FastaAlternateReferenceIntegrationTest extends WalkerTest {
         WalkerTestSpec spec2 = new WalkerTestSpec(
                 "-T FastaAlternateReferenceMaker -R " + b36KGReference + " -V " + validationDataLocation + "NA12878.chr1_10mb_11mb.slx.indels.vcf4 --snpmask:vcf " + b36dbSNP129 + " -L 1:10,075,000-10,075,380 -L 1:10,093,447-10,093,847 -L 1:10,271,252-10,271,452 -o %s",
                  1,
-                 Arrays.asList("0567b32ebdc26604ddf2a390de4579ac"));
+                 Arrays.asList("ef481be9962e21d09847b8a1d4a4ff65"));
         executeTest("testFastaAlternateReferenceIndels", spec2);
 
         WalkerTestSpec spec3 = new WalkerTestSpec(

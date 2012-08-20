@@ -29,6 +29,7 @@ import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.recalibration.RecalUtils;
 
 import java.io.File;
 import java.util.Collections;
@@ -71,16 +72,19 @@ public class RecalibrationArgumentCollection {
     public boolean LIST_ONLY = false;
 
     /**
-     * Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are required covariates and are already added for you. See the list of covariates with -list.
+     * Note that the ReadGroup and QualityScore covariates are required and do not need to be specified.
+     * Also, unless --no_standard_covs is specified, the Cycle and Context covariates are standard and are included by default.
+     * Use the --list argument to see the available covariates.
      */
-    @Argument(fullName = "covariate", shortName = "cov", doc = "Covariates to be used in the recalibration. Each covariate is given as a separate cov parameter. ReadGroup and ReportedQuality are required covariates and are already added for you.", required = false)
+    @Argument(fullName = "covariate", shortName = "cov", doc = "One or more covariates to be used in the recalibration. Can be specified multiple times", required = false)
     public String[] COVARIATES = null;
 
     /*
-     * Use the standard set of covariates in addition to the ones listed using the -cov argument
+     * The Cycle and Context covariates are standard and are included by default unless this argument is provided.
+     * Note that the ReadGroup and QualityScore covariates are required and cannot be excluded.
      */
-    @Argument(fullName = "standard_covs", shortName = "standard", doc = "Use the standard set of covariates in addition to the ones listed using the -cov argument", required = false)
-    public boolean USE_STANDARD_COVARIATES = true;
+    @Argument(fullName = "no_standard_covs", shortName = "noStandard", doc = "Do not use the standard set of covariates, but rather just the ones listed using the -cov argument", required = false)
+    public boolean DO_NOT_USE_STANDARD_COVARIATES = false;
 
     /////////////////////////////
     // Debugging-only Arguments
@@ -97,7 +101,7 @@ public class RecalibrationArgumentCollection {
      * reads which have had the reference inserted because of color space inconsistencies.
      */
     @Argument(fullName = "solid_recal_mode", shortName = "sMode", required = false, doc = "How should we recalibrate solid bases in which the reference was inserted? Options = DO_NOTHING, SET_Q_ZERO, SET_Q_ZERO_BASE_N, or REMOVE_REF_BIAS")
-    public RecalDataManager.SOLID_RECAL_MODE SOLID_RECAL_MODE = RecalDataManager.SOLID_RECAL_MODE.SET_Q_ZERO;
+    public RecalUtils.SOLID_RECAL_MODE SOLID_RECAL_MODE = RecalUtils.SOLID_RECAL_MODE.SET_Q_ZERO;
 
     /**
      * CountCovariates and TableRecalibration accept a --solid_nocall_strategy <MODE> flag which governs how the recalibrator handles
@@ -105,7 +109,7 @@ public class RecalibrationArgumentCollection {
      * their color space tag can not be recalibrated.
      */
     @Argument(fullName = "solid_nocall_strategy", shortName = "solid_nocall_strategy", doc = "Defines the behavior of the recalibrator when it encounters no calls in the color space. Options = THROW_EXCEPTION, LEAVE_READ_UNRECALIBRATED, or PURGE_READ", required = false)
-    public RecalDataManager.SOLID_NOCALL_STRATEGY SOLID_NOCALL_STRATEGY = RecalDataManager.SOLID_NOCALL_STRATEGY.THROW_EXCEPTION;
+    public RecalUtils.SOLID_NOCALL_STRATEGY SOLID_NOCALL_STRATEGY = RecalUtils.SOLID_NOCALL_STRATEGY.THROW_EXCEPTION;
 
     /**
      * The context covariate will use a context of this size to calculate it's covariate value for base mismatches
@@ -114,16 +118,10 @@ public class RecalibrationArgumentCollection {
     public int MISMATCHES_CONTEXT_SIZE = 2;
 
     /**
-     * The context covariate will use a context of this size to calculate it's covariate value for base insertions
+     * The context covariate will use a context of this size to calculate it's covariate value for base insertions and deletions
      */
-    @Argument(fullName = "insertions_context_size", shortName = "ics", doc = "size of the k-mer context to be used for base insertions", required = false)
-    public int INSERTIONS_CONTEXT_SIZE = 8;
-
-    /**
-     * The context covariate will use a context of this size to calculate it's covariate value for base deletions
-     */
-    @Argument(fullName = "deletions_context_size", shortName = "dcs", doc = "size of the k-mer context to be used for base deletions", required = false)
-    public int DELETIONS_CONTEXT_SIZE = 8;
+    @Argument(fullName = "indels_context_size", shortName = "ics", doc = "size of the k-mer context to be used for base insertions and deletions", required = false)
+    public int INDELS_CONTEXT_SIZE = 3;
 
     /**
      * A default base qualities to use as a prior (reported quality) in the mismatch covariate model. This value will replace all base qualities in the read for this default value. Negative value turns it off (default is off)
@@ -156,6 +154,11 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "quantizing_levels", shortName = "ql", required = false, doc = "number of distinct quality scores in the quantized output")
     public int QUANTIZING_LEVELS = 16;
 
+    /**
+     * The tag name for the binary tag covariate (if using it)
+     */
+    @Argument(fullName = "binary_tag_name", shortName = "bintag", required = false, doc = "the binary tag covariate name if using it")
+    public String BINARY_TAG_NAME = null;
 
     @Hidden
     @Argument(fullName = "default_platform", shortName = "dP", required = false, doc = "If a read has no platform then default to the provided String. Valid options are illumina, 454, and solid.")
@@ -172,27 +175,44 @@ public class RecalibrationArgumentCollection {
 
     public File recalibrationReport = null;
 
-    public GATKReportTable generateReportTable() {
-        GATKReportTable argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run");
-        argumentsTable.addPrimaryKey("Argument");
-        argumentsTable.addColumn(RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, "null");
-        argumentsTable.set("covariate", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, (COVARIATES == null) ? "null" : Utils.join(",", COVARIATES));
-        argumentsTable.set("standard_covs", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, USE_STANDARD_COVARIATES);
-        argumentsTable.set("run_without_dbsnp", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, RUN_WITHOUT_DBSNP);
-        argumentsTable.set("solid_recal_mode", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, SOLID_RECAL_MODE);
-        argumentsTable.set("solid_nocall_strategy", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, SOLID_NOCALL_STRATEGY);
-        argumentsTable.set("mismatches_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_CONTEXT_SIZE);
-        argumentsTable.set("insertions_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, INSERTIONS_CONTEXT_SIZE);
-        argumentsTable.set("deletions_context_size", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, DELETIONS_CONTEXT_SIZE);
-        argumentsTable.set("mismatches_default_quality", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_DEFAULT_QUALITY);
-        argumentsTable.set("insertions_default_quality", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, INSERTIONS_DEFAULT_QUALITY);
-        argumentsTable.set("low_quality_tail", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, LOW_QUAL_TAIL);
-        argumentsTable.set("default_platform", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, DEFAULT_PLATFORM);
-        argumentsTable.set("force_platform", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, FORCE_PLATFORM);
-        argumentsTable.set("quantizing_levels", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, QUANTIZING_LEVELS);
-        argumentsTable.set("keep_intermediate_files", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, KEEP_INTERMEDIATE_FILES);
-        argumentsTable.set("no_plots", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, NO_PLOTS);
-        argumentsTable.set("recalibration_report", RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME, recalibrationReport == null ? "null" : recalibrationReport.getAbsolutePath());
+    public GATKReportTable generateReportTable(final String covariateNames) {
+        GATKReportTable argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run", 2);
+        argumentsTable.addColumn("Argument");
+        argumentsTable.addColumn(RecalUtils.ARGUMENT_VALUE_COLUMN_NAME);
+        argumentsTable.addRowID("covariate", true);
+        argumentsTable.set("covariate", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, covariateNames);
+        argumentsTable.addRowID("no_standard_covs", true);
+        argumentsTable.set("no_standard_covs", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, DO_NOT_USE_STANDARD_COVARIATES);
+        argumentsTable.addRowID("run_without_dbsnp", true);
+        argumentsTable.set("run_without_dbsnp", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, RUN_WITHOUT_DBSNP);
+        argumentsTable.addRowID("solid_recal_mode", true);
+        argumentsTable.set("solid_recal_mode", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, SOLID_RECAL_MODE);
+        argumentsTable.addRowID("solid_nocall_strategy", true);
+        argumentsTable.set("solid_nocall_strategy", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, SOLID_NOCALL_STRATEGY);
+        argumentsTable.addRowID("mismatches_context_size", true);
+        argumentsTable.set("mismatches_context_size", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_CONTEXT_SIZE);
+        argumentsTable.addRowID("indels_context_size", true);
+        argumentsTable.set("indels_context_size", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, INDELS_CONTEXT_SIZE);
+        argumentsTable.addRowID("mismatches_default_quality", true);
+        argumentsTable.set("mismatches_default_quality", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, MISMATCHES_DEFAULT_QUALITY);
+        argumentsTable.addRowID("insertions_default_quality", true);
+        argumentsTable.set("insertions_default_quality", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, INSERTIONS_DEFAULT_QUALITY);
+        argumentsTable.addRowID("low_quality_tail", true);
+        argumentsTable.set("low_quality_tail", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, LOW_QUAL_TAIL);
+        argumentsTable.addRowID("default_platform", true);
+        argumentsTable.set("default_platform", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, DEFAULT_PLATFORM);
+        argumentsTable.addRowID("force_platform", true);
+        argumentsTable.set("force_platform", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, FORCE_PLATFORM);
+        argumentsTable.addRowID("quantizing_levels", true);
+        argumentsTable.set("quantizing_levels", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, QUANTIZING_LEVELS);
+        argumentsTable.addRowID("keep_intermediate_files", true);
+        argumentsTable.set("keep_intermediate_files", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, KEEP_INTERMEDIATE_FILES);
+        argumentsTable.addRowID("no_plots", true);
+        argumentsTable.set("no_plots", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, NO_PLOTS);
+        argumentsTable.addRowID("recalibration_report", true);
+        argumentsTable.set("recalibration_report", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, recalibrationReport == null ? "null" : recalibrationReport.getAbsolutePath());
+        argumentsTable.addRowID("binary_tag_name", true);
+        argumentsTable.set("binary_tag_name", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, BINARY_TAG_NAME == null ? "null" : BINARY_TAG_NAME);
         return argumentsTable;
     }
 

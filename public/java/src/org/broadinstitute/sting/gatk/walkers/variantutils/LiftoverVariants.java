@@ -28,7 +28,10 @@ import net.sf.picard.liftover.LiftOver;
 import net.sf.picard.util.Interval;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
-import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.ArgumentCollection;
+import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -37,9 +40,12 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.util.*;
@@ -47,6 +53,7 @@ import java.util.*;
 /**
  * Lifts a VCF file over from one build to another.  Note that the resulting VCF could be mis-sorted.
  */
+@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
 public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
     @ArgumentCollection
@@ -54,7 +61,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
     @Output(doc="File to which variants should be written",required=true)
     protected File file = null;
-    protected StandardVCFWriter writer = null;
+    protected VariantContextWriter writer = null;
 
     @Argument(fullName="chain", shortName="chain", doc="Chain file", required=true)
     protected File CHAIN = null;
@@ -91,7 +98,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
         Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
         if ( vcfHeaders.containsKey(trackName) )
-            metaData.addAll(vcfHeaders.get(trackName).getMetaData());
+            metaData.addAll(vcfHeaders.get(trackName).getMetaDataInSortedOrder());
         if ( RECORD_ORIGINAL_LOCATION ) {
             metaData.add(new VCFInfoHeaderLine("OriginalChr", 1, VCFHeaderLineType.String, "Original contig name for the record"));
             metaData.add(new VCFInfoHeaderLine("OriginalStart", 1, VCFHeaderLineType.Integer, "Original start position for the record"));
@@ -99,7 +106,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
 
         final VCFHeader vcfHeader = new VCFHeader(metaData, samples);
-        writer = new StandardVCFWriter(file, getMasterSequenceDictionary(), false);
+        writer = VariantContextWriterFactory.create(file, getMasterSequenceDictionary(), VariantContextWriterFactory.NO_OPTIONS);
         writer.writeHeader(vcfHeader);
     }
 
@@ -112,7 +119,6 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
         if ( toInterval != null ) {
             // check whether the strand flips, and if so reverse complement everything
-            // TODO -- make this work for indels (difficult because the 'previous base' context needed will be changing based on indel type/size)
             if ( fromInterval.isPositiveStrand() != toInterval.isPositiveStrand() && vc.isPointEvent() ) {
                 vc = VariantContextUtils.reverseComplement(vc);
             }
@@ -125,11 +131,10 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
                         .attribute("OriginalStart", fromInterval.getStart()).make();
             }
 
-            VariantContext newVC = VariantContextUtils.createVariantContextWithPaddedAlleles(vc, false);
-            if ( originalVC.isSNP() && originalVC.isBiallelic() && VariantContextUtils.getSNPSubstitutionType(originalVC) != VariantContextUtils.getSNPSubstitutionType(newVC) ) {
+            if ( originalVC.isSNP() && originalVC.isBiallelic() && VariantContextUtils.getSNPSubstitutionType(originalVC) != VariantContextUtils.getSNPSubstitutionType(vc) ) {
                 logger.warn(String.format("VCF at %s / %d => %s / %d is switching substitution type %s/%s to %s/%s",
-                        originalVC.getChr(), originalVC.getStart(), newVC.getChr(), newVC.getStart(),
-                        originalVC.getReference(), originalVC.getAlternateAllele(0), newVC.getReference(), newVC.getAlternateAllele(0)));
+                        originalVC.getChr(), originalVC.getStart(), vc.getChr(), vc.getStart(),
+                        originalVC.getReference(), originalVC.getAlternateAllele(0), vc.getReference(), vc.getAlternateAllele(0)));
             }
 
             writer.add(vc);

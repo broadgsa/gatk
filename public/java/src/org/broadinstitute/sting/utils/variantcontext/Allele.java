@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
-import java.util.ArrayList;
+import org.broadinstitute.sting.utils.BaseUtils;
+
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Immutable representation of an allele
@@ -77,32 +77,36 @@ public class Allele implements Comparable<Allele> {
     private static final byte[] EMPTY_ALLELE_BASES = new byte[0];
 
     private boolean isRef = false;
-    private boolean isNull = false;
     private boolean isNoCall = false;
     private boolean isSymbolic = false;
 
     private byte[] bases = null;
 
-    public final static String NULL_ALLELE_STRING = "-";
     public final static String NO_CALL_STRING = ".";
     /** A generic static NO_CALL allele for use */
 
     // no public way to create an allele
     private Allele(byte[] bases, boolean isRef) {
-        // standardize our representation of null allele and bases
+        // null alleles are no longer allowed
         if ( wouldBeNullAllele(bases) ) {
-            bases = EMPTY_ALLELE_BASES;
-            isNull = true;
-        } else if ( wouldBeNoCallAllele(bases) ) {
-            bases = EMPTY_ALLELE_BASES;
+            throw new IllegalArgumentException("Null alleles are not supported");
+        }
+
+        // no-calls are represented as no bases
+        if ( wouldBeNoCallAllele(bases) ) {
+            this.bases = EMPTY_ALLELE_BASES;
             isNoCall = true;
             if ( isRef ) throw new IllegalArgumentException("Cannot tag a NoCall allele as the reference allele");
-        } else if ( wouldBeSymbolicAllele(bases) ) {
+            return;
+        }
+
+        if ( wouldBeSymbolicAllele(bases) ) {
             isSymbolic = true;
             if ( isRef ) throw new IllegalArgumentException("Cannot tag a symbolic allele as the reference allele");
         }
-//        else
-//            bases = new String(bases).toUpperCase().getBytes(); // todo -- slow performance
+        else {
+            bases = BaseUtils.convertToUpperCase(bases);
+        }
 
         this.isRef = isRef;
         this.bases = bases;
@@ -126,8 +130,6 @@ public class Allele implements Comparable<Allele> {
     private final static Allele ALT_T = new Allele("T", false);
     private final static Allele REF_N = new Allele("N", true);
     private final static Allele ALT_N = new Allele("N", false);
-    private final static Allele REF_NULL = new Allele(NULL_ALLELE_STRING, true);
-    private final static Allele ALT_NULL = new Allele(NULL_ALLELE_STRING, false);
     public final static Allele NO_CALL = new Allele(NO_CALL_STRING, false);
 
     // ---------------------------------------------------------------------------------------------------------
@@ -154,13 +156,12 @@ public class Allele implements Comparable<Allele> {
                 case '.':
                     if ( isRef ) throw new IllegalArgumentException("Cannot tag a NoCall allele as the reference allele");
                     return NO_CALL;
-                case '-': return isRef ? REF_NULL : ALT_NULL;
                 case 'A': case 'a' : return isRef ? REF_A : ALT_A;
                 case 'C': case 'c' : return isRef ? REF_C : ALT_C;
                 case 'G': case 'g' : return isRef ? REF_G : ALT_G;
                 case 'T': case 't' : return isRef ? REF_T : ALT_T;
                 case 'N': case 'n' : return isRef ? REF_N : ALT_N;
-                default: throw new IllegalArgumentException("Illegal base: " + (char)bases[0]);
+                default: throw new IllegalArgumentException("Illegal base [" + (char)bases[0] + "] seen in the allele");
             }
         } else {
             return new Allele(bases, isRef);
@@ -179,14 +180,9 @@ public class Allele implements Comparable<Allele> {
     public static Allele extend(Allele left, byte[] right) {
         if (left.isSymbolic())
             throw new IllegalArgumentException("Cannot extend a symbolic allele");
-        byte[] bases = null;
-        if ( left.length() == 0 )
-            bases = right;
-        else {
-            bases = new byte[left.length() + right.length];
-            System.arraycopy(left.getBases(), 0, bases, 0, left.length());
-            System.arraycopy(right, 0, bases, left.length(), right.length);
-        }
+        byte[] bases = new byte[left.length() + right.length];
+        System.arraycopy(left.getBases(), 0, bases, 0, left.length());
+        System.arraycopy(right, 0, bases, left.length(), right.length);
 
         return create(bases, left.isReference());
     }
@@ -226,7 +222,11 @@ public class Allele implements Comparable<Allele> {
      * @return true if the bases represent the well formatted allele
      */
     public static boolean acceptableAlleleBases(String bases) {
-        return acceptableAlleleBases(bases.getBytes());
+        return acceptableAlleleBases(bases.getBytes(), true);
+    }
+
+    public static boolean acceptableAlleleBases(String bases, boolean allowNsAsAcceptable) {
+        return acceptableAlleleBases(bases.getBytes(), allowNsAsAcceptable);
     }
 
     /**
@@ -234,13 +234,25 @@ public class Allele implements Comparable<Allele> {
      * @return true if the bases represent the well formatted allele
      */
     public static boolean acceptableAlleleBases(byte[] bases) {
-        if ( wouldBeNullAllele(bases) || wouldBeNoCallAllele(bases) || wouldBeSymbolicAllele(bases) )
+        return acceptableAlleleBases(bases, true); // default: N bases are acceptable
+    }
+    
+    public static boolean acceptableAlleleBases(byte[] bases, boolean allowNsAsAcceptable) {
+        if ( wouldBeNullAllele(bases) )
+            return false;
+
+        if ( wouldBeNoCallAllele(bases) || wouldBeSymbolicAllele(bases) )
             return true;
 
-        for ( int i = 0; i < bases.length; i++ ) {
-            switch (bases[i]) {
-                case 'A': case 'C': case 'G': case 'T': case 'N' : case 'a': case 'c': case 'g': case 't': case 'n' :
+        for (byte base :  bases ) {
+            switch (base) {
+                case 'A': case 'C': case 'G': case 'T':  case 'a': case 'c': case 'g': case 't': 
                     break;
+                case 'N' : case 'n' :
+                    if (allowNsAsAcceptable)
+                        break;
+                    else
+                        return false;
                 default:
                     return false;
             }
@@ -286,11 +298,6 @@ public class Allele implements Comparable<Allele> {
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    //Returns true if this is the null allele
-    public boolean isNull()             { return isNull; }
-    // Returns true if this is not the null allele
-    public boolean isNonNull()          { return ! isNull(); }
-
     // Returns true if this is the NO_CALL allele
     public boolean isNoCall()           { return isNoCall; }
     // Returns true if this is not the NO_CALL allele
@@ -306,7 +313,7 @@ public class Allele implements Comparable<Allele> {
 
     // Returns a nice string representation of this object
     public String toString() {
-        return (isNull() ? NULL_ALLELE_STRING : ( isNoCall() ? NO_CALL_STRING : getDisplayString() )) + (isReference() ? "*" : "");
+        return ( isNoCall() ? NO_CALL_STRING : getDisplayString() ) + (isReference() ? "*" : "");
     }
 
     /**
@@ -323,7 +330,7 @@ public class Allele implements Comparable<Allele> {
      *
      * @return the segregating bases
      */
-    public String getBaseString() { return new String(getBases()); }
+    public String getBaseString() { return isNoCall() ? NO_CALL_STRING : new String(getBases()); }
 
     /**
      * Return the printed representation of this allele.
@@ -333,6 +340,15 @@ public class Allele implements Comparable<Allele> {
      * @return the allele string representation
      */
     public String getDisplayString() { return new String(bases); }
+
+    /**
+     * Same as #getDisplayString() but returns the result as byte[].
+     *
+     * Slightly faster then getDisplayString()
+     *
+     * @return the allele string representation
+     */
+    public byte[] getDisplayBases() { return bases; }
 
     /**
      * @param other  the other allele
@@ -362,27 +378,27 @@ public class Allele implements Comparable<Allele> {
      * @return true if this and other are equal
      */
     public boolean equals(Allele other, boolean ignoreRefState) {
-        return this == other || (isRef == other.isRef || ignoreRefState) && isNull == other.isNull && isNoCall == other.isNoCall && (bases == other.bases || Arrays.equals(bases, other.bases));
+        return this == other || (isRef == other.isRef || ignoreRefState) && isNoCall == other.isNoCall && (bases == other.bases || Arrays.equals(bases, other.bases));
     }
 
     /**
      * @param test  bases to test against
      *
-     * @return  true if this Alelle contains the same bases as test, regardless of its reference status; handles Null and NO_CALL alleles
+     * @return  true if this Allele contains the same bases as test, regardless of its reference status; handles Null and NO_CALL alleles
      */
     public boolean basesMatch(byte[] test) { return !isSymbolic && (bases == test || Arrays.equals(bases, test)); }
 
     /**
      * @param test  bases to test against
      *
-     * @return  true if this Alelle contains the same bases as test, regardless of its reference status; handles Null and NO_CALL alleles
+     * @return  true if this Allele contains the same bases as test, regardless of its reference status; handles Null and NO_CALL alleles
      */
     public boolean basesMatch(String test) { return basesMatch(test.toUpperCase().getBytes()); }
 
     /**
      * @param test  allele to test against
      *
-     * @return  true if this Alelle contains the same bases as test, regardless of its reference status; handles Null and NO_CALL alleles
+     * @return  true if this Allele contains the same bases as test, regardless of its reference status; handles Null and NO_CALL alleles
      */
     public boolean basesMatch(Allele test) { return basesMatch(test.getBases()); }
 
@@ -399,10 +415,6 @@ public class Allele implements Comparable<Allele> {
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    public static Allele getMatchingAllele(Collection<Allele> allAlleles, String alleleBases) {
-        return getMatchingAllele(allAlleles, alleleBases.getBytes());
-    }
-
     public static Allele getMatchingAllele(Collection<Allele> allAlleles, byte[] alleleBases) {
         for ( Allele a : allAlleles ) {
             if ( a.basesMatch(alleleBases) ) {
@@ -416,26 +428,6 @@ public class Allele implements Comparable<Allele> {
             return null;    // couldn't find anything
     }
 
-    public static List<Allele> resolveAlleles(List<Allele> possibleAlleles, List<String> alleleStrings) {
-        List<Allele> myAlleles = new ArrayList<Allele>(alleleStrings.size());
-
-        for ( String alleleString : alleleStrings ) {
-            Allele allele = getMatchingAllele(possibleAlleles, alleleString);
-
-            if ( allele == null ) {
-                if ( Allele.wouldBeNoCallAllele(alleleString.getBytes()) ) {
-                    allele = create(alleleString);
-                } else {
-                    throw new IllegalArgumentException("Allele " + alleleString + " not present in the list of alleles " + possibleAlleles);
-                }
-            }
-
-            myAlleles.add(allele);
-        }
-
-        return myAlleles;
-    }
-
     public int compareTo(Allele other) {
         if ( isReference() && other.isNonReference() )
             return -1;
@@ -446,9 +438,6 @@ public class Allele implements Comparable<Allele> {
     }
 
     public static boolean oneIsPrefixOfOther(Allele a1, Allele a2) {
-        if ( a1.isNull() || a2.isNull() )
-            return true;
-
         if ( a2.length() >= a1.length() )
             return firstIsPrefixOfSecond(a1, a2);
         else

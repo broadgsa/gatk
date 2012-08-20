@@ -23,60 +23,19 @@
   ~ OTHER DEALINGS IN THE SOFTWARE.
   -->
 
+<!-- The full release of Queue contains both public and protected tools (but nothing from private) -->
 <package name="Queue">
     <version file="StingText.properties" property="org.broadinstitute.sting.queue.version" />
     <executable name="Queue">
         <main-class name="org.broadinstitute.sting.queue.QCommandLine" />
         <resource-bundle file="StingText.properties" />
-        <dependencies>
-            <!-- Queue -->
-            <package name="org.broadinstitute.sting.queue.**" />
-
-            <!-- Pipeline + Utils -->
-            <package name="org.broadinstitute.sting.pipeline.**" />
-            <package name="org.broadinstitute.sting.utils.**" />
-
-            <!-- Scala -->
-            <package name="scala.**" />
-
-            <!-- Picard -->
-            <package name="net.sf.picard.**" />
-            <package name="edu.mit.broad.picard.**" />
-
-            <!-- JavaMail -->
-            <package name="javax.activation.**" />
-            <package name="javax.mail.**" />
-            <package name="com.sun.activation.**" />
-            <package name="com.sun.mail.**" />
-            <file path="META-INF/javamail.charset.map" />
-            <file path="META-INF/javamail.default.address.map" />
-            <file path="META-INF/javamail.default.providers" />
-            <file path="META-INF/mailcap" />
-            <file path="META-INF/mailcap.default" />
-            <file path="META-INF/mimetypes.default" />
-
-            <!-- JNA, including embedded native libraries -->
-            <dir name="com/sun/jna" />
-
-            <!-- Contracts for Java -->
-            <package name="com.google.java.contract.**" />
-
-            <!-- snpEff -->
-            <package name="ca.mcgill.mcb.pcingola.**" />
-            <file path="snpEff_genes.ftl" />
-            <file path="snpEff_summary.ftl" />
-            
-            <!-- R scripts -->
-            <dir name="org/broadinstitute/sting/queue" includes="**/*.R" />
-
-        </dependencies>
         <modules>
+            <module file="QueueEngine.xml"/>
             <module file="GATKEngine.xml"/>
-            <module file="AnalyzeCovariates.xml"/>
         </modules>
     </executable>
     <release>
         <executable directory="/humgen/gsa-hpprojects/Queue/bin" symlink="current" />
-        <archive directory="/web/ftp/pub/gsa/Queue" symlink="Queue-latest.tar.bz2" />
+        <archive directory="/humgen/gsa-hpprojects/Queue/bin" symlink="Queue-latest.tar.bz2" />
     </release>
 </package>

@@ -4,7 +4,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ActiveRegionBasedAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
@@ -21,14 +21,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Variant confidence (given as (AB+BB)/AA from the PLs) / unfiltered depth.
+ * Variant confidence (from the QUAL field) / unfiltered depth.
  *
  * Low scores are indicative of false positive calls and artifacts.  Note that QualByDepth requires sequencing
  * reads associated with the samples with polymorphic genotypes.
  */
 public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( !vc.hasLog10PError() || stratifiedContexts.size() == 0 )
             return null;
 
@@ -48,7 +48,7 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
             if ( context == null )
                 continue;
 
-            depth += context.hasBasePileup() ? context.getBasePileup().depthOfCoverage() : 0;
+            depth += context.getBasePileup().depthOfCoverage();
         }
 
         if ( depth == 0 )
@@ -63,7 +63,9 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
 
     public List<String> getKeyNames() { return Arrays.asList("QD"); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Float, "Variant Confidence/Quality by Depth")); }
+    public List<VCFInfoHeaderLine> getDescriptions() {
+        return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Float, "Variant Confidence/Quality by Depth"));
+    }
 
     public Map<String, Object> annotate(Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
@@ -86,8 +88,7 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
                 continue;
 
             for ( final Map.Entry<Allele, List<GATKSAMRecord>> alleleBin : alleleBins.entrySet() ) {
-                if ( !alleleBin.getKey().equals(Allele.NO_CALL) )
-                    depth += alleleBin.getValue().size();
+                depth += alleleBin.getValue().size();
             }
         }
 

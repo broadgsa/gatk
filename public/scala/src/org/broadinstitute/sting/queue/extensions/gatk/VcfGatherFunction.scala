@@ -37,24 +37,24 @@ class VcfGatherFunction extends CombineVariants with GatherFunction {
 
   private lazy val originalGATK = this.originalFunction.asInstanceOf[CommandLineGATK]
 
-  override def freezeFieldValues {
+  override def freezeFieldValues() {
     this.jarFile = this.originalGATK.jarFile
-    this.reference_sequence = this.originalGATK.reference_sequence
-    this.intervals = this.originalGATK.intervals
-    this.intervalsString = this.originalGATK.intervalsString
-
     this.variant = this.gatherParts.zipWithIndex map { case (input, index) => new TaggedFile(input, "input"+index) }
     this.out = this.originalOutput
+    GATKIntervals.copyIntervalArguments(this.originalGATK, this)
 
     // NO_HEADER and sites_only from VCFWriterArgumentTypeDescriptor
     // are added by the GATKExtensionsGenerator to the subclass of CommandLineGATK
 
     val noHeader = QFunction.findField(originalFunction.getClass, VCFWriterArgumentTypeDescriptor.NO_HEADER_ARG_NAME)
-    this.NO_HEADER = originalGATK.getFieldValue(noHeader).asInstanceOf[Boolean]
+    this.no_cmdline_in_header = originalGATK.getFieldValue(noHeader).asInstanceOf[Boolean]
 
     val sitesOnly = QFunction.findField(originalFunction.getClass, VCFWriterArgumentTypeDescriptor.SITES_ONLY_ARG_NAME)
     this.sites_only = originalGATK.getFieldValue(sitesOnly).asInstanceOf[Boolean]
 
-    super.freezeFieldValues
+    // ensure that the gather function receives the same unsafe parameter as the scattered function
+    this.unsafe = this.originalGATK.unsafe
+
+    super.freezeFieldValues()
   }
 }

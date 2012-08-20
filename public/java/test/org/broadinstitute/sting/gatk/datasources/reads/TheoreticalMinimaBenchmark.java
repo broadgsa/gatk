@@ -94,7 +94,7 @@ public class TheoreticalMinimaBenchmark extends ReadProcessingBenchmark {
                     int elementSize = cigarElement.getLength();
                     while(elementSize > 0) {
                         switch(cigarElement.getOperator()) {
-                            case M: matchMismatches++; break;
+                            case M: case EQ: case X: matchMismatches++; break;
                             case I: insertions++; break;
                             case D: deletions++; break;
                             default: others++; break;

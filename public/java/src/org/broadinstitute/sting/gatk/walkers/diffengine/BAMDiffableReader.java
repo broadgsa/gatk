@@ -55,8 +55,6 @@ public class BAMDiffableReader implements DiffableReader {
 
         int count = 0;
         while ( iterator.hasNext() ) {
-            if ( count++ > maxElementsToRead && maxElementsToRead != -1)
-                break;
             final SAMRecord record = iterator.next();
 
             // name is the read name + first of pair
@@ -88,6 +86,9 @@ public class BAMDiffableReader implements DiffableReader {
             if ( ! root.hasElement(name) )
                 // protect ourselves from malformed files
                 root.add(readRoot);
+            count += readRoot.size();
+            if ( count > maxElementsToRead && maxElementsToRead != -1)
+                break;
         }
 
         reader.close();
@@ -103,7 +104,9 @@ public class BAMDiffableReader implements DiffableReader {
             InputStream fstream = new BufferedInputStream(new FileInputStream(file));
             if ( !BlockCompressedInputStream.isValidFile(fstream) )
                 return false;
-            new BlockCompressedInputStream(fstream).read(buffer, 0, BAM_MAGIC.length);
+            final BlockCompressedInputStream BCIS = new BlockCompressedInputStream(fstream);
+            BCIS.read(buffer, 0, BAM_MAGIC.length);
+            BCIS.close();
             return Arrays.equals(buffer, BAM_MAGIC);
         } catch ( IOException e ) {
             return false;

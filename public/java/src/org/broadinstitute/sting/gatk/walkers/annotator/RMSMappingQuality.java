@@ -4,14 +4,14 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ActiveRegionBasedAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFStandardHeaderLines;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -29,7 +29,7 @@ import java.util.Map;
  */
 public class RMSMappingQuality extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
             return null;
 
@@ -42,12 +42,10 @@ public class RMSMappingQuality extends InfoFieldAnnotation implements StandardAn
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             AlignmentContext context = sample.getValue();
-            if ( context.hasBasePileup() ) {
-                final ReadBackedPileup pileup = context.getBasePileup();
-                for (PileupElement p : pileup ) {
-                    if ( p.getMappingQual() != QualityUtils.MAPPING_QUALITY_UNAVAILABLE )
-                        qualities[index++] = p.getMappingQual();
-                }
+            final ReadBackedPileup pileup = context.getBasePileup();
+            for (PileupElement p : pileup ) {
+                if ( p.getMappingQual() != QualityUtils.MAPPING_QUALITY_UNAVAILABLE )
+                    qualities[index++] = p.getMappingQual();
             }
         }
 
@@ -87,5 +85,7 @@ public class RMSMappingQuality extends InfoFieldAnnotation implements StandardAn
 
     public List<String> getKeyNames() { return Arrays.asList(VCFConstants.RMS_MAPPING_QUALITY_KEY); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Float, "RMS Mapping Quality")); }
+    public List<VCFInfoHeaderLine> getDescriptions() {
+        return Arrays.asList(VCFStandardHeaderLines.getInfoLine(getKeyNames().get(0)));
+    }
 }

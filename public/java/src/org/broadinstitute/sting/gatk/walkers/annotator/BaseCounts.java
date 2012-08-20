@@ -34,7 +34,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
@@ -52,15 +52,13 @@ import java.util.Map;
  */
 public class BaseCounts extends InfoFieldAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
             return null;
 
         int[] counts = new int[4];
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
-            if ( !sample.getValue().hasBasePileup() )
-                continue;
             for (byte base : sample.getValue().getBasePileup().getBases() ) {
                 int index = BaseUtils.simpleBaseToBaseIndex(base);
                 if ( index != -1 )

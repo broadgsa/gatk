@@ -86,7 +86,7 @@ class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDouble> {
         if (Math.abs(logValDiff) <= EQUALS_THRESH)
             return 0; // this.equals(other)
 
-        return new Double(Math.signum(logValDiff)).intValue();
+        return (int)Math.signum(logValDiff);
     }
 
     public boolean equals(PreciseNonNegativeDouble other) {

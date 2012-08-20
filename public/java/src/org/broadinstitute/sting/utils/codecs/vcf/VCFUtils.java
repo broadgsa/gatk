@@ -25,6 +25,9 @@
 
 package org.broadinstitute.sting.utils.codecs.vcf;
 
+import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.RodBinding;
@@ -32,6 +35,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.io.File;
 import java.util.*;
 
 /**
@@ -123,7 +127,7 @@ public class VCFUtils {
             if ( source.getRecordType().equals(VariantContext.class)) {
                 VCFHeader header = (VCFHeader)source.getHeader();
                 if ( header != null )
-                    fields.addAll(header.getMetaData());
+                    fields.addAll(header.getMetaDataInSortedOrder());
             }
         }
 
@@ -154,7 +158,7 @@ public class VCFUtils {
         // todo -- needs to remove all version headers from sources and add its own VCF version line
         for ( VCFHeader source : headers ) {
             //System.out.printf("Merging in header %s%n", source);
-            for ( VCFHeaderLine line : source.getMetaData()) {
+            for ( VCFHeaderLine line : source.getMetaDataInSortedOrder()) {
 
                 String key = line.getKey();
                 if ( line instanceof VCFIDHeaderLine )
@@ -162,12 +166,13 @@ public class VCFUtils {
 
                 if ( map.containsKey(key) ) {
                     VCFHeaderLine other = map.get(key);
-                    if ( line.equals(other) )
-                        continue;
-                    else if ( ! line.getClass().equals(other.getClass()) )
+                    if ( line.equals(other) ) {
+                        // continue;
+                    } else if ( ! line.getClass().equals(other.getClass()) ) {
                         throw new IllegalStateException("Incompatible header types: " + line + " " + other );
-                    else if ( line instanceof VCFFilterHeaderLine ) {
-                        String lineName = ((VCFFilterHeaderLine) line).getID();                                                                                                         String otherName = ((VCFFilterHeaderLine) other).getID();
+                    } else if ( line instanceof VCFFilterHeaderLine ) {
+                        String lineName = ((VCFFilterHeaderLine) line).getID();
+                        String otherName = ((VCFFilterHeaderLine) other).getID();
                         if ( ! lineName.equals(otherName) )
                             throw new IllegalStateException("Incompatible header types: " + line + " " + other );
                     } else if ( line instanceof VCFCompoundHeaderLine ) {
@@ -195,7 +200,7 @@ public class VCFUtils {
                                 throw new IllegalStateException("Incompatible header types, collision between these two types: " + line + " " + other );
                             }
                         }
-                        if ( ! compLine.getDescription().equals(compOther) )
+                        if ( ! compLine.getDescription().equals(compOther.getDescription()) )
                             conflictWarner.warn(line, "Allowing unequal description fields through: keeping " + compOther + " excluding " + compLine);
                     } else {
                         // we are not equal, but we're not anything special either
@@ -224,5 +229,92 @@ public class VCFUtils {
         }
 
         return rsID;
+    }
+
+    /**
+     * Add / replace the contig header lines in the VCFHeader with the information in the GATK engine
+     *
+     * @param header the header to update
+     * @param engine the GATK engine containing command line arguments and the master sequence dictionary
+     */
+    public static VCFHeader withUpdatedContigs(final VCFHeader header, final GenomeAnalysisEngine engine) {
+        return VCFUtils.withUpdatedContigs(header, engine.getArguments().referenceFile, engine.getMasterSequenceDictionary());
+    }
+
+    /**
+     * Add / replace the contig header lines in the VCFHeader with the in the reference file and master reference dictionary
+     *
+     * @param oldHeader the header to update
+     * @param referenceFile the file path to the reference sequence used to generate this vcf
+     * @param refDict the SAM formatted reference sequence dictionary
+     */
+    public static VCFHeader withUpdatedContigs(final VCFHeader oldHeader, final File referenceFile, final SAMSequenceDictionary refDict) {
+        return new VCFHeader(withUpdatedContigsAsLines(oldHeader.getMetaDataInInputOrder(), referenceFile, refDict), oldHeader.getGenotypeSamples());
+    }
+
+    public static Set<VCFHeaderLine> withUpdatedContigsAsLines(final Set<VCFHeaderLine> oldLines, final File referenceFile, final SAMSequenceDictionary refDict) {
+        return withUpdatedContigsAsLines(oldLines, referenceFile, refDict, false);
+    }
+
+    public static Set<VCFHeaderLine> withUpdatedContigsAsLines(final Set<VCFHeaderLine> oldLines, final File referenceFile, final SAMSequenceDictionary refDict, boolean referenceNameOnly) {
+        final Set<VCFHeaderLine> lines = new LinkedHashSet<VCFHeaderLine>(oldLines.size());
+
+        for ( final VCFHeaderLine line : oldLines ) {
+            if ( line instanceof VCFContigHeaderLine )
+                continue; // skip old contig lines
+            if ( line.getKey().equals(VCFHeader.REFERENCE_KEY) )
+                continue; // skip the old reference key
+            lines.add(line);
+        }
+
+        for ( final VCFHeaderLine contigLine : makeContigHeaderLines(refDict, referenceFile) )
+            lines.add(contigLine);
+
+        String referenceValue;
+        if (referenceFile != null) {
+            if (referenceNameOnly)
+                referenceValue = FilenameUtils.getBaseName(referenceFile.getName());
+            else
+                referenceValue = "file://" + referenceFile.getAbsolutePath();
+            lines.add(new VCFHeaderLine(VCFHeader.REFERENCE_KEY, referenceValue));
+        }
+        return lines;
+    }
+
+    /**
+     * Create VCFHeaderLines for each refDict entry, and optionally the assembly if referenceFile != null
+     * @param refDict reference dictionary
+     * @param referenceFile for assembly name.  May be null
+     * @return list of vcf contig header lines
+     */
+    public static List<VCFContigHeaderLine> makeContigHeaderLines(final SAMSequenceDictionary refDict,
+                                                                  final File referenceFile) {
+        final List<VCFContigHeaderLine> lines = new ArrayList<VCFContigHeaderLine>();
+        final String assembly = referenceFile != null ? getReferenceAssembly(referenceFile.getName()) : null;
+        for ( SAMSequenceRecord contig : refDict.getSequences() )
+            lines.add(makeContigHeaderLine(contig, assembly));
+        return lines;
+    }
+
+    private static VCFContigHeaderLine makeContigHeaderLine(final SAMSequenceRecord contig, final String assembly) {
+        final Map<String, String> map = new LinkedHashMap<String, String>(3);
+        map.put("ID", contig.getSequenceName());
+        map.put("length", String.valueOf(contig.getSequenceLength()));
+        if ( assembly != null ) map.put("assembly", assembly);
+        return new VCFContigHeaderLine(map, contig.getSequenceIndex());
+    }
+
+    private static String getReferenceAssembly(final String refPath) {
+        // This doesn't need to be perfect as it's not a required VCF header line, but we might as well give it a shot
+        String assembly = null;
+        if (refPath.contains("b37") || refPath.contains("v37"))
+            assembly = "b37";
+        else if (refPath.contains("b36"))
+            assembly = "b36";
+        else if (refPath.contains("hg18"))
+            assembly = "hg18";
+        else if (refPath.contains("hg19"))
+            assembly = "hg19";
+        return assembly;
     }
 }

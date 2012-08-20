@@ -33,7 +33,11 @@ public final class VCFConstants {
     // reserved INFO/FORMAT field keys
     public static final String ANCESTRAL_ALLELE_KEY = "AA";
     public static final String ALLELE_COUNT_KEY = "AC";
+    public static final String MLE_ALLELE_COUNT_KEY = "MLEAC";
     public static final String ALLELE_FREQUENCY_KEY = "AF";
+    public static final String MLE_ALLELE_FREQUENCY_KEY = "MLEAF";
+    public static final String MLE_PER_SAMPLE_ALLELE_COUNT_KEY = "MLPSAC";
+    public static final String MLE_PER_SAMPLE_ALLELE_FRACTION_KEY = "MLPSAF";
     public static final String ALLELE_NUMBER_KEY = "AN";
     public static final String RMS_BASE_QUALITY_KEY = "BQ";
     public static final String CIGAR_KEY = "CIGAR";
@@ -42,19 +46,21 @@ public final class VCFConstants {
     public static final String DOWNSAMPLED_KEY = "DS";
     public static final String EXPECTED_ALLELE_COUNT_KEY = "EC";
     public static final String END_KEY = "END";
+
     public static final String GENOTYPE_FILTER_KEY = "FT";
     public static final String GENOTYPE_KEY = "GT";
-    @Deprecated
-    public static final String GENOTYPE_LIKELIHOODS_KEY = "GL";         // log10 scaled genotype likelihoods
     public static final String GENOTYPE_POSTERIORS_KEY = "GP";
     public static final String GENOTYPE_QUALITY_KEY = "GQ";
+    public static final String GENOTYPE_ALLELE_DEPTHS = "AD";
+    public static final String GENOTYPE_PL_KEY = "PL";   // phred-scaled genotype likelihoods
+    @Deprecated public static final String GENOTYPE_LIKELIHOODS_KEY = "GL";         // log10 scaled genotype likelihoods
+
     public static final String HAPMAP2_KEY = "H2";
     public static final String HAPMAP3_KEY = "H3";
     public static final String HAPLOTYPE_QUALITY_KEY = "HQ";
     public static final String RMS_MAPPING_QUALITY_KEY = "MQ";
     public static final String MAPPING_QUALITY_ZERO_KEY = "MQ0";
     public static final String SAMPLE_NUMBER_KEY = "NS";
-    public static final String PHRED_GENOTYPE_LIKELIHOODS_KEY = "PL";   // phred-scaled genotype likelihoods
     public static final String PHASE_QUALITY_KEY = "PQ";
     public static final String PHASE_SET_KEY = "PS";
     public static final String OLD_DEPTH_KEY = "RD";
@@ -85,7 +91,8 @@ public final class VCFConstants {
     public static final String FORMAT_HEADER_START = "##FORMAT";
     public static final String INFO_HEADER_START = "##INFO";
     public static final String ALT_HEADER_START = "##ALT";
-    public static final String CONTIG_HEADER_START = "##contig";
+    public static final String CONTIG_HEADER_KEY = "contig";
+    public static final String CONTIG_HEADER_START = "##" + CONTIG_HEADER_KEY;
 
     // old indel alleles
     public static final char DELETION_ALLELE_v3 = 'D';
@@ -111,9 +118,8 @@ public final class VCFConstants {
     public static final String PER_GENOTYPE_COUNT = "G";
     public static final String EMPTY_ALLELE = ".";
     public static final String EMPTY_GENOTYPE = "./.";
-    public static final double MAX_GENOTYPE_QUAL = 99.0;
+    public static final int MAX_GENOTYPE_QUAL = 99;
 
-    public static final String DOUBLE_PRECISION_FORMAT_STRING = "%.2f";
-    public static final String DOUBLE_PRECISION_INT_SUFFIX = ".00";
     public static final Double VCF_ENCODING_EPSILON = 0.00005; // when we consider fields equal(), used in the Qual compare
+    public static final String REFSAMPLE_DEPTH_KEY = "REFDEPTH";
 }

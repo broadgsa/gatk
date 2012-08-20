@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.datasources.rmd;
 
 import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -33,7 +34,7 @@ import java.util.*;
 /**
  * A pool of open resources, all of which can create a closeable iterator.
  */
-abstract class ResourcePool <T,I extends Iterator> {
+abstract class ResourcePool <T,I extends CloseableIterator> {
     /**
      * Sequence dictionary.
      */
@@ -108,6 +109,9 @@ abstract class ResourcePool <T,I extends Iterator> {
             // Find and remove the resource from the list of allocated resources.
             T resource = resourceAssignments.get( iterator );
             Object obj = resourceAssignments.remove(iterator);
+
+            // Close the iterator.
+            iterator.close();
 
             // make sure we actually removed the assignment
             if (obj == null)

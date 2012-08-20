@@ -2,6 +2,8 @@ package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
+import java.util.Arrays;
+
 /**
  * BaseUtils contains some basic utilities for manipulating nucleotides.
  */
@@ -47,14 +49,28 @@ public class BaseUtils {
         public boolean sameBase(int i) { return index == i; }
     }
 
+    static private final int[] baseIndexMap = new int[256];
+    static {
+        Arrays.fill(baseIndexMap, -1);
+        baseIndexMap['A'] = 0;
+        baseIndexMap['a'] = 0;
+        baseIndexMap['*'] = 0;    // the wildcard character counts as an A
+        baseIndexMap['C'] = 1;
+        baseIndexMap['c'] = 1;
+        baseIndexMap['G'] = 2;
+        baseIndexMap['g'] = 2;
+        baseIndexMap['T'] = 3;
+        baseIndexMap['t'] = 3;
+    }
+
     // todo -- fix me (enums?)
     public static final byte DELETION_INDEX = 4;
     public static final byte NO_CALL_INDEX = 5; // (this is 'N')
 
-    public static int gIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'G');
-    public static int cIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'C');
-    public static int aIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'A');
-    public static int tIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'T');
+    public static final int aIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'A');
+    public static final int cIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'C');
+    public static final int gIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'G');
+    public static final int tIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'T');
 
     /// In genetics, a transition is a mutation changing a purine to another purine nucleotide (A <-> G) or
     // a pyrimidine to another pyrimidine nucleotide (C <-> T).
@@ -99,6 +115,17 @@ public class BaseUtils {
 
     static public boolean extendedBasesAreEqual(byte base1, byte base2) {
         return extendedBaseToBaseIndex(base1) == extendedBaseToBaseIndex(base2);
+    }
+
+    /**
+     * @return true iff the bases array contains at least one instance of base
+     */
+    static public boolean containsBase(final byte[] bases, final byte base) {
+        for ( final byte b : bases ) {
+            if ( b == base )
+                return true;
+        }
+        return false;
     }
 
     /**
@@ -171,27 +198,7 @@ public class BaseUtils {
      * @return 0, 1, 2, 3, or -1 if the base can't be understood
      */
     static public int simpleBaseToBaseIndex(byte base) {
-        switch (base) {
-            case '*':               // the wildcard character counts as an A
-            case 'A':
-            case 'a':
-                return 0;
-
-            case 'C':
-            case 'c':
-                return 1;
-
-            case 'G':
-            case 'g':
-                return 2;
-
-            case 'T':
-            case 't':
-                return 3;
-
-            default:
-                return -1;
-        }
+        return baseIndexMap[base];
     }
 
     /**
@@ -202,27 +209,7 @@ public class BaseUtils {
      */
     @Deprecated
     static public int simpleBaseToBaseIndex(char base) {
-        switch (base) {
-            case '*':               // the wildcard character counts as an A
-            case 'A':
-            case 'a':
-                return 0;
-
-            case 'C':
-            case 'c':
-                return 1;
-
-            case 'G':
-            case 'g':
-                return 2;
-
-            case 'T':
-            case 't':
-                return 3;
-
-            default:
-                return -1;
-        }
+        return baseIndexMap[base];
     }
 
     static public int extendedBaseToBaseIndex(byte base) {
@@ -271,11 +258,6 @@ public class BaseUtils {
             default:
                 return '.';
         }
-    }
-
-    @Deprecated
-    static public char baseIndexToSimpleBaseAsChar(int baseIndex) {
-        return (char) baseIndexToSimpleBase(baseIndex);
     }
 
     /**
@@ -447,6 +429,37 @@ public class BaseUtils {
     @Deprecated
     static public String simpleComplement(String bases) {
         return new String(simpleComplement(bases.getBytes()));
+    }
+
+    /**
+     * Returns the uppercased version of the bases
+     *
+     * @param bases   the bases
+     * @return the upper cased version
+     */
+    static public byte[] convertToUpperCase(final byte[] bases) {
+        for ( int i = 0; i < bases.length; i++ ) {
+            if ( (char)bases[i] >= 'a' )
+                bases[i] = toUpperCaseBase(bases[i]);
+        }
+        return bases;
+    }
+
+    static public byte toUpperCaseBase(final byte base) {
+        switch (base) {
+            case 'a':
+                return 'A';
+            case 'c':
+                return 'C';
+            case 'g':
+                return 'G';
+            case 't':
+                return 'T';
+            case 'n':
+                return 'N';
+            default:
+                return base;
+        }
     }
 
     /**

@@ -5,7 +5,8 @@ import org.broadinstitute.sting.queue.extensions.gatk._
 
 /**
  * An example building on the intro ExampleCountReads.scala.
- * Runs an INCOMPLETE version of the UnifiedGenotyper with VariantEval and optional VariantFiltration.
+ * Runs an INCOMPLETE variant calling pipeline with just the UnifiedGenotyper, VariantEval and optional VariantFiltration.
+ * For a complete description of the suggested for a variant calling pipeline see the latest version of the Best Practice Variant Detection document
  */
 class ExampleUnifiedGenotyper extends QScript {
   // Create an alias 'qscript' to be able to access variables
@@ -43,14 +44,12 @@ class ExampleUnifiedGenotyper extends QScript {
   }
 
   def script() {
-    // Create the four function that we can run.
+    // Create the four functions that we may run depending on options.
     val genotyper = new UnifiedGenotyper with UnifiedGenotyperArguments
     val variantFilter = new VariantFiltration with UnifiedGenotyperArguments
     val evalUnfiltered = new VariantEval with UnifiedGenotyperArguments
     val evalFiltered = new VariantEval with UnifiedGenotyperArguments
 
-    // If you are running this on a compute farm, make sure that the Sting/shell
-    // folder is in your path to use mergeText.sh and splitIntervals.sh.
     genotyper.scatterCount = 3
     genotyper.input_file :+= qscript.bamFile
     genotyper.out = swapExt(qscript.bamFile, "bam", "unfiltered.vcf")

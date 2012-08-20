@@ -14,7 +14,7 @@ import java.util.Arrays;
  */
 public class ValidationSiteSelectorIntegrationTest extends WalkerTest {
     public static String baseTestString(String args) {
-        return "-T ValidationSiteSelector -R " + b36KGReference + " -L 1 -o %s -NO_HEADER -numSites 100 " + args;
+        return "-T ValidationSiteSelector -R " + b36KGReference + " -L 1 -o %s --no_cmdline_in_header -numSites 100 " + args;
     }
 
     private static String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
@@ -33,7 +33,7 @@ public class ValidationSiteSelectorIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(sampleNone + freqUnif + "--variant " + testfile),
                 1,
-                Arrays.asList("d49baeb8000a426c172ce1d81eb37963")
+                Arrays.asList("b8a988757ac1f206d123140da5a3e778")
         );
 
         executeTest("testNoSampleSelectionFreqUniform--" + testfile, spec);
@@ -45,7 +45,7 @@ public class ValidationSiteSelectorIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(sampleNone + freqAF + "--variant " + testfile),
                 1,
-                Arrays.asList("0fb0d015d462c34514fc7e96beea5f56")
+                Arrays.asList("542d5d5ff8c64da7b077bab4b950a9a3")
         );
 
         executeTest("testNoSampleSelectionFreqAF--" + testfile, spec);
@@ -57,7 +57,7 @@ public class ValidationSiteSelectorIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(sampleGT + freqUnif + "--variant " + testfile),
                 1,
-                Arrays.asList("0672854299d42ea8af906976a3849ae6")
+                Arrays.asList("7385b17eed7f4ff0f6e82e60c3334ce7")
         );
 
         executeTest("testPolyGTFreqUniform--" + testfile, spec);
@@ -69,7 +69,7 @@ public class ValidationSiteSelectorIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(sampleGT + freqAF + "--variant " + testfile),
                 1,
-                Arrays.asList("5bdffda1a063d0bddd6b236854ec627d")
+                Arrays.asList("0ee4a565a0d4f6b6942abd72a373becd")
         );
 
         executeTest("testPolyGTFreqAF--" + testfile, spec);
@@ -81,7 +81,7 @@ public class ValidationSiteSelectorIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(sampleGL + freqAF + "--variant " + testfile),
                 1,
-                Arrays.asList("35ef16aa41303606a4b94f7b88bd9aa8")
+                Arrays.asList("0ee4a565a0d4f6b6942abd72a373becd")
         );
 
         executeTest("testPolyGLFreqAF--" + testfile, spec);

@@ -35,8 +35,8 @@ class ExampleCountReadsPipelineTest {
     spec.name = "countreads"
     spec.args = Array(
       " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleCountReads.scala",
-      " -R " + BaseTest.testDir + "exampleFASTA.fasta",
-      " -I " + BaseTest.testDir + "exampleBAM.bam").mkString
+      " -R " + BaseTest.publicTestDir + "exampleFASTA.fasta",
+      " -I " + BaseTest.publicTestDir + "exampleBAM.bam").mkString
     PipelineTest.executeTest(spec)
   }
 }

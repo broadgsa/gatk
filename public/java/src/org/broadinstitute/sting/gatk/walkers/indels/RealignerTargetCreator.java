@@ -29,6 +29,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.*;
@@ -37,6 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -94,6 +96,7 @@ import java.util.TreeSet;
  *
  * @author ebanks
  */
+@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class, BadMateFilter.class, Platform454Filter.class, BadCigarFilter.class})
 @Reference(window=@Window(start=-1,stop=50))
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
@@ -133,7 +136,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
     /**
      * Because the realignment algorithm is N^2, allowing too large an interval might take too long to completely realign.
      */
-    @Argument(fullName="maxIntervalSize", shortName="maxInterval", doc="maximum interval size", required=false)
+    @Argument(fullName="maxIntervalSize", shortName="maxInterval", doc="maximum interval size; any intervals larger than this value will be dropped", required=false)
     protected int maxIntervalSize = 500;
 
 
@@ -185,37 +188,35 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
         }
 
         // look at the normal context to get deletions and positions with high entropy
-        if ( context.hasBasePileup() ) {
-            final ReadBackedPileup pileup = context.getBasePileup();
+        final ReadBackedPileup pileup = context.getBasePileup();
 
-            int mismatchQualities = 0, totalQualities = 0;
-            final byte refBase = ref.getBase();
-            for ( PileupElement p : pileup ) {
+        int mismatchQualities = 0, totalQualities = 0;
+        final byte refBase = ref.getBase();
+        for ( PileupElement p : pileup ) {
 
-                // check the ends of the reads to see how far they extend
-                furthestStopPos = Math.max(furthestStopPos, p.getRead().getAlignmentEnd());
+            // check the ends of the reads to see how far they extend
+            furthestStopPos = Math.max(furthestStopPos, p.getRead().getAlignmentEnd());
 
-                // is it a deletion or insertion?
-                if ( p.isDeletion() || p.isBeforeInsertion() ) {
-                    hasIndel = true;
-                    if ( p.isBeforeInsertion() )
-                        hasInsertion = true;
-                }
-
-                // look for mismatches
-                else if ( lookForMismatchEntropy ) {
-                    if ( p.getBase() != refBase )
-                        mismatchQualities += p.getQual();
-                    totalQualities += p.getQual();
-                }
+            // is it a deletion or insertion?
+            if ( p.isDeletion() || p.isBeforeInsertion() ) {
+                hasIndel = true;
+                if ( p.isBeforeInsertion() )
+                    hasInsertion = true;
             }
 
-            // make sure we're supposed to look for high entropy
-            if ( lookForMismatchEntropy &&
-                    pileup.getNumberOfElements() >= minReadsAtLocus &&
-                    (double)mismatchQualities / (double)totalQualities >= mismatchThreshold )
-                hasPointEvent = true;
+            // look for mismatches
+            else if ( lookForMismatchEntropy ) {
+                if ( p.getBase() != refBase )
+                    mismatchQualities += p.getQual();
+                totalQualities += p.getQual();
+            }
         }
+
+        // make sure we're supposed to look for high entropy
+        if ( lookForMismatchEntropy &&
+                pileup.getNumberOfElements() >= minReadsAtLocus &&
+                (double)mismatchQualities / (double)totalQualities >= mismatchThreshold )
+            hasPointEvent = true;
 
         // return null if no event occurred
         if ( !hasIndel && !hasPointEvent )
@@ -331,7 +332,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
 
     private enum EVENT_TYPE { POINT_EVENT, INDEL_EVENT, BOTH }
 
-    class EventPair {
+    static class EventPair {
         public Event left, right;
         public TreeSet<GenomeLoc> intervals = new TreeSet<GenomeLoc>();
 

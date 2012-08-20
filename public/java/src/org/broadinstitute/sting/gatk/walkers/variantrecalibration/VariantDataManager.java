@@ -31,8 +31,8 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
@@ -235,7 +235,7 @@ public class VariantDataManager {
         double value;
 
         try {
-            value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
+            value = vc.getAttributeAsDouble( annotationKey, Double.NaN );
             if( Double.isInfinite(value) ) { value = Double.NaN; }
             if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // Integer valued annotations must be jittered a bit to work in this GMM
                   value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
@@ -274,12 +274,38 @@ public class VariantDataManager {
     }
 
     private boolean isValidVariant( final VariantContext evalVC, final VariantContext trainVC, final boolean TRUST_ALL_POLYMORPHIC) {
-        return trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() &&
-                        ((evalVC.isSNP() && trainVC.isSNP()) || ((evalVC.isIndel()||evalVC.isMixed()) && (trainVC.isIndel()||trainVC.isMixed()))) &&
+        return trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() && checkVariationClass( evalVC, trainVC ) &&
                         (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphicInSamples());
     }
 
-    public void writeOutRecalibrationTable( final VCFWriter recalWriter ) {
+    protected static boolean checkVariationClass( final VariantContext evalVC, final VariantContext trainVC ) {
+        switch( trainVC.getType() ) {
+            case SNP:
+            case MNP:
+                return checkVariationClass( evalVC, VariantRecalibratorArgumentCollection.Mode.SNP );
+            case INDEL:
+            case MIXED:
+            case SYMBOLIC:
+                return checkVariationClass( evalVC, VariantRecalibratorArgumentCollection.Mode.INDEL );
+            default:
+                return false;
+        }
+    }
+
+    protected static boolean checkVariationClass( final VariantContext evalVC, final VariantRecalibratorArgumentCollection.Mode mode ) {
+        switch( mode ) {
+            case SNP:
+                return evalVC.isSNP() || evalVC.isMNP();
+            case INDEL:
+                return evalVC.isIndel() || evalVC.isMixed() || evalVC.isSymbolic();
+            case BOTH:
+                return true;
+            default:
+                throw new ReviewedStingException( "Encountered unknown recal mode: " + mode );
+        }
+    }
+
+    public void writeOutRecalibrationTable( final VariantContextWriter recalWriter ) {
         // we need to sort in coordinate order in order to produce a valid VCF
         Collections.sort( data, new Comparator<VariantDatum>() {
             public int compare(VariantDatum vd1, VariantDatum vd2) {
@@ -299,7 +325,7 @@ public class VariantDataManager {
             attributes.put(VariantRecalibrator.VQS_LOD_KEY, String.format("%.4f", datum.lod));
             attributes.put(VariantRecalibrator.CULPRIT_KEY, (datum.worstAnnotation != -1 ? annotationKeys.get(datum.worstAnnotation) : "NULL"));
 
-            VariantContextBuilder builder = new VariantContextBuilder("VQSR", datum.loc.getContig(), datum.loc.getStart(), datum.loc.getStart(), alleles).attributes(attributes);
+            VariantContextBuilder builder = new VariantContextBuilder("VQSR", datum.loc.getContig(), datum.loc.getStart(), datum.loc.getStop(), alleles).attributes(attributes);
             recalWriter.add(builder.make());
         }
     }

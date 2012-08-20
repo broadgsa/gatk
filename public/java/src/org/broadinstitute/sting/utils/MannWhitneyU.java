@@ -199,9 +199,9 @@ public class MannWhitneyU {
         else if ( z > n ) { return 0.0; }
         else {
             if ( z > ((double) n) /2 ) {
-                return 1.0-1/((double)Arithmetic.factorial(n))*uniformSumHelper(z, (int) Math.floor(z), n, 0);
+                return 1.0-1/(Arithmetic.factorial(n))*uniformSumHelper(z, (int) Math.floor(z), n, 0);
             } else {
-                return 1/((double)Arithmetic.factorial(n))*uniformSumHelper(z, (int) Math.floor(z), n, 0);
+                return 1/(Arithmetic.factorial(n))*uniformSumHelper(z, (int) Math.floor(z), n, 0);
             }
         }
     }

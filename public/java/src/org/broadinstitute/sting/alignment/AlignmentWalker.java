@@ -34,11 +34,13 @@ import org.broadinstitute.sting.alignment.bwa.BWTFiles;
 import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.WalkerName;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
@@ -50,6 +52,7 @@ import java.io.File;
  * @author mhanna
  * @version 0.1
  */
+@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @WalkerName("Align")
 public class AlignmentWalker extends ReadWalker<Integer,Integer> {
     @Argument(fullName="target_reference",shortName="target_ref",doc="The reference to which reads in the source file should be aligned.  Alongside this reference should sit index files " +

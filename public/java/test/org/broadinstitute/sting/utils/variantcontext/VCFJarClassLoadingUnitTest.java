@@ -50,10 +50,12 @@ public class VCFJarClassLoadingUnitTest {
 
         ClassLoader classLoader = new URLClassLoader(jarURLs, null);
         classLoader.loadClass("org.broadinstitute.sting.utils.variantcontext.VariantContext");
+        classLoader.loadClass("org.broadinstitute.sting.utils.codecs.bcf2.BCF2Codec");
         classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.VCFCodec");
         classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.VCF3Codec");
-        classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.VCFWriter");
-        classLoader.loadClass("org.broadinstitute.sting.utils.codecs.vcf.StandardVCFWriter");
+        classLoader.loadClass("org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter");
+        classLoader.loadClass("org.broadinstitute.sting.utils.variantcontext.writer.VCFWriter");
+        classLoader.loadClass("org.broadinstitute.sting.utils.variantcontext.writer.BCF2Writer");
     }
 
     /**

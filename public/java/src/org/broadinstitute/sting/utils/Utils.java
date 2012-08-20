@@ -32,7 +32,6 @@ import net.sf.samtools.util.StringUtil;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.net.InetAddress;
@@ -221,6 +220,20 @@ public class Utils {
             ret.append(strings[i]);
         }
         return ret.toString();
+    }
+
+    public static String join(String separator, int[] ints) {
+        if ( ints == null || ints.length == 0)
+            return "";
+        else {
+            StringBuilder ret = new StringBuilder();
+            ret.append(ints[0]);
+            for (int i = 1; i < ints.length; ++i) {
+                ret.append(separator);
+                ret.append(ints[i]);
+            }
+            return ret.toString();
+        }
     }
 
     /**
@@ -550,7 +563,6 @@ public class Utils {
         List<T> t = new ArrayList<T>(c.keySet());
         Collections.sort(t);
 
-        List<V> l = new ArrayList<V>();
         List<String> pairs = new ArrayList<String>();
         for ( T k : t ) {
             pairs.add(k + "=" + c.get(k));
@@ -716,6 +728,40 @@ public class Utils {
             }
             return nStates;
         }
+    }
+
+    /**
+     * Make all combinations of N size of objects
+     *
+     * if objects = [A, B, C]
+     * if N = 1 => [[A], [B], [C]]
+     * if N = 2 => [[A, A], [B, A], [C, A], [A, B], [B, B], [C, B], [A, C], [B, C], [C, C]]
+     *
+     * @param objects
+     * @param n
+     * @param <T>
+     * @param withReplacement if false, the resulting permutations will only contain unique objects from objects
+     * @return
+     */
+    public static <T> List<List<T>> makePermutations(final List<T> objects, final int n, final boolean withReplacement) {
+        final List<List<T>> combinations = new ArrayList<List<T>>();
+
+        if ( n <= 0 )
+            ;
+        else if ( n == 1 ) {
+            for ( final T o : objects )
+                combinations.add(Collections.singletonList(o));
+        } else {
+            final List<List<T>> sub = makePermutations(objects, n - 1, withReplacement);
+            for ( List<T> subI : sub ) {
+                for ( final T a : objects ) {
+                    if ( withReplacement || ! subI.contains(a) )
+                        combinations.add(Utils.cons(a, subI));
+                }
+            }
+        }
+
+        return combinations;
     }
 
     /**

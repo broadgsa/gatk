@@ -41,6 +41,8 @@ import java.util.Arrays;
  * Thread-safe!  Uses a lock object to protect write and access to the cache.
  */
 public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
+    protected static final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(CachingIndexedFastaSequenceFile.class);
+
     /** global enable flag */
     private static final boolean USE_CACHE = true;
 
@@ -125,7 +127,7 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
     public void printEfficiency() {
         // comment out to disable tracking
         if ( (cacheHits + cacheMisses) % PRINT_FREQUENCY == 0 ) {
-            System.out.printf("### CachingIndexedFastaReader: hits=%d misses=%d efficiency %.6f%%%n", cacheHits, cacheMisses, calcEfficiency());
+            logger.info(String.format("### CachingIndexedFastaReader: hits=%d misses=%d efficiency %.6f%%%n", cacheHits, cacheMisses, calcEfficiency()));
         }
     }
 

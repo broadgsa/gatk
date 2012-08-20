@@ -68,8 +68,8 @@ class DataProcessingPipeline extends QScript {
   @Input(doc="Number of threads BWA should use", fullName="bwa_threads", shortName="bt", required=false)
   var bwaThreads: Int = 1
 
-  @Input(doc="Dont perform validation on the BAM files", fullName="no_validation", shortName="nv", required=false)
-  var noValidation: Boolean = false
+  @Input(doc="Perform validation on the BAM files", fullName="validation", shortName="vs", required=false)
+  var validation: Boolean = false
 
 
   /****************************************************************************
@@ -258,8 +258,8 @@ class DataProcessingPipeline extends QScript {
       // Accessory files
       val targetIntervals = if (cleaningModel == ConsensusDeterminationModel.KNOWNS_ONLY) {globalIntervals} else {swapExt(bam, ".bam", ".intervals")}
       val metricsFile     = swapExt(bam, ".bam", ".metrics")
-      val preRecalFile    = swapExt(bam, ".bam", ".pre_recal.csv")
-      val postRecalFile   = swapExt(bam, ".bam", ".post_recal.csv")
+      val preRecalFile    = swapExt(bam, ".bam", ".pre_recal.table")
+      val postRecalFile   = swapExt(bam, ".bam", ".post_recal.table")
       val preOutPath      = swapExt(bam, ".bam", ".pre")
       val postOutPath     = swapExt(bam, ".bam", ".post")
       val preValidateLog  = swapExt(bam, ".bam", ".pre.validation")
@@ -268,7 +268,7 @@ class DataProcessingPipeline extends QScript {
 
       // Validation is an optional step for the BAM file generated after
       // alignment and the final bam file of the pipeline.
-      if (!noValidation) {
+      if (validation) {
         for (sampleFile <- bamList)
         add(validate(sampleFile, preValidateLog),
             validate(recalBam, postValidateLog))
@@ -281,9 +281,7 @@ class DataProcessingPipeline extends QScript {
           dedup(cleanedBam, dedupedBam, metricsFile),
           cov(dedupedBam, preRecalFile),
           recal(dedupedBam, preRecalFile, recalBam),
-          cov(recalBam, postRecalFile),
-          analyzeCovariates(preRecalFile, preOutPath),
-          analyzeCovariates(postRecalFile, postOutPath))
+          cov(recalBam, postRecalFile))
 
 
       cohortList :+= recalBam
@@ -345,11 +343,12 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outBam + ".clean"
   }
 
-  case class cov (inBam: File, outRecalFile: File) extends CountCovariates with CommandLineGATKArgs {
+  case class cov (inBam: File, outRecalFile: File) extends BaseRecalibrator with CommandLineGATKArgs {
     this.knownSites ++= qscript.dbSNP
-    this.covariate ++= Seq("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
+    this.covariate ++= Seq("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "ContextCovariate")
     this.input_file :+= inBam
-    this.recal_file = outRecalFile
+    this.disable_indel_quals = true
+    this.out = outRecalFile
     if (!defaultPlatform.isEmpty) this.default_platform = defaultPlatform
     if (!qscript.intervalString.isEmpty) this.intervalsString ++= Seq(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
@@ -358,14 +357,13 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outRecalFile + ".covariates"
   }
 
-  case class recal (inBam: File, inRecalFile: File, outBam: File) extends TableRecalibration with CommandLineGATKArgs {
+  case class recal (inBam: File, inRecalFile: File, outBam: File) extends PrintReads with CommandLineGATKArgs {
     this.input_file :+= inBam
-    this.recal_file = inRecalFile
+    this.BQSR = inRecalFile
     this.baq = CalculationMode.CALCULATE_AS_NECESSARY
     this.out = outBam
     if (!qscript.intervalString.isEmpty) this.intervalsString ++= Seq(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
-    this.no_pg_tag = qscript.testMode
     this.scatterCount = nContigs
     this.isIntermediate = false
     this.analysisName = queueLogDir + outBam + ".recalibration"
@@ -378,13 +376,6 @@ class DataProcessingPipeline extends QScript {
    * Classes (non-GATK programs)
    ****************************************************************************/
 
-
-  case class analyzeCovariates (inRecalFile: File, outPath: File) extends AnalyzeCovariates {
-    this.recal_file = inRecalFile
-    this.output_dir = outPath.toString
-    this.analysisName = queueLogDir + inRecalFile + ".analyze_covariates"
-    this.jobName = queueLogDir + inRecalFile + ".analyze_covariates"
-  }
 
   case class dedup (inBam: File, outBam: File, metricsFile: File) extends MarkDuplicates with ExternalCommonArgs {
     this.input :+= inBam

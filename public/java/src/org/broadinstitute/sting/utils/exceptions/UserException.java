@@ -27,14 +27,13 @@ package org.broadinstitute.sting.utils.exceptions;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
-import java.util.Arrays;
 
 /**
  * Represents the common user errors detected by Sting / GATK
@@ -52,6 +51,11 @@ public class UserException extends ReviewedStingException {
     public UserException(String msg) { super(msg); }
     public UserException(String msg, Throwable e) { super(msg, e); }
     private UserException(Throwable e) { super("", e); } // cannot be called, private access
+
+    protected static String getMessage(Throwable t) {
+        String message = t.getMessage();
+        return message != null ? message : t.getClass().getName();
+    }
 
     public static class CommandLineException extends UserException {
         public CommandLineException(String message) {
@@ -72,6 +76,12 @@ public class UserException extends ReviewedStingException {
     public static class BadInput extends UserException {
         public BadInput(String message) {
             super(String.format("Bad input: %s", message));
+        }
+    }
+
+    public static class NotSupportedInGATKLite extends UserException {
+        public NotSupportedInGATKLite(String message) {
+            super(String.format("GATK Lite does not support all of the features of the full version: %s", message));
         }
     }
 
@@ -121,7 +131,7 @@ public class UserException extends ReviewedStingException {
 
     public static class CouldNotReadInputFile extends UserException {
         public CouldNotReadInputFile(String message, Exception e) {
-            super(String.format("Couldn't read file because %s caused by %s", message, e.getMessage()));
+            super(String.format("Couldn't read file because %s caused by %s", message, getMessage(e)));
         }
 
         public CouldNotReadInputFile(File file) {
@@ -133,11 +143,11 @@ public class UserException extends ReviewedStingException {
         }
 
         public CouldNotReadInputFile(File file, String message, Exception e) {
-            super(String.format("Couldn't read file %s because %s with exception %s", file.getAbsolutePath(), message, e.getMessage()));
+            super(String.format("Couldn't read file %s because %s with exception %s", file.getAbsolutePath(), message, getMessage(e)));
         }
 
         public CouldNotReadInputFile(File file, Exception e) {
-            this(file, e.getMessage());
+            this(file, getMessage(e));
         }
 
         public CouldNotReadInputFile(String message) {
@@ -148,7 +158,7 @@ public class UserException extends ReviewedStingException {
 
     public static class CouldNotCreateOutputFile extends UserException {
         public CouldNotCreateOutputFile(File file, String message, Exception e) {
-            super(String.format("Couldn't write file %s because %s with exception %s", file.getAbsolutePath(), message, e.getMessage()));
+            super(String.format("Couldn't write file %s because %s with exception %s", file.getAbsolutePath(), message, getMessage(e)));
         }
 
         public CouldNotCreateOutputFile(File file, String message) {
@@ -156,11 +166,11 @@ public class UserException extends ReviewedStingException {
         }
 
         public CouldNotCreateOutputFile(String filename, String message, Exception e) {
-            super(String.format("Couldn't write file %s because %s with exception %s", filename, message, e.getMessage()));
+            super(String.format("Couldn't write file %s because %s with exception %s", filename, message, getMessage(e)));
         }
 
         public CouldNotCreateOutputFile(File file, Exception e) {
-            super(String.format("Couldn't write file %s because exception %s", file.getAbsolutePath(), e.getMessage()));
+            super(String.format("Couldn't write file %s because exception %s", file.getAbsolutePath(), getMessage(e)));
         }
 
         public CouldNotCreateOutputFile(String message, Exception e) {
@@ -241,7 +251,7 @@ public class UserException extends ReviewedStingException {
 
     public static class MissortedFile extends UserException {
         public MissortedFile(File file, String message, Exception e) {
-            super(String.format("Missorted Input file: %s is must be sorted in coordinate order. %s and got error %s", file, message, e.getMessage()));
+            super(String.format("Missorted Input file: %s is must be sorted in coordinate order. %s and got error %s", file, message, getMessage(e)));
         }
     }
 
@@ -251,7 +261,7 @@ public class UserException extends ReviewedStingException {
         }
 
         public MalformedFile(String message, Exception e) {
-            super(String.format("Unknown file is malformed: %s caused by %s", message, e.getMessage()));
+            super(String.format("Unknown file is malformed: %s caused by %s", message, getMessage(e)));
         }
 
         public MalformedFile(File f, String message) {
@@ -259,7 +269,7 @@ public class UserException extends ReviewedStingException {
         }
 
         public MalformedFile(File f, String message, Exception e) {
-            super(String.format("File %s is malformed: %s caused by %s", f.getAbsolutePath(), message, e.getMessage()));
+            super(String.format("File %s is malformed: %s caused by %s", f.getAbsolutePath(), message, getMessage(e)));
         }
 
         public MalformedFile(String name, String message) {
@@ -267,7 +277,7 @@ public class UserException extends ReviewedStingException {
         }
 
         public MalformedFile(String name, String message, Exception e) {
-            super(String.format("File associated with name %s is malformed: %s caused by %s", name, message, e.getMessage()));
+            super(String.format("File associated with name %s is malformed: %s caused by %s", name, message, getMessage(e)));
         }
      }
 
@@ -307,9 +317,9 @@ public class UserException extends ReviewedStingException {
 
 
 
-    public static class MissingWalker extends UserException {
-        public MissingWalker(String walkerName, String message) {
-            super(String.format("Walker %s is not available: %s", walkerName, message));
+    public static class DeprecatedWalker extends UserException {
+        public DeprecatedWalker(String walkerName, String version) {
+            super(String.format("Walker %s is no longer available in the GATK; it has been deprecated since version %s", walkerName, version));
         }
     }
 
@@ -326,7 +336,18 @@ public class UserException extends ReviewedStingException {
 
         public CouldNotCreateReferenceIndexFile(File f, String message, Exception e) {
             super(String.format("Index file %s does not exist but could not be created because: %s. ", f, message)
-                    + (e == null ? "" : e.getMessage()));
+                    + (e == null ? "" : getMessage(e)));
+        }
+    }
+
+    public static class CouldNotCreateReferenceFAIorDictForGzippedRef extends UserException {
+        public CouldNotCreateReferenceFAIorDictForGzippedRef(final File f) {
+            super("Although the GATK can process .gz reference sequences, it currently cannot create FAI " +
+                    "or DICT files for them.  In order to use the GATK with reference.fasta.gz you will need to " +
+                    "create .dict and .fai files for reference.fasta.gz and name them reference.fasta.gz.fai and " +
+                    "reference.dict.  Potentially the easiest way to do this is to uncompress reference.fasta, " +
+                    "run the GATK to create the .dict and .fai files, and copy them to the appropriate location. " +
+                    "Sorry for the inconvenience.");
         }
     }
 
@@ -342,18 +363,18 @@ public class UserException extends ReviewedStingException {
     public static class UnreadableKeyException extends UserException {
         public UnreadableKeyException ( File f, Exception e ) {
             super(String.format("Key file %s cannot be read (possibly the key file is corrupt?). Error was: %s. " +
-                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home for help.",
-                                f.getAbsolutePath(), e.getMessage()));
+                                "Please see %s for help.",
+                                f.getAbsolutePath(), getMessage(e), GATKRunReport.PHONE_HOME_DOCS_URL));
         }
 
         public UnreadableKeyException ( String message, Exception e ) {
-            this(String.format("%s. Error was: %s", message, e.getMessage()));
+            this(String.format("%s. Error was: %s", message, getMessage(e)));
         }
 
         public UnreadableKeyException ( String message ) {
             super(String.format("Key file cannot be read (possibly the key file is corrupt?): %s. " +
-                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home for help.",
-                                message));
+                                "Please see %s for help.",
+                                message, GATKRunReport.PHONE_HOME_DOCS_URL));
         }
     }
 
@@ -361,9 +382,8 @@ public class UserException extends ReviewedStingException {
         public KeySignatureVerificationException ( File f ) {
             super(String.format("The signature in key file %s failed cryptographic verification. " +
                                 "If this key was valid in the past, it's likely been revoked. " +
-                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home " +
-                                "for help.",
-                                f.getAbsolutePath()));
+                                "Please see %s for help.",
+                                f.getAbsolutePath(), GATKRunReport.PHONE_HOME_DOCS_URL));
         }
     }
 }

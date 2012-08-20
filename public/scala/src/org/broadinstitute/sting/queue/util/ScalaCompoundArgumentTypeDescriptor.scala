@@ -70,7 +70,7 @@ class ScalaCompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
    * @return The parsed object.
    */
   def parse(parsingEngine: ParsingEngine, source: ArgumentSource, typeType: Type, argumentMatches: ArgumentMatches) = {
-    parse(parsingEngine,source, makeRawTypeIfNecessary(typeType), argumentMatches)
+    parse(parsingEngine,source, ArgumentTypeDescriptor.makeRawTypeIfNecessary(typeType), argumentMatches)
   }
   
   def parse(parsingEngine: ParsingEngine, source: ArgumentSource, classType: Class[_], argumentMatches: ArgumentMatches) = {

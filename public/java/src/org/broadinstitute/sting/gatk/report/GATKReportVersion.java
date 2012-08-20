@@ -45,10 +45,17 @@ public enum GATKReportVersion {
     /*
     * Differences between v0.x
     * - Added table and report headers
-    * - Headers changed format, include the numbe rof tables, rows, and metadata for gathering
+    * - Headers changed format, include the number of tables, rows, and metadata for gathering
     * - IS GATHERABLE
     */
-    V1_0("v1.0");
+    V1_0("v1.0"),
+
+    /*
+    * Differences between v1.0
+    * - column numbers in header reflect the actual count of columns
+    * - primary keys are never displayed
+    */
+    V1_1("v1.1");
 
     private final String versionString;
 
@@ -80,6 +87,9 @@ public enum GATKReportVersion {
 
         if (header.startsWith("#:GATKReport.v1.0"))
             return GATKReportVersion.V1_0;
+
+        if (header.startsWith("#:GATKReport.v1.1"))
+            return GATKReportVersion.V1_1;
 
         throw new ReviewedStingException("Unknown GATK report version in header: " + header);
     }

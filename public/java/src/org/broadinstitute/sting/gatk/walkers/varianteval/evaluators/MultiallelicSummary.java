@@ -31,7 +31,6 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
@@ -113,7 +112,8 @@ public class MultiallelicSummary extends VariantEvaluator implements StandardEva
                 }
                 break;
             default:
-                throw new UserException.BadInput("Unexpected variant context type: " + eval);
+                //throw new UserException.BadInput("Unexpected variant context type: " + eval);
+                break;
         }
 
         return;

@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
@@ -20,7 +20,7 @@ import java.util.Map;
  * The number of N bases, counting only SOLiD data
  */
 public class NBaseCount extends InfoFieldAnnotation {
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if( stratifiedContexts.size() == 0 )
             return null;
 
@@ -28,14 +28,13 @@ public class NBaseCount extends InfoFieldAnnotation {
         int countRegularBaseSolid = 0;
 
         for( final AlignmentContext context : stratifiedContexts.values() ) {
-            if ( context.hasBasePileup() ) { // must be called as getBasePileup may throw error when pileup has no bases
-                for( final PileupElement p : context.getBasePileup()) {
-                    if( p.getRead().getReadGroup().getPlatform().toUpperCase().contains("SOLID") ) {
-                        if( BaseUtils.isNBase( p.getBase() ) ) {
-                            countNBaseSolid++;
-                        } else if( BaseUtils.isRegularBase( p.getBase() ) ) {
-                            countRegularBaseSolid++;
-                        }
+            for( final PileupElement p : context.getBasePileup()) {
+                final String platform = p.getRead().getReadGroup().getPlatform();
+                if( platform != null && platform.toUpperCase().contains("SOLID") ) {
+                    if( BaseUtils.isNBase( p.getBase() ) ) {
+                        countNBaseSolid++;
+                    } else if( BaseUtils.isRegularBase( p.getBase() ) ) {
+                        countRegularBaseSolid++;
                     }
                 }
             }

@@ -49,13 +49,15 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         GenotypesContext GLs = vc.getGenotypes();
         List<Allele> alleles = vc.getAlleles();
 
-        // don't try to genotype too many alternate alleles
-        if ( vc.getAlternateAlleles().size() > MAX_ALTERNATE_ALLELES_TO_GENOTYPE ) {
-            logger.warn("this tool is currently set to genotype at most " + MAX_ALTERNATE_ALLELES_TO_GENOTYPE + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + (vc.getAlternateAlleles().size()) + " alternate alleles so only the top alleles will be used; see the --max_alternate_alleles argument");
+        final int myMaxAltAllelesToGenotype = CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS && vc.getType().equals(VariantContext.Type.INDEL) ? 2 : MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
 
-            alleles = new ArrayList<Allele>(MAX_ALTERNATE_ALLELES_TO_GENOTYPE + 1);
+        // don't try to genotype too many alternate alleles
+        if ( vc.getAlternateAlleles().size() > myMaxAltAllelesToGenotype ) {
+            logger.warn("this tool is currently set to genotype at most " + myMaxAltAllelesToGenotype + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + (vc.getAlternateAlleles().size()) + " alternate alleles so only the top alleles will be used; see the --max_alternate_alleles argument");
+
+            alleles = new ArrayList<Allele>(myMaxAltAllelesToGenotype + 1);
             alleles.add(vc.getReference());
-            alleles.addAll(chooseMostLikelyAlternateAlleles(vc, MAX_ALTERNATE_ALLELES_TO_GENOTYPE));
+            alleles.addAll(chooseMostLikelyAlternateAlleles(vc, myMaxAltAllelesToGenotype));
             GLs = VariantContextUtils.subsetDiploidAlleles(vc, alleles, false);
         }
 
@@ -100,84 +102,13 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         
         return orderedBestAlleles;
     }
-    
+
+
     // -------------------------------------------------------------------------------------
     //
     // Multi-allelic implementation.
     //
     // -------------------------------------------------------------------------------------
-
-    private static final int HOM_REF_INDEX = 0;  // AA likelihoods are always first
-
-    // a wrapper around the int array so that we can make it hashable
-    private static final class ExactACcounts {
-
-        private final int[] counts;
-        private int hashcode = -1;
-
-        public ExactACcounts(final int[] counts) {
-            this.counts = counts;
-        }
-
-        public int[] getCounts() {
-            return counts;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            return (obj instanceof ExactACcounts) && Arrays.equals(counts, ((ExactACcounts)obj).counts);
-        }
-
-        @Override
-        public int hashCode() {
-            if ( hashcode == -1 )
-                hashcode = Arrays.hashCode(counts);
-            return hashcode;
-        }
-
-        @Override
-        public String toString() {
-            StringBuffer sb = new StringBuffer();
-            sb.append(counts[0]);
-            for ( int i = 1; i < counts.length; i++ ) {
-                sb.append("/");
-                sb.append(counts[i]);
-            }
-            return sb.toString();
-        }
-    }
-
-    // This class represents a column in the Exact AC calculation matrix
-    private static final class ExactACset {
-
-        // the counts of the various alternate alleles which this column represents
-        final ExactACcounts ACcounts;
-
-        // the column of the matrix
-        final double[] log10Likelihoods;
-
-        int sum = -1;
-
-        public ExactACset(final int size, final ExactACcounts ACcounts) {
-            this.ACcounts = ACcounts;
-            log10Likelihoods = new double[size];
-            Arrays.fill(log10Likelihoods, Double.NEGATIVE_INFINITY);
-        }
-
-        // sum of all the non-reference alleles
-        public int getACsum() {
-            if ( sum == -1 ) {
-                sum = 0;
-                for ( int count : ACcounts.getCounts() )
-                    sum += count;
-            }
-            return sum;
-        }
-
-        public boolean equals(Object obj) {
-            return (obj instanceof ExactACset) && ACcounts.equals(((ExactACset)obj).ACcounts);
-        }
-    }
 
     public static void linearExactMultiAllelic(final GenotypesContext GLs,
                                                final int numAlternateAlleles,

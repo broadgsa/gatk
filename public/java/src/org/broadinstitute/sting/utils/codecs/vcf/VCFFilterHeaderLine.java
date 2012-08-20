@@ -19,6 +19,14 @@ public class VCFFilterHeaderLine extends VCFSimpleHeaderLine  {
     }
 
     /**
+     * Convenience constructor for FILTER whose description is the name
+     * @param name
+     */
+    public VCFFilterHeaderLine(String name) {
+        super("FILTER", name, name);
+    }
+
+    /**
      * create a VCF info header line
      *
      * @param line      the header line

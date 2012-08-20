@@ -2,11 +2,13 @@ package org.broadinstitute.sting.gatk.walkers.diagnostics;
 
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
@@ -44,8 +46,7 @@ import java.util.List;
  * @author Kiran Garimela
  */
 
-
-
+@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 public class ReadLengthDistribution extends ReadWalker<Integer, Integer> {
     @Output
     public PrintStream out;
@@ -53,20 +54,19 @@ public class ReadLengthDistribution extends ReadWalker<Integer, Integer> {
     private GATKReport report;
 
     public void initialize() {
+        final List<SAMReadGroupRecord> readGroups = getToolkit().getSAMFileHeader().getReadGroups();
+
         report = new GATKReport();
-        report.addTable("ReadLengthDistribution", "Table of read length distributions");
+        report.addTable("ReadLengthDistribution", "Table of read length distributions", 1 + (readGroups.isEmpty() ? 1 : readGroups.size()));
         GATKReportTable table = report.getTable("ReadLengthDistribution");
 
-        table.addPrimaryKey("readLength");
+        table.addColumn("readLength");
 
-        List<SAMReadGroupRecord> readGroups = getToolkit().getSAMFileHeader().getReadGroups();
         if (readGroups.isEmpty())
-            table.addColumn("SINGLE_SAMPLE", 0);
-
+            table.addColumn("SINGLE_SAMPLE");
         else
             for (SAMReadGroupRecord rg : readGroups)
-                table.addColumn(rg.getSample(), 0);
-
+                table.addColumn(rg.getSample());
     }
 
     public boolean filter(ReferenceContext ref, GATKSAMRecord read) {

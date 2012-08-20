@@ -27,12 +27,14 @@ package org.broadinstitute.sting.gatk.walkers.diagnostics;
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.Median;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
@@ -94,6 +96,7 @@ import java.util.Map;
  *
  * @author Mark DePristo
  */
+@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
     @Output
     public PrintStream out;
@@ -168,27 +171,28 @@ public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
     @Override
     public void onTraversalDone(Integer sum) {
         final GATKReport report = new GATKReport();
-        report.addTable(TABLE_NAME, "Table of read group properties");
+        report.addTable(TABLE_NAME, "Table of read group properties", 12);
         GATKReportTable table = report.getTable(TABLE_NAME);
         DateFormat dateFormatter = DateFormat.getDateInstance(DateFormat.SHORT);
 
-        table.addPrimaryKey("readgroup");
+        table.addColumn("readgroup");
         //* Emits a GATKReport containing read group, sample, library, platform, center, median insert size and
         //* median read length for each read group in every BAM file.
-        table.addColumn("sample", "NA");
-        table.addColumn("library", "NA");
-        table.addColumn("platform", "NA");
-        table.addColumn("center", "NA");
-        table.addColumn("date", "NA");
-        table.addColumn("has.any.reads", "false");
-        table.addColumn("is.paired.end", "false");
-        table.addColumn("n.reads.analyzed", "NA");
-        table.addColumn("simple.read.type", "NA");
-        table.addColumn("median.read.length", Integer.valueOf(0));
-        table.addColumn("median.insert.size", Integer.valueOf(0));
+        table.addColumn("sample", "%s");
+        table.addColumn("library", "%s");
+        table.addColumn("platform", "%s");
+        table.addColumn("center", "%s");
+        table.addColumn("date", "%s");
+        table.addColumn("has.any.reads");
+        table.addColumn("is.paired.end");
+        table.addColumn("n.reads.analyzed", "%d");
+        table.addColumn("simple.read.type", "%s");
+        table.addColumn("median.read.length");
+        table.addColumn("median.insert.size");
 
         for ( final SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
             final String rgID = rg.getId();
+            table.addRowID(rgID, true);
             PerReadGroupInfo info = readGroupInfo.get(rgID);
 
             // we are paired if > 25% of reads are paired

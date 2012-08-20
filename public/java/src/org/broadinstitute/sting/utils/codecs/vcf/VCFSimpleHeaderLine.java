@@ -19,18 +19,6 @@ public class VCFSimpleHeaderLine extends VCFHeaderLine implements VCFIDHeaderLin
      *
      * @param key            the key for this header line
      * @param name           the name for this header line
-     * @param genericFields  other fields for this header line
-     */
-    public VCFSimpleHeaderLine(String key, String name, Map<String, String> genericFields) {
-        super(key, "");
-        initialize(name, genericFields);
-    }
-
-    /**
-     * create a VCF filter header line
-     *
-     * @param key            the key for this header line
-     * @param name           the name for this header line
      * @param description    description for this header line
      */
     public VCFSimpleHeaderLine(String key, String name, String description) {
@@ -48,9 +36,12 @@ public class VCFSimpleHeaderLine extends VCFHeaderLine implements VCFIDHeaderLin
      * @param key            the key for this header line
      * @param expectedTagOrdering the tag ordering expected for this header line
      */
-    public VCFSimpleHeaderLine(String line, VCFHeaderVersion version, String key, List<String> expectedTagOrdering) {
+    public VCFSimpleHeaderLine(final String line, final VCFHeaderVersion version, final String key, final List<String> expectedTagOrdering) {
+        this(key, VCFHeaderLineTranslator.parseLine(version, line, expectedTagOrdering), expectedTagOrdering);
+    }
+
+    public VCFSimpleHeaderLine(final String key, final Map<String, String> mapping, final List<String> expectedTagOrdering) {
         super(key, "");
-        Map<String, String> mapping = VCFHeaderLineTranslator.parseLine(version, line, expectedTagOrdering);
         name = mapping.get("ID");
         initialize(name, mapping);
     }
@@ -86,9 +77,5 @@ public class VCFSimpleHeaderLine extends VCFHeaderLine implements VCFIDHeaderLin
 
     public String getID() {
         return name;
-    }
-
-    public Map<String, String> getGenericFields() {
-        return genericFields;
     }
 }

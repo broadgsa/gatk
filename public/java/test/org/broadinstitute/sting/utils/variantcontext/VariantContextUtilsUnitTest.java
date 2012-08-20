@@ -39,7 +39,7 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 public class VariantContextUtilsUnitTest extends BaseTest {
-    Allele Aref, T, C, delRef, Cref, ATC, ATCATC;
+    Allele Aref, T, C, Cref, ATC, ATCATC;
     private GenomeLocParser genomeLocParser;
 
     @BeforeSuite
@@ -56,7 +56,6 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         // alleles
         Aref = Allele.create("A", true);
         Cref = Allele.create("C", true);
-        delRef = Allele.create("-", true);
         T = Allele.create("T");
         C = Allele.create("C");
         ATC = Allele.create("ATC");
@@ -64,16 +63,16 @@ public class VariantContextUtilsUnitTest extends BaseTest {
     }
 
     private Genotype makeG(String sample, Allele a1, Allele a2) {
-        return new Genotype(sample, Arrays.asList(a1, a2));
+        return GenotypeBuilder.create(sample, Arrays.asList(a1, a2));
     }
 
     private Genotype makeG(String sample, Allele a1, Allele a2, double log10pError, double... pls) {
-        return new Genotype(sample, Arrays.asList(a1, a2), log10pError, pls);
+        return new GenotypeBuilder(sample, Arrays.asList(a1, a2)).log10PError(log10pError).PL(pls).make();
     }
 
 
     private Genotype makeG(String sample, Allele a1, Allele a2, double log10pError) {
-        return new Genotype(sample, Arrays.asList(a1, a2), log10pError);
+        return new GenotypeBuilder(sample, Arrays.asList(a1, a2)).log10PError(log10pError).make();
     }
 
     private VariantContext makeVC(String source, List<Allele> alleles) {
@@ -99,7 +98,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
     private VariantContext makeVC(String source, List<Allele> alleles, Collection<Genotype> genotypes, Set<String> filters) {
         int start = 10;
         int stop = start; // alleles.contains(ATC) ? start + 3 : start;
-        return new VariantContextBuilder(source, "1", start, stop, alleles).genotypes(genotypes).filters(filters).referenceBaseForIndel(Cref.getBases()[0]).make();
+        return new VariantContextBuilder(source, "1", start, stop, alleles).genotypes(genotypes).filters(filters).make();
     }
 
     // --------------------------------------------------------------------------------
@@ -156,28 +155,23 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                 Arrays.asList(Aref, C),
                 Arrays.asList(Aref, T, C)); // in order of appearence
 
-        // The following is actually a pathological case - there's no way on a vcf to represent a null allele that's non-variant.
-        // The code converts this (correctly) to a single-base non-variant vc with whatever base was there as a reference.
-        new MergeAllelesTest(Arrays.asList(delRef),
-                Arrays.asList(Cref));
+        new MergeAllelesTest(Arrays.asList(Aref),
+                Arrays.asList(Aref, ATC),
+                Arrays.asList(Aref, ATC));
 
-        new MergeAllelesTest(Arrays.asList(delRef),
-                Arrays.asList(delRef, ATC),
-                Arrays.asList(delRef, ATC));
-
-        new MergeAllelesTest(Arrays.asList(delRef),
-                Arrays.asList(delRef, ATC, ATCATC),
-                Arrays.asList(delRef, ATC, ATCATC));
+        new MergeAllelesTest(Arrays.asList(Aref),
+                Arrays.asList(Aref, ATC, ATCATC),
+                Arrays.asList(Aref, ATC, ATCATC));
 
         // alleles in the order we see them
-        new MergeAllelesTest(Arrays.asList(delRef, ATCATC),
-                Arrays.asList(delRef, ATC, ATCATC),
-                Arrays.asList(delRef, ATCATC, ATC));
+        new MergeAllelesTest(Arrays.asList(Aref, ATCATC),
+                Arrays.asList(Aref, ATC, ATCATC),
+                Arrays.asList(Aref, ATCATC, ATC));
 
         // same
-        new MergeAllelesTest(Arrays.asList(delRef, ATC),
-                Arrays.asList(delRef, ATCATC),
-                Arrays.asList(delRef, ATC, ATCATC));
+        new MergeAllelesTest(Arrays.asList(Aref, ATC),
+                Arrays.asList(Aref, ATCATC),
+                Arrays.asList(Aref, ATC, ATCATC));
 
         return MergeAllelesTest.getTests(MergeAllelesTest.class);
     }
@@ -523,8 +517,8 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         for (Genotype value : actual) {
             Genotype expectedValue = expected.get(value.getSampleName());
 
-            Assert.assertEquals(value.alleles, expectedValue.alleles, "Alleles in Genotype aren't equal");
-            Assert.assertEquals(value.getLog10PError(), expectedValue.getLog10PError(), "GQ values aren't equal");
+            Assert.assertEquals(value.getAlleles(), expectedValue.getAlleles(), "Alleles in Genotype aren't equal");
+            Assert.assertEquals(value.getGQ(), expectedValue.getGQ(), "GQ values aren't equal");
             Assert.assertEquals(value.hasLikelihoods(), expectedValue.hasLikelihoods(), "Either both have likelihoods or both not");
             if ( value.hasLikelihoods() )
                 Assert.assertEquals(value.getLikelihoods().getAsVector(), expectedValue.getLikelihoods().getAsVector(), "Genotype likelihoods aren't equal");
@@ -660,5 +654,53 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
          // test alleles are equal
         Assert.assertEquals(VariantContextUtils.isTandemRepeat(cfg.vc, cfg.ref.getBytes()), cfg.isTrueRepeat);
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // basic allele clipping test
+    //
+    // --------------------------------------------------------------------------------
+
+    private class ReverseClippingPositionTestProvider extends TestDataProvider {
+        final String ref;
+        final List<Allele> alleles = new ArrayList<Allele>();
+        final int expectedClip;
+
+        private ReverseClippingPositionTestProvider(final int expectedClip, final String ref, final String... alleles) {
+            super(ReverseClippingPositionTestProvider.class);
+            this.ref = ref;
+            for ( final String allele : alleles )
+                this.alleles.add(Allele.create(allele));
+            this.expectedClip = expectedClip;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("ref=%s allele=%s reverse clip %d", ref, alleles, expectedClip);
+        }
+    }
+
+    @DataProvider(name = "ReverseClippingPositionTestProvider")
+    public Object[][] makeReverseClippingPositionTestProvider() {
+        // pair clipping
+        new ReverseClippingPositionTestProvider(0, "ATT", "CCG");
+        new ReverseClippingPositionTestProvider(1, "ATT", "CCT");
+        new ReverseClippingPositionTestProvider(2, "ATT", "CTT");
+        new ReverseClippingPositionTestProvider(2, "ATT", "ATT");  // cannot completely clip allele
+
+        // triplets
+        new ReverseClippingPositionTestProvider(0, "ATT", "CTT", "CGG");
+        new ReverseClippingPositionTestProvider(1, "ATT", "CTT", "CGT"); // the T can go
+        new ReverseClippingPositionTestProvider(2, "ATT", "CTT", "CTT"); // both Ts can go
+
+        return ReverseClippingPositionTestProvider.getTests(ReverseClippingPositionTestProvider.class);
+    }
+
+
+    @Test(dataProvider = "ReverseClippingPositionTestProvider")
+    public void testReverseClippingPositionTestProvider(ReverseClippingPositionTestProvider cfg) {
+        int result = VariantContextUtils.computeReverseClipping(cfg.alleles, cfg.ref.getBytes(), 0, false);
+        Assert.assertEquals(result, cfg.expectedClip);
     }
 }

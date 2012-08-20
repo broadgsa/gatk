@@ -3,22 +3,22 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatibleWalker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineCount;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFStandardHeaderLines;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -42,26 +42,17 @@ import java.util.Map;
  */
 public class DepthPerAlleleBySample extends GenotypeAnnotation implements StandardAnnotation {
 
-    private static final String REF_ALLELE = "REF";
-
-    private static final String DEL = "DEL"; // constant, for speed: no need to create a key string for deletion allele every time
-
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatibleWalker walker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+    public void annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g, GenotypeBuilder gb) {
         if ( g == null || !g.isCalled() )
-            return null;
+            return;
 
         if ( vc.isSNP() )
-            return annotateSNP(stratifiedContext, vc);
-        if ( vc.isIndel() )
-            return annotateIndel(stratifiedContext, vc);
-
-        return null;
+            annotateSNP(stratifiedContext, vc, gb);
+        else if ( vc.isIndel() )
+            annotateIndel(stratifiedContext, ref.getBase(), vc, gb);
     }
 
-    private Map<String,Object> annotateSNP(AlignmentContext stratifiedContext, VariantContext vc) {
-
-        if ( ! stratifiedContext.hasBasePileup() )
-            return null;
+    private void annotateSNP(final AlignmentContext stratifiedContext, final VariantContext vc, final GenotypeBuilder gb) {
 
         HashMap<Byte, Integer> alleleCounts = new HashMap<Byte, Integer>();
         for ( Allele allele : vc.getAlleles() )
@@ -74,82 +65,59 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         }
 
         // we need to add counts in the correct order
-        Integer[] counts = new Integer[alleleCounts.size()];
+        int[] counts = new int[alleleCounts.size()];
         counts[0] = alleleCounts.get(vc.getReference().getBases()[0]);
         for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
             counts[i+1] = alleleCounts.get(vc.getAlternateAllele(i).getBases()[0]);
 
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), counts);
-        return map;
+        gb.AD(counts);
     }
 
-    private Map<String,Object> annotateIndel(AlignmentContext stratifiedContext, VariantContext vc) {
-
-        if ( ! stratifiedContext.hasBasePileup() )
-            return null;
-
+    private void annotateIndel(final AlignmentContext stratifiedContext, final byte refBase, final VariantContext vc, final GenotypeBuilder gb) {
         ReadBackedPileup pileup = stratifiedContext.getBasePileup();
         if ( pileup == null )
-            return null;
+            return;
 
-        final HashMap<String, Integer> alleleCounts = new HashMap<String, Integer>();
-        alleleCounts.put(REF_ALLELE, 0);
+        final HashMap<Allele, Integer> alleleCounts = new HashMap<Allele, Integer>();
         final Allele refAllele = vc.getReference();
 
-        for ( Allele allele : vc.getAlternateAlleles() ) {
-
-            if ( allele.isNoCall() ) {
-                continue; // this does not look so good, should we die???
-            }
-
-            alleleCounts.put(getAlleleRepresentation(allele), 0);
+        for ( final Allele allele : vc.getAlleles() ) {
+            alleleCounts.put(allele, 0);
         }
 
         for ( PileupElement p : pileup ) {
             if ( p.isBeforeInsertion() ) {
 
-                final String b = p.getEventBases();
-                if ( alleleCounts.containsKey(b) ) {
-                    alleleCounts.put(b, alleleCounts.get(b)+1);
+                final Allele insertion = Allele.create((char)refBase + p.getEventBases(), false);
+                if ( alleleCounts.containsKey(insertion) ) {
+                    alleleCounts.put(insertion, alleleCounts.get(insertion)+1);
                 }
 
             } else if ( p.isBeforeDeletionStart() ) {
-                    if ( p.getEventLength() == refAllele.length() ) {
-                        // this is indeed the deletion allele recorded in VC
-                        final String b = DEL;
-                        if ( alleleCounts.containsKey(b) ) {
-                            alleleCounts.put(b, alleleCounts.get(b)+1);
-                        }
+                if ( p.getEventLength() == refAllele.length() - 1 ) {
+                    // this is indeed the deletion allele recorded in VC
+                    final Allele deletion = Allele.create(refBase);
+                    if ( alleleCounts.containsKey(deletion) ) {
+                        alleleCounts.put(deletion, alleleCounts.get(deletion)+1);
                     }
+                }
             } else if ( p.getRead().getAlignmentEnd() > vc.getStart() ) {
-                alleleCounts.put(REF_ALLELE, alleleCounts.get(REF_ALLELE)+1);
+                alleleCounts.put(refAllele, alleleCounts.get(refAllele)+1);
             }
         }
 
-        Integer[] counts = new Integer[alleleCounts.size()];
-        counts[0] = alleleCounts.get(REF_ALLELE);
+        final int[] counts = new int[alleleCounts.size()];
+        counts[0] = alleleCounts.get(refAllele);
         for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
-            counts[i+1] = alleleCounts.get( getAlleleRepresentation(vc.getAlternateAllele(i)) );
+            counts[i+1] = alleleCounts.get( vc.getAlternateAllele(i) );
 
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), counts);
-
-        //map.put(getKeyNames().get(0), counts);
-        return map;
-    }
-
-    private String getAlleleRepresentation(Allele allele) {
-        if ( allele.isNull() ) { // deletion wrt the ref
-             return DEL;
-        } else { // insertion, pass actual bases
-            return allele.getBaseString();
-        }
-
+        gb.AD(counts);
     }
 
  //   public String getIndelBases()
-    public List<String> getKeyNames() { return Arrays.asList("AD"); }
+    public List<String> getKeyNames() { return Arrays.asList(VCFConstants.GENOTYPE_ALLELE_DEPTHS); }
 
-    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0), VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "Allelic depths for the ref and alt alleles in the order listed")); }
+    public List<VCFFormatHeaderLine> getDescriptions() {
+        return Arrays.asList(VCFStandardHeaderLines.getFormatLine(getKeyNames().get(0)));
+    }
 }

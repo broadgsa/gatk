@@ -28,14 +28,17 @@ import org.broadinstitute.sting.utils.interval.IntervalUtils
 import java.io.File
 import org.broadinstitute.sting.utils.io.IOUtils
 import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, ScatterFunction}
-import org.broadinstitute.sting.commandline.Output
+import org.broadinstitute.sting.commandline._
 
 trait GATKScatterFunction extends ScatterFunction {
-  /** The runtime field to set for specifying an interval file. */
+  /* The runtime field to set for specifying intervals. */
   private final val intervalsField = "intervals"
-
-  /** The runtime field to set for specifying an interval string. */
   private final val intervalsStringField = "intervalsString"
+  private final val excludeIntervalsField = "excludeIntervals"
+  private final val excludeIntervalsStringField = "excludeIntervalsString"
+  private final val intervalsSetRuleField = "interval_set_rule"
+  private final val intervalMergingField = "interval_merging"
+  private final val intervalPaddingField = "interval_padding"
 
   @Output(doc="Scatter function outputs")
   var scatterOutputFiles: Seq[File] = Nil
@@ -43,25 +46,14 @@ trait GATKScatterFunction extends ScatterFunction {
   /** The original GATK function. */
   protected var originalGATK: CommandLineGATK = _
 
-  /** The reference sequence for the GATK function. */
-  protected var referenceSequence: File = _
-
-  /** The list of interval files ("/path/to/interval.list") or interval strings ("chr1", "chr2") to parse into smaller parts. */
-  protected var intervals: Seq[String] = Nil
-
   /** Whether the last scatter job should also include any unmapped reads. */
   protected var includeUnmapped: Boolean = _
 
   override def init() {
     this.originalGATK = this.originalFunction.asInstanceOf[CommandLineGATK]
-    this.referenceSequence = this.originalGATK.reference_sequence
-    if (this.originalGATK.intervals.isEmpty && (this.originalGATK.intervalsString == null || this.originalGATK.intervalsString.isEmpty)) {
-      this.intervals ++= GATKScatterFunction.getGATKIntervals(this.referenceSequence, Seq.empty[String]).contigs
-    } else {
-      this.intervals ++= this.originalGATK.intervals.map(_.toString)
-      this.intervals ++= this.originalGATK.intervalsString.filterNot(interval => IntervalUtils.isUnmapped(interval))
+    // If intervals have been specified check if unmapped is included
+    if (this.originalGATK.intervals.size + this.originalGATK.intervalsString.size > 0)
       this.includeUnmapped = this.originalGATK.intervalsString.exists(interval => IntervalUtils.isUnmapped(interval))
-    }
   }
 
   override def isScatterGatherable = {
@@ -74,6 +66,12 @@ trait GATKScatterFunction extends ScatterFunction {
       cloneFunction.setFieldValue(this.intervalsStringField, Seq("unmapped"))
     else
       cloneFunction.setFieldValue(this.intervalsStringField, Seq.empty[String])
+
+    cloneFunction.setFieldValue(this.intervalsSetRuleField, null)
+    cloneFunction.setFieldValue(this.intervalMergingField, null)
+    cloneFunction.setFieldValue(this.intervalPaddingField, None)
+    cloneFunction.setFieldValue(this.excludeIntervalsField, Seq.empty[File])
+    cloneFunction.setFieldValue(this.excludeIntervalsStringField, Seq.empty[String])
   }
 
   override def bindCloneInputs(cloneFunction: CloneFunction, index: Int) {
@@ -85,29 +83,28 @@ trait GATKScatterFunction extends ScatterFunction {
   }
 
   /**
-   * Returns true if all interval files exist.
+   * @return true if all interval files exist.
    */
   protected def intervalFilesExist = {
-    !this.intervals.exists(interval => IntervalUtils.isIntervalFile(interval, false) && !new File(interval).exists)
+    !(this.originalGATK.intervals ++ this.originalGATK.excludeIntervals).exists(interval => !interval.exists())
   }
 
   /**
-   * Returns the maximum number of intervals or this.scatterCount if the maximum can't be determined ahead of time.
    * @return the maximum number of intervals or this.scatterCount if the maximum can't be determined ahead of time.
    */
   protected def maxIntervals: Int
 }
 
 object GATKScatterFunction {
-  var gatkIntervals = Seq.empty[GATKIntervals]
+  var gatkIntervalsCache = Seq.empty[GATKIntervals]
 
-  def getGATKIntervals(reference: File, intervals: Seq[String]) = {
-    gatkIntervals.find(gi => gi.reference == reference && gi.intervals == intervals) match {
-      case Some(gi) => gi
+  def getGATKIntervals(originalFunction: CommandLineGATK) = {
+    val gatkIntervals = new GATKIntervals(originalFunction)
+    gatkIntervalsCache.find(_ == gatkIntervals) match {
+      case Some(existingGatkIntervals) => existingGatkIntervals
       case None =>
-        val gi = new GATKIntervals(reference, intervals)
-        gatkIntervals :+= gi
-        gi
+        gatkIntervalsCache :+= gatkIntervals
+        gatkIntervals
     }
   }
 }

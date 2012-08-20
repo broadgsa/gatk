@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -31,37 +31,52 @@ import java.util.Map;
 
 /**
  * Simple collection of all relevant information about something the GATKDoclet can document
- *
+ * <p/>
  * Created by IntelliJ IDEA.
  * User: depristo
  * Date: 7/24/11
  * Time: 7:59 PM
  */
 class GATKDocWorkUnit implements Comparable<GATKDocWorkUnit> {
-    /** The class that's being documented */
+    /**
+     * The class that's being documented
+     */
     final Class clazz;
-    /** The name of the thing we are documenting */
+    /**
+     * The name of the thing we are documenting
+     */
     final String name;
-    /** the filename where we will be writing the docs for this class */
+    /**
+     * the filename where we will be writing the docs for this class
+     */
     final String filename;
-    /** The name of the documentation group (e.g., walkers, read filters) class belongs to */
+    /**
+     * The name of the documentation group (e.g., walkers, read filters) class belongs to
+     */
     final String group;
-    /** The documentation handler for this class */
+    /**
+     * The documentation handler for this class
+     */
     final DocumentedGATKFeatureHandler handler;
-    /** The javadoc documentation for clazz */
+    /**
+     * The javadoc documentation for clazz
+     */
     final ClassDoc classDoc;
-    /** The annotation that lead to this Class being in GATKDoc */
+    /**
+     * The annotation that lead to this Class being in GATKDoc
+     */
     final DocumentedGATKFeatureObject annotation;
-    /** When was this walker built, and what's the absolute version number */
+    /**
+     * When was this walker built, and what's the absolute version number
+     */
     final String buildTimestamp, absoluteVersion;
 
     // set by the handler
     String summary;
     Map<String, Object> forTemplate;
 
-    public GATKDocWorkUnit(String name, String filename, String group,
-                           DocumentedGATKFeatureObject annotation, DocumentedGATKFeatureHandler handler,
-                           ClassDoc classDoc, Class clazz,
+    public GATKDocWorkUnit(String name, String filename, String group, DocumentedGATKFeatureObject annotation,
+                           DocumentedGATKFeatureHandler handler, ClassDoc classDoc, Class clazz,
                            String buildTimestamp, String absoluteVersion) {
         this.annotation = annotation;
         this.name = name;
@@ -76,6 +91,7 @@ class GATKDocWorkUnit implements Comparable<GATKDocWorkUnit> {
 
     /**
      * Called by the GATKDoclet to set handler provided context for this work unit
+     *
      * @param summary
      * @param forTemplate
      */
@@ -86,6 +102,7 @@ class GATKDocWorkUnit implements Comparable<GATKDocWorkUnit> {
 
     /**
      * Return a String -> String map suitable for FreeMarker to create an index to this WorkUnit
+     *
      * @return
      */
     public Map<String, String> indexDataMap() {
@@ -99,6 +116,7 @@ class GATKDocWorkUnit implements Comparable<GATKDocWorkUnit> {
 
     /**
      * Sort in order of the name of this WorkUnit
+     *
      * @param other
      * @return
      */

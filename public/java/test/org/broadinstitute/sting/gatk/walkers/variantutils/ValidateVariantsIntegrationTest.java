@@ -34,7 +34,7 @@ import java.util.Arrays;
 public class ValidateVariantsIntegrationTest extends WalkerTest {
 
     public static String baseTestString(String file, String type) {
-        return "-T ValidateVariants -R " + b36KGReference + " -L 1:10001292-10001303 --variant:vcf " + validationDataLocation + file + " --validationType " + type;
+        return "-T ValidateVariants -R " + b36KGReference + " -L 1:10001292-10001303 --variant:vcf " + privateTestDir + file + " --validationType " + type;
     }
 
     @Test
@@ -125,4 +125,14 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
         executeTest("test bad ref allele in deletion", spec);
     }
 
+    @Test
+    public void testComplexEvents() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString("complexEvents.vcf", "ALL"),
+                0,
+                Arrays.asList("d41d8cd98f00b204e9800998ecf8427e")
+        );
+
+        executeTest("test validating complex events", spec);
+    }
 }

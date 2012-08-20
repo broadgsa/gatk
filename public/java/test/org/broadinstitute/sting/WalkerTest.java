@@ -34,30 +34,63 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextTestProvider;
+
+import java.io.*;
+
 import org.testng.Assert;
+import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeMethod;
 
-import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class WalkerTest extends BaseTest {
+    private static final boolean GENERATE_SHADOW_BCF = true;
     private static final boolean ENABLE_PHONE_HOME_FOR_TESTS = false;
     private static final boolean ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX = false;
 
+    private static MD5DB md5DB = new MD5DB();
+
     @BeforeMethod
-    public void initializeRandomGenerator() {
+    public void initializeWalkerTests() {
+        logger.debug("Initializing walker tests");
         GenomeAnalysisEngine.resetRandomGenerator();
     }
 
-    public MD5DB.MD5Match assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5) {
-        return MD5DB.assertMatchingMD5(name, resultsFile, expectedMD5, parameterize());
+    @AfterSuite
+    public void finalizeWalkerTests() {
+        logger.debug("Finalizing walker tests");
+        md5DB.close();
     }
 
-    public void maybeValidateSupplementaryFile(final String name, final File resultFile) {
+    public static MD5DB getMd5DB() {
+        return md5DB;
+    }
+
+    public MD5DB.MD5Match assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5) {
+        return getMd5DB().assertMatchingMD5(name, resultsFile, expectedMD5, parameterize());
+    }
+
+    public void validateOutputBCFIfPossible(final String name, final File resultFile) {
+        final File bcfFile = BCF2Utils.shadowBCF(resultFile);
+        if ( bcfFile != null && bcfFile.exists() ) {
+            logger.warn("Checking shadow BCF output file " + bcfFile + " against VCF file " + resultFile);
+            try {
+                VariantContextTestProvider.assertVCFandBCFFilesAreTheSame(resultFile, bcfFile);
+                logger.warn("  Shadow BCF PASSED!");
+            } catch ( Exception e ) {
+                Assert.fail("Exception received reading shadow BCFFile " + bcfFile + " for test " + name, e);
+            }
+        }
+    }
+
+    public void validateOutputIndex(final String name, final File resultFile) {
         if ( !ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX )
             return;
 
@@ -69,20 +102,15 @@ public class WalkerTest extends BaseTest {
                 throw new StingException("Found an index created for file " + resultFile + " but we can only validate VCF files.  Extend this code!");
             }
 
-            assertOnDiskIndexEqualToNewlyCreatedIndex(indexFile, name, resultFile);
-        }
-    }
+            System.out.println("Verifying on-the-fly index " + indexFile + " for test " + name + " using file " + resultFile);
+            Index indexFromOutputFile = IndexFactory.createDynamicIndex(resultFile, new VCFCodec());
+            Index dynamicIndex = IndexFactory.loadIndex(indexFile.getAbsolutePath());
 
-
-    public static void assertOnDiskIndexEqualToNewlyCreatedIndex(final File indexFile, final String name, final File resultFile) {
-        System.out.println("Verifying on-the-fly index " + indexFile + " for test " + name + " using file " + resultFile);
-        Index indexFromOutputFile = IndexFactory.createDynamicIndex(resultFile, new VCFCodec());
-        Index dynamicIndex = IndexFactory.loadIndex(indexFile.getAbsolutePath());
-
-        if ( ! indexFromOutputFile.equalsIgnoreProperties(dynamicIndex) ) {
-            Assert.fail(String.format("Index on disk from indexing on the fly not equal to the index created after the run completed.  FileIndex %s vs. on-the-fly %s%n",
-                    indexFromOutputFile.getProperties(),
-                    dynamicIndex.getProperties()));
+            if ( ! indexFromOutputFile.equalsIgnoreProperties(dynamicIndex) ) {
+                Assert.fail(String.format("Index on disk from indexing on the fly not equal to the index created after the run completed.  FileIndex %s vs. on-the-fly %s%n",
+                        indexFromOutputFile.getProperties(),
+                        dynamicIndex.getProperties()));
+            }
         }
     }
 
@@ -92,19 +120,26 @@ public class WalkerTest extends BaseTest {
 
         for (int i = 0; i < resultFiles.size(); i++) {
             MD5DB.MD5Match result = assertMatchingMD5(name, resultFiles.get(i), expectedMD5s.get(i));
+            validateOutputBCFIfPossible(name, resultFiles.get(i));
             if ( ! result.failed ) {
-                maybeValidateSupplementaryFile(name, resultFiles.get(i));
-                md5s.add(result.md5);
+                validateOutputIndex(name, resultFiles.get(i));
+                md5s.add(result.expectedMD5);
             } else {
                 fails.add(result);
             }
         }
 
         if ( ! fails.isEmpty() ) {
+            List<String> actuals = new ArrayList<String>();
+            List<String> expecteds = new ArrayList<String>();
             for ( final MD5DB.MD5Match fail : fails ) {
+                actuals.add(fail.actualMD5);
+                expecteds.add(fail.expectedMD5);
                 logger.warn("Fail: " + fail.failMessage);
             }
-            Assert.fail("Test failed: " + name);
+
+            final MD5Mismatch failure = new MD5Mismatch(actuals, expecteds);
+            Assert.fail(failure.toString(), failure);
         }
 
         return md5s;
@@ -125,19 +160,15 @@ public class WalkerTest extends BaseTest {
     }
 
     public class WalkerTestSpec {
-
         // Arguments implicitly included in all Walker command lines, unless explicitly
         // disabled using the disableImplicitArgs() method below.
-        final String IMPLICIT_ARGS = ENABLE_PHONE_HOME_FOR_TESTS ?
-                                     String.format("-et %s", GATKRunReport.PhoneHomeOption.STANDARD) :
-                                     String.format("-et %s -K %s", GATKRunReport.PhoneHomeOption.NO_ET, gatkKeyFile);
-
         String args = "";
         int nOutputFiles = -1;
         List<String> md5s = null;
         List<String> exts = null;
         Class expectedException = null;
         boolean includeImplicitArgs = true;
+        boolean includeShadowBCF = true;
 
         // the default output path for the integration test
         private File outputFileLocation = null;
@@ -172,9 +203,24 @@ public class WalkerTest extends BaseTest {
         }
 
         public String getArgsWithImplicitArgs() {
-            return args + (includeImplicitArgs ? " " + IMPLICIT_ARGS : "");
+            String args = this.args;
+            if ( includeImplicitArgs ) {
+                args = args + (ENABLE_PHONE_HOME_FOR_TESTS ?
+                        String.format(" -et %s ", GATKRunReport.PhoneHomeOption.STANDARD) :
+                        String.format(" -et %s -K %s ", GATKRunReport.PhoneHomeOption.NO_ET, gatkKeyFile));
+                if ( includeShadowBCF && GENERATE_SHADOW_BCF )
+                    args = args + " --generateShadowBCF ";
+            }
+
+            return args;
         }
 
+        /**
+         * In the case where the input VCF files are malformed and cannot be fixed
+         * this function tells the engine to not try to generate a shadow BCF
+         * which will ultimately blow up...
+         */
+        public void disableShadowBCF() { this.includeShadowBCF = false; }
         public void setOutputFileLocation(File outputFileLocation) {
             this.outputFileLocation = outputFileLocation;
         }        
@@ -223,8 +269,6 @@ public class WalkerTest extends BaseTest {
     }
 
     protected Pair<List<File>, List<String>> executeTest(final String name, WalkerTestSpec spec) {
-        MD5DB.ensureMd5DbDirectory(); // ensure the md5 directory exists
-
         List<File> tmpFiles = new ArrayList<File>();
         for (int i = 0; i < spec.nOutputFiles; i++) {
             String ext = spec.exts == null ? ".tmp" : "." + spec.exts.get(i);
@@ -303,21 +347,32 @@ public class WalkerTest extends BaseTest {
         // run the executable
         boolean gotAnException = false;
         try {
-            System.out.println(String.format("Executing test %s with GATK arguments: %s", name, Utils.join(" ",command)));
+            final String now = new SimpleDateFormat("HH:mm:ss").format(new Date());
+            final String cmdline = Utils.join(" ",command);
+            System.out.println(String.format("[%s] Executing test %s with GATK arguments: %s", now, name, cmdline));
+            // also write the command line to the HTML log for convenient follow-up
+            // do the replaceAll so paths become relative to the current
+            BaseTest.log(cmdline.replaceAll(publicTestDirRoot, "").replaceAll(privateTestDirRoot, ""));
             CommandLineExecutable.start(instance, command);
         } catch (Exception e) {
             gotAnException = true;
             if ( expectedException != null ) {
                 // we expect an exception
-                System.out.println(String.format("Wanted exception %s, saw %s", expectedException, e.getClass()));
+                //System.out.println(String.format("Wanted exception %s, saw %s", expectedException, e.getClass()));
                 if ( expectedException.isInstance(e) ) {
                     // it's the type we expected
-                    System.out.println(String.format("  => %s PASSED", name));
+                    //System.out.println(String.format("  => %s PASSED", name));
                 } else {
-                    if ( e.getCause() != null )
-                        e.getCause().printStackTrace(System.out);  // must print to stdout to see the message
-                    Assert.fail(String.format("Test %s expected exception %s but instead got %s with error message %s",
-                            name, expectedException, e.getClass(), e.getMessage()));
+                    final String message = String.format("Test %s expected exception %s but instead got %s with error message %s",
+                            name, expectedException, e.getClass(), e.getMessage());
+                    if ( e.getCause() != null ) {
+                        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        final PrintStream ps = new PrintStream(baos);
+                        e.getCause().printStackTrace(ps);
+                        BaseTest.log(message);
+                        BaseTest.log(baos.toString());
+                    }
+                    Assert.fail(message);
                 }
             } else {
                 // we didn't expect an exception but we got one :-(
@@ -342,5 +397,5 @@ public class WalkerTest extends BaseTest {
         File fl = new File(name);
         fl.deleteOnExit();
         return fl;
-    }    
+    }
 }

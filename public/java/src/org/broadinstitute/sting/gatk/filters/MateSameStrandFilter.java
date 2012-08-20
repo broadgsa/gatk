@@ -3,11 +3,10 @@ package org.broadinstitute.sting.gatk.filters;
 import net.sf.samtools.SAMRecord;
 
 /**
- * Created by IntelliJ IDEA.
- * User: chartl
- * Date: 5/18/11
- * Time: 4:25 PM
- * To change this template use File | Settings | File Templates.
+ * Filter out reads that are not paired, have their mate unmapped, are duplicates, fail vendor quality check or both mate and read are in the same strand.
+ *
+ * @author chartl
+ * @since 5/18/11
  */
 public class MateSameStrandFilter extends ReadFilter {
 

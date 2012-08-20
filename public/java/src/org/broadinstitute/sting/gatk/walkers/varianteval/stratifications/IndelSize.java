@@ -47,4 +47,8 @@ public class IndelSize extends VariantStratifier {
 
         return Collections.emptyList();
     }
+    @Override
+    public String getFormat() {
+        return "%d";
+    }
 }

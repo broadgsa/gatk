@@ -17,8 +17,6 @@ import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -41,6 +39,46 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
 
     private final LocusIteratorByState makeLTBS(List<SAMRecord> reads, ReadProperties readAttributes) {
         return new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()), readAttributes, genomeLocParser, LocusIteratorByState.sampleListForSAMWithoutReadGroups());
+    }
+
+    @Test
+    public void testXandEQOperators() {
+        final byte[] bases1 = new byte[] {'A','A','A','A','A','A','A','A','A','A'};
+        final byte[] bases2 = new byte[] {'A','A','A','C','A','A','A','A','A','C'};
+
+        // create a test version of the Reads object
+        ReadProperties readAttributes = createTestReadProperties();
+
+        SAMRecord r1 = ArtificialSAMUtils.createArtificialRead(header,"r1",0,1,10);
+        r1.setReadBases(bases1);
+        r1.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20});
+        r1.setCigarString("10M");
+
+        SAMRecord r2 = ArtificialSAMUtils.createArtificialRead(header,"r2",0,1,10);
+        r2.setReadBases(bases2);
+        r2.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20,20,20});
+        r2.setCigarString("3=1X5=1X");
+
+        SAMRecord r3 = ArtificialSAMUtils.createArtificialRead(header,"r3",0,1,10);
+        r3.setReadBases(bases2);
+        r3.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20,20,20});
+        r3.setCigarString("3=1X5M1X");
+
+        SAMRecord r4  = ArtificialSAMUtils.createArtificialRead(header,"r4",0,1,10);
+        r4.setReadBases(bases2);
+        r4.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20});
+        r4.setCigarString("10M");
+
+        List<SAMRecord> reads = Arrays.asList(r1, r2, r3, r4);
+
+        // create the iterator by state with the fake reads and fake records
+        li = makeLTBS(reads,readAttributes);
+
+        while (li.hasNext()) {
+            AlignmentContext context = li.next();
+            ReadBackedPileup pileup = context.getBasePileup();
+            Assert.assertEquals(pileup.depthOfCoverage(), 4);
+        }
     }
 
     @Test
@@ -74,9 +112,6 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         boolean foundIndel = false;
         while (li.hasNext()) {
             AlignmentContext context = li.next();
-            if(!context.hasBasePileup())
-                continue;
-
             ReadBackedPileup pileup = context.getBasePileup().getBaseFilteredPileup(10);
             for (PileupElement p : pileup) {
                 if (p.isBeforeInsertion()) {

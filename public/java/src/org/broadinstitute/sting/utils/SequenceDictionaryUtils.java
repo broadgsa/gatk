@@ -225,9 +225,9 @@ public class SequenceDictionaryUtils {
             return false;
 
             // todo -- reenable if we want to be really strict here
-//        if (me.getAttribute(SAMSequenceRecord.MD5_TAG) != null && that.getAttribute(SAMSequenceRecord.MD5_TAG) != null) {
-//            final BigInteger thisMd5 = new BigInteger((String)me.getAttribute(SAMSequenceRecord.MD5_TAG), 16);
-//            final BigInteger thatMd5 = new BigInteger((String)that.getAttribute(SAMSequenceRecord.MD5_TAG), 16);
+//        if (me.getExtendedAttribute(SAMSequenceRecord.MD5_TAG) != null && that.getExtendedAttribute(SAMSequenceRecord.MD5_TAG) != null) {
+//            final BigInteger thisMd5 = new BigInteger((String)me.getExtendedAttribute(SAMSequenceRecord.MD5_TAG), 16);
+//            final BigInteger thatMd5 = new BigInteger((String)that.getExtendedAttribute(SAMSequenceRecord.MD5_TAG), 16);
 //            if (!thisMd5.equals(thatMd5)) {
 //                return false;
 //            }
@@ -329,7 +329,7 @@ public class SequenceDictionaryUtils {
      */
     private static class CompareSequenceRecordsByIndex implements Comparator<SAMSequenceRecord> {
         public int compare(SAMSequenceRecord x, SAMSequenceRecord y) {
-            return new Integer(x.getSequenceIndex()).compareTo(y.getSequenceIndex());
+            return Integer.valueOf(x.getSequenceIndex()).compareTo(y.getSequenceIndex());
         }
     }
 

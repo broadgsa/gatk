@@ -26,21 +26,25 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
+import org.broadinstitute.sting.gatk.io.stubs.VariantContextWriterStub;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCounts;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.writer.Options;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 
 import java.util.*;
 
@@ -62,6 +66,19 @@ import java.util.*;
  * the records in common between two VCFs, you would first run CombineVariants on the two files to generate a single
  * VCF and then run SelectVariants to extract the common records with -select 'set == "Intersection"', as worked out
  * in the detailed example on the wiki.
+ *
+ * Note that CombineVariants supports multi-threaded parallelism (8/15/12).  This is particularly useful
+ * when converting from VCF to BCF2, which can be expensive.  In this case each thread spends CPU time
+ * doing the conversion, and the GATK engine is smart enough to merge the partial BCF2 blocks together
+ * efficiency.  However, since this merge runs in only one thread, you can quickly reach diminishing
+ * returns with the number of parallel threads.  -nt 4 works well but -nt 8 may be too much.
+ *
+ * Some fine details about the merging algorithm:
+ *   <ul>
+ *   <li> As of GATK 2.1, when merging multiple VCF records at a site, the combined VCF record has the QUAL of
+ *      the first VCF record with a non-MISSING QUAL value.  The previous behavior was to take the
+ *      max QUAL, which resulted in sometime strange downstream confusion</li>
+ *   </ul>
  *
  * <h2>Input</h2>
  * <p>
@@ -94,8 +111,9 @@ import java.util.*;
  * </pre>
  *
  */
+@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-50,stop=50))
-public class CombineVariants extends RodWalker<Integer, Integer> {
+public class CombineVariants extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
     /**
      * The VCF files to merge together
      *
@@ -113,7 +131,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     public List<RodBinding<VariantContext>> variants;
 
     @Output(doc="File to which variants should be written",required=true)
-    protected VCFWriter vcfWriter = null;
+    protected VariantContextWriter vcfWriter = null;
 
     @Argument(shortName="genotypeMergeOptions", doc="Determines how we should merge genotype records for samples shared across the ROD files", required=false)
     public VariantContextUtils.GenotypeMergeType genotypeMergeOption = VariantContextUtils.GenotypeMergeType.PRIORITIZE;
@@ -164,7 +182,6 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="suppressCommandLineHeader", shortName="suppressCommandLineHeader", doc="If true, do not output the header containing the command line used", required=false)
     public boolean SUPPRESS_COMMAND_LINE_HEADER = false;
 
-    @Hidden
     @Argument(fullName="mergeInfoWithMaxAC", shortName="mergeInfoWithMaxAC", doc="If true, when VCF records overlap the info field is taken from the one with the max AC instead of only taking the fields which are identical across the overlapping records.", required=false)
     public boolean MERGE_INFO_WITH_MAX_AC = false;
 
@@ -172,17 +189,25 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
     /** Optimization to strip out genotypes before merging if we are doing a sites_only output */
     private boolean sitesOnlyVCF = false;
+    private Set<String> samples;
 
     public void initialize() {
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit());
 
+        if ( vcfWriter instanceof VariantContextWriterStub) {
+            sitesOnlyVCF = ((VariantContextWriterStub)vcfWriter).getWriterOptions().contains(Options.DO_NOT_WRITE_GENOTYPES);
+            if ( sitesOnlyVCF ) logger.info("Pre-stripping genotypes for performance");
+        } else
+            logger.warn("VCF output file not an instance of VCFWriterStub; cannot enable sites only output option");
+
         if ( PRIORITY_STRING == null ) {
-            PRIORITY_STRING = Utils.join(",", vcfRods.keySet());
+            genotypeMergeOption = VariantContextUtils.GenotypeMergeType.UNSORTED;
+            //PRIORITY_STRING = Utils.join(",", vcfRods.keySet());  Deleted by Ami (7/10/12)
             logger.info("Priority string not provided, using arbitrary genotyping order: " + PRIORITY_STRING);
         }
 
         validateAnnotateUnionArguments();
-        Set<String> samples = SampleUtils.getSampleList(vcfRods, genotypeMergeOption);
+        samples = sitesOnlyVCF ? Collections.<String>emptySet() : SampleUtils.getSampleList(vcfRods, genotypeMergeOption);
 
         if ( SET_KEY.toLowerCase().equals("null") )
             SET_KEY = null;
@@ -192,15 +217,9 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             headerLines.add(new VCFInfoHeaderLine(SET_KEY, 1, VCFHeaderLineType.String, "Source VCF for the merged record in CombineVariants"));
         if ( !ASSUME_IDENTICAL_SAMPLES )
              headerLines.addAll(Arrays.asList(ChromosomeCounts.descriptions));
-        VCFHeader vcfHeader = new VCFHeader(headerLines, sitesOnlyVCF ? Collections.<String>emptySet() : samples);
+        VCFHeader vcfHeader = new VCFHeader(headerLines, samples);
         vcfHeader.setWriteCommandLine(!SUPPRESS_COMMAND_LINE_HEADER);
         vcfWriter.writeHeader(vcfHeader);
-
-        if ( vcfWriter instanceof VCFWriterStub) {
-            sitesOnlyVCF = ((VCFWriterStub)vcfWriter).doNotWriteGenotypes();
-            if ( sitesOnlyVCF ) logger.info("Pre-stripping genotypes for performance");
-        } else
-            logger.warn("VCF output file not an instance of VCFWriterStub; cannot enable sites only output option");
     }
 
     private void validateAnnotateUnionArguments() {
@@ -294,7 +313,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             VariantContextUtils.calculateChromosomeCounts(builder, false);
             if ( minimalVCF )
                 VariantContextUtils.pruneVariantContext(builder, Arrays.asList(SET_KEY));
-            vcfWriter.add(builder.make());
+            vcfWriter.add(VariantContextUtils.addMissingSamples(builder.make(), samples));
         }
 
         return vcs.isEmpty() ? 0 : 1;
@@ -306,6 +325,11 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
     public Integer reduce(Integer counter, Integer sum) {
         return counter + sum;
+    }
+
+    @Override
+    public Integer treeReduce(Integer lhs, Integer rhs) {
+        return reduce(lhs, rhs);
     }
 
     public void onTraversalDone(Integer sum) {}

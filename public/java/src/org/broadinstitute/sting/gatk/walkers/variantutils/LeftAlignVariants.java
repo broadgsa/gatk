@@ -30,15 +30,23 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.Reference;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.util.*;
 
@@ -70,6 +78,7 @@ import java.util.*;
  * </pre>
  *
  */
+@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-200,stop=200))
 public class LeftAlignVariants extends RodWalker<Integer, Integer> {
 
@@ -77,19 +86,19 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     @Output(doc="File to which variants should be written",required=true)
-    protected VCFWriter baseWriter = null;
+    protected VariantContextWriter baseWriter = null;
 
-    private SortingVCFWriter writer;
+    private VariantContextWriter writer;
 
     public void initialize() {
         String trackName = variantCollection.variants.getName();
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(trackName));
         Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
 
-        Set<VCFHeaderLine> headerLines = vcfHeaders.get(trackName).getMetaData();
+        Set<VCFHeaderLine> headerLines = vcfHeaders.get(trackName).getMetaDataInSortedOrder();
         baseWriter.writeHeader(new VCFHeader(headerLines, samples));
 
-        writer = new SortingVCFWriter(baseWriter, 200);
+        writer = VariantContextWriterFactory.sortOnTheFly(baseWriter, 200);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -130,11 +139,11 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         final byte[] refSeq = ref.getBases();
 
         // get the indel length
-        int indelLength;
+        final int indelLength;
         if ( vc.isSimpleDeletion() )
-            indelLength = vc.getReference().length();
+            indelLength = vc.getReference().length() - 1;
         else
-            indelLength = vc.getAlternateAllele(0).length();
+            indelLength = vc.getAlternateAllele(0).length() - 1;
 
         if ( indelLength > 200 ) {
             writer.add(vc);
@@ -142,7 +151,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         }
 
         // create an indel haplotype
-        int originalIndex = ref.getLocus().getStart() - ref.getWindow().getStart() + 1;
+        final int originalIndex = ref.getLocus().getStart() - ref.getWindow().getStart() + 1;
         final byte[] originalIndel = makeHaplotype(vc, refSeq, originalIndex, indelLength);
 
         // create a CIGAR string to represent the event
@@ -161,11 +170,12 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
             VariantContext newVC = new VariantContextBuilder(vc).start(vc.getStart()-difference).stop(vc.getEnd()-difference).make();
             //System.out.println("Moving record from " + vc.getChr()+":"+vc.getStart() + " to " + vc.getChr()+":"+(vc.getStart()-difference));
 
-            int indelIndex = originalIndex-difference;
-            byte[] newBases = new byte[indelLength];
-            System.arraycopy((vc.isSimpleDeletion() ? refSeq : originalIndel), indelIndex, newBases, 0, indelLength);
-            Allele newAllele = Allele.create(newBases, vc.isSimpleDeletion());
-            newVC = updateAllele(newVC, newAllele, refSeq[indelIndex-1]);
+            final int indelIndex = originalIndex-difference;
+            final byte[] newBases = new byte[indelLength + 1];
+            newBases[0] = refSeq[indelIndex-1];
+            System.arraycopy((vc.isSimpleDeletion() ? refSeq : originalIndel), indelIndex, newBases, 1, indelLength);
+            final Allele newAllele = Allele.create(newBases, vc.isSimpleDeletion());
+            newVC = updateAllele(newVC, newAllele);
 
             writer.add(newVC);
             return 1;
@@ -186,7 +196,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         if ( vc.isSimpleDeletion() ) {
             indexOfRef += indelLength;
         } else {
-            System.arraycopy(vc.getAlternateAllele(0).getBases(), 0, hap, currentPos, indelLength);
+            System.arraycopy(vc.getAlternateAllele(0).getBases(), 1, hap, currentPos, indelLength);
             currentPos += indelLength;
         }
 
@@ -196,14 +206,14 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         return hap;
     }
 
-    public static VariantContext updateAllele(VariantContext vc, Allele newAllele, Byte refBaseForIndel) {
+    public static VariantContext updateAllele(final VariantContext vc, final Allele newAllele) {
         // create a mapping from original allele to new allele
         HashMap<Allele, Allele> alleleMap = new HashMap<Allele, Allele>(vc.getAlleles().size());
         if ( newAllele.isReference() ) {
             alleleMap.put(vc.getReference(), newAllele);
-            alleleMap.put(vc.getAlternateAllele(0), vc.getAlternateAllele(0));
+            alleleMap.put(vc.getAlternateAllele(0), Allele.create(newAllele.getBases()[0], false));
         } else {
-            alleleMap.put(vc.getReference(), vc.getReference());
+            alleleMap.put(vc.getReference(), Allele.create(newAllele.getBases()[0], true));
             alleleMap.put(vc.getAlternateAllele(0), newAllele);
         }
 
@@ -217,9 +227,9 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
                     newA = Allele.NO_CALL;
                 newAlleles.add(newA);
             }
-            newGenotypes.add(Genotype.modifyAlleles(genotype, newAlleles));
+            newGenotypes.add(new GenotypeBuilder(genotype).alleles(newAlleles).make());
         }
 
-        return new VariantContextBuilder(vc).alleles(alleleMap.values()).genotypes(newGenotypes).referenceBaseForIndel(refBaseForIndel).make();
+        return new VariantContextBuilder(vc).alleles(alleleMap.values()).genotypes(newGenotypes).make();
     }
 }

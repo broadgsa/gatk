@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.utils.recalibration.RecalUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -33,15 +34,15 @@ public class BQSRGathererUnitTest {
         for (GATKReportTable originalTable : originalReport.getTables()) {
             GATKReportTable calculatedTable = calculatedReport.getTable(originalTable.getTableName());
             List<String> columnsToTest = new LinkedList<String>();
-            columnsToTest.add(RecalDataManager.NUMBER_OBSERVATIONS_COLUMN_NAME);
-            columnsToTest.add(RecalDataManager.NUMBER_ERRORS_COLUMN_NAME);
-            if (originalTable.getTableName().equals(RecalDataManager.ARGUMENT_REPORT_TABLE_TITLE)) {                    // these tables must be IDENTICAL
-                columnsToTest.add(RecalDataManager.ARGUMENT_VALUE_COLUMN_NAME);
+            columnsToTest.add(RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME);
+            columnsToTest.add(RecalUtils.NUMBER_ERRORS_COLUMN_NAME);
+            if (originalTable.getTableName().equals(RecalUtils.ARGUMENT_REPORT_TABLE_TITLE)) {                    // these tables must be IDENTICAL
+                columnsToTest.add(RecalUtils.ARGUMENT_VALUE_COLUMN_NAME);
                 testTablesWithColumnsAndFactor(originalTable, calculatedTable, columnsToTest, 1);
             }
             
-            else if (originalTable.getTableName().equals(RecalDataManager.QUANTIZED_REPORT_TABLE_TITLE)) {
-                columnsToTest.add(RecalDataManager.QUANTIZED_COUNT_COLUMN_NAME);
+            else if (originalTable.getTableName().equals(RecalUtils.QUANTIZED_REPORT_TABLE_TITLE)) {
+                columnsToTest.add(RecalUtils.QUANTIZED_COUNT_COLUMN_NAME);
                 testTablesWithColumnsAndFactor(originalTable, calculatedTable, columnsToTest, 2);
             }
             
@@ -60,10 +61,10 @@ public class BQSRGathererUnitTest {
      * @param factor 1 to test for equality, any other value to multiply the original value and match with the calculated
      */
     private void testTablesWithColumnsAndFactor(GATKReportTable original, GATKReportTable calculated, List<String> columnsToTest, int factor) {
-        for (Object primaryKey : original.getPrimaryKeys()) {                                                           // tables don't necessarily have the same primary keys
+        for (int row = 0; row < original.getNumRows(); row++ ) {
             for (String column : columnsToTest) {
-                Object actual = calculated.get(primaryKey, column);
-                Object expected = original.get(primaryKey, column);
+                Object actual = calculated.get(new Integer(row), column);
+                Object expected = original.get(row, column);
 
                 if (factor != 1) {
                     if (expected instanceof Double)
@@ -76,7 +77,7 @@ public class BQSRGathererUnitTest {
                         expected = (Byte) expected * factor;
                     }
                 }
-                Assert.assertEquals(actual, expected, "Primary key: " + primaryKey + " Original Table: " + original.getTableName() + " Calc Table: " + calculated.getTableName());
+                Assert.assertEquals(actual, expected, "Row: " + row + " Original Table: " + original.getTableName() + " Calc Table: " + calculated.getTableName());
             }
         }
         
