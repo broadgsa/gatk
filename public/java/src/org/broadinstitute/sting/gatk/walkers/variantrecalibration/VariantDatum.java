@@ -27,13 +27,15 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 
+import java.util.Comparator;
+
 /**
  * Created by IntelliJ IDEA.
  * User: rpoplin
  * Date: Mar 4, 2011
  */
 
-public class VariantDatum implements Comparable<VariantDatum> {
+public class VariantDatum {
 
     public double[] annotations;
     public boolean[] isNull;
@@ -52,8 +54,10 @@ public class VariantDatum implements Comparable<VariantDatum> {
     public int worstAnnotation;
     public MultivariateGaussian assignment; // used in K-means implementation 
 
-    @Override
-    public int compareTo( final VariantDatum other ) {
-        return Double.compare(this.lod, other.lod);
+    public static class VariantDatumLODComparator implements Comparator<VariantDatum> {
+        @Override
+        public int compare(final VariantDatum datum1, final VariantDatum datum2) {
+            return Double.compare(datum1.lod, datum2.lod);
+        }
     }
 }
