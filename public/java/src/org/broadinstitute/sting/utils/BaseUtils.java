@@ -227,12 +227,19 @@ public class BaseUtils {
     }
 
     @Deprecated
-    static public boolean isRegularBase(char base) {
+    static public boolean isRegularBase( final char base ) {
         return simpleBaseToBaseIndex(base) != -1;
     }
 
-    static public boolean isRegularBase(byte base) {
+    static public boolean isRegularBase( final byte base ) {
         return simpleBaseToBaseIndex(base) != -1;
+    }
+
+    static public boolean isAllRegularBases( final byte[] bases ) {
+        for( final byte base : bases) {
+            if( !isRegularBase(base) ) { return false; }
+        }
+        return true;
     }
 
     static public boolean isNBase(byte base) {

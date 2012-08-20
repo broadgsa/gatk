@@ -181,7 +181,6 @@ public class UnifiedArgumentCollection {
        Generalized ploidy argument (debug only): When building site error models, ignore lane information and build only
        sample-level error model
      */
-
     @Argument(fullName = "ignoreLaneInfo", shortName = "ignoreLane", doc = "Ignore lane when building error model, error model is then per-site", required = false)
     public boolean IGNORE_LANE_INFO = false;
 
