@@ -434,7 +434,7 @@ public class MannWhitneyU {
      * A comparator class which uses dithering on tie-breaking to ensure that the internal treeset drops no values
      * and to ensure that rank ties are broken at random.
      */
-    private class DitheringComparator implements Comparator<Pair<Number,USet>> {
+    private static class DitheringComparator implements Comparator<Pair<Number,USet>> {
 
         public DitheringComparator() {}
 
