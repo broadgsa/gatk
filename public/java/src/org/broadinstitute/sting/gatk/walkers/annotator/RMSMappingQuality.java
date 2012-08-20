@@ -47,7 +47,7 @@ public class RMSMappingQuality extends InfoFieldAnnotation implements StandardAn
             for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
                 AlignmentContext context = sample.getValue();
                 for (PileupElement p : context.getBasePileup() )
-                    index = fillMappingQualitiesFromPileupAndUpdateIndex(p, index, qualities);
+                    index = fillMappingQualitiesFromPileupAndUpdateIndex(p.getRead(), index, qualities);
             }
         }
         else if (perReadAlleleLikelihoodMap != null) {
@@ -59,8 +59,8 @@ public class RMSMappingQuality extends InfoFieldAnnotation implements StandardAn
 
             qualities = new int[totalSize];
             for ( PerReadAlleleLikelihoodMap perReadLikelihoods : perReadAlleleLikelihoodMap.values() ) {
-                for (PileupElement p : perReadLikelihoods.getStoredPileupElements())
-                    index = fillMappingQualitiesFromPileupAndUpdateIndex(p, index, qualities);
+                for (GATKSAMRecord read : perReadLikelihoods.getStoredElements())
+                    index = fillMappingQualitiesFromPileupAndUpdateIndex(read, index, qualities);
 
 
         }
@@ -76,10 +76,10 @@ public class RMSMappingQuality extends InfoFieldAnnotation implements StandardAn
         return map;
     }
 
-    private static int fillMappingQualitiesFromPileupAndUpdateIndex(final PileupElement p, final int inputIdx, final int[] qualities) {
+    private static int fillMappingQualitiesFromPileupAndUpdateIndex(final GATKSAMRecord read, final int inputIdx, final int[] qualities) {
         int outputIdx = inputIdx;
-        if ( p.getMappingQual() != QualityUtils.MAPPING_QUALITY_UNAVAILABLE )
-            qualities[outputIdx++] = p.getMappingQual();
+        if ( read.getMappingQuality() != QualityUtils.MAPPING_QUALITY_UNAVAILABLE )
+            qualities[outputIdx++] = read.getMappingQuality();
 
         return outputIdx;
     }

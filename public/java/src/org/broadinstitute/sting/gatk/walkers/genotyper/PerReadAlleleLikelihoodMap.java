@@ -37,21 +37,21 @@ public class PerReadAlleleLikelihoodMap {
     public static final double INDEL_LIKELIHOOD_THRESH = 0.1;
 
     private List<Allele> alleles;
-    private Map<PileupElement,Map<Allele,Double>> likelihoodReadMap;
+    private Map<GATKSAMRecord,Map<Allele,Double>> likelihoodReadMap;
     public PerReadAlleleLikelihoodMap() {
-        likelihoodReadMap = new LinkedHashMap<PileupElement,Map<Allele,Double>>();
+        likelihoodReadMap = new LinkedHashMap<GATKSAMRecord,Map<Allele,Double>>();
         alleles = new ArrayList<Allele>();
     }
 
-    public void add(PileupElement p, Allele a, Double likelihood) {
+    public void add(GATKSAMRecord read, Allele a, Double likelihood) {
         Map<Allele,Double> likelihoodMap;
-        if (likelihoodReadMap.containsKey(p)){
+        if (likelihoodReadMap.containsKey(read)){
             // seen pileup element before
-            likelihoodMap = likelihoodReadMap.get(p);
+            likelihoodMap = likelihoodReadMap.get(read);
         }
         else {
             likelihoodMap = new HashMap<Allele, Double>();
-            likelihoodReadMap.put(p,likelihoodMap);
+            likelihoodReadMap.put(read,likelihoodMap);
         }
         likelihoodMap.put(a,likelihood);
 
@@ -64,20 +64,19 @@ public class PerReadAlleleLikelihoodMap {
         return likelihoodReadMap.size();
     }
 
-    public void add(GATKSAMRecord read, Allele a, Double likelihood) {
-        PileupElement p = new PileupElement(read,-1,false,false,false,false,false,false);
-        add(p,a,likelihood);
+    public void add(PileupElement p, Allele a, Double likelihood) {
+        add(p.getRead(),a,likelihood);
     }
 
     public boolean containsPileupElement(PileupElement p) {
-        return likelihoodReadMap.containsKey(p);
+        return likelihoodReadMap.containsKey(p.getRead());
     }
 
     public boolean isEmpty() {
         return likelihoodReadMap.isEmpty();
     }
 
-    public Map<PileupElement,Map<Allele,Double>> getLikelihoodReadMap() {
+    public Map<GATKSAMRecord,Map<Allele,Double>> getLikelihoodReadMap() {
         return likelihoodReadMap;
     }
     public void clear() {
@@ -85,8 +84,16 @@ public class PerReadAlleleLikelihoodMap {
         likelihoodReadMap.clear();
     }
 
-    public Set<PileupElement> getStoredPileupElements() {
+    public Set<GATKSAMRecord> getStoredElements() {
         return likelihoodReadMap.keySet();
+    }
+
+    public Collection<Map<Allele,Double>> getLikelihoodMapValues() {
+        return likelihoodReadMap.values();
+    }
+
+    public int getNumberOfStoredElements() {
+        return likelihoodReadMap.size();
     }
     /**
      * Returns list of reads greedily associated with a particular allele.
@@ -100,10 +107,10 @@ public class PerReadAlleleLikelihoodMap {
     }
 
     public Map<Allele,Double> getLikelihoodsAssociatedWithPileupElement(PileupElement p) {
-        if (!likelihoodReadMap.containsKey(p))
+        if (!likelihoodReadMap.containsKey(p.getRead()))
             return null;
 
-        return likelihoodReadMap.get(p);
+        return likelihoodReadMap.get(p.getRead());
     }
 
     public static Allele getMostLikelyAllele(Map<Allele,Double> alleleMap) {

@@ -359,13 +359,13 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
         if (perReadAlleleLikelihoodMap.isEmpty())
             return null;
 
-        for (Map.Entry<PileupElement,Map<Allele,Double>> el : perReadAlleleLikelihoodMap.getLikelihoodReadMap().entrySet()) {
+        for (Map<Allele,Double> el : perReadAlleleLikelihoodMap.getLikelihoodMapValues()) {
 
             // retrieve likelihood information corresponding to this read
             // Score all the reads in the pileup, even the filtered ones
-            final double[] scores = new double[el.getValue().size()];
+            final double[] scores = new double[el.size()];
             int i = 0;
-            for (Map.Entry<Allele, Double> a : el.getValue().entrySet()) {
+            for (Map.Entry<Allele, Double> a : el.entrySet()) {
                 scores[i++] = -a.getValue();
                 if (DEBUG) {
                     System.out.printf("  vs. haplotype %d = %f%n", i - 1, scores[i - 1]);

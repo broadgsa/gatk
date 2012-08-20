@@ -66,11 +66,12 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
         int[][] table;
 
-        if (stratifiedPerReadAlleleLikelihoodMap != null) {
-            table = getContingencyTable(stratifiedPerReadAlleleLikelihoodMap, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
-        }
-        else if (vc.isSNP() && stratifiedContexts != null) {
+        if (vc.isSNP() && stratifiedContexts != null) {
             table = getSNPContingencyTable(stratifiedContexts, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
+        }
+        else if (stratifiedPerReadAlleleLikelihoodMap != null) {
+            // either SNP with no alignment context, or indels: per-read likelihood map needed
+            table = getContingencyTable(stratifiedPerReadAlleleLikelihoodMap, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
         }
         else
         // for non-snp variants, we  need per-read likelihoods.
@@ -216,14 +217,16 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
         int[][] table = new int[2][2];
 
         for (PerReadAlleleLikelihoodMap maps : stratifiedPerReadAlleleLikelihoodMap.values() ) {
-            for (Map.Entry<PileupElement,Map<Allele,Double>> el : maps.getLikelihoodReadMap().entrySet()) {
-                final boolean matchesRef = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue()).equals(ref);
-                final boolean matchesAlt = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue()).equals(alt);
+            for (Map.Entry<GATKSAMRecord,Map<Allele,Double>> el : maps.getLikelihoodReadMap().entrySet()) {
+                if ( el.getKey().isReducedRead() ) // ignore reduced reads
+                    continue;
+                final boolean matchesRef = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue()).equals(ref,true);
+                final boolean matchesAlt = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue()).equals(alt,true);
 
                 if ( !matchesRef && !matchesAlt )
                     continue;
 
-                boolean isFW = el.getKey().getRead().getReadNegativeStrandFlag();
+                boolean isFW = el.getKey().getReadNegativeStrandFlag();
 
                 int row = matchesRef ? 0 : 1;
                 int column = isFW ? 0 : 1;

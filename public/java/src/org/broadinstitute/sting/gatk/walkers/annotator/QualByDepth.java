@@ -42,11 +42,6 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
         if ( genotypes == null || genotypes.size() == 0 )
             return null;
 
-        if (stratifiedContexts != null && stratifiedContexts.size() == 0)
-            return null;
-        if (perReadAlleleLikelihoodMap != null && perReadAlleleLikelihoodMap.size() == 0)
-            return null;
-
         int depth = 0;
 
         for ( final Genotype genotype : genotypes ) {
@@ -67,7 +62,7 @@ public class QualByDepth extends InfoFieldAnnotation implements StandardAnnotati
                 if (perReadAlleleLikelihoods == null || perReadAlleleLikelihoods.isEmpty())
                     continue;
 
-                depth += perReadAlleleLikelihoods.getLikelihoodReadMap().size();
+                depth += perReadAlleleLikelihoods.getNumberOfStoredElements();
             }
         }
 

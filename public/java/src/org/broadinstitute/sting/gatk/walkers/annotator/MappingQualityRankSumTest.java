@@ -35,7 +35,7 @@ public class MappingQualityRankSumTest extends RankSumTest implements StandardAn
             // no per-read likelihoods available:
             for ( final PileupElement p : pileup ) {
                 if ( isUsableBase(p) ) {
-                    if ( allAlleles.get(0).equals(Allele.create(p.getBase())) ) {
+                    if ( allAlleles.get(0).equals(Allele.create(p.getBase(), true)) ) {
                         refQuals.add((double)p.getMappingQual());
                     } else if ( allAlleles.contains(Allele.create(p.getBase()))) {
                         altQuals.add((double)p.getMappingQual());
@@ -44,17 +44,14 @@ public class MappingQualityRankSumTest extends RankSumTest implements StandardAn
             }
             return;
         }
-        for (Map.Entry<PileupElement,Map<Allele,Double>> el : likelihoodMap.getLikelihoodReadMap().entrySet()) {
-            if (!isUsableBase(el.getKey()))
-                continue;
-
+        for (Map.Entry<GATKSAMRecord,Map<Allele,Double>> el : likelihoodMap.getLikelihoodReadMap().entrySet()) {
             final Allele a = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue());
             if (a.isNoCall())
                 continue; // read is non-informative
             if (a.isReference())
-                refQuals.add((double)el.getKey().getMappingQual());
+                refQuals.add((double)el.getKey().getMappingQuality());
             else if (allAlleles.contains(a))
-                altQuals.add((double)el.getKey().getMappingQual());
+                altQuals.add((double)el.getKey().getMappingQuality());
 
 
         }

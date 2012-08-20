@@ -49,19 +49,22 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements ActiveR
         for ( final Genotype genotype : genotypes.iterateInSampleNameOrder() ) {
             PerReadAlleleLikelihoodMap indelLikelihoodMap = null;
             ReadBackedPileup pileup = null;
-            if (stratifiedPerReadAlleleLikelihoodMap != null && !stratifiedPerReadAlleleLikelihoodMap.isEmpty()) {
-                indelLikelihoodMap = stratifiedPerReadAlleleLikelihoodMap.get(genotype.getSampleName());
-                if (indelLikelihoodMap == null)
-                    continue;
-                if (indelLikelihoodMap.isEmpty())
-                    continue;
-            }
-            else if (stratifiedContexts != null) {
+
+
+            if (stratifiedContexts != null) {
                 final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
-                if ( context == null )
-                    continue;
-                pileup = context.getBasePileup();
+                if ( context != null )
+                    pileup = context.getBasePileup();
             }
+            if (stratifiedPerReadAlleleLikelihoodMap != null )
+                indelLikelihoodMap = stratifiedPerReadAlleleLikelihoodMap.get(genotype.getSampleName());
+
+            if (indelLikelihoodMap != null && indelLikelihoodMap.isEmpty())
+                indelLikelihoodMap = null;
+            // treat an empty likelihood map as a null reference - will simplify contract with fillQualsFromPileup
+            if (indelLikelihoodMap == null && pileup == null)
+                continue;
+
             fillQualsFromPileup(vc.getAlleles(), vc.getStart(), pileup, indelLikelihoodMap, refQuals, altQuals );
         }
         final MannWhitneyU mannWhitneyU = new MannWhitneyU();
@@ -92,7 +95,7 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements ActiveR
         return map;
     }
 
-    protected abstract void fillQualsFromPileup(final List<Allele> alleles,
+     protected abstract void fillQualsFromPileup(final List<Allele> alleles,
                                                 final int refLoc,
                                                 final ReadBackedPileup readBackedPileup,
                                                 final PerReadAlleleLikelihoodMap alleleLikelihoodMap,

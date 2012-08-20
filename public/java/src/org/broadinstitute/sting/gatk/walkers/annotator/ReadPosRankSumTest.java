@@ -47,7 +47,7 @@ public class ReadPosRankSumTest extends RankSumTest implements StandardAnnotatio
 
                     readPos = getFinalReadPosition(p.getRead(),readPos);
 
-                    if ( allAlleles.get(0).equals(Allele.create(p.getBase())) ) {
+                    if ( allAlleles.get(0).equals(Allele.create(p.getBase(), true)) ) {
                         refQuals.add((double)readPos);
                     } else if ( allAlleles.contains(Allele.create(p.getBase()))) {
                         altQuals.add((double)readPos);
@@ -57,9 +57,18 @@ public class ReadPosRankSumTest extends RankSumTest implements StandardAnnotatio
             return;
         }
 
-        for (Map.Entry<PileupElement,Map<Allele,Double>> el : alleleLikelihoodMap.getLikelihoodReadMap().entrySet()) {
-            int readPos = getOffsetFromClippedReadStart(el.getKey().getRead(), el.getKey().getOffset());
-            readPos = getFinalReadPosition(el.getKey().getRead(),readPos);
+        for (Map.Entry<GATKSAMRecord,Map<Allele,Double>> el : alleleLikelihoodMap.getLikelihoodReadMap().entrySet()) {
+            final GATKSAMRecord read = el.getKey();
+            final int offset = ReadUtils.getReadCoordinateForReferenceCoordinate( read.getSoftStart(), read.getCigar(), refLoc, ReadUtils.ClippingTail.RIGHT_TAIL, true );
+            if ( offset == ReadUtils.CLIPPING_GOAL_NOT_REACHED )
+                continue;
+            int readPos = AlignmentUtils.calcAlignmentByteArrayOffset( read.getCigar(), offset, false, false, 0, 0 );
+            final int numAlignedBases = AlignmentUtils.getNumAlignedBasesCountingSoftClips( read );
+            if (readPos > numAlignedBases / 2)
+                readPos = numAlignedBases - (readPos + 1);
+
+//            int readPos = getOffsetFromClippedReadStart(el.getKey(), el.getKey().getOffset());
+  //          readPos = getFinalReadPosition(el.getKey().getRead(),readPos);
 
             final Allele a = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue());
             if (a.isNoCall())

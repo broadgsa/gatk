@@ -32,7 +32,7 @@ public class BaseQualityRankSumTest extends RankSumTest implements StandardAnnot
             // use fast SNP-based version if we don't have per-read allele likelihoods
             for ( final PileupElement p : pileup ) {
                 if ( isUsableBase(p) ) {
-                    if ( allAlleles.get(0).equals(Allele.create(p.getBase())) ) {
+                    if ( allAlleles.get(0).equals(Allele.create(p.getBase(),true)) ) {
                         refQuals.add((double)p.getQual());
                     } else if ( allAlleles.contains(Allele.create(p.getBase()))) {
                         altQuals.add((double)p.getQual());
@@ -42,17 +42,14 @@ public class BaseQualityRankSumTest extends RankSumTest implements StandardAnnot
             return;
         }
 
-        for (Map.Entry<PileupElement,Map<Allele,Double>> el : alleleLikelihoodMap.getLikelihoodReadMap().entrySet()) {
-            if (!isUsableBase(el.getKey()))
-                continue;
-
-            final Allele a = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue());
+        for (Map<Allele,Double> el : alleleLikelihoodMap.getLikelihoodMapValues()) {
+            final Allele a = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el);
             if (a.isNoCall())
                 continue; // read is non-informative
             if (a.isReference())
-                refQuals.add(-10.0*(double)el.getValue().get(a));
+                refQuals.add(-10.0*(double)el.get(a));
             else if (allAlleles.contains(a))
-                altQuals.add(-10.0*(double)el.getValue().get(a));
+                altQuals.add(-10.0*(double)el.get(a));
 
 
         }
