@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
+import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFStandardHeaderLines;
@@ -48,7 +49,8 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
                          final AlignmentContext stratifiedContext,
                          final VariantContext vc,
                          final Genotype g,
-                         final GenotypeBuilder gb) {
+                         final GenotypeBuilder gb,
+                         final PerReadAlleleLikelihoodMap alleleLikelihoodMap) {
         if ( g == null || !g.isCalled() )
             return;
 
