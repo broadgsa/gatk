@@ -46,7 +46,8 @@ public class AlleleCount extends VariantStratifier {
             int AC = 0; // by default, the site is considered monomorphic
 
             if ( eval.hasAttribute(VCFConstants.MLE_ALLELE_COUNT_KEY) && eval.isBiallelic() ) {
-                AC = eval.getAttributeAsInt(VCFConstants.MLE_ALLELE_COUNT_KEY, 0);
+                // the MLEAC is allowed to be larger than the AN (e.g. in the case of all PLs being 0, the GT is ./. but the exact model may arbitrarily choose an AC>1)
+                AC = Math.min(eval.getAttributeAsInt(VCFConstants.MLE_ALLELE_COUNT_KEY, 0), nchrom);
             } else if ( eval.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) && eval.isBiallelic() ) {
                 AC = eval.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY, 0);
             } else if ( eval.isVariant() ) {
@@ -56,7 +57,7 @@ public class AlleleCount extends VariantStratifier {
 
             // make sure that the AC isn't invalid
             if ( AC > nchrom )
-                throw new UserException.MalformedVCF(String.format("The AC or MLEAC value (%d) at position %s:%d " +
+                throw new UserException.MalformedVCF(String.format("The AC value (%d) at position %s:%d " +
                         "is larger than the number of chromosomes over all samples (%d)", AC,
                         eval.getChr(), eval.getStart(), nchrom));
 

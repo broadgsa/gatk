@@ -475,16 +475,10 @@ public class UnifiedGenotyperEngine {
         if ( alleleCountsofMLE.size() > 0 ) {
             attributes.put(VCFConstants.MLE_ALLELE_COUNT_KEY, alleleCountsofMLE);
             final int AN = builder.make().getCalledChrCount();
-
-            // let's sanity check that we don't have an invalid MLE value in there
-            for ( int MLEAC : alleleCountsofMLE ) {
-                if ( MLEAC > AN )
-                    throw new ReviewedStingException(String.format("MLEAC value (%d) is larger than AN (%d) at position %s:%d", MLEAC, AN, loc.getContig(), loc.getStart()));
-            }
-
             final ArrayList<Double> MLEfrequencies = new ArrayList<Double>(alleleCountsofMLE.size());
+            // the MLEAC is allowed to be larger than the AN (e.g. in the case of all PLs being 0, the GT is ./. but the exact model may arbitrarily choose an AC>1)
             for ( int AC : alleleCountsofMLE )
-                MLEfrequencies.add((double)AC / (double)AN);
+                MLEfrequencies.add(Math.min(1.0, (double)AC / (double)AN));
             attributes.put(VCFConstants.MLE_ALLELE_FREQUENCY_KEY, MLEfrequencies);
         }
 

@@ -149,7 +149,7 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
             if ( bcfVersion.getMinorVersion() < MIN_MINOR_VERSION )
                 error("BCF2Codec can only process BCF2 files with minor version >= " + MIN_MINOR_VERSION + " but this file has minor version " + bcfVersion.getMinorVersion());
 
-            logger.info("Parsing data stream with BCF version " + bcfVersion);
+            logger.debug("Parsing data stream with BCF version " + bcfVersion);
 
             final int headerSizeInBytes = BCF2Type.INT32.read(inputStream);
 
