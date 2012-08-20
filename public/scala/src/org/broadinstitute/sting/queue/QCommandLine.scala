@@ -105,8 +105,7 @@ class QCommandLine extends CommandLineProgram with Logging {
   def execute = {
     if (settings.qSettings.runName == null)
       settings.qSettings.runName = FilenameUtils.removeExtension(scripts.head.getName)
-
-    qGraph.settings = settings
+    qGraph.initializeWithSettings(settings)
 
     val allQScripts = pluginManager.createAllTypes();
     for (script <- allQScripts) {
@@ -137,26 +136,9 @@ class QCommandLine extends CommandLineProgram with Logging {
 
     logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", functionsAndStatus.size))
 
-    if (!settings.disableJobReport) {
-      val jobStringName = {
-        if (settings.jobReportFile != null)
-          settings.jobReportFile
-        else
-          settings.qSettings.runName + ".jobreport.txt"
-      }
-
-      if (!shuttingDown) {
-        val reportFile = IOUtils.absolute(settings.qSettings.runDirectory, jobStringName)
-        logger.info("Writing JobLogging GATKReport to file " + reportFile)
-        QJobReport.printReport(functionsAndStatus, reportFile)
-
-        if (settings.run) {
-          val pdfFile = IOUtils.absolute(settings.qSettings.runDirectory, FilenameUtils.removeExtension(jobStringName) + ".pdf")
-          logger.info("Plotting JobLogging GATKReport to file " + pdfFile)
-          QJobReport.plotReport(reportFile, pdfFile)
-        }
-      }
-    }
+    // write the final complete job report
+    logger.info("Writing final jobs report...")
+    qGraph.writeJobsReport()
 
     if (!qGraph.success) {
       logger.info("Done with errors")
