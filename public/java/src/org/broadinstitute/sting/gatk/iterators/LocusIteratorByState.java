@@ -301,6 +301,7 @@ public class LocusIteratorByState extends LocusIterator {
                     final CigarOperator op = state.getCurrentCigarOperator();       // current cigar operator
                     final CigarElement nextElement = state.peekForwardOnGenome();   // next cigar element
                     final CigarElement lastElement = state.peekBackwardOnGenome();  // last cigar element
+                    final boolean isSingleElementCigar = nextElement == lastElement;
                     final CigarOperator nextOp = nextElement.getOperator();         // next cigar operator
                     final CigarOperator lastOp = lastElement.getOperator();         // last cigar operator
                     final int readOffset = state.getReadOffset();                   // the base offset on this read
@@ -308,7 +309,7 @@ public class LocusIteratorByState extends LocusIterator {
                     final boolean isBeforeDeletion  = nextOp == CigarOperator.DELETION;
                     final boolean isAfterDeletion   = lastOp == CigarOperator.DELETION;
                     final boolean isBeforeInsertion = nextOp == CigarOperator.INSERTION;
-                    final boolean isAfterInsertion  = lastOp == CigarOperator.INSERTION;
+                    final boolean isAfterInsertion  = lastOp == CigarOperator.INSERTION && !isSingleElementCigar;
                     final boolean isNextToSoftClip  = nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart());
 
                     int nextElementLength = nextElement.getLength();
@@ -328,8 +329,10 @@ public class LocusIteratorByState extends LocusIterator {
                     else {
                         if (!filterBaseInRead(read, location.getStart())) {
                             String insertedBaseString = null;
-                            if (nextOp == CigarOperator.I)
-                                insertedBaseString = new String(Arrays.copyOfRange(read.getReadBases(), readOffset + 1, readOffset + 1 + nextElement.getLength()));
+                            if (nextOp == CigarOperator.I) {
+                                final int insertionOffset = isSingleElementCigar ? 0 : 1;
+                                insertedBaseString = new String(Arrays.copyOfRange(read.getReadBases(), readOffset + insertionOffset, readOffset + insertionOffset + nextElement.getLength()));
+                            }
 
                             pile.add(new PileupElement(read, readOffset, false, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, insertedBaseString, nextElementLength));
                             size++;

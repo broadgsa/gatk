@@ -297,7 +297,7 @@ public class VariantDataManager {
             case SNP:
                 return evalVC.isSNP() || evalVC.isMNP();
             case INDEL:
-                return evalVC.isIndel() || evalVC.isMixed() || evalVC.isSymbolic();
+                return evalVC.isStructuralIndel() || evalVC.isIndel() || evalVC.isMixed() || evalVC.isSymbolic();
             case BOTH:
                 return true;
             default:
