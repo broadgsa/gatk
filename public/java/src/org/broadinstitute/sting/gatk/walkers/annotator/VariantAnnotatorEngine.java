@@ -291,8 +291,12 @@ public class VariantAnnotatorEngine {
 
         final GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
         for ( final Genotype genotype : vc.getGenotypes() ) {
-            final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
-            final PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap = stratifiedPerReadAlleleLikelihoodMap.get(genotype.getSampleName());
+            AlignmentContext context = null;
+            PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap = null;
+            if (stratifiedContexts != null)
+                context = stratifiedContexts.get(genotype.getSampleName());
+            if (stratifiedPerReadAlleleLikelihoodMap != null)
+                perReadAlleleLikelihoodMap = stratifiedPerReadAlleleLikelihoodMap.get(genotype.getSampleName());
 
             if ( context == null && perReadAlleleLikelihoodMap == null) {
                 // no likelihoods nor pileup available: just move on to next sample

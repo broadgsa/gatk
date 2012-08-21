@@ -58,7 +58,7 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
             return;
 
         if (alleleLikelihoodMap != null && !alleleLikelihoodMap.isEmpty())
-            annotateWithLikelihoods(alleleLikelihoodMap, ref.getBase(), vc, gb);
+            annotateWithLikelihoods(alleleLikelihoodMap, vc, gb);
         else if ( vc.isSNP() && stratifiedContext != null)
             annotateWithPileup(stratifiedContext, vc, gb);
     }
@@ -84,7 +84,7 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         gb.AD(counts);
     }
 
-    private void annotateWithLikelihoods(final PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap, final byte refBase, final VariantContext vc, final GenotypeBuilder gb) {
+    private void annotateWithLikelihoods(final PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap, final VariantContext vc, final GenotypeBuilder gb) {
         final HashMap<Allele, Integer> alleleCounts = new HashMap<Allele, Integer>();
 
         for ( final Allele allele : vc.getAlleles() ) {

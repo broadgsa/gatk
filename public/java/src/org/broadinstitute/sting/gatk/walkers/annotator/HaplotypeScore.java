@@ -28,6 +28,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ActiveRegionBasedAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
@@ -56,7 +57,7 @@ import java.util.*;
  * are indicative of regions with bad alignments, often leading to artifactual SNP and indel calls.
  * Note that the Haplotype Score is only calculated for sites with read coverage.
  */
-public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnotation {
+public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
     private final static boolean DEBUG = false;
     private final static int MIN_CONTEXT_WING_SIZE = 10;
     private final static int MAX_CONSENSUS_HAPLOTYPES_TO_CONSIDER = 50;
@@ -68,10 +69,19 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
                                         final Map<String, AlignmentContext> stratifiedContexts,
                                         final VariantContext vc,
                                         final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap) {
-        if (stratifiedContexts.size() == 0) // size 0 means that call was made by someone else and we have no data here
+        if (vc.isSNP() && stratifiedContexts != null)
+            return annotatePileup(ref, stratifiedContexts, vc);
+        else if (stratifiedPerReadAlleleLikelihoodMap != null)
+            return annotateWithLikelihoods(stratifiedPerReadAlleleLikelihoodMap, vc);
+        else
             return null;
+    }
 
-        if (!vc.isSNP() && !vc.isIndel() && !vc.isMixed())
+    private Map<String, Object> annotatePileup(final ReferenceContext ref,
+                                        final Map<String, AlignmentContext> stratifiedContexts,
+                                        final VariantContext vc) {
+
+        if (stratifiedContexts.size() == 0) // size 0 means that call was made by someone else and we have no data here
             return null;
 
         final AlignmentContext context = AlignmentContextUtils.joinContexts(stratifiedContexts.values());
@@ -92,16 +102,7 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
                 final AlignmentContext thisContext = stratifiedContexts.get(genotype.getSampleName());
                 if (thisContext != null) {
                     final ReadBackedPileup thisPileup = thisContext.getBasePileup();
-                    if (vc.isSNP())
-                        scoreRA.add(scoreReadsAgainstHaplotypes(haplotypes, thisPileup, contextSize, locus)); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
-                    else if (vc.isIndel() || vc.isMixed()) {
-                        if (stratifiedPerReadAlleleLikelihoodMap == null)
-                            return null;
-                        Double d = scoreIndelsAgainstHaplotypes(stratifiedPerReadAlleleLikelihoodMap.get(genotype.getSampleName()));
-                        if (d == null)
-                            return null;
-                        scoreRA.add(d); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
-                    }
+                    scoreRA.add(scoreReadsAgainstHaplotypes(haplotypes, thisPileup, contextSize, locus)); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
                 }
             }
         }
@@ -110,6 +111,31 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
         final Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), String.format("%.4f", scoreRA.mean()));
         return map;
+    }
+
+    private Map<String, Object> annotateWithLikelihoods(final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap,
+                                                        final VariantContext vc) {
+
+        final MathUtils.RunningAverage scoreRA = new MathUtils.RunningAverage();
+        for (final Genotype genotype : vc.getGenotypes()) {
+            final PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap = stratifiedPerReadAlleleLikelihoodMap.get(genotype.getSampleName());
+            if (perReadAlleleLikelihoodMap == null)
+                continue;
+
+            Double d = scoreIndelsAgainstHaplotypes(perReadAlleleLikelihoodMap);
+            if (d == null)
+                continue;
+           scoreRA.add(d); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
+        }
+
+ //       if (scoreRA.observationCount() == 0)
+ //           return null;
+
+        // annotate the score in the info field
+        final Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyNames().get(0), String.format("%.4f", scoreRA.mean()));
+        return map;
+
     }
 
     private static class HaplotypeComparator implements Comparator<Haplotype>, Serializable {
