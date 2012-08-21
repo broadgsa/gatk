@@ -10,6 +10,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompa
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ExperimentalAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.RodRequiringAnnotation;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
@@ -29,9 +30,12 @@ import java.util.*;
 public class MVLikelihoodRatio extends InfoFieldAnnotation implements ExperimentalAnnotation, RodRequiringAnnotation {
 
     private MendelianViolation mendelianViolation = null;
-    private String motherId;
-    private String fatherId;
-    private String childId;
+    private Set<Trio> trios;
+    private class Trio {
+        String motherId;
+        String fatherId;
+        String childId;
+    }
 
     public Map<String, Object> annotate(final RefMetaDataTracker tracker,
                                         final AnnotatorCompatible walker,
@@ -44,17 +48,27 @@ public class MVLikelihoodRatio extends InfoFieldAnnotation implements Experiment
                 mendelianViolation = new MendelianViolation(((VariantAnnotator)walker).minGenotypeQualityP );
             }
             else {
-                throw new UserException("Mendelian violation annotation can only be used from the Variant Annotator, and must be provided a valid PED file (-ped) from the command line containing only 1 trio.");
+                throw new UserException("Mendelian violation annotation can only be used from the Variant Annotator, and must be provided a valid PED file (-ped) from the command line.");
             }
         }
 
         Map<String,Object> toRet = new HashMap<String,Object>(1);
-        boolean hasAppropriateGenotypes = vc.hasGenotype(motherId) && vc.getGenotype(motherId).hasLikelihoods() &&
-                vc.hasGenotype(fatherId) && vc.getGenotype(fatherId).hasLikelihoods() &&
-                vc.hasGenotype(childId) && vc.getGenotype(childId).hasLikelihoods();
-        if ( hasAppropriateGenotypes )
-            toRet.put("MVLR",mendelianViolation.violationLikelihoodRatio(vc,motherId,fatherId,childId));
+        //double pNoMV = 1.0;
+        double maxMVLR = Double.MIN_VALUE;
+        for ( Trio trio : trios ) {
+            boolean hasAppropriateGenotypes = vc.hasGenotype(trio.motherId) && vc.getGenotype(trio.motherId).hasLikelihoods() &&
+                    vc.hasGenotype(trio.fatherId) && vc.getGenotype(trio.fatherId).hasLikelihoods() &&
+                    vc.hasGenotype(trio.childId) && vc.getGenotype(trio.childId).hasLikelihoods();
+            if ( hasAppropriateGenotypes ) {
+                Double likR = mendelianViolation.violationLikelihoodRatio(vc,trio.motherId,trio.fatherId,trio.childId);
+                maxMVLR = likR > maxMVLR ? likR : maxMVLR;
+                //pNoMV *= (1.0-Math.pow(10.0,likR)/(1+Math.pow(10.0,likR)));
+            }
+        }
 
+        //double pSomeMV = 1.0-pNoMV;
+        //toRet.put("MVLR",Math.log10(pSomeMV)-Math.log10(1.0-pSomeMV));
+        toRet.put("MVLR",maxMVLR);
         return toRet;
     }
 
@@ -64,25 +78,24 @@ public class MVLikelihoodRatio extends InfoFieldAnnotation implements Experiment
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("MVLR", 1, VCFHeaderLineType.Float, "Mendelian violation likelihood ratio: L[MV] - L[No MV]")); }
 
     private boolean checkAndSetSamples(SampleDB db){
+        trios = new HashSet<Trio>();
         Set<String> families = db.getFamilyIDs();
-        if(families.size() != 1)
-            return false;
-
-        Set<Sample> family = db.getFamily(families.iterator().next());
-        if(family.size() != 3)
-            return false;
-
-        Iterator<Sample> sampleIter = family.iterator();
-        Sample sample;
-        for(sample = sampleIter.next();sampleIter.hasNext();sample=sampleIter.next()){
-            if(sample.getParents().size()==2){
-                motherId = sample.getMaternalID();
-                fatherId = sample.getPaternalID();
-                childId = sample.getID();
-                return true;
+        for ( String familyString : families ) {
+            Set<Sample> family = db.getFamily(familyString);
+            Iterator<Sample> sampleIterator = family.iterator();
+            Sample sample;
+            for ( sample = sampleIterator.next(); sampleIterator.hasNext(); sample=sampleIterator.next()) {
+                if ( sample.getParents().size() == 2 ) {
+                    Trio trio = new Trio();
+                    trio.childId = sample.getID();
+                    trio.fatherId = sample.getFather().getID();
+                    trio.motherId = sample.getMother().getID();
+                    trios.add(trio);
+                }
             }
         }
-        return false;
+
+        return trios.size() > 0;
     }
 
 }

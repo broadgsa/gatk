@@ -322,6 +322,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(fullName="justRead", doc="If true, we won't actually write the output file.  For efficiency testing only", required=false)
     private boolean justRead = false;
 
+    @Argument(doc="indel size select",required=false,fullName="maxIndelSize")
+    private int maxIndelSize = Integer.MAX_VALUE;
+
 
     /* Private class used to store the intermediate variants in the integer random selection process */
     private static class RandomVariantStructure {
@@ -541,6 +544,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if (!selectedTypes.contains(vc.getType()))
                 continue;
 
+            if ( badIndelSize(vc) )
+                continue;
+
             VariantContext sub = subsetRecord(vc, EXCLUDE_NON_VARIANTS);
 
             if ( REGENOTYPE && sub.isPolymorphicInSamples() && hasPLs(sub) ) {
@@ -570,6 +576,20 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         }
 
         return 1;
+    }
+
+    private boolean badIndelSize(final VariantContext vc) {
+        if ( vc.getReference().length() > maxIndelSize ) {
+            return true;
+        }
+
+        for ( Allele a : vc.getAlternateAlleles() ) {
+            if ( a.length() > maxIndelSize ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private boolean hasPLs(final VariantContext vc) {

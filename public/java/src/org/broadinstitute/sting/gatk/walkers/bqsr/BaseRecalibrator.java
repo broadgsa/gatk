@@ -136,10 +136,6 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
      */
     public void initialize() {
 
-        // TODO -- remove me after the 2.1 release
-        if ( getToolkit().getArguments().numberOfThreads > 1 )
-            throw new UserException("We have temporarily disabled the ability to run BaseRecalibrator multi-threaded for performance reasons.  We hope to have this fixed for the next GATK release (2.2) and apologize for the inconvenience.");
-
         // check for unsupported access
         if (getToolkit().isGATKLite() && !getToolkit().getArguments().disableIndelQuals)
             throw new UserException.NotSupportedInGATKLite("base insertion/deletion recalibration is not supported, please use the --disable_indel_quals argument");
