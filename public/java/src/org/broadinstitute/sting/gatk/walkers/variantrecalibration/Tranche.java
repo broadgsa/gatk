@@ -29,10 +29,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -83,7 +80,7 @@ public class Tranche {
         return accessibleTruthSites > 0 ? callsAtTruthSites / (1.0*accessibleTruthSites) : 0.0;
     }
 
-    public static class TrancheTruthSensitivityComparator implements Comparator<Tranche> {
+    public static class TrancheTruthSensitivityComparator implements Comparator<Tranche>, Serializable {
         @Override
         public int compare(final Tranche tranche1, final Tranche tranche2) {
             return Double.compare(tranche1.ts, tranche2.ts);

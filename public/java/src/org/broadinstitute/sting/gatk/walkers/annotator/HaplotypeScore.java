@@ -47,6 +47,7 @@ import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -103,7 +104,7 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
         return map;
     }
 
-    private static class HaplotypeComparator implements Comparator<Haplotype> {
+    private static class HaplotypeComparator implements Comparator<Haplotype>, Serializable {
 
         public int compare(Haplotype a, Haplotype b) {
             if (a.getQualitySum() < b.getQualitySum())

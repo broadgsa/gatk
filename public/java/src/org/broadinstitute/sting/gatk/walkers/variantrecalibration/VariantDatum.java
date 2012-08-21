@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 
+import java.io.Serializable;
 import java.util.Comparator;
 
 /**
@@ -54,7 +55,7 @@ public class VariantDatum {
     public int worstAnnotation;
     public MultivariateGaussian assignment; // used in K-means implementation 
 
-    public static class VariantDatumLODComparator implements Comparator<VariantDatum> {
+    public static class VariantDatumLODComparator implements Comparator<VariantDatum>, Serializable {
         @Override
         public int compare(final VariantDatum datum1, final VariantDatum datum2) {
             return Double.compare(datum1.lod, datum2.lod);
