@@ -158,7 +158,7 @@ public class VariantDataManager {
         logger.info( "Found " + numBadSitesAdded + " variants overlapping bad sites training tracks." );
 
         // Next sort the variants by the LOD coming from the positive model and add to the list the bottom X percent of variants
-        Collections.sort( data );
+        Collections.sort( data, new VariantDatum.VariantDatumLODComparator() );
         final int numToAdd = Math.max( minimumNumber - trainingData.size(), Math.round((float)bottomPercentage * data.size()) );
         if( numToAdd > data.size() ) {
             throw new UserException.BadInput( "Error during negative model training. Minimum number of variants to use in training is larger than the whole call set. One can attempt to lower the --minNumBadVariants arugment but this is unsafe." );

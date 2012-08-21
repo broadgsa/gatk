@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 
+import java.io.Serializable;
 import java.util.Comparator;
 import java.util.TreeSet;
 
@@ -434,12 +435,14 @@ public class MannWhitneyU {
      * A comparator class which uses dithering on tie-breaking to ensure that the internal treeset drops no values
      * and to ensure that rank ties are broken at random.
      */
-    private class DitheringComparator implements Comparator<Pair<Number,USet>> {
+    private static class DitheringComparator implements Comparator<Pair<Number,USet>>, Serializable {
 
         public DitheringComparator() {}
 
+        @Override
         public boolean equals(Object other) { return false; }
 
+        @Override
         public int compare(Pair<Number,USet> left, Pair<Number,USet> right) {
             double comp = Double.compare(left.first.doubleValue(),right.first.doubleValue());
             if ( comp > 0 ) { return 1; }
