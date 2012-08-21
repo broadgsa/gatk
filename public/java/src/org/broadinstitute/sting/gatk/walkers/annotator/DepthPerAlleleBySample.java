@@ -12,6 +12,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFStandardHeaderLines;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
@@ -20,6 +21,7 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -35,8 +37,9 @@ import java.util.List;
  * the reads. If, for example, I believe there really is a an A/T polymorphism at a site, then I would like
  * to know the counts of A and T bases in this sample, even for reads with poor mapping quality that would
  * normally be excluded from the statistical calculations going into GQ and QUAL. Please note, however, that
- * the AD isn't necessarily calculated exactly for indels (it counts as non-reference only those indels that
- * are actually present and correctly left-aligned in the alignments themselves). Because of this fact and
+ * the AD isn't necessarily calculated exactly for indels. Only reads which are statistically favoring one allele over the other are counted.
+ * Because of this fact, the sum of AD may be much lower than the individual sample depth, especially when there are
+ * many non-informatice reads.
  * because the AD includes reads and bases that were filtered by the Unified Genotyper, <b>one should not base
  * assumptions about the underlying genotype based on it</b>; instead, the genotype likelihoods (PLs) are what
  * determine the genotype calls (see below).
@@ -54,13 +57,13 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         if ( g == null || !g.isCalled() )
             return;
 
-        if ( vc.isSNP() )
-            annotateSNP(stratifiedContext, vc, gb);
-        else if ( vc.isIndel() )
-            annotateIndel(stratifiedContext, ref.getBase(), vc, gb);
+        if (alleleLikelihoodMap != null && !alleleLikelihoodMap.isEmpty())
+            annotateWithLikelihoods(alleleLikelihoodMap, ref.getBase(), vc, gb);
+        else if ( vc.isSNP() && stratifiedContext != null)
+            annotateWithPileup(stratifiedContext, vc, gb);
     }
 
-    private void annotateSNP(final AlignmentContext stratifiedContext, final VariantContext vc, final GenotypeBuilder gb) {
+    private void annotateWithPileup(final AlignmentContext stratifiedContext, final VariantContext vc, final GenotypeBuilder gb) {
 
         HashMap<Byte, Integer> alleleCounts = new HashMap<Byte, Integer>();
         for ( Allele allele : vc.getAlleles() )
@@ -81,48 +84,29 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         gb.AD(counts);
     }
 
-    private void annotateIndel(final AlignmentContext stratifiedContext, final byte refBase, final VariantContext vc, final GenotypeBuilder gb) {
-        ReadBackedPileup pileup = stratifiedContext.getBasePileup();
-        if ( pileup == null )
-            return;
-
+    private void annotateWithLikelihoods(final PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap, final byte refBase, final VariantContext vc, final GenotypeBuilder gb) {
         final HashMap<Allele, Integer> alleleCounts = new HashMap<Allele, Integer>();
-        final Allele refAllele = vc.getReference();
 
         for ( final Allele allele : vc.getAlleles() ) {
             alleleCounts.put(allele, 0);
         }
+        for (Map.Entry<GATKSAMRecord,Map<Allele,Double>> el : perReadAlleleLikelihoodMap.getLikelihoodReadMap().entrySet()) {
+            final Allele a = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue());
+            if (a.isNoCall())
+                continue; // read is non-informative
+            if (!vc.getAlleles().contains(a))
+                continue; // sanity check - shouldn't be needed
+            alleleCounts.put(a,alleleCounts.get(a)+1);
 
-        for ( PileupElement p : pileup ) {
-            if ( p.isBeforeInsertion() ) {
-
-                final Allele insertion = Allele.create((char)refBase + p.getEventBases(), false);
-                if ( alleleCounts.containsKey(insertion) ) {
-                    alleleCounts.put(insertion, alleleCounts.get(insertion)+1);
-                }
-
-            } else if ( p.isBeforeDeletionStart() ) {
-                if ( p.getEventLength() == refAllele.length() - 1 ) {
-                    // this is indeed the deletion allele recorded in VC
-                    final Allele deletion = Allele.create(refBase);
-                    if ( alleleCounts.containsKey(deletion) ) {
-                        alleleCounts.put(deletion, alleleCounts.get(deletion)+1);
-                    }
-                }
-            } else if ( p.getRead().getAlignmentEnd() > vc.getStart() ) {
-                alleleCounts.put(refAllele, alleleCounts.get(refAllele)+1);
-            }
         }
-
         final int[] counts = new int[alleleCounts.size()];
-        counts[0] = alleleCounts.get(refAllele);
+        counts[0] = alleleCounts.get(vc.getReference());
         for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
             counts[i+1] = alleleCounts.get( vc.getAlternateAllele(i) );
 
         gb.AD(counts);
     }
 
- //   public String getIndelBases()
     public List<String> getKeyNames() { return Arrays.asList(VCFConstants.GENOTYPE_ALLELE_DEPTHS); }
 
     public List<VCFFormatHeaderLine> getDescriptions() {
