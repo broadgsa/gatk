@@ -27,10 +27,10 @@ import java.util.Map;
 /**
  * The depth of coverage of each VCF allele in this sample.
  *
- * This and DP are complementary fields that are two important ways of thinking about the depth of the data for this sample
- * at this site. The DP field describe the total depth of reads that passed the Unified Genotypers internal
- * quality control metrics (like MAPQ > 17, for example), whatever base was present in the read at this site.
- * The AD values (one for each of REF and ALT fields) is the count of all reads that carried with them the
+ * The AD and DP are complementary fields that are two important ways of thinking about the depth of the data for this
+ * sample at this site.  While the sample-level (FORMAT) DP field describes the total depth of reads that passed the
+ * Unified Genotyper's internal quality control metrics (like MAPQ > 17, for example), the AD values (one for each of
+ * REF and ALT fields) is the unfiltered count of all reads that carried with them the
  * REF and ALT alleles. The reason for this distinction is that the DP is in some sense reflective of the
  * power I have to determine the genotype of the sample at this site, while the AD tells me how many times
  * I saw each of the REF and ALT alleles in the reads, free of any bias potentially introduced by filtering
@@ -38,11 +38,11 @@ import java.util.Map;
  * to know the counts of A and T bases in this sample, even for reads with poor mapping quality that would
  * normally be excluded from the statistical calculations going into GQ and QUAL. Please note, however, that
  * the AD isn't necessarily calculated exactly for indels. Only reads which are statistically favoring one allele over the other are counted.
- * Because of this fact, the sum of AD may be much lower than the individual sample depth, especially when there are
+ * Because of this fact, the sum of AD may be different than the individual sample depth, especially when there are
  * many non-informatice reads.
- * because the AD includes reads and bases that were filtered by the Unified Genotyper, <b>one should not base
- * assumptions about the underlying genotype based on it</b>; instead, the genotype likelihoods (PLs) are what
- * determine the genotype calls (see below).
+ * Because the AD includes reads and bases that were filtered by the Unified Genotyper and in case of indels is based on a statistical computation,
+ * <b>one should not base assumptions about the underlying genotype based on it</b>;
+ * instead, the genotype likelihoods (PLs) are what determine the genotype calls.
  */
 public class DepthPerAlleleBySample extends GenotypeAnnotation implements StandardAnnotation {
 
