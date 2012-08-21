@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.exceptions;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -339,6 +340,17 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class CouldNotCreateReferenceFAIorDictForGzippedRef extends UserException {
+        public CouldNotCreateReferenceFAIorDictForGzippedRef(final File f) {
+            super("Although the GATK can process .gz reference sequences, it currently cannot create FAI " +
+                    "or DICT files for them.  In order to use the GATK with reference.fasta.gz you will need to " +
+                    "create .dict and .fai files for reference.fasta.gz and name them reference.fasta.gz.fai and " +
+                    "reference.dict.  Potentially the easiest way to do this is to uncompress reference.fasta, " +
+                    "run the GATK to create the .dict and .fai files, and copy them to the appropriate location. " +
+                    "Sorry for the inconvenience.");
+        }
+    }
+
     public static class CouldNotCreateReferenceIndexFileBecauseOfLock extends UserException.CouldNotCreateReferenceIndexFile {
         public CouldNotCreateReferenceIndexFileBecauseOfLock(File f) {
             super(f, "could not be written because an exclusive file lock could not be obtained. " +
@@ -351,8 +363,8 @@ public class UserException extends ReviewedStingException {
     public static class UnreadableKeyException extends UserException {
         public UnreadableKeyException ( File f, Exception e ) {
             super(String.format("Key file %s cannot be read (possibly the key file is corrupt?). Error was: %s. " +
-                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home for help.",
-                                f.getAbsolutePath(), getMessage(e)));
+                                "Please see %s for help.",
+                                f.getAbsolutePath(), getMessage(e), GATKRunReport.PHONE_HOME_DOCS_URL));
         }
 
         public UnreadableKeyException ( String message, Exception e ) {
@@ -361,8 +373,8 @@ public class UserException extends ReviewedStingException {
 
         public UnreadableKeyException ( String message ) {
             super(String.format("Key file cannot be read (possibly the key file is corrupt?): %s. " +
-                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home for help.",
-                                message));
+                                "Please see %s for help.",
+                                message, GATKRunReport.PHONE_HOME_DOCS_URL));
         }
     }
 
@@ -370,9 +382,8 @@ public class UserException extends ReviewedStingException {
         public KeySignatureVerificationException ( File f ) {
             super(String.format("The signature in key file %s failed cryptographic verification. " +
                                 "If this key was valid in the past, it's likely been revoked. " +
-                                "Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home " +
-                                "for help.",
-                                f.getAbsolutePath()));
+                                "Please see %s for help.",
+                                f.getAbsolutePath(), GATKRunReport.PHONE_HOME_DOCS_URL));
         }
     }
 }

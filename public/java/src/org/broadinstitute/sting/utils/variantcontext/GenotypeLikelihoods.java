@@ -401,7 +401,7 @@ public class GenotypeLikelihoods {
     }
 
     // An index conversion from the deprecated PL ordering to the new VCF-based ordering for up to 3 alternate alleles
-    protected static int[] PLindexConversion = new int[]{0, 1, 3, 6, 2, 4, 7, 5, 8, 9};
+    protected static final int[] PLindexConversion = new int[]{0, 1, 3, 6, 2, 4, 7, 5, 8, 9};
 
     /**
      * get the allele index pair for the given PL using the deprecated PL ordering:

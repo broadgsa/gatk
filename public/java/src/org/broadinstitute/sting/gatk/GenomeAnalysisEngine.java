@@ -233,10 +233,6 @@ public class GenomeAnalysisEngine {
         if (args.nonDeterministicRandomSeed)
             resetRandomGenerator(System.currentTimeMillis());
 
-        // TODO -- REMOVE ME WHEN WE STOP BCF testing
-        if ( args.USE_SLOW_GENOTYPES )
-            GenotypeBuilder.MAKE_FAST_BY_DEFAULT = false;
-
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
         if (args.BQSR_RECAL_FILE != null)
             setBaseRecalibration(args.BQSR_RECAL_FILE, args.quantizationLevels, args.disableIndelQuals, args.PRESERVE_QSCORES_LESS_THAN, args.emitOriginalQuals);
@@ -797,6 +793,14 @@ public class GenomeAnalysisEngine {
         if ( getWalkerBAQApplicationTime() == BAQ.ApplicationTime.FORBIDDEN && argCollection.BAQMode != BAQ.CalculationMode.OFF)
             throw new UserException.BadArgumentValue("baq", "Walker cannot accept BAQ'd base qualities, and yet BAQ mode " + argCollection.BAQMode + " was requested.");
 
+        if (argCollection.removeProgramRecords && argCollection.keepProgramRecords)
+            throw new UserException.BadArgumentValue("rpr / kpr", "Cannot enable both options");
+
+        boolean removeProgramRecords = argCollection.removeProgramRecords || walker.getClass().isAnnotationPresent(RemoveProgramRecords.class);
+
+        if (argCollection.keepProgramRecords)
+            removeProgramRecords = false;
+
         return new SAMDataSource(
                 samReaderIDs,
                 threadAllocation,
@@ -813,7 +817,8 @@ public class GenomeAnalysisEngine {
                 getWalkerBAQQualityMode(),
                 refReader,
                 getBaseRecalibration(),
-                argCollection.defaultBaseQualities);
+                argCollection.defaultBaseQualities,
+                removeProgramRecords);
     }
 
     /**
@@ -840,20 +845,9 @@ public class GenomeAnalysisEngine {
                                                                             SAMSequenceDictionary sequenceDictionary,
                                                                             GenomeLocParser genomeLocParser,
                                                                             ValidationExclusion.TYPE validationExclusionType) {
-        VCFHeader header = null;
-        if ( getArguments().repairVCFHeader != null ) {
-            try {
-                final PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(getArguments().repairVCFHeader));
-                header = (VCFHeader)new VCFCodec().readHeader(pbs).getHeaderValue();
-                pbs.close();
-            } catch ( IOException e ) {
-                throw new UserException.CouldNotReadInputFile(getArguments().repairVCFHeader, e);
-            }
-        }
+        final RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser, validationExclusionType);
 
-        RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser, header, validationExclusionType);
-
-        List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
+        final List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTriplet fileDescriptor : referenceMetaDataFiles)
             dataSources.add(new ReferenceOrderedDataSource(fileDescriptor,
                                                            builder,

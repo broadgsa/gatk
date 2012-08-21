@@ -30,7 +30,6 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -142,9 +141,6 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
         hInfo.add(new VCFFilterHeaderLine("BGL_RM_WAS_G", "This 'G' site was set to monomorphic by Beagle"));
         hInfo.add(new VCFFilterHeaderLine("BGL_RM_WAS_T", "This 'T' site was set to monomorphic by Beagle"));
 
-        // Open output file specified by output VCF ROD
-        final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
-
         if ( comp.isBound() ) {
             hInfo.add(new VCFInfoHeaderLine("ACH", 1, VCFHeaderLineType.Integer, "Allele Count from Comparison ROD at this site"));
             hInfo.add(new VCFInfoHeaderLine("ANH", 1, VCFHeaderLineType.Integer, "Allele Frequency from Comparison ROD at this site"));
@@ -250,8 +246,6 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
 
             // Beagle always produces genotype strings based on the strings we input in the likelihood file.
             String refString = vc_input.getReference().getDisplayString();
-            if (refString.length() == 0) // ref was null
-                refString = Allele.NULL_ALLELE_STRING;
 
             Allele bglAlleleA, bglAlleleB;
 

@@ -681,8 +681,8 @@ public class IntervalUtils {
 
         LinkedHashMap<String, List<GenomeLoc>> locsByContig = splitByContig(sorted);
         List<GenomeLoc> expanded = new ArrayList<GenomeLoc>();
-        for (String contig: locsByContig.keySet()) {
-            List<GenomeLoc> contigLocs = locsByContig.get(contig);
+        for (Map.Entry<String, List<GenomeLoc>> contig: locsByContig.entrySet()) {
+            List<GenomeLoc> contigLocs = contig.getValue();
             int contigLocsSize = contigLocs.size();
 
             GenomeLoc startLoc, stopLoc;

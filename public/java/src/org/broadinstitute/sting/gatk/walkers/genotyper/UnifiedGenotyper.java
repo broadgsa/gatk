@@ -82,7 +82,7 @@ import java.util.*;
  *   -o snps.raw.vcf \
  *   -stand_call_conf [50.0] \
  *   -stand_emit_conf 10.0 \
- *   -dcov [50] \
+ *   -dcov [50 for 4x, 200 for >30x WGS or Whole exome] \
  *   [-L targets.interval_list]
  * </pre>
  *
@@ -241,7 +241,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
         } else {
             // in full mode: check for consistency in ploidy/pool calling arguments
             // check for correct calculation models
-            if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
+/*            if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
                 // polyploidy requires POOL GL and AF calculation models to be specified right now
                 if (UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLSNP && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLINDEL
                         && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLBOTH)   {
@@ -252,6 +252,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
                     throw new UserException("Incorrect AF Calculation model. Only POOL model supported if sample ploidy != 2");
 
             }
+  */
             // get all of the unique sample names
             if (UAC.TREAT_ALL_READS_AS_SINGLE_POOL) {
                 samples.clear();
@@ -311,8 +312,8 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
 
         // add the pool values for each genotype
         if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
-            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum likelihood expectation (MLE) for the allele counts (not necessarily the same as the AC), for each ALT allele, in the same order as listed, for this pool"));
-            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_ALLELE_FREQUENCY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Maximum likelihood expectation (MLE) for the allele frequency (not necessarily the same as the AF), for each ALT allele, in the same order as listed, for this pool"));
+            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_PER_SAMPLE_ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum likelihood expectation (MLE) for the alternate allele count, in the same order as listed, for each individual sample"));
+            headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_PER_SAMPLE_ALLELE_FRACTION_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Maximum likelihood expectation (MLE) for the alternate allele fraction, in the same order as listed, for each individual sample"));
         }
         if (UAC.referenceSampleName != null) {
             headerInfo.add(new VCFInfoHeaderLine(VCFConstants.REFSAMPLE_DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Total reference sample depth"));

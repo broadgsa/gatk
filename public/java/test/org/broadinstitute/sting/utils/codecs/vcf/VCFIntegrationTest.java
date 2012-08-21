@@ -40,13 +40,24 @@ public class VCFIntegrationTest extends WalkerTest {
     }
 
     @Test(enabled = true)
+    public void testReadingLowerCaseBases() {
+        String testVCF = privateTestDir + "lowercaseBases.vcf";
+
+        String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
+
+        String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("e0e308a25e56bde1c664139bb44ed19d"));
+        executeTest("Test reading VCF with lower-case bases", spec1);
+    }
+
+    @Test(enabled = true)
     public void testReadingAndWriting1000GSVs() {
         String testVCF = privateTestDir + "1000G_SVs.chr1.vcf";
 
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
 
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
-        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList(""));
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("bdab26dd7648a806dbab01f64db2bdab"));
         executeTest("Test reading and writing 1000G Phase I SVs", spec1);
     }
 
@@ -57,7 +68,7 @@ public class VCFIntegrationTest extends WalkerTest {
         String baseCommand = "-R " + b37KGReference + " --no_cmdline_in_header -o %s ";
 
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
-        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("0f82ac11852e7f958c1a0ce52398c2ae"));
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("38697c195e7abf18d95dcc16c8e6d284"));
         executeTest("Test reading and writing samtools vcf", spec1);
     }
 
@@ -66,7 +77,7 @@ public class VCFIntegrationTest extends WalkerTest {
         String testVCF = privateTestDir + "ex2.vcf";
         String baseCommand = "-R " + b36KGReference + " --no_cmdline_in_header -o %s ";
         String test1 = baseCommand + "-T SelectVariants -V " + testVCF;
-        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("9773d6a121cfcb18d090965bc520f120"));
+        WalkerTestSpec spec1 = new WalkerTestSpec(test1, 1, Arrays.asList("e8f721ce81e4fdadba13c5291027057f"));
         executeTest("Test writing samtools WEx BCF example", spec1);
     }
 
@@ -81,7 +92,7 @@ public class VCFIntegrationTest extends WalkerTest {
 
     //
     //
-    // Tests to ensure that -U LENIENT_VCF_PROCESS and header repairs are working
+    // Tests to ensure that -U LENIENT_VCF_PROCESS
     //
     //
 
@@ -93,11 +104,6 @@ public class VCFIntegrationTest extends WalkerTest {
     @Test
     public void testPassingOnVCFWithoutHeadersWithLenientProcessing() {
         runVCFWithoutHeaders("-U LENIENT_VCF_PROCESSING", "6de8cb7457154dd355aa55befb943f88", null, true);
-    }
-
-    @Test
-    public void testPassingOnVCFWithoutHeadersRepairingHeaders() {
-        runVCFWithoutHeaders("-repairVCFHeader " + privateTestDir + "vcfexample2.justHeader.vcf", "ff61e9cad6653c7f93d82d391f7ecdcb", null, false);
     }
 
     private void runVCFWithoutHeaders(final String moreArgs, final String expectedMD5, final Class expectedException, final boolean disableBCF) {

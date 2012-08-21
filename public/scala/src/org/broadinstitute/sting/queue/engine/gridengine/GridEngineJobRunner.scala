@@ -52,13 +52,9 @@ class GridEngineJobRunner(session: Session, function: CommandLineFunction) exten
       nativeSpec += " -q " + function.jobQueue
 
     // If the resident set size is requested pass on the memory request
-    // NOTE: 12/20/11: depristo commented this out because mem_free isn't
-    // such a standard feature in SGE (gsa-engineering queue doesn't support it)
-    // requiring it can make SGE not so usable.  It's dangerous to not enforce
-    // that we have enough memory to run our jobs, but I'd rather be dangerous
-    // than not be able to run my jobs at all.
-//    if (function.residentRequest.isDefined)
-//      nativeSpec += " -l mem_free=%dM".format(function.residentRequest.map(_ * 1024).get.ceil.toInt)
+    // mem_free is the standard, but may also be virtual_free or even not available
+    if (function.qSettings.residentRequestParameter != null && function.residentRequest.isDefined)
+      nativeSpec += " -l %s=%dM".format(function.qSettings.residentRequestParameter, function.residentRequest.map(_ * 1024).get.ceil.toInt)
 
     // If the resident set size limit is defined specify the memory limit
     if (function.residentLimit.isDefined)

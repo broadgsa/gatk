@@ -67,10 +67,10 @@ public class BaseUtils {
     public static final byte DELETION_INDEX = 4;
     public static final byte NO_CALL_INDEX = 5; // (this is 'N')
 
-    public static int gIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'G');
-    public static int cIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'C');
-    public static int aIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'A');
-    public static int tIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'T');
+    public static final int aIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'A');
+    public static final int cIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'C');
+    public static final int gIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'G');
+    public static final int tIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'T');
 
     /// In genetics, a transition is a mutation changing a purine to another purine nucleotide (A <-> G) or
     // a pyrimidine to another pyrimidine nucleotide (C <-> T).
@@ -227,12 +227,19 @@ public class BaseUtils {
     }
 
     @Deprecated
-    static public boolean isRegularBase(char base) {
+    static public boolean isRegularBase( final char base ) {
         return simpleBaseToBaseIndex(base) != -1;
     }
 
-    static public boolean isRegularBase(byte base) {
+    static public boolean isRegularBase( final byte base ) {
         return simpleBaseToBaseIndex(base) != -1;
+    }
+
+    static public boolean isAllRegularBases( final byte[] bases ) {
+        for( final byte base : bases) {
+            if( !isRegularBase(base) ) { return false; }
+        }
+        return true;
     }
 
     static public boolean isNBase(byte base) {
@@ -429,6 +436,37 @@ public class BaseUtils {
     @Deprecated
     static public String simpleComplement(String bases) {
         return new String(simpleComplement(bases.getBytes()));
+    }
+
+    /**
+     * Returns the uppercased version of the bases
+     *
+     * @param bases   the bases
+     * @return the upper cased version
+     */
+    static public byte[] convertToUpperCase(final byte[] bases) {
+        for ( int i = 0; i < bases.length; i++ ) {
+            if ( (char)bases[i] >= 'a' )
+                bases[i] = toUpperCaseBase(bases[i]);
+        }
+        return bases;
+    }
+
+    static public byte toUpperCaseBase(final byte base) {
+        switch (base) {
+            case 'a':
+                return 'A';
+            case 'c':
+                return 'C';
+            case 'g':
+                return 'G';
+            case 't':
+                return 'T';
+            case 'n':
+                return 'N';
+            default:
+                return base;
+        }
     }
 
     /**

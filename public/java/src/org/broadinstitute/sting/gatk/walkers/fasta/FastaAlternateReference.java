@@ -47,7 +47,10 @@ import java.util.List;
  * <p>
  * Given variant tracks, it replaces the reference bases at variation sites with the bases supplied by the ROD(s).
  * Additionally, allows for one or more "snpmask" VCFs to set overlapping bases to 'N'.
- * Note that if there are multiple variants at a site, it takes the first one seen.
+ * Several important notes:
+ * 1) if there are multiple variants that start at a site, it chooses one of them randomly.
+ * 2) when there are overlapping indels (but with different start positions) only the first will be chosen.
+ * 3) this tool works only for SNPs and for simple indels (but not for things like complex substitutions).
  * Reference bases for each interval will be output as a separate fasta sequence (named numerically in order).
  *
  * <h2>Input</h2>
@@ -102,16 +105,16 @@ public class FastaAlternateReference extends FastaReference {
         String refBase = String.valueOf((char)ref.getBase());
 
         // Check to see if we have a called snp
-        for ( VariantContext vc : tracker.getValues(variants) ) {
+        for ( VariantContext vc : tracker.getValues(variants, ref.getLocus()) ) {
             if ( vc.isFiltered() )
                 continue;
 
             if ( vc.isSimpleDeletion()) {
-                deletionBasesRemaining = vc.getReference().length();
+                deletionBasesRemaining = vc.getReference().length() - 1;
                 // delete the next n bases, not this one
                 return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
             } else if ( vc.isSimpleInsertion()) {
-                return new Pair<GenomeLoc, String>(context.getLocation(), refBase.concat(vc.getAlternateAllele(0).toString()));
+                return new Pair<GenomeLoc, String>(context.getLocation(), vc.getAlternateAllele(0).toString());
             } else if (vc.isSNP()) {
                 return new Pair<GenomeLoc, String>(context.getLocation(), vc.getAlternateAllele(0).toString());
             }

@@ -82,7 +82,7 @@ public final class BCF2Decoder {
     public void skipNextBlock(final int blockSizeInBytes, final InputStream stream) {
         try {
             final int bytesRead = (int)stream.skip(blockSizeInBytes);
-            validateReadBytes(bytesRead, blockSizeInBytes);
+            validateReadBytes(bytesRead, 1, blockSizeInBytes);
         } catch ( IOException e ) {
             throw new UserException.CouldNotReadInputFile("I/O error while reading BCF2 file", e);
         }
@@ -129,18 +129,18 @@ public final class BCF2Decoder {
     //
     // ----------------------------------------------------------------------
 
-    public final Object decodeTypedValue() {
+    public final Object decodeTypedValue() throws IOException {
         final byte typeDescriptor = readTypeDescriptor();
         return decodeTypedValue(typeDescriptor);
     }
 
-    public final Object decodeTypedValue(final byte typeDescriptor) {
+    public final Object decodeTypedValue(final byte typeDescriptor) throws IOException {
         final int size = decodeNumberOfElements(typeDescriptor);
         return decodeTypedValue(typeDescriptor, size);
     }
 
     @Requires("size >= 0")
-    public final Object decodeTypedValue(final byte typeDescriptor, final int size) {
+    public final Object decodeTypedValue(final byte typeDescriptor, final int size) throws IOException {
         if ( size == 0 ) {
             // missing value => null in java
             return null;
@@ -162,7 +162,7 @@ public final class BCF2Decoder {
         }
     }
 
-    public final Object decodeSingleValue(final BCF2Type type) {
+    public final Object decodeSingleValue(final BCF2Type type) throws IOException {
         // TODO -- decodeTypedValue should integrate this routine
         final int value = decodeInt(type);
 
@@ -202,7 +202,7 @@ public final class BCF2Decoder {
                 return null;
             else {
                 final String s = new String(bytes, 0, goodLength);
-                return BCF2Utils.isCollapsedString(s) ? BCF2Utils.exploreStringList(s) : s;
+                return BCF2Utils.isCollapsedString(s) ? BCF2Utils.explodeStringList(s) : s;
             }
         } catch ( IOException e ) {
             throw new ReviewedStingException("readByte failure", e);
@@ -210,7 +210,7 @@ public final class BCF2Decoder {
     }
 
     @Ensures("result >= 0")
-    public final int decodeNumberOfElements(final byte typeDescriptor) {
+    public final int decodeNumberOfElements(final byte typeDescriptor) throws IOException {
         if ( BCF2Utils.sizeIsOverflow(typeDescriptor) )
             // -1 ensures we explode immediately with a bad size if the result is missing
             return decodeInt(readTypeDescriptor(), -1);
@@ -228,15 +228,15 @@ public final class BCF2Decoder {
      * @return
      */
     @Requires("BCF2Utils.decodeSize(typeDescriptor) == 1")
-    public final int decodeInt(final byte typeDescriptor, final int missingValue) {
+    public final int decodeInt(final byte typeDescriptor, final int missingValue) throws IOException {
         final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
         final int i = decodeInt(type);
         return i == type.getMissingBytes() ? missingValue : i;
     }
 
     @Requires("type != null")
-    public final int decodeInt(final BCF2Type type) {
-        return BCF2Utils.readInt(type.getSizeInBytes(), recordStream);
+    public final int decodeInt(final BCF2Type type) throws IOException {
+        return type.read(recordStream);
     }
 
     /**
@@ -258,7 +258,7 @@ public final class BCF2Decoder {
      * @return see description
      */
     @Requires({"type != null", "type.isIntegerType()", "size >= 0"})
-    public final int[] decodeIntArray(final int size, final BCF2Type type, int[] maybeDest) {
+    public final int[] decodeIntArray(final int size, final BCF2Type type, int[] maybeDest) throws IOException {
         if ( size == 0 ) {
             return null;
         } else {
@@ -290,12 +290,12 @@ public final class BCF2Decoder {
         }
     }
 
-    public final int[] decodeIntArray(final byte typeDescriptor, final int size) {
+    public final int[] decodeIntArray(final byte typeDescriptor, final int size) throws IOException {
         final BCF2Type type = BCF2Utils.decodeType(typeDescriptor);
         return decodeIntArray(size, type, null);
     }
 
-    public final double rawFloatToFloat(final int rawFloat) {
+    private double rawFloatToFloat(final int rawFloat) {
         return (double)Float.intBitsToFloat(rawFloat);
     }
 
@@ -311,22 +311,42 @@ public final class BCF2Decoder {
      * @param inputStream
      * @return
      */
-    public final int readBlockSize(final InputStream inputStream) {
-        return BCF2Utils.readInt(4, inputStream);
+    public final int readBlockSize(final InputStream inputStream) throws IOException {
+        return BCF2Type.INT32.read(inputStream);
     }
 
     /**
+     * Read all bytes for a BCF record block into a byte[], and return it
      *
-     * @param inputStream
-     * @return
+     * Is smart about reading from the stream multiple times to fill the buffer, if necessary
+     *
+     * @param blockSizeInBytes number of bytes to read
+     * @param inputStream the stream to read from
+     * @return a non-null byte[] containing exactly blockSizeInBytes bytes from the inputStream
      */
-    private final static byte[] readRecordBytes(final int blockSizeInBytes, final InputStream inputStream) {
+    @Requires({"blockSizeInBytes >= 0", "inputStream != null"})
+    @Ensures("result != null")
+    private static byte[] readRecordBytes(final int blockSizeInBytes, final InputStream inputStream) {
         assert blockSizeInBytes >= 0;
 
         final byte[] record = new byte[blockSizeInBytes];
         try {
-            final int bytesRead = inputStream.read(record);
-            validateReadBytes(bytesRead, blockSizeInBytes);
+            int bytesRead = 0;
+            int nReadAttempts = 0; // keep track of how many times we've read
+
+            // because we might not read enough bytes from the file in a single go, do it in a loop until we get EOF
+            while ( bytesRead < blockSizeInBytes ) {
+                final int read1 = inputStream.read(record, bytesRead, blockSizeInBytes - bytesRead);
+                if ( read1 == -1 )
+                    validateReadBytes(bytesRead, nReadAttempts, blockSizeInBytes);
+                else
+                    bytesRead += read1;
+            }
+
+            if ( nReadAttempts > 1 ) // TODO -- remove me
+                logger.warn("Required multiple read attempts to actually get the entire BCF2 block, unexpected behavior");
+
+            validateReadBytes(bytesRead, nReadAttempts, blockSizeInBytes);
         } catch ( IOException e ) {
             throw new UserException.CouldNotReadInputFile("I/O error while reading BCF2 file", e);
         }
@@ -334,18 +354,24 @@ public final class BCF2Decoder {
         return record;
     }
 
-    private final static void validateReadBytes(final int actuallyRead, final int expected) {
+    /**
+     * Make sure we read the right number of bytes, or throw an error
+     *
+     * @param actuallyRead
+     * @param nReadAttempts
+     * @param expected
+     */
+    private static void validateReadBytes(final int actuallyRead, final int nReadAttempts, final int expected) {
         assert expected >= 0;
 
         if ( actuallyRead < expected ) {
-            throw new UserException.MalformedBCF2(String.format("Failed to read next complete record: %s",
-                    actuallyRead == -1 ?
-                            "premature end of input stream" :
-                            String.format("expected %d bytes but read only %d", expected, actuallyRead)));
+            throw new UserException.MalformedBCF2(
+                    String.format("Failed to read next complete record: expected %d bytes but read only %d after %d iterations",
+                            expected, actuallyRead, nReadAttempts));
         }
     }
 
-    public final byte readTypeDescriptor() {
+    public final byte readTypeDescriptor() throws IOException {
         return BCF2Utils.readByte(recordStream);
     }
 }

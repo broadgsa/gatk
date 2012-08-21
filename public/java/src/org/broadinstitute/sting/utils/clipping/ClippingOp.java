@@ -4,7 +4,7 @@ import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import org.broadinstitute.sting.gatk.walkers.bqsr.EventType;
+import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -538,7 +538,7 @@ public class ClippingOp {
         return 0;
     }
 
-    private class CigarShift {
+    private static class CigarShift {
         private Cigar cigar;
         private int shiftFromStart;
         private int shiftFromEnd;

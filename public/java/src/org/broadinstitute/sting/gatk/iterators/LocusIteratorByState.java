@@ -159,7 +159,7 @@ public class LocusIteratorByState extends LocusIterator {
                     return stepForwardOnGenome();
                 } else {
                     if (curElement != null && curElement.getOperator() == CigarOperator.D)
-                        throw new UserException.MalformedBAM(read, "read ends with deletion. Cigar: " + read.getCigarString() + ". This is an indication of a malformed file, but the SAM spec allows reads ending in deletion. If you are sure you want to use this read, re-run your analysis with the extra option: -rf BadCigar");
+                        throw new UserException.MalformedBAM(read, "read ends with deletion. Cigar: " + read.getCigarString() + ". Although the SAM spec technically permits such reads, this is often indicative of malformed files. If you are sure you want to use this file, re-run your analysis with the extra option: -rf BadCigar");
                         
                     // Reads that contain indels model the genomeOffset as the following base in the reference.  Because
                     // we fall into this else block only when indels end the read, increment genomeOffset  such that the
@@ -185,7 +185,7 @@ public class LocusIteratorByState extends LocusIterator {
                     break;
                 case D: // deletion w.r.t. the reference
                     if (readOffset < 0)             // we don't want reads starting with deletion, this is a malformed cigar string
-                        throw new UserException.MalformedBAM(read, "Read starting with deletion. Cigar: " + read.getCigarString() + ". This is an indication of a malformed file, but the SAM spec allows reads starting in deletion. If you are sure you want to use this read, re-run your analysis with the extra option: -rf BadCigar");
+                        throw new UserException.MalformedBAM(read, "read starts with deletion. Cigar: " + read.getCigarString() + ". Although the SAM spec technically permits such reads, this is often indicative of malformed files. If you are sure you want to use this file, re-run your analysis with the extra option: -rf BadCigar");
                     // should be the same as N case
                     genomeOffset++;
                     done = true;
@@ -195,6 +195,8 @@ public class LocusIteratorByState extends LocusIterator {
                     done = true;
                     break;
                 case M:
+                case EQ:
+                case X:
                     readOffset++;
                     genomeOffset++;
                     done = true;
@@ -279,7 +281,6 @@ public class LocusIteratorByState extends LocusIterator {
      */
     private void lazyLoadNextAlignmentContext() {
         while (nextAlignmentContext == null && readStates.hasNext()) {
-            // this call will set hasExtendedEvents to true if it picks up a read with indel right before the current position on the ref:
             readStates.collectPendingReads();
 
             final GenomeLoc location = getLocation();
@@ -378,7 +379,7 @@ public class LocusIteratorByState extends LocusIterator {
                 CigarOperator op = state.stepForwardOnGenome();
                 if (op == null) {
                     // we discard the read only when we are past its end AND indel at the end of the read (if any) was
-                    // already processed. Keeping the read state that retunred null upon stepForwardOnGenome() is safe
+                    // already processed. Keeping the read state that returned null upon stepForwardOnGenome() is safe
                     // as the next call to stepForwardOnGenome() will return null again AND will clear hadIndel() flag.
                     it.remove();                                                // we've stepped off the end of the object
                 }

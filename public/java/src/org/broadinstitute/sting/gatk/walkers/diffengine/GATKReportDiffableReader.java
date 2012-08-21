@@ -90,8 +90,10 @@ public class GATKReportDiffableReader implements DiffableReader {
     public boolean canRead(File file) {
         try {
             final String HEADER = GATKReport.GATKREPORT_HEADER_PREFIX;
-            char[] buff = new char[HEADER.length()];
-            new FileReader(file).read(buff, 0, HEADER.length());
+            final char[] buff = new char[HEADER.length()];
+            final FileReader FR = new FileReader(file);
+            FR.read(buff, 0, HEADER.length());
+            FR.close();
             String firstLine = new String(buff);
             return firstLine.startsWith(HEADER);
         } catch (IOException e) {

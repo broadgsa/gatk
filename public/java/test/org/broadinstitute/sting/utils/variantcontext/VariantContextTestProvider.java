@@ -197,7 +197,7 @@ public class VariantContextTestProvider {
         addHeaderLine(metaData, "FT", 1, VCFHeaderLineType.String);
 
         // prep the header
-        metaData.add(new VCFContigHeaderLine(VCFHeader.CONTIG_KEY, Collections.singletonMap("ID", "1"), 0));
+        metaData.add(new VCFContigHeaderLine(Collections.singletonMap("ID", "1"), 0));
 
         metaData.add(new VCFFilterHeaderLine("FILTER1"));
         metaData.add(new VCFFilterHeaderLine("FILTER2"));
@@ -225,10 +225,10 @@ public class VariantContextTestProvider {
         add(builder());
         add(builder().alleles("A"));
         add(builder().alleles("A", "C", "T"));
-        add(builder().alleles("-", "C").referenceBaseForIndel("A"));
-        add(builder().alleles("-", "CAGT").referenceBaseForIndel("A"));
-        add(builder().loc("1", 10, 11).alleles("C", "-").referenceBaseForIndel("A"));
-        add(builder().loc("1", 10, 13).alleles("CGT", "-").referenceBaseForIndel("A"));
+        add(builder().alleles("A", "AC"));
+        add(builder().alleles("A", "ACAGT"));
+        add(builder().loc("1", 10, 11).alleles("AC", "A"));
+        add(builder().loc("1", 10, 13).alleles("ACGT", "A"));
 
         // make sure filters work
         add(builder().unfiltered());
@@ -302,8 +302,8 @@ public class VariantContextTestProvider {
 
         sites.add(builder().alleles("A").make());
         sites.add(builder().alleles("A", "C", "T").make());
-        sites.add(builder().alleles("-", "C").referenceBaseForIndel("A").make());
-        sites.add(builder().alleles("-", "CAGT").referenceBaseForIndel("A").make());
+        sites.add(builder().alleles("A", "AC").make());
+        sites.add(builder().alleles("A", "ACAGT").make());
 
         for ( VariantContext site : sites ) {
             addGenotypes(site);
@@ -888,20 +888,8 @@ public class VariantContextTestProvider {
         }
     }
 
-    private static final List<List<Allele>> makeAllGenotypes(final List<Allele> alleles, final int highestPloidy) {
-        final List<List<Allele>> combinations = new ArrayList<List<Allele>>();
-        if ( highestPloidy == 1 ) {
-            for ( final Allele a : alleles )
-                combinations.add(Collections.singletonList(a));
-        } else {
-            final List<List<Allele>> sub = makeAllGenotypes(alleles, highestPloidy - 1);
-            for ( List<Allele> subI : sub ) {
-                for ( final Allele a : alleles ) {
-                    combinations.add(Utils.cons(a, subI));
-                }
-            }
-        }
-        return combinations;
+    private static List<List<Allele>> makeAllGenotypes(final List<Allele> alleles, final int highestPloidy) {
+        return Utils.makePermutations(alleles, highestPloidy, true);
     }
 
     public static void assertEquals(final VCFHeader actual, final VCFHeader expected) {

@@ -12,6 +12,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.activeregion.ActivityProfileResult;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -27,10 +28,11 @@ import java.util.List;
  */
 
 @By(DataSource.READS)
-@Requires({DataSource.READS, DataSource.REFERENCE_BASES})
+@Requires({DataSource.READS, DataSource.REFERENCE})
 @PartitionBy(PartitionType.READ)
 @ActiveRegionExtension(extension=50,maxRegion=1500)
 @ReadFilters({UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class, FailsVendorQualityCheckFilter.class, MappingQualityUnavailableFilter.class})
+@RemoveProgramRecords
 public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
 
     @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this interval list file", required = false)
@@ -72,7 +74,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     }
 
     // Determine probability of active status over the AlignmentContext
-    public abstract double isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
+    public abstract ActivityProfileResult isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
 
     // Map over the ActiveRegion
     public abstract MapType map(final org.broadinstitute.sting.utils.activeregion.ActiveRegion activeRegion, final RefMetaDataTracker metaDataTracker);

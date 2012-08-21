@@ -103,7 +103,7 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
         return map;
     }
 
-    private class HaplotypeComparator implements Comparator<Haplotype> {
+    private static class HaplotypeComparator implements Comparator<Haplotype> {
 
         public int compare(Haplotype a, Haplotype b) {
             if (a.getQualitySum() < b.getQualitySum())
@@ -362,8 +362,8 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
                 // Score all the reads in the pileup, even the filtered ones
                 final double[] scores = new double[el.size()];
                 int i = 0;
-                for (Allele a : el.keySet()) {
-                    scores[i++] = -el.get(a);
+                for (Map.Entry<Allele, Double> a : el.entrySet()) {
+                    scores[i++] = -a.getValue();
                     if (DEBUG) {
                         System.out.printf("  vs. haplotype %d = %f%n", i - 1, scores[i - 1]);
                     }

@@ -197,7 +197,9 @@ public class VariantEvalUtils {
      * @return a new VariantContext with just the requested samples
      */
     public VariantContext getSubsetOfVariantContext(VariantContext vc, Set<String> sampleNames) {
-        return ensureAnnotations(vc, vc.subContextFromSamples(sampleNames, false));
+        // if we want to preserve AC0 sites as polymorphic we need to not rederive alleles
+        final boolean deriveAlleles = variantEvalWalker.ignoreAC0Sites();
+        return ensureAnnotations(vc, vc.subContextFromSamples(sampleNames, deriveAlleles));
     }
 
     public VariantContext ensureAnnotations(final VariantContext vc, final VariantContext vcsub) {
@@ -262,12 +264,8 @@ public class VariantEvalUtils {
                 // First, filter the VariantContext to represent only the samples for evaluation
                 VariantContext vcsub = vc;
 
-                if (subsetBySample && vc.hasGenotypes()) {
-                    if ( variantEvalWalker.isSubsettingToSpecificSamples() )
-                        vcsub = getSubsetOfVariantContext(vc, variantEvalWalker.getSampleNamesForEvaluation());
-                    else
-                        vcsub = ensureAnnotations(vc, vc);
-                }
+                if (subsetBySample && vc.hasGenotypes())
+                    vcsub = getSubsetOfVariantContext(vc, variantEvalWalker.getSampleNamesForEvaluation());
 
                 if ((byFilter || !vcsub.isFiltered())) {
                     addMapping(mapping, VariantEval.getAllSampleName(), vcsub);

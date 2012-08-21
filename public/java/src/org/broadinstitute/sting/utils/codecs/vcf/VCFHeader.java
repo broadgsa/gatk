@@ -53,10 +53,10 @@ public class VCFHeader {
 
     // the associated meta data
     private final Set<VCFHeaderLine> mMetaData = new LinkedHashSet<VCFHeaderLine>();
-    private final Map<String, VCFInfoHeaderLine> mInfoMetaData = new HashMap<String, VCFInfoHeaderLine>();
-    private final Map<String, VCFFormatHeaderLine> mFormatMetaData = new HashMap<String, VCFFormatHeaderLine>();
-    private final Map<String, VCFFilterHeaderLine> mFilterMetaData = new HashMap<String, VCFFilterHeaderLine>();
-    private final Map<String, VCFHeaderLine> mOtherMetaData = new HashMap<String, VCFHeaderLine>();
+    private final Map<String, VCFInfoHeaderLine> mInfoMetaData = new LinkedHashMap<String, VCFInfoHeaderLine>();
+    private final Map<String, VCFFormatHeaderLine> mFormatMetaData = new LinkedHashMap<String, VCFFormatHeaderLine>();
+    private final Map<String, VCFFilterHeaderLine> mFilterMetaData = new LinkedHashMap<String, VCFFilterHeaderLine>();
+    private final Map<String, VCFHeaderLine> mOtherMetaData = new LinkedHashMap<String, VCFHeaderLine>();
     private final List<VCFContigHeaderLine> contigMetaData = new ArrayList<VCFContigHeaderLine>();
 
     // the list of auxillary tags
@@ -99,6 +99,15 @@ public class VCFHeader {
         mMetaData.addAll(metaData);
         loadVCFVersion();
         loadMetaDataMaps();
+    }
+
+    /**
+     * Creates a shallow copy of the meta data in VCF header toCopy
+     *
+     * @param toCopy
+     */
+    public VCFHeader(final VCFHeader toCopy) {
+        this(toCopy.mMetaData);
     }
 
     /**
@@ -153,10 +162,37 @@ public class VCFHeader {
     }
 
     /**
-     * @return all of the VCF header lines of the ##contig form in order, or an empty set if none were present
+     * @return all of the VCF header lines of the ##contig form in order, or an empty list if none were present
      */
     public List<VCFContigHeaderLine> getContigLines() {
         return Collections.unmodifiableList(contigMetaData);
+    }
+
+
+    /**
+     * @return all of the VCF FILTER lines in their original file order, or an empty list if none were present
+     */
+    public List<VCFFilterHeaderLine> getFilterLines() {
+        final List<VCFFilterHeaderLine> filters = new ArrayList<VCFFilterHeaderLine>();
+        for ( VCFHeaderLine line : mMetaData ) {
+            if ( line instanceof VCFFilterHeaderLine )  {
+                filters.add((VCFFilterHeaderLine)line);
+            }
+        }
+        return filters;
+    }
+
+    /**
+     * @return all of the VCF FILTER lines in their original file order, or an empty list if none were present
+     */
+    public List<VCFIDHeaderLine> getIDHeaderLines() {
+        final List<VCFIDHeaderLine> filters = new ArrayList<VCFIDHeaderLine>();
+        for ( VCFHeaderLine line : mMetaData ) {
+            if ( line instanceof VCFIDHeaderLine )  {
+                filters.add((VCFIDHeaderLine)line);
+            }
+        }
+        return filters;
     }
 
     /**
@@ -299,10 +335,16 @@ public class VCFHeader {
         return HEADER_FIELDS.values().length + (hasGenotypingData() ? mGenotypeSampleNames.size() + 1 : 0);
     }
 
+    /**
+     * Returns the INFO HeaderLines in their original ordering
+     */
     public Collection<VCFInfoHeaderLine> getInfoHeaderLines() {
         return mInfoMetaData.values();
     }
 
+    /**
+     * Returns the FORMAT HeaderLines in their original ordering
+     */
     public Collection<VCFFormatHeaderLine> getFormatHeaderLines() {
         return mFormatMetaData.values();
     }
@@ -389,5 +431,14 @@ public class VCFHeader {
 
     public HashMap<String, Integer> getSampleNameToOffset() {
         return sampleNameToOffset;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder b = new StringBuilder();
+        b.append("[VCFHeader:");
+        for ( final VCFHeaderLine line : mMetaData )
+            b.append("\n\t").append(line);
+        return b.append("\n]").toString();
     }
 }

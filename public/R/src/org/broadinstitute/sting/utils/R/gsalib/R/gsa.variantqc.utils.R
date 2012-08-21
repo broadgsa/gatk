@@ -207,7 +207,7 @@ plotVariantQC <- function(metrics, measures, requestedStrat = "Sample",
   
   if ( requestedStrat == "Sample" ) {
     perSampleGraph <- perSampleGraph + geom_text(aes(label=strat), size=1.5) + geom_blank() # don't display a scale
-    perSampleGraph <- perSampleGraph + scale_x_discrete("Sample (ordered by nSNPs)", formatter=function(x) "")
+    perSampleGraph <- perSampleGraph + scale_x_discrete("Sample (ordered by nSNPs)")
   } else { # by AlleleCount
     perSampleGraph <- perSampleGraph + geom_point(aes(size=log10(nobs))) #+ geom_smooth(aes(weight=log10(nobs)))
     perSampleGraph <- perSampleGraph + scale_x_log10("AlleleCount")

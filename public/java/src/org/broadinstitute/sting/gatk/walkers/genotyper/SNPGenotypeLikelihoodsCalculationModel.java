@@ -208,7 +208,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         return new ReadBackedPileupImpl( pileup.getLocation(), BAQedElements );
     }
 
-    public class BAQedPileupElement extends PileupElement {
+    public static class BAQedPileupElement extends PileupElement {
         public BAQedPileupElement( final PileupElement PE ) {
             super(PE.getRead(), PE.getOffset(), PE.isDeletion(), PE.isBeforeDeletedBase(), PE.isAfterDeletedBase(), PE.isBeforeInsertion(), PE.isAfterInsertion(), PE.isNextToSoftClip());
         }

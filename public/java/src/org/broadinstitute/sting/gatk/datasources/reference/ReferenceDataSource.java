@@ -45,7 +45,6 @@ import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -56,30 +55,31 @@ public class ReferenceDataSource {
     private IndexedFastaSequenceFile reference;
 
     /** our log, which we want to capture anything from this class */
-    protected static org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(ReferenceDataSource.class);
+    protected static final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(ReferenceDataSource.class);
 
     /**
      * Create reference data source from fasta file
      * @param fastaFile Fasta file to be used as reference
      */
     public ReferenceDataSource(File fastaFile) {
-
         // does the fasta file exist? check that first...
         if (!fastaFile.exists())
             throw new UserException("The fasta file you specified (" + fastaFile.getAbsolutePath() + ") does not exist.");
 
-        File indexFile = new File(fastaFile.getAbsolutePath() + ".fai");
-        File dictFile;
-        if (fastaFile.getAbsolutePath().endsWith("fa")) {
-            dictFile = new File(fastaFile.getAbsolutePath().replace(".fa", ".dict"));
-        }
-        else
-         dictFile = new File(fastaFile.getAbsolutePath().replace(".fasta", ".dict"));
+        final boolean isGzipped = fastaFile.getAbsolutePath().endsWith(".gz");
+
+        final File indexFile = new File(fastaFile.getAbsolutePath() + ".fai");
+
+        // determine the name for the dict file
+        final String fastaExt = (fastaFile.getAbsolutePath().endsWith("fa") ? ".fa" : ".fasta" ) + (isGzipped ? ".gz" : "");
+        final File dictFile = new File(fastaFile.getAbsolutePath().replace(fastaExt, ".dict"));
 
         /*
-         if index file does not exist, create it manually
-          */
+        * if index file does not exist, create it manually
+        */
         if (!indexFile.exists()) {
+            if ( isGzipped ) throw new UserException.CouldNotCreateReferenceFAIorDictForGzippedRef(fastaFile);
+
             logger.info(String.format("Index file %s does not exist. Trying to create it now.", indexFile.getAbsolutePath()));
             FSLockWithShared indexLock = new FSLockWithShared(indexFile,true);
             try {
@@ -96,7 +96,7 @@ public class ReferenceDataSource {
             }
             catch(UserException e) {
                 // Rethrow all user exceptions as-is; there should be more details in the UserException itself. 
-                throw e;    
+                throw e;
             }
             catch (Exception e) {
                 // If lock creation succeeded, the failure must have been generating the index.
@@ -115,6 +115,8 @@ public class ReferenceDataSource {
         * This has been filed in trac as (PIC-370) Want programmatic interface to CreateSequenceDictionary
         */
         if (!dictFile.exists()) {
+            if ( isGzipped ) throw new UserException.CouldNotCreateReferenceFAIorDictForGzippedRef(fastaFile);
+
             logger.info(String.format("Dict file %s does not exist. Trying to create it now.", dictFile.getAbsolutePath()));
 
             /*
@@ -219,9 +221,9 @@ public class ReferenceDataSource {
             for(int shardStart = 1; shardStart <= refSequenceRecord.getSequenceLength(); shardStart += maxShardSize) {
                 final int shardStop = Math.min(shardStart+maxShardSize-1, refSequenceRecord.getSequenceLength());
                 shards.add(new LocusShard(parser,
-                                          readsDataSource,
-                                          Collections.singletonList(parser.createGenomeLoc(refSequenceRecord.getSequenceName(),shardStart,shardStop)),
-                                          null));
+                        readsDataSource,
+                        Collections.singletonList(parser.createGenomeLoc(refSequenceRecord.getSequenceName(),shardStart,shardStop)),
+                        null));
             }
         }
         return shards;

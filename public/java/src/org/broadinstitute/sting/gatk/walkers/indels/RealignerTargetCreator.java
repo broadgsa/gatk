@@ -332,7 +332,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
 
     private enum EVENT_TYPE { POINT_EVENT, INDEL_EVENT, BOTH }
 
-    class EventPair {
+    static class EventPair {
         public Event left, right;
         public TreeSet<GenomeLoc> intervals = new TreeSet<GenomeLoc>();
 

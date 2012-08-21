@@ -26,11 +26,12 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.StandardCallerArgumentCollection;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 
-public class UnifiedArgumentCollection {
+public class UnifiedArgumentCollection extends StandardCallerArgumentCollection {
 
     @Argument(fullName = "genotype_likelihoods_model", shortName = "glm", doc = "Genotype likelihoods calculation model to employ -- SNP is the default option, while INDEL is also available for calling indels and BOTH is available for calling both together", required = false)
     public GenotypeLikelihoodsCalculationModel.Model GLmodel = GenotypeLikelihoodsCalculationModel.Model.SNP;
@@ -43,39 +44,12 @@ public class UnifiedArgumentCollection {
     protected AlleleFrequencyCalculationModel.Model AFmodel = AlleleFrequencyCalculationModel.Model.EXACT;
 
     /**
-     * The expected heterozygosity value used to compute prior likelihoods for any locus. The default priors are:
-     * het = 1e-3, P(hom-ref genotype) = 1 - 3 * het / 2, P(het genotype) = het, P(hom-var genotype) = het / 2
-     */
-    @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
-    public Double heterozygosity = UnifiedGenotyperEngine.HUMAN_SNP_HETEROZYGOSITY;
-
-    /**
      * The PCR error rate is independent of the sequencing error rate, which is necessary because we cannot necessarily
      * distinguish between PCR errors vs. sequencing errors.  The practical implication for this value is that it
      * effectively acts as a cap on the base qualities.
      */
     @Argument(fullName = "pcr_error_rate", shortName = "pcr_error", doc = "The PCR error rate to be used for computing fragment-based likelihoods", required = false)
     public Double PCR_error = DiploidSNPGenotypeLikelihoods.DEFAULT_PCR_ERROR_RATE;
-
-    @Argument(fullName = "genotyping_mode", shortName = "gt_mode", doc = "Specifies how to determine the alternate alleles to use for genotyping", required = false)
-    public GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY;
-
-    @Argument(fullName = "output_mode", shortName = "out_mode", doc = "Specifies which type of calls we should output", required = false)
-    public UnifiedGenotyperEngine.OUTPUT_MODE OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_VARIANTS_ONLY;
-
-    /**
-     * The minimum phred-scaled Qscore threshold to separate high confidence from low confidence calls. Only genotypes with
-     * confidence >= this threshold are emitted as called sites. A reasonable threshold is 30 for high-pass calling (this
-     * is the default).
-     */
-    @Argument(fullName = "standard_min_confidence_threshold_for_calling", shortName = "stand_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants should be called", required = false)
-    public double STANDARD_CONFIDENCE_FOR_CALLING = 30.0;
-
-    /**
-     * This argument allows you to emit low quality calls as filtered records.
-     */
-    @Argument(fullName = "standard_min_confidence_threshold_for_emitting", shortName = "stand_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants should be emitted (and filtered with LowQual if less than the calling threshold)", required = false)
-    public double STANDARD_CONFIDENCE_FOR_EMITTING = 30.0;
 
     /**
      * Note that calculating the SLOD increases the runtime by an appreciable amount.
@@ -91,12 +65,6 @@ public class UnifiedArgumentCollection {
     public boolean ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED = false;
 
     /**
-     * When the UnifiedGenotyper is put into GENOTYPE_GIVEN_ALLELES mode it will genotype the samples using only the alleles provide in this rod binding
-     */
-    @Input(fullName="alleles", shortName = "alleles", doc="The set of alleles at which to genotype when --genotyping_mode is GENOTYPE_GIVEN_ALLELES", required=false)
-    public RodBinding<VariantContext> alleles;
-
-    /**
      * The minimum confidence needed in a given base for it to be used in variant calling.  Note that the base quality of a base
      * is capped by the mapping quality so that bases on reads with low mapping quality may get filtered out depending on this value.
      * Note too that this argument is ignored in indel calling. In indel calling, low-quality ends of reads are clipped off (with fixed threshold of Q20).
@@ -107,18 +75,8 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
 
-    /**
-     * If there are more than this number of alternate alleles presented to the genotyper (either through discovery or GENOTYPE_GIVEN ALLELES),
-     * then only this many alleles will be used.  Note that genotyping sites with many alternate alleles is both CPU and memory intensive and it
-     * scales exponentially based on the number of alternate alleles.  Unless there is a good reason to change the default value, we highly recommend
-     * that you not play around with this parameter.
-     */
-    @Advanced
-    @Argument(fullName = "max_alternate_alleles", shortName = "maxAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
-    public int MAX_ALTERNATE_ALLELES = 3;
-
     @Hidden
-    @Argument(fullName = "cap_max_alternate_alleles_for_indels", shortName = "capMaxAllelesForIndels", doc = "Cap the maximum number of alternate alleles to genotype for indel calls at 2; overrides the --max_alternate_alleles argument; GSA production use only", required = false)
+    @Argument(fullName = "cap_max_alternate_alleles_for_indels", shortName = "capMaxAltAllelesForIndels", doc = "Cap the maximum number of alternate alleles to genotype for indel calls at 2; overrides the --max_alternate_alleles argument; GSA production use only", required = false)
     public boolean CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS = false;
 
     // indel-related arguments
@@ -139,19 +97,18 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "min_indel_fraction_per_sample", shortName = "minIndelFrac", doc = "Minimum fraction of all reads at a locus that must contain an indel (of any allele) for that sample to contribute to the indel count for alleles", required = false)
     public double MIN_INDEL_FRACTION_PER_SAMPLE = 0.25;
 
-
     /**
      * This argument informs the prior probability of having an indel at a site.
      */
     @Argument(fullName = "indel_heterozygosity", shortName = "indelHeterozygosity", doc = "Heterozygosity for indel calling", required = false)
     public double INDEL_HETEROZYGOSITY = 1.0/8000;
 
-    @Hidden
-    @Argument(fullName = "indelGapContinuationPenalty", shortName = "indelGCP", doc = "Indel gap continuation penalty", required = false)
+    @Advanced
+    @Argument(fullName = "indelGapContinuationPenalty", shortName = "indelGCP", doc = "Indel gap continuation penalty, as Phred-scaled probability.  I.e., 30 => 10^-30/10", required = false)
     public byte INDEL_GAP_CONTINUATION_PENALTY = 10;
 
-    @Hidden
-    @Argument(fullName = "indelGapOpenPenalty", shortName = "indelGOP", doc = "Indel gap open penalty", required = false)
+    @Advanced
+    @Argument(fullName = "indelGapOpenPenalty", shortName = "indelGOP", doc = "Indel gap open penalty, as Phred-scaled probability.  I.e., 30 => 10^-30/10", required = false)
     public byte INDEL_GAP_OPEN_PENALTY = 45;
 
     @Hidden
@@ -181,7 +138,6 @@ public class UnifiedArgumentCollection {
        Generalized ploidy argument (debug only): When building site error models, ignore lane information and build only
        sample-level error model
      */
-
     @Argument(fullName = "ignoreLaneInfo", shortName = "ignoreLane", doc = "Ignore lane when building error model, error model is then per-site", required = false)
     public boolean IGNORE_LANE_INFO = false;
 
@@ -263,7 +219,6 @@ public class UnifiedArgumentCollection {
         uac.referenceSampleName = referenceSampleName;
         uac.samplePloidy = samplePloidy;
         uac.maxQualityScore = minQualityScore;
-        uac.maxQualityScore = maxQualityScore;
         uac.phredScaledPrior = phredScaledPrior;
         uac.minPower = minPower;
         uac.minReferenceDepth = minReferenceDepth;
@@ -276,5 +231,16 @@ public class UnifiedArgumentCollection {
         return uac;
     }
 
+    public UnifiedArgumentCollection() { }
 
+    public UnifiedArgumentCollection( final StandardCallerArgumentCollection SCAC ) {
+        super();
+        this.alleles = SCAC.alleles;
+        this.GenotypingMode = SCAC.GenotypingMode;
+        this.heterozygosity = SCAC.heterozygosity;
+        this.MAX_ALTERNATE_ALLELES = SCAC.MAX_ALTERNATE_ALLELES;
+        this.OutputMode = SCAC.OutputMode;
+        this.STANDARD_CONFIDENCE_FOR_CALLING = SCAC.STANDARD_CONFIDENCE_FOR_CALLING;
+        this.STANDARD_CONFIDENCE_FOR_EMITTING = SCAC.STANDARD_CONFIDENCE_FOR_EMITTING;
+    }
 }

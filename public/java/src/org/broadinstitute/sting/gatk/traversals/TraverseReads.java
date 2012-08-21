@@ -51,7 +51,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  */
 public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,ReadShardDataProvider> {    
     /** our log, which we want to capture anything from this class */
-    protected static Logger logger = Logger.getLogger(TraverseReads.class);
+    protected static final Logger logger = Logger.getLogger(TraverseReads.class);
 
     @Override
     protected String getTraversalType() {
@@ -75,8 +75,6 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
         if( !dataProvider.hasReads() )
             throw new IllegalArgumentException("Unable to traverse reads; no read data is available.");
 
-        boolean needsReferenceBasesP = WalkerManager.isRequired(walker, DataSource.REFERENCE_BASES);
-
         ReadView reads = new ReadView(dataProvider);
         ReadReferenceView reference = new ReadReferenceView(dataProvider);
 
@@ -91,7 +89,7 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
             ReferenceContext refContext = null;
 
             // get the array of characters for the reference sequence, since we're a mapped read
-            if (needsReferenceBasesP && !read.getReadUnmappedFlag() && dataProvider.hasReference())
+            if (!read.getReadUnmappedFlag() && dataProvider.hasReference())
                 refContext = reference.getReferenceContext(read);
 
             // update the number of reads we've seen

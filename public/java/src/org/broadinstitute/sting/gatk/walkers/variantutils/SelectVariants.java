@@ -31,7 +31,6 @@ import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgume
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCounts;
@@ -312,10 +311,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
 
     @Hidden
-    @Argument(fullName="outMVFile", shortName="outMVFile", doc="", required=false)
-    private String outMVFile = null;
-
-    @Hidden
     @Argument(fullName="fullyDecode", doc="If true, the incoming VariantContext will be fully decoded", required=false)
     private boolean fullyDecode = false;
 
@@ -329,7 +324,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
 
     /* Private class used to store the intermediate variants in the integer random selection process */
-    private class RandomVariantStructure {
+    private static class RandomVariantStructure {
         private VariantContext vc;
 
         RandomVariantStructure(VariantContext vcP) {
@@ -368,8 +363,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private int nVariantsAdded = 0;
     private int positionToAdd = 0;
     private RandomVariantStructure [] variantArray;
-
-    private PrintStream outMVFileStream = null;
 
     //Random number generator for the genotypes to remove
     private Random randomGenotypes = new Random();
@@ -470,6 +463,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             final UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
             UAC.GLmodel = GenotypeLikelihoodsCalculationModel.Model.BOTH;
             UAC.OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES;
+            UAC.GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
             UAC.NO_SLOD = true;
             UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, null, null, samples, VariantContextUtils.DEFAULT_PLOIDY);
             headerLines.addAll(UnifiedGenotyper.getHeaderInfo(UAC, null, null));
@@ -527,23 +521,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if (MENDELIAN_VIOLATIONS && mv.countViolations(this.getSampleDB().getFamilies(samples),vc) < 1)
                 break;
 
-            if (outMVFile != null){
-                for( String familyId : mv.getViolationFamilies()){
-                    for(Sample sample : this.getSampleDB().getFamily(familyId)){
-                        if(sample.getParents().size() > 0){
-                            outMVFileStream.format("MV@%s:%d. REF=%s, ALT=%s, AC=%d, momID=%s, dadID=%s, childID=%s, momG=%s, momGL=%s, dadG=%s, dadGL=%s, " +
-                                    "childG=%s childGL=%s\n",vc.getChr(), vc.getStart(),
-                                    vc.getReference().getDisplayString(), vc.getAlternateAllele(0).getDisplayString(),  vc.getCalledChrCount(vc.getAlternateAllele(0)),
-                                    sample.getMaternalID(), sample.getPaternalID(), sample.getID(),
-                                    vc.getGenotype(sample.getMaternalID()).toBriefString(), vc.getGenotype(sample.getMaternalID()).getLikelihoods().getAsString(),
-                                    vc.getGenotype(sample.getPaternalID()).toBriefString(), vc.getGenotype(sample.getPaternalID()).getLikelihoods().getAsString(),
-                                    vc.getGenotype(sample.getID()).toBriefString(),vc.getGenotype(sample.getID()).getLikelihoods().getAsString()  );
-
-                        }
-                    }
-                }
-            }
-
             if (DISCORDANCE_ONLY) {
                 Collection<VariantContext> compVCs = tracker.getValues(discordanceTrack, context.getLocation());
                 if (!isDiscordant(vc, compVCs))
@@ -567,7 +544,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             VariantContext sub = subsetRecord(vc, EXCLUDE_NON_VARIANTS);
 
             if ( REGENOTYPE && sub.isPolymorphicInSamples() && hasPLs(sub) ) {
-                final VariantContextBuilder builder = new VariantContextBuilder(UG_engine.calculateGenotypes(tracker, ref, context, sub)).filters(sub.getFiltersMaybeNull());
+                final VariantContextBuilder builder = new VariantContextBuilder(UG_engine.calculateGenotypes(sub)).filters(sub.getFiltersMaybeNull());
                 addAnnotations(builder, sub);
                 sub = builder.make();
             }
@@ -730,7 +707,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         if ( vc.getAlleles().size() != sub.getAlleles().size() )
             newGC = VariantContextUtils.stripPLs(sub.getGenotypes());
 
-        //Remove a fraction of the genotypes if needed
+        // if we have fewer samples in the selected VC than in the original VC, we need to strip out the MLE tags
+        if ( vc.getNSamples() != sub.getNSamples() ) {
+            builder.rmAttribute(VCFConstants.MLE_ALLELE_COUNT_KEY);
+            builder.rmAttribute(VCFConstants.MLE_ALLELE_FREQUENCY_KEY);
+        }
+
+        // Remove a fraction of the genotypes if needed
         if ( fractionGenotypes > 0 ){
             ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
             for ( Genotype genotype : newGC ) {
@@ -767,17 +750,21 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         VariantContextUtils.calculateChromosomeCounts(builder, false);
 
+        boolean sawDP = false;
         int depth = 0;
         for (String sample : originalVC.getSampleNames()) {
             Genotype g = originalVC.getGenotype(sample);
 
             if ( ! g.isFiltered() ) {
-                if ( g.hasDP() )
+                if ( g.hasDP() ) {
                     depth += g.getDP();
+                    sawDP = true;
+                }
             }
         }
 
-        builder.attribute("DP", depth);
+        if ( sawDP )
+            builder.attribute("DP", depth);
     }
 
     private void randomlyAddVariant(int rank, VariantContext vc) {

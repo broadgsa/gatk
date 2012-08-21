@@ -38,8 +38,8 @@ import java.util.Map;
  *         A class representing a key=value entry in the VCF header
  */
 public class VCFHeaderLine implements Comparable {
-    protected static boolean ALLOW_UNBOUND_DESCRIPTIONS = true;
-    protected static String UNBOUND_DESCRIPTION = "Not provided in original VCF header";
+    protected static final boolean ALLOW_UNBOUND_DESCRIPTIONS = true;
+    protected static final String UNBOUND_DESCRIPTION = "Not provided in original VCF header";
 
     private String mKey = null;
     private String mValue = null;
@@ -53,7 +53,7 @@ public class VCFHeaderLine implements Comparable {
      */
     public VCFHeaderLine(String key, String value) {
         if ( key == null )
-            throw new IllegalArgumentException("VCFHeaderLine: key cannot be null: key = " + key);
+            throw new IllegalArgumentException("VCFHeaderLine: key cannot be null");
         mKey = key;
         mValue = value;
     }

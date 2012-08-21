@@ -16,9 +16,10 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
  * To change this template use File | Settings | File Templates.
  */
 @By(DataSource.READS)
-@Requires({DataSource.READS,DataSource.REFERENCE, DataSource.REFERENCE_BASES})
+@Requires({DataSource.READS,DataSource.REFERENCE})
 @PartitionBy(PartitionType.LOCUS)
 @ReadFilters({UnmappedReadFilter.class,NotPrimaryAlignmentFilter.class,DuplicateReadFilter.class,FailsVendorQualityCheckFilter.class})
+@RemoveProgramRecords
 public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
     public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

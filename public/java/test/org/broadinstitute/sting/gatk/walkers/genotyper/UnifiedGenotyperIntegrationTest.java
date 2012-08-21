@@ -355,6 +355,19 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         executeTest("test GENOTYPE_GIVEN_ALLELES with no evidence in reads", spec);
     }
 
+    @Test
+    public void testBaseIndelQualityScores() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                baseCommandIndelsb37 +
+                        " -I " + privateTestDir + "NA12878.100kb.BQSRv2.example.bam" +
+                        " -o %s" +
+                        " -L 20:10,000,000-10,100,000",
+                1,
+                Arrays.asList("b3c923ed9efa04b85fc18a9b45c8d2a6"));
+
+        executeTest(String.format("test UG with base indel quality scores"), spec);
+    }
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // testing SnpEff
@@ -373,13 +386,13 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     // --------------------------------------------------------------------------------------------------------------
     //
-    // testing SnpEff
+    // testing MinIndelFraction
     //
     // --------------------------------------------------------------------------------------------------------------
 
     final static String assessMinIndelFraction = baseCommandIndelsb37 + " -I " + validationDataLocation
             + "978604.bam -L 1:978,586-978,626 -o %s --sites_only -rf Sample -goodSM 7377 -goodSM 22-0022 -goodSM 134 -goodSM 344029-53 -goodSM 14030";
-    
+
     @Test
     public void testMinIndelFraction0() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -402,5 +415,19 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 assessMinIndelFraction + " -minIndelFrac 1", 1,
                 Arrays.asList("3f07efb768e08650a7ce333edd4f9a52"));
         executeTest("test minIndelFraction 1.0", spec);
+    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing Ns in CIGAR
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    @Test
+    public void testNsInCigar() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R " + b37KGReference + " -nosl --no_cmdline_in_header -I " + validationDataLocation + "testWithNs.bam -o %s -L 8:141799600-141814700", 1,
+                Arrays.asList("22c9fd65ce3298bd7fbf400c9c209f29"));
+        executeTest("test calling on reads with Ns in CIGAR", spec);
     }
 }

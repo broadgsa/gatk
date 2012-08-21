@@ -500,7 +500,10 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
 
     @Requires({"eval != null", "comp != null"})
     private EvalCompMatchType doEvalAndCompMatch(final VariantContext eval, final VariantContext comp, boolean requireStrictAlleleMatch) {
-        // find all of the matching comps
+        if ( comp.getType() == VariantContext.Type.NO_VARIATION || eval.getType() == VariantContext.Type.NO_VARIATION )
+            // if either of these are NO_VARIATION they are LENIENT matches
+            return EvalCompMatchType.LENIENT;
+
         if ( comp.getType() != eval.getType() )
             return EvalCompMatchType.NO_MATCH;
 

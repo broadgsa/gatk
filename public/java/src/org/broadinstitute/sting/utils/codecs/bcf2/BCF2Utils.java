@@ -41,8 +41,6 @@ import java.util.*;
  * @since 5/12
  */
 public final class BCF2Utils {
-    public static final byte[] MAGIC_HEADER_LINE = "BCF\2".getBytes();
-
     public static final int MAX_ALLELES_IN_GENOTYPES = 127;
 
     public static final int OVERFLOW_ELEMENT_MARKER = 15;
@@ -75,74 +73,54 @@ public final class BCF2Utils {
      */
     @Requires("header != null")
     @Ensures({"result != null", "new HashSet(result).size() == result.size()"})
-    public final static ArrayList<String> makeDictionary(final VCFHeader header) {
+    public static ArrayList<String> makeDictionary(final VCFHeader header) {
         final Set<String> seen = new HashSet<String>();
         final ArrayList<String> dict = new ArrayList<String>();
 
-        boolean sawPASS = false;
+        // special case the special PASS field which doesn't show up in the FILTER field definitions
+        seen.add(VCFConstants.PASSES_FILTERS_v4);
+        dict.add(VCFConstants.PASSES_FILTERS_v4);
+
         // set up the strings dictionary
         for ( VCFHeaderLine line : header.getMetaDataInInputOrder() ) {
             if ( line instanceof VCFIDHeaderLine && ! (line instanceof VCFContigHeaderLine) ) {
                 final VCFIDHeaderLine idLine = (VCFIDHeaderLine)line;
                 if ( ! seen.contains(idLine.getID())) {
-                    sawPASS = sawPASS || idLine.getID().equals(VCFConstants.PASSES_FILTERS_v4);
                     dict.add(idLine.getID());
                     seen.add(idLine.getID());
                 }
             }
         }
 
-
-        if ( ! sawPASS )
-            dict.add(VCFConstants.PASSES_FILTERS_v4); // special case the special PASS field
-
         return dict;
     }
 
-    @Requires({"nElements >= 0", "type != null"})
-    public final static byte encodeTypeDescriptor(final int nElements, final BCF2Type type ) {
-        int encodeSize = Math.min(nElements, OVERFLOW_ELEMENT_MARKER);
-        byte typeByte = (byte)((0x0F & encodeSize) << 4 | (type.getID() & 0x0F));
-        return typeByte;
+    @Requires({"nElements >= 0", "nElements <= OVERFLOW_ELEMENT_MARKER", "type != null"})
+    public static byte encodeTypeDescriptor(final int nElements, final BCF2Type type ) {
+        return (byte)((0x0F & nElements) << 4 | (type.getID() & 0x0F));
     }
 
     @Ensures("result >= 0")
-    public final static int decodeSize(final byte typeDescriptor) {
+    public static int decodeSize(final byte typeDescriptor) {
         return (0xF0 & typeDescriptor) >> 4;
     }
 
     @Ensures("result >= 0")
-    public final static int decodeTypeID(final byte typeDescriptor) {
+    public static int decodeTypeID(final byte typeDescriptor) {
         return typeDescriptor & 0x0F;
     }
 
     @Ensures("result != null")
-    public final static BCF2Type decodeType(final byte typeDescriptor) {
+    public static BCF2Type decodeType(final byte typeDescriptor) {
         return ID_TO_ENUM[decodeTypeID(typeDescriptor)];
     }
 
-    public final static boolean sizeIsOverflow(final byte typeDescriptor) {
+    public static boolean sizeIsOverflow(final byte typeDescriptor) {
         return decodeSize(typeDescriptor) == OVERFLOW_ELEMENT_MARKER;
     }
 
-    @Requires("nElements >= 0")
-    public final static boolean willOverflow(final long nElements) {
-        return nElements > MAX_INLINE_ELEMENTS;
-    }
-
-    public final static boolean startsWithBCF2Magic(final InputStream stream) throws IOException {
-        final byte[] magicBytes = new byte[BCF2Utils.MAGIC_HEADER_LINE.length];
-        stream.read(magicBytes);
-        return Arrays.equals(magicBytes, BCF2Utils.MAGIC_HEADER_LINE);
-    }
-
-    public final static byte readByte(final InputStream stream) {
-        // TODO -- shouldn't be capturing error here
-        try {
-            return (byte)(stream.read() & 0xFF);
-        } catch ( IOException e ) {
-            throw new ReviewedStingException("readByte failure", e);
-        }
+    public static byte readByte(final InputStream stream) throws IOException {
+        return (byte)(stream.read() & 0xFF);
     }
 
     /**
@@ -153,17 +131,21 @@ public final class BCF2Utils {
      * @param strings size > 1 list of strings
      * @return
      */
-    @Requires({"strings != null", "strings.size() > 1"})
+    @Requires({"strings != null"})
     @Ensures("result != null")
-    public static final String collapseStringList(final List<String> strings) {
-        final StringBuilder b = new StringBuilder();
-        for ( final String s : strings ) {
-            if ( s != null ) {
-                assert s.indexOf(",") == -1; // no commas in individual strings
-                b.append(",").append(s);
+    public static String collapseStringList(final List<String> strings) {
+        if ( strings.isEmpty() ) return "";
+        else if ( strings.size() == 1 ) return strings.get(0);
+        else {
+            final StringBuilder b = new StringBuilder();
+            for ( final String s : strings ) {
+                if ( s != null ) {
+                    assert s.indexOf(",") == -1; // no commas in individual strings
+                    b.append(",").append(s);
+                }
             }
+            return b.toString();
         }
-        return b.toString();
     }
 
     /**
@@ -177,15 +159,15 @@ public final class BCF2Utils {
      */
     @Requires({"collapsed != null", "isCollapsedString(collapsed)"})
     @Ensures("result != null")
-    public static final List<String> exploreStringList(final String collapsed) {
+    public static List<String> explodeStringList(final String collapsed) {
         assert isCollapsedString(collapsed);
         final String[] exploded = collapsed.substring(1).split(",");
         return Arrays.asList(exploded);
     }
 
     @Requires("s != null")
-    public static final boolean isCollapsedString(final String s) {
-        return s.charAt(0) == ',';
+    public static boolean isCollapsedString(final String s) {
+        return s.length() > 0 && s.charAt(0) == ',';
     }
 
     /**
@@ -226,7 +208,7 @@ public final class BCF2Utils {
     }
 
     @Ensures("result.isIntegerType()")
-    public final static BCF2Type determineIntegerType(final int value) {
+    public static BCF2Type determineIntegerType(final int value) {
         for ( final BCF2Type potentialType : INTEGER_TYPES_BY_SIZE) {
             if ( potentialType.withinRange(value) )
                 return potentialType;
@@ -236,19 +218,19 @@ public final class BCF2Utils {
     }
 
     @Ensures("result.isIntegerType()")
-    public final static BCF2Type determineIntegerType(final int[] values) {
-        // literally a copy of the code below, but there's no general way to unify lists and arrays in java
-        BCF2Type maxType = BCF2Type.INT8;
-        for ( final int value : values ) {
-            final BCF2Type type1 = determineIntegerType(value);
-            switch ( type1 ) {
-                case INT8: break;
-                case INT16: maxType = BCF2Type.INT16; break;
-                case INT32: return BCF2Type.INT32; // fast path for largest possible value
-                default: throw new ReviewedStingException("Unexpected integer type " + type1 );
-            }
+    public static BCF2Type determineIntegerType(final int[] values) {
+        // find the min and max values in the array
+        int max = 0, min = 0;
+        for ( final int v : values ) {
+            if ( v > max ) max = v;
+            if ( v < min ) min = v;
         }
-        return maxType;
+
+        final BCF2Type maxType = determineIntegerType(max);
+        final BCF2Type minType = determineIntegerType(min);
+
+        // INT8 < INT16 < INT32 so this returns the larger of the two
+        return maxType.compareTo(minType) >= 0 ? maxType : minType;
     }
 
     /**
@@ -262,7 +244,7 @@ public final class BCF2Utils {
      */
     @Requires({"t1.isIntegerType()","t2.isIntegerType()"})
     @Ensures("result.isIntegerType()")
-    public final static BCF2Type maxIntegerType(final BCF2Type t1, final BCF2Type t2) {
+    public static BCF2Type maxIntegerType(final BCF2Type t1, final BCF2Type t2) {
         switch ( t1 ) {
             case INT8: return t2;
             case INT16: return t2 == BCF2Type.INT32 ? t2 : t1;
@@ -272,7 +254,7 @@ public final class BCF2Utils {
     }
 
     @Ensures("result.isIntegerType()")
-    public final static BCF2Type determineIntegerType(final List<Integer> values) {
+    public static BCF2Type determineIntegerType(final List<Integer> values) {
         BCF2Type maxType = BCF2Type.INT8;
         for ( final int value : values ) {
             final BCF2Type type1 = determineIntegerType(value);
@@ -297,56 +279,54 @@ public final class BCF2Utils {
      * @param o
      * @return
      */
-    public final static List<Object> toList(final Object o) {
+    public static List<Object> toList(final Object o) {
         if ( o == null ) return Collections.emptyList();
         else if ( o instanceof List ) return (List<Object>)o;
         else return Collections.singletonList(o);
     }
 
+    /**
+     * Are the elements and their order in the output and input headers consistent so that
+     * we can write out the raw genotypes block without decoding and recoding it?
+     *
+     * If the order of INFO, FILTER, or contrig elements in the output header is different than
+     * in the input header we must decode the blocks using the input header and then recode them
+     * based on the new output order.
+     *
+     * If they are consistent, we can simply pass through the raw genotypes block bytes, which is
+     * a *huge* performance win for large blocks.
+     *
+     * Many common operations on BCF2 files (merging them for -nt, selecting a subset of records, etc)
+     * don't modify the ordering of the header fields and so can safely pass through the genotypes
+     * undecoded.  Some operations -- those at add filters or info fields -- can change the ordering
+     * of the header fields and so produce invalid BCF2 files if the genotypes aren't decoded
+     */
+    public static boolean headerLinesAreOrderedConsistently(final VCFHeader outputHeader, final VCFHeader genotypesBlockHeader) {
+        // first, we have to have the same samples in the same order
+        if ( ! nullAsEmpty(outputHeader.getSampleNamesInOrder()).equals(nullAsEmpty(genotypesBlockHeader.getSampleNamesInOrder())) )
+            return false;
 
-    @Requires({"stream != null", "bytesForEachInt > 0"})
-    public final static int readInt(int bytesForEachInt, final InputStream stream) {
-        switch ( bytesForEachInt ) {
-            case 1: {
-                return (byte)(readByte(stream));
-            } case 2: {
-                final int b2 = readByte(stream) & 0xFF;
-                final int b1 = readByte(stream) & 0xFF;
-                return (short)((b1 << 8) | b2);
-            } case 4: {
-                final int b4 = readByte(stream) & 0xFF;
-                final int b3 = readByte(stream) & 0xFF;
-                final int b2 = readByte(stream) & 0xFF;
-                final int b1 = readByte(stream) & 0xFF;
-                return (int)(b1 << 24 | b2 << 16 | b3 << 8 | b4);
-            } default: throw new ReviewedStingException("Unexpected size during decoding");
+        final Iterator<? extends VCFIDHeaderLine> outputLinesIt = outputHeader.getIDHeaderLines().iterator();
+        final Iterator<? extends VCFIDHeaderLine> inputLinesIt = genotypesBlockHeader.getIDHeaderLines().iterator();
+
+        while ( inputLinesIt.hasNext() ) {
+            if ( ! outputLinesIt.hasNext() ) // missing lines in output
+                return false;
+
+            final VCFIDHeaderLine outputLine = outputLinesIt.next();
+            final VCFIDHeaderLine inputLine = inputLinesIt.next();
+
+            if ( ! inputLine.getClass().equals(outputLine.getClass()) || ! inputLine.getID().equals(outputLine.getID()) )
+                return false;
         }
+
+        return true;
     }
 
-    public final static void encodeRawBytes(final int value, final BCF2Type type, final OutputStream encodeStream) throws IOException {
-        switch ( type.getSizeInBytes() ) {
-            case 1:
-                encodeStream.write(0xFF & value);
-                break;
-            case 2:
-                encodeStream.write((0x00FF & value));
-                encodeStream.write((0xFF00 & value) >> 8);
-                break;
-            case 4:
-                encodeStream.write((0x000000FF & value));
-                encodeStream.write((0x0000FF00 & value) >> 8);
-                encodeStream.write((0x00FF0000 & value) >> 16);
-                encodeStream.write((0xFF000000 & value) >> 24);
-                break;
-            default:
-                throw new ReviewedStingException("BUG: unexpected type size " + type);
-        }
-// general case for reference
-//        for ( int i = type.getSizeInBytes() - 1; i >= 0; i-- ) {
-//            final int shift = i * 8;
-//            int mask = 0xFF << shift;
-//            int byteValue = (mask & value) >> shift;
-//            encodeStream.write(byteValue);
-//        }
+    private static <T> List<T> nullAsEmpty(List<T> l) {
+        if ( l == null )
+            return Collections.emptyList();
+        else
+            return l;
     }
 }

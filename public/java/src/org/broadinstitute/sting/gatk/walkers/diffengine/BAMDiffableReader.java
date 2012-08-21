@@ -104,7 +104,9 @@ public class BAMDiffableReader implements DiffableReader {
             InputStream fstream = new BufferedInputStream(new FileInputStream(file));
             if ( !BlockCompressedInputStream.isValidFile(fstream) )
                 return false;
-            new BlockCompressedInputStream(fstream).read(buffer, 0, BAM_MAGIC.length);
+            final BlockCompressedInputStream BCIS = new BlockCompressedInputStream(fstream);
+            BCIS.read(buffer, 0, BAM_MAGIC.length);
+            BCIS.close();
             return Arrays.equals(buffer, BAM_MAGIC);
         } catch ( IOException e ) {
             return false;

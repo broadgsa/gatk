@@ -55,10 +55,8 @@ public class ArgumentDefinitionGroup implements Iterable<ArgumentDefinition> {
      * Does the name of this argument group match the name of another?
      */
     public boolean groupNameMatches( ArgumentDefinitionGroup other ) {
-        if( this.groupName == null && other.groupName == null )
-            return true;
-        if( this.groupName == null && other.groupName != null )
-            return false;
+        if( this.groupName == null )
+            return other.groupName == null;
         return this.groupName.equals(other.groupName);
     }
 

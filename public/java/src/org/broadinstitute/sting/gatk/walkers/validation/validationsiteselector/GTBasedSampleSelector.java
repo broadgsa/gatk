@@ -45,7 +45,7 @@ public class GTBasedSampleSelector extends SampleSelector{
         if ( samples == null || samples.isEmpty() )
             return true;
 
-        VariantContext subContext =  vc.subContextFromSamples(samples, false);
+        VariantContext subContext =  vc.subContextFromSamples(samples);
         if ( subContext.isPolymorphicInSamples() ) {
             return true;
         }

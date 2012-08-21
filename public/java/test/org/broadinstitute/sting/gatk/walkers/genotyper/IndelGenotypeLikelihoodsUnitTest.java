@@ -45,7 +45,6 @@ import org.testng.annotations.Test;
  */
 public class IndelGenotypeLikelihoodsUnitTest extends BaseTest {
     
-    final String refBases = "AGGATACTGT";
     final int nSamples = 1;
     final int[] numReadsPerAllele = new int[]{10,10};
     final String SAMPLE_PREFIX = "sample";
@@ -65,21 +64,19 @@ public class IndelGenotypeLikelihoodsUnitTest extends BaseTest {
     @Test
     public void testBasicConsensusCounts() {
         // 4 inserted bases, min cnt = 10
-        String altBases = "CCTCCTGAGA";
+        String altBases = "CCTC";
         int eventLength = 4;
         List<Allele> alleles = getConsensusAlleles(eventLength,true,10,0.1, altBases);
         
         Assert.assertEquals(alleles.size(),2);
-        Assert.assertEquals(alleles.get(1).getBaseString(), altBases.substring(0,eventLength));
+        Assert.assertEquals(alleles.get(1).getBaseString().substring(1), altBases.substring(0,eventLength));
 
 
-
-        //altBases = "CCTCMTGAGA";
-
+        // test deletions
         eventLength = 3;
         alleles = getConsensusAlleles(eventLength,false,10,0.1, altBases);
         Assert.assertEquals(alleles.size(),2);
-        Assert.assertEquals(alleles.get(0).getBaseString(), refBases.substring(pileupProvider.offset,pileupProvider.offset+eventLength));
+        Assert.assertEquals(alleles.get(0).getBaseString().substring(1,eventLength), new String(pileupProvider.getReferenceContext().getForwardBases()).substring(1,eventLength));
 
         // same with min Reads = 11
         alleles = getConsensusAlleles(eventLength,false,11,0.1, altBases);
@@ -92,14 +89,14 @@ public class IndelGenotypeLikelihoodsUnitTest extends BaseTest {
         Assert.assertEquals(alleles.size(),0);
 
         // test N's in insertions
-        altBases = "CCTCNTGAGA";
+        altBases = "CCTC";
         eventLength = 4;
         alleles = getConsensusAlleles(eventLength,true,10,0.1, altBases);
 
         Assert.assertEquals(alleles.size(),2);
-        Assert.assertEquals(alleles.get(1).getBaseString(), altBases.substring(0,eventLength));
+        Assert.assertEquals(alleles.get(1).getBaseString().substring(1,eventLength+1), altBases);
 
-        altBases = "CCTCNTGAGA";
+        altBases = "CCTCN";
         eventLength = 5;
         alleles = getConsensusAlleles(eventLength,true,10,0.1, altBases);
 

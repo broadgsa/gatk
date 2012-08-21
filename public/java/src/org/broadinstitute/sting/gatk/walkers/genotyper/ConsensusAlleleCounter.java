@@ -148,8 +148,8 @@ public class ConsensusAlleleCounter {
                     boolean foundKey = false;
                     // copy of hashmap into temp arrayList
                     ArrayList<Pair<String,Integer>> cList = new ArrayList<Pair<String,Integer>>();
-                    for (String s : consensusIndelStrings.keySet()) {
-                        cList.add(new Pair<String, Integer>(s,consensusIndelStrings.get(s)));
+                    for (Map.Entry<String, Integer> s : consensusIndelStrings.entrySet()) {
+                        cList.add(new Pair<String, Integer>(s.getKey(), s.getValue()));
                     }
 
                     if (read.getAlignmentEnd() == loc.getStart()) {
@@ -246,18 +246,19 @@ public class ConsensusAlleleCounter {
                 // get ref bases of accurate deletion
                 final int startIdxInReference = 1 + loc.getStart() - ref.getWindow().getStart();
                 stop = loc.getStart() + dLen;
-                final byte[] refBases = Arrays.copyOfRange(ref.getBases(), startIdxInReference, startIdxInReference + dLen);
+                final byte[] refBases = Arrays.copyOfRange(ref.getBases(), startIdxInReference - 1, startIdxInReference + dLen);   // add reference padding
 
                 if (Allele.acceptableAlleleBases(refBases, false)) {
                     refAllele = Allele.create(refBases, true);
-                    altAllele = Allele.create(Allele.NULL_ALLELE_STRING, false);
+                    altAllele = Allele.create(ref.getBase(), false);
                 }
                 else continue; // don't go on with this allele if refBases are non-standard
             } else {
                 // insertion case
-                if (Allele.acceptableAlleleBases(s, false)) { // don't allow N's in insertions
-                    refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
-                    altAllele = Allele.create(s, false);
+                final String insertionBases = (char)ref.getBase() + s;  // add reference padding
+                if (Allele.acceptableAlleleBases(insertionBases, false)) { // don't allow N's in insertions
+                    refAllele = Allele.create(ref.getBase(), true);
+                    altAllele = Allele.create(insertionBases, false);
                     stop = loc.getStart();
                 }
                 else continue; // go on to next allele if consensus insertion has any non-standard base.
@@ -267,7 +268,6 @@ public class ConsensusAlleleCounter {
             final VariantContextBuilder builder = new VariantContextBuilder().source("");
             builder.loc(loc.getContig(), loc.getStart(), stop);
             builder.alleles(Arrays.asList(refAllele, altAllele));
-            builder.referenceBaseForIndel(ref.getBase());
             builder.noGenotypes();
             if (doMultiAllelicCalls) {
                 vcs.add(builder.make());

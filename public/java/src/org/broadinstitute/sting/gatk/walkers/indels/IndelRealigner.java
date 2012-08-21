@@ -872,7 +872,13 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         for ( VariantContext knownIndel : knownIndelsToTry ) {
             if ( knownIndel == null || !knownIndel.isIndel() || knownIndel.isComplexIndel() )
                 continue;
-            byte[] indelStr = knownIndel.isSimpleInsertion() ? knownIndel.getAlternateAllele(0).getBases() : Utils.dupBytes((byte)'-', knownIndel.getReference().length());
+            final byte[] indelStr;
+            if ( knownIndel.isSimpleInsertion() ) {
+                final byte[] fullAllele = knownIndel.getAlternateAllele(0).getBases();
+                indelStr = Arrays.copyOfRange(fullAllele, 1, fullAllele.length); // remove ref padding
+            } else {
+                indelStr = Utils.dupBytes((byte)'-', knownIndel.getReference().length() - 1);
+            }
             int start = knownIndel.getStart() - leftmostIndex + 1;
             Consensus c = createAlternateConsensus(start, reference, indelStr, knownIndel);
             if ( c != null )
@@ -1019,7 +1025,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 elements.add(ce);
                 break;
             case M:
-                altIdx += elementLength;
+            case EQ:
+            case X:
+                    altIdx += elementLength;
             case N:
                 if ( reference.length < refIdx + elementLength )
                     ok_flag = false;
@@ -1281,6 +1289,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 int elementLength = ce.getLength();
                 switch ( ce.getOperator() ) {
                     case M:
+                    case EQ:
+                    case X:
                         for (int k = 0 ; k < elementLength ; k++, refIdx++, altIdx++ ) {
                             if ( refIdx >= reference.length )
                                 break;
@@ -1426,6 +1436,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         fromIndex += elementLength;
                         break;
                     case M:
+                    case EQ:
+                    case X:
                     case I:
                         System.arraycopy(actualReadBases, fromIndex, readBases, toIndex, elementLength);
                         System.arraycopy(actualBaseQuals, fromIndex, baseQuals, toIndex, elementLength);

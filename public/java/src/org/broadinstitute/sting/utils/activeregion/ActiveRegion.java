@@ -90,11 +90,11 @@ public class ActiveRegion implements HasGenomeLocation, Comparable<ActiveRegion>
     public void removeAll( final ArrayList<GATKSAMRecord> readsToRemove ) { reads.removeAll( readsToRemove ); }
 
     public boolean equalExceptReads(final ActiveRegion other) {
-        if ( ! activeRegionLoc.equals(other.activeRegionLoc) ) return false;
+        if ( activeRegionLoc.compareTo(other.activeRegionLoc) != 0 ) return false;
         if ( isActive != other.isActive ) return false;
         if ( genomeLocParser != other.genomeLocParser ) return false;
         if ( extension != other.extension ) return false;
-        if ( ! extendedLoc.equals(other.extendedLoc) ) return false;
+        if ( extendedLoc.compareTo(other.extendedLoc) != 0 ) return false;
         return true;
     }
 }

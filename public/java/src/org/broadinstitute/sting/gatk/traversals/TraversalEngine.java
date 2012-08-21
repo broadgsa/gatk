@@ -62,54 +62,6 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
 
     }
 
-    /**
-     * Simple utility class that makes it convenient to print unit adjusted times
-     */
-    private static class MyTime {
-        double t;           // in Seconds
-        int precision;      // for format
-
-        public MyTime(double t, int precision) {
-            this.t = t;
-            this.precision = precision;
-        }
-
-        public MyTime(double t) {
-            this(t, 1);
-        }
-
-        /**
-         * Instead of 10000 s, returns 2.8 hours
-         * @return
-         */
-        public String toString() {
-            double unitTime = t;
-            String unit = "s";
-
-            if ( t > 120 ) {
-                unitTime = t / 60; // minutes
-                unit = "m";
-
-                if ( unitTime > 120 ) {
-                    unitTime /= 60; // hours
-                    unit = "h";
-
-                    if ( unitTime > 100 ) {
-                        unitTime /= 24; // days
-                        unit = "d";
-
-                        if ( unitTime > 20 ) {
-                            unitTime /= 7; // days
-                            unit = "w";
-                        }
-                    }
-                }
-            }
-
-            return String.format("%6."+precision+"f %s", unitTime, unit);
-        }
-    }
-
     /** lock object to sure updates to history are consistent across threads */
     private static final Object lock = new Object();
     LinkedList<ProcessingHistory> history = new LinkedList<ProcessingHistory>();
@@ -140,7 +92,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     GenomeLocSortedSet targetIntervals = null;
 
     /** our log, which we want to capture anything from this class */
-    protected static Logger logger = Logger.getLogger(TraversalEngine.class);
+    protected static final Logger logger = Logger.getLogger(TraversalEngine.class);
 
     protected GenomeAnalysisEngine engine;
 
@@ -280,20 +232,20 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
 
             ProcessingHistory last = updateHistory(loc,cumulativeMetrics);
 
-            final MyTime elapsed = new MyTime(last.elapsedSeconds);
-            final MyTime bpRate = new MyTime(secondsPerMillionBP(last));
-            final MyTime unitRate = new MyTime(secondsPerMillionElements(last));
+            final AutoFormattingTime elapsed = new AutoFormattingTime(last.elapsedSeconds);
+            final AutoFormattingTime bpRate = new AutoFormattingTime(secondsPerMillionBP(last));
+            final AutoFormattingTime unitRate = new AutoFormattingTime(secondsPerMillionElements(last));
             final double fractionGenomeTargetCompleted = calculateFractionGenomeTargetCompleted(last);
-            final MyTime estTotalRuntime = new MyTime(elapsed.t / fractionGenomeTargetCompleted);
-            final MyTime timeToCompletion = new MyTime(estTotalRuntime.t - elapsed.t);
+            final AutoFormattingTime estTotalRuntime = new AutoFormattingTime(elapsed.getTimeInSeconds() / fractionGenomeTargetCompleted);
+            final AutoFormattingTime timeToCompletion = new AutoFormattingTime(estTotalRuntime.getTimeInSeconds() - elapsed.getTimeInSeconds());
 
             if ( printProgress ) {
                 lastProgressPrintTime = curTime;
 
                 // dynamically change the update rate so that short running jobs receive frequent updates while longer jobs receive fewer updates
-                if ( estTotalRuntime.t > TWELVE_HOURS_IN_SECONDS )
+                if ( estTotalRuntime.getTimeInSeconds() > TWELVE_HOURS_IN_SECONDS )
                     PROGRESS_PRINT_FREQUENCY = 60 * 1000; // in milliseconds
-                else if ( estTotalRuntime.t > TWO_HOURS_IN_SECONDS )
+                else if ( estTotalRuntime.getTimeInSeconds() > TWO_HOURS_IN_SECONDS )
                     PROGRESS_PRINT_FREQUENCY = 30 * 1000; // in milliseconds
                 else
                     PROGRESS_PRINT_FREQUENCY = 10 * 1000; // in milliseconds
@@ -308,8 +260,9 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
                 lastPerformanceLogPrintTime = curTime;
                 synchronized(performanceLogLock) {
                     performanceLog.printf("%.2f\t%d\t%.2e\t%d\t%.2e\t%.2e\t%.2f\t%.2f%n",
-                            elapsed.t, nRecords, unitRate.t, last.bpProcessed, bpRate.t,
-                            fractionGenomeTargetCompleted, estTotalRuntime.t, timeToCompletion.t);
+                            elapsed.getTimeInSeconds(), nRecords, unitRate.getTimeInSeconds(), last.bpProcessed,
+                            bpRate.getTimeInSeconds(), fractionGenomeTargetCompleted, estTotalRuntime.getTimeInSeconds(),
+                            timeToCompletion.getTimeInSeconds());
                 }
             }
         }
@@ -401,7 +354,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
 
         synchronized(performanceLogLock) {
             // Ignore multiple calls to reset the same lock.
-            if(performanceLogFile != null && performanceLogFile.equals(fileName))
+            if(performanceLogFile != null && performanceLogFile.equals(file))
                 return;
 
             // Close an existing log

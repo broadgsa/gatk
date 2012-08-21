@@ -177,6 +177,7 @@ public class TrancheManager {
                 double runningValue = metric.getRunningMetric(i);
                 out.printf("%.4f %d %.4f%n", d.lod, score, runningValue);
             }
+            out.close();
         } catch (FileNotFoundException e) {
             throw new UserException.CouldNotCreateOutputFile(f, e);
         }

@@ -57,8 +57,6 @@ public class GATKArgumentCollection {
     public GATKArgumentCollection() {
     }
 
-    public Map<String, String> walkerArgs = new HashMap<String, String>();
-
     // parameters and their defaults
     @Input(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
     public List<String> samFiles = new ArrayList<String>();
@@ -66,10 +64,10 @@ public class GATKArgumentCollection {
     @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false)
     public Integer readBufferSize = null;
 
-    @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate? STANDARD is the default, can be NO_ET so nothing is posted to the run repository. Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home for details.", required = false)
+    @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate? STANDARD is the default, can be NO_ET so nothing is posted to the run repository. Please see " + GATKRunReport.PHONE_HOME_DOCS_URL + " for details.", required = false)
     public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.STANDARD;
 
-    @Argument(fullName = "gatk_key", shortName = "K", doc="GATK Key file. Required if running with -et NO_ET. Please see http://www.broadinstitute.org/gsa/wiki/index.php/Phone_home for details.", required = false)
+    @Argument(fullName = "gatk_key", shortName = "K", doc="GATK Key file. Required if running with -et NO_ET. Please see " + GATKRunReport.PHONE_HOME_DOCS_URL + " for details.", required = false)
     public File gatkKeyFile = null;
 
     @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually", required = false)
@@ -249,6 +247,12 @@ public class GATKArgumentCollection {
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
     public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;
 
+    @Argument(fullName = "remove_program_records", shortName = "rpr", doc = "Should we override the Walker's default and remove program records from the SAM header", required = false)
+    public boolean removeProgramRecords = false;
+
+    @Argument(fullName = "keep_program_records", shortName = "kpr", doc = "Should we override the Walker's default and keep program records from the SAM header", required = false)
+    public boolean keepProgramRecords = false;
+
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations: nothing will be checked at runtime.  For expert users only who know what they are doing.  We do not support usage of this argument.", required = false)
     public ValidationExclusion.TYPE unsafe;
 
@@ -375,19 +379,5 @@ public class GATKArgumentCollection {
     @Hidden
     public boolean generateShadowBCF = false;
     // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
-
-    @Argument(fullName="useSlowGenotypes",shortName = "useSlowGenotypes",doc="",required=false)
-    @Hidden
-    public boolean USE_SLOW_GENOTYPES = false;
-    // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
-
-    /**
-     * The file pointed to by this argument must be a VCF file. The GATK will read in just the header of this file
-     * and then use the INFO, FORMAT, and FILTER field values from this file to repair the header file of any other
-     * VCF file that GATK reads in.  This allows us to have in effect a master set of header records and use these
-     * to fill in any missing ones in input VCF files.
-     */
-    @Argument(fullName="repairVCFHeader", shortName = "repairVCFHeader", doc="If provided, whenever we read a VCF file we will use the header in this file to repair the header of the input VCF files", required=false)
-    public File repairVCFHeader = null;
 }
 

@@ -69,8 +69,13 @@ public class QualityUtils {
      * @return a probability (0.0 - 1.0)
      */
     static private double qualToErrorProbRaw(int qual) {
+        return qualToErrorProb((double) qual);
+    }
+
+    public static double qualToErrorProb(final double qual) {
         return Math.pow(10.0, ((double) qual)/-10.0);
     }
+
 
     static public double qualToErrorProb(byte qual) {
         return qualToErrorProbCache[(int)qual & 0xff]; // Map: 127 -> 127; -128 -> 128; -1 -> 255; etc.

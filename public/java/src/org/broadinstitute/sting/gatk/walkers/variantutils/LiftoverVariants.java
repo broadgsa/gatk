@@ -119,7 +119,6 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
         if ( toInterval != null ) {
             // check whether the strand flips, and if so reverse complement everything
-            // TODO -- make this work for indels (difficult because the 'previous base' context needed will be changing based on indel type/size)
             if ( fromInterval.isPositiveStrand() != toInterval.isPositiveStrand() && vc.isPointEvent() ) {
                 vc = VariantContextUtils.reverseComplement(vc);
             }
@@ -132,11 +131,10 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
                         .attribute("OriginalStart", fromInterval.getStart()).make();
             }
 
-            VariantContext newVC = VCFAlleleClipper.createVariantContextWithPaddedAlleles(vc);
-            if ( originalVC.isSNP() && originalVC.isBiallelic() && VariantContextUtils.getSNPSubstitutionType(originalVC) != VariantContextUtils.getSNPSubstitutionType(newVC) ) {
+            if ( originalVC.isSNP() && originalVC.isBiallelic() && VariantContextUtils.getSNPSubstitutionType(originalVC) != VariantContextUtils.getSNPSubstitutionType(vc) ) {
                 logger.warn(String.format("VCF at %s / %d => %s / %d is switching substitution type %s/%s to %s/%s",
-                        originalVC.getChr(), originalVC.getStart(), newVC.getChr(), newVC.getStart(),
-                        originalVC.getReference(), originalVC.getAlternateAllele(0), newVC.getReference(), newVC.getAlternateAllele(0)));
+                        originalVC.getChr(), originalVC.getStart(), vc.getChr(), vc.getStart(),
+                        originalVC.getReference(), originalVC.getAlternateAllele(0), vc.getReference(), vc.getAlternateAllele(0)));
             }
 
             writer.add(vc);

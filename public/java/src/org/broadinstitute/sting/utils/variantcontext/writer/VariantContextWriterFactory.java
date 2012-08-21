@@ -84,6 +84,16 @@ public class VariantContextWriterFactory {
         }
     }
 
+    /**
+     * Should we output a BCF file based solely on the name of the file at location?
+     *
+     * @param location
+     * @return
+     */
+    public static boolean isBCFOutput(final File location) {
+        return isBCFOutput(location, EnumSet.noneOf(Options.class));
+    }
+
     public static boolean isBCFOutput(final File location, final EnumSet<Options> options) {
         return options.contains(Options.FORCE_BCF) || (location != null && location.getName().contains(".bcf"));
     }

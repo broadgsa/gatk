@@ -85,18 +85,16 @@ public class FeatureManager  {
 
     private final PluginManager<FeatureCodec> pluginManager;
     private final Collection<FeatureDescriptor> featureDescriptors = new TreeSet<FeatureDescriptor>();
-    private final VCFHeader headerForRepairs;
     private final boolean lenientVCFProcessing;
 
     /**
      * Construct a FeatureManager without a master VCF header
      */
     public FeatureManager() {
-        this(null, false);
+        this(false);
     }
 
-    public FeatureManager(final VCFHeader headerForRepairs, final boolean lenientVCFProcessing) {
-        this.headerForRepairs = headerForRepairs;
+    public FeatureManager(final boolean lenientVCFProcessing) {
         this.lenientVCFProcessing = lenientVCFProcessing;
         pluginManager = new PluginManager<FeatureCodec>(FeatureCodec.class, "Codecs", "Codec");
 
@@ -255,8 +253,6 @@ public class FeatureManager  {
             ((NameAwareCodec)codex).setName(name);
         if ( codex instanceof ReferenceDependentFeatureCodec )
             ((ReferenceDependentFeatureCodec)codex).setGenomeLocParser(genomeLocParser);
-        if ( codex instanceof VCFCodec )
-            ((VCFCodec)codex).setHeaderForRepairs(headerForRepairs);
         if ( codex instanceof AbstractVCFCodec && lenientVCFProcessing )
             ((AbstractVCFCodec)codex).disableOnTheFlyModifications();
 

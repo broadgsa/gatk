@@ -351,7 +351,7 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
     public void testEncodingListOfString(List<String> strings, String expected) throws IOException {
         final String collapsed = BCF2Utils.collapseStringList(strings);
         Assert.assertEquals(collapsed, expected);
-        Assert.assertEquals(BCF2Utils.exploreStringList(collapsed), strings);
+        Assert.assertEquals(BCF2Utils.explodeStringList(collapsed), strings);
     }
 
     // -----------------------------------------------------------------
@@ -537,11 +537,11 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
         return record;
     }
 
-    private final void decodeRecord(final List<BCF2TypedValue> toEncode, final byte[] record) {
+    private final void decodeRecord(final List<BCF2TypedValue> toEncode, final byte[] record) throws IOException {
         decodeRecord(toEncode, new BCF2Decoder(record));
     }
 
-    private final void decodeRecord(final List<BCF2TypedValue> toEncode, final BCF2Decoder decoder) {
+    private final void decodeRecord(final List<BCF2TypedValue> toEncode, final BCF2Decoder decoder) throws IOException {
         for ( final BCF2TypedValue tv : toEncode ) {
             Assert.assertFalse(decoder.blockIsFullyDecoded());
             final Object decoded = decoder.decodeTypedValue();

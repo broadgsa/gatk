@@ -64,9 +64,17 @@ import java.util.List;
  */
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 public class Pileup extends LocusWalker<Integer, Integer> implements TreeReducible<Integer> {
+
+    private static final String verboseDelimiter = "@"; // it's ugly to use "@" but it's literally the only usable character not allowed in read names
+
     @Output
     PrintStream out;
 
+    /**
+     * In addition to the standard pileup output, adds 'verbose' output too.  The verbose output contains the number of spanning deletions,
+     * and for each read in the pileup it has the read name, offset in the base string, read length, and read mapping quality.  These per
+     * read items are delimited with an '@' character.
+     */
     @Argument(fullName="showVerbose",shortName="verbose",doc="Add an extra verbose section to the pileup output")
     public boolean SHOW_VERBOSE = false;
 
@@ -115,8 +123,6 @@ public class Pileup extends LocusWalker<Integer, Integer> implements TreeReducib
 
         return rodString;
     }
-
-    private static final String verboseDelimiter = "@"; // it's ugly to use "@" but it's literally the only usable character not allowed in read names
 
     private static String createVerboseOutput(final ReadBackedPileup pileup) {
         final StringBuilder sb = new StringBuilder();

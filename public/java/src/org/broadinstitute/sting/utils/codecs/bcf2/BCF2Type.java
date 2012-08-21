@@ -26,6 +26,9 @@ package org.broadinstitute.sting.utils.codecs.bcf2;
 
 import com.google.java.contract.Requires;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.EnumSet;
 
 /**
@@ -35,22 +38,92 @@ import java.util.EnumSet;
  * @since 05/12
  */
 public enum BCF2Type {
-    MISSING(0, 0, 0x00),
-    INT8 (1, 1, 0xFFFFFF80,        -127,        127), // todo -- confirm range
-    INT16(2, 2, 0xFFFF8000,      -32767,      32767),
-    INT32(3, 4, 0x80000000, -2147483647, 2147483647),
-    FLOAT(5, 4, 0x7F800001),
-    CHAR (7, 1, 0x00000000);
+    // the actual values themselves
+    MISSING(0, 0, 0x00) {
+        @Override public int read(final InputStream in) throws IOException {
+            throw new IllegalArgumentException("Cannot read MISSING type");
+        }
+        @Override public void write(final int value, final OutputStream out) throws IOException {
+            throw new IllegalArgumentException("Cannot write MISSING type");
+        }
+    },
+
+    INT8 (1, 1, 0xFFFFFF80,        -127,        127) {
+        @Override
+        public int read(final InputStream in) throws IOException {
+            return BCF2Utils.readByte(in);
+        }
+
+        @Override
+        public void write(final int value, final OutputStream out) throws IOException {
+            out.write(0xFF & value);   // TODO -- do we need this operation?
+        }
+    },
+
+    INT16(2, 2, 0xFFFF8000,      -32767,      32767) {
+        @Override
+        public int read(final InputStream in) throws IOException {
+            final int b2 = BCF2Utils.readByte(in) & 0xFF;
+            final int b1 = BCF2Utils.readByte(in) & 0xFF;
+            return (short)((b1 << 8) | b2);
+        }
+
+        @Override
+        public void write(final int value, final OutputStream out) throws IOException {
+            // TODO -- optimization -- should we put this in a local buffer?
+            out.write((0x00FF & value));
+            out.write((0xFF00 & value) >> 8);
+        }
+    },
+
+    INT32(3, 4, 0x80000000, -2147483647, 2147483647) {
+        @Override
+        public int read(final InputStream in) throws IOException {
+            final int b4 = BCF2Utils.readByte(in) & 0xFF;
+            final int b3 = BCF2Utils.readByte(in) & 0xFF;
+            final int b2 = BCF2Utils.readByte(in) & 0xFF;
+            final int b1 = BCF2Utils.readByte(in) & 0xFF;
+            return (int)(b1 << 24 | b2 << 16 | b3 << 8 | b4);
+        }
+
+        @Override
+        public void write(final int value, final OutputStream out) throws IOException {
+            out.write((0x000000FF & value));
+            out.write((0x0000FF00 & value) >> 8);
+            out.write((0x00FF0000 & value) >> 16);
+            out.write((0xFF000000 & value) >> 24);
+        }
+    },
+
+    FLOAT(5, 4, 0x7F800001) {
+        @Override
+        public int read(final InputStream in) throws IOException {
+            return INT32.read(in);
+        }
+
+        @Override
+        public void write(final int value, final OutputStream out) throws IOException {
+            INT32.write(value, out);
+        }
+    },
+
+    CHAR (7, 1, 0x00000000) {
+        @Override
+        public int read(final InputStream in) throws IOException {
+            return INT8.read(in);
+        }
+
+        @Override
+        public void write(final int value, final OutputStream out) throws IOException {
+            INT8.write(value, out);
+        }
+    };
 
     private final int id;
     private final Object missingJavaValue;
     private final int missingBytes;
     private final int sizeInBytes;
     private final long minValue, maxValue;
-
-    BCF2Type(final int id) {
-        this(id, -1, 0, 0, 0);
-    }
 
     BCF2Type(final int id, final int sizeInBytes, final int missingBytes) {
         this(id, sizeInBytes, missingBytes, 0, 0);
@@ -120,5 +193,26 @@ public enum BCF2Type {
 
     public boolean isIntegerType() {
         return INTEGERS.contains(this);
+    }
+
+    /**
+     * Read a value from in stream of this BCF2 type as an int [32 bit] collection of bits
+     *
+     * For intX and char values this is just the int / byte value of the underlying data represented as a 32 bit int
+     * For a char the result must be converted to a char by (char)(byte)(0x0F & value)
+     * For doubles it's necessary to convert subsequently this value to a double via Double.bitsToDouble()
+     *
+     * @param in
+     * @return
+     * @throws IOException
+     */
+    @Requires("in != null")
+    public int read(final InputStream in) throws IOException {
+        throw new IllegalArgumentException("Not implemented");
+    }
+
+    @Requires("out != null")
+    public void write(final int value, final OutputStream out) throws IOException {
+        throw new IllegalArgumentException("Not implemented");
     }
 }

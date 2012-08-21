@@ -27,9 +27,10 @@ package org.broadinstitute.sting.gatk.io.storage;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 import org.apache.log4j.Logger;
 import org.broad.tribble.AbstractFeatureReader;
+import org.broad.tribble.FeatureCodec;
 import org.broadinstitute.sting.gatk.io.stubs.VariantContextWriterStub;
+import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -60,6 +61,7 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
     protected final File file;
     protected OutputStream stream;
     protected final VariantContextWriter writer;
+    boolean closed = false;
 
     /**
      * Constructs an object which will write directly into the output file provided by the stub.
@@ -79,6 +81,18 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
         }
         else
             throw new ReviewedStingException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
+    }
+
+    /**
+     * Constructs an object which will redirect into a different file.
+     * @param stub Stub to use when synthesizing file / header info.
+     * @param tempFile File into which to direct the output data.
+     */
+    public VariantContextWriterStorage(VariantContextWriterStub stub, File tempFile) {
+        logger.debug("Creating temporary output file " + tempFile.getAbsolutePath() + " for VariantContext output.");
+        this.file = tempFile;
+        this.writer = vcfWriterToFile(stub, file, false);
+        writer.writeHeader(stub.getVCFHeader());
     }
 
     /**
@@ -139,19 +153,6 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
         }
     }
 
-
-    /**
-     * Constructs an object which will redirect into a different file.
-     * @param stub Stub to use when synthesizing file / header info.
-     * @param tempFile File into which to direct the output data.
-     */
-    public VariantContextWriterStorage(VariantContextWriterStub stub, File tempFile) {
-        logger.debug("Creating temporary VCF file " + tempFile.getAbsolutePath() + " for VCF output.");
-        this.file = tempFile;
-        this.writer = vcfWriterToFile(stub, file, false);
-        writer.writeHeader(stub.getVCFHeader());
-    }
-
     public void add(VariantContext vc) {
         writer.add(vc);
     }
@@ -172,20 +173,34 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
         if(file != null)
             logger.debug("Closing temporary file " + file.getAbsolutePath());
         writer.close();
+        closed = true;
     }
 
     public void mergeInto(VariantContextWriterStorage target) {
         try {
-            String sourceFilePath = file.getAbsolutePath();
-            String targetFilePath = target.file != null ? target.file.getAbsolutePath() : "/dev/stdin";
-            logger.debug(String.format("Merging %s into %s",sourceFilePath,targetFilePath));
-            AbstractFeatureReader<VariantContext> source = AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), new VCFCodec(), false);
+            if ( ! closed )
+                throw new ReviewedStingException("Writer not closed, but we are merging into the file!");
+            final String targetFilePath = target.file != null ? target.file.getAbsolutePath() : "/dev/stdin";
+            logger.debug(String.format("Merging %s into %s",file.getAbsolutePath(),targetFilePath));
+
+            // use the feature manager to determine the right codec for the tmp file
+            // that way we don't assume it's a specific type
+            final FeatureManager.FeatureDescriptor fd = new FeatureManager().getByFiletype(file);
+            if ( fd == null )
+                throw new ReviewedStingException("Unexpectedly couldn't find valid codec for temporary output file " + file);
+
+            final FeatureCodec<VariantContext> codec = fd.getCodec();
+            final AbstractFeatureReader<VariantContext> source =
+                    AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), codec, false);
             
-            for ( VariantContext vc : source.iterator() ) {
+            for ( final VariantContext vc : source.iterator() ) {
                 target.writer.add(vc);
             }
 
             source.close();
+            file.delete(); // this should be last to aid in debugging when the process fails
+        } catch (UserException e) {
+            throw new ReviewedStingException("BUG: intermediate file " + file + " is malformed, got error while reading", e);
         } catch (IOException e) {
             throw new UserException.CouldNotReadInputFile(file, "Error reading file in VCFWriterStorage: ", e);
         }

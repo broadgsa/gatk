@@ -86,13 +86,14 @@ public class GATKRunReport {
     private static File REPORT_SENTINEL = new File(REPORT_DIR.getAbsolutePath() + "/ENABLE");
 
     // number of milliseconds before the S3 put operation is timed-out:
-    private static final long S3PutTimeOut = 30 * 1000;
+    private static final long S3PutTimeOut = 10 * 1000;
 
+    public static final String PHONE_HOME_DOCS_URL = "http://gatkforums.broadinstitute.org/discussion/1250/what-is-phone-home-and-how-does-it-affect-me#latest";
 
     /**
      * our log
      */
-    protected static Logger logger = Logger.getLogger(GATKRunReport.class);
+    protected static final Logger logger = Logger.getLogger(GATKRunReport.class);
 
 
     @Element(required = false, name = "id")

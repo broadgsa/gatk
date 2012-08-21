@@ -58,7 +58,7 @@ import java.util.Collection;
 
 /** Shards and schedules data in manageable chunks. */
 public abstract class MicroScheduler implements MicroSchedulerMBean {
-    protected static Logger logger = Logger.getLogger(MicroScheduler.class);
+    protected static final Logger logger = Logger.getLogger(MicroScheduler.class);
 
     /**
      * Counts the number of instances of the class that are currently alive.

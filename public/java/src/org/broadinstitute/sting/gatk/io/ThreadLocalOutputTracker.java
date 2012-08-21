@@ -119,7 +119,7 @@ public class ThreadLocalOutputTracker extends OutputTracker {
 
         try {
             tempFile = File.createTempFile( stub.getClass().getName(), null );
-            tempFile.deleteOnExit();
+            //tempFile.deleteOnExit();
         }
         catch( IOException ex ) {
             throw new UserException.BadTmpDir("Unable to create temporary file for stub: " + stub.getClass().getName() );

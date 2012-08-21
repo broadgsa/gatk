@@ -28,6 +28,8 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 import org.broadinstitute.sting.commandline.Gatherer;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.recalibration.RecalUtils;
+import org.broadinstitute.sting.utils.recalibration.RecalibrationReport;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -71,11 +73,11 @@ public class BQSRGatherer extends Gatherer  {
         if (RAC.recalibrationReport != null && !RAC.NO_PLOTS) {
             final File recal_out = new File(output.getName() + ".original");
             final RecalibrationReport originalReport = new RecalibrationReport(RAC.recalibrationReport);
-            RecalDataManager.generateRecalibrationPlot(recal_out, originalReport.getRecalibrationTables(), generalReport.getRecalibrationTables(), generalReport.getCovariates(), RAC.KEEP_INTERMEDIATE_FILES);
+            RecalUtils.generateRecalibrationPlot(recal_out, originalReport.getRecalibrationTables(), generalReport.getRecalibrationTables(), generalReport.getCovariates(), RAC.KEEP_INTERMEDIATE_FILES);
         }
         else if (!RAC.NO_PLOTS) {
             final File recal_out = new File(output.getName() + ".recal");
-            RecalDataManager.generateRecalibrationPlot(recal_out, generalReport.getRecalibrationTables(), generalReport.getCovariates(), RAC.KEEP_INTERMEDIATE_FILES);
+            RecalUtils.generateRecalibrationPlot(recal_out, generalReport.getRecalibrationTables(), generalReport.getCovariates(), RAC.KEEP_INTERMEDIATE_FILES);
         }
 
         generalReport.output(outputFile);

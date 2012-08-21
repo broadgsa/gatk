@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.variantcontext.writer.Options;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -78,7 +79,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
     /**
      * Should we emit a compressed output stream?
      */
-    private final boolean isCompressed;
+    private boolean isCompressed = false;
 
     /**
      * A hack: push the argument sources into the VCF header so that the VCF header
@@ -89,12 +90,17 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
     /**
      * Should the header be written out?  A hidden argument.
      */
-    private final boolean skipWritingCommandLineHeader;
+    private boolean skipWritingCommandLineHeader = false;
 
     /**
      * Should we not write genotypes even when provided?
      */
-    private final boolean doNotWriteGenotypes;
+    private boolean doNotWriteGenotypes = false;
+
+    /**
+     * Should we force BCF writing regardless of the file extension?
+     */
+    private boolean forceBCF = false;
 
     /**
      * Connects this stub with an external stream capable of serving the
@@ -107,19 +113,13 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
      *
      * @param engine engine.
      * @param genotypeFile  file to (ultimately) create.
-     * @param isCompressed  should we compress the output stream?
      * @param argumentSources sources.
-     * @param skipWritingCommandLineHeader skip writing header.
-     * @param doNotWriteGenotypes do not write genotypes.
      */
-    public VariantContextWriterStub(GenomeAnalysisEngine engine, File genotypeFile, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingCommandLineHeader, boolean doNotWriteGenotypes) {
+    public VariantContextWriterStub(GenomeAnalysisEngine engine, File genotypeFile, Collection<Object> argumentSources) {
         this.engine = engine;
         this.genotypeFile = genotypeFile;
         this.genotypeStream = null;
-        this.isCompressed = isCompressed;
         this.argumentSources = argumentSources;
-        this.skipWritingCommandLineHeader = skipWritingCommandLineHeader;
-        this.doNotWriteGenotypes = doNotWriteGenotypes;
     }
 
     /**
@@ -127,19 +127,13 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
      *
      * @param engine engine.
      * @param genotypeStream  stream to (ultimately) write.
-     * @param isCompressed  should we compress the output stream?
      * @param argumentSources sources.
-     * @param skipWritingCommandLineHeader skip writing header.
-     * @param doNotWriteGenotypes do not write genotypes.
      */
-    public VariantContextWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingCommandLineHeader, boolean doNotWriteGenotypes) {
+    public VariantContextWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream, Collection<Object> argumentSources) {
         this.engine = engine;
         this.genotypeFile = null;
         this.genotypeStream = new PrintStream(genotypeStream);
-        this.isCompressed = isCompressed;
         this.argumentSources = argumentSources;
-        this.skipWritingCommandLineHeader = skipWritingCommandLineHeader;
-        this.doNotWriteGenotypes = doNotWriteGenotypes;
     }
 
     /**
@@ -166,6 +160,22 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
         return isCompressed;
     }
 
+    public void setCompressed(boolean compressed) {
+        isCompressed = compressed;
+    }
+
+    public void setSkipWritingCommandLineHeader(boolean skipWritingCommandLineHeader) {
+        this.skipWritingCommandLineHeader = skipWritingCommandLineHeader;
+    }
+
+    public void setDoNotWriteGenotypes(boolean doNotWriteGenotypes) {
+        this.doNotWriteGenotypes = doNotWriteGenotypes;
+    }
+
+    public void setForceBCF(boolean forceBCF) {
+        this.forceBCF = forceBCF;
+    }
+
     /**
      * Gets the master sequence dictionary from the engine associated with this stub
      * @link GenomeAnalysisEngine.getMasterSequenceDictionary
@@ -185,6 +195,9 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
         if ( doNotWriteGenotypes ) options.add(Options.DO_NOT_WRITE_GENOTYPES);
         if ( engine.lenientVCFProcessing() ) options.add(Options.ALLOW_MISSING_FIELDS_IN_HEADER);
         if ( indexOnTheFly && ! isCompressed() ) options.add(Options.INDEX_ON_THE_FLY);
+
+        if ( forceBCF || (getFile() != null && VariantContextWriterFactory.isBCFOutput(getFile())) )
+            options.add(Options.FORCE_BCF);
 
         return options.isEmpty() ? EnumSet.noneOf(Options.class) : EnumSet.copyOf(options);
     }

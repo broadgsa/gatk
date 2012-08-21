@@ -57,9 +57,12 @@ public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEv
         }
     }
 
-    public void update2(VariantContext vc1, VariantContext vc2, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if (vc1 != null) updateTiTv(vc1, false);
-        if (vc2 != null) updateTiTv(vc2, true);
+    @Override
+    public void update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        if (eval != null)
+            updateTiTv(eval, false);
+        if (comp != null)
+            updateTiTv(comp, true);
     }
 
     @Override

@@ -61,12 +61,12 @@ public class MappingQualityRankSumTest extends RankSumTest implements StandardAn
                 // by design, first element in LinkedHashMap was ref allele
                 double refLikelihood=0.0, altLikelihood=Double.NEGATIVE_INFINITY;
 
-                for (Allele a : el.keySet()) {
+                for (Map.Entry<Allele,Double> a : el.entrySet()) {
 
-                    if (a.isReference())
-                        refLikelihood =el.get(a);
+                    if (a.getKey().isReference())
+                        refLikelihood = a.getValue();
                     else {
-                        double like = el.get(a);
+                        double like = a.getValue();
                         if (like >= altLikelihood)
                             altLikelihood = like;
                     }

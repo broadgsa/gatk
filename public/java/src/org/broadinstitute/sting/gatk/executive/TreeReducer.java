@@ -66,13 +66,13 @@ public class TreeReducer implements Callable {
      * @return Result of the reduce.
      */
     public Object call() {
-        Object result = null;
+        Object result;
 
         final long startTime = System.currentTimeMillis();
 
         try {
             if( lhs == null )
-                result = lhs.get();
+                result = null;
                 // todo -- what the hell is this above line?  Shouldn't it be the two below?
 //            if( lhs == null )
 //                throw new IllegalStateException(String.format("Insufficient data on which to reduce; lhs = %s, rhs = %s", lhs, rhs) );

@@ -584,20 +584,39 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
      * @return
      */
     @Requires("enumClass.isEnum()")
-    private List<Map<String, Object>> docForEnumArgument(Class enumClass) {
-        ClassDoc doc = this.getDoclet().getClassDocForClass(enumClass);
-        if (doc == null) //  || ! doc.isEnum() )
-            throw new RuntimeException("Tried to get docs for enum " + enumClass + " but got instead: " + doc);
+    private List<Map<String, Object>> docForEnumArgument(final Class enumClass) {
+        final ClassDoc doc = this.getDoclet().getClassDocForClass(enumClass);
+        if ( doc == null )
+            throw new RuntimeException("Tried to get docs for enum " + enumClass + " but got null instead");
 
-        List<Map<String, Object>> bindings = new ArrayList<Map<String, Object>>();
-        for (final FieldDoc field : doc.fields(false)) {
-            bindings.add(
-                    new HashMap<String, Object>() {{
-                        put("name", field.name());
-                        put("summary", field.commentText());
-                    }});
+        final Set<String> enumConstantFieldNames = enumConstantsNames(enumClass);
+
+        final List<Map<String, Object>> bindings = new ArrayList<Map<String, Object>>();
+        for (final FieldDoc fieldDoc : doc.fields(false)) {
+            if (enumConstantFieldNames.contains(fieldDoc.name()) )
+                bindings.add(
+                        new HashMap<String, Object>() {{
+                            put("name", fieldDoc.name());
+                            put("summary", fieldDoc.commentText());
+                        }});
         }
 
         return bindings;
+    }
+
+    /**
+     * Returns the name of the fields that are enum constants according to reflection
+     *
+     * @return a non-null set of fields that are enum constants
+     */
+    private Set<String> enumConstantsNames(final Class enumClass) {
+        final Set<String> enumConstantFieldNames = new HashSet<String>();
+
+        for ( final Field field : enumClass.getFields() ) {
+            if ( field.isEnumConstant() )
+                enumConstantFieldNames.add(field.getName());
+        }
+
+        return enumConstantFieldNames;
     }
 }

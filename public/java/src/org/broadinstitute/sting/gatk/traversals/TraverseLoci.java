@@ -19,7 +19,7 @@ public class TraverseLoci<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,Locu
     /**
      * our log, which we want to capture anything from this class
      */
-    protected static Logger logger = Logger.getLogger(TraversalEngine.class);
+    protected static final Logger logger = Logger.getLogger(TraversalEngine.class);
 
     @Override
     protected String getTraversalType() {
