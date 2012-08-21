@@ -42,7 +42,7 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
     protected RecalibrationTables recalibrationTables;
 
     public void initialize(final Covariate[] covariates, final RecalibrationTables recalibrationTables) {
-        this.covariates = covariates;
+        this.covariates = covariates.clone();
         this.recalibrationTables = recalibrationTables;
     }
 

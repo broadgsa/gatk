@@ -55,22 +55,22 @@ public class Haplotype {
      * @param bases bases
      * @param qual  qual
      */
-    public Haplotype(byte[] bases, int qual) {
-        this.bases = bases;
+    public Haplotype( final byte[] bases, final int qual ) {
+        this.bases = bases.clone();
         quals = new double[bases.length];
         Arrays.fill(quals, (double)qual);
     }
 
-    public Haplotype(byte[] bases, double[] quals) {
-        this.bases = bases;
-        this.quals = quals;
+    public Haplotype( final byte[] bases, final double[] quals ) {
+        this.bases = bases.clone();
+        this.quals = quals.clone();
     }
 
-    public Haplotype(byte[] bases) {
+    public Haplotype( final byte[] bases ) {
         this(bases, 0);
     }
 
-    public Haplotype(byte[] bases, GenomeLoc loc) {
+    public Haplotype( final byte[] bases, final GenomeLoc loc ) {
         this(bases);
         this.genomeLocation = loc;
     }
