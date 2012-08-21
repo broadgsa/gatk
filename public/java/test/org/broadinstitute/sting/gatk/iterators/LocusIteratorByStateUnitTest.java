@@ -104,7 +104,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         after.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20});
         after.setCigarString("10M");
 
-        List<SAMRecord> reads = Arrays.asList(before,during,after);
+        List<SAMRecord> reads = Arrays.asList(before, during, after);
 
         // create the iterator by state with the fake reads and fake records
         li = makeLTBS(reads,readAttributes);
@@ -134,9 +134,9 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         // create a test version of the Reads object
         ReadProperties readAttributes = createTestReadProperties();
 
-        SAMRecord indelOnlyRead = ArtificialSAMUtils.createArtificialRead(header,"indelOnly",0,firstLocus,76);
+        SAMRecord indelOnlyRead = ArtificialSAMUtils.createArtificialRead(header, "indelOnly", 0, firstLocus, 76);
         indelOnlyRead.setReadBases(Utils.dupBytes((byte)'A',76));
-        indelOnlyRead.setBaseQualities(Utils.dupBytes((byte)'@',76));
+        indelOnlyRead.setBaseQualities(Utils.dupBytes((byte) '@', 76));
         indelOnlyRead.setCigarString("76I");
 
         List<SAMRecord> reads = Arrays.asList(indelOnlyRead);
@@ -148,10 +148,10 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         // and considers it to be an indel-containing read.
         Assert.assertTrue(li.hasNext(),"Should have found a whole-indel read in the normal base pileup without extended events enabled");
         AlignmentContext alignmentContext = li.next();
-        Assert.assertEquals(alignmentContext.getLocation().getStart(),firstLocus,"Base pileup is at incorrect location.");
+        Assert.assertEquals(alignmentContext.getLocation().getStart(), firstLocus, "Base pileup is at incorrect location.");
         ReadBackedPileup basePileup = alignmentContext.getBasePileup();
         Assert.assertEquals(basePileup.getReads().size(),1,"Pileup is of incorrect size");
-        Assert.assertSame(basePileup.getReads().get(0),indelOnlyRead,"Read in pileup is incorrect");
+        Assert.assertSame(basePileup.getReads().get(0), indelOnlyRead, "Read in pileup is incorrect");
     }
 
     /**
@@ -168,7 +168,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         leadingRead.setCigarString("1M75I");
 
         SAMRecord indelOnlyRead = ArtificialSAMUtils.createArtificialRead(header,"indelOnly",0,secondLocus,76);
-        indelOnlyRead.setReadBases(Utils.dupBytes((byte)'A',76));
+        indelOnlyRead.setReadBases(Utils.dupBytes((byte) 'A', 76));
         indelOnlyRead.setBaseQualities(Utils.dupBytes((byte)'@',76));
         indelOnlyRead.setCigarString("76I");
 
@@ -177,7 +177,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         fullMatchAfterIndel.setBaseQualities(Utils.dupBytes((byte)'@',76));
         fullMatchAfterIndel.setCigarString("75I1M");
 
-        List<SAMRecord> reads = Arrays.asList(leadingRead,indelOnlyRead,fullMatchAfterIndel);
+        List<SAMRecord> reads = Arrays.asList(leadingRead, indelOnlyRead, fullMatchAfterIndel);
 
         // create the iterator by state with the fake reads and fake records
         li = makeLTBS(reads, createTestReadProperties());
@@ -204,7 +204,36 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
             numAlignmentContextsFound++;
         }
 
-        Assert.assertEquals(numAlignmentContextsFound,2,"Found incorrect number of alignment contexts");
+        Assert.assertEquals(numAlignmentContextsFound, 2, "Found incorrect number of alignment contexts");
+    }
+
+    /**
+     * Test to make sure that reads supporting only an indel (example cigar string: 76I) do
+     * not negatively influence the ordering of the pileup.
+     */
+    @Test
+    public void testWholeIndelReadTest2() {
+        final int firstLocus = 44367788, secondLocus = firstLocus + 1;
+
+        SAMRecord read = ArtificialSAMUtils.createArtificialRead(header,"read",0,secondLocus,1);
+        read.setReadBases(Utils.dupBytes((byte) 'A', 1));
+        read.setBaseQualities(Utils.dupBytes((byte) '@', 1));
+        read.setCigarString("1I");
+
+        List<SAMRecord> reads = Arrays.asList(read);
+
+        // create the iterator by state with the fake reads and fake records
+        li = makeLTBS(reads, createTestReadProperties());
+
+        while(li.hasNext()) {
+            AlignmentContext alignmentContext = li.next();
+            ReadBackedPileup p = alignmentContext.getBasePileup();
+            Assert.assertTrue(p.getNumberOfElements() == 1);
+            PileupElement pe = p.iterator().next();
+            Assert.assertTrue(pe.isBeforeInsertion());
+            Assert.assertFalse(pe.isAfterInsertion());
+            Assert.assertEquals(pe.getEventBases(), "A");
+        }
     }
 
     private static ReadProperties createTestReadProperties() {
