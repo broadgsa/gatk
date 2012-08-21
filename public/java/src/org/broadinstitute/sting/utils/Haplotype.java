@@ -140,10 +140,10 @@ public class Haplotype {
     }
 
     public double[] getQuals() {
-        return quals;
+        return quals.clone();
     }
     public byte[] getBases() {
-        return bases;
+        return bases.clone();
     }
 
     public long getStartPosition() {
