@@ -11,7 +11,7 @@ import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.threading.StateMonitoringThreadFactory;
+import org.broadinstitute.sting.utils.threading.EfficiencyMonitoringThreadFactory;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import java.util.Collection;
@@ -73,9 +73,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     /** What is the total time spent merging output? */
     private long totalOutputMergeTime = 0;
 
-    /** may be null */
-    final StateMonitoringThreadFactory monitoringThreadFactory;
-
     /**
      * Create a new hierarchical microscheduler to process the given reads and reference.
      *
@@ -94,10 +91,10 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         super(engine, walker, reads, reference, rods);
 
         if ( monitorThreadPerformance ) {
-            this.monitoringThreadFactory = new StateMonitoringThreadFactory(nThreadsToUse);
+            final EfficiencyMonitoringThreadFactory monitoringThreadFactory = new EfficiencyMonitoringThreadFactory(nThreadsToUse);
+            setThreadEfficiencyMonitor(monitoringThreadFactory);
             this.threadPool = Executors.newFixedThreadPool(nThreadsToUse, monitoringThreadFactory);
         } else {
-            this.monitoringThreadFactory = null;
             this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
         }
     }
@@ -157,17 +154,9 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         // do final cleanup operations
         outputTracker.close();
         cleanup();
-        printThreadingEfficiency();
+        executionIsDone();
 
         return result;
-    }
-
-    /**
-     * Print out the threading efficiency of this HMS, if state monitoring is enabled
-     */
-    private void printThreadingEfficiency() {
-        if ( monitoringThreadFactory != null )
-            monitoringThreadFactory.printUsageInformation(logger);
     }
 
     /**

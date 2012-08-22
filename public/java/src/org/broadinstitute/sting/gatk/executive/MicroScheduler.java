@@ -39,6 +39,8 @@ import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.threading.EfficiencyMonitoringThreadFactory;
+import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import javax.management.JMException;
 import javax.management.MBeanServer;
@@ -80,6 +82,13 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
     private final ObjectName mBeanName;
 
     /**
+     * Threading efficiency monitor for tracking the resource utilization of the GATK
+     *
+     * may be null
+     */
+    ThreadEfficiencyMonitor threadEfficiencyMonitor = null;
+
+    /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
      * selected walker.
      *
@@ -102,7 +111,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         } else {
             if(threadAllocation.getNumCPUThreads() > 1)
                 throw new UserException.BadArgumentValue("nt", String.format("The analysis %s currently does not support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
-            return new LinearMicroScheduler(engine, walker, reads, reference, rods);
+            return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.shouldMonitorThreads());
         }
     }
 
@@ -150,6 +159,16 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         }
     }
 
+
+    /**
+     * Inform this Microscheduler to use the efficiency monitor used to create threads in subclasses
+     *
+     * @param threadEfficiencyMonitor
+     */
+    public void setThreadEfficiencyMonitor(final ThreadEfficiencyMonitor threadEfficiencyMonitor) {
+        this.threadEfficiencyMonitor = threadEfficiencyMonitor;
+    }
+
     /**
      * Walks a walker over the given list of intervals.
      *
@@ -181,6 +200,18 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      */
     protected void printOnTraversalDone(Object sum) {
         traversalEngine.printOnTraversalDone();
+    }
+
+    /**
+     * Must be called by subclasses when execute is done
+     */
+    protected void executionIsDone() {
+        // Print out the threading efficiency of this HMS, if state monitoring is enabled
+        if ( threadEfficiencyMonitor != null ) {
+            // include the master thread information
+            threadEfficiencyMonitor.threadIsDone(Thread.currentThread());
+            threadEfficiencyMonitor.printUsageInformation(logger);
+        }
     }
 
     /**

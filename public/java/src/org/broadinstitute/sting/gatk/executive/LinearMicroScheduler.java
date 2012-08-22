@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.traversals.TraverseActiveRegions;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import java.util.Collection;
 
@@ -33,8 +34,17 @@ public class LinearMicroScheduler extends MicroScheduler {
      * @param reference Reference for driving the traversal.
      * @param rods      Reference-ordered data.
      */
-    protected LinearMicroScheduler(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods ) {
+    protected LinearMicroScheduler(final GenomeAnalysisEngine engine,
+                                   final Walker walker,
+                                   final SAMDataSource reads,
+                                   final IndexedFastaSequenceFile reference,
+                                   final Collection<ReferenceOrderedDataSource> rods,
+                                   final boolean monitorThreadPerformance ) {
         super(engine, walker, reads, reference, rods);
+
+        if ( monitorThreadPerformance )
+            setThreadEfficiencyMonitor(new ThreadEfficiencyMonitor());
+
     }
 
     /**
@@ -88,6 +98,7 @@ public class LinearMicroScheduler extends MicroScheduler {
 
         outputTracker.close();
         cleanup();
+        executionIsDone();
 
         return accumulator;
     }
