@@ -73,7 +73,6 @@ public class ActiveRegion implements HasGenomeLocation {
                Math.min(referenceReader.getSequenceDictionary().getSequence(fullExtentReferenceLoc.getContig()).getSequenceLength(), fullExtentReferenceLoc.getStop() + padding) ).getBases();
     }
 
-
     @Override
     public GenomeLoc getLocation() { return activeRegionLoc; }
     public GenomeLoc getExtendedLoc() { return extendedLoc; }
