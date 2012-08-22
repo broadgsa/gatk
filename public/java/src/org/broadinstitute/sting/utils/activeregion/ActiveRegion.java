@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.activeregion;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
@@ -58,9 +59,7 @@ public class ActiveRegion implements HasGenomeLocation {
     }
 
     public byte[] getActiveRegionReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
-        return referenceReader.getSubsequenceAt( extendedLoc.getContig(),
-                Math.max(1, extendedLoc.getStart() - padding),
-                Math.min(referenceReader.getSequenceDictionary().getSequence(extendedLoc.getContig()).getSequenceLength(), extendedLoc.getStop() + padding) ).getBases();
+        return getReference( referenceReader, padding, extendedLoc );
     }
 
     public byte[] getFullReference( final IndexedFastaSequenceFile referenceReader ) {
@@ -68,9 +67,15 @@ public class ActiveRegion implements HasGenomeLocation {
     }
 
     public byte[] getFullReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
-       return referenceReader.getSubsequenceAt( fullExtentReferenceLoc.getContig(),
-               Math.max(1, fullExtentReferenceLoc.getStart() - padding), 
-               Math.min(referenceReader.getSequenceDictionary().getSequence(fullExtentReferenceLoc.getContig()).getSequenceLength(), fullExtentReferenceLoc.getStop() + padding) ).getBases();
+        return getReference( referenceReader, padding, fullExtentReferenceLoc );
+    }
+
+    private byte[] getReference( final IndexedFastaSequenceFile referenceReader, final int padding, final GenomeLoc genomeLoc ) {
+        final byte[] reference =  referenceReader.getSubsequenceAt( genomeLoc.getContig(),
+                Math.max(1, genomeLoc.getStart() - padding),
+                Math.min(referenceReader.getSequenceDictionary().getSequence(genomeLoc.getContig()).getSequenceLength(), genomeLoc.getStop() + padding) ).getBases();
+        StringUtil.toUpperCase(reference);
+        return reference;
     }
 
     @Override
