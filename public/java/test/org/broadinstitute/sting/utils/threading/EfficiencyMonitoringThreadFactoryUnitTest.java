@@ -39,7 +39,7 @@ import java.util.concurrent.*;
 /**
  * Tests for the state monitoring thread factory.
  */
-public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
+public class EfficiencyMonitoringThreadFactoryUnitTest extends BaseTest {
     // the duration of the tests -- 100 ms is tolerable given the number of tests we are doing
     private final static long THREAD_TARGET_DURATION_IN_MILLISECOND = 1000;
     final static Object GLOBAL_LOCK = new Object();
@@ -61,8 +61,8 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
 
         public int getNStates() { return statesForThreads.size(); }
 
-        public double maxStateFraction(final EfficiencyMonitoringThreadFactory.State state) { return fraction(state) + TOLERANCE; }
-        public double minStateFraction(final EfficiencyMonitoringThreadFactory.State state) { return fraction(state) - TOLERANCE; }
+        public double maxStatePercent(final EfficiencyMonitoringThreadFactory.State state) { return 100*(fraction(state) + TOLERANCE); }
+        public double minStatePercent(final EfficiencyMonitoringThreadFactory.State state) { return 100*(fraction(state) - TOLERANCE); }
 
         private double fraction(final EfficiencyMonitoringThreadFactory.State state) {
             return Collections.frequency(statesForThreads, state) / (1.0 * statesForThreads.size());
@@ -159,8 +159,8 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
         Assert.assertTrue(totalTime <= maxTime, "Factory results not properly accumulated: totalTime = " + totalTime + " > maxTime = " + maxTime);
 
         for (final EfficiencyMonitoringThreadFactory.State state : EfficiencyMonitoringThreadFactory.State.values() ) {
-            final double min = test.minStateFraction(state);
-            final double max = test.maxStateFraction(state);
+            final double min = test.minStatePercent(state);
+            final double max = test.maxStatePercent(state);
             final double obs = factory.getStatePercent(state);
 //            logger.warn("  Checking " + state
 //                    + " min " + String.format("%.2f", min)

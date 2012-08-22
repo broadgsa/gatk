@@ -283,9 +283,13 @@ public class GATKArgumentCollection {
     @Argument(fullName = "num_threads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
     public Integer numberOfThreads = 1;
 
-    /** Should we monitor threading efficiency? . */
-    @Argument(fullName = "monitorThreads", shortName = "mt", doc = "Should we monitor the threading efficiency when running in multi-threaded mode?", required = false)
-    public Boolean monitorThreads = false;
+    /**
+     * By default the GATK monitors its own efficiency, but this can have a itsy-bitsy tiny
+     * cost (< 0.1%) in runtime because of turning on the JavaBean.  This argument allows you
+     * to disable the monitor
+     */
+    @Argument(fullName = "disableThreadEfficiencyMonitor", shortName = "dtem", doc = "Disable GATK efficiency monitoring", required = false)
+    public Boolean disableEfficiencyMonitor = false;
 
     /**
      * The following two arguments (num_cpu_threads, num_io_threads are TEMPORARY since Queue cannot currently support arbitrary tagged data types.

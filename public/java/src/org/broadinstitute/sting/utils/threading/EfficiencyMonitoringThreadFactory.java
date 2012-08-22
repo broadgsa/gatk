@@ -99,9 +99,9 @@ public class EfficiencyMonitoringThreadFactory extends ThreadEfficiencyMonitor i
     }
 
     @Ensures({
-            "activeThreads.size() < old(activeThreads.size())",
+            "activeThreads.size() <= old(activeThreads.size())",
             "! activeThreads.contains(thread)",
-            "countDownLatch.getCount() < old(countDownLatch.getCount())"
+            "countDownLatch.getCount() <= old(countDownLatch.getCount())"
     })
     @Override
     public synchronized void threadIsDone(final Thread thread) {
@@ -111,13 +111,12 @@ public class EfficiencyMonitoringThreadFactory extends ThreadEfficiencyMonitor i
 
         super.threadIsDone(thread);
 
-        // remove the thread from the list of active activeThreads
-        if ( ! activeThreads.remove(thread) )
-            throw new IllegalStateException("Thread " + thread + " not in list of active activeThreads");
-
-        // one less thread is live for those blocking on all activeThreads to be complete
-        countDownLatch.countDown();
-        if ( DEBUG ) logger.warn("  -> Countdown " + countDownLatch.getCount() + " in thread " + Thread.currentThread().getName());
+        // remove the thread from the list of active activeThreads, if it's in there, and decrement the countdown latch
+        if ( activeThreads.remove(thread) ) {
+            // one less thread is live for those blocking on all activeThreads to be complete
+            countDownLatch.countDown();
+            if ( DEBUG ) logger.warn("  -> Countdown " + countDownLatch.getCount() + " in thread " + Thread.currentThread().getName());
+        }
     }
 
     /**

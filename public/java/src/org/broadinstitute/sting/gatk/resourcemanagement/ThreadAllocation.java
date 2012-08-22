@@ -43,7 +43,7 @@ public class ThreadAllocation {
     /**
      * Should we monitor thread efficiency?
      */
-    private final boolean monitorThreads;
+    private final boolean monitorEfficiency;
 
     public int getNumCPUThreads() {
         return numCPUThreads;
@@ -53,8 +53,8 @@ public class ThreadAllocation {
         return numIOThreads;
     }
 
-    public boolean shouldMonitorThreads() {
-        return monitorThreads;
+    public boolean monitorThreadEfficiency() {
+        return monitorEfficiency;
     }
 
     /**
@@ -71,7 +71,7 @@ public class ThreadAllocation {
      * @param numCPUThreads Total number of threads allocated to the traversal.
      * @param numIOThreads Total number of threads allocated exclusively to IO.
      */
-    public ThreadAllocation(final int totalThreads, final Integer numCPUThreads, final Integer numIOThreads, final boolean monitorThreads) {
+    public ThreadAllocation(final int totalThreads, final Integer numCPUThreads, final Integer numIOThreads, final boolean monitorEfficiency) {
         // If no allocation information is present, allocate all threads to CPU
         if(numCPUThreads == null && numIOThreads == null) {
             this.numCPUThreads = totalThreads;
@@ -98,6 +98,6 @@ public class ThreadAllocation {
             this.numIOThreads = numIOThreads;
         }
 
-        this.monitorThreads = monitorThreads;
+        this.monitorEfficiency = monitorEfficiency;
     }
 }

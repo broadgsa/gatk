@@ -39,7 +39,6 @@ import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.threading.EfficiencyMonitoringThreadFactory;
 import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import javax.management.JMException;
@@ -107,11 +106,11 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
             if(walker instanceof ReadWalker)
                 throw new UserException.BadArgumentValue("nt", String.format("The analysis %s is a read walker.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
             logger.info(String.format("Running the GATK in parallel mode with %d concurrent threads",threadAllocation.getNumCPUThreads()));
-            return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads(), threadAllocation.shouldMonitorThreads());
+            return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads(), threadAllocation.monitorThreadEfficiency());
         } else {
             if(threadAllocation.getNumCPUThreads() > 1)
                 throw new UserException.BadArgumentValue("nt", String.format("The analysis %s currently does not support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
-            return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.shouldMonitorThreads());
+            return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.monitorThreadEfficiency());
         }
     }
 
