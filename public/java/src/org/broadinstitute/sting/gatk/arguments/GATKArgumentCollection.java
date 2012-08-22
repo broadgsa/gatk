@@ -64,11 +64,34 @@ public class GATKArgumentCollection {
     @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false)
     public Integer readBufferSize = null;
 
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // GATKRunReport options
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
     @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate? STANDARD is the default, can be NO_ET so nothing is posted to the run repository. Please see " + GATKRunReport.PHONE_HOME_DOCS_URL + " for details.", required = false)
     public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.STANDARD;
 
     @Argument(fullName = "gatk_key", shortName = "K", doc="GATK Key file. Required if running with -et NO_ET. Please see " + GATKRunReport.PHONE_HOME_DOCS_URL + " for details.", required = false)
     public File gatkKeyFile = null;
+
+    /**
+     * The GATKRunReport supports (as of GATK 2.2) tagging GATK runs with an arbitrary String tag that can be
+     * used to group together runs during later analysis.  One use of this capability is to tag runs as GATK
+     * performance tests, so that the performance of the GATK over time can be assessed from the logs directly.
+     *
+     * Note that the tags do not conform to any ontology, so you are free to use any tags that you might find
+     * meaningful.
+     */
+    @Argument(fullName = "tag", shortName = "tag", doc="Arbitrary tag string to identify this GATK run as part of a group of runs, for later analysis", required = false)
+    public String tag = "NA";
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // XXX
+    //
+    // --------------------------------------------------------------------------------------------------------------
 
     @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually", required = false)
     public List<String> readFilters = new ArrayList<String>();
