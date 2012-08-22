@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ActiveRegionBa
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
+import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.MannWhitneyU;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -28,12 +29,15 @@ import java.util.Map;
  * Abstract root for all RankSum based annotations
  */
 public abstract class RankSumTest extends InfoFieldAnnotation implements ActiveRegionBasedAnnotation {
-    static final double INDEL_LIKELIHOOD_THRESH = 0.1;
     static final boolean DEBUG = false;
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
-        if (stratifiedContexts.size() == 0)
-            return null;
+    public Map<String, Object> annotate(final RefMetaDataTracker tracker,
+                                        final AnnotatorCompatible walker,
+                                        final ReferenceContext ref,
+                                        final Map<String, AlignmentContext> stratifiedContexts,
+                                        final VariantContext vc,
+                                        final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap) {
+        // either stratifiedContexts or  stratifiedPerReadAlleleLikelihoodMap has to be non-null
 
         final GenotypesContext genotypes = vc.getGenotypes();
         if (genotypes == null || genotypes.size() == 0)
@@ -42,37 +46,28 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements ActiveR
         final ArrayList<Double> refQuals = new ArrayList<Double>();
         final ArrayList<Double> altQuals = new ArrayList<Double>();
 
-        if ( vc.isSNP() ) {
-            final List<Byte> altAlleles = new ArrayList<Byte>();
-            for ( final Allele a : vc.getAlternateAlleles() )
-                altAlleles.add(a.getBases()[0]);
+        for ( final Genotype genotype : genotypes.iterateInSampleNameOrder() ) {
+            PerReadAlleleLikelihoodMap indelLikelihoodMap = null;
+            ReadBackedPileup pileup = null;
 
-            for ( final Genotype genotype : genotypes.iterateInSampleNameOrder() ) {
+
+            if (stratifiedContexts != null) {
                 final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
-                if ( context == null )
-                    continue;
-
-                fillQualsFromPileup(ref.getBase(), altAlleles, context.getBasePileup(), refQuals, altQuals);
+                if ( context != null )
+                    pileup = context.getBasePileup();
             }
-        } else if ( vc.isIndel() || vc.isMixed() ) {
+            if (stratifiedPerReadAlleleLikelihoodMap != null )
+                indelLikelihoodMap = stratifiedPerReadAlleleLikelihoodMap.get(genotype.getSampleName());
 
-            for (final Genotype genotype : genotypes.iterateInSampleNameOrder()) {
-                final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
-                if (context == null) {
-                    continue;
-                }
+            if (indelLikelihoodMap != null && indelLikelihoodMap.isEmpty())
+                indelLikelihoodMap = null;
+            // treat an empty likelihood map as a null reference - will simplify contract with fillQualsFromPileup
+            if (indelLikelihoodMap == null && pileup == null)
+                continue;
 
-                final ReadBackedPileup pileup = context.getBasePileup();
-                if (pileup == null)
-                    continue;
-
-                if (IndelGenotypeLikelihoodsCalculationModel.getIndelLikelihoodMap() == null ||
-                        IndelGenotypeLikelihoodsCalculationModel.getIndelLikelihoodMap().size() == 0)
-                    return null;
-
-                fillIndelQualsFromPileup(pileup, refQuals, altQuals);
-            }
-        } else
+            fillQualsFromPileup(vc.getAlleles(), vc.getStart(), pileup, indelLikelihoodMap, refQuals, altQuals );
+        }
+        if (refQuals.isEmpty() && altQuals.isEmpty())
             return null;
 
         final MannWhitneyU mannWhitneyU = new MannWhitneyU();
@@ -103,50 +98,12 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements ActiveR
         return map;
     }
 
-    public Map<String, Object> annotate(Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, VariantContext vc) {
-        if (stratifiedContexts.size() == 0)
-            return null;
-
-        final GenotypesContext genotypes = vc.getGenotypes();
-        if (genotypes == null || genotypes.size() == 0)
-            return null;
-
-        final ArrayList<Double> refQuals = new ArrayList<Double>();
-        final ArrayList<Double> altQuals = new ArrayList<Double>();
-
-        for ( final Genotype genotype : genotypes.iterateInSampleNameOrder() ) {
-            final Map<Allele, List<GATKSAMRecord>> context = stratifiedContexts.get(genotype.getSampleName());
-            if ( context == null )
-                continue;
-
-            fillQualsFromPileup(vc.getReference(), vc.getAlternateAlleles(), vc.getStart(), context, refQuals, altQuals);
-        }
-
-        if ( refQuals.size() == 0 || altQuals.size() == 0 )
-            return null;
-
-        final MannWhitneyU mannWhitneyU = new MannWhitneyU();
-        for (final Double qual : altQuals) {
-            mannWhitneyU.add(qual, MannWhitneyU.USet.SET1);
-        }
-        for (final Double qual : refQuals) {
-            mannWhitneyU.add(qual, MannWhitneyU.USet.SET2);
-        }
-
-        // we are testing that set1 (the alt bases) have lower quality scores than set2 (the ref bases)
-        final Pair<Double, Double> testResults = mannWhitneyU.runOneSidedTest(MannWhitneyU.USet.SET1);
-
-        final Map<String, Object> map = new HashMap<String, Object>();
-        if (!Double.isNaN(testResults.first))
-            map.put(getKeyNames().get(0), String.format("%.3f", testResults.first));
-        return map;
-    }
-
-    protected abstract void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final int refLoc, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, List<Double> altQuals);
-
-    protected abstract void fillQualsFromPileup(final byte ref, final List<Byte> alts, final ReadBackedPileup pileup, final List<Double> refQuals, final List<Double> altQuals);
-
-    protected abstract void fillIndelQualsFromPileup(final ReadBackedPileup pileup, final List<Double> refQuals, final List<Double> altQuals);
+     protected abstract void fillQualsFromPileup(final List<Allele> alleles,
+                                                final int refLoc,
+                                                final ReadBackedPileup readBackedPileup,
+                                                final PerReadAlleleLikelihoodMap alleleLikelihoodMap,
+                                                final List<Double> refQuals,
+                                                final List<Double> altQuals);
 
     /**
      * Can the base in this pileup element be used in comparative tests between ref / alt bases?

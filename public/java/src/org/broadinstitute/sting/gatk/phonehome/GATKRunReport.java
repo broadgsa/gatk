@@ -138,6 +138,9 @@ public class GATKRunReport {
     @Element(required = true, name = "iterations")
     private long nIterations;
 
+    @Element(required = true, name = "tag")
+    private String tag;
+
     public enum PhoneHomeOption {
         /** Disable phone home */
         NO_ET,
@@ -185,6 +188,8 @@ public class GATKRunReport {
             // it's possible we aborted so early that these data structures arent initialized
             nIterations = engine.getCumulativeMetrics().getNumIterations();
         }
+
+        tag = engine.getArguments().tag;
 
         // user and hostname -- information about the runner of the GATK
         userName = System.getProperty("user.name");

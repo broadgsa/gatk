@@ -76,47 +76,11 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     private List<String> famOrder = new ArrayList<String>();
 
     public void initialize() {
-        vv.variantCollection = variantCollection;
-        vv.dbsnp = dbsnp;
-        vv.DO_NOT_VALIDATE_FILTERED = true;
-        vv.type = ValidateVariants.ValidationType.REF;
+        initializeValidator();
+        writeBedHeader();
+        Map<String,Map<String,String>> sampleMetaValues = parseMetaData();
         // create temporary output streams and buffers
 
-        // write magic bits into the ped file
-        try {
-            outBed.write(new byte[] { (byte) 0x6c, (byte) 0x1b, 0x0});
-            // ultimately, the bed will be in individual-major mode
-        } catch (IOException e) {
-            throw new ReviewedStingException("error writing to output file.");
-        }
-        // write to the fam file, the first six columns of the standard ped file
-        // first, load data from the input meta data file
-        Map<String,Map<String,String>> metaValues = new HashMap<String,Map<String,String>>();
-        logger.debug("Reading in metadata...");
-        try {
-            if ( metaDataFile.getAbsolutePath().endsWith(".fam") ) {
-                for ( String line : new XReadLines(metaDataFile) ) {
-                    String[] famSplit = line.split("\\t");
-                    String sid = famSplit[1];
-                    outFam.printf("%s%n",line);
-                }
-            } else {
-                for ( String line : new XReadLines(metaDataFile) ) {
-                    logger.debug(line);
-                    String[] split = line.split("\\t");
-                    String sampleID = split[0];
-                    String keyVals = split[1];
-                    HashMap<String,String> values = new HashMap<String, String>();
-                    for ( String kvp : keyVals.split(";") ) {
-                        String[] kvp_split = kvp.split("=");
-                        values.put(kvp_split[0],kvp_split[1]);
-                    }
-                    metaValues.put(sampleID,values);
-                }
-            }
-        } catch (FileNotFoundException e) {
-            throw new UserException("Meta data file not found: "+metaDataFile.getAbsolutePath(),e);
-        }
         // family ID, individual ID, Paternal ID, Maternal ID, Sex, Phenotype
         int dummyID = 0; // increments for dummy parental and family IDs used
         // want to be especially careful to maintain order here
@@ -126,21 +90,23 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                 continue;
             }
             for ( String sample : header.getValue().getGenotypeSamples() ) {
-                Map<String,String> mVals = metaValues.get(sample);
-                if ( mVals == null ) {
-                    throw new UserException("No metadata provided for sample "+sample);
+                if ( ! metaDataFile.getAbsolutePath().endsWith(".fam") ) {
+                    Map<String,String> mVals = sampleMetaValues.get(sample);
+                    if ( mVals == null ) {
+                        throw new UserException("No metadata provided for sample "+sample);
+                    }
+                    if ( ! mVals.containsKey("phenotype") ) {
+                        throw new UserException("No phenotype data provided for sample "+sample);
+                    }
+                    String fid = mVals.containsKey("fid") ? mVals.get("fid") : String.format("dummy_%d",++dummyID);
+                    String pid = mVals.containsKey("dad") ? mVals.get("dad") : String.format("dummy_%d",++dummyID);
+                    String mid = mVals.containsKey("mom") ? mVals.get("mom") : String.format("dummy_%d",++dummyID);
+                    String sex = mVals.containsKey("sex") ? mVals.get("sex") : "3";
+                    String pheno = mVals.get("phenotype");
+                    outFam.printf("%s\t%s\t%s\t%s\t%s\t%s%n",fid,sample,pid,mid,sex,pheno);
                 }
-                if ( ! mVals.containsKey("phenotype") ) {
-                    throw new UserException("No phenotype data provided for sample "+sample);
-                }
-                String fid = mVals.containsKey("fid") ? mVals.get("fid") : String.format("dummy_%d",++dummyID);
-                String pid = mVals.containsKey("dad") ? mVals.get("dad") : String.format("dummy_%d",++dummyID);
-                String mid = mVals.containsKey("mom") ? mVals.get("mom") : String.format("dummy_%d",++dummyID);
-                String sex = mVals.containsKey("sex") ? mVals.get("sex") : "3";
-                String pheno = mVals.get("phenotype");
-                outFam.printf("%s\t%s\t%s\t%s\t%s\t%s%n",fid,sample,pid,mid,sex,pheno);
                 try {
-                    File temp = File.createTempFile(sample, ".tmp");
+                    File temp = File.createTempFile("VariantsToBPed_"+sample, ".tmp");
                     printMap.put(sample,new PrintStream(temp));
                     tempFiles.put(sample,temp);
                 } catch (IOException e) {
@@ -216,6 +182,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                     // reset the buffer for this sample
                     genotypeBuffer.put(sample,new byte[BUFFER_SIZE]);
                 }
+                byteCount = 0;
             }
             genotypeCount = 0;
         }
@@ -336,5 +303,70 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         } else {
             throw new UserException("Allele frequency appears to be neither String nor Double. Please check the header of your VCF.");
         }
+    }
+
+    private void initializeValidator() {
+        vv.variantCollection = variantCollection;
+        vv.dbsnp = dbsnp;
+        vv.DO_NOT_VALIDATE_FILTERED = true;
+        vv.type = ValidateVariants.ValidationType.REF;
+    }
+
+    private void writeBedHeader() {
+        // write magic bits into the ped file
+        try {
+            outBed.write(new byte[] { (byte) 0x6c, (byte) 0x1b, 0x0});
+            // ultimately, the bed will be in individual-major mode
+        } catch (IOException e) {
+            throw new ReviewedStingException("error writing to output file.");
+        }
+    }
+
+    private Map<String,Map<String,String>> parseMetaData() {
+        // write to the fam file, the first six columns of the standard ped file
+        // first, load data from the input meta data file
+        Map<String,Map<String,String>> metaValues = new HashMap<String,Map<String,String>>();
+        logger.debug("Reading in metadata...");
+        try {
+            if ( metaDataFile.getAbsolutePath().endsWith(".fam") ) {
+                for ( String line : new XReadLines(metaDataFile) ) {
+                    String[] famSplit = line.split("\\s+");
+                    if ( famSplit.length != 6 ) {
+                        throw new UserException("Line of the fam file is malformatted. Expected 6 entries. Line is "+line);
+                    }
+                    String sid = famSplit[1];
+                    String fid = famSplit[0];
+                    String mom = famSplit[2];
+                    String dad = famSplit[3];
+                    String sex = famSplit[4];
+                    String pheno = famSplit[5];
+                    HashMap<String,String> values = new HashMap<String, String>();
+                    values.put("mom",mom);
+                    values.put("dad",dad);
+                    values.put("fid",fid);
+                    values.put("sex",sex);
+                    values.put("phenotype",pheno);
+                    metaValues.put(sid,values);
+                    outFam.printf("%s%n",line);
+                }
+            } else {
+                for ( String line : new XReadLines(metaDataFile) ) {
+                    logger.debug(line);
+                    String[] split = line.split("\\s+");
+                    String sampleID = split[0];
+                    String keyVals = split[1];
+                    HashMap<String,String> values = new HashMap<String, String>();
+                    for ( String kvp : keyVals.split(";") ) {
+                        String[] kvp_split = kvp.split("=");
+                        values.put(kvp_split[0],kvp_split[1]);
+                    }
+                    metaValues.put(sampleID,values);
+                }
+            }
+        } catch (FileNotFoundException e) {
+            throw new UserException("Meta data file not found: "+metaDataFile.getAbsolutePath(),e);
+        }
+
+        return metaValues;
     }
 }

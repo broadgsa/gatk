@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.utils;
 
+import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 import java.util.Arrays;
@@ -227,12 +228,19 @@ public class BaseUtils {
     }
 
     @Deprecated
-    static public boolean isRegularBase(char base) {
+    static public boolean isRegularBase( final char base ) {
         return simpleBaseToBaseIndex(base) != -1;
     }
 
-    static public boolean isRegularBase(byte base) {
+    static public boolean isRegularBase( final byte base ) {
         return simpleBaseToBaseIndex(base) != -1;
+    }
+
+    static public boolean isAllRegularBases( final byte[] bases ) {
+        for( final byte base : bases) {
+            if( !isRegularBase(base) ) { return false; }
+        }
+        return true;
     }
 
     static public boolean isNBase(byte base) {
@@ -437,29 +445,8 @@ public class BaseUtils {
      * @param bases   the bases
      * @return the upper cased version
      */
-    static public byte[] convertToUpperCase(final byte[] bases) {
-        for ( int i = 0; i < bases.length; i++ ) {
-            if ( (char)bases[i] >= 'a' )
-                bases[i] = toUpperCaseBase(bases[i]);
-        }
-        return bases;
-    }
-
-    static public byte toUpperCaseBase(final byte base) {
-        switch (base) {
-            case 'a':
-                return 'A';
-            case 'c':
-                return 'C';
-            case 'g':
-                return 'G';
-            case 't':
-                return 'T';
-            case 'n':
-                return 'N';
-            default:
-                return base;
-        }
+    static public void convertToUpperCase(final byte[] bases) {
+        StringUtil.toUpperCase(bases);
     }
 
     /**

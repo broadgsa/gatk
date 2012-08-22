@@ -12,6 +12,7 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 import org.broadinstitute.sting.utils.activeregion.ActivityProfile;
 import org.broadinstitute.sting.utils.activeregion.ActivityProfileResult;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -31,7 +32,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
      */
     protected final static Logger logger = Logger.getLogger(TraversalEngine.class);
 
-    private final LinkedList<org.broadinstitute.sting.utils.activeregion.ActiveRegion> workQueue = new LinkedList<org.broadinstitute.sting.utils.activeregion.ActiveRegion>();
+    private final LinkedList<ActiveRegion> workQueue = new LinkedList<ActiveRegion>();
     private final LinkedHashSet<GATKSAMRecord> myReads = new LinkedHashSet<GATKSAMRecord>();
 
     @Override
@@ -110,18 +111,18 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             // add these blocks of work to the work queue
             // band-pass filter the list of isActive probabilities and turn into active regions
             final ActivityProfile bandPassFiltered = profile.bandPassFilter();
-            final List<org.broadinstitute.sting.utils.activeregion.ActiveRegion> activeRegions = bandPassFiltered.createActiveRegions( activeRegionExtension, maxRegionSize );
+            final List<ActiveRegion> activeRegions = bandPassFiltered.createActiveRegions( activeRegionExtension, maxRegionSize );
 
             // add active regions to queue of regions to process
             // first check if can merge active regions over shard boundaries
             if( !activeRegions.isEmpty() ) {
                 if( !workQueue.isEmpty() ) {
-                    final org.broadinstitute.sting.utils.activeregion.ActiveRegion last = workQueue.getLast();
-                    final org.broadinstitute.sting.utils.activeregion.ActiveRegion first = activeRegions.get(0);
+                    final ActiveRegion last = workQueue.getLast();
+                    final ActiveRegion first = activeRegions.get(0);
                     if( last.isActive == first.isActive && last.getLocation().contiguousP(first.getLocation()) && last.getLocation().size() + first.getLocation().size() <= maxRegionSize ) {
                         workQueue.removeLast();
                         activeRegions.remove(first);
-                        workQueue.add( new org.broadinstitute.sting.utils.activeregion.ActiveRegion(last.getLocation().union(first.getLocation()), first.isActive, this.engine.getGenomeLocParser(), activeRegionExtension) );
+                        workQueue.add( new ActiveRegion(last.getLocation().union(first.getLocation()), first.isActive, this.engine.getGenomeLocParser(), activeRegionExtension) );
                     }
                 }
                 workQueue.addAll( activeRegions );

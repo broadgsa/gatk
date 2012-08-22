@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
+import org.apache.commons.math.stat.descriptive.rank.Max;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
@@ -178,9 +179,8 @@ import java.util.*;
  */
 public class VariantContext implements Feature { // to enable tribble integration
     private final static boolean WARN_ABOUT_BAD_END = true;
+    private final static long MAX_ALLELE_SIZE_FOR_NON_SV = 150;
     final protected static Logger logger = Logger.getLogger(VariantContext.class);
-
-
     private boolean fullyDecoded = false;
     protected CommonInfo commonInfo = null;
     public final static double NO_LOG10_PERROR = CommonInfo.NO_LOG10_PERROR;
@@ -458,6 +458,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
         SNP,
         MNP,    // a multi-nucleotide polymorphism
         INDEL,
+        STRUCTURAL_INDEL,
         SYMBOLIC,
         MIXED,
     }
@@ -528,6 +529,18 @@ public class VariantContext implements Feature { // to enable tribble integratio
 
     public boolean isSymbolic() {
         return getType() == Type.SYMBOLIC;
+    }
+
+    public boolean isStructuralIndel() {
+        return getType() == Type.STRUCTURAL_INDEL;
+    }
+
+    /**
+     *
+     * @return true if the variant is symbolic or a large indel
+     */
+    public boolean isSymbolicOrSV() {
+        return isSymbolic() || isStructuralIndel();
     }
 
     public boolean isMNP() {
@@ -1250,6 +1263,14 @@ public class VariantContext implements Feature { // to enable tribble integratio
         // performs a pairwise comparison of a single alternate allele against the reference allele (whereas the MIXED type
         // is reserved for cases of multiple alternate alleles of different types).  Therefore, if we've reached this point
         // in the code (so we're not a SNP, MNP, or symbolic allele), we absolutely must be an INDEL.
+
+        // Because a number of structural variation callers write the whole alternate allele into the VCF where possible,
+        // this can result in insertion/deletion alleles of structural variant size, e.g. 151+. As of July 2012, we now
+        // classify these as structural events, rather than indel events, as we think differently about the mechanism,
+        // representation, and handling of these events. Check for this case here:
+        if ( ref.length() > MAX_ALLELE_SIZE_FOR_NON_SV || allele.length() > MAX_ALLELE_SIZE_FOR_NON_SV )
+            return Type.STRUCTURAL_INDEL;
+
         return Type.INDEL;
 
         // old incorrect logic:

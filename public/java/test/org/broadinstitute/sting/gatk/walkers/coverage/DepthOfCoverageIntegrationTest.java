@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * IF THERE IS NO JAVADOC RIGHT HERE, YELL AT chartl
+ * Integration tests for the Depth of Coverage walker
  *
  * @Author chartl
  * @Date Feb 25, 2010
