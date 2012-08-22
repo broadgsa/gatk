@@ -265,7 +265,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(fullName="restrictAllelesTo", shortName="restrictAllelesTo", doc="Select only variants of a particular allelicity. Valid options are ALL (default), MULTIALLELIC or BIALLELIC", required=false)
     private  NumberAlleleRestriction alleleRestriction = NumberAlleleRestriction.ALL;
 
-    @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Don't update the AC, AF, or AN values in the INFO field after selecting", required=false)
+    @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Store the original AC, AF, and AN values in the INFO field after selecting (using keys AC_Orig, AF_Orig, and AN_Orig)", required=false)
     private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
 
     /**

@@ -750,6 +750,10 @@ public class VariantContextUnitTest extends BaseTest {
         modified = new VariantContextBuilder(modified).attributes(null).attribute("AC", 1).make();
         Assert.assertEquals(modified.getAttribute("AC"), 1);
 
+        // test the behavior when the builder's attribute object is not initialized
+        modified = new VariantContextBuilder(modified.getSource(), modified.getChr(), modified.getStart(), modified.getEnd(), modified.getAlleles()).attribute("AC", 1).make();
+
+        // test normal attribute modification
         modified = new VariantContextBuilder(cfg.vc).attribute("AC", 1).make();
         Assert.assertEquals(modified.getAttribute("AC"), 1);
         modified = new VariantContextBuilder(modified).attribute("AC", 2).make();
