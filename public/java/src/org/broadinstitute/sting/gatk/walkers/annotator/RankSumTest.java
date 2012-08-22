@@ -67,6 +67,9 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements ActiveR
 
             fillQualsFromPileup(vc.getAlleles(), vc.getStart(), pileup, indelLikelihoodMap, refQuals, altQuals );
         }
+        if (refQuals.isEmpty() && altQuals.isEmpty())
+            return null;
+
         final MannWhitneyU mannWhitneyU = new MannWhitneyU();
         for (final Double qual : altQuals) {
             mannWhitneyU.add(qual, MannWhitneyU.USet.SET1);

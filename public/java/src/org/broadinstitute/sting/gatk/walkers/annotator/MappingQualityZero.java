@@ -34,9 +34,9 @@ public class MappingQualityZero extends InfoFieldAnnotation implements StandardA
                                         final Map<String, AlignmentContext> stratifiedContexts,
                                         final VariantContext vc,
                                         final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap) {
-        if (vc.isSNP() && stratifiedContexts != null)
+        if ((vc.isSNP() || !vc.isVariant()) && stratifiedContexts != null)
             return annotatePileup(ref, stratifiedContexts, vc);
-        else if (stratifiedPerReadAlleleLikelihoodMap != null)
+        else if (stratifiedPerReadAlleleLikelihoodMap != null && vc.isVariant())
             return annotateWithLikelihoods(stratifiedPerReadAlleleLikelihoodMap, vc);
         else
             return null;

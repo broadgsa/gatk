@@ -71,7 +71,7 @@ public class HaplotypeScore extends InfoFieldAnnotation implements StandardAnnot
                                         final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap) {
         if (vc.isSNP() && stratifiedContexts != null)
             return annotatePileup(ref, stratifiedContexts, vc);
-        else if (stratifiedPerReadAlleleLikelihoodMap != null)
+        else if (stratifiedPerReadAlleleLikelihoodMap != null && vc.isVariant())
             return annotateWithLikelihoods(stratifiedPerReadAlleleLikelihoodMap, vc);
         else
             return null;
