@@ -41,30 +41,30 @@ import java.util.concurrent.*;
  */
 public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
     // the duration of the tests -- 100 ms is tolerable given the number of tests we are doing
-    private final static long THREAD_TARGET_DURATION_IN_MILLISECOND = 100;
+    private final static long THREAD_TARGET_DURATION_IN_MILLISECOND = 1000;
     final static Object GLOBAL_LOCK = new Object();
 
     private class StateTest extends TestDataProvider {
         private final double TOLERANCE = 0.1; // willing to tolerate a 10% error
 
-        final List<Thread.State> statesForThreads;
+        final List<StateMonitoringThreadFactory.State> statesForThreads;
 
-        public StateTest(final List<Thread.State> statesForThreads) {
+        public StateTest(final List<StateMonitoringThreadFactory.State> statesForThreads) {
             super(StateTest.class);
             this.statesForThreads = statesForThreads;
             setName("StateTest " + Utils.join(",", statesForThreads));
         }
 
-        public List<Thread.State> getStatesForThreads() {
+        public List<StateMonitoringThreadFactory.State> getStatesForThreads() {
             return statesForThreads;
         }
 
         public int getNStates() { return statesForThreads.size(); }
 
-        public double maxStateFraction(final Thread.State state) { return fraction(state) + TOLERANCE; }
-        public double minStateFraction(final Thread.State state) { return fraction(state) - TOLERANCE; }
+        public double maxStateFraction(final StateMonitoringThreadFactory.State state) { return fraction(state) + TOLERANCE; }
+        public double minStateFraction(final StateMonitoringThreadFactory.State state) { return fraction(state) - TOLERANCE; }
 
-        private double fraction(final Thread.State state) {
+        private double fraction(final StateMonitoringThreadFactory.State state) {
             return Collections.frequency(statesForThreads, state) / (1.0 * statesForThreads.size());
         }
     }
@@ -74,18 +74,16 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
      * requested for input argument
      */
     private static class StateTestThread implements Callable<Double> {
-        private final Thread.State stateToImplement;
+        private final StateMonitoringThreadFactory.State stateToImplement;
 
-        private StateTestThread(final Thread.State stateToImplement) {
-            if ( ! StateMonitoringThreadFactory.TRACKED_STATES.contains(stateToImplement) )
-                throw new IllegalArgumentException("Unexpected state " + stateToImplement);
+        private StateTestThread(final StateMonitoringThreadFactory.State stateToImplement) {
             this.stateToImplement = stateToImplement;
         }
 
         @Override
         public Double call() throws Exception {
             switch ( stateToImplement ) {
-                case RUNNABLE:
+                case USER_CPU:
                     // do some work until we get to THREAD_TARGET_DURATION_IN_MILLISECOND
                     double sum = 0.0;
                     final long startTime = System.currentTimeMillis();
@@ -96,13 +94,17 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
                 case WAITING:
                     Thread.currentThread().sleep(THREAD_TARGET_DURATION_IN_MILLISECOND);
                     return 0.0;
-                case BLOCKED:
+                case BLOCKING:
                     if ( StateMonitoringThreadFactory.DEBUG ) logger.warn("Blocking...");
                     synchronized (GLOBAL_LOCK) {
                         // the GLOBAL_LOCK must be held by the unit test itself for this to properly block
                         if ( StateMonitoringThreadFactory.DEBUG ) logger.warn("  ... done blocking");
                     }
                     return 0.0;
+                case WAITING_FOR_IO:
+                    // TODO -- implement me
+                    // shouldn't ever get here, throw an exception
+                    throw new ReviewedStingException("WAITING_FOR_IO testing currently not implemented, until we figure out how to force a system call block");
                 default:
                     throw new ReviewedStingException("Unexpected thread test state " + stateToImplement);
             }
@@ -111,8 +113,11 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
 
     @DataProvider(name = "StateTest")
     public Object[][] createStateTest() {
-        for ( final int nThreads : Arrays.asList(1, 2, 3, 4) ) {
-            for (final List<Thread.State> states : Utils.makePermutations(StateMonitoringThreadFactory.TRACKED_STATES, nThreads, true) ) {
+        for ( final int nThreads : Arrays.asList(3) ) {
+            //final List<StateMonitoringThreadFactory.State> allStates = Arrays.asList(StateMonitoringThreadFactory.State.WAITING_FOR_IO);
+            final List<StateMonitoringThreadFactory.State> allStates = Arrays.asList(StateMonitoringThreadFactory.State.USER_CPU, StateMonitoringThreadFactory.State.WAITING, StateMonitoringThreadFactory.State.BLOCKING);
+            //final List<StateMonitoringThreadFactory.State> allStates = Arrays.asList(StateMonitoringThreadFactory.State.values());
+            for (final List<StateMonitoringThreadFactory.State> states : Utils.makePermutations(allStates, nThreads, true) ) {
                 //if ( Collections.frequency(states, Thread.State.BLOCKED) > 0)
                     new StateTest(states);
             }
@@ -121,7 +126,7 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
         return StateTest.getTests(StateTest.class);
     }
 
-    @Test(enabled = false, dataProvider = "StateTest")
+    @Test(enabled = true, dataProvider = "StateTest")
     public void testStateTest(final StateTest test) throws InterruptedException {
         // allows us to test blocking
         final StateMonitoringThreadFactory factory = new StateMonitoringThreadFactory(test.getNStates());
@@ -130,7 +135,7 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
         logger.warn("Running " + test);
         synchronized (GLOBAL_LOCK) {
             //logger.warn("  Have lock");
-            for ( final Thread.State threadToRunState : test.getStatesForThreads() )
+            for ( final StateMonitoringThreadFactory.State threadToRunState : test.getStatesForThreads() )
             threadPool.submit(new StateTestThread(threadToRunState));
 
             // lock has to be here for the whole running of the activeThreads but end before the sleep so the blocked activeThreads
@@ -153,7 +158,7 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
         Assert.assertTrue(totalTime >= minTime, "Factory results not properly accumulated: totalTime = " + totalTime + " < minTime = " + minTime);
         Assert.assertTrue(totalTime <= maxTime, "Factory results not properly accumulated: totalTime = " + totalTime + " > maxTime = " + maxTime);
 
-        for (final Thread.State state : StateMonitoringThreadFactory.TRACKED_STATES ) {
+        for (final StateMonitoringThreadFactory.State state : StateMonitoringThreadFactory.State.values() ) {
             final double min = test.minStateFraction(state);
             final double max = test.maxStateFraction(state);
             final double obs = factory.getStateFraction(state);
@@ -170,6 +175,6 @@ public class StateMonitoringThreadFactoryUnitTest extends BaseTest {
         Assert.assertEquals(factory.getNThreadsCreated(), test.getNStates());
 
         // should be called to ensure we don't format / NPE on output
-        factory.printUsageInformation(logger, Priority.INFO);
+        factory.printUsageInformation(logger, Priority.WARN);
     }
 }
