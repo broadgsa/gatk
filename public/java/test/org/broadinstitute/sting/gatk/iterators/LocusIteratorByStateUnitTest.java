@@ -208,19 +208,18 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
     }
 
     /**
-     * Test to make sure that reads supporting only an indel (example cigar string: 76I) do
-     * not negatively influence the ordering of the pileup.
+     * Test to make sure that reads supporting only an indel (example cigar string: 76I) are represented properly
      */
     @Test
-    public void testWholeIndelReadTest2() {
+    public void testWholeIndelReadRepresentedTest() {
         final int firstLocus = 44367788, secondLocus = firstLocus + 1;
 
-        SAMRecord read = ArtificialSAMUtils.createArtificialRead(header,"read",0,secondLocus,1);
-        read.setReadBases(Utils.dupBytes((byte) 'A', 1));
-        read.setBaseQualities(Utils.dupBytes((byte) '@', 1));
-        read.setCigarString("1I");
+        SAMRecord read1 = ArtificialSAMUtils.createArtificialRead(header,"read1",0,secondLocus,1);
+        read1.setReadBases(Utils.dupBytes((byte) 'A', 1));
+        read1.setBaseQualities(Utils.dupBytes((byte) '@', 1));
+        read1.setCigarString("1I");
 
-        List<SAMRecord> reads = Arrays.asList(read);
+        List<SAMRecord> reads = Arrays.asList(read1);
 
         // create the iterator by state with the fake reads and fake records
         li = makeLTBS(reads, createTestReadProperties());
@@ -233,6 +232,26 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
             Assert.assertTrue(pe.isBeforeInsertion());
             Assert.assertFalse(pe.isAfterInsertion());
             Assert.assertEquals(pe.getEventBases(), "A");
+        }
+
+        SAMRecord read2 = ArtificialSAMUtils.createArtificialRead(header,"read2",0,secondLocus,10);
+        read2.setReadBases(Utils.dupBytes((byte) 'A', 10));
+        read2.setBaseQualities(Utils.dupBytes((byte) '@', 10));
+        read2.setCigarString("10I");
+
+        reads = Arrays.asList(read2);
+
+        // create the iterator by state with the fake reads and fake records
+        li = makeLTBS(reads, createTestReadProperties());
+
+        while(li.hasNext()) {
+            AlignmentContext alignmentContext = li.next();
+            ReadBackedPileup p = alignmentContext.getBasePileup();
+            Assert.assertTrue(p.getNumberOfElements() == 1);
+            PileupElement pe = p.iterator().next();
+            Assert.assertTrue(pe.isBeforeInsertion());
+            Assert.assertFalse(pe.isAfterInsertion());
+            Assert.assertEquals(pe.getEventBases(), "AAAAAAAAAA");
         }
     }
 
