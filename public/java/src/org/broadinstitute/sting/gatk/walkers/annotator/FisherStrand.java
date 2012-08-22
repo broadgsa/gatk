@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompa
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
+import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
@@ -54,21 +55,30 @@ import java.util.*;
 public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
     private static final String FS = "FS";
     private static final double MIN_PVALUE = 1E-320;
-
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(final RefMetaDataTracker tracker,
+                                        final AnnotatorCompatible walker,
+                                        final ReferenceContext ref,
+                                        final Map<String, AlignmentContext> stratifiedContexts,
+                                        final VariantContext vc,
+                                        final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap) {
         if ( !vc.isVariant() )
             return null;
 
         int[][] table;
 
-        if ( vc.isSNP() )
+        if (vc.isSNP() && stratifiedContexts != null) {
             table = getSNPContingencyTable(stratifiedContexts, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
-        else if ( vc.isIndel() || vc.isMixed() ) {
-            table = getIndelContingencyTable(stratifiedContexts);
-            if (table == null)
-                return null;
+        }
+        else if (stratifiedPerReadAlleleLikelihoodMap != null) {
+            // either SNP with no alignment context, or indels: per-read likelihood map needed
+            table = getContingencyTable(stratifiedPerReadAlleleLikelihoodMap, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
         }
         else
+        // for non-snp variants, we  need per-read likelihoods.
+        // for snps, we can get same result from simple pileup
+            return null;
+
+        if (table == null)
             return null;
 
         Double pvalue = Math.max(pValueForContingencyTable(table), MIN_PVALUE);
@@ -78,22 +88,6 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(FS, String.format("%.3f", QualityUtils.phredScaleErrorRate(pvalue)));
         return map;
-    }
-
-    public Map<String, Object> annotate(Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, VariantContext vc) {
-        if ( !vc.isVariant() )
-            return null;
-
-        final int[][] table = getContingencyTable(stratifiedContexts, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
-
-        final Double pvalue = Math.max(pValueForContingencyTable(table), MIN_PVALUE);
-        if ( pvalue == null )
-            return null;
-
-        final Map<String, Object> map = new HashMap<String, Object>();
-        map.put(FS, String.format("%.3f", QualityUtils.phredScaleErrorRate(pvalue)));
-        return map;
-
     }
 
     public List<String> getKeyNames() {
@@ -161,7 +155,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
         table[0][1] += 1;
         table[1][1] -= 1;
 
-        return (table[0][0] >= 0 && table[1][1] >= 0) ? true : false;
+        return (table[0][0] >= 0 && table[1][1] >= 0);
     }
 
     private static boolean unrotateTable(int[][] table) {
@@ -171,7 +165,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
         table[0][1] -= 1;
         table[1][1] += 1;
 
-        return (table[0][1] >= 0 && table[1][0] >= 0) ? true : false;
+        return (table[0][1] >= 0 && table[1][0] >= 0);
     }
 
     private static double computePValue(int[][] table) {
@@ -218,31 +212,31 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
      *   allele2   #       #
      * @return a 2x2 contingency table
      */
-    private static int[][] getContingencyTable(Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, Allele ref, Allele alt) {
+    private static int[][] getContingencyTable( final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap,
+                                                final Allele ref, final Allele alt) {
         int[][] table = new int[2][2];
 
-        for ( final Map<Allele, List<GATKSAMRecord>> alleleBins : stratifiedContexts.values() ) {
-            for ( final Map.Entry<Allele, List<GATKSAMRecord>> alleleBin : alleleBins.entrySet() ) {
+        for (PerReadAlleleLikelihoodMap maps : stratifiedPerReadAlleleLikelihoodMap.values() ) {
+            for (Map.Entry<GATKSAMRecord,Map<Allele,Double>> el : maps.getLikelihoodReadMap().entrySet()) {
+                if ( el.getKey().isReducedRead() ) // ignore reduced reads
+                    continue;
+                final boolean matchesRef = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue()).equals(ref,true);
+                final boolean matchesAlt = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue()).equals(alt,true);
 
-                final boolean matchesRef = ref.equals(alleleBin.getKey());
-                final boolean matchesAlt = alt.equals(alleleBin.getKey());
                 if ( !matchesRef && !matchesAlt )
                     continue;
 
-                for ( final GATKSAMRecord read : alleleBin.getValue() ) {
-                    boolean isFW = read.getReadNegativeStrandFlag();
+                boolean isFW = el.getKey().getReadNegativeStrandFlag();
 
-                    int row = matchesRef ? 0 : 1;
-                    int column = isFW ? 0 : 1;
+                int row = matchesRef ? 0 : 1;
+                int column = isFW ? 0 : 1;
 
-                    table[row][column]++;
-                }
+                table[row][column]++;
             }
         }
 
         return table;
     }
-
     /**
      Allocate and fill a 2x2 strand contingency table.  In the end, it'll look something like this:
      *             fw      rc
@@ -275,69 +269,5 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
         return table;
     }
 
-    /**
-     Allocate and fill a 2x2 strand contingency table.  In the end, it'll look something like this:
-     *             fw      rc
-     *   allele1   #       #
-     *   allele2   #       #
-     * @return a 2x2 contingency table
-     */
-    private static int[][] getIndelContingencyTable(Map<String, AlignmentContext> stratifiedContexts) {
-        final double INDEL_LIKELIHOOD_THRESH = 0.3;
-        final HashMap<PileupElement,LinkedHashMap<Allele,Double>> indelLikelihoodMap = IndelGenotypeLikelihoodsCalculationModel.getIndelLikelihoodMap();
 
-        if (indelLikelihoodMap == null)
-            return null;
-        
-        int[][] table = new int[2][2];
-
-        for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
-            final AlignmentContext context = sample.getValue();
-            if ( context == null )
-                continue;
-
-            final ReadBackedPileup pileup = context.getBasePileup();
-            for ( final PileupElement p : pileup ) {
-                if ( ! RankSumTest.isUsableBase(p, true) || p.getRead().isReducedRead() ) // ignore reduced reads
-                    continue;
-                if ( indelLikelihoodMap.containsKey(p) ) {
-                    // to classify a pileup element as ref or alt, we look at the likelihood associated with the allele associated to this element.
-                    // A pileup element then has a list of pairs of form (Allele, likelihood of this allele).
-                    // To classify a pileup element as Ref or Alt, we look at the likelihood of corresponding alleles.
-                    // If likelihood of ref allele > highest likelihood of all alt alleles  + epsilon, then this pileup element is "ref"
-                    // otherwise  if highest alt allele likelihood is > ref likelihood + epsilon, then this pileup element it "alt"
-                    // retrieve likelihood information corresponding to this read
-                    LinkedHashMap<Allele,Double> el = indelLikelihoodMap.get(p);
-                    // by design, first element in LinkedHashMap was ref allele
-                    boolean isFW = !p.getRead().getReadNegativeStrandFlag();
-
-                    double refLikelihood=0.0, altLikelihood=Double.NEGATIVE_INFINITY;
-
-                    for (Map.Entry<Allele,Double> entry : el.entrySet()) {
-
-                        if (entry.getKey().isReference())
-                            refLikelihood = entry.getValue();
-                        else {
-                            double like = entry.getValue();
-                            if (like >= altLikelihood)
-                                altLikelihood = like;
-                        }
-                    }
-
-                    boolean matchesRef = (refLikelihood > (altLikelihood + INDEL_LIKELIHOOD_THRESH));
-                    boolean matchesAlt = (altLikelihood > (refLikelihood + INDEL_LIKELIHOOD_THRESH));
-                    if ( matchesRef || matchesAlt ) {
-                        int row = matchesRef ? 0 : 1;
-                        int column = isFW ? 0 : 1;
-
-                         table[row][column]++;
-                    }
-
-
-                }
-            }
-        }
-
-        return table;
-    }
 }

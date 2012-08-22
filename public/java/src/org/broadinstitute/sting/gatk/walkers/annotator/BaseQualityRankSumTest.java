@@ -2,6 +2,8 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
+import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -21,66 +23,37 @@ public class BaseQualityRankSumTest extends RankSumTest implements StandardAnnot
 
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("BaseQRankSum", 1, VCFHeaderLineType.Float, "Z-score from Wilcoxon rank sum test of Alt Vs. Ref base qualities")); }
 
-    protected void fillQualsFromPileup(byte ref, List<Byte> alts, ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
-        for ( final PileupElement p : pileup ) {
-            if( isUsableBase(p) ) {
-                if ( p.getBase() == ref )
-                    refQuals.add((double)p.getQual());
-                else if ( alts.contains(p.getBase()) )
-                    altQuals.add((double)p.getQual());
-            }
-        }
-    }
-    protected void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final int refLoc, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, final List<Double> altQuals) {
-        // TODO -- implement me; how do we pull out the correct offset from the read?
-        return;
+    protected void fillQualsFromPileup(final List<Allele> allAlleles, final int refLoc,
+                                       final ReadBackedPileup pileup,
+                                       final PerReadAlleleLikelihoodMap alleleLikelihoodMap,
+                                       final List<Double> refQuals, final List<Double> altQuals){
 
-/*
-        for ( final Map.Entry<Allele, List<GATKSAMRecord>> alleleBin : stratifiedContext.entrySet() ) {
-            final boolean matchesRef = ref.equals(alleleBin.getKey());
-            final boolean matchesAlt = alts.contains(alleleBin.getKey());
-            if ( !matchesRef && !matchesAlt )
-                continue;
-
-            for ( final GATKSAMRecord read : alleleBin.getValue() ) {
-
+        if (alleleLikelihoodMap == null) {
+            // use fast SNP-based version if we don't have per-read allele likelihoods
+            for ( final PileupElement p : pileup ) {
                 if ( isUsableBase(p) ) {
-                    if ( matchesRef )
+                    if ( allAlleles.get(0).equals(Allele.create(p.getBase(),true)) ) {
                         refQuals.add((double)p.getQual());
-                    else
+                    } else if ( allAlleles.contains(Allele.create(p.getBase()))) {
                         altQuals.add((double)p.getQual());
-                }
-            }
-        }
-*/
-    }
-
-    protected void fillIndelQualsFromPileup(ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
-        // equivalent is whether indel likelihoods for reads corresponding to ref allele are more likely than reads corresponding to alt allele ?
-        HashMap<PileupElement,LinkedHashMap<Allele,Double>> indelLikelihoodMap = IndelGenotypeLikelihoodsCalculationModel.getIndelLikelihoodMap();
-        for (final PileupElement p: pileup) {
-            if (indelLikelihoodMap.containsKey(p)) {
-                // retrieve likelihood information corresponding to this read
-                LinkedHashMap<Allele,Double> el = indelLikelihoodMap.get(p);
-                // by design, first element in LinkedHashMap was ref allele
-                double refLikelihood=0.0, altLikelihood=Double.NEGATIVE_INFINITY;
-
-                for (Map.Entry<Allele, Double> entry : el.entrySet()) {
-
-                    if (entry.getKey().isReference())
-                        refLikelihood = entry.getValue();
-                    else {
-                        double like = entry.getValue();
-                        if (like >= altLikelihood)
-                            altLikelihood = like;
                     }
                 }
-                if (refLikelihood > altLikelihood + INDEL_LIKELIHOOD_THRESH)
-                    refQuals.add(-10.0*refLikelihood);
-                else if (altLikelihood > refLikelihood + INDEL_LIKELIHOOD_THRESH)
-                    altQuals.add(-10.0*altLikelihood);
             }
+            return;
+        }
+
+        for (Map<Allele,Double> el : alleleLikelihoodMap.getLikelihoodMapValues()) {
+            final Allele a = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el);
+            if (a.isNoCall())
+                continue; // read is non-informative
+            if (a.isReference())
+                refQuals.add(-10.0*(double)el.get(a));
+            else if (allAlleles.contains(a))
+                altQuals.add(-10.0*(double)el.get(a));
+
+
         }
     }
+
 
 }
