@@ -372,7 +372,7 @@ public class GenomeAnalysisEngine {
         else if(argCollection.numberOfIOThreads != null)
             numIOThreads = argCollection.numberOfIOThreads;
 
-        this.threadAllocation = new ThreadAllocation(argCollection.numberOfThreads,numCPUThreads,numIOThreads);
+        this.threadAllocation = new ThreadAllocation(argCollection.numberOfThreads, numCPUThreads, numIOThreads, argCollection.monitorThreads);
     }
 
     /**

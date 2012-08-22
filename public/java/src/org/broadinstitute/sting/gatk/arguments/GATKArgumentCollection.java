@@ -283,6 +283,10 @@ public class GATKArgumentCollection {
     @Argument(fullName = "num_threads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
     public Integer numberOfThreads = 1;
 
+    /** Should we monitor threading efficiency? . */
+    @Argument(fullName = "monitorThreads", shortName = "mt", doc = "Should we monitor the threading efficiency when running in multi-threaded mode?", required = false)
+    public Boolean monitorThreads = false;
+
     /**
      * The following two arguments (num_cpu_threads, num_io_threads are TEMPORARY since Queue cannot currently support arbitrary tagged data types.
      * TODO: Kill this when I can do a tagged integer in Queue.
