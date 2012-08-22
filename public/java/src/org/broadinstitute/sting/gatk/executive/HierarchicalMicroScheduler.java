@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.threading.EfficiencyMonitoringThreadFactory;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import java.util.Collection;
@@ -80,9 +81,22 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
      * @param reference     Reference for driving the traversal.
      * @param nThreadsToUse maximum number of threads to use to do the work
      */
-    protected HierarchicalMicroScheduler(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse ) {
+    protected HierarchicalMicroScheduler(final GenomeAnalysisEngine engine,
+                                         final Walker walker,
+                                         final SAMDataSource reads,
+                                         final IndexedFastaSequenceFile reference,
+                                         final Collection<ReferenceOrderedDataSource> rods,
+                                         final int nThreadsToUse,
+                                         final boolean monitorThreadPerformance ) {
         super(engine, walker, reads, reference, rods);
-        this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
+
+        if ( monitorThreadPerformance ) {
+            final EfficiencyMonitoringThreadFactory monitoringThreadFactory = new EfficiencyMonitoringThreadFactory(nThreadsToUse);
+            setThreadEfficiencyMonitor(monitoringThreadFactory);
+            this.threadPool = Executors.newFixedThreadPool(nThreadsToUse, monitoringThreadFactory);
+        } else {
+            this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
+        }
     }
 
     public Object execute( Walker walker, Iterable<Shard> shardStrategy ) {
@@ -140,6 +154,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         // do final cleanup operations
         outputTracker.close();
         cleanup();
+        executionIsDone();
 
         return result;
     }

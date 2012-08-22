@@ -105,7 +105,7 @@ public class Allele implements Comparable<Allele> {
             if ( isRef ) throw new IllegalArgumentException("Cannot tag a symbolic allele as the reference allele");
         }
         else {
-            bases = BaseUtils.convertToUpperCase(bases);
+            BaseUtils.convertToUpperCase(bases);
         }
 
         this.isRef = isRef;

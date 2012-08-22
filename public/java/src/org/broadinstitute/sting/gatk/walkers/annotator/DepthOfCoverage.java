@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ActiveRegionBa
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
+import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFStandardHeaderLines;
@@ -29,28 +30,30 @@ import java.util.Map;
  */
 public class DepthOfCoverage extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
-        if ( stratifiedContexts.size() == 0 )
-            return null;
+    public Map<String, Object> annotate(final RefMetaDataTracker tracker,
+                                        final AnnotatorCompatible walker,
+                                        final ReferenceContext ref,
+                                        final Map<String, AlignmentContext> stratifiedContexts,
+                                        final VariantContext vc,
+                                        final Map<String, PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap ) {
 
         int depth = 0;
-        for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() )
-            depth += sample.getValue().getBasePileup().depthOfCoverage();
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), String.format("%d", depth));
-        return map;
-    }
+        if (stratifiedContexts != null) {
+            if ( stratifiedContexts.size() == 0 )
+                return null;
 
-    public Map<String, Object> annotate(Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, VariantContext vc) {
-        if ( stratifiedContexts.size() == 0 )
-            return null;
-
-        int depth = 0;
-        for ( final Map<Allele, List<GATKSAMRecord>> alleleBins : stratifiedContexts.values() ) {
-            for ( final List<GATKSAMRecord> alleleBin : alleleBins.values() ) {
-                depth += alleleBin.size();
-            }
+            for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() )
+                depth += sample.getValue().getBasePileup().depthOfCoverage();
         }
+        else if (perReadAlleleLikelihoodMap != null) {
+            if ( perReadAlleleLikelihoodMap.size() == 0 )
+                return null;
+
+            for ( Map.Entry<String, PerReadAlleleLikelihoodMap> sample : perReadAlleleLikelihoodMap.entrySet() )
+                depth += sample.getValue().getNumberOfStoredElements();
+        }
+        else
+            return null;
 
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), String.format("%d", depth));

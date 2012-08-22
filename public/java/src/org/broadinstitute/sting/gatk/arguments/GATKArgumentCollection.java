@@ -284,6 +284,14 @@ public class GATKArgumentCollection {
     public Integer numberOfThreads = 1;
 
     /**
+     * By default the GATK monitors its own efficiency, but this can have a itsy-bitsy tiny
+     * cost (< 0.1%) in runtime because of turning on the JavaBean.  This argument allows you
+     * to disable the monitor
+     */
+    @Argument(fullName = "disableThreadEfficiencyMonitor", shortName = "dtem", doc = "Disable GATK efficiency monitoring", required = false)
+    public Boolean disableEfficiencyMonitor = false;
+
+    /**
      * The following two arguments (num_cpu_threads, num_io_threads are TEMPORARY since Queue cannot currently support arbitrary tagged data types.
      * TODO: Kill this when I can do a tagged integer in Queue.
      */
