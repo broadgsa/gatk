@@ -30,7 +30,6 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
-import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -52,18 +51,14 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
+import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -176,6 +171,13 @@ public class GenomeAnalysisEngine {
     private Collection<RMDTriplet> referenceMetaDataFiles;
 
     /**
+     * The threading efficiency monitor we use in the GATK to monitor our efficiency.
+     *
+     * May be null if one isn't active, or hasn't be initialized yet
+     */
+    private ThreadEfficiencyMonitor threadEfficiencyMonitor = null;
+
+    /**
      * Set the reference metadata files to use for this traversal.
      * @param referenceMetaDataFiles Collection of files and descriptors over which to traverse.
      */
@@ -252,6 +254,7 @@ public class GenomeAnalysisEngine {
 
         // our microscheduler, which is in charge of running everything
         MicroScheduler microScheduler = createMicroscheduler();
+        threadEfficiencyMonitor = microScheduler.getThreadEfficiencyMonitor();
 
         // create temp directories as necessary
         initializeTempDirectory();
@@ -1001,6 +1004,15 @@ public class GenomeAnalysisEngine {
      */
     public ReadMetrics getCumulativeMetrics() {
         return readsDataSource == null ? null : readsDataSource.getCumulativeReadMetrics();
+    }
+
+    /**
+     * Return the global ThreadEfficiencyMonitor, if there is one
+     *
+     * @return the monitor, or null if none is active
+     */
+    public ThreadEfficiencyMonitor getThreadEfficiencyMonitor() {
+        return threadEfficiencyMonitor;
     }
 
     // -------------------------------------------------------------------------------------

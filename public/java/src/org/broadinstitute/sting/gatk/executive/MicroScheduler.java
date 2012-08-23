@@ -158,6 +158,14 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         }
     }
 
+    /**
+     * Return the ThreadEfficiencyMonitor we are using to track our resource utilization, if there is one
+     *
+     * @return the monitor, or null if none is active
+     */
+    public ThreadEfficiencyMonitor getThreadEfficiencyMonitor() {
+        return threadEfficiencyMonitor;
+    }
 
     /**
      * Inform this Microscheduler to use the efficiency monitor used to create threads in subclasses
