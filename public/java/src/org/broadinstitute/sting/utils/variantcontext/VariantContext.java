@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
-import org.apache.commons.math.stat.descriptive.rank.Max;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
@@ -179,7 +178,7 @@ import java.util.*;
  */
 public class VariantContext implements Feature { // to enable tribble integration
     private final static boolean WARN_ABOUT_BAD_END = true;
-    private final static long MAX_ALLELE_SIZE_FOR_NON_SV = 150;
+    private final static int MAX_ALLELE_SIZE_FOR_NON_SV = 150;
     final protected static Logger logger = Logger.getLogger(VariantContext.class);
     private boolean fullyDecoded = false;
     protected CommonInfo commonInfo = null;
