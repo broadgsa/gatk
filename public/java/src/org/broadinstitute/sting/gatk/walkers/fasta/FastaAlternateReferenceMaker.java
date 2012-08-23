@@ -76,10 +76,9 @@ import java.util.List;
  *
  */
 @DocumentedGATKFeature( groupName = "Companion Utilities", extraDocs = {CommandLineGATK.class} )
-@WalkerName("FastaAlternateReferenceMaker")
 @Reference(window=@Window(start=-1,stop=50))
 @Requires(value={DataSource.REFERENCE})
-public class FastaAlternateReference extends FastaReference {
+public class FastaAlternateReferenceMaker extends FastaReferenceMaker {
 
     /**
      * Variants from these input files are used by this tool to construct an alternate reference.

@@ -62,15 +62,14 @@ import java.io.PrintStream;
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
- *   -T FastaReference \
+ *   -T FastaReferenceMaker \
  *   -o output.fasta \
  *   -L input.intervals
  * </pre>
  *
  */
 @DocumentedGATKFeature( groupName = "Companion Utilities", extraDocs = {CommandLineGATK.class} )
-@WalkerName("FastaReferenceMaker")
-public class FastaReference extends RefWalker<Pair<GenomeLoc, String>, GenomeLoc> {
+public class FastaReferenceMaker extends RefWalker<Pair<GenomeLoc, String>, GenomeLoc> {
 
     @Output PrintStream out;
 
