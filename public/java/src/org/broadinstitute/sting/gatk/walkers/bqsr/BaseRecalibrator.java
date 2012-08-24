@@ -56,7 +56,7 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 
 /**
- * First pass of the base quality score recalibration -- Generates recalibration table based on various user-specified covariates (such as reported quality score, cycle, and dinucleotide).
+ * First pass of the base quality score recalibration -- Generates recalibration table based on various user-specified covariates (such as read group, reported quality score, machine cycle, and nucleotide context).
  *
  * <p>
  * This walker is designed to work as the first pass in a two-pass processing step. It does a by-locus traversal operating
