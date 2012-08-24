@@ -34,7 +34,6 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
@@ -218,7 +217,10 @@ public class VariantAnnotatorEngine {
 
         // go through all the requested info annotationTypes
         for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
-            Map<String, Object> annotationsFromCurrentType = ((ActiveRegionBasedAnnotation)annotationType).annotate(perReadAlleleLikelihoodMap, vc);
+            if ( !(annotationType instanceof ActiveRegionBasedAnnotation) )
+                continue;
+
+            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(perReadAlleleLikelihoodMap, vc);
             if ( annotationsFromCurrentType != null ) {
                 infoAnnotations.putAll(annotationsFromCurrentType);
             }
