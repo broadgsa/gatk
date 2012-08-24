@@ -579,14 +579,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     }
 
     private boolean badIndelSize(final VariantContext vc) {
-        if ( vc.getReference().length() > maxIndelSize ) {
-            return true;
-        }
-
-        for ( Allele a : vc.getAlternateAlleles() ) {
-            if ( a.length() > maxIndelSize ) {
+        for ( Integer indelLength : vc.getIndelLengths() ) {
+            if ( indelLength > maxIndelSize )
                 return true;
-            }
         }
 
         return false;
