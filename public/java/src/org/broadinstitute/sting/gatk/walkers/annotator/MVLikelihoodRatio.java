@@ -71,6 +71,7 @@ public class MVLikelihoodRatio extends InfoFieldAnnotation implements Experiment
 
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(MVLR_KEY, 1, VCFHeaderLineType.Float, "Mendelian violation likelihood ratio: L[MV] - L[No MV]")); }
 
+    // todo - this entire function should be in samples DB
     private Set<Trio> checkAndSetSamples(SampleDB db){
         Set<Trio> trioSet = new HashSet<Trio>();
         for ( String familyString : db.getFamilyIDs() ) {
@@ -97,6 +98,10 @@ public class MVLikelihoodRatio extends InfoFieldAnnotation implements Experiment
         return true;
     }
 
+    // TODO -- this class is too much.
+    // TODO -- Why iterable?
+    // TODO -- shuoldn't this be in samplesDB() so you can just called samplesDB().getTrios()
+    // TODO -- should just have final string IDs, and getters, no setters
     private class Trio implements Iterable<String> {
         private String maternalID;
         private String paternalID;
