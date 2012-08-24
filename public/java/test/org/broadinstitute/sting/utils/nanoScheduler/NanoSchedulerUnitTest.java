@@ -21,7 +21,6 @@ public class NanoSchedulerUnitTest extends BaseTest {
     }
 
     private class ReduceSum implements ReduceFunction<Integer, Integer> {
-        @Override public Integer init() { return 0; }
         @Override public Integer apply(Integer one, Integer sum) { return one + sum; }
     }
 
@@ -33,17 +32,18 @@ public class NanoSchedulerUnitTest extends BaseTest {
     }
 
     private class NanoSchedulerBasicTest extends TestDataProvider {
-        final int bufferSize, nThreads, start, end, expectedResult;
+        final int bufferSize, mapGroupSize, nThreads, start, end, expectedResult;
 
-        public NanoSchedulerBasicTest(final int bufferSize, final int nThreads, final int start, final int end) {
+        public NanoSchedulerBasicTest(final int bufferSize, final int mapGroupSize, final int nThreads, final int start, final int end) {
             super(NanoSchedulerBasicTest.class);
             this.bufferSize = bufferSize;
+            this.mapGroupSize = mapGroupSize;
             this.nThreads = nThreads;
             this.start = start;
             this.end = end;
             this.expectedResult = sum2x(start, end);
-            setName(String.format("%s nt=%d buf=%d start=%d end=%d sum=%d",
-                    getClass().getSimpleName(), nThreads, bufferSize, start, end, expectedResult));
+            setName(String.format("%s nt=%d buf=%d mapGroupSize=%d start=%d end=%d sum=%d",
+                    getClass().getSimpleName(), nThreads, bufferSize, mapGroupSize, start, end, expectedResult));
         }
 
         public Iterator<Integer> makeReader() {
@@ -54,16 +54,22 @@ public class NanoSchedulerUnitTest extends BaseTest {
         }
 
         public Map2x makeMap() { return new Map2x(); }
+        public Integer initReduce() { return 0; }
         public ReduceSum makeReduce() { return new ReduceSum(); }
     }
 
+    static NanoSchedulerBasicTest exampleTest = null;
     @DataProvider(name = "NanoSchedulerBasicTest")
     public Object[][] createNanoSchedulerBasicTest() {
-        for ( final int bufferSize : Arrays.asList(1, 10, 10000, 1000000) ) {
-            for ( final int nt : Arrays.asList(1, 2, 4, 8, 16, 32) ) {
-                for ( final int start : Arrays.asList(0) ) {
-                    for ( final int end : Arrays.asList(1, 2, 11, 1000000) ) {
-                        new NanoSchedulerBasicTest(bufferSize,  nt, start, end);
+        for ( final int bufferSize : Arrays.asList(1, 10, 1000, 1000000) ) {
+            for ( final int mapGroupSize : Arrays.asList(-1, 1, 10, 100, 1000) ) {
+                if ( mapGroupSize <= bufferSize ) {
+                    for ( final int nt : Arrays.asList(1, 2, 4) ) {
+                        for ( final int start : Arrays.asList(0) ) {
+                            for ( final int end : Arrays.asList(1, 2, 11, 10000, 100000) ) {
+                                exampleTest = new NanoSchedulerBasicTest(bufferSize, mapGroupSize, nt, start, end);
+                            }
+                        }
                     }
                 }
             }
@@ -72,22 +78,65 @@ public class NanoSchedulerUnitTest extends BaseTest {
         return NanoSchedulerBasicTest.getTests(NanoSchedulerBasicTest.class);
     }
 
-    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest", timeOut = 2000)
-    public void testNanoSchedulerBasicTest(final NanoSchedulerBasicTest test) throws InterruptedException {
+    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest")
+    public void testSingleThreadedNanoScheduler(final NanoSchedulerBasicTest test) throws InterruptedException {
         logger.warn("Running " + test);
-        final NanoScheduler<Integer, Integer, Integer> nanoScheduler =
-                new NanoScheduler<Integer, Integer, Integer>(test.bufferSize, test.nThreads,
-                        test.makeReader(), test.makeMap(), test.makeReduce());
-        final Integer sum = nanoScheduler.execute();
-        Assert.assertNotNull(sum);
-        Assert.assertEquals((int)sum, test.expectedResult, "NanoScheduler sum not the same as calculated directly");
+        if ( test.nThreads == 1 )
+            testNanoScheduler(test);
     }
 
-    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest", timeOut = 10000, dependsOnMethods = "testNanoSchedulerBasicTest")
-    public void testNanoSchedulerInLoop(final NanoSchedulerBasicTest test) throws InterruptedException {
+    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest", timeOut = 10000, dependsOnMethods = "testSingleThreadedNanoScheduler")
+    public void testMultiThreadedNanoScheduler(final NanoSchedulerBasicTest test) throws InterruptedException {
         logger.warn("Running " + test);
-        for ( int i = 0; i < 10; i++ ) {
-            testNanoSchedulerBasicTest(test);
+        if ( test.nThreads >= 1 )
+            testNanoScheduler(test);
+    }
+
+    private void testNanoScheduler(final NanoSchedulerBasicTest test) throws InterruptedException {
+        final NanoScheduler<Integer, Integer, Integer> nanoScheduler =
+                new NanoScheduler<Integer, Integer, Integer>(test.bufferSize, test.mapGroupSize, test.nThreads);
+
+        Assert.assertEquals(nanoScheduler.getBufferSize(), test.bufferSize, "bufferSize argument");
+        Assert.assertTrue(nanoScheduler.getMapGroupSize() >= test.mapGroupSize, "mapGroupSize argument");
+        Assert.assertEquals(nanoScheduler.getnThreads(), test.nThreads, "nThreads argument");
+
+        final Integer sum = nanoScheduler.execute(test.makeReader(), test.makeMap(), test.initReduce(), test.makeReduce());
+        Assert.assertNotNull(sum);
+        Assert.assertEquals((int)sum, test.expectedResult, "NanoScheduler sum not the same as calculated directly");
+        nanoScheduler.shutdown();
+    }
+
+    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest", dependsOnMethods = "testMultiThreadedNanoScheduler")
+    public void testNanoSchedulerInLoop(final NanoSchedulerBasicTest test) throws InterruptedException {
+        if ( test.bufferSize > 1 && (test.mapGroupSize > 1 || test.mapGroupSize == -1)) {
+            logger.warn("Running " + test);
+
+            final NanoScheduler<Integer, Integer, Integer> nanoScheduler =
+                    new NanoScheduler<Integer, Integer, Integer>(test.bufferSize, test.mapGroupSize, test.nThreads);
+
+            // test reusing the scheduler
+            for ( int i = 0; i < 10; i++ ) {
+                final Integer sum = nanoScheduler.execute(test.makeReader(), test.makeMap(), test.initReduce(), test.makeReduce());
+                Assert.assertNotNull(sum);
+                Assert.assertEquals((int)sum, test.expectedResult, "NanoScheduler sum not the same as calculated directly");
+            }
+
+            nanoScheduler.shutdown();
         }
+    }
+
+    @Test()
+    public void testShutdown() throws InterruptedException {
+        final NanoScheduler<Integer, Integer, Integer> nanoScheduler = new NanoScheduler<Integer, Integer, Integer>(1, 1, 2);
+        Assert.assertFalse(nanoScheduler.isShutdown(), "scheduler should be alive");
+        nanoScheduler.shutdown();
+        Assert.assertTrue(nanoScheduler.isShutdown(), "scheduler should be dead");
+    }
+
+    @Test(expectedExceptions = IllegalStateException.class)
+    public void testShutdownExecuteFailure() throws InterruptedException {
+        final NanoScheduler<Integer, Integer, Integer> nanoScheduler = new NanoScheduler<Integer, Integer, Integer>(1, 1, 2);
+        nanoScheduler.shutdown();
+        nanoScheduler.execute(exampleTest.makeReader(), exampleTest.makeMap(), exampleTest.initReduce(), exampleTest.makeReduce());
     }
 }
