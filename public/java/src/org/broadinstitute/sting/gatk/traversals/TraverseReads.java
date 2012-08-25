@@ -1,20 +1,3 @@
-package org.broadinstitute.sting.gatk.traversals;
-
-import net.sf.samtools.SAMRecord;
-import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.ReadMetrics;
-import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadBasedReferenceOrderedView;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadReferenceView;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -39,6 +22,19 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
+package org.broadinstitute.sting.gatk.traversals;
+
+import net.sf.samtools.SAMRecord;
+import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadBasedReferenceOrderedView;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadReferenceView;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
  * @author aaron
@@ -75,29 +71,27 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
         if( !dataProvider.hasReads() )
             throw new IllegalArgumentException("Unable to traverse reads; no read data is available.");
 
-        ReadView reads = new ReadView(dataProvider);
-        ReadReferenceView reference = new ReadReferenceView(dataProvider);
+        final ReadView reads = new ReadView(dataProvider);
+        final ReadReferenceView reference = new ReadReferenceView(dataProvider);
 
         // get the reference ordered data
-        ReadBasedReferenceOrderedView rodView = new ReadBasedReferenceOrderedView(dataProvider);
+        final ReadBasedReferenceOrderedView rodView = new ReadBasedReferenceOrderedView(dataProvider);
 
         boolean done = walker.isDone();
         // while we still have more reads
-        for (SAMRecord read : reads) {
+        for (final SAMRecord read : reads) {
             if ( done ) break;
-            // ReferenceContext -- the reference bases covered by the read
-            ReferenceContext refContext = null;
 
-            // get the array of characters for the reference sequence, since we're a mapped read
-            if (!read.getReadUnmappedFlag() && dataProvider.hasReference())
-                refContext = reference.getReferenceContext(read);
+            // ReferenceContext -- the reference bases covered by the read
+            final ReferenceContext refContext = ! read.getReadUnmappedFlag() && dataProvider.hasReference()
+                    ? reference.getReferenceContext(read)
+                    : null;
 
             // update the number of reads we've seen
-            ReadMetrics readMetrics = dataProvider.getShard().getReadMetrics();
-            readMetrics.incrementNumIterations();
+            dataProvider.getShard().getReadMetrics().incrementNumIterations();
 
             // if the read is mapped, create a metadata tracker
-            ReadMetaDataTracker tracker = (read.getReferenceIndex() >= 0) ? rodView.getReferenceOrderedDataForRead(read) : null;
+            final ReadMetaDataTracker tracker = read.getReferenceIndex() >= 0 ? rodView.getReferenceOrderedDataForRead(read) : null;
 
             final boolean keepMeP = walker.filter(refContext, (GATKSAMRecord) read);
             if (keepMeP) {
