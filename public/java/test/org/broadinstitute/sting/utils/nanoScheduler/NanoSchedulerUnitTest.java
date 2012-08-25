@@ -21,7 +21,12 @@ public class NanoSchedulerUnitTest extends BaseTest {
     }
 
     private class ReduceSum implements ReduceFunction<Integer, Integer> {
-        @Override public Integer apply(Integer one, Integer sum) { return one + sum; }
+        int prevOne = Integer.MIN_VALUE;
+
+        @Override public Integer apply(Integer one, Integer sum) {
+            Assert.assertTrue(prevOne < one, "Reduce came in out of order.  Prev " + prevOne + " cur " + one);
+            return one + sum;
+        }
     }
 
     private static int sum2x(final int start, final int end) {
