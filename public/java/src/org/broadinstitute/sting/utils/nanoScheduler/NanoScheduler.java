@@ -136,7 +136,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
 
     private void debugPrint(final String format, Object ... args) {
         if ( isDebug() )
-            logger.info(String.format(format, args));
+            logger.info("Thread " + Thread.currentThread().getId() + ":" + String.format(format, args));
     }
 
 
@@ -205,7 +205,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                                             final MapFunction<InputType, MapType> map,
                                             final ReduceType initialValue,
                                             final ReduceFunction<MapType, ReduceType> reduce) {
-        debugPrint("Executing nanoScheduler with initial reduce value " + initialValue);
+        debugPrint("Executing nanoScheduler");
         ReduceType sum = initialValue;
         while ( inputReader.hasNext() ) {
             try {

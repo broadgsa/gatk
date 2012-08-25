@@ -59,6 +59,15 @@ public class ReadShard extends Shard {
     }
 
     /**
+     * What read buffer size are we using?
+     *
+     * @return
+     */
+    public static int getReadBufferSize() {
+        return MAX_READS;
+    }
+
+    /**
      * Returns true if this shard is meant to buffer reads, rather
      * than just holding pointers to their locations.
      * @return True if this shard can buffer reads.  False otherwise.

@@ -51,12 +51,12 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
     /** our log, which we want to capture anything from this class */
     protected static final Logger logger = Logger.getLogger(TraverseReadsNano.class);
     private static final boolean DEBUG = false;
-    final int bufferSize = ReadShard.MAX_READS;
-    final int mapGroupSize = bufferSize / 10 + 1;
-    final int nThreads;
+    final NanoScheduler<SAMRecord, M, T> nanoScheduler;
 
     public TraverseReadsNano(int nThreads) {
-        this.nThreads = nThreads;
+        final int bufferSize = ReadShard.getReadBufferSize() + 1; // actually has 1 more than max
+        final int mapGroupSize = bufferSize / 10 + 1;
+        nanoScheduler = new NanoScheduler<SAMRecord, M, T>(bufferSize, mapGroupSize, nThreads);
     }
 
     @Override
@@ -87,16 +87,21 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
         final ReadReferenceView reference = new NotImplementedReadReferenceView(dataProvider);
         final ReadBasedReferenceOrderedView rodView = new ReadBasedReferenceOrderedView(dataProvider);
 
-        final NanoScheduler<SAMRecord, M, T> nanoScheduler = new NanoScheduler<SAMRecord, M, T>(bufferSize, mapGroupSize, nThreads);
         nanoScheduler.setDebug(DEBUG);
         final TraverseReadsMap myMap = new TraverseReadsMap(reads, reference, rodView, walker);
         final TraverseReadsReduce myReduce = new TraverseReadsReduce(walker);
 
         T result = nanoScheduler.execute(reads.iterator().iterator(), myMap, sum, myReduce);
-        nanoScheduler.shutdown();
+        // TODO -- how do we print progress?
         //printProgress(dataProvider.getShard(), ???);
 
         return result;
+    }
+
+    @Override
+    public void printOnTraversalDone() {
+        nanoScheduler.shutdown();
+        super.printOnTraversalDone();    //To change body of overridden methods use File | Settings | File Templates.
     }
 
     private static class NotImplementedReadReferenceView extends ReadReferenceView {
