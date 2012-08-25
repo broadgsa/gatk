@@ -50,6 +50,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     final int nThreads;
     final ExecutorService executor;
     boolean shutdown = false;
+    boolean debug = false;
 
     /**
      * Create a new nanoschedule with the desire characteristics requested by the argument
@@ -129,6 +130,20 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         return shutdown;
     }
 
+    public boolean isDebug() {
+        return debug;
+    }
+
+    private void debugPrint(final String format, Object ... args) {
+        if ( isDebug() )
+            logger.info(String.format(format, args));
+    }
+
+
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
     /**
      * Execute a map/reduce job with this nanoScheduler
      *
@@ -190,6 +205,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                                             final MapFunction<InputType, MapType> map,
                                             final ReduceType initialValue,
                                             final ReduceFunction<MapType, ReduceType> reduce) {
+        debugPrint("Executing nanoScheduler with initial reduce value " + initialValue);
         ReduceType sum = initialValue;
         while ( inputReader.hasNext() ) {
             try {
@@ -278,6 +294,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
             final List<MapType> outputs = new LinkedList<MapType>();
             for ( final InputType input : inputs )
                 outputs.add(map.apply(input));
+            debugPrint("    Processed %d elements with map", outputs.size());
             return outputs;
         }
     }

@@ -88,7 +88,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
                                          final Collection<ReferenceOrderedDataSource> rods,
                                          final int nThreadsToUse,
                                          final boolean monitorThreadPerformance ) {
-        super(engine, walker, reads, reference, rods);
+        super(engine, walker, reads, reference, rods, nThreadsToUse);
 
         if ( monitorThreadPerformance ) {
             final EfficiencyMonitoringThreadFactory monitoringThreadFactory = new EfficiencyMonitoringThreadFactory(nThreadsToUse);

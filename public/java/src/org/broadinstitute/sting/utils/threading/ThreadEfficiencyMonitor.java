@@ -140,6 +140,7 @@ public class ThreadEfficiencyMonitor {
         logger.log(priority, String.format("CPU      efficiency : %6.2f%% of time spent %s", getStatePercent(State.USER_CPU), State.USER_CPU.getUserFriendlyName()));
         logger.log(priority, String.format("Walker inefficiency : %6.2f%% of time spent %s", getStatePercent(State.BLOCKING), State.BLOCKING.getUserFriendlyName()));
         logger.log(priority, String.format("I/O    inefficiency : %6.2f%% of time spent %s", getStatePercent(State.WAITING_FOR_IO), State.WAITING_FOR_IO.getUserFriendlyName()));
+        logger.log(priority, String.format("Thread inefficiency : %6.2f%% of time spent %s", getStatePercent(State.WAITING), State.WAITING.getUserFriendlyName()));
     }
 
     /**

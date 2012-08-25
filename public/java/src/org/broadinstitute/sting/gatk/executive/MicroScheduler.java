@@ -103,14 +103,16 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         if (walker instanceof TreeReducible && threadAllocation.getNumCPUThreads() > 1) {
             if(walker.isReduceByInterval())
                 throw new UserException.BadArgumentValue("nt", String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
-            if(walker instanceof ReadWalker)
-                throw new UserException.BadArgumentValue("nt", String.format("The analysis %s is a read walker.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
             logger.info(String.format("Running the GATK in parallel mode with %d concurrent threads",threadAllocation.getNumCPUThreads()));
-            return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads(), threadAllocation.monitorThreadEfficiency());
+
+            if ( walker instanceof ReadWalker )
+                return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads(), threadAllocation.monitorThreadEfficiency());
+            else
+                return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads(), threadAllocation.monitorThreadEfficiency());
         } else {
             if(threadAllocation.getNumCPUThreads() > 1)
                 throw new UserException.BadArgumentValue("nt", String.format("The analysis %s currently does not support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
-            return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.monitorThreadEfficiency());
+            return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads(), threadAllocation.monitorThreadEfficiency());
         }
     }
 
@@ -121,15 +123,23 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @param reads   The reads.
      * @param reference The reference.
      * @param rods    the rods to include in the traversal
+     * @param numThreads the number of threads we are using in the underlying traversal
      */
-    protected MicroScheduler(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
+    protected MicroScheduler(final GenomeAnalysisEngine engine,
+                             final Walker walker,
+                             final SAMDataSource reads,
+                             final IndexedFastaSequenceFile reference,
+                             final Collection<ReferenceOrderedDataSource> rods,
+                             final int numThreads) {
         this.engine = engine;
         this.reads = reads;
         this.reference = reference;
         this.rods = rods;
 
         if (walker instanceof ReadWalker) {
-            traversalEngine = new TraverseReads();
+            traversalEngine = numThreads > 1 ? new TraverseReadsNano(numThreads) : new TraverseReads();
+        } else if ( numThreads > 1 ) {
+            throw new IllegalArgumentException("BUG: numThreads > 1 but this is only allowed for ReadWalkers");
         } else if (walker instanceof LocusWalker) {
             traversalEngine = new TraverseLoci();
         } else if (walker instanceof DuplicateWalker) {

@@ -39,8 +39,9 @@ public class LinearMicroScheduler extends MicroScheduler {
                                    final SAMDataSource reads,
                                    final IndexedFastaSequenceFile reference,
                                    final Collection<ReferenceOrderedDataSource> rods,
+                                   final int numThreads, // may be > 1 if are nanoScheduling
                                    final boolean monitorThreadPerformance ) {
-        super(engine, walker, reads, reference, rods);
+        super(engine, walker, reads, reference, rods, numThreads);
 
         if ( monitorThreadPerformance )
             setThreadEfficiencyMonitor(new ThreadEfficiencyMonitor());
