@@ -3,8 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.samples.Sample;
-import org.broadinstitute.sting.gatk.samples.SampleDB;
+import org.broadinstitute.sting.gatk.samples.Trio;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ExperimentalAnnotation;
@@ -39,7 +38,7 @@ public class MVLikelihoodRatio extends InfoFieldAnnotation implements Experiment
                                         final VariantContext vc,
                                         final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap) {
         if ( mendelianViolation == null ) {
-            trios = checkAndSetSamples(((Walker) walker).getSampleDB());
+            trios = ((Walker) walker).getSampleDB().getTrios();
             if ( trios.size() > 0 ) {
                 mendelianViolation = new MendelianViolation(((VariantAnnotator)walker).minGenotypeQualityP );
             }
@@ -53,7 +52,7 @@ public class MVLikelihoodRatio extends InfoFieldAnnotation implements Experiment
         double maxMVLR = Double.MIN_VALUE;
         for ( Trio trio : trios ) {
             if ( contextHasTrioLikelihoods(vc,trio) ) {
-                Double likR = mendelianViolation.violationLikelihoodRatio(vc,trio.getMaternalID(),trio.getPaternalID(),trio.childId);
+                Double likR = mendelianViolation.violationLikelihoodRatio(vc,trio.getMaternalID(),trio.getPaternalID(),trio.getChildID());
                 maxMVLR = likR > maxMVLR ? likR : maxMVLR;
                 //pNoMV *= (1.0-Math.pow(10.0,likR)/(1+Math.pow(10.0,likR)));
             }
@@ -71,24 +70,9 @@ public class MVLikelihoodRatio extends InfoFieldAnnotation implements Experiment
 
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(MVLR_KEY, 1, VCFHeaderLineType.Float, "Mendelian violation likelihood ratio: L[MV] - L[No MV]")); }
 
-    // todo - this entire function should be in samples DB
-    private Set<Trio> checkAndSetSamples(SampleDB db){
-        Set<Trio> trioSet = new HashSet<Trio>();
-        for ( String familyString : db.getFamilyIDs() ) {
-            Set<Sample> family = db.getFamily(familyString);
-            for ( Sample sample : family) {
-                if ( sample.getParents().size() == 2 ) {
-                    Trio trio = new Trio(sample.getMaternalID(),sample.getPaternalID(),sample.getID());
-                    trioSet.add(trio);
-                }
-            }
-        }
-
-        return trioSet;
-    }
 
     private boolean contextHasTrioLikelihoods(VariantContext context, Trio trio) {
-        for ( String sample : trio ) {
+        for ( String sample : Arrays.asList(trio.getMaternalID(),trio.getPaternalID(),trio.getChildID()) ) {
             if ( ! context.hasGenotype(sample) )
                 return false;
             if ( ! context.getGenotype(sample).hasLikelihoods() )
@@ -98,47 +82,4 @@ public class MVLikelihoodRatio extends InfoFieldAnnotation implements Experiment
         return true;
     }
 
-    // TODO -- this class is too much.
-    // TODO -- Why iterable?
-    // TODO -- shuoldn't this be in samplesDB() so you can just called samplesDB().getTrios()
-    // TODO -- should just have final string IDs, and getters, no setters
-    private class Trio implements Iterable<String> {
-        private String maternalID;
-        private String paternalID;
-        private String childId;
-
-        public Trio(String mom, String dad, String child) {
-            this.maternalID = mom;
-            this.paternalID = dad;
-            this.childId = child;
-        }
-
-        public String getMaternalID() {
-            return this.maternalID;
-        }
-
-        public String getPaternalID() {
-            return this.paternalID;
-        }
-
-        public String getChildId() {
-            return this.childId;
-        }
-
-        public void setMaternalID(String id) {
-            this.maternalID = id;
-        }
-
-        public void setPaternalID(String id) {
-            this.paternalID = id;
-        }
-
-        public void setChildId(String id) {
-            this.childId = id;
-        }
-
-        public Iterator<String> iterator() {
-            return Arrays.asList(maternalID,paternalID,childId).iterator();
-        }
-    }
 }
