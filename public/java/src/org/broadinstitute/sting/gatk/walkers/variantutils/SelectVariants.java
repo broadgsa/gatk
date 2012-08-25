@@ -579,6 +579,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     }
 
     private boolean badIndelSize(final VariantContext vc) {
+        List<Integer> lengths = vc.getIndelLengths();
+        if ( lengths == null )
+            return false; // VC does not harbor indel
         for ( Integer indelLength : vc.getIndelLengths() ) {
             if ( indelLength > maxIndelSize )
                 return true;

@@ -716,7 +716,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
      * @return a list of indel lengths ( null if not of type indel or mixed )
      */
     public List<Integer> getIndelLengths() {
-        if ( getType() != Type.INDEL && getType() != Type.MIXED ) {
+        if ( getType() != Type.INDEL && getType() != Type.MIXED && getType() != Type.STRUCTURAL_INDEL ) {
             return null;
         }
 
