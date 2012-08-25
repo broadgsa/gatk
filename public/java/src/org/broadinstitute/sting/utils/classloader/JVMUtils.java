@@ -25,12 +25,14 @@
 
 package org.broadinstitute.sting.utils.classloader;
 
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.reflections.util.ClasspathHelper;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.net.URL;
 import java.util.*;
@@ -233,5 +235,18 @@ public class JVMUtils {
             return (Class)parameterizedType.getActualTypeArguments()[0];
         } else
             throw new ReviewedStingException("BUG: could not find generic type on class " + t);
+    }
+
+    /**
+     * Returns a comma-separated list of the names of the interfaces implemented by this class
+     *
+     * @param covClass
+     * @return
+     */
+    public static String classInterfaces(final Class covClass) {
+        final List<String> interfaces = new ArrayList<String>();
+        for ( final Class interfaceClass : covClass.getInterfaces() )
+            interfaces.add(interfaceClass.getSimpleName());
+        return Utils.join(", ", interfaces);
     }
 }
