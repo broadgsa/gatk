@@ -42,6 +42,7 @@ import java.util.concurrent.*;
 public class EfficiencyMonitoringThreadFactoryUnitTest extends BaseTest {
     // the duration of the tests -- 100 ms is tolerable given the number of tests we are doing
     private final static long THREAD_TARGET_DURATION_IN_MILLISECOND = 1000;
+    private final static int MAX_THREADS = 4;
     final static Object GLOBAL_LOCK = new Object();
 
     private class StateTest extends TestDataProvider {
@@ -126,7 +127,7 @@ public class EfficiencyMonitoringThreadFactoryUnitTest extends BaseTest {
         return StateTest.getTests(StateTest.class);
     }
 
-    @Test(enabled = true, dataProvider = "StateTest")
+    @Test(enabled = true, dataProvider = "StateTest", timeOut = MAX_THREADS * THREAD_TARGET_DURATION_IN_MILLISECOND)
     public void testStateTest(final StateTest test) throws InterruptedException {
         // allows us to test blocking
         final EfficiencyMonitoringThreadFactory factory = new EfficiencyMonitoringThreadFactory(test.getNStates());

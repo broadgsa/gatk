@@ -16,6 +16,8 @@ import java.util.*;
  * To change this template use File | Settings | File Templates.
  */
 public class NanoSchedulerUnitTest extends BaseTest {
+    public static final int NANO_SCHEDULE_MAX_RUNTIME = 10000;
+
     private class Map2x implements MapFunction<Integer, Integer> {
         @Override public Integer apply(Integer input) { return input * 2; }
     }
@@ -83,14 +85,14 @@ public class NanoSchedulerUnitTest extends BaseTest {
         return NanoSchedulerBasicTest.getTests(NanoSchedulerBasicTest.class);
     }
 
-    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest")
+    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest", timeOut = NANO_SCHEDULE_MAX_RUNTIME)
     public void testSingleThreadedNanoScheduler(final NanoSchedulerBasicTest test) throws InterruptedException {
         logger.warn("Running " + test);
         if ( test.nThreads == 1 )
             testNanoScheduler(test);
     }
 
-    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest", timeOut = 10000, dependsOnMethods = "testSingleThreadedNanoScheduler")
+    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest", timeOut = NANO_SCHEDULE_MAX_RUNTIME, dependsOnMethods = "testSingleThreadedNanoScheduler")
     public void testMultiThreadedNanoScheduler(final NanoSchedulerBasicTest test) throws InterruptedException {
         logger.warn("Running " + test);
         if ( test.nThreads >= 1 )
@@ -111,7 +113,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         nanoScheduler.shutdown();
     }
 
-    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest", dependsOnMethods = "testMultiThreadedNanoScheduler")
+    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest", dependsOnMethods = "testMultiThreadedNanoScheduler", timeOut = NANO_SCHEDULE_MAX_RUNTIME)
     public void testNanoSchedulerInLoop(final NanoSchedulerBasicTest test) throws InterruptedException {
         if ( test.bufferSize > 1 && (test.mapGroupSize > 1 || test.mapGroupSize == -1)) {
             logger.warn("Running " + test);
@@ -130,7 +132,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         }
     }
 
-    @Test()
+    @Test(timeOut = NANO_SCHEDULE_MAX_RUNTIME)
     public void testShutdown() throws InterruptedException {
         final NanoScheduler<Integer, Integer, Integer> nanoScheduler = new NanoScheduler<Integer, Integer, Integer>(1, 1, 2);
         Assert.assertFalse(nanoScheduler.isShutdown(), "scheduler should be alive");
@@ -138,7 +140,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         Assert.assertTrue(nanoScheduler.isShutdown(), "scheduler should be dead");
     }
 
-    @Test(expectedExceptions = IllegalStateException.class)
+    @Test(expectedExceptions = IllegalStateException.class, timeOut = NANO_SCHEDULE_MAX_RUNTIME)
     public void testShutdownExecuteFailure() throws InterruptedException {
         final NanoScheduler<Integer, Integer, Integer> nanoScheduler = new NanoScheduler<Integer, Integer, Integer>(1, 1, 2);
         nanoScheduler.shutdown();
