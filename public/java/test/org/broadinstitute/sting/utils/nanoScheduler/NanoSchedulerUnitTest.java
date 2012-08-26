@@ -16,7 +16,7 @@ import java.util.*;
  * To change this template use File | Settings | File Templates.
  */
 public class NanoSchedulerUnitTest extends BaseTest {
-    public static final int NANO_SCHEDULE_MAX_RUNTIME = 10000;
+    public static final int NANO_SCHEDULE_MAX_RUNTIME = 60000;
 
     private class Map2x implements MapFunction<Integer, Integer> {
         @Override public Integer apply(Integer input) { return input * 2; }
