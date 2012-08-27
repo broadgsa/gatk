@@ -97,7 +97,6 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
             if (!vc.getAlleles().contains(a))
                 continue; // sanity check - shouldn't be needed
             alleleCounts.put(a,alleleCounts.get(a)+1);
-
         }
         final int[] counts = new int[alleleCounts.size()];
         counts[0] = alleleCounts.get(vc.getReference());
