@@ -84,7 +84,7 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
             throw new ReviewedStingException("Parallel read walkers currently don't support access to reference ordered data");
 
         final ReadView reads = new ReadView(dataProvider);
-        final ReadReferenceView reference = new NotImplementedReadReferenceView(dataProvider);
+        final ReadReferenceView reference = new ReadReferenceView(dataProvider);
         final ReadBasedReferenceOrderedView rodView = new ReadBasedReferenceOrderedView(dataProvider);
 
         nanoScheduler.setDebug(DEBUG);
@@ -101,23 +101,7 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
     @Override
     public void printOnTraversalDone() {
         nanoScheduler.shutdown();
-        super.printOnTraversalDone();    //To change body of overridden methods use File | Settings | File Templates.
-    }
-
-    private static class NotImplementedReadReferenceView extends ReadReferenceView {
-        private NotImplementedReadReferenceView(ShardDataProvider provider) {
-            super(provider);
-        }
-
-        @Override
-        protected byte[] getReferenceBases(SAMRecord read) {
-            throw new ReviewedStingException("Parallel read walkers don't support accessing reference yet");
-        }
-
-        @Override
-        protected byte[] getReferenceBases(GenomeLoc genomeLoc) {
-            throw new ReviewedStingException("Parallel read walkers don't support accessing reference yet");
-        }
+        super.printOnTraversalDone();
     }
 
     private class TraverseReadsReduce implements ReduceFunction<M, T> {
