@@ -18,11 +18,11 @@ import java.util.*;
 public class NanoSchedulerUnitTest extends BaseTest {
     public static final int NANO_SCHEDULE_MAX_RUNTIME = 60000;
 
-    private class Map2x implements MapFunction<Integer, Integer> {
+    private static class Map2x implements MapFunction<Integer, Integer> {
         @Override public Integer apply(Integer input) { return input * 2; }
     }
 
-    private class ReduceSum implements ReduceFunction<Integer, Integer> {
+    private static class ReduceSum implements ReduceFunction<Integer, Integer> {
         int prevOne = Integer.MIN_VALUE;
 
         @Override public Integer apply(Integer one, Integer sum) {
@@ -38,7 +38,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         return sum;
     }
 
-    private class NanoSchedulerBasicTest extends TestDataProvider {
+    private static class NanoSchedulerBasicTest extends TestDataProvider {
         final int bufferSize, mapGroupSize, nThreads, start, end, expectedResult;
 
         public NanoSchedulerBasicTest(final int bufferSize, final int mapGroupSize, final int nThreads, final int start, final int end) {
@@ -145,5 +145,14 @@ public class NanoSchedulerUnitTest extends BaseTest {
         final NanoScheduler<Integer, Integer, Integer> nanoScheduler = new NanoScheduler<Integer, Integer, Integer>(1, 1, 2);
         nanoScheduler.shutdown();
         nanoScheduler.execute(exampleTest.makeReader(), exampleTest.makeMap(), exampleTest.initReduce(), exampleTest.makeReduce());
+    }
+
+    public static void main(String [ ] args) {
+        final NanoSchedulerBasicTest test = new NanoSchedulerBasicTest(1000, 100, Integer.valueOf(args[0]), 0, Integer.valueOf(args[1]));
+        final NanoScheduler<Integer, Integer, Integer> nanoScheduler =
+                new NanoScheduler<Integer, Integer, Integer>(test.bufferSize, test.mapGroupSize, test.nThreads);
+
+        final Integer sum = nanoScheduler.execute(test.makeReader(), test.makeMap(), test.initReduce(), test.makeReduce());
+        System.out.printf("Sum = %d, expected =%d%n", sum, test.expectedResult);
     }
 }
