@@ -283,6 +283,8 @@ public class GenomeAnalysisEngine {
     static {
         deprecatedGATKWalkers.put("CountCovariates", "2.0");
         deprecatedGATKWalkers.put("TableRecalibration", "2.0");
+        deprecatedGATKWalkers.put("AlignmentWalker", "2.2");
+        deprecatedGATKWalkers.put("CountBestAlignments", "2.2");
     }
 
     /**
