@@ -37,34 +37,60 @@ public class ClippingOp {
      * Clips the bases in read according to this operation's start and stop.  Uses the clipping
      * representation used is the one provided by algorithm argument.
      *
-     * @param algorithm
-     * @param read
+     * @param algorithm    clipping algorithm to use
+     * @param originalRead the read to be clipped
      */
-    public GATKSAMRecord apply(ClippingRepresentation algorithm, GATKSAMRecord read) {
+    public GATKSAMRecord apply(ClippingRepresentation algorithm, GATKSAMRecord originalRead) {
+        GATKSAMRecord read;
+        try {
+            read = (GATKSAMRecord) originalRead.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new ReviewedStingException("Where did the clone go?");
+        }
         byte[] quals = read.getBaseQualities();
         byte[] bases = read.getReadBases();
+        byte[] newBases = new byte[bases.length];
+        byte[] newQuals = new byte[quals.length];
 
         switch (algorithm) {
             // important note:
             //   it's not safe to call read.getReadBases()[i] = 'N' or read.getBaseQualities()[i] = 0
             //   because you're not guaranteed to get a pointer to the actual array of bytes in the GATKSAMRecord
             case WRITE_NS:
-                for (int i = start; i <= stop; i++)
-                    bases[i] = 'N';
-                read.setReadBases(bases);
+                for (int i = 0; i < bases.length; i++) {
+                    if (i >= start && i <= stop) {
+                        newBases[i] = 'N';
+                    }
+                    else {
+                        newBases[i] = bases[i];
+                    }
+                }
+                read.setReadBases(newBases);
                 break;
             case WRITE_Q0S:
-                for (int i = start; i <= stop; i++)
-                    quals[i] = 0;
-                read.setBaseQualities(quals);
+                for (int i = 0; i < quals.length; i++) {
+                    if (i >= start && i <= stop) {
+                        newQuals[i] = 0;
+                    }
+                    else {
+                        newQuals[i] = quals[i];
+                    }
+                }
+                read.setBaseQualities(newQuals);
                 break;
             case WRITE_NS_Q0S:
-                for (int i = start; i <= stop; i++) {
-                    bases[i] = 'N';
-                    quals[i] = 0;
+                for (int i = 0; i < bases.length; i++) {
+                    if (i >= start && i <= stop) {
+                        newQuals[i] = 0;
+                        newBases[i] = 'N';
+                    }
+                    else {
+                        newQuals[i] = quals[i];
+                        newBases[i] = bases[i];
+                    }
                 }
-                read.setReadBases(bases);
-                read.setBaseQualities(quals);
+                read.setBaseQualities(newBases);
+                read.setReadBases(newBases);
                 break;
             case HARDCLIP_BASES:
                 read = hardClip(read, start, stop);
@@ -437,8 +463,8 @@ public class ClippingOp {
      * Checks if a hard clipped cigar left a read starting or ending with insertions/deletions
      * and cleans it up accordingly.
      *
-     * @param cigar
-     * @return
+     * @param cigar the original cigar
+     * @return an object with the shifts (see CigarShift class)
      */
     private CigarShift cleanHardClippedCigar(Cigar cigar) {
         Cigar cleanCigar = new Cigar();
