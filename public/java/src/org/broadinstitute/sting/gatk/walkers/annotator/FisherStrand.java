@@ -55,6 +55,8 @@ import java.util.*;
 public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
     private static final String FS = "FS";
     private static final double MIN_PVALUE = 1E-320;
+    private static final int MIN_QUAL_FOR_FILTERED_TEST = 17;
+
     public Map<String, Object> annotate(final RefMetaDataTracker tracker,
                                         final AnnotatorCompatible walker,
                                         final ReferenceContext ref,
@@ -64,30 +66,53 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
         if ( !vc.isVariant() )
             return null;
 
-        int[][] table;
-
         if (vc.isSNP() && stratifiedContexts != null) {
-            table = getSNPContingencyTable(stratifiedContexts, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
+            final int[][] tableNoFiltering = getSNPContingencyTable(stratifiedContexts, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount(), -1);
+            final int[][] tableFiltering = getSNPContingencyTable(stratifiedContexts, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount(), MIN_QUAL_FOR_FILTERED_TEST);
+            return pValueForBestTable(tableFiltering, tableNoFiltering);
         }
         else if (stratifiedPerReadAlleleLikelihoodMap != null) {
             // either SNP with no alignment context, or indels: per-read likelihood map needed
-            table = getContingencyTable(stratifiedPerReadAlleleLikelihoodMap, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
+            final int[][] table = getContingencyTable(stratifiedPerReadAlleleLikelihoodMap, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
+            return pValueForBestTable(table, null);
         }
         else
-        // for non-snp variants, we  need per-read likelihoods.
-        // for snps, we can get same result from simple pileup
+            // for non-snp variants, we  need per-read likelihoods.
+            // for snps, we can get same result from simple pileup
             return null;
+    }
 
-        if (table == null)
-            return null;
+    /**
+     * Create an annotation for the highest (i.e., least significant) p-value of table1 and table2
+     *
+     * @param table1 a contingency table, may be null
+     * @param table2 a contingency table, may be null
+     * @return annotation result for FS given tables
+     */
+    private Map<String, Object> pValueForBestTable(final int[][] table1, final int[][] table2) {
+        if ( table2 == null )
+            return table1 == null ? null : annotationForOneTable(pValueForContingencyTable(table1));
+        else if (table1 == null)
+            return annotationForOneTable(pValueForContingencyTable(table2));
+        else { // take the one with the best (i.e., least significant pvalue)
+            double pvalue1 = Math.max(pValueForContingencyTable(table1), MIN_PVALUE);
+            double pvalue2 = Math.max(pValueForContingencyTable(table2), MIN_PVALUE);
+            return annotationForOneTable(Math.max(pvalue1, pvalue2));
+        }
+    }
 
-        Double pvalue = Math.max(pValueForContingencyTable(table), MIN_PVALUE);
-        if ( pvalue == null )
-            return null;
-
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put(FS, String.format("%.3f", QualityUtils.phredScaleErrorRate(pvalue)));
-        return map;
+    /**
+     * Returns an annotation result given a pValue
+     *
+     * @param pValue
+     * @return a hash map from FS -> phred-scaled pValue
+     */
+    private Map<String, Object> annotationForOneTable(final double pValue) {
+        final Object value = String.format("%.3f", QualityUtils.phredScaleErrorRate(pValue));
+        return Collections.singletonMap(FS, value);
+//        Map<String, Object> map = new HashMap<String, Object>();
+//        map.put(FS, String.format("%.3f", QualityUtils.phredScaleErrorRate(pValue)));
+//        return map;
     }
 
     public List<String> getKeyNames() {
@@ -244,7 +269,10 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
      *   allele2   #       #
      * @return a 2x2 contingency table
      */
-    private static int[][] getSNPContingencyTable(Map<String, AlignmentContext> stratifiedContexts, Allele ref, Allele alt) {
+    private static int[][] getSNPContingencyTable(final Map<String, AlignmentContext> stratifiedContexts,
+                                                  final Allele ref,
+                                                  final Allele alt,
+                                                  final int minQScoreToConsider ) {
         int[][] table = new int[2][2];
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
@@ -252,8 +280,11 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
                 if ( ! RankSumTest.isUsableBase(p, false) || p.getRead().isReducedRead() ) // ignore deletions and reduced reads
                     continue;
 
-                Allele base = Allele.create(p.getBase(), false);
-                boolean isFW = !p.getRead().getReadNegativeStrandFlag();
+                if ( p.getQual() < minQScoreToConsider || p.getMappingQual() < minQScoreToConsider )
+                    continue;
+
+                final Allele base = Allele.create(p.getBase(), false);
+                final boolean isFW = !p.getRead().getReadNegativeStrandFlag();
 
                 final boolean matchesRef = ref.equals(base, true);
                 final boolean matchesAlt = alt.equals(base, true);
