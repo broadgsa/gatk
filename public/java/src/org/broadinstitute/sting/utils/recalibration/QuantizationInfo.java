@@ -39,7 +39,7 @@ public class QuantizationInfo {
         for (final RecalDatum value : qualTable.getAllValues()) {
             final RecalDatum datum = value;
             final int empiricalQual = MathUtils.fastRound(datum.getEmpiricalQuality());                                 // convert the empirical quality to an integer ( it is already capped by MAX_QUAL )
-            qualHistogram[empiricalQual] += datum.getNumObservations();                                                      // add the number of observations for every key
+            qualHistogram[empiricalQual] += (long) datum.getNumObservations();                                                      // add the number of observations for every key
         }
         empiricalQualCounts = Arrays.asList(qualHistogram);                                                             // histogram with the number of observations of the empirical qualities
         quantizeQualityScores(quantizationLevels);

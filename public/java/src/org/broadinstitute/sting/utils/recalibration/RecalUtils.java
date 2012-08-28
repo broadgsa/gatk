@@ -317,8 +317,8 @@ public class RecalUtils {
                 reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEmpiricalQuality());
                 if (tableIndex == RecalibrationTables.TableType.READ_GROUP_TABLE.index)
                     reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEstimatedQReported());   // we only add the estimated Q reported in the RG table
-                reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getNumObservations());
-                reportTable.set(rowIndex, columnNames.get(columnIndex).getFirst(), datum.getNumMismatches());
+                reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), Math.round(datum.getNumObservations()));
+                reportTable.set(rowIndex, columnNames.get(columnIndex).getFirst(), Math.round(datum.getNumMismatches()));
 
                 rowIndex++;
             }

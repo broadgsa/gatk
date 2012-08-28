@@ -28,7 +28,6 @@ package org.broadinstitute.sting.utils.recalibration;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.util.Random;
@@ -68,12 +67,12 @@ public class RecalDatum {
     /**
      * number of bases seen in total
      */
-    private long numObservations;
+    private double numObservations;
 
     /**
      * number of bases seen that didn't match the reference
      */
-    private long numMismatches;
+    private double numMismatches;
 
     /**
      * used when calculating empirical qualities to avoid division by zero
@@ -93,7 +92,7 @@ public class RecalDatum {
      * @param _numMismatches
      * @param reportedQuality
      */
-    public RecalDatum(final long _numObservations, final long _numMismatches, final byte reportedQuality) {
+    public RecalDatum(final double _numObservations, final double _numMismatches, final byte reportedQuality) {
         if ( _numObservations < 0 ) throw new IllegalArgumentException("numObservations < 0");
         if ( _numMismatches < 0 ) throw new IllegalArgumentException("numMismatches < 0");
         if ( reportedQuality < 0 ) throw new IllegalArgumentException("reportedQuality < 0");
@@ -167,9 +166,9 @@ public class RecalDatum {
             return 0.0;
         else {
             // cache the value so we don't call log over and over again
-            final double doubleMismatches = (double) (numMismatches + SMOOTHING_CONSTANT);
+            final double doubleMismatches = numMismatches + SMOOTHING_CONSTANT;
             // smoothing is one error and one non-error observation, for example
-            final double doubleObservations = (double) (numObservations + SMOOTHING_CONSTANT + SMOOTHING_CONSTANT);
+            final double doubleObservations = numObservations + SMOOTHING_CONSTANT + SMOOTHING_CONSTANT;
             return doubleMismatches / doubleObservations;
         }
     }
@@ -200,7 +199,7 @@ public class RecalDatum {
 
     @Override
     public String toString() {
-        return String.format("%d,%d,%d", getNumObservations(), getNumMismatches(), (byte) Math.floor(getEmpiricalQuality()));
+        return String.format("%d,%d,%d", Math.round(getNumObservations()), Math.round(getNumMismatches()), (byte) Math.floor(getEmpiricalQuality()));
     }
 
     public String stringForCSV() {
@@ -229,42 +228,42 @@ public class RecalDatum {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public long getNumObservations() {
+    public double getNumObservations() {
         return numObservations;
     }
 
-    public synchronized void setNumObservations(final long numObservations) {
+    public synchronized void setNumObservations(final double numObservations) {
         if ( numObservations < 0 ) throw new IllegalArgumentException("numObservations < 0");
         this.numObservations = numObservations;
         empiricalQuality = UNINITIALIZED;
     }
 
-    public long getNumMismatches() {
+    public double getNumMismatches() {
         return numMismatches;
     }
 
     @Requires({"numMismatches >= 0"})
-    public synchronized void setNumMismatches(final long numMismatches) {
+    public synchronized void setNumMismatches(final double numMismatches) {
         if ( numMismatches < 0 ) throw new IllegalArgumentException("numMismatches < 0");
         this.numMismatches = numMismatches;
         empiricalQuality = UNINITIALIZED;
     }
 
     @Requires({"by >= 0"})
-    public synchronized void incrementNumObservations(final long by) {
+    public synchronized void incrementNumObservations(final double by) {
         numObservations += by;
         empiricalQuality = UNINITIALIZED;
     }
 
     @Requires({"by >= 0"})
-    public synchronized void incrementNumMismatches(final long by) {
+    public synchronized void incrementNumMismatches(final double by) {
         numMismatches += by;
         empiricalQuality = UNINITIALIZED;
     }
 
     @Requires({"incObservations >= 0", "incMismatches >= 0"})
     @Ensures({"numObservations == old(numObservations) + incObservations", "numMismatches == old(numMismatches) + incMismatches"})
-    public synchronized void increment(final long incObservations, final long incMismatches) {
+    public synchronized void increment(final double incObservations, final double incMismatches) {
         incrementNumObservations(incObservations);
         incrementNumMismatches(incMismatches);
     }
@@ -300,6 +299,6 @@ public class RecalDatum {
      */
     @Ensures("result >= 0.0")
     private double calcExpectedErrors() {
-        return (double) getNumObservations() * QualityUtils.qualToErrorProb(estimatedQReported);
+        return getNumObservations() * QualityUtils.qualToErrorProb(estimatedQReported);
     }
 }
