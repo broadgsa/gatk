@@ -29,9 +29,8 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.*;
 import org.broadinstitute.sting.gatk.datasources.reads.ReadShard;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.nanoScheduler.MapFunction;
 import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
@@ -142,7 +141,7 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
                 //dataProvider.getShard().getReadMetrics().incrementNumIterations();
 
                 // if the read is mapped, create a metadata tracker
-                final ReadMetaDataTracker tracker = read.getReferenceIndex() >= 0 ? rodView.getReferenceOrderedDataForRead(read) : null;
+                final RefMetaDataTracker tracker = read.getReferenceIndex() >= 0 ? rodView.getReferenceOrderedDataForRead(read) : null;
 
                 final boolean keepMeP = walker.filter(refContext, (GATKSAMRecord) read);
                 if (keepMeP) {

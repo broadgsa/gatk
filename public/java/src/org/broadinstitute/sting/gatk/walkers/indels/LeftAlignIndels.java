@@ -27,12 +27,11 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.Cigar;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
@@ -80,7 +79,7 @@ public class LeftAlignIndels extends ReadWalker<Integer, Integer> {
             writer.addAlignment(read);
     }
 
-    public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) {
         // we can not deal with screwy records
         if ( read.getReadUnmappedFlag() || read.getCigar().numCigarElements() == 0 ) {
             emit(read);

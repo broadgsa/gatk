@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.walkers;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -179,7 +179,7 @@ public class FlagStat extends ReadWalker<FlagStat.FlagStatus, FlagStat.FlagStatu
 
 
     @Override
-    public FlagStatus map( final ReferenceContext ref, final GATKSAMRecord read, final ReadMetaDataTracker metaDataTracker ) {
+    public FlagStatus map( final ReferenceContext ref, final GATKSAMRecord read, final RefMetaDataTracker metaDataTracker ) {
         return new FlagStatus().add(read);
    }
 

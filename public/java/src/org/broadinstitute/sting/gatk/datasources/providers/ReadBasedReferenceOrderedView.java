@@ -27,8 +27,9 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.datasources.reads.ReadShard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -38,11 +39,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-/** a ROD view for reads. This provides the Read traversals a way of getting a ReadMetaDataTracker */
+/** a ROD view for reads. This provides the Read traversals a way of getting a RefMetaDataTracker */
 public class ReadBasedReferenceOrderedView implements View {
     // a list of the RMDDataState (location->iterators)
     private final List<RMDDataState> states = new ArrayList<RMDDataState>(1);
-    private final static ReadMetaDataTracker EMPTY_TRACKER = new ReadMetaDataTracker();
+    private final static RefMetaDataTracker EMPTY_TRACKER = new RefMetaDataTracker();
 
     /**
      * Used to get genome locs for reads
@@ -56,7 +57,7 @@ public class ReadBasedReferenceOrderedView implements View {
     private final GenomeLoc shardSpan;
 
     public ReadBasedReferenceOrderedView(final ShardDataProvider provider) {
-        this(provider.getGenomeLocParser(), provider.getShard().getLocation());
+        this(provider.getGenomeLocParser(), ((ReadShard)provider.getShard()).getReadsSpan());
         provider.register(this);
 
         if ( provider.getReferenceOrderedData() != null && ! shardSpan.isUnmapped() ) {
@@ -89,32 +90,32 @@ public class ReadBasedReferenceOrderedView implements View {
     }
 
     /**
-     * create a ReadMetaDataTracker given the current read
+     * create a RefMetaDataTracker given the current read
      *
      * @param rec the read
      *
-     * @return a ReadMetaDataTracker for the read, from which you can get ROD -> read alignments
+     * @return a RefMetaDataTracker for the read, from which you can get ROD -> read alignments
      */
     @Requires("rec != null")
     @Ensures("result != null")
-    public ReadMetaDataTracker getReferenceOrderedDataForRead(final SAMRecord rec) {
+    public RefMetaDataTracker getReferenceOrderedDataForRead(final SAMRecord rec) {
         if ( rec.getReadUnmappedFlag() )
             // empty RODs for unmapped reads
-            return new ReadMetaDataTracker();
+            return new RefMetaDataTracker();
         else
             return getReferenceOrderedDataForInterval(genomeLocParser.createGenomeLoc(rec));
     }
 
     @Requires({"interval != null", "shardSpan.containsP(interval)"})
     @Ensures("result != null")
-    public ReadMetaDataTracker getReferenceOrderedDataForInterval(final GenomeLoc interval) {
+    public RefMetaDataTracker getReferenceOrderedDataForInterval(final GenomeLoc interval) {
         if ( states.isEmpty() ) // optimization for no bindings (common for read walkers)
             return EMPTY_TRACKER;
         else {
             final List<RODRecordList> bindings = new ArrayList<RODRecordList>(states.size());
             for ( final RMDDataState state : states )
                 bindings.add(state.stream.getOverlapping(interval));
-            return new ReadMetaDataTracker(bindings);
+            return new RefMetaDataTracker(bindings);
         }
     }
 

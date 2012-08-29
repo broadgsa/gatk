@@ -36,7 +36,7 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.clipping.ClippingOp;
@@ -299,7 +299,7 @@ public class ClipReads extends ReadWalker<ClipReads.ReadClipperWithData, ClipRea
      * @param read the read itself, as a GATKSAMRecord
      * @return the ReadClipper object describing what should be done to clip this read
      */
-    public ReadClipperWithData map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public ReadClipperWithData map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) {
         if ( onlyDoRead == null || read.getReadName().equals(onlyDoRead) ) {
             if ( clippingRepresentation == ClippingRepresentation.HARDCLIP_BASES )
                 read = ReadClipper.revertSoftClippedBases(read);

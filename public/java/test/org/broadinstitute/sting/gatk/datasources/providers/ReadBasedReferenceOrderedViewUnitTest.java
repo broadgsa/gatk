@@ -30,7 +30,7 @@ import org.broad.tribble.Feature;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.refdata.RODRecordListImpl;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -283,7 +283,7 @@ public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
         final ReadBasedReferenceOrderedView view = new ReadBasedReferenceOrderedView(genomeLocParser, span, names, iterators);
 
         for ( final GenomeLoc interval : intervals ) {
-            final ReadMetaDataTracker tracker = view.getReferenceOrderedDataForInterval(interval);
+            final RefMetaDataTracker tracker = view.getReferenceOrderedDataForInterval(interval);
 
             for ( int i = 0; i < RODs.size(); i++ ) {
                 final ReadMetaDataTrackerRODStreamTest test = RODs.get(i);

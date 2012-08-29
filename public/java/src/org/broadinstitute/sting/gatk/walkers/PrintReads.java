@@ -32,7 +32,7 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
@@ -220,7 +220,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
      * @param read the read itself, as a GATKSAMRecord
      * @return the read itself
      */
-    public GATKSAMRecord map( ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker ) {
+    public GATKSAMRecord map( ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker ) {
         return simplifyReads ? read.simplify() : read;
     }
 

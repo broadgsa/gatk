@@ -36,8 +36,7 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.BAQMode;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.*;
@@ -473,7 +472,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         readsActuallyCleaned.clear();
     }
 
-    public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) {
         if ( currentInterval == null ) {
             emit(read);
             return 0;
@@ -540,7 +539,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         // TODO -- it would be nice if we could use indels from 454/Ion reads as alternate consenses
     }
 
-    private void cleanAndCallMap(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
+    private void cleanAndCallMap(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
         if ( readsToClean.size() > 0 ) {
             GenomeLoc earliestPossibleMove = getToolkit().getGenomeLocParser().createGenomeLoc(readsToClean.getReads().get(0));
             if ( manager.canMoveReads(earliestPossibleMove) )
@@ -619,7 +618,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    private void populateKnownIndels(ReadMetaDataTracker metaDataTracker, ReferenceContext ref) {
+    private void populateKnownIndels(RefMetaDataTracker metaDataTracker, ReferenceContext ref) {
         for ( final VariantContext vc : metaDataTracker.getValues(known) ) {
             if ( indelRodsSeen.contains(vc) )
                 continue;

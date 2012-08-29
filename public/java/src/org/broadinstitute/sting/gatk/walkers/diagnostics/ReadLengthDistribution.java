@@ -4,7 +4,7 @@ import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -74,7 +74,7 @@ public class ReadLengthDistribution extends ReadWalker<Integer, Integer> {
     }
 
     @Override
-    public Integer map(ReferenceContext referenceContext, GATKSAMRecord samRecord, ReadMetaDataTracker readMetaDataTracker) {
+    public Integer map(ReferenceContext referenceContext, GATKSAMRecord samRecord, RefMetaDataTracker RefMetaDataTracker) {
         GATKReportTable table = report.getTable("ReadLengthDistribution");
 
         int length = Math.abs(samRecord.getReadLength());

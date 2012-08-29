@@ -7,10 +7,7 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  *
@@ -124,5 +121,31 @@ public class ReadShard extends Shard {
             sb.append(' ');
         }
         return sb.toString();
+    }
+
+    /**
+     * Get the full span from the start of the left most read to the end of the right most one
+     *
+     * Note this may be different than the getLocation() of the shard, as this reflects the
+     * targeted span, not the actual span of reads
+     *
+     * @return the genome loc representing the span of these reads on the genome
+     */
+    public GenomeLoc getReadsSpan() {
+        if ( isUnmapped() || super.getGenomeLocs() == null || reads.isEmpty() )
+            return super.getLocation();
+        else {
+            int start = Integer.MAX_VALUE;
+            int stop = Integer.MIN_VALUE;
+            String contig = null;
+
+            for ( final SAMRecord read : reads ) {
+                contig = read.getReferenceName();
+                if ( read.getAlignmentStart() < start ) start = read.getAlignmentStart();
+                if ( read.getAlignmentEnd() > stop ) stop = read.getAlignmentEnd();
+            }
+
+            return parser.createGenomeLoc(contig, start, stop);
+        }
     }
 }
