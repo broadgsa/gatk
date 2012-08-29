@@ -620,16 +620,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private void populateKnownIndels(ReadMetaDataTracker metaDataTracker, ReferenceContext ref) {
-        for ( Collection<GATKFeature> rods : metaDataTracker.getContigOffsetMapping().values() ) {
-            Iterator<GATKFeature> rodIter = rods.iterator();
-            while ( rodIter.hasNext() ) {
-                Object rod = rodIter.next().getUnderlyingObject();
-                if ( indelRodsSeen.contains(rod) )
-                    continue;
-                indelRodsSeen.add(rod);
-                if ( rod instanceof VariantContext )
-                    knownIndelsToTry.add((VariantContext)rod);
-            }
+        for ( final VariantContext vc : metaDataTracker.getValues(known) ) {
+            if ( indelRodsSeen.contains(vc) )
+                continue;
+            indelRodsSeen.add(vc);
+            knownIndelsToTry.add(vc);
         }
     }
 

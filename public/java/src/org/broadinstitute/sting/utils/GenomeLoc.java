@@ -126,6 +126,15 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     }
 
     /**
+     * Return true if this GenomeLoc represents the UNMAPPED location
+     * @return
+     */
+    public final boolean isUnmapped() {
+        return isUnmapped(this);
+    }
+
+
+    /**
      * Returns a new GenomeLoc that represents the entire span of this and that.  Requires that
      * this and that GenomeLoc are contiguous and both mapped
      */
