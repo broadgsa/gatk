@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
 
@@ -140,6 +141,9 @@ public class ReadShard extends Shard {
             String contig = null;
 
             for ( final SAMRecord read : reads ) {
+                if ( contig != null && ! read.getReferenceName().equals(contig) )
+                    throw new ReviewedStingException("ReadShard contains reads spanning contig boundaries, which is no longer allowed. "
+                            + "First contig is " + contig + " next read was " + read.getReferenceName() );
                 contig = read.getReferenceName();
                 if ( read.getAlignmentStart() < start ) start = read.getAlignmentStart();
                 if ( read.getAlignmentEnd() > stop ) stop = read.getAlignmentEnd();

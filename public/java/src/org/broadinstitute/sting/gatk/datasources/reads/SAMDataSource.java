@@ -486,9 +486,15 @@ public class SAMDataSource {
 
         CloseableIterator<SAMRecord> iterator = getIterator(readers,shard,sortOrder == SAMFileHeader.SortOrder.coordinate);
         while(!shard.isBufferFull() && iterator.hasNext()) {
-            read = iterator.next();
-            shard.addRead(read);
-            noteFilePositionUpdate(positionUpdates,read);
+            final SAMRecord nextRead = iterator.next();
+            if ( read == null || (nextRead.getReferenceIndex().equals(read.getReferenceIndex())) ) {
+                // only add reads to the shard if they are on the same contig
+                read = nextRead;
+                shard.addRead(read);
+                noteFilePositionUpdate(positionUpdates,read);
+            } else {
+                break;
+            }
         }
 
         // If the reads are sorted in queryname order, ensure that all reads
