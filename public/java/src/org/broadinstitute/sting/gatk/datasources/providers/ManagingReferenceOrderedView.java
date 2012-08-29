@@ -58,7 +58,7 @@ public class ManagingReferenceOrderedView implements ReferenceOrderedView {
             // todo -- warning, I removed the reference to the name from states
             bindings.add( state.iterator.seekForward(loc) );
 
-        return new RefMetaDataTracker(bindings, referenceContext);
+        return new RefMetaDataTracker(bindings);
     }
 
     /**

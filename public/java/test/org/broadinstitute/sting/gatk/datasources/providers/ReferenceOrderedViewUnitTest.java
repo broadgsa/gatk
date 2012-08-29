@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.MockLocusShard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
@@ -89,7 +90,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(genomeLocParser.createGenomeLoc("chrM",20), null);
-        TableFeature datum = tracker.getFirstValue(TableFeature.class, "tableTest");
+        TableFeature datum = tracker.getFirstValue(new RodBinding<TableFeature>(TableFeature.class, "tableTest"));
 
         Assert.assertEquals(datum.get("COL1"),"C","datum parameter for COL1 is incorrect");
         Assert.assertEquals(datum.get("COL2"),"D","datum parameter for COL2 is incorrect");
@@ -115,13 +116,13 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(genomeLocParser.createGenomeLoc("chrM",20), null);
-        TableFeature datum1 = tracker.getFirstValue(TableFeature.class, "tableTest1");
+        TableFeature datum1 = tracker.getFirstValue(new RodBinding<TableFeature>(TableFeature.class, "tableTest1"));
 
         Assert.assertEquals(datum1.get("COL1"),"C","datum1 parameter for COL1 is incorrect");
         Assert.assertEquals(datum1.get("COL2"),"D","datum1 parameter for COL2 is incorrect");
         Assert.assertEquals(datum1.get("COL3"),"E","datum1 parameter for COL3 is incorrect");
 
-        TableFeature datum2 = tracker.getFirstValue(TableFeature.class, "tableTest2");
+        TableFeature datum2 = tracker.getFirstValue(new RodBinding<TableFeature>(TableFeature.class, "tableTest2"));
 
         Assert.assertEquals(datum2.get("COL1"),"C","datum2 parameter for COL1 is incorrect");
         Assert.assertEquals(datum2.get("COL2"),"D","datum2 parameter for COL2 is incorrect");
