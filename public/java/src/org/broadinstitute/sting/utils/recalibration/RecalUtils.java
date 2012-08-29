@@ -81,8 +81,8 @@ public class RecalUtils {
     public final static String NUMBER_OBSERVATIONS_COLUMN_NAME = "Observations";
     public final static String NUMBER_ERRORS_COLUMN_NAME = "Errors";
 
-    private final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS";                            // The tag that holds the color space for SOLID bams
-    private final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC";                        // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
+    private final static String COLOR_SPACE_ATTRIBUTE_TAG = "CS"; // The tag that holds the color space for SOLID bams
+    private final static String COLOR_SPACE_INCONSISTENCY_TAG = "ZC"; // A new tag made up for the recalibrator which will hold an array of ints which say if this base is inconsistent with its color
     private static boolean warnUserNullPlatform = false;
 
     private static final String SCRIPT_FILE = "BQSR.R";
@@ -111,12 +111,13 @@ public class RecalUtils {
         final List<Class<? extends RequiredCovariate>> requiredClasses = new PluginManager<RequiredCovariate>(RequiredCovariate.class).getPlugins();
         final List<Class<? extends StandardCovariate>> standardClasses = new PluginManager<StandardCovariate>(StandardCovariate.class).getPlugins();
 
-        final ArrayList<Covariate> requiredCovariates = addRequiredCovariatesToList(requiredClasses);                   // add the required covariates
+        final ArrayList<Covariate> requiredCovariates = addRequiredCovariatesToList(requiredClasses); // add the required covariates
         ArrayList<Covariate> optionalCovariates = new ArrayList<Covariate>();
         if (!argumentCollection.DO_NOT_USE_STANDARD_COVARIATES)
-            optionalCovariates = addStandardCovariatesToList(standardClasses);                                          // add the standard covariates if -standard was specified by the user
+            optionalCovariates = addStandardCovariatesToList(standardClasses); // add the standard covariates if -standard was specified by the user
 
-        if (argumentCollection.COVARIATES != null) {                                                                    // parse the -cov arguments that were provided, skipping over the ones already specified
+        // parse the -cov arguments that were provided, skipping over the ones already specified
+        if (argumentCollection.COVARIATES != null) {
             for (String requestedCovariateString : argumentCollection.COVARIATES) {
                 // help the transition from BQSR v1 to BQSR v2
                 if ( requestedCovariateString.equals("DinucCovariate") )
@@ -126,12 +127,12 @@ public class RecalUtils {
 
                 boolean foundClass = false;
                 for (Class<? extends Covariate> covClass : covariateClasses) {
-                    if (requestedCovariateString.equalsIgnoreCase(covClass.getSimpleName())) {                          // -cov argument matches the class name for an implementing class
+                    if (requestedCovariateString.equalsIgnoreCase(covClass.getSimpleName())) { // -cov argument matches the class name for an implementing class
                         foundClass = true;
                         if (!requiredClasses.contains(covClass) &&
                                 (argumentCollection.DO_NOT_USE_STANDARD_COVARIATES || !standardClasses.contains(covClass))) {
                             try {
-                                final Covariate covariate = covClass.newInstance();                                     // now that we've found a matching class, try to instantiate it
+                                final Covariate covariate = covClass.newInstance(); // now that we've found a matching class, try to instantiate it
                                 optionalCovariates.add(covariate);
                             } catch (Exception e) {
                                 throw new DynamicClassResolutionException(covClass, e);
@@ -161,7 +162,7 @@ public class RecalUtils {
         if (classes.size() != 2)
             throw new ReviewedStingException("The number of required covariates has changed, this is a hard change in the code and needs to be inspected");
 
-        dest.add(new ReadGroupCovariate());                                                                             // enforce the order with RG first and QS next.
+        dest.add(new ReadGroupCovariate()); // enforce the order with RG first and QS next.
         dest.add(new QualityScoreCovariate());
         return dest;
     }
@@ -266,20 +267,20 @@ public class RecalUtils {
 
         for (int tableIndex = 0; tableIndex < recalibrationTables.numTables(); tableIndex++) {
 
-            final ArrayList<Pair<String, String>> columnNames = new ArrayList<Pair<String, String>>();                                     // initialize the array to hold the column names
-            columnNames.add(new Pair<String, String>(covariateNameMap.get(requestedCovariates[0]), "%s"));              // save the required covariate name so we can reference it in the future
+            final ArrayList<Pair<String, String>> columnNames = new ArrayList<Pair<String, String>>(); // initialize the array to hold the column names
+            columnNames.add(new Pair<String, String>(covariateNameMap.get(requestedCovariates[0]), "%s")); // save the required covariate name so we can reference it in the future
             if (tableIndex != RecalibrationTables.TableType.READ_GROUP_TABLE.index) {
-                columnNames.add(new Pair<String, String>(covariateNameMap.get(requestedCovariates[1]), "%s"));          // save the required covariate name so we can reference it in the future
+                columnNames.add(new Pair<String, String>(covariateNameMap.get(requestedCovariates[1]), "%s")); // save the required covariate name so we can reference it in the future
                 if (tableIndex >= RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index) {
                     columnNames.add(covariateValue);
                     columnNames.add(covariateName);
                 }
             }
 
-            columnNames.add(eventType);                                                                                 // the order of these column names is important here
+            columnNames.add(eventType); // the order of these column names is important here
             columnNames.add(empiricalQuality);
             if (tableIndex == RecalibrationTables.TableType.READ_GROUP_TABLE.index)
-                columnNames.add(estimatedQReported);                                                                    // only the read group table needs the estimated Q reported
+                columnNames.add(estimatedQReported); // only the read group table needs the estimated Q reported
             columnNames.add(nObservations);
             columnNames.add(nErrors);
 
@@ -288,7 +289,7 @@ public class RecalUtils {
                 reportTable = new GATKReportTable("RecalTable" + reportTableIndex++, "", columnNames.size());
                 for (final Pair<String, String> columnName : columnNames)
                     reportTable.addColumn(columnName.getFirst(), columnName.getSecond());
-                rowIndex = 0;                                                                                           // reset the row index since we're starting with a new table
+                rowIndex = 0; // reset the row index since we're starting with a new table
             } else {
                 reportTable = result.get(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index);
             }
@@ -316,7 +317,7 @@ public class RecalUtils {
 
                 reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEmpiricalQuality());
                 if (tableIndex == RecalibrationTables.TableType.READ_GROUP_TABLE.index)
-                    reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEstimatedQReported());   // we only add the estimated Q reported in the RG table
+                    reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEstimatedQReported()); // we only add the estimated Q reported in the RG table
                 reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), Math.round(datum.getNumObservations()));
                 reportTable.set(rowIndex, columnNames.get(columnIndex).getFirst(), Math.round(datum.getNumMismatches()));
 
@@ -348,7 +349,6 @@ public class RecalUtils {
             names.add(cov.getClass().getSimpleName());
         return Utils.join(",", names);
     }
-
 
     public static void outputRecalibrationReport(final GATKReportTable argumentTable, final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, final PrintStream outputFile) {
         outputRecalibrationReport(argumentTable, quantizationInfo.generateReportTable(), generateReportTables(recalibrationTables, requestedCovariates), outputFile);
@@ -410,13 +410,13 @@ public class RecalUtils {
 
         // add the quality score table to the delta table
         final NestedIntegerArray<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE);
-        for (final NestedIntegerArray.Leaf leaf : qualTable.getAllLeaves()) {                                           // go through every element in the covariates table to create the delta table
+        for (final NestedIntegerArray.Leaf leaf : qualTable.getAllLeaves()) { // go through every element in the covariates table to create the delta table
             final int[] newCovs = new int[4];
             newCovs[0] = leaf.keys[0];
-            newCovs[1] = requestedCovariates.length;                                                                    // replace the covariate name with an arbitrary (unused) index for QualityScore
+            newCovs[1] = requestedCovariates.length; // replace the covariate name with an arbitrary (unused) index for QualityScore
             newCovs[2] = leaf.keys[1];
             newCovs[3] = leaf.keys[2];
-            addToDeltaTable(deltaTable, newCovs, (RecalDatum)leaf.value);                                               // add this covariate to the delta table
+            addToDeltaTable(deltaTable, newCovs, (RecalDatum)leaf.value); // add this covariate to the delta table
         }
 
         // add the optional covariates to the delta table
@@ -425,10 +425,10 @@ public class RecalUtils {
             for (final NestedIntegerArray.Leaf leaf : covTable.getAllLeaves()) {
                 final int[] covs = new int[4];
                 covs[0] = leaf.keys[0];
-                covs[1] = i;                                                                                            // reset the quality score covariate to 0 from the keyset (so we aggregate all rows regardless of QS)
+                covs[1] = i; // reset the quality score covariate to 0 from the keyset (so we aggregate all rows regardless of QS)
                 covs[2] = leaf.keys[2];
                 covs[3] = leaf.keys[3];
-                addToDeltaTable(deltaTable, covs, (RecalDatum) leaf.value);                                             // add this covariate to the delta table
+                addToDeltaTable(deltaTable, covs, (RecalDatum) leaf.value); // add this covariate to the delta table
             }
         }
 
@@ -486,11 +486,11 @@ public class RecalUtils {
      */
     private static void addToDeltaTable(final NestedHashMap deltaTable, final int[] deltaKey, final RecalDatum recalDatum) {
         Object[] wrappedKey = wrapKeys(deltaKey);
-        final RecalDatum deltaDatum = (RecalDatum)deltaTable.get(wrappedKey);                                           // check if we already have a RecalDatum for this key
+        final RecalDatum deltaDatum = (RecalDatum)deltaTable.get(wrappedKey); // check if we already have a RecalDatum for this key
         if (deltaDatum == null)
-            deltaTable.put(new RecalDatum(recalDatum), wrappedKey);                                                     // if we don't have a key yet, create a new one with the same values as the curent datum
+            deltaTable.put(new RecalDatum(recalDatum), wrappedKey); // if we don't have a key yet, create a new one with the same values as the curent datum
         else
-            deltaDatum.combine(recalDatum);                                                                             // if we do have a datum, combine it with this one.
+            deltaDatum.combine(recalDatum); // if we do have a datum, combine it with this one.
     }
 
     private static Object[] wrapKeys(final int[] keys) {
@@ -539,10 +539,11 @@ public class RecalUtils {
      * @return true if this read is consistent or false if this read should be skipped
      */
     public static boolean isColorSpaceConsistent(final SOLID_NOCALL_STRATEGY strategy, final GATKSAMRecord read) {
-        if (!ReadUtils.isSOLiDRead(read))                                                                               // If this is a SOLID read then we have to check if the color space is inconsistent. This is our only sign that SOLID has inserted the reference base
+        if (!ReadUtils.isSOLiDRead(read)) // If this is a SOLID read then we have to check if the color space is inconsistent. This is our only sign that SOLID has inserted the reference base
             return true;
 
-        if (read.getAttribute(RecalUtils.COLOR_SPACE_INCONSISTENCY_TAG) == null) {                                      // Haven't calculated the inconsistency array yet for this read
+        // Haven't calculated the inconsistency array yet for this read
+        if (read.getAttribute(RecalUtils.COLOR_SPACE_INCONSISTENCY_TAG) == null) {
             final Object attr = read.getAttribute(RecalUtils.COLOR_SPACE_ATTRIBUTE_TAG);
             if (attr != null) {
                 byte[] colorSpace;
@@ -562,13 +563,13 @@ public class RecalUtils {
                     }
                 }
 
-                byte[] readBases = read.getReadBases();                                                                 // Loop over the read and calculate first the inferred bases from the color and then check if it is consistent with the read
+                byte[] readBases = read.getReadBases(); // Loop over the read and calculate first the inferred bases from the color and then check if it is consistent with the read
                 if (read.getReadNegativeStrandFlag())
                     readBases = BaseUtils.simpleReverseComplement(read.getReadBases());
 
                 final byte[] inconsistency = new byte[readBases.length];
                 int i;
-                byte prevBase = colorSpace[0];                                                                          // The sentinel
+                byte prevBase = colorSpace[0]; // The sentinel
                 for (i = 0; i < readBases.length; i++) {
                     final byte thisBase = getNextBaseFromColor(read, prevBase, colorSpace[i + 1]);
                     inconsistency[i] = (byte) (thisBase == readBases[i] ? 0 : 1);
@@ -576,11 +577,11 @@ public class RecalUtils {
                 }
                 read.setAttribute(RecalUtils.COLOR_SPACE_INCONSISTENCY_TAG, inconsistency);
             }
-            else if (strategy == SOLID_NOCALL_STRATEGY.THROW_EXCEPTION)                                                 // if the strategy calls for an exception, throw it
+            else if (strategy == SOLID_NOCALL_STRATEGY.THROW_EXCEPTION) // if the strategy calls for an exception, throw it
                 throw new UserException.MalformedBAM(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() + " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
 
             else
-                return false;                                                                                           // otherwise, just skip the read
+                return false; // otherwise, just skip the read
         }
 
         return true;
@@ -774,6 +775,4 @@ public class RecalUtils {
                 return base;
         }
     }
-
-
 }

@@ -19,13 +19,13 @@ import java.util.*;
  * @since 3/26/12
  */
 public class RecalibrationReport {
-    private QuantizationInfo quantizationInfo;                                                                          // histogram containing the counts for qual quantization (calculated after recalibration is done)
-    private final RecalibrationTables recalibrationTables;                                                              // quick access reference to the tables
-    private final Covariate[] requestedCovariates;                                                                      // list of all covariates to be used in this calculation
+    private QuantizationInfo quantizationInfo; // histogram containing the counts for qual quantization (calculated after recalibration is done)
+    private final RecalibrationTables recalibrationTables; // quick access reference to the tables
+    private final Covariate[] requestedCovariates; // list of all covariates to be used in this calculation
     private final HashMap<String, Integer> optionalCovariateIndexes;
 
-    private final GATKReportTable argumentTable;                                                                              // keep the argument table untouched just for output purposes
-    private final RecalibrationArgumentCollection RAC;                                                                        // necessary for quantizing qualities with the same parameter
+    private final GATKReportTable argumentTable; // keep the argument table untouched just for output purposes
+    private final RecalibrationArgumentCollection RAC; // necessary for quantizing qualities with the same parameter
 
     private final int[] tempRGarray = new int[2];
     private final int[] tempQUALarray = new int[3];
@@ -40,7 +40,7 @@ public class RecalibrationReport {
         GATKReportTable quantizedTable = report.getTable(RecalUtils.QUANTIZED_REPORT_TABLE_TITLE);
         quantizationInfo = initializeQuantizationTable(quantizedTable);
 
-        Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalUtils.initializeCovariates(RAC);       // initialize the required and optional covariates
+        Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalUtils.initializeCovariates(RAC); // initialize the required and optional covariates
         ArrayList<Covariate> requiredCovariates = covariates.getFirst();
         ArrayList<Covariate> optionalCovariates = covariates.getSecond();
         requestedCovariates = new Covariate[requiredCovariates.size() + optionalCovariates.size()];
@@ -50,13 +50,13 @@ public class RecalibrationReport {
             requestedCovariates[covariateIndex++] = covariate;
         for (final Covariate covariate : optionalCovariates) {
             requestedCovariates[covariateIndex] = covariate;
-            final String covariateName = covariate.getClass().getSimpleName().split("Covariate")[0];                    // get the name of the covariate (without the "covariate" part of it) so we can match with the GATKReport
+            final String covariateName = covariate.getClass().getSimpleName().split("Covariate")[0]; // get the name of the covariate (without the "covariate" part of it) so we can match with the GATKReport
             optionalCovariateIndexes.put(covariateName, covariateIndex-2);
             covariateIndex++;
         }
 
         for (Covariate cov : requestedCovariates)
-            cov.initialize(RAC);                                                                                        // initialize any covariate member variables using the shared argument collection
+            cov.initialize(RAC); // initialize any covariate member variables using the shared argument collection
 
         recalibrationTables = new RecalibrationTables(requestedCovariates, countReadGroups(report.getTable(RecalUtils.READGROUP_REPORT_TABLE_TITLE)));
 
@@ -198,9 +198,10 @@ public class RecalibrationReport {
         final long nErrors = (Long) reportTable.get(row, RecalUtils.NUMBER_ERRORS_COLUMN_NAME);
         final double empiricalQuality = (Double) reportTable.get(row, RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME);
 
-        final double estimatedQReported = hasEstimatedQReportedColumn ?                                                 // the estimatedQreported column only exists in the ReadGroup table
-                (Double) reportTable.get(row, RecalUtils.ESTIMATED_Q_REPORTED_COLUMN_NAME) :                      // we get it if we are in the read group table
-                Byte.parseByte((String) reportTable.get(row, RecalUtils.QUALITY_SCORE_COLUMN_NAME));              // or we use the reported quality if we are in any other table
+        // the estimatedQreported column only exists in the ReadGroup table
+        final double estimatedQReported = hasEstimatedQReportedColumn ?
+                (Double) reportTable.get(row, RecalUtils.ESTIMATED_Q_REPORTED_COLUMN_NAME) : // we get it if we are in the read group table
+                Byte.parseByte((String) reportTable.get(row, RecalUtils.QUALITY_SCORE_COLUMN_NAME)); // or we use the reported quality if we are in any other table
 
         final RecalDatum datum = new RecalDatum(nObservations, nErrors, (byte)1);
         datum.setEstimatedQReported(estimatedQReported);
@@ -242,7 +243,7 @@ public class RecalibrationReport {
             final String argument = table.get(i, "Argument").toString();
             Object value = table.get(i, RecalUtils.ARGUMENT_VALUE_COLUMN_NAME);
             if (value.equals("null"))
-                value = null;                                                                                           // generic translation of null values that were printed out as strings | todo -- add this capability to the GATKReport
+                value = null; // generic translation of null values that were printed out as strings | todo -- add this capability to the GATKReport
 
             if (argument.equals("covariate") && value != null)
                 RAC.COVARIATES = value.toString().split(",");

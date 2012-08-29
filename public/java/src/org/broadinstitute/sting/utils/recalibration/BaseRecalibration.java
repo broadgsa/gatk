@@ -48,9 +48,9 @@ public class BaseRecalibration {
     private final static int MAXIMUM_RECALIBRATED_READ_LENGTH = 5000;
     private final ReadCovariates readCovariates;
 
-    private final QuantizationInfo quantizationInfo;                                                                    // histogram containing the map for qual quantization (calculated after recalibration is done)
+    private final QuantizationInfo quantizationInfo; // histogram containing the map for qual quantization (calculated after recalibration is done)
     private final RecalibrationTables recalibrationTables;
-    private final Covariate[] requestedCovariates;                                                                      // list of all covariates to be used in this calculation
+    private final Covariate[] requestedCovariates; // list of all covariates to be used in this calculation
 
     private final boolean disableIndelQuals;
     private final int preserveQLessThan;
@@ -76,9 +76,9 @@ public class BaseRecalibration {
         recalibrationTables = recalibrationReport.getRecalibrationTables();
         requestedCovariates = recalibrationReport.getRequestedCovariates();
         quantizationInfo = recalibrationReport.getQuantizationInfo();
-        if (quantizationLevels == 0)                                                                                    // quantizationLevels == 0 means no quantization, preserve the quality scores
+        if (quantizationLevels == 0) // quantizationLevels == 0 means no quantization, preserve the quality scores
             quantizationInfo.noQuantization();
-        else if (quantizationLevels > 0 && quantizationLevels != quantizationInfo.getQuantizationLevels())              // any other positive value means, we want a different quantization than the one pre-calculated in the recalibration report. Negative values mean the user did not provide a quantization argument, and just wnats to use what's in the report.
+        else if (quantizationLevels > 0 && quantizationLevels != quantizationInfo.getQuantizationLevels()) // any other positive value means, we want a different quantization than the one pre-calculated in the recalibration report. Negative values mean the user did not provide a quantization argument, and just wnats to use what's in the report.
             quantizationInfo.quantizeQualityScores(quantizationLevels);
 
         readCovariates = new ReadCovariates(MAXIMUM_RECALIBRATED_READ_LENGTH, requestedCovariates.length);
@@ -103,24 +103,26 @@ public class BaseRecalibration {
             }
         }
 
-        RecalUtils.computeCovariates(read, requestedCovariates, readCovariates);                                  // compute all covariates for the read
-        for (final EventType errorModel : EventType.values()) {                                                         // recalibrate all three quality strings
+        // Compute all covariates for the read
+        RecalUtils.computeCovariates(read, requestedCovariates, readCovariates);
+
+        for (final EventType errorModel : EventType.values()) { // recalibrate all three quality strings
             if (disableIndelQuals && errorModel != EventType.BASE_SUBSTITUTION) {
                 read.setBaseQualities(null, errorModel);
                 continue;
             }
 
             final byte[] quals = read.getBaseQualities(errorModel);
-            final int[][] fullReadKeySet = readCovariates.getKeySet(errorModel);                                        // get the keyset for this base using the error model
+            final int[][] fullReadKeySet = readCovariates.getKeySet(errorModel); // get the keyset for this base using the error model
 
             final int readLength = read.getReadLength();
-            for (int offset = 0; offset < readLength; offset++) {                                                       // recalibrate all bases in the read
+            for (int offset = 0; offset < readLength; offset++) { // recalibrate all bases in the read
 
                 final byte originalQualityScore = quals[offset];
 
-                if (originalQualityScore >= preserveQLessThan) {                                                        // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
-                    final int[] keySet = fullReadKeySet[offset];                                                        // get the keyset for this base using the error model
-                    final byte recalibratedQualityScore = performSequentialQualityCalculation(keySet, errorModel);      // recalibrate the base
+                if (originalQualityScore >= preserveQLessThan) { // only recalibrate usable qualities (the original quality will come from the instrument -- reported quality)
+                    final int[] keySet = fullReadKeySet[offset]; // get the keyset for this base using the error model
+                    final byte recalibratedQualityScore = performSequentialQualityCalculation(keySet, errorModel); // recalibrate the base
                     quals[offset] = recalibratedQualityScore;
                 }
             }
@@ -152,10 +154,10 @@ public class BaseRecalibration {
         final double deltaQReported = calculateDeltaQReported(recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE), key, errorModel, globalDeltaQ, qualFromRead);
         final double deltaQCovariates = calculateDeltaQCovariates(recalibrationTables, key, errorModel, globalDeltaQ, deltaQReported, qualFromRead);
 
-        double recalibratedQual = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;                      // calculate the recalibrated qual using the BQSR formula
-        recalibratedQual = QualityUtils.boundQual(MathUtils.fastRound(recalibratedQual), QualityUtils.MAX_RECALIBRATED_Q_SCORE);     // recalibrated quality is bound between 1 and MAX_QUAL
+        double recalibratedQual = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates; // calculate the recalibrated qual using the BQSR formula
+        recalibratedQual = QualityUtils.boundQual(MathUtils.fastRound(recalibratedQual), QualityUtils.MAX_RECALIBRATED_Q_SCORE); // recalibrated quality is bound between 1 and MAX_QUAL
 
-        return quantizationInfo.getQuantizedQuals().get((int) recalibratedQual);                                        // return the quantized version of the recalibrated quality
+        return quantizationInfo.getQuantizedQuals().get((int) recalibratedQual); // return the quantized version of the recalibrated quality
     }
 
     private double calculateGlobalDeltaQ(final NestedIntegerArray<RecalDatum> table, final int[] key, final EventType errorModel) {

@@ -106,26 +106,26 @@ import java.util.ArrayList;
 @DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
 @By(DataSource.READS)
-@ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class})                                   // only look at covered loci, not every loci of the reference file
-@Requires({DataSource.READS, DataSource.REFERENCE})                                         // filter out all reads with zero or unavailable mapping quality
-@PartitionBy(PartitionType.LOCUS)                                                                                       // this walker requires both -I input.bam and -R reference.fasta
+@ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class}) // only look at covered loci, not every loci of the reference file
+@Requires({DataSource.READS, DataSource.REFERENCE}) // filter out all reads with zero or unavailable mapping quality
+@PartitionBy(PartitionType.LOCUS) // this walker requires both -I input.bam and -R reference.fasta
 public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeReducible<Long> {
     @ArgumentCollection
-    private final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();                          // all the command line arguments for BQSR and it's covariates
+    private final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection(); // all the command line arguments for BQSR and it's covariates
 
-    private QuantizationInfo quantizationInfo;                                                                          // an object that keeps track of the information necessary for quality score quantization
+    private QuantizationInfo quantizationInfo; // an object that keeps track of the information necessary for quality score quantization
     
     private RecalibrationTables recalibrationTables;
 
-    private Covariate[] requestedCovariates;                                                                            // list to hold the all the covariate objects that were requested (required + standard + experimental)
+    private Covariate[] requestedCovariates; // list to hold the all the covariate objects that were requested (required + standard + experimental)
 
     private RecalibrationEngine recalibrationEngine;
 
     private int minimumQToUse;
 
-    protected static final String SKIP_RECORD_ATTRIBUTE = "SKIP";                                                       // used to label reads that should be skipped.
-    protected static final String SEEN_ATTRIBUTE = "SEEN";                                                              // used to label reads as processed.
-    protected static final String COVARS_ATTRIBUTE = "COVARS";                                                          // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
+    protected static final String SKIP_RECORD_ATTRIBUTE = "SKIP"; // used to label reads that should be skipped.
+    protected static final String SEEN_ATTRIBUTE = "SEEN"; // used to label reads as processed.
+    protected static final String COVARS_ATTRIBUTE = "COVARS"; // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
 
     private static final String NO_DBSNP_EXCEPTION = "This calculation is critically dependent on being able to skip over known variant sites. Please provide a VCF file containing known sites of genetic variation.";
 
@@ -143,16 +143,16 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
         if (RAC.FORCE_PLATFORM != null)
             RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM;
 
-        if (RAC.knownSites.isEmpty() && !RAC.RUN_WITHOUT_DBSNP)                                                         // Warn the user if no dbSNP file or other variant mask was specified
+        if (RAC.knownSites.isEmpty() && !RAC.RUN_WITHOUT_DBSNP) // Warn the user if no dbSNP file or other variant mask was specified
             throw new UserException.CommandLineException(NO_DBSNP_EXCEPTION);
 
         if (RAC.LIST_ONLY) {
             RecalUtils.listAvailableCovariates(logger);
             System.exit(0);
         }
-        RAC.recalibrationReport = getToolkit().getArguments().BQSR_RECAL_FILE;                                          // if we have a recalibration file, record it so it goes on the report table
+        RAC.recalibrationReport = getToolkit().getArguments().BQSR_RECAL_FILE; // if we have a recalibration file, record it so it goes on the report table
 
-        Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalUtils.initializeCovariates(RAC);       // initialize the required and optional covariates
+        Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalUtils.initializeCovariates(RAC); // initialize the required and optional covariates
         ArrayList<Covariate> requiredCovariates = covariates.getFirst();
         ArrayList<Covariate> optionalCovariates = covariates.getSecond();
 
@@ -164,9 +164,9 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
             requestedCovariates[covariateIndex++] = covariate;
 
         logger.info("The covariates being used here: ");
-        for (Covariate cov : requestedCovariates) {                                                                     // list all the covariates being used
+        for (Covariate cov : requestedCovariates) { // list all the covariates being used
             logger.info("\t" + cov.getClass().getSimpleName());
-            cov.initialize(RAC);                                                                                        // initialize any covariate member variables using the shared argument collection
+            cov.initialize(RAC); // initialize any covariate member variables using the shared argument collection
         }
 
         int numReadGroups = 0;
@@ -216,12 +216,14 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
      */
     public Long map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         long countedSites = 0L;
-        if (tracker.getValues(RAC.knownSites).size() == 0) {                                                            // Only analyze sites not present in the provided known sites
+        // Only analyze sites not present in the provided known sites
+        if (tracker.getValues(RAC.knownSites).size() == 0) {
             for (final PileupElement p : context.getBasePileup()) {
                 final GATKSAMRecord read = p.getRead();
                 final int offset = p.getOffset();
 
-                if (readHasBeenSkipped(read) || isLowQualityBase(read, offset))                                         // This read has been marked to be skipped or base is low quality (we don't recalibrate low quality bases)
+                // This read has been marked to be skipped or base is low quality (we don't recalibrate low quality bases)
+                if (readHasBeenSkipped(read) || isLowQualityBase(read, offset))
                     continue;
 
                 if (readNotSeen(read)) {
@@ -234,10 +236,12 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
                     read.setTemporaryAttribute(COVARS_ATTRIBUTE, RecalUtils.computeCovariates(read, requestedCovariates));
                 }
 
-                if (!ReadUtils.isSOLiDRead(read) ||                                                                     // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
+                // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
+                if (!ReadUtils.isSOLiDRead(read) ||
                     RAC.SOLID_RECAL_MODE == RecalUtils.SOLID_RECAL_MODE.DO_NOTHING ||
                         RecalUtils.isColorSpaceConsistent(read, offset))
-                    recalibrationEngine.updateDataForPileupElement(p, ref.getBase());                                                             // This base finally passed all the checks for a good base, so add it to the big data hashmap
+                    // This base finally passed all the checks for a good base, so add it to the big data hashmap
+                    recalibrationEngine.updateDataForPileupElement(p, ref.getBase());
             }
             countedSites++;
         }

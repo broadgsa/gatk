@@ -68,7 +68,7 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
         final NestedIntegerArray<RecalDatum> rgRecalTable = recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE);
         final RecalDatum rgPreviousDatum = rgRecalTable.get(keys[0], eventIndex);
         final RecalDatum rgThisDatum = createDatumObject(qual, isError);
-        if (rgPreviousDatum == null)                                                                                // key doesn't exist yet in the map so make a new bucket and add it
+        if (rgPreviousDatum == null) // key doesn't exist yet in the map so make a new bucket and add it
             rgRecalTable.put(rgThisDatum, keys[0], eventIndex);
         else
             rgPreviousDatum.combine(rgThisDatum);
