@@ -82,7 +82,7 @@ public class LeftAlignIndels extends ReadWalker<Integer, Integer> {
 
     public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
         // we can not deal with screwy records
-        if ( read.getCigar().numCigarElements() == 0 ) {
+        if ( read.getReadUnmappedFlag() || read.getCigar().numCigarElements() == 0 ) {
             emit(read);
             return 0;
         }
