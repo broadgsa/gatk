@@ -1181,10 +1181,10 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
         if ( event_length == 0 ) { // insertion
 
             l.add( Allele.create(referencePaddingBase,true) );
-            l.add( Allele.create(referencePaddingBase + call.getVariant().getBases(), false ));
+            l.add( Allele.create((char)referencePaddingBase + new String(call.getVariant().getBases()), false ));
 
         } else { //deletion:
-            l.add( Allele.create(referencePaddingBase + call.getVariant().getBases(), true ));
+            l.add( Allele.create((char)referencePaddingBase + new String(call.getVariant().getBases()), true ));
             l.add( Allele.create(referencePaddingBase,false) );
         }
     }
