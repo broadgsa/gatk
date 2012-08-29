@@ -57,7 +57,9 @@ public class ReadBasedReferenceOrderedView implements View {
     private final GenomeLoc shardSpan;
 
     public ReadBasedReferenceOrderedView(final ShardDataProvider provider) {
-        this(provider.getGenomeLocParser(), ((ReadShard)provider.getShard()).getReadsSpan());
+        this.genomeLocParser = provider.getGenomeLocParser();
+        // conditional to optimize the case where we don't have any ROD data
+        this.shardSpan = provider.getReferenceOrderedData() != null ? ((ReadShard)provider.getShard()).getReadsSpan() : null;
         provider.register(this);
 
         if ( provider.getReferenceOrderedData() != null && ! shardSpan.isUnmapped() ) {
@@ -66,10 +68,6 @@ public class ReadBasedReferenceOrderedView implements View {
         }
     }
 
-    private ReadBasedReferenceOrderedView(final GenomeLocParser genomeLocParser, final GenomeLoc shardSpan) {
-        this.genomeLocParser = genomeLocParser;
-        this.shardSpan = shardSpan;
-    }
 
     /**
      * Testing constructor
@@ -78,7 +76,8 @@ public class ReadBasedReferenceOrderedView implements View {
                                             final GenomeLoc shardSpan,
                                             final List<String> names,
                                             final List<PeekableIterator<RODRecordList>> featureSources) {
-        this(genomeLocParser, shardSpan);
+        this.genomeLocParser = genomeLocParser;
+        this.shardSpan = shardSpan;
         for ( int i = 0; i < names.size(); i++ )
             states.add(new RMDDataState(names.get(i), featureSources.get(i)));
     }
@@ -106,10 +105,10 @@ public class ReadBasedReferenceOrderedView implements View {
             return getReferenceOrderedDataForInterval(genomeLocParser.createGenomeLoc(rec));
     }
 
-    @Requires({"interval != null", "shardSpan.containsP(interval)"})
+    @Requires({"interval != null", "shardSpan == null || shardSpan.isUnmapped() || shardSpan.containsP(interval)"})
     @Ensures("result != null")
     public RefMetaDataTracker getReferenceOrderedDataForInterval(final GenomeLoc interval) {
-        if ( states.isEmpty() ) // optimization for no bindings (common for read walkers)
+        if ( states.isEmpty() || shardSpan.isUnmapped() ) // optimization for no bindings (common for read walkers)
             return EMPTY_TRACKER;
         else {
             final List<RODRecordList> bindings = new ArrayList<RODRecordList>(states.size());
