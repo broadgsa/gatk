@@ -80,7 +80,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
             this.mapGroupSize = mapGroupSize;
         }
 
-        this.executor = nThreads == 1 ? null : Executors.newFixedThreadPool(nThreads - 1);
+        this.executor = nThreads == 1 ? null : Executors.newFixedThreadPool(nThreads);
     }
 
     /**
