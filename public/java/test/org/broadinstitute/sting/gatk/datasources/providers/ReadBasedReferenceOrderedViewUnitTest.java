@@ -249,21 +249,23 @@ public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
                 multiSiteTests.add((ReadMetaDataTrackerRODStreamTest)singleTest[0]);
         }
 
-        // all pairwise tests
-        for ( List<ReadMetaDataTrackerRODStreamTest> singleTest : Utils.makePermutations(multiSiteTests, 2, false)) {
-            tests.add(new Object[]{singleTest});
-        }
+        for ( final boolean testStateless : Arrays.asList(true, false) ) {
+            // all pairwise tests
+            for ( List<ReadMetaDataTrackerRODStreamTest> singleTest : Utils.makePermutations(multiSiteTests, 2, false)) {
+                tests.add(new Object[]{singleTest, testStateless});
+            }
 
-        // all 3 way pairwise tests
-        for ( List<ReadMetaDataTrackerRODStreamTest> singleTest : Utils.makePermutations(multiSiteTests, 3, false)) {
-            tests.add(new Object[]{singleTest});
+            // all 3 way pairwise tests
+            for ( List<ReadMetaDataTrackerRODStreamTest> singleTest : Utils.makePermutations(multiSiteTests, 3, false)) {
+                tests.add(new Object[]{singleTest, testStateless});
+            }
         }
 
         return tests.toArray(new Object[][]{});
     }
 
     @Test(enabled = true, dataProvider = "ReadMetaDataTrackerTests", dependsOnMethods = "runReadMetaDataTrackerRODStreamTest_multipleQueries")
-    public void runReadMetaDataTrackerTest(final List<ReadMetaDataTrackerRODStreamTest> RODs) {
+    public void runReadMetaDataTrackerTest(final List<ReadMetaDataTrackerRODStreamTest> RODs, final boolean testStateless) {
         final List<String> names = new ArrayList<String>();
         final List<PeekableIterator<RODRecordList>> iterators = new ArrayList<PeekableIterator<RODRecordList>>();
         final List<GenomeLoc> intervals = new ArrayList<GenomeLoc>();
@@ -282,31 +284,45 @@ public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
         final GenomeLoc span = span(intervals);
         final ReadBasedReferenceOrderedView view = new ReadBasedReferenceOrderedView(genomeLocParser, span, names, iterators);
 
-        for ( final GenomeLoc interval : intervals ) {
-            final RefMetaDataTracker tracker = view.getReferenceOrderedDataForInterval(interval);
+        if ( testStateless ) {
+            // test each tracker is well formed, as each is created
+            for ( final GenomeLoc interval : intervals ) {
+                final RefMetaDataTracker tracker = view.getReferenceOrderedDataForInterval(interval);
+                testMetaDataTrackerBindings(tracker, interval, RODs, rodBindings);
+            }
+        } else {
+            // tests all trackers are correct after reading them into an array
+            // this checks that the trackers are be safely stored away and analyzed later (critical for nano-scheduling)
+            final List<RefMetaDataTracker> trackers = new ArrayList<RefMetaDataTracker>();
+            for ( final GenomeLoc interval : intervals ) {
+                final RefMetaDataTracker tracker = view.getReferenceOrderedDataForInterval(interval);
+                trackers.add(tracker);
+            }
 
-            for ( int i = 0; i < RODs.size(); i++ ) {
-                final ReadMetaDataTrackerRODStreamTest test = RODs.get(i);
-                final List<Feature> queryFeaturesList = tracker.getValues(rodBindings.get(i));
-                final Set<Feature> queryFeatures = new HashSet<Feature>(queryFeaturesList);
-                final Set<Feature> overlaps = test.getExpectedOverlaps(interval);
-
-                Assert.assertEquals(queryFeatures.size(), overlaps.size(), "IntervalOverlappingRODsFromStream didn't return the expected set of overlapping features." +
-                        " Expected size = " + overlaps.size() + " but saw " + queryFeatures.size());
-
-                BaseTest.assertEqualsSet(queryFeatures, overlaps, "IntervalOverlappingRODsFromStream didn't return the expected set of overlapping features." +
-                        " Expected = " + Utils.join(",", overlaps) + " but saw " + Utils.join(",", queryFeatures));
+            for ( int i = 0; i < trackers.size(); i++) {
+                testMetaDataTrackerBindings(trackers.get(i), intervals.get(i), RODs, rodBindings);
             }
         }
     }
 
-    /**
-     * Created with IntelliJ IDEA.
-     * User: depristo
-     * Date: 8/29/12
-     * Time: 1:19 PM
-     * To change this template use File | Settings | File Templates.
-     */
+    private void testMetaDataTrackerBindings(final RefMetaDataTracker tracker,
+                                             final GenomeLoc interval,
+                                             final List<ReadMetaDataTrackerRODStreamTest> RODs,
+                                             final List<RodBinding<Feature>> rodBindings) {
+        for ( int i = 0; i < RODs.size(); i++ ) {
+            final ReadMetaDataTrackerRODStreamTest test = RODs.get(i);
+            final List<Feature> queryFeaturesList = tracker.getValues(rodBindings.get(i));
+            final Set<Feature> queryFeatures = new HashSet<Feature>(queryFeaturesList);
+            final Set<Feature> overlaps = test.getExpectedOverlaps(interval);
+
+            Assert.assertEquals(queryFeatures.size(), overlaps.size(), "IntervalOverlappingRODsFromStream didn't return the expected set of overlapping features." +
+                    " Expected size = " + overlaps.size() + " but saw " + queryFeatures.size());
+
+            BaseTest.assertEqualsSet(queryFeatures, overlaps, "IntervalOverlappingRODsFromStream didn't return the expected set of overlapping features." +
+                    " Expected = " + Utils.join(",", overlaps) + " but saw " + Utils.join(",", queryFeatures));
+        }
+    }
+
     static class TribbleIteratorFromCollection implements Iterator<RODRecordList> {
         // current location
         private final String name;
