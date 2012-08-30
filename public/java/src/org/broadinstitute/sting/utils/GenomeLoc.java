@@ -141,7 +141,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
         }
 
         if (!(this.contiguousP(that))) {
-            throw new ReviewedStingException("The two genome loc's need to be contigous");
+            throw new ReviewedStingException("The two genome loc's need to be contiguous");
         }
 
         return new GenomeLoc(getContig(), this.contigIndex,
