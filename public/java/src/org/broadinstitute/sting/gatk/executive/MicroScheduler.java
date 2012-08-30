@@ -100,20 +100,27 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @return The best-fit microscheduler.
      */
     public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, ThreadAllocation threadAllocation) {
-        if (walker instanceof TreeReducible && threadAllocation.getNumCPUThreads() > 1) {
-            if(walker.isReduceByInterval())
+        if (threadAllocation.getNumCPUThreads() > 1) {
+            if (walker.isReduceByInterval())
                 throw new UserException.BadArgumentValue("nt", String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
+
             logger.info(String.format("Running the GATK in parallel mode with %d concurrent threads",threadAllocation.getNumCPUThreads()));
 
-            if ( walker instanceof ReadWalker )
+            if ( walker instanceof ReadWalker ) {
+                if ( ! (walker instanceof ThreadSafeMapReduce) ) badNT(engine, walker);
                 return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads(), threadAllocation.monitorThreadEfficiency());
-            else
+            } else {
+                // TODO -- update test for when nano scheduling only is an option
+                if ( ! (walker instanceof TreeReducible) ) badNT(engine, walker);
                 return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads(), threadAllocation.monitorThreadEfficiency());
+            }
         } else {
-            if(threadAllocation.getNumCPUThreads() > 1)
-                throw new UserException.BadArgumentValue("nt", String.format("The analysis %s currently does not support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
             return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads(), threadAllocation.monitorThreadEfficiency());
         }
+    }
+
+    private static void badNT(final GenomeAnalysisEngine engine, final Walker walker) {
+        throw new UserException.BadArgumentValue("nt", String.format("The analysis %s currently does not support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
     }
 
     /**

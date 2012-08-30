@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -48,7 +47,9 @@ public class VerifyingSamIterator implements StingSAMIterator {
             if(cur.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX || cur.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START)
                 throw new UserException.MalformedBAM(last,String.format("read %s has inconsistent mapping information.",cur.format()));
 
-            return last.getAlignmentStart() > cur.getAlignmentStart();
+            return (last.getReferenceIndex() > cur.getReferenceIndex()) ||
+                    (last.getReferenceIndex().equals(cur.getReferenceIndex()) &&
+                            last.getAlignmentStart() > cur.getAlignmentStart());
         }
     }
 
