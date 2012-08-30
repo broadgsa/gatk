@@ -29,6 +29,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
+import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.recalibration.covariates.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.R.RScriptExecutor;
@@ -117,6 +118,12 @@ public class RecalUtils {
 
         if (argumentCollection.COVARIATES != null) {                                                                    // parse the -cov arguments that were provided, skipping over the ones already specified
             for (String requestedCovariateString : argumentCollection.COVARIATES) {
+                // help the transition from BQSR v1 to BQSR v2
+                if ( requestedCovariateString.equals("DinucCovariate") )
+                    throw new UserException.CommandLineException("DinucCovariate has been retired.  Please use its successor covariate " +
+                            "ContextCovariate instead, which includes the 2 bp (dinuc) substitution model of the retired DinucCovariate " +
+                            "as well as an indel context to model the indel error rates");
+
                 boolean foundClass = false;
                 for (Class<? extends Covariate> covClass : covariateClasses) {
                     if (requestedCovariateString.equalsIgnoreCase(covClass.getSimpleName())) {                          // -cov argument matches the class name for an implementing class
@@ -178,17 +185,17 @@ public class RecalUtils {
         return dest;
     }
 
-    public static void listAvailableCovariates(Logger logger) {
-        // Get a list of all available covariates
-        final List<Class<? extends Covariate>> covariateClasses = new PluginManager<Covariate>(Covariate.class).getPlugins();
-
-        // Print and exit if that's what was requested
+    /**
+     * Print a list of all available covariates to logger as info
+     *
+     * @param logger
+     */
+    public static void listAvailableCovariates(final Logger logger) {
         logger.info("Available covariates:");
-        for (Class<?> covClass : covariateClasses)
-            logger.info(covClass.getSimpleName());
-        logger.info("");
+        for (final Class<? extends Covariate> covClass : new PluginManager<Covariate>(Covariate.class).getPlugins()) {
+            logger.info(String.format("\t%30s\t%s", covClass.getSimpleName(), JVMUtils.classInterfaces(covClass)));
+        }
     }
-
 
     public enum SOLID_RECAL_MODE {
         /**

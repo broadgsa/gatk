@@ -88,7 +88,11 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         for ( PileupElement p : pileup ) {
             if ( p.isBeforeInsertion() ) {
 
-                final Allele insertion = Allele.create((char)refBase + p.getEventBases(), false);
+                final String eventBases = p.getEventBases();
+                if ( eventBases == null )
+                    continue;
+
+                final Allele insertion = Allele.create((char)refBase + eventBases, false);
                 if ( alleleCounts.containsKey(insertion) ) {
                     alleleCounts.put(insertion, alleleCounts.get(insertion)+1);
                 }
