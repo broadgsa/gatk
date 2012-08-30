@@ -457,7 +457,6 @@ public class VariantContext implements Feature { // to enable tribble integratio
         SNP,
         MNP,    // a multi-nucleotide polymorphism
         INDEL,
-        STRUCTURAL_INDEL,
         SYMBOLIC,
         MIXED,
     }
@@ -531,7 +530,17 @@ public class VariantContext implements Feature { // to enable tribble integratio
     }
 
     public boolean isStructuralIndel() {
-        return getType() == Type.STRUCTURAL_INDEL;
+        if ( getType() == Type.INDEL ) {
+            List<Integer> sizes = getIndelLengths();
+            if ( sizes != null ) {
+                for ( Integer length : sizes ) {
+                    if ( length > MAX_ALLELE_SIZE_FOR_NON_SV ) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -716,7 +725,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
      * @return a list of indel lengths ( null if not of type indel or mixed )
      */
     public List<Integer> getIndelLengths() {
-        if ( getType() != Type.INDEL && getType() != Type.MIXED && getType() != Type.STRUCTURAL_INDEL ) {
+        if ( getType() != Type.INDEL && getType() != Type.MIXED ) {
             return null;
         }
 
@@ -1262,13 +1271,6 @@ public class VariantContext implements Feature { // to enable tribble integratio
         // performs a pairwise comparison of a single alternate allele against the reference allele (whereas the MIXED type
         // is reserved for cases of multiple alternate alleles of different types).  Therefore, if we've reached this point
         // in the code (so we're not a SNP, MNP, or symbolic allele), we absolutely must be an INDEL.
-
-        // Because a number of structural variation callers write the whole alternate allele into the VCF where possible,
-        // this can result in insertion/deletion alleles of structural variant size, e.g. 151+. As of July 2012, we now
-        // classify these as structural events, rather than indel events, as we think differently about the mechanism,
-        // representation, and handling of these events. Check for this case here:
-        if ( ref.length() > MAX_ALLELE_SIZE_FOR_NON_SV || allele.length() > MAX_ALLELE_SIZE_FOR_NON_SV )
-            return Type.STRUCTURAL_INDEL;
 
         return Type.INDEL;
 
