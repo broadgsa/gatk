@@ -47,7 +47,7 @@ abstract public class ReadTransformer {
      * @param engine the engine, for initializing values
      * @param walker the walker we intend to run
      */
-    @Requires({"initialized == false", "engine != null", "walker == null"})
+    @Requires({"initialized == false", "engine != null", "walker != null"})
     @Ensures("initialized == true")
     public final void initialize(final ApplicationTime overrideTime, final GenomeAnalysisEngine engine, final Walker walker) {
         if ( engine == null ) throw new IllegalArgumentException("engine cannot be null");
