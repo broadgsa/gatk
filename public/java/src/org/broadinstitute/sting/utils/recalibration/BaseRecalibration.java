@@ -27,12 +27,11 @@ package org.broadinstitute.sting.utils.recalibration;
 
 import net.sf.samtools.SAMTag;
 import net.sf.samtools.SAMUtils;
-import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
-import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
@@ -46,7 +45,6 @@ import java.io.File;
 
 public class BaseRecalibration {
     private final static int MAXIMUM_RECALIBRATED_READ_LENGTH = 5000;
-    private final ReadCovariates readCovariates;
 
     private final QuantizationInfo quantizationInfo; // histogram containing the map for qual quantization (calculated after recalibration is done)
     private final RecalibrationTables recalibrationTables;
@@ -56,10 +54,23 @@ public class BaseRecalibration {
     private final int preserveQLessThan;
     private final boolean emitOriginalQuals;
 
-    private static final NestedHashMap[] qualityScoreByFullCovariateKey = new NestedHashMap[EventType.values().length]; // Caches the result of performSequentialQualityCalculation(..) for all sets of covariate values.
-    static {
-        for (int i = 0; i < EventType.values().length; i++)
-            qualityScoreByFullCovariateKey[i] = new NestedHashMap();
+    // TODO -- was this supposed to be used somewhere?
+//    private static final NestedHashMap[] qualityScoreByFullCovariateKey = new NestedHashMap[EventType.values().length]; // Caches the result of performSequentialQualityCalculation(..) for all sets of covariate values.
+//    static {
+//        for (int i = 0; i < EventType.values().length; i++)
+//            qualityScoreByFullCovariateKey[i] = new NestedHashMap();
+//    }
+
+    /**
+     * Thread local cache to allow multi-threaded use of this class
+     */
+    private ThreadLocal<ReadCovariates> readCovariatesCache;
+    {
+        readCovariatesCache = new ThreadLocal<ReadCovariates> () {
+            @Override protected ReadCovariates initialValue() {
+                return new ReadCovariates(MAXIMUM_RECALIBRATED_READ_LENGTH, requestedCovariates.length);
+            }
+        };
     }
 
     /**
@@ -81,7 +92,6 @@ public class BaseRecalibration {
         else if (quantizationLevels > 0 && quantizationLevels != quantizationInfo.getQuantizationLevels()) // any other positive value means, we want a different quantization than the one pre-calculated in the recalibration report. Negative values mean the user did not provide a quantization argument, and just wnats to use what's in the report.
             quantizationInfo.quantizeQualityScores(quantizationLevels);
 
-        readCovariates = new ReadCovariates(MAXIMUM_RECALIBRATED_READ_LENGTH, requestedCovariates.length);
         this.disableIndelQuals = disableIndelQuals;
         this.preserveQLessThan = preserveQLessThan;
         this.emitOriginalQuals = emitOriginalQuals;
@@ -104,6 +114,11 @@ public class BaseRecalibration {
         }
 
         // Compute all covariates for the read
+        // TODO -- the need to clear here suggests there's an error in the indexing / assumption code
+        // TODO -- for BI and DI. Perhaps due to the indel buffer size on the ends of the reads?
+        // TODO -- the output varies with -nt 1 and -nt 2 if you don't call clear here
+        // TODO -- needs to be fixed.
+        final ReadCovariates readCovariates = readCovariatesCache.get().clear();
         RecalUtils.computeCovariates(read, requestedCovariates, readCovariates);
 
         for (final EventType errorModel : EventType.values()) { // recalibrate all three quality strings
@@ -130,6 +145,7 @@ public class BaseRecalibration {
         }
     }
 
+
     /**
      * Implements a serial recalibration of the reads using the combinational table.
      * First, we perform a positional recalibration, and then a subsequent dinuc correction.
@@ -147,7 +163,7 @@ public class BaseRecalibration {
      * @param errorModel the event type
      * @return A recalibrated quality score as a byte
      */
-    protected byte performSequentialQualityCalculation(final int[] key, final EventType errorModel) {
+    private byte performSequentialQualityCalculation(final int[] key, final EventType errorModel) {
 
         final byte qualFromRead = (byte)(long)key[1];
         final double globalDeltaQ = calculateGlobalDeltaQ(recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE), key, errorModel);
