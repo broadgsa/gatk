@@ -122,8 +122,8 @@ class GATKResourcesBundle extends QScript {
     //
     // standard VCF files.  Will be lifted to each reference
     //
-    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_135_b37.leftAligned.vcf",
-      "dbsnp_135", b37, true, false))
+    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_137_b37.leftAligned.vcf",
+      "dbsnp_137", b37, true, false))
 
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/Omni25_sites_2141_samples.b37.vcf",
       "1000G_omni2.5", b37, true, false))
