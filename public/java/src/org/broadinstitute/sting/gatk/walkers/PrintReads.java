@@ -32,6 +32,8 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformersMode;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
@@ -91,7 +93,8 @@ import java.util.TreeSet;
  *
  */
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
-@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_OUTPUT)
+@ReadTransformersMode(ApplicationTime = ReadTransformer.ApplicationTime.HANDLED_IN_WALKER)
+@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = ReadTransformer.ApplicationTime.HANDLED_IN_WALKER)
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> implements ThreadSafeMapReduce {
 
@@ -217,11 +220,20 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
      * The reads map function.
      *
      * @param ref  the reference bases that correspond to our read, if a reference was provided
-     * @param read the read itself, as a GATKSAMRecord
+     * @param readIn the read itself, as a GATKSAMRecord
      * @return the read itself
      */
-    public GATKSAMRecord map( ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker ) {
-        return simplifyReads ? read.simplify() : read;
+    public GATKSAMRecord map( ReferenceContext ref, GATKSAMRecord readIn, RefMetaDataTracker metaDataTracker ) {
+        GATKSAMRecord workingRead = readIn;
+
+        for ( final ReadTransformer transformer : getToolkit().getReadTransformers() ) {
+            if ( logger.isDebugEnabled() ) logger.debug("Applying transformer " + transformer + " to read " + readIn.getReadName());
+            workingRead = transformer.apply(workingRead);
+        }
+
+        if ( simplifyReads ) workingRead = workingRead.simplify();
+
+        return workingRead;
     }
 
     /**
