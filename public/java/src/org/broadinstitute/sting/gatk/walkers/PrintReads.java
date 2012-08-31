@@ -93,7 +93,7 @@ import java.util.TreeSet;
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_OUTPUT)
 @Requires({DataSource.READS, DataSource.REFERENCE})
-public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> implements TreeReducible<SAMFileWriter> {
+public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> implements ThreadSafeMapReduce {
 
     @Output(doc="Write output to this BAM filename instead of STDOUT", required = true)
     SAMFileWriter out;
@@ -244,10 +244,5 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
     public SAMFileWriter reduce( GATKSAMRecord read, SAMFileWriter output ) {
         output.addAlignment(read);
         return output;
-    }
-
-    @Override
-    public SAMFileWriter treeReduce(SAMFileWriter lhs, SAMFileWriter rhs) {
-        return lhs; // nothing to do
     }
 }

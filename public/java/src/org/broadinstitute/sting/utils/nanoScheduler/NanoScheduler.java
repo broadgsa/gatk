@@ -43,7 +43,8 @@ import java.util.concurrent.*;
  * Time: 9:47 AM
  */
 public class NanoScheduler<InputType, MapType, ReduceType> {
-    private static Logger logger = Logger.getLogger(NanoScheduler.class);
+    private final static Logger logger = Logger.getLogger(NanoScheduler.class);
+    private final static boolean ALLOW_SINGLE_THREAD_FASTPATH = true;
 
     final int bufferSize;
     final int mapGroupSize;
@@ -79,7 +80,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
             this.mapGroupSize = mapGroupSize;
         }
 
-        this.executor = nThreads == 1 ? null : Executors.newFixedThreadPool(nThreads - 1);
+        this.executor = nThreads == 1 ? null : Executors.newFixedThreadPool(nThreads);
     }
 
     /**
@@ -172,7 +173,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         if ( map == null ) throw new IllegalArgumentException("map function cannot be null");
         if ( reduce == null ) throw new IllegalArgumentException("reduce function cannot be null");
 
-        if ( getnThreads() == 1 ) {
+        if ( ALLOW_SINGLE_THREAD_FASTPATH && getnThreads() == 1 ) {
             return executeSingleThreaded(inputReader, map, initialValue, reduce);
         } else {
             return executeMultiThreaded(inputReader, map, initialValue, reduce);

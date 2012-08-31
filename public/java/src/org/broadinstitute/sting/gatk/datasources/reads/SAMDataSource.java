@@ -262,7 +262,7 @@ public class SAMDataSource {
         else {
             // Choose a sensible default for the read buffer size.  For the moment, we're picking 1000 reads per BAM per shard (which effectively
             // will mean per-thread once ReadWalkers are parallelized) with a max cap of 250K reads in memory at once.
-            ReadShard.setReadBufferSize(Math.min(1000*samFiles.size(),250000));
+            ReadShard.setReadBufferSize(Math.min(10000*samFiles.size(),250000));
         }
 
         resourcePool = new SAMResourcePool(Integer.MAX_VALUE);

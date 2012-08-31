@@ -16,6 +16,7 @@ import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -210,5 +211,60 @@ public class GenomeLocUnitTest extends BaseTest {
             Assert.assertEquals(cfg.gl1.intersect(cfg.gl2).size(), cfg.overlapSize);
             Assert.assertEquals(cfg.gl1.reciprocialOverlapFraction(cfg.gl2), cfg.overlapFraction);
         }
+    }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // testing comparison, hashcode, and equals
+    //
+    // -------------------------------------------------------------------------------------
+
+    @DataProvider(name = "GenomeLocComparisons")
+    public Object[][] createGenomeLocComparisons() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final int start = 10;
+        for ( int stop = start; stop < start + 3; stop++ ) {
+            final GenomeLoc g1 = genomeLocParser.createGenomeLoc("chr2", start, stop);
+            for ( final String contig : Arrays.asList("chr1", "chr2", "chr3")) {
+                for ( int start2 = start - 1; start2 <= stop + 1; start2++ ) {
+                    for ( int stop2 = start2; stop2 < stop + 2; stop2++ ) {
+                        final GenomeLoc g2 = genomeLocParser.createGenomeLoc(contig, start2, stop2);
+
+                        ComparisonResult cmp = ComparisonResult.EQUALS;
+                        if ( contig.equals("chr3") ) cmp = ComparisonResult.LESS_THAN;
+                        else if ( contig.equals("chr1") ) cmp = ComparisonResult.GREATER_THAN;
+                        else if ( start < start2 ) cmp = ComparisonResult.LESS_THAN;
+                        else if ( start > start2 ) cmp = ComparisonResult.GREATER_THAN;
+                        else if ( stop < stop2 ) cmp = ComparisonResult.LESS_THAN;
+                        else if ( stop > stop2 ) cmp = ComparisonResult.GREATER_THAN;
+
+                        tests.add(new Object[]{g1, g2, cmp});
+                    }
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    private enum ComparisonResult {
+        LESS_THAN(-1),
+        EQUALS(0),
+        GREATER_THAN(1);
+
+        final int cmp;
+
+        private ComparisonResult(int cmp) {
+            this.cmp = cmp;
+        }
+    }
+
+    @Test(dataProvider = "GenomeLocComparisons")
+    public void testGenomeLocComparisons(GenomeLoc g1, GenomeLoc g2, ComparisonResult expected) {
+        Assert.assertEquals(g1.compareTo(g2), expected.cmp, "Comparing genome locs failed");
+        Assert.assertEquals(g1.equals(g2), expected == ComparisonResult.EQUALS);
+        if ( expected == ComparisonResult.EQUALS )
+            Assert.assertEquals(g1.hashCode(), g2.hashCode(), "Equal genome locs don't have the same hash code");
     }
 }

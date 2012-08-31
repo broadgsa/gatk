@@ -45,7 +45,7 @@ import java.text.NumberFormat;
  */
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS})
-public class FlagStat extends ReadWalker<FlagStat.FlagStatus, FlagStat.FlagStatus> implements TreeReducible<FlagStat.FlagStatus> {
+public class FlagStat extends ReadWalker<FlagStat.FlagStatus, FlagStat.FlagStatus> implements ThreadSafeMapReduce {
     @Output
     PrintStream out;
 
@@ -190,11 +190,6 @@ public class FlagStat extends ReadWalker<FlagStat.FlagStatus, FlagStat.FlagStatu
 
     @Override
     public FlagStatus reduce(final FlagStatus value, final FlagStatus sum) {
-        return sum.add(value);
-    }
-
-    @Override
-    public FlagStatus treeReduce(final FlagStatus value, final FlagStatus sum) {
         return sum.add(value);
     }
 

@@ -121,7 +121,7 @@ public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
         // test in the present of a large spanning element
         {
             List<Feature> oneLargeSpan = new ArrayList<Feature>(handPickedFeatures);
-            oneLargeSpan.add(new BasicFeature(contig, 1, 100));
+            oneLargeSpan.add(new BasicFeature(contig, 1, 30));
             createTestsForFeatures(oneLargeSpan);
         }
 
@@ -135,7 +135,7 @@ public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
         // test in the presence of a partially spanning element at the end
         {
             List<Feature> partialSpanEnd = new ArrayList<Feature>(handPickedFeatures);
-            partialSpanEnd.add(new BasicFeature(contig, 10, 100));
+            partialSpanEnd.add(new BasicFeature(contig, 10, 30));
             createTestsForFeatures(partialSpanEnd);
         }
 
@@ -165,7 +165,7 @@ public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
         int featuresStart = 1; for ( final Feature f : features ) featuresStart = Math.min(featuresStart, f.getStart());
         int featuresStop = 1; for ( final Feature f : features ) featuresStop = Math.max(featuresStop, f.getEnd());
 
-        for ( final int size : Arrays.asList(1, 5, 10, 100, 1000) ) {
+        for ( final int size : Arrays.asList(1, 5, 10, 100) ) {
             final List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>();
             // regularly spaced
             for ( int start = featuresStart; start < featuresStop; start++) {
@@ -256,11 +256,12 @@ public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
             }
 
             // all 3 way pairwise tests
-            for ( List<ReadMetaDataTrackerRODStreamTest> singleTest : Utils.makePermutations(multiSiteTests, 3, false)) {
-                tests.add(new Object[]{singleTest, testStateless});
-            }
+            //for ( List<ReadMetaDataTrackerRODStreamTest> singleTest : Utils.makePermutations(multiSiteTests, 3, false)) {
+            //    tests.add(new Object[]{singleTest, testStateless});
+            //}
         }
 
+        logger.warn("Creating " + tests.size() + " tests for ReadMetaDataTrackerTests");
         return tests.toArray(new Object[][]{});
     }
 

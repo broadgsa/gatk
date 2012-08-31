@@ -19,6 +19,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.*;
@@ -254,6 +255,90 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
             Assert.assertEquals(pe.getEventBases(), "AAAAAAAAAA");
         }
     }
+
+    ////////////////////////////////////////////
+    // comprehensive LIBS/PileupElement tests //
+    ////////////////////////////////////////////
+
+    private static final int IS_BEFORE_DELETED_BASE_FLAG = 1;
+    private static final int IS_BEFORE_DELETION_START_FLAG = 2;
+    private static final int IS_AFTER_DELETED_BASE_FLAG = 4;
+    private static final int IS_AFTER_DELETION_END_FLAG = 8;
+    private static final int IS_BEFORE_INSERTION_FLAG = 16;
+    private static final int IS_AFTER_INSERTION_FLAG = 32;
+    private static final int IS_NEXT_TO_SOFTCLIP_FLAG = 64;
+
+    private static class LIBSTest {
+
+
+        final String cigar;
+        final int readLength;
+        final List<Integer> offsets;
+        final List<Integer> flags;
+
+        private LIBSTest(final String cigar, final int readLength, final List<Integer> offsets, final List<Integer> flags) {
+            this.cigar = cigar;
+            this.readLength = readLength;
+            this.offsets = offsets;
+            this.flags = flags;
+        }
+    }
+
+    @DataProvider(name = "LIBSTest")
+    public Object[][] createLIBSTestData() {
+        return new Object[][]{
+                {new LIBSTest("1I", 1, Arrays.asList(0), Arrays.asList(IS_BEFORE_INSERTION_FLAG))},
+                {new LIBSTest("10I", 10, Arrays.asList(0), Arrays.asList(IS_BEFORE_INSERTION_FLAG))},
+                {new LIBSTest("2M2I2M", 6, Arrays.asList(0,1,4,5), Arrays.asList(0,IS_BEFORE_INSERTION_FLAG,IS_AFTER_INSERTION_FLAG,0))},
+                {new LIBSTest("2M2I", 4, Arrays.asList(0,1), Arrays.asList(0,IS_BEFORE_INSERTION_FLAG))},
+                //TODO -- uncomment these when LIBS is fixed
+                //{new LIBSTest("2I2M", 4, Arrays.asList(2,3), Arrays.asList(IS_AFTER_INSERTION_FLAG,0))},
+                //{new LIBSTest("1I1M1D1M", 3, Arrays.asList(0,1), Arrays.asList(IS_AFTER_INSERTION_FLAG | IS_BEFORE_DELETION_START_FLAG | IS_BEFORE_DELETED_BASE_FLAG,IS_AFTER_DELETED_BASE_FLAG | IS_AFTER_DELETION_END_FLAG))},
+                //{new LIBSTest("1S1I1M", 3, Arrays.asList(2), Arrays.asList(IS_AFTER_INSERTION_FLAG))},
+                {new LIBSTest("1M2D2M", 3, Arrays.asList(0,1,2), Arrays.asList(IS_BEFORE_DELETION_START_FLAG | IS_BEFORE_DELETED_BASE_FLAG,IS_AFTER_DELETED_BASE_FLAG | IS_AFTER_DELETION_END_FLAG,0))},
+                {new LIBSTest("1S1M", 2, Arrays.asList(1), Arrays.asList(IS_NEXT_TO_SOFTCLIP_FLAG))},
+                {new LIBSTest("1M1S", 2, Arrays.asList(0), Arrays.asList(IS_NEXT_TO_SOFTCLIP_FLAG))},
+                {new LIBSTest("1S1M1I", 3, Arrays.asList(1), Arrays.asList(IS_BEFORE_INSERTION_FLAG | IS_NEXT_TO_SOFTCLIP_FLAG))}
+        };
+    }
+
+    @Test(dataProvider = "LIBSTest")
+    public void testLIBS(LIBSTest params) {
+        final int locus = 44367788;
+
+        SAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read", 0, locus, params.readLength);
+        read.setReadBases(Utils.dupBytes((byte) 'A', params.readLength));
+        read.setBaseQualities(Utils.dupBytes((byte) '@', params.readLength));
+        read.setCigarString(params.cigar);
+
+        // create the iterator by state with the fake reads and fake records
+        li = makeLTBS(Arrays.asList(read), createTestReadProperties());
+
+        int offset = 0;
+        while ( li.hasNext() ) {
+            AlignmentContext alignmentContext = li.next();
+            ReadBackedPileup p = alignmentContext.getBasePileup();
+            Assert.assertTrue(p.getNumberOfElements() == 1);
+            PileupElement pe = p.iterator().next();
+
+            final int flag = params.flags.get(offset);
+            Assert.assertEquals(pe.isBeforeDeletedBase(), (flag & IS_BEFORE_DELETED_BASE_FLAG) != 0);
+            Assert.assertEquals(pe.isBeforeDeletionStart(), (flag & IS_BEFORE_DELETION_START_FLAG) != 0);
+            Assert.assertEquals(pe.isAfterDeletedBase(), (flag & IS_AFTER_DELETED_BASE_FLAG) != 0);
+            Assert.assertEquals(pe.isAfterDeletionEnd(), (flag & IS_AFTER_DELETION_END_FLAG) != 0);
+            Assert.assertEquals(pe.isBeforeInsertion(), (flag & IS_BEFORE_INSERTION_FLAG) != 0);
+            Assert.assertEquals(pe.isAfterInsertion(), (flag & IS_AFTER_INSERTION_FLAG) != 0);
+            Assert.assertEquals(pe.isNextToSoftClip(), (flag & IS_NEXT_TO_SOFTCLIP_FLAG) != 0);
+
+            Assert.assertEquals(pe.getOffset(), params.offsets.get(offset).intValue());
+
+            offset++;
+        }
+    }
+
+    ////////////////////////////////////////////////
+    // End comprehensive LIBS/PileupElement tests //
+    ////////////////////////////////////////////////
 
     private static ReadProperties createTestReadProperties() {
         return new ReadProperties(

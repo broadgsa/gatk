@@ -6,7 +6,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.gatk.walkers.ThreadSafeMapReduce;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -41,12 +41,11 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  */
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
-public class CountReads extends ReadWalker<Integer, Integer> implements TreeReducible<Integer> {
+public class CountReads extends ReadWalker<Integer, Integer> implements ThreadSafeMapReduce {
     public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {
         return 1;
     }
 
     @Override public Integer reduceInit() { return 0; }
     @Override public Integer reduce(Integer value, Integer sum) { return value + sum; }
-    @Override public Integer treeReduce(Integer lhs, Integer rhs) { return lhs + rhs; }
 }

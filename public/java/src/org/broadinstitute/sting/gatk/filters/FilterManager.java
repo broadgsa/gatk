@@ -25,9 +25,13 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Manage filters and filter options.  Any requests for basic filtering classes
@@ -53,5 +57,27 @@ public class FilterManager extends PluginManager<ReadFilter> {
 
     public Collection<Class<? extends ReadFilter>> getValues() {
         return this.getPlugins();
+    }
+
+    /**
+     * Rather than use the default error message, print out a list of read filters as well.
+     * @param pluginCategory - string, the category of the plugin (e.g. read filter)
+     * @param pluginName - string, what we were trying to match (but failed to)
+     * @return - A wall of text with the default message, followed by a listing of available read filters
+     */
+    @Override
+    protected String formatErrorMessage(String pluginCategory, String pluginName) {
+        List<Class<? extends ReadFilter>> availableFilters = this.getPluginsImplementing(ReadFilter.class);
+        Collection<String> availableFilterNames = Collections2.transform(availableFilters, new Function<Class<? extends ReadFilter>,String>(){
+
+            @Override
+            public String apply(final Class<? extends ReadFilter> input) {
+                return getName(input);
+            }
+        });
+
+        return String.format("Read filter %s not found. Available read filters:%n%s.%n%n%s",pluginName,
+                Utils.join(String.format(", "),availableFilterNames),
+                "Please consult the GATK Documentation (http://www.broadinstitute.org/gatk/gatkdocs/) for more information.");
     }
 }

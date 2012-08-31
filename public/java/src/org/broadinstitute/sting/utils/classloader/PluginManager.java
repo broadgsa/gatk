@@ -277,7 +277,7 @@ public class PluginManager<PluginType> {
     public PluginType createByName(String pluginName) {
         Class<? extends PluginType> plugin = pluginsByName.get(pluginName);
         if( plugin == null )
-            throw new UserException(String.format("Could not find %s with name: %s", pluginCategory,pluginName));
+            throw new UserException(formatErrorMessage(pluginCategory,pluginName));
         try {
             return plugin.newInstance();
         } catch (Exception e) {
@@ -329,5 +329,15 @@ public class PluginManager<PluginType> {
         }
 
         return pluginName;
+    }
+
+    /**
+     * Generate the error message for the plugin manager. The message is allowed to depend on the class.
+     * @param pluginCategory - string, the category of the plugin (e.g. read filter)
+     * @param pluginName - string, what we were trying to match (but failed to)
+     * @return error message text describing the error
+     */
+    protected String formatErrorMessage(String pluginCategory, String pluginName ) {
+        return String.format("Could not find %s with name: %s", pluginCategory,pluginName);
     }
 }

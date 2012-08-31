@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.broadinstitute.sting.WalkerTest;
-import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
 
-import java.util.*;
+import java.util.Arrays;
 
 public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     private static class VRTest {
@@ -28,7 +28,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     VRTest lowPass = new VRTest(validationDataLocation + "phase1.projectConsensus.chr20.raw.snps.vcf",
             "f360ce3eb2b0b887301be917a9843e2b",  // tranches
             "287fea5ea066bf3fdd71f5ce9b58eab3",  // recal file
-            "356b9570817b9389da71fbe991d8b2f5"); // cut VCF
+            "afa297c743437551cc2bd36ddd6d6d75"); // cut VCF
 
     @DataProvider(name = "VRTest")
     public Object[][] createData1() {
@@ -77,7 +77,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     VRTest bcfTest = new VRTest(privateTestDir + "vqsr.bcf_test.snps.unfiltered.bcf",
             "a8ce3cd3dccafdf7d580bcce7d660a9a",  // tranches
             "74c10fc15f9739a938b7138909fbde04",  // recal file
-            "62fda105e14b619a1c263855cf56af1d"); // cut VCF
+            "c30d163871a37f2bbf8ee7f761e870b4"); // cut VCF
 
     @DataProvider(name = "VRBCFTest")
     public Object[][] createVRBCFTest() {
@@ -129,13 +129,13 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
             validationDataLocation + "combined.phase1.chr20.raw.indels.unfiltered.sites.vcf", // all FILTERs as .
             "b7589cd098dc153ec64c02dcff2838e4",  // tranches
             "a04a9001f62eff43d363f4d63769f3ee",  // recal file
-            "64f576881e21323dd4078262604717a2"); // cut VCF
+            "b2c6827be592c24a4692b1753edc7d23"); // cut VCF
 
     VRTest indelFiltered = new VRTest(
             validationDataLocation + "combined.phase1.chr20.raw.indels.filtered.sites.vcf", // all FILTERs as PASS
             "b7589cd098dc153ec64c02dcff2838e4",  // tranches
             "a04a9001f62eff43d363f4d63769f3ee",  // recal file
-            "af22c55d91394c56a222fd40d6d54781"); // cut VCF
+            "5d483fe1ba2ef36ee9e6c14cbd654706"); // cut VCF
 
     @DataProvider(name = "VRIndelTest")
     public Object[][] createTestVariantRecalibratorIndel() {
@@ -193,7 +193,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -tranchesFile " + privateTestDir + "VQSR.mixedTest.tranches" +
                         " -recalFile " + privateTestDir + "VQSR.mixedTest.recal",
-                Arrays.asList("ec519e1f01459813dab57aefffc019e2"));
+                Arrays.asList("018b3a5cc7cf0cb5468c6a0c80ccaa8b"));
         executeTest("testApplyRecalibrationSnpAndIndelTogether", spec);
     }
 }
