@@ -41,10 +41,7 @@ import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
-import java.util.Collection;
-import java.util.Random;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * Renders, in SAM/BAM format, all reads from the input data set in the order in which they appear in the input file.
@@ -141,6 +138,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
     public boolean simplifyReads = false;
     
 
+    List<ReadTransformer> readTransformers = Collections.emptyList();
     private TreeSet<String> samplesToChoose = new TreeSet<String>();
     private boolean SAMPLES_SPECIFIED = false;
     
@@ -152,6 +150,9 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
     public void initialize() {
         if  ( platform != null )
             platform = platform.toUpperCase();
+
+        if ( getToolkit() != null )
+            readTransformers = getToolkit().getReadTransformers();
 
         Collection<String> samplesFromFile;
         if (!sampleFile.isEmpty())  {
@@ -226,7 +227,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
     public GATKSAMRecord map( ReferenceContext ref, GATKSAMRecord readIn, RefMetaDataTracker metaDataTracker ) {
         GATKSAMRecord workingRead = readIn;
 
-        for ( final ReadTransformer transformer : getToolkit().getReadTransformers() ) {
+        for ( final ReadTransformer transformer : readTransformers ) {
             if ( logger.isDebugEnabled() ) logger.debug("Applying transformer " + transformer + " to read " + readIn.getReadName());
             workingRead = transformer.apply(workingRead);
         }
