@@ -19,7 +19,7 @@ public class ReadTransformingIterator implements StingSAMIterator {
     /**
      * Creates a new ReadTransforming iterator
      */
-    @Requires({"it != null", "engine != null", "transformer != null", "transformer.isInitialized()"})
+    @Requires({"it != null", "transformer != null", "transformer.isInitialized()"})
     public ReadTransformingIterator(final StingSAMIterator it, final ReadTransformer transformer) {
         if ( ! transformer.isInitialized() )
             throw new IllegalStateException("Creating a read transformer stream for an uninitialized read transformer: " + transformer);

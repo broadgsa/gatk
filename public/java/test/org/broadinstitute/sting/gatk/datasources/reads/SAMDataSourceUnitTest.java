@@ -24,9 +24,6 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
-import static org.testng.Assert.fail;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMProgramRecord;
@@ -35,23 +32,24 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
-
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.List;
+
+import static org.testng.Assert.*;
 
 /**
  * @author aaron
@@ -183,11 +181,8 @@ public class SAMDataSourceUnitTest extends BaseTest {
                 null,
                 new ValidationExclusion(),
                 new ArrayList<ReadFilter>(),
+                Collections.<ReadTransformer>emptyList(),
                 false,
-                BAQ.CalculationMode.OFF,
-                BAQ.QualityMode.DONT_MODIFY,
-                null, // no BAQ
-                null, // no BQSR
                 (byte) -1,
                 removeProgramRecords);
 
@@ -205,11 +200,8 @@ public class SAMDataSourceUnitTest extends BaseTest {
                 null,
                 new ValidationExclusion(),
                 new ArrayList<ReadFilter>(),
+                Collections.<ReadTransformer>emptyList(),
                 false,
-                BAQ.CalculationMode.OFF,
-                BAQ.QualityMode.DONT_MODIFY,
-                null, // no BAQ
-                null, // no BQSR
                 (byte) -1,
                 removeProgramRecords);
 

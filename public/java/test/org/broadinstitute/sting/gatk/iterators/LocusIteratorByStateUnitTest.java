@@ -4,25 +4,27 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * testing of the LocusIteratorByState
@@ -349,11 +351,8 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
                 null,
                 new ValidationExclusion(),
                 Collections.<ReadFilter>emptyList(),
+                Collections.<ReadTransformer>emptyList(),
                 false,
-                BAQ.CalculationMode.OFF,
-                BAQ.QualityMode.DONT_MODIFY,
-                null, // no BAQ
-                null, // no BQSR
                 (byte) -1
         );
     }
