@@ -18,3 +18,10 @@ queueScatterGather
 /bar*
 integrationtests/
 public/testdata/onTheFlyOutputTest.vcf
+private/testdata/onTheFlyOutputTest.vcf
+lib
+html
+gatkdocs
+dist
+build
+resources
