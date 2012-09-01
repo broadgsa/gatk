@@ -228,7 +228,6 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
         GATKSAMRecord workingRead = readIn;
 
         for ( final ReadTransformer transformer : readTransformers ) {
-            if ( logger.isDebugEnabled() ) logger.debug("Applying transformer " + transformer + " to read " + readIn.getReadName());
             workingRead = transformer.apply(workingRead);
         }
 
