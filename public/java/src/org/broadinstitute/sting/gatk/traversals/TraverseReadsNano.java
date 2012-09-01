@@ -55,13 +55,11 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
     /** our log, which we want to capture anything from this class */
     protected static final Logger logger = Logger.getLogger(TraverseReadsNano.class);
     private static final boolean DEBUG = false;
-    private static final int MIN_GROUP_SIZE = 100;
     final NanoScheduler<MapData, M, T> nanoScheduler;
 
     public TraverseReadsNano(int nThreads) {
         final int bufferSize = ReadShard.getReadBufferSize() + 1; // actually has 1 more than max
-        final int mapGroupSize = (int)Math.max(Math.ceil(bufferSize / 50.0 + 1), MIN_GROUP_SIZE);
-        nanoScheduler = new NanoScheduler<MapData, M, T>(bufferSize, mapGroupSize, nThreads);
+        nanoScheduler = new NanoScheduler<MapData, M, T>(bufferSize, nThreads);
     }
 
     @Override

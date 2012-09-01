@@ -3,7 +3,6 @@ package org.broadinstitute.sting.utils.nanoScheduler;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Iterator;
@@ -47,7 +46,6 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     private final static boolean ALLOW_SINGLE_THREAD_FASTPATH = true;
 
     final int bufferSize;
-    final int mapGroupSize;
     final int nThreads;
     final ExecutorService executor;
     boolean shutdown = false;
@@ -57,29 +55,15 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      * Create a new nanoschedule with the desire characteristics requested by the argument
      *
      * @param bufferSize the number of input elements to read in each scheduling cycle.
-     * @param mapGroupSize How many inputs should be grouped together per map?  If -1 we make a reasonable guess
      * @param nThreads the number of threads to use to get work done, in addition to the thread calling execute
      */
     public NanoScheduler(final int bufferSize,
-                         final int mapGroupSize,
                          final int nThreads) {
         if ( bufferSize < 1 ) throw new IllegalArgumentException("bufferSize must be >= 1, got " + bufferSize);
         if ( nThreads < 1 ) throw new IllegalArgumentException("nThreads must be >= 1, got " + nThreads);
 
-        if ( mapGroupSize > bufferSize ) throw new IllegalArgumentException("mapGroupSize " + mapGroupSize + " must be <= bufferSize " + bufferSize);
-        if ( mapGroupSize == 0 || mapGroupSize < -1 ) throw new IllegalArgumentException("mapGroupSize cannot be <= 0" + mapGroupSize);
-
         this.bufferSize = bufferSize;
         this.nThreads = nThreads;
-
-        if ( mapGroupSize == -1 ) {
-            this.mapGroupSize = (int)Math.ceil(this.bufferSize / (10.0*this.nThreads));
-            logger.info(String.format("Dynamically setting grouping size to %d based on buffer size %d and n threads %d",
-                    this.mapGroupSize, this.bufferSize, this.nThreads));
-        } else {
-            this.mapGroupSize = mapGroupSize;
-        }
-
         this.executor = nThreads == 1 ? null : Executors.newFixedThreadPool(nThreads);
     }
 
@@ -99,15 +83,6 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     @Ensures("result > 0")
     public int getBufferSize() {
         return bufferSize;
-    }
-
-    /**
-     * The grouping size used by this NanoScheduler
-     * @return
-     */
-    @Ensures("result > 0")
-    public int getMapGroupSize() {
-        return mapGroupSize;
     }
 
     /**
@@ -214,10 +189,10 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                 final List<InputType> inputs = readInputs(inputReader);
 
                 // send jobs for map
-                final Queue<Future<List<MapType>>> mapQueue = submitMapJobs(map, executor, inputs);
+                final Queue<Future<MapType>> mapQueue = submitMapJobs(map, executor, inputs);
 
                 // send off the reduce job, and block until we get at least one reduce result
-                sum = reduceParallel(reduce, mapQueue, sum);
+                sum = reduceSerial(reduce, mapQueue, sum);
             } catch (InterruptedException ex) {
                 throw new ReviewedStingException("got execution exception", ex);
             } catch (ExecutionException ex) {
@@ -229,16 +204,16 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     }
 
     @Requires({"reduce != null", "! mapQueue.isEmpty()"})
-    private ReduceType reduceParallel(final ReduceFunction<MapType, ReduceType> reduce,
-                                      final Queue<Future<List<MapType>>> mapQueue,
-                                      final ReduceType initSum)
+    private ReduceType reduceSerial(final ReduceFunction<MapType, ReduceType> reduce,
+                                    final Queue<Future<MapType>> mapQueue,
+                                    final ReduceType initSum)
             throws InterruptedException, ExecutionException {
         ReduceType sum = initSum;
 
         // while mapQueue has something in it to reduce
-        for ( final Future<List<MapType>> future : mapQueue ) {
-            for ( final MapType value : future.get() ) // block until we get the values for this task
-                sum = reduce.apply(value, sum);
+        for ( final Future<MapType> future : mapQueue ) {
+            final MapType value = future.get(); // block until we get the values for this task
+            sum = reduce.apply(value, sum);
         }
 
         return sum;
@@ -247,7 +222,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     /**
      * Read up to inputBufferSize elements from inputReader
      *
-     * @return a queue of inputs read in, containing one or more values of InputType read in
+     * @return a queue of input read in, containing one or more values of InputType read in
      */
     @Requires("inputReader.hasNext()")
     @Ensures("!result.isEmpty()")
@@ -263,14 +238,14 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     }
 
     @Requires({"map != null", "! inputs.isEmpty()"})
-    private Queue<Future<List<MapType>>> submitMapJobs(final MapFunction<InputType, MapType> map,
-                                                       final ExecutorService executor,
-                                                       final List<InputType> inputs) {
-        final Queue<Future<List<MapType>>> mapQueue = new LinkedList<Future<List<MapType>>>();
+    private Queue<Future<MapType>> submitMapJobs(final MapFunction<InputType, MapType> map,
+                                                 final ExecutorService executor,
+                                                 final List<InputType> inputs) {
+        final Queue<Future<MapType>> mapQueue = new LinkedList<Future<MapType>>();
 
-        for ( final List<InputType> subinputs : Utils.groupList(inputs, getMapGroupSize()) ) {
-            final CallableMap doMap = new CallableMap(map, subinputs);
-            final Future<List<MapType>> future = executor.submit(doMap);
+        for ( final InputType input : inputs ) {
+            final CallableMap doMap = new CallableMap(map, input);
+            final Future<MapType> future = executor.submit(doMap);
             mapQueue.add(future);
         }
 
@@ -280,23 +255,18 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     /**
      * A simple callable version of the map function for use with the executor pool
      */
-    private class CallableMap implements Callable<List<MapType>> {
-        final List<InputType> inputs;
+    private class CallableMap implements Callable<MapType> {
+        final InputType input;
         final MapFunction<InputType, MapType> map;
 
-        @Requires({"map != null", "inputs.size() <= getMapGroupSize()"})
-        private CallableMap(final MapFunction<InputType, MapType> map, final List<InputType> inputs) {
-            this.inputs = inputs;
+        @Requires({"map != null"})
+        private CallableMap(final MapFunction<InputType, MapType> map, final InputType inputs) {
+            this.input = inputs;
             this.map = map;
         }
 
-        @Ensures("result.size() == inputs.size()")
-        @Override public List<MapType> call() throws Exception {
-            final List<MapType> outputs = new LinkedList<MapType>();
-            for ( final InputType input : inputs )
-                outputs.add(map.apply(input));
-            debugPrint("    Processed %d elements with map", outputs.size());
-            return outputs;
+        @Override public MapType call() throws Exception {
+            return map.apply(input);
         }
     }
 }
