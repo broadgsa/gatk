@@ -189,12 +189,26 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     /**
      * Forward request to printProgress
      *
+     * Assumes that one cycle has been completed
+     *
      * @param shard the given shard currently being processed.
      * @param loc  the location
      */
     public void printProgress(Shard shard, GenomeLoc loc) {
         // A bypass is inserted here for unit testing.
-        printProgress(loc,shard.getReadMetrics(),false);
+        printProgress(loc,shard.getReadMetrics(),false, 1);
+    }
+
+    /**
+     * Forward request to printProgress
+     *
+     * @param shard the given shard currently being processed.
+     * @param loc  the location
+     * @param nElapsedCycles the number of cycles (turns of map) that have occurred since the last call
+     */
+    public void printProgress(Shard shard, GenomeLoc loc, int nElapsedCycles) {
+        // A bypass is inserted here for unit testing.
+        printProgress(loc,shard.getReadMetrics(),false, nElapsedCycles);
     }
 
     /**
@@ -205,12 +219,16 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      * @param metrics   Data processed since the last cumulative
      * @param mustPrint If true, will print out info, regardless of nRecords or time interval
      */
-    private void printProgress(GenomeLoc loc, ReadMetrics metrics, boolean mustPrint) {
-        if ( mustPrint || printProgressCheckCounter++ % PRINT_PROGRESS_CHECK_FREQUENCY_IN_CYCLES != 0 )
+    private synchronized void printProgress(GenomeLoc loc, ReadMetrics metrics, boolean mustPrint, int nElapsedCycles) {
+        final int previousPrintCycle = printProgressCheckCounter / PRINT_PROGRESS_CHECK_FREQUENCY_IN_CYCLES;
+        final int newPrintCycle = (printProgressCheckCounter+nElapsedCycles) / PRINT_PROGRESS_CHECK_FREQUENCY_IN_CYCLES;
+
+        printProgressCheckCounter += nElapsedCycles; // keep track of our number of cycles through printProgress
+        if ( newPrintCycle == previousPrintCycle && ! mustPrint )
             // don't do any work more often than PRINT_PROGRESS_CHECK_FREQUENCY_IN_CYCLES
             return;
 
-        if(!progressMeterInitialized && mustPrint == false ) {
+        if( ! progressMeterInitialized ) {
             logger.info("[INITIALIZATION COMPLETE; TRAVERSAL STARTING]");
             logger.info(String.format("%15s processed.%s  runtime per.1M.%s completed total.runtime remaining",
                     "Location", getTraversalType(), getTraversalType()));
@@ -250,8 +268,9 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
                 else
                     PROGRESS_PRINT_FREQUENCY = 10 * 1000; // in milliseconds
 
-                logger.info(String.format("%15s        %5.2e %s     %s     %4.1f%%      %s  %s",
-                        loc == null ? "done with mapped reads" : loc, nRecords*1.0, elapsed, unitRate,
+                final String posName = loc == null ? (mustPrint ? "done" : "unmapped reads") : Integer.toString(loc.getStart());
+                logger.info(String.format("%15s        %5.2e %s     %s    %5.1f%%      %s  %s",
+                        posName, nRecords*1.0, elapsed, unitRate,
                         100*fractionGenomeTargetCompleted, estTotalRuntime, timeToCompletion));
 
             }
@@ -309,7 +328,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      * Called after a traversal to print out information about the traversal process
      */
     public void printOnTraversalDone() {
-        printProgress(null, null, true);
+        printProgress(null, null, true, 1);
 
         final double elapsed = timer == null ? 0 : timer.getElapsedTime();
 

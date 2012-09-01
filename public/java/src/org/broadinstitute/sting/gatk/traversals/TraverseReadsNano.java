@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
 import org.broadinstitute.sting.gatk.datasources.reads.ReadShard;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.nanoScheduler.MapFunction;
 import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
 import org.broadinstitute.sting.utils.nanoScheduler.ReduceFunction;
@@ -87,9 +88,15 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
         final TraverseReadsMap myMap = new TraverseReadsMap(walker);
         final TraverseReadsReduce myReduce = new TraverseReadsReduce(walker);
 
-        T result = nanoScheduler.execute(aggregateMapData(dataProvider).iterator(), myMap, sum, myReduce);
-        // TODO -- how do we print progress?
-        //printProgress(dataProvider.getShard(), ???);
+        final List<MapData> aggregatedInputs = aggregateMapData(dataProvider);
+        final T result = nanoScheduler.execute(aggregatedInputs.iterator(), myMap, sum, myReduce);
+
+        final GATKSAMRecord lastRead = aggregatedInputs.get(aggregatedInputs.size() - 1).read;
+        final GenomeLoc locus = engine.getGenomeLocParser().createGenomeLoc(lastRead);
+        printProgress(dataProvider.getShard(), locus, aggregatedInputs.size());
+
+        // TODO -- how can I get done value?
+        // done = walker.isDone();
 
         return result;
     }
@@ -165,8 +172,9 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
                     return walker.map(data.refContext, data.read, data.tracker);
                 }
             }
-
-            return null; // TODO -- what should we return in the case where the walker is done or the read is filtered?
+            // TODO -- how can we cleanly support done and filtered.  Need to return
+            // TODO -- a MapResult object that says the status
+            return null;
         }
     }
 }

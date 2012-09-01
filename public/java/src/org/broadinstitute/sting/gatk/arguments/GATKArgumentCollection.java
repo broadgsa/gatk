@@ -41,7 +41,9 @@ import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author aaron
@@ -197,6 +199,12 @@ public class GATKArgumentCollection {
     // performance log arguments
     //
     // --------------------------------------------------------------------------------------------------------------
+
+    /**
+     * The file name for the GATK performance log output, or null if you don't want to generate the
+     * detailed performance logging table.  This table is suitable for importing into R or any
+     * other analysis software that can read tsv files
+     */
     @Argument(fullName = "performanceLog", shortName="PF", doc="If provided, a GATK runtime performance log will be written to this file", required = false)
     public File performanceLog = null;
 
