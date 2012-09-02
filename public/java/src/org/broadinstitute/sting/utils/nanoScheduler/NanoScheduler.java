@@ -54,6 +54,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     boolean shutdown = false;
     boolean debug = false;
 
+    final SimpleTimer outsideSchedulerTimer = new SimpleTimer();
     final SimpleTimer inputTimer = new SimpleTimer();
     final SimpleTimer mapTimer = new SimpleTimer();
     final SimpleTimer reduceTimer = new SimpleTimer();
@@ -72,6 +73,9 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         this.bufferSize = bufferSize;
         this.nThreads = nThreads;
         this.executor = nThreads == 1 ? null : Executors.newFixedThreadPool(nThreads);
+
+        // start timing the time spent outside of the nanoScheduler
+        outsideSchedulerTimer.start();
     }
 
     /**
@@ -98,6 +102,8 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      * After this call, execute cannot be invoked without throwing an error
      */
     public void shutdown() {
+        outsideSchedulerTimer.stop();
+
         if ( executor != null ) {
             final List<Runnable> remaining = executor.shutdownNow();
             if ( ! remaining.isEmpty() )
@@ -106,14 +112,16 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         shutdown = true;
 
         if (TIME_CALLS) {
-            printTimerInfo("Input  time", inputTimer);
-            printTimerInfo("Map    time", mapTimer);
-            printTimerInfo("Reduce time", reduceTimer);
+            printTimerInfo("Input   time", inputTimer);
+            printTimerInfo("Map     time", mapTimer);
+            printTimerInfo("Reduce  time", reduceTimer);
+            printTimerInfo("Outside time", outsideSchedulerTimer);
         }
     }
 
     private void printTimerInfo(final String label, final SimpleTimer timer) {
-        final double total = inputTimer.getElapsedTime() + mapTimer.getElapsedTime() + reduceTimer.getElapsedTime();
+        final double total = inputTimer.getElapsedTime() + mapTimer.getElapsedTime()
+                + reduceTimer.getElapsedTime() + outsideSchedulerTimer.getElapsedTime();
         final double myTimeInSec = timer.getElapsedTime();
         final double myTimePercent = myTimeInSec / total * 100;
         logger.info(String.format("%s: %s (%5.2f%%)", label, new AutoFormattingTime(myTimeInSec), myTimePercent));
@@ -168,11 +176,16 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         if ( map == null ) throw new IllegalArgumentException("map function cannot be null");
         if ( reduce == null ) throw new IllegalArgumentException("reduce function cannot be null");
 
+        outsideSchedulerTimer.stop();
+        ReduceType result;
         if ( ALLOW_SINGLE_THREAD_FASTPATH && getnThreads() == 1 ) {
-            return executeSingleThreaded(inputReader, map, initialValue, reduce);
+            result = executeSingleThreaded(inputReader, map, initialValue, reduce);
         } else {
-            return executeMultiThreaded(inputReader, map, initialValue, reduce);
+            result = executeMultiThreaded(inputReader, map, initialValue, reduce);
         }
+
+        outsideSchedulerTimer.restart();
+        return result;
     }
 
     /**
