@@ -54,10 +54,10 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     boolean shutdown = false;
     boolean debug = false;
 
-    final SimpleTimer outsideSchedulerTimer = new SimpleTimer();
-    final SimpleTimer inputTimer = new SimpleTimer();
-    final SimpleTimer mapTimer = new SimpleTimer();
-    final SimpleTimer reduceTimer = new SimpleTimer();
+    final SimpleTimer outsideSchedulerTimer = new SimpleTimer("outside");
+    final SimpleTimer inputTimer = new SimpleTimer("input");
+    final SimpleTimer mapTimer = new SimpleTimer("map");
+    final SimpleTimer reduceTimer = new SimpleTimer("reduce");
 
     /**
      * Create a new nanoschedule with the desire characteristics requested by the argument
