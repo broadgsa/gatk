@@ -32,10 +32,9 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
-import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -46,6 +45,7 @@ import org.broadinstitute.sting.utils.recalibration.QuantizationInfo;
 import org.broadinstitute.sting.utils.recalibration.RecalUtils;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationReport;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
+import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
@@ -104,7 +104,7 @@ import java.util.ArrayList;
  */
 
 @DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
-@BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
+@BAQMode(ApplicationTime = ReadTransformer.ApplicationTime.FORBIDDEN)
 @By(DataSource.READS)
 @ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class}) // only look at covered loci, not every loci of the reference file
 @Requires({DataSource.READS, DataSource.REFERENCE}) // filter out all reads with zero or unavailable mapping quality

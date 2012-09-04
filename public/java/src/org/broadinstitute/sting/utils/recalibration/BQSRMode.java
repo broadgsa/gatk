@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.sting.utils.recalibration;
 
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 
@@ -25,7 +25,6 @@ import java.lang.annotation.*;
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface BAQMode {
-    public abstract org.broadinstitute.sting.utils.baq.BAQ.QualityMode QualityMode() default org.broadinstitute.sting.utils.baq.BAQ.QualityMode.OVERWRITE_QUALS;
+public @interface BQSRMode {
     public abstract ReadTransformer.ApplicationTime ApplicationTime() default ReadTransformer.ApplicationTime.ON_INPUT;
 }

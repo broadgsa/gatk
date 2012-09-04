@@ -42,6 +42,8 @@ import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformersMode;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
@@ -49,8 +51,8 @@ import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -130,6 +132,11 @@ public class GenomeAnalysisEngine {
      * Collection of the filters applied to the input data.
      */
     private Collection<ReadFilter> filters;
+
+    /**
+     * Collection of the read transformers applied to the reads
+     */
+    private List<ReadTransformer> readTransformers;
 
     /**
      * Controls the allocation of threads between CPU vs IO.
@@ -355,6 +362,39 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Returns a list of active, initialized read transformers
+     *
+     * @param walker the walker we need to apply read transformers too
+     * @return a non-null list of read transformers
+     */
+    public void initializeReadTransformers(final Walker walker) {
+        final List<ReadTransformer> activeTransformers = new ArrayList<ReadTransformer>();
+
+        final ReadTransformersMode overrideMode = WalkerManager.getWalkerAnnotation(walker, ReadTransformersMode.class);
+        final ReadTransformer.ApplicationTime overrideTime = overrideMode != null ? overrideMode.ApplicationTime() : null;
+
+        final PluginManager<ReadTransformer> pluginManager = new PluginManager<ReadTransformer>(ReadTransformer.class);
+
+        for ( final ReadTransformer transformer : pluginManager.createAllTypes() ) {
+            transformer.initialize(overrideTime, this, walker);
+            if ( transformer.enabled() )
+                activeTransformers.add(transformer);
+        }
+
+        setReadTransformers(activeTransformers);
+    }
+
+    public List<ReadTransformer> getReadTransformers() {
+        return readTransformers;
+    }
+
+    private void setReadTransformers(final List<ReadTransformer> readTransformers) {
+        if ( readTransformers == null )
+            throw new ReviewedStingException("read transformers cannot be null");
+        this.readTransformers = readTransformers;
+    }
+
+    /**
      * Parse out the thread allocation from the given command-line argument.
      */
     private void determineThreadAllocation() {
@@ -418,9 +458,6 @@ public class GenomeAnalysisEngine {
     protected void setDownsamplingMethod(DownsamplingMethod method) {
         argCollection.setDownsamplingMethod(method);
     }
-
-    public BAQ.QualityMode getWalkerBAQQualityMode()         { return WalkerManager.getBAQQualityMode(walker); }
-    public BAQ.ApplicationTime getWalkerBAQApplicationTime() { return WalkerManager.getBAQApplicationTime(walker); }    
 
     protected boolean includeReadsWithDeletionAtLoci() {
         return walker.includeReadsWithDeletionAtLoci();
@@ -702,13 +739,12 @@ public class GenomeAnalysisEngine {
     protected void initializeDataSources() {
         logger.info("Strictness is " + argCollection.strictnessLevel);
 
-        // TODO -- REMOVE ME
-        BAQ.DEFAULT_GOP = argCollection.BAQGOP;
-
         validateSuppliedReference();
         setReferenceDataSource(argCollection.referenceFile);
 
         validateSuppliedReads();
+        initializeReadTransformers(walker);
+
         readsDataSource = createReadsDataSource(argCollection,genomeLocParser,referenceDataSource.getReference());
 
         for (ReadFilter filter : filters)
@@ -795,9 +831,6 @@ public class GenomeAnalysisEngine {
         // interrogating for the downsample method during command line recreation.
         setDownsamplingMethod(method);
 
-        if ( getWalkerBAQApplicationTime() == BAQ.ApplicationTime.FORBIDDEN && argCollection.BAQMode != BAQ.CalculationMode.OFF)
-            throw new UserException.BadArgumentValue("baq", "Walker cannot accept BAQ'd base qualities, and yet BAQ mode " + argCollection.BAQMode + " was requested.");
-
         if (argCollection.removeProgramRecords && argCollection.keepProgramRecords)
             throw new UserException.BadArgumentValue("rpr / kpr", "Cannot enable both options");
 
@@ -817,11 +850,8 @@ public class GenomeAnalysisEngine {
                 method,
                 new ValidationExclusion(Arrays.asList(argCollection.unsafe)),
                 filters,
+                readTransformers,
                 includeReadsWithDeletionAtLoci(),
-                getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_INPUT ? argCollection.BAQMode : BAQ.CalculationMode.OFF,
-                getWalkerBAQQualityMode(),
-                refReader,
-                getBaseRecalibration(),
                 argCollection.defaultBaseQualities,
                 removeProgramRecords);
     }
