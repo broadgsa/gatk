@@ -60,11 +60,12 @@ public class LinearMicroScheduler extends MicroScheduler {
 
         boolean done = walker.isDone();
         int counter = 0;
+
+        traversalEngine.startTimersIfNecessary();
         for (Shard shard : shardStrategy ) {
             if ( done || shard == null ) // we ran out of shards that aren't owned
                 break;
 
-            traversalEngine.startTimersIfNecessary();
             if(shard.getShardType() == Shard.ShardType.LOCUS) {
                 WindowMaker windowMaker = new WindowMaker(shard, engine.getGenomeLocParser(),
                         getReadIterator(shard), shard.getGenomeLocs(), SampleUtils.getSAMFileSamples(engine));
