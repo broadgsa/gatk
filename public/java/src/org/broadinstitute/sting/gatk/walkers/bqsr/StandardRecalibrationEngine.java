@@ -93,7 +93,7 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
     }
 
     @Override
-    public synchronized void updateDataForRead( final GATKSAMRecord read, final double[] snpErrors, final double[] insertionErrors, final double[] deletionErrors ) {
+    public synchronized void updateDataForRead( final GATKSAMRecord read, final boolean[] skip, final double[] snpErrors, final double[] insertionErrors, final double[] deletionErrors ) {
         throw new UnsupportedOperationException("Delocalized BQSR is not available in the GATK-lite version");
     }
 
