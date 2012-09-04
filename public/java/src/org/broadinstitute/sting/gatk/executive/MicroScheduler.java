@@ -146,7 +146,8 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         if (walker instanceof ReadWalker) {
             traversalEngine = numThreads > 1 ? new TraverseReadsNano(numThreads) : new TraverseReads();
         } else if (walker instanceof LocusWalker) {
-            traversalEngine = new TraverseLoci();
+            // TODO -- refactor to use better interface
+            traversalEngine = engine.getArguments().nanoThreads > 1 ? new TraverseLociNano(engine.getArguments().nanoThreads) : new TraverseLociLinear();
         } else if (walker instanceof DuplicateWalker) {
             traversalEngine = new TraverseDuplicates();
         } else if (walker instanceof ReadPairWalker) {
