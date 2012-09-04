@@ -300,16 +300,12 @@ public class VariantAnnotatorEngine {
             if (stratifiedPerReadAlleleLikelihoodMap != null)
                 perReadAlleleLikelihoodMap = stratifiedPerReadAlleleLikelihoodMap.get(genotype.getSampleName());
 
-            if ( context == null && perReadAlleleLikelihoodMap == null) {
-                // no likelihoods nor pileup available: just move on to next sample
-                genotypes.add(genotype);
-            } else {
-                final GenotypeBuilder gb = new GenotypeBuilder(genotype);
-                for ( final GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
-                    annotation.annotate(tracker, walker, ref, context, vc, genotype, gb, perReadAlleleLikelihoodMap);
-                }
-                genotypes.add(gb.make());
+
+            final GenotypeBuilder gb = new GenotypeBuilder(genotype);
+            for ( final GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
+                annotation.annotate(tracker, walker, ref, context, vc, genotype, gb, perReadAlleleLikelihoodMap);
             }
+            genotypes.add(gb.make());
         }
 
         return genotypes;

@@ -54,7 +54,7 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
                          final Genotype g,
                          final GenotypeBuilder gb,
                          final PerReadAlleleLikelihoodMap alleleLikelihoodMap) {
-        if ( g == null || !g.isCalled() )
+        if ( g == null || !g.isCalled() || ( stratifiedContext == null && alleleLikelihoodMap == null) )
             return;
 
         if (alleleLikelihoodMap != null && !alleleLikelihoodMap.isEmpty())

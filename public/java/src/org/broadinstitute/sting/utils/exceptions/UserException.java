@@ -63,6 +63,18 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class MalformedReadFilterException extends CommandLineException {
+        public MalformedReadFilterException(String message) {
+            super(String.format("Malformed read filter: %s",message));
+        }
+    }
+
+    public static class MalformedWalkerArgumentsException extends CommandLineException {
+        public MalformedWalkerArgumentsException(String message) {
+            super(String.format("Malformed walker argument: %s",message));
+        }
+    }
+
     public static class MalformedGenomeLoc extends UserException {
         public MalformedGenomeLoc(String message, GenomeLoc loc) {
             super(String.format("Badly formed genome loc: %s: %s", message, loc));
