@@ -242,7 +242,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
                 else
                     progressPrintFrequency = 10 * 1000; // in milliseconds
 
-                final String posName = loc == null ? (mustPrint ? "done" : "unmapped reads") : Integer.toString(loc.getStart());
+                final String posName = loc == null ? (mustPrint ? "done" : "unmapped reads") : String.format("%s:%d", loc.getContig(), loc.getStart());
                 logger.info(String.format("%15s        %5.2e %s     %s    %5.1f%%      %s  %s",
                         posName, nRecords*1.0, elapsed, unitRate,
                         100*fractionGenomeTargetCompleted, estTotalRuntime, timeToCompletion));
