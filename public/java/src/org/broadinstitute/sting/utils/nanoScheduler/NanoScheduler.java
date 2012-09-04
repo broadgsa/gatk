@@ -210,9 +210,12 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                                              final ReduceType initialValue,
                                              final NanoSchedulerReduceFunction<MapType, ReduceType> reduce) {
         ReduceType sum = initialValue;
+        int i = 0;
         while ( inputReader.hasNext() ) {
             final InputType input = inputReader.next();
             final MapType mapValue = map.apply(input);
+            if ( i++ % bufferSize == 0 && progressFunction != null )
+                progressFunction.progress(input);
             sum = reduce.apply(mapValue, sum);
         }
         return sum;
