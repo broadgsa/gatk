@@ -220,12 +220,14 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
             try {
                 // read in our input values
                 final List<InputType> inputs = readInputs(inputReader);
+                debugPrint("Enqueuing " + inputs.size() + " elements to map");
 
                 // send jobs for map
                 final Queue<Future<MapType>> mapQueue = submitMapJobs(map, executor, inputs);
 
                 // send off the reduce job, and block until we get at least one reduce result
                 sum = reduceSerial(reduce, mapQueue, sum);
+                debugPrint("  Done with cycle of map/reduce");
             } catch (InterruptedException ex) {
                 throw new ReviewedStingException("got execution exception", ex);
             } catch (ExecutionException ex) {
@@ -307,6 +309,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
 
         @Override public MapType call() throws Exception {
             if ( TIME_CALLS) mapTimer.restart();
+            if ( debug ) debugPrint("\t\tmap " + input);
             final MapType result = map.apply(input);
             if ( TIME_CALLS) mapTimer.stop();
             return result;
