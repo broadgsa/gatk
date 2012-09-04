@@ -126,7 +126,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         Assert.assertNotNull(sum);
         Assert.assertEquals((int)sum, test.expectedResult, "NanoScheduler sum not the same as calculated directly");
 
-        Assert.assertTrue(callback.callBacks >= test.nExpectedCallbacks(), "Not enough callbacks detected");
+        Assert.assertTrue(callback.callBacks >= test.nExpectedCallbacks(), "Not enough callbacks detected.  Expected at least " + test.nExpectedCallbacks() + " but saw only " + callback.callBacks);
         nanoScheduler.shutdown();
     }
 
@@ -168,6 +168,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         final NanoSchedulerBasicTest test = new NanoSchedulerBasicTest(1000, Integer.valueOf(args[0]), 0, Integer.valueOf(args[1]));
         final NanoScheduler<Integer, Integer, Integer> nanoScheduler =
                 new NanoScheduler<Integer, Integer, Integer>(test.bufferSize, test.nThreads);
+        nanoScheduler.setDebug(true);
 
         final Integer sum = nanoScheduler.execute(test.makeReader(), test.makeMap(), test.initReduce(), test.makeReduce());
         System.out.printf("Sum = %d, expected =%d%n", sum, test.expectedResult);
