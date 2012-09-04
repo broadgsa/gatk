@@ -39,8 +39,7 @@ public class TraverseLociLinear<M,T> extends TraverseLociBase<M,T> {
                 done = walker.isDone();
             }
 
-            // TODO -- refactor printProgress to separate updating read metrics from printing progress
-            //printProgress(dataProvider.getShard(),locus.getLocation());
+            printProgress(locus.getLocation());
         }
 
         return new TraverseResults<T>(numIterations, sum);

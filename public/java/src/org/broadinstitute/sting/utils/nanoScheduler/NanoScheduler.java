@@ -54,6 +54,8 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     boolean shutdown = false;
     boolean debug = false;
 
+    private NanoSchedulerProgressFunction<InputType> progressFunction = null;
+
     final SimpleTimer outsideSchedulerTimer = new SimpleTimer("outside");
     final SimpleTimer inputTimer = new SimpleTimer("input");
     final SimpleTimer mapTimer = new SimpleTimer("map");
@@ -149,6 +151,17 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     }
 
     /**
+     * Set the progress callback function to progressFunction
+     *
+     * The progress callback is invoked after each buffer size elements have been processed by map/reduce
+     *
+     * @param progressFunction a progress function to call, or null if you don't want any progress callback
+     */
+    public void setProgressFunction(final NanoSchedulerProgressFunction<InputType> progressFunction) {
+        this.progressFunction = progressFunction;
+    }
+
+    /**
      * Execute a map/reduce job with this nanoScheduler
      *
      * Data comes from inputReader.  Will be read until hasNext() == false.
@@ -168,9 +181,9 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      * @return the last reduce value
      */
     public ReduceType execute(final Iterator<InputType> inputReader,
-                              final MapFunction<InputType, MapType> map,
+                              final NanoSchedulerMapFunction<InputType, MapType> map,
                               final ReduceType initialValue,
-                              final ReduceFunction<MapType, ReduceType> reduce) {
+                              final NanoSchedulerReduceFunction<MapType, ReduceType> reduce) {
         if ( isShutdown() ) throw new IllegalStateException("execute called on already shutdown NanoScheduler");
         if ( inputReader == null ) throw new IllegalArgumentException("inputReader cannot be null");
         if ( map == null ) throw new IllegalArgumentException("map function cannot be null");
@@ -193,9 +206,9 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      * @return the reduce result of this map/reduce job
      */
     private ReduceType executeSingleThreaded(final Iterator<InputType> inputReader,
-                                             final MapFunction<InputType, MapType> map,
+                                             final NanoSchedulerMapFunction<InputType, MapType> map,
                                              final ReduceType initialValue,
-                                             final ReduceFunction<MapType, ReduceType> reduce) {
+                                             final NanoSchedulerReduceFunction<MapType, ReduceType> reduce) {
         ReduceType sum = initialValue;
         while ( inputReader.hasNext() ) {
             final InputType input = inputReader.next();
@@ -211,9 +224,9 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      * @return the reduce result of this map/reduce job
      */
     private ReduceType executeMultiThreaded(final Iterator<InputType> inputReader,
-                                            final MapFunction<InputType, MapType> map,
+                                            final NanoSchedulerMapFunction<InputType, MapType> map,
                                             final ReduceType initialValue,
-                                            final ReduceFunction<MapType, ReduceType> reduce) {
+                                            final NanoSchedulerReduceFunction<MapType, ReduceType> reduce) {
         debugPrint("Executing nanoScheduler");
         ReduceType sum = initialValue;
         while ( inputReader.hasNext() ) {
@@ -228,6 +241,8 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                 // send off the reduce job, and block until we get at least one reduce result
                 sum = reduceSerial(reduce, mapQueue, sum);
                 debugPrint("  Done with cycle of map/reduce");
+
+                if ( progressFunction != null ) progressFunction.progress(inputs.get(inputs.size()-1));
             } catch (InterruptedException ex) {
                 throw new ReviewedStingException("got execution exception", ex);
             } catch (ExecutionException ex) {
@@ -239,7 +254,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     }
 
     @Requires({"reduce != null", "! mapQueue.isEmpty()"})
-    private ReduceType reduceSerial(final ReduceFunction<MapType, ReduceType> reduce,
+    private ReduceType reduceSerial(final NanoSchedulerReduceFunction<MapType, ReduceType> reduce,
                                     final Queue<Future<MapType>> mapQueue,
                                     final ReduceType initSum)
             throws InterruptedException, ExecutionException {
@@ -280,7 +295,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     }
 
     @Requires({"map != null", "! inputs.isEmpty()"})
-    private Queue<Future<MapType>> submitMapJobs(final MapFunction<InputType, MapType> map,
+    private Queue<Future<MapType>> submitMapJobs(final NanoSchedulerMapFunction<InputType, MapType> map,
                                                  final ExecutorService executor,
                                                  final List<InputType> inputs) {
         final Queue<Future<MapType>> mapQueue = new LinkedList<Future<MapType>>();
@@ -299,10 +314,10 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      */
     private class CallableMap implements Callable<MapType> {
         final InputType input;
-        final MapFunction<InputType, MapType> map;
+        final NanoSchedulerMapFunction<InputType, MapType> map;
 
         @Requires({"map != null"})
-        private CallableMap(final MapFunction<InputType, MapType> map, final InputType inputs) {
+        private CallableMap(final NanoSchedulerMapFunction<InputType, MapType> map, final InputType inputs) {
             this.input = inputs;
             this.map = map;
         }

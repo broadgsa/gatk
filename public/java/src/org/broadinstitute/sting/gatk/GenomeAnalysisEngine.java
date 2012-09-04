@@ -143,6 +143,8 @@ public class GenomeAnalysisEngine {
      */
     private ThreadAllocation threadAllocation;
 
+    private ReadMetrics cumulativeMetrics = null;
+
     /**
      * A currently hacky unique name for this GATK instance
      */
@@ -1035,7 +1037,10 @@ public class GenomeAnalysisEngine {
      *         owned by the caller; the caller can do with the object what they wish.
      */
     public ReadMetrics getCumulativeMetrics() {
-        return readsDataSource == null ? null : readsDataSource.getCumulativeReadMetrics();
+        // todo -- probably shouldn't be lazy
+        if ( cumulativeMetrics == null )
+            cumulativeMetrics = readsDataSource == null ? new ReadMetrics() : readsDataSource.getCumulativeReadMetrics();
+        return cumulativeMetrics;
     }
 
     /**

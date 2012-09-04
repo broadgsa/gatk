@@ -61,6 +61,7 @@ public abstract class TraverseLociBase<M,T> extends TraversalEngine<M,T,LocusWal
             final TraverseResults<T> result = traverse( walker, locusView, referenceView, referenceOrderedDataView, sum );
             sum = result.reduceResult;
             dataProvider.getShard().getReadMetrics().incrementNumIterations(result.numIterations);
+            updateCumulativeMetrics(dataProvider.getShard());
         }
 
         // We have a final map call to execute here to clean up the skipped based from the

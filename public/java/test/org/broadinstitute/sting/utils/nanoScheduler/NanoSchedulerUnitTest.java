@@ -21,11 +21,11 @@ import java.util.List;
 public class NanoSchedulerUnitTest extends BaseTest {
     public static final int NANO_SCHEDULE_MAX_RUNTIME = 60000;
 
-    private static class Map2x implements MapFunction<Integer, Integer> {
+    private static class Map2x implements NanoSchedulerMapFunction<Integer, Integer> {
         @Override public Integer apply(Integer input) { return input * 2; }
     }
 
-    private static class ReduceSum implements ReduceFunction<Integer, Integer> {
+    private static class ReduceSum implements NanoSchedulerReduceFunction<Integer, Integer> {
         int prevOne = Integer.MIN_VALUE;
 
         @Override public Integer apply(Integer one, Integer sum) {

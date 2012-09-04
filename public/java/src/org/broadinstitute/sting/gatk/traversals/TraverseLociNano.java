@@ -8,9 +8,10 @@ import org.broadinstitute.sting.gatk.datasources.providers.ReferenceOrderedView;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.nanoScheduler.MapFunction;
 import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
-import org.broadinstitute.sting.utils.nanoScheduler.ReduceFunction;
+import org.broadinstitute.sting.utils.nanoScheduler.NanoSchedulerMapFunction;
+import org.broadinstitute.sting.utils.nanoScheduler.NanoSchedulerProgressFunction;
+import org.broadinstitute.sting.utils.nanoScheduler.NanoSchedulerReduceFunction;
 
 import java.util.Iterator;
 
@@ -26,6 +27,7 @@ public class TraverseLociNano<M,T> extends TraverseLociBase<M,T> {
 
     public TraverseLociNano(int nThreads) {
         nanoScheduler = new NanoScheduler<MapData, MapResult, T>(BUFFER_SIZE, nThreads);
+        nanoScheduler.setProgressFunction(new TraverseLociProgress());
     }
 
     @Override
@@ -40,11 +42,6 @@ public class TraverseLociNano<M,T> extends TraverseLociBase<M,T> {
 
         final MapDataIterator inputIterator = new MapDataIterator(locusView, referenceView, referenceOrderedDataView);
         final T result = nanoScheduler.execute(inputIterator, myMap, sum, myReduce);
-
-        // todo -- how do I print progress?
-//        final GATKSAMRecord lastRead = aggregatedInputs.get(aggregatedInputs.size() - 1).read;
-//        final GenomeLoc locus = engine.getGenomeLocParser().createGenomeLoc(lastRead);
-//        printProgress(dataProvider.getShard(), locus, aggregatedInputs.size());
 
         return new TraverseResults<T>(inputIterator.numIterations, result);
     }
@@ -156,7 +153,7 @@ public class TraverseLociNano<M,T> extends TraverseLociBase<M,T> {
      *
      * Applies walker.map to MapData, returning a MapResult object containing the result
      */
-    private class TraverseLociMap implements MapFunction<MapData, MapResult> {
+    private class TraverseLociMap implements NanoSchedulerMapFunction<MapData, MapResult> {
         final LocusWalker<M,T> walker;
 
         private TraverseLociMap(LocusWalker<M, T> walker) {
@@ -177,11 +174,11 @@ public class TraverseLociNano<M,T> extends TraverseLociBase<M,T> {
     }
 
     /**
-     * ReduceFunction for TraverseReads meeting NanoScheduler interface requirements
+     * NanoSchedulerReduceFunction for TraverseReads meeting NanoScheduler interface requirements
      *
      * Takes a MapResult object and applies the walkers reduce function to each map result, when applicable
      */
-    private class TraverseLociReduce implements ReduceFunction<MapResult, T> {
+    private class TraverseLociReduce implements NanoSchedulerReduceFunction<MapResult, T> {
         final LocusWalker<M,T> walker;
 
         private TraverseLociReduce(LocusWalker<M, T> walker) {
@@ -195,6 +192,14 @@ public class TraverseLociNano<M,T> extends TraverseLociBase<M,T> {
                 return walker.reduce(one.value, sum);
             else
                 return sum;
+        }
+    }
+
+    private class TraverseLociProgress implements NanoSchedulerProgressFunction<MapData> {
+        @Override
+        public void progress(MapData lastProcessedMap) {
+            if (lastProcessedMap.alignmentContext != null)
+                printProgress(lastProcessedMap.alignmentContext.getLocation());
         }
     }
 }

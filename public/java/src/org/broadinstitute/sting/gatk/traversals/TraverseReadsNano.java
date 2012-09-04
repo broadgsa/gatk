@@ -35,9 +35,9 @@ import org.broadinstitute.sting.gatk.datasources.reads.ReadShard;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.nanoScheduler.MapFunction;
 import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
-import org.broadinstitute.sting.utils.nanoScheduler.ReduceFunction;
+import org.broadinstitute.sting.utils.nanoScheduler.NanoSchedulerMapFunction;
+import org.broadinstitute.sting.utils.nanoScheduler.NanoSchedulerReduceFunction;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.LinkedList;
@@ -94,7 +94,9 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
 
         final GATKSAMRecord lastRead = aggregatedInputs.get(aggregatedInputs.size() - 1).read;
         final GenomeLoc locus = engine.getGenomeLocParser().createGenomeLoc(lastRead);
-        printProgress(dataProvider.getShard(), locus, aggregatedInputs.size());
+
+        updateCumulativeMetrics(dataProvider.getShard());
+        printProgress(locus);
 
         return result;
     }
@@ -189,7 +191,7 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
      *
      * Applies walker.map to MapData, returning a MapResult object containing the result
      */
-    private class TraverseReadsMap implements MapFunction<MapData, MapResult> {
+    private class TraverseReadsMap implements NanoSchedulerMapFunction<MapData, MapResult> {
         final ReadWalker<M,T> walker;
 
         private TraverseReadsMap(ReadWalker<M, T> walker) {
@@ -209,11 +211,11 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
     }
 
     /**
-     * ReduceFunction for TraverseReads meeting NanoScheduler interface requirements
+     * NanoSchedulerReduceFunction for TraverseReads meeting NanoScheduler interface requirements
      *
      * Takes a MapResult object and applies the walkers reduce function to each map result, when applicable
      */
-    private class TraverseReadsReduce implements ReduceFunction<MapResult, T> {
+    private class TraverseReadsReduce implements NanoSchedulerReduceFunction<MapResult, T> {
         final ReadWalker<M,T> walker;
 
         private TraverseReadsReduce(ReadWalker<M, T> walker) {
