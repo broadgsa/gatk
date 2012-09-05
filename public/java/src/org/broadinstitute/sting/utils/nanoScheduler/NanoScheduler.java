@@ -47,6 +47,7 @@ import java.util.concurrent.*;
 public class NanoScheduler<InputType, MapType, ReduceType> {
     private final static Logger logger = Logger.getLogger(NanoScheduler.class);
     private final static boolean ALLOW_SINGLE_THREAD_FASTPATH = true;
+    private final static boolean LOG_MAP_TIMES = false;
     private final static boolean TIME_CALLS = true;
 
     final int bufferSize;
@@ -224,7 +225,9 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
 
             // map
             if ( TIME_CALLS ) mapTimer.restart();
+            final long preMapTime = LOG_MAP_TIMES ? 0 : mapTimer.currentTimeNano();
             final MapType mapValue = map.apply(input);
+            if ( LOG_MAP_TIMES ) logger.info("MAP TIME " + (mapTimer.currentTimeNano() - preMapTime));
             if ( TIME_CALLS ) mapTimer.stop();
 
             if ( i++ % bufferSize == 0 && progressFunction != null )
