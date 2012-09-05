@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.gatk.walkers.NanoSchedulable;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -73,7 +74,7 @@ import java.util.*;
  *
  */
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
-public class CountRODs extends RodWalker<CountRODs.Datum, Pair<ExpandingArrayList<Long>, Long>> implements TreeReducible<Pair<ExpandingArrayList<Long>, Long>> {
+public class CountRODs extends RodWalker<CountRODs.Datum, Pair<ExpandingArrayList<Long>, Long>> implements TreeReducible<Pair<ExpandingArrayList<Long>, Long>>, NanoSchedulable {
     @Output
     public PrintStream out;
 

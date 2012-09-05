@@ -116,7 +116,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
                 return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, threadAllocation);
             }
         } else {
-            if ( threadAllocation.getNumCPUThreadsPerDataThread() > 1 && ! (walker instanceof ThreadSafeMapReduce) )
+            if ( threadAllocation.getNumCPUThreadsPerDataThread() > 1 && ! (walker instanceof NanoSchedulable) )
                 throw badNT("cnt", engine, walker);
             return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation);
         }

@@ -4,9 +4,9 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.NanoSchedulable;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.gatk.walkers.ThreadSafeMapReduce;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -41,7 +41,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  */
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
-public class CountReads extends ReadWalker<Integer, Integer> implements ThreadSafeMapReduce {
+public class CountReads extends ReadWalker<Integer, Integer> implements NanoSchedulable {
     public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {
         return 1;
     }

@@ -125,7 +125,7 @@ import java.util.*;
 // TODO -- When LocusIteratorByState gets cleaned up, we should enable multiple @By sources:
 // TODO -- @By( {DataSource.READS, DataSource.REFERENCE_ORDERED_DATA} )
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
-public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatible {
+public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatible, NanoSchedulable {
 
     @ArgumentCollection
     private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
