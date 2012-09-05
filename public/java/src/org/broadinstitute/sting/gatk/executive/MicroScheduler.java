@@ -59,6 +59,8 @@ import java.util.Collection;
 
 /** Shards and schedules data in manageable chunks. */
 public abstract class MicroScheduler implements MicroSchedulerMBean {
+    // TODO -- remove me and retire non nano scheduled versions of traversals
+    private final static boolean USE_NANOSCHEDULER_FOR_EVERYTHING = true;
     protected static final Logger logger = Logger.getLogger(MicroScheduler.class);
 
     /**
@@ -101,7 +103,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      */
     public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, ThreadAllocation threadAllocation) {
         if ( threadAllocation.isRunningInParallelMode() )
-            logger.info(String.format("Running the GATK in parallel mode with %d CPU threads for each of %d data threads",
+            logger.info(String.format("Running the GATK in parallel mode with %d CPU thread(s) for each of %d data thread(s)",
                     threadAllocation.getNumCPUThreadsPerDataThread(), threadAllocation.getNumDataThreads()));
 
         if ( threadAllocation.getNumDataThreads() > 1 ) {
@@ -147,11 +149,11 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         this.rods = rods;
 
         if (walker instanceof ReadWalker) {
-            traversalEngine = threadAllocation.getNumCPUThreadsPerDataThread() > 1
+            traversalEngine = USE_NANOSCHEDULER_FOR_EVERYTHING || threadAllocation.getNumCPUThreadsPerDataThread() > 1
                     ? new TraverseReadsNano(threadAllocation.getNumCPUThreadsPerDataThread())
                     : new TraverseReads();
         } else if (walker instanceof LocusWalker) {
-            traversalEngine = threadAllocation.getNumCPUThreadsPerDataThread() > 1
+            traversalEngine = USE_NANOSCHEDULER_FOR_EVERYTHING || threadAllocation.getNumCPUThreadsPerDataThread() > 1
                     ? new TraverseLociNano(threadAllocation.getNumCPUThreadsPerDataThread())
                     : new TraverseLociLinear();
         } else if (walker instanceof DuplicateWalker) {

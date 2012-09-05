@@ -193,6 +193,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         if ( reduce == null ) throw new IllegalArgumentException("reduce function cannot be null");
 
         outsideSchedulerTimer.stop();
+
         ReduceType result;
         if ( ALLOW_SINGLE_THREAD_FASTPATH && getnThreads() == 1 ) {
             result = executeSingleThreaded(inputReader, map, initialValue, reduce);
@@ -214,13 +215,29 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                                              final NanoSchedulerReduceFunction<MapType, ReduceType> reduce) {
         ReduceType sum = initialValue;
         int i = 0;
+
+        // start timer to ensure that both hasNext and next are caught by the timer
+        if ( TIME_CALLS ) inputTimer.restart();
         while ( inputReader.hasNext() ) {
             final InputType input = inputReader.next();
+            if ( TIME_CALLS ) inputTimer.stop();
+
+            // map
+            if ( TIME_CALLS ) mapTimer.restart();
             final MapType mapValue = map.apply(input);
+            if ( TIME_CALLS ) mapTimer.stop();
+
             if ( i++ % bufferSize == 0 && progressFunction != null )
                 progressFunction.progress(input);
+
+            // reduce
+            if ( TIME_CALLS ) reduceTimer.restart();
             sum = reduce.apply(mapValue, sum);
+            if ( TIME_CALLS ) reduceTimer.stop();
+
+            if ( TIME_CALLS ) inputTimer.restart();
         }
+
         return sum;
     }
 
