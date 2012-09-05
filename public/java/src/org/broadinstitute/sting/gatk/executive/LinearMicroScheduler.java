@@ -10,6 +10,7 @@ import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
+import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.traversals.TraverseActiveRegions;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -39,13 +40,11 @@ public class LinearMicroScheduler extends MicroScheduler {
                                    final SAMDataSource reads,
                                    final IndexedFastaSequenceFile reference,
                                    final Collection<ReferenceOrderedDataSource> rods,
-                                   final int numThreads, // may be > 1 if are nanoScheduling
-                                   final boolean monitorThreadPerformance ) {
-        super(engine, walker, reads, reference, rods, numThreads);
+                                   final ThreadAllocation threadAllocation) {
+        super(engine, walker, reads, reference, rods, threadAllocation);
 
-        if ( monitorThreadPerformance )
+        if ( threadAllocation.monitorThreadEfficiency() )
             setThreadEfficiencyMonitor(new ThreadEfficiencyMonitor());
-
     }
 
     /**

@@ -400,27 +400,21 @@ public class GenomeAnalysisEngine {
      * Parse out the thread allocation from the given command-line argument.
      */
     private void determineThreadAllocation() {
-        Tags tags = parsingEngine.getTags(argCollection.numberOfThreads);
+        if ( argCollection.numberOfDataThreads < 1 ) throw new UserException.BadArgumentValue("num_threads", "cannot be less than 1, but saw " + argCollection.numberOfDataThreads);
+        if ( argCollection.numberOfCPUThreadsPerDataThread < 1 ) throw new UserException.BadArgumentValue("num_cpu_threads", "cannot be less than 1, but saw " + argCollection.numberOfCPUThreadsPerDataThread);
+        if ( argCollection.numberOfIOThreads < 0 ) throw new UserException.BadArgumentValue("num_io_threads", "cannot be less than 0, but saw " + argCollection.numberOfIOThreads);
 
-        // TODO: Kill this complicated logic once Queue supports arbitrary tagged parameters.
-        Integer numCPUThreads = null;
-        if(tags.containsKey("cpu") && argCollection.numberOfCPUThreads != null)
-            throw new UserException("Number of CPU threads specified both directly on the command-line and as a tag to the nt argument.  Please specify only one or the other.");
-        else if(tags.containsKey("cpu"))
-            numCPUThreads = Integer.parseInt(tags.getValue("cpu"));
-        else if(argCollection.numberOfCPUThreads != null)
-            numCPUThreads = argCollection.numberOfCPUThreads;
-
-        Integer numIOThreads = null;
-        if(tags.containsKey("io") && argCollection.numberOfIOThreads != null)
-            throw new UserException("Number of IO threads specified both directly on the command-line and as a tag to the nt argument.  Please specify only one or the other.");
-        else if(tags.containsKey("io"))
-            numIOThreads = Integer.parseInt(tags.getValue("io"));
-        else if(argCollection.numberOfIOThreads != null)
-            numIOThreads = argCollection.numberOfIOThreads;
-
-        this.threadAllocation = new ThreadAllocation(argCollection.numberOfThreads, numCPUThreads, numIOThreads, ! argCollection.disableEfficiencyMonitor);
+        this.threadAllocation = new ThreadAllocation(argCollection.numberOfDataThreads,
+                argCollection.numberOfCPUThreadsPerDataThread,
+                argCollection.numberOfIOThreads,
+                ! argCollection.disableEfficiencyMonitor);
     }
+
+    public int getTotalNumberOfThreads() {
+        return this.threadAllocation == null ? 1 : threadAllocation.getTotalNumThreads();
+    }
+
+
 
     /**
      * Allow subclasses and others within this package direct access to the walker manager.

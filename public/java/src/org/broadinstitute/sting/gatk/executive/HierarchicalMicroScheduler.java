@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
+import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -76,21 +77,21 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     /**
      * Create a new hierarchical microscheduler to process the given reads and reference.
      *
-     * @param walker        the walker used to process the dataset.
-     * @param reads         Reads file(s) to process.
-     * @param reference     Reference for driving the traversal.
-     * @param nThreadsToUse maximum number of threads to use to do the work
+     * @param walker           the walker used to process the dataset.
+     * @param reads            Reads file(s) to process.
+     * @param reference        Reference for driving the traversal.
+     * @param threadAllocation How should we apply multi-threaded execution?
      */
     protected HierarchicalMicroScheduler(final GenomeAnalysisEngine engine,
                                          final Walker walker,
                                          final SAMDataSource reads,
                                          final IndexedFastaSequenceFile reference,
                                          final Collection<ReferenceOrderedDataSource> rods,
-                                         final int nThreadsToUse,
-                                         final boolean monitorThreadPerformance ) {
-        super(engine, walker, reads, reference, rods, nThreadsToUse);
+                                         final ThreadAllocation threadAllocation) {
+        super(engine, walker, reads, reference, rods, threadAllocation);
 
-        if ( monitorThreadPerformance ) {
+        final int nThreadsToUse = threadAllocation.getNumDataThreads();
+        if ( threadAllocation.monitorThreadEfficiency() ) {
             final EfficiencyMonitoringThreadFactory monitoringThreadFactory = new EfficiencyMonitoringThreadFactory(nThreadsToUse);
             setThreadEfficiencyMonitor(monitoringThreadFactory);
             this.threadPool = Executors.newFixedThreadPool(nThreadsToUse, monitoringThreadFactory);
