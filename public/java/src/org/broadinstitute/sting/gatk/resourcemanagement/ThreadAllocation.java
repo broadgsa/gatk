@@ -81,7 +81,7 @@ public class ThreadAllocation {
      * @return the sum of all thread allocations in this object
      */
     public int getTotalNumThreads() {
-        return getNumDataThreads() + getNumCPUThreadsPerDataThread() + getNumIOThreads();
+        return getNumDataThreads() * getNumCPUThreadsPerDataThread() + getNumIOThreads();
     }
 
     /**
