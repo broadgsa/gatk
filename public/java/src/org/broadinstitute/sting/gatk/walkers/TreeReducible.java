@@ -13,7 +13,7 @@ package org.broadinstitute.sting.gatk.walkers;
  * shards of the data can reduce with each other, and the composite result
  * can be reduced with other composite results.
  */
-public interface TreeReducible<ReduceType> {
+public interface TreeReducible<ReduceType> extends ThreadSafeMapReduce {
     /**
      * A composite, 'reduce of reduces' function.
      * @param lhs 'left-most' portion of data in the composite reduce.

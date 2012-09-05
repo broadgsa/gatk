@@ -23,40 +23,63 @@
 
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
+import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.SAMRecord;
-import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.datasources.reads.ReadShard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.TreeMap;
 
-/** a ROD view for reads. This provides the Read traversals a way of getting a ReadMetaDataTracker */
+/** a ROD view for reads. This provides the Read traversals a way of getting a RefMetaDataTracker */
 public class ReadBasedReferenceOrderedView implements View {
-    private final WindowedData window;
-
-    public ReadBasedReferenceOrderedView(ShardDataProvider provider) {
-        window = new WindowedData(provider);
-        provider.register(this);
-    }
+    // a list of the RMDDataState (location->iterators)
+    private final List<RMDDataState> states = new ArrayList<RMDDataState>(1);
+    private final static RefMetaDataTracker EMPTY_TRACKER = new RefMetaDataTracker();
 
     /**
-     * for testing only please
-     *
-     * @param data the window provider
+     * Used to get genome locs for reads
      */
-    ReadBasedReferenceOrderedView(WindowedData data) {
-        window = data;
+    private final GenomeLocParser genomeLocParser;
+
+    /**
+     * The total extent of all reads in this span.  We create iterators from our RODs
+     * from the start of this span, to the end.
+     */
+    private final GenomeLoc shardSpan;
+
+    public ReadBasedReferenceOrderedView(final ShardDataProvider provider) {
+        this.genomeLocParser = provider.getGenomeLocParser();
+        // conditional to optimize the case where we don't have any ROD data
+        this.shardSpan = provider.getReferenceOrderedData() != null ? ((ReadShard)provider.getShard()).getReadsSpan() : null;
+        provider.register(this);
+
+        if ( provider.getReferenceOrderedData() != null && ! shardSpan.isUnmapped() ) {
+            for (ReferenceOrderedDataSource dataSource : provider.getReferenceOrderedData())
+                states.add(new RMDDataState(dataSource, dataSource.seek(shardSpan)));
+        }
     }
 
-    public ReadMetaDataTracker getReferenceOrderedDataForRead(SAMRecord read) {
-        return window.getTracker(read);
+
+    /**
+     * Testing constructor
+     */
+    protected ReadBasedReferenceOrderedView(final GenomeLocParser genomeLocParser,
+                                            final GenomeLoc shardSpan,
+                                            final List<String> names,
+                                            final List<PeekableIterator<RODRecordList>> featureSources) {
+        this.genomeLocParser = genomeLocParser;
+        this.shardSpan = shardSpan;
+        for ( int i = 0; i < names.size(); i++ )
+            states.add(new RMDDataState(names.get(i), featureSources.get(i)));
     }
 
     public Collection<Class<? extends View>> getConflictingViews() {
@@ -65,135 +88,72 @@ public class ReadBasedReferenceOrderedView implements View {
         return classes;
     }
 
-    public void close() {
-        if (window != null) window.close();
-    }
-}
-
-
-/** stores a window of data, dropping RODs if we've passed the new reads start point. */
-class WindowedData {
-    // the queue of possibly in-frame RODs; RODs are removed as soon as they are out of scope
-    private final TreeMap<Integer, RODMetaDataContainer> mapping = new TreeMap<Integer, RODMetaDataContainer>();
-
-    // our current location from the last read we processed
-    private GenomeLoc currentLoc;
-
-    // a list of the RMDDataState (location->iterators)
-    private List<RMDDataState> states;
-
-    // the provider; where we get all our information
-    private final ShardDataProvider provider;
-
     /**
-     * our log, which we want to capture anything from this class
-     */
-    private static Logger logger = Logger.getLogger(WindowedData.class);
-
-    /**
-     * create a WindowedData given a shard provider
-     *
-     * @param provider the ShardDataProvider
-     */
-    public WindowedData(ShardDataProvider provider) {
-        this.provider = provider;
-    }
-
-    /**
-     * load the states dynamically, since the only way to get a genome loc is from the read (the shard doesn't have one)
-     *
-     * @param provider the ShardDataProvider
-     * @param rec      the current read
-     */
-    private void getStates(ShardDataProvider provider, SAMRecord rec) {
-
-        int stop = Integer.MAX_VALUE;
-        // figure out the appropriate alignment stop
-        if (provider.hasReference()) {
-            stop = provider.getReference().getSequenceDictionary().getSequence(rec.getReferenceIndex()).getSequenceLength();
-        }
-
-        // calculate the range of positions we need to look at
-        GenomeLoc range = provider.getGenomeLocParser().createGenomeLoc(rec.getReferenceName(),
-                rec.getAlignmentStart(),
-                stop);
-        states = new ArrayList<RMDDataState>();
-        if (provider.getReferenceOrderedData() != null)
-            for (ReferenceOrderedDataSource dataSource : provider.getReferenceOrderedData())
-                states.add(new RMDDataState(dataSource, dataSource.seek(range)));
-    }
-
-    /**
-     * this function is for testing only
-     *
-     * @param states a  list of RMDDataState to initialize with
-     */
-    WindowedData(List<RMDDataState> states) {
-        this.states = states;
-        provider = null;
-    }
-
-    /**
-     * create a ReadMetaDataTracker given the current read
+     * create a RefMetaDataTracker given the current read
      *
      * @param rec the read
      *
-     * @return a ReadMetaDataTracker for the read, from which you can get ROD -> read alignments
+     * @return a RefMetaDataTracker for the read, from which you can get ROD -> read alignments
      */
-    public ReadMetaDataTracker getTracker(SAMRecord rec) {
-        updatePosition(rec);
-        return new ReadMetaDataTracker(provider.getGenomeLocParser(), rec, mapping);
+    @Requires("rec != null")
+    @Ensures("result != null")
+    public RefMetaDataTracker getReferenceOrderedDataForRead(final SAMRecord rec) {
+        if ( rec.getReadUnmappedFlag() )
+            // empty RODs for unmapped reads
+            return new RefMetaDataTracker();
+        else
+            return getReferenceOrderedDataForInterval(genomeLocParser.createGenomeLoc(rec));
     }
 
-    /**
-     * update the position we're storing
-     *
-     * @param rec the read to use for start and end
-     */
-    private void updatePosition(SAMRecord rec) {
-        if (states == null) getStates(this.provider, rec);
-        currentLoc = provider.getGenomeLocParser().createGenomeLoc(rec);
-
-        // flush the queue looking for records we've passed over
-        while (mapping.size() > 0 && mapping.firstKey() < currentLoc.getStart())
-            mapping.pollFirstEntry(); // toss away records that we've passed
-
-        // add new data to the queue
-        for (RMDDataState state : states) {
-            // move into position
-            while (state.iterator.hasNext() && state.iterator.peekNextLocation().isBefore(currentLoc))
-                state.iterator.next();
-            while (state.iterator.hasNext() && state.iterator.peekNextLocation().overlapsP(currentLoc)) {
-                RODRecordList list = state.iterator.next();
-                for (GATKFeature datum : list) {
-                    if (!mapping.containsKey(list.getLocation().getStart()))
-                        mapping.put(list.getLocation().getStart(), new RODMetaDataContainer());
-                    mapping.get(list.getLocation().getStart()).addEntry(datum);
-                }
-            }
+    @Requires({"interval != null", "shardSpan == null || shardSpan.isUnmapped() || shardSpan.containsP(interval)"})
+    @Ensures("result != null")
+    public RefMetaDataTracker getReferenceOrderedDataForInterval(final GenomeLoc interval) {
+        if ( states.isEmpty() || shardSpan.isUnmapped() ) // optimization for no bindings (common for read walkers)
+            return EMPTY_TRACKER;
+        else {
+            final List<RODRecordList> bindings = new ArrayList<RODRecordList>(states.size());
+            for ( final RMDDataState state : states )
+                bindings.add(state.stream.getOverlapping(interval));
+            return new RefMetaDataTracker(bindings);
         }
     }
 
-    /** Closes the current view. */
+    /**
+     * Closes the current view.
+     */
     public void close() {
-        if (states == null) return;
-        for (RMDDataState state : states)
-            state.dataSource.close( state.iterator );
+        for (final RMDDataState state : states)
+            state.close();
 
         // Clear out the existing data so that post-close() accesses to this data will fail-fast.
-        states = null;
+        states.clear();
     }
 
+    /** Models the traversal state of a given ROD lane. */
+    private static class RMDDataState {
+        public final ReferenceOrderedDataSource dataSource;
+        public final IntervalOverlappingRODsFromStream stream;
+        private final LocationAwareSeekableRODIterator iterator;
 
-}
+        public RMDDataState(ReferenceOrderedDataSource dataSource, LocationAwareSeekableRODIterator iterator) {
+            this.dataSource = dataSource;
+            this.iterator = iterator;
+            this.stream = new IntervalOverlappingRODsFromStream(dataSource.getName(), new PeekableIterator<RODRecordList>(iterator));
+        }
 
-/** Models the traversal state of a given ROD lane. */
-class RMDDataState {
-    public final ReferenceOrderedDataSource dataSource;
-    public final LocationAwareSeekableRODIterator iterator;
+        /**
+         * For testing
+         */
+        public RMDDataState(final String name, final PeekableIterator<RODRecordList> iterator) {
+            this.dataSource = null;
+            this.iterator = null;
+            this.stream = new IntervalOverlappingRODsFromStream(name, new PeekableIterator<RODRecordList>(iterator));
+        }
 
-    public RMDDataState(ReferenceOrderedDataSource dataSource, LocationAwareSeekableRODIterator iterator) {
-        this.dataSource = dataSource;
-        this.iterator = iterator;
+        public void close() {
+            if ( dataSource != null )
+                dataSource.close( iterator );
+        }
     }
 }
+

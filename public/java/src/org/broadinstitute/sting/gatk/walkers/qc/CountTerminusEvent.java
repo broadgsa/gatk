@@ -4,7 +4,7 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
@@ -41,7 +41,7 @@ import java.util.List;
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountTerminusEvent extends ReadWalker<Pair<Long, Long>, Pair<Long, Long>> {
-    public Pair<Long, Long> map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker tracker) {
+    public Pair<Long, Long> map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {
         List<CigarElement> cigarElements = read.getCigar().getCigarElements();
 
         CigarElement lastElement = null;

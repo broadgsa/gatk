@@ -133,7 +133,7 @@ public class RefMetaDataTrackerUnitTest {
             List<RODRecordList> x = new ArrayList<RODRecordList>();
             if ( AValues != null ) x.add(AValues);
             if ( BValues != null ) x.add(BValues);
-            return new RefMetaDataTracker(x, context);
+            return new RefMetaDataTracker(x);
         }
 
         public int nBoundTracks() {

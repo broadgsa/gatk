@@ -45,19 +45,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Prints the alignment in the pileup format. In the pileup format, each line represents a genomic position,
- * consisting of chromosome name, coordinate, reference base, read bases, read qualities and alignment mapping
- * qualities. Information on match, mismatch, indel, strand, mapping quality and start and end of a read are all
- * encoded at the read base column. At this column, a dot stands for a match to the reference base on the forward strand,
- * a comma for a match on the reverse strand, 'ACGTN' for a mismatch on the forward strand and 'acgtn' for a mismatch on the
- * reverse strand.
- *
- * A pattern '\+[0-9]+[ACGTNacgtn]+' indicates there is an insertion between this reference position and the next
- * reference position. The length of the insertion is given by the integer in the pattern, followed by the inserted sequence.
- * Similarly, a pattern '-[0-9]+[ACGTNacgtn]+' represents a deletion from the reference.
- * Also at the read base column, a symbol '^' marks the start of a read segment which is a contiguous subsequence on the read
- * separated by 'N/S/H' CIGAR operations. The ASCII of the character following '^' minus 33 gives the mapping quality.
- * A symbol '$' marks the end of a read segment.
+ * Prints the alignment in something similar to the samtools pileup format.  Each line represents a genomic position,
+ * consisting of chromosome name, coordinate, reference base, read bases, and read qualities.
  *
  * Associated command:
  * samtools pileup [-f in.ref.fasta] [-t in.ref_list] [-l in.site_list] [-iscg] [-T theta] [-N nHap] [-r pairDiffRate] <in.alignment>

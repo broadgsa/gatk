@@ -5,7 +5,6 @@ import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.RodBinding;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -32,11 +31,10 @@ import java.util.*;
  * Time: 3:05:23 PM
  */
 public class RefMetaDataTracker {
-    // TODO: this should be a list, not a map, actually
+    // TODO: this should be a list, not a bindings, actually
     private final static RODRecordList EMPTY_ROD_RECORD_LIST = new RODRecordListImpl("EMPTY");
 
-    final Map<String, RODRecordList> map;
-    final ReferenceContext ref;
+    final Map<String, RODRecordList> bindings;
     final protected static Logger logger = Logger.getLogger(RefMetaDataTracker.class);
 
     // ------------------------------------------------------------------------------------------
@@ -48,28 +46,25 @@ public class RefMetaDataTracker {
     // ------------------------------------------------------------------------------------------
 
     /**
-     * Only for testing -- not accesssible in any other context
+     * Create an tracker with no bindings
      */
     public RefMetaDataTracker() {
-        ref = null;
-        map = Collections.emptyMap();
+        bindings = Collections.emptyMap();
     }
 
-    public RefMetaDataTracker(final Collection<RODRecordList> allBindings, final ReferenceContext ref) {
-        this.ref = ref;
-
-        // set up the map
+    public RefMetaDataTracker(final Collection<RODRecordList> allBindings) {
+        // set up the bindings
         if ( allBindings.isEmpty() )
-            map = Collections.emptyMap();
+            bindings = Collections.emptyMap();
         else {
-            Map<String, RODRecordList> tmap = new HashMap<String, RODRecordList>(allBindings.size());
+            final Map<String, RODRecordList> tmap = new HashMap<String, RODRecordList>(allBindings.size());
             for ( RODRecordList rod : allBindings ) {
                 if ( rod != null && ! rod.isEmpty() )
                     tmap.put(canonicalName(rod.getName()), rod);
             }
 
-            // ensure that no one modifies the map itself
-            map = Collections.unmodifiableMap(tmap);
+            // ensure that no one modifies the bindings itself
+            bindings = Collections.unmodifiableMap(tmap);
         }
     }
 
@@ -99,7 +94,7 @@ public class RefMetaDataTracker {
     @Requires({"type != null"})
     @Ensures("result != null")
     public <T extends Feature> List<T> getValues(final Class<T> type) {
-        return addValues(map.keySet(), type, new ArrayList<T>(), null, false, false);
+        return addValues(bindings.keySet(), type, new ArrayList<T>(), null, false, false);
     }
 
     /**
@@ -114,7 +109,7 @@ public class RefMetaDataTracker {
     @Requires({"type != null", "onlyAtThisLoc != null"})
     @Ensures("result != null")
     public <T extends Feature> List<T> getValues(final Class<T> type, final GenomeLoc onlyAtThisLoc) {
-        return addValues(map.keySet(), type, new ArrayList<T>(), onlyAtThisLoc, true, false);
+        return addValues(bindings.keySet(), type, new ArrayList<T>(), onlyAtThisLoc, true, false);
     }
 
     /**
@@ -296,7 +291,7 @@ public class RefMetaDataTracker {
      */
     @Requires({"rodBinding != null"})
     public boolean hasValues(final RodBinding rodBinding) {
-        return map.containsKey(canonicalName(rodBinding.getName()));
+        return bindings.containsKey(canonicalName(rodBinding.getName()));
     }
 
     /**
@@ -306,7 +301,7 @@ public class RefMetaDataTracker {
      * @return List of all tracks
      */
     public List<RODRecordList> getBoundRodTracks() {
-        return new ArrayList<RODRecordList>(map.values());
+        return new ArrayList<RODRecordList>(bindings.values());
     }
 
     /**
@@ -314,38 +309,30 @@ public class RefMetaDataTracker {
      * @return the number of tracks with at least one bound Feature
      */
     public int getNTracksWithBoundFeatures() {
-        return map.size();
+        return bindings.size();
     }
 
     // ------------------------------------------------------------------------------------------
-    //
-    //
-    // old style accessors
-    //
-    // TODO -- DELETE ME
-    //
-    //
+    // Protected accessors using strings for unit testing
     // ------------------------------------------------------------------------------------------
 
-    @Deprecated
-    public boolean hasValues(final String name) {
-        return map.containsKey(canonicalName(name));
+    protected boolean hasValues(final String name) {
+        return bindings.containsKey(canonicalName(name));
     }
 
-    @Deprecated
-    public <T extends Feature> List<T> getValues(final Class<T> type, final String name) {
+    protected <T extends Feature> List<T> getValues(final Class<T> type, final String name) {
         return addValues(name, type, new ArrayList<T>(), getTrackDataByName(name), null, false, false);
     }
-    @Deprecated
-    public <T extends Feature> List<T> getValues(final Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
+
+    protected <T extends Feature> List<T> getValues(final Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
         return addValues(name, type, new ArrayList<T>(), getTrackDataByName(name), onlyAtThisLoc, true, false);
     }
-    @Deprecated
-    public <T extends Feature> T getFirstValue(final Class<T> type, final String name) {
+
+    protected <T extends Feature> T getFirstValue(final Class<T> type, final String name) {
         return safeGetFirst(getValues(type, name));
     }
-    @Deprecated
-    public <T extends Feature> T getFirstValue(final Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
+
+    protected <T extends Feature> T getFirstValue(final Class<T> type, final String name, final GenomeLoc onlyAtThisLoc) {
         return safeGetFirst(getValues(type, name, onlyAtThisLoc));
     }
 
@@ -366,7 +353,7 @@ public class RefMetaDataTracker {
      * @return
      */
     @Requires({"l != null"})
-    final private <T extends Feature> T safeGetFirst(final List<T> l) {
+    private <T extends Feature> T safeGetFirst(final List<T> l) {
         return l.isEmpty() ? null : l.get(0);
     }
 
@@ -435,7 +422,7 @@ public class RefMetaDataTracker {
      */
     private RODRecordList getTrackDataByName(final String name) {
         final String luName = canonicalName(name);
-        RODRecordList l = map.get(luName);
+        RODRecordList l = bindings.get(luName);
         return l == null ? EMPTY_ROD_RECORD_LIST : l;
     }
 
@@ -448,7 +435,7 @@ public class RefMetaDataTracker {
      * @param name the name of the rod
      * @return canonical name of the rod
      */
-    private final String canonicalName(final String name) {
+    private String canonicalName(final String name) {
         // todo -- remove me after switch to RodBinding syntax
         return name.toLowerCase();
     }

@@ -38,7 +38,8 @@ public class PrintReadsIntegrationTest extends WalkerTest {
                 {new PRTest(b37KGReference, "unmappedFlagReadsInLastLinearBin.bam", " -L 1", "6e920b8505e7e95d67634b0905237dbc")},
                 {new PRTest(b37KGReference, "unmappedFlagReadsInLastLinearBin.bam", " -L unmapped", "13bb9a91b1d4dd2425f73302b8a1ac1c")},
                 {new PRTest(b37KGReference, "unmappedFlagReadsInLastLinearBin.bam", " -L 1 -L unmapped", "6e920b8505e7e95d67634b0905237dbc")},
-                {new PRTest(b37KGReference, "oneReadAllInsertion.bam", "",  "6caec4f8a25befb6aba562955401af93")}
+                {new PRTest(b37KGReference, "oneReadAllInsertion.bam", "",  "6caec4f8a25befb6aba562955401af93")},
+                {new PRTest(b37KGReference, "NA12878.1_10mb_2_10mb.bam", "",  "c43380ac39b98853af457b90e52f8427")}
         };
     }
 

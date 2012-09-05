@@ -286,7 +286,6 @@ public class VariantDataManager {
             case INDEL:
             case MIXED:
             case SYMBOLIC:
-            case STRUCTURAL_INDEL:
                 return checkVariationClass( evalVC, VariantRecalibratorArgumentCollection.Mode.INDEL );
             default:
                 return false;

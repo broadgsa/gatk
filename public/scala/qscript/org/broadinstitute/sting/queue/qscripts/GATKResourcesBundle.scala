@@ -122,20 +122,20 @@ class GATKResourcesBundle extends QScript {
     //
     // standard VCF files.  Will be lifted to each reference
     //
-    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_135_b37.leftAligned.vcf",
-      "dbsnp_135", b37, true, false))
+    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_137_b37.leftAligned.vcf",
+      "dbsnp_137", b37, true, false))
 
-    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/Omni25_genotypes_1525_samples.b37.vcf",
-      "1000G_omni2.5", b37, true, true))
+    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/Omni25_sites_2141_samples.b37.vcf",
+      "1000G_omni2.5", b37, true, false))
 
-    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf",
-      "hapmap_3.3", b37, true, true))
+    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/sites_r27_nr.b37_fwd.vcf",
+      "hapmap_3.3", b37, true, false))
 
     addResource(new Resource("/humgen/1kg/DCC/ftp/technical/working/20120312_phase1_v2_indel_cleaned_sites_list/ALL.wgs.phase1_release_v2.20101123.official_indel_calls.20120312.sites.vcf",
       "1000G_phase1.indels", b37, true, false))
 
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/GoldStandardIndel/gold.standard.indel.MillsAnd1000G.b37.vcf",
-      "Mills_and_1000G_gold_standard.indels", b37, true, true))
+      "Mills_and_1000G_gold_standard.indels", b37, true, false))
     
     //
     // example call set for wiki tutorial

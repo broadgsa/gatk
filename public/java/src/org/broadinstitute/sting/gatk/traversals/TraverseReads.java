@@ -31,7 +31,7 @@ import org.broadinstitute.sting.gatk.datasources.providers.ReadBasedReferenceOrd
 import org.broadinstitute.sting.gatk.datasources.providers.ReadReferenceView;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -91,7 +91,7 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
             dataProvider.getShard().getReadMetrics().incrementNumIterations();
 
             // if the read is mapped, create a metadata tracker
-            final ReadMetaDataTracker tracker = read.getReferenceIndex() >= 0 ? rodView.getReferenceOrderedDataForRead(read) : null;
+            final RefMetaDataTracker tracker = read.getReferenceIndex() >= 0 ? rodView.getReferenceOrderedDataForRead(read) : null;
 
             final boolean keepMeP = walker.filter(refContext, (GATKSAMRecord) read);
             if (keepMeP) {

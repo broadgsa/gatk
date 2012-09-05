@@ -185,7 +185,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
      */
     private void writeActiveRegionsToStream( final ActiveRegionWalker<M,T> walker ) {
         // Just want to output the active regions to a file, not actually process them
-        for( final org.broadinstitute.sting.utils.activeregion.ActiveRegion activeRegion : workQueue ) {
+        for( final ActiveRegion activeRegion : workQueue ) {
             if( activeRegion.isActive ) {
                 walker.activeRegionOutStream.println( activeRegion.getLocation() );
             }
@@ -198,7 +198,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
         while( workQueue.peek() != null ) {
             final GenomeLoc extendedLoc = workQueue.peek().getExtendedLoc();
             if ( extendedLoc.getStop() < minStart || (currentContig != null && !workQueue.peek().getExtendedLoc().getContig().equals(currentContig))) {
-                final org.broadinstitute.sting.utils.activeregion.ActiveRegion activeRegion = workQueue.remove();
+                final ActiveRegion activeRegion = workQueue.remove();
                 sum = processActiveRegion( activeRegion, myReads, workQueue, sum, walker );
             } else {
                 break;
@@ -208,15 +208,15 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
         return sum;
     }
 
-    private T processActiveRegion( final org.broadinstitute.sting.utils.activeregion.ActiveRegion activeRegion, final LinkedHashSet<GATKSAMRecord> reads, final Queue<org.broadinstitute.sting.utils.activeregion.ActiveRegion> workQueue, final T sum, final ActiveRegionWalker<M,T> walker ) {
+    private T processActiveRegion( final ActiveRegion activeRegion, final LinkedHashSet<GATKSAMRecord> reads, final Queue<ActiveRegion> workQueue, final T sum, final ActiveRegionWalker<M,T> walker ) {
         final ArrayList<GATKSAMRecord> placedReads = new ArrayList<GATKSAMRecord>();
         for( final GATKSAMRecord read : reads ) {
             final GenomeLoc readLoc = this.engine.getGenomeLocParser().createGenomeLoc( read );
             if( activeRegion.getLocation().overlapsP( readLoc ) ) {
                 // The region which the highest amount of overlap is chosen as the primary region for the read (tie breaking is done as right most region)
                 long maxOverlap = activeRegion.getLocation().sizeOfOverlap( readLoc );
-                org.broadinstitute.sting.utils.activeregion.ActiveRegion bestRegion = activeRegion;
-                for( final org.broadinstitute.sting.utils.activeregion.ActiveRegion otherRegionToTest : workQueue ) {
+                ActiveRegion bestRegion = activeRegion;
+                for( final ActiveRegion otherRegionToTest : workQueue ) {
                     if( otherRegionToTest.getLocation().sizeOfOverlap(readLoc) >= maxOverlap ) {
                         maxOverlap = otherRegionToTest.getLocation().sizeOfOverlap( readLoc );
                         bestRegion = otherRegionToTest;
@@ -229,7 +229,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                     if( !bestRegion.equals(activeRegion) ) {
                         activeRegion.add( read );
                     }
-                    for( final org.broadinstitute.sting.utils.activeregion.ActiveRegion otherRegionToTest : workQueue ) {
+                    for( final ActiveRegion otherRegionToTest : workQueue ) {
                         if( !bestRegion.equals(otherRegionToTest) && otherRegionToTest.getExtendedLoc().overlapsP( readLoc ) ) {
                             otherRegionToTest.add( read );
                         }
@@ -241,6 +241,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             }
         }
         reads.removeAll( placedReads ); // remove all the reads which have been placed into their active region
+        // WARNING: This hashset relies on reads being exactly equal when they are placed in the list as when they are removed. So the ActiveRegionWalker can't modify the reads in any way.
 
         logger.debug(">> Map call with " + activeRegion.getReads().size() + " " + (activeRegion.isActive ? "active" : "inactive") + " reads @ " + activeRegion.getLocation() + " with full extent: " + activeRegion.getReferenceLoc());
         final M x = walker.map( activeRegion, null );
