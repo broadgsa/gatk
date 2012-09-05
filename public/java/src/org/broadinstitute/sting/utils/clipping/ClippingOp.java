@@ -18,7 +18,7 @@ import java.util.Vector;
  * of the read, plus an option extraInfo (useful for carrying info where needed).
  * <p/>
  * Also holds the critical apply function that actually execute the clipping operation on a provided read,
- * according to the wishes of the supplid ClippingAlgorithm enum.
+ * according to the wishes of the supplied ClippingAlgorithm enum.
  */
 public class ClippingOp {
     public final int start, stop; // inclusive
