@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.utils.nanoScheduler;
 
+import org.apache.log4j.BasicConfigurator;
 import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -165,6 +166,10 @@ public class NanoSchedulerUnitTest extends BaseTest {
     }
 
     public static void main(String [ ] args) {
+        org.apache.log4j.Logger logger = org.apache.log4j.Logger.getRootLogger();
+        BasicConfigurator.configure();
+        logger.setLevel(org.apache.log4j.Level.DEBUG);
+
         final NanoSchedulerBasicTest test = new NanoSchedulerBasicTest(1000, Integer.valueOf(args[0]), 0, Integer.valueOf(args[1]));
         final NanoScheduler<Integer, Integer, Integer> nanoScheduler =
                 new NanoScheduler<Integer, Integer, Integer>(test.bufferSize, test.nThreads);
@@ -172,5 +177,6 @@ public class NanoSchedulerUnitTest extends BaseTest {
 
         final Integer sum = nanoScheduler.execute(test.makeReader(), test.makeMap(), test.initReduce(), test.makeReduce());
         System.out.printf("Sum = %d, expected =%d%n", sum, test.expectedResult);
+        nanoScheduler.shutdown();
     }
 }
