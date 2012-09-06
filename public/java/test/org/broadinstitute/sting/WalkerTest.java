@@ -265,7 +265,7 @@ public class WalkerTest extends BaseTest {
     }
 
     protected Pair<List<File>, List<String>> executeTestParallel(final String name, WalkerTestSpec spec) {
-        return executeTestParallel(name, spec, ParallelTestType.BOTH);
+        return executeTestParallel(name, spec, ParallelTestType.TREE_REDUCIBLE);
     }
 
     protected Pair<List<File>, List<String>> executeTest(final String name, WalkerTestSpec spec, List<Integer> ntThreads, List<Integer> cpuThreads) {
