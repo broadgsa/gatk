@@ -34,14 +34,17 @@ import org.testng.annotations.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Tests for the state monitoring thread factory.
  */
 public class EfficiencyMonitoringThreadFactoryUnitTest extends BaseTest {
     // the duration of the tests -- 100 ms is tolerable given the number of tests we are doing
-    private final static long THREAD_TARGET_DURATION_IN_MILLISECOND = 1000;
+    private final static long THREAD_TARGET_DURATION_IN_MILLISECOND = 10000;
     private final static int MAX_THREADS = 4;
     final static Object GLOBAL_LOCK = new Object();
 
