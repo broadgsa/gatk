@@ -117,7 +117,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
             }
         } else {
             if ( threadAllocation.getNumCPUThreadsPerDataThread() > 1 && ! (walker instanceof NanoSchedulable) )
-                throw badNT("cnt", engine, walker);
+                throw badNT("nct", engine, walker);
             return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation);
         }
     }

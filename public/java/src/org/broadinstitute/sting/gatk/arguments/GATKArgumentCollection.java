@@ -307,7 +307,7 @@ public class GATKArgumentCollection {
      * the benefit of not requiring X times as much memory per thread as data threads do, but rather
      * only a constant overhead.
      */
-    @Argument(fullName="num_cpu_threads_per_data_thread", shortName = "cnt", doc="How many CPU threads should be allocated per data thread to running this analysis?", required = false)
+    @Argument(fullName="num_cpu_threads_per_data_thread", shortName = "nct", doc="How many CPU threads should be allocated per data thread to running this analysis?", required = false)
     public int numberOfCPUThreadsPerDataThread = 1;
 
     @Argument(fullName="num_io_threads", shortName = "nit", doc="How many of the given threads should be allocated to IO", required = false)

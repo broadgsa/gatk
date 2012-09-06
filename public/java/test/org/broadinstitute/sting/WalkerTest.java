@@ -280,11 +280,11 @@ public class WalkerTest extends BaseTest {
             results = executeTest(name + "-nt-" + nt, spec);
         }
 
-        for ( int cnt : cpuThreads ) {
-            if ( cnt != 1 ) {
-                String extra = " -cnt " + cnt;
+        for ( int nct : cpuThreads ) {
+            if ( nct != 1 ) {
+                String extra = " -nct " + nct;
                 spec.args = originalArgs + extra;
-                results = executeTest(name + "-cnt-" + cnt, spec);
+                results = executeTest(name + "-cnt-" + nct, spec);
             }
         }
 
