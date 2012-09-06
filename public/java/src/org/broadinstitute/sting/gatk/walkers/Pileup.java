@@ -52,7 +52,7 @@ import java.util.List;
  * samtools pileup [-f in.ref.fasta] [-t in.ref_list] [-l in.site_list] [-iscg] [-T theta] [-N nHap] [-r pairDiffRate] <in.alignment>
  */
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
-public class Pileup extends LocusWalker<Integer, Integer> implements TreeReducible<Integer> {
+public class Pileup extends LocusWalker<String, Integer> implements TreeReducible<Integer>, NanoSchedulable {
 
     private static final String verboseDelimiter = "@"; // it's ugly to use "@" but it's literally the only usable character not allowed in read names
 
@@ -70,27 +70,32 @@ public class Pileup extends LocusWalker<Integer, Integer> implements TreeReducib
     @Input(fullName="metadata",shortName="metadata",doc="Add these ROD bindings to the output Pileup", required=false)
     public List<RodBinding<Feature>> rods = Collections.emptyList();
 
-    public void initialize() {
-    }
-
-    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-
-        String rods = getReferenceOrderedData( tracker );
+    @Override
+    public String map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        final String rods = getReferenceOrderedData( tracker );
 
         ReadBackedPileup basePileup = context.getBasePileup();
-        out.printf("%s %s", basePileup.getPileupString((char)ref.getBase()), rods);
-        if ( SHOW_VERBOSE )
-            out.printf(" %s", createVerboseOutput(basePileup));
-        out.println();
 
-        return 1;
+        final StringBuilder s = new StringBuilder();
+        s.append(String.format("%s %s", basePileup.getPileupString((char)ref.getBase()), rods));
+        if ( SHOW_VERBOSE )
+            s.append(" ").append(createVerboseOutput(basePileup));
+        s.append("\n");
+
+        return s.toString();
     }
 
     // Given result of map function
+    @Override
     public Integer reduceInit() { return 0; }
-    public Integer reduce(Integer value, Integer sum) {
-        return treeReduce(sum,value);
+
+    @Override
+    public Integer reduce(String value, Integer sum) {
+        out.print(value);
+        return sum + 1;
     }
+
+    @Override
     public Integer treeReduce(Integer lhs, Integer rhs) {
         return lhs + rhs;
     }

@@ -59,6 +59,8 @@ import java.util.Collection;
 
 /** Shards and schedules data in manageable chunks. */
 public abstract class MicroScheduler implements MicroSchedulerMBean {
+    // TODO -- remove me and retire non nano scheduled versions of traversals
+    private final static boolean USE_NANOSCHEDULER_FOR_EVERYTHING = true;
     protected static final Logger logger = Logger.getLogger(MicroScheduler.class);
 
     /**
@@ -100,27 +102,30 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @return The best-fit microscheduler.
      */
     public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, ThreadAllocation threadAllocation) {
-        if (threadAllocation.getNumCPUThreads() > 1) {
+        if ( threadAllocation.isRunningInParallelMode() )
+            logger.info(String.format("Running the GATK in parallel mode with %d CPU thread(s) for each of %d data thread(s)",
+                    threadAllocation.getNumCPUThreadsPerDataThread(), threadAllocation.getNumDataThreads()));
+
+        if ( threadAllocation.getNumDataThreads() > 1 ) {
             if (walker.isReduceByInterval())
                 throw new UserException.BadArgumentValue("nt", String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
 
-            logger.info(String.format("Running the GATK in parallel mode with %d concurrent threads",threadAllocation.getNumCPUThreads()));
-
-            if ( walker instanceof ReadWalker ) {
-                if ( ! (walker instanceof ThreadSafeMapReduce) ) badNT(engine, walker);
-                return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads(), threadAllocation.monitorThreadEfficiency());
+            if ( ! (walker instanceof TreeReducible) ) {
+                throw badNT("nt", engine, walker);
             } else {
-                // TODO -- update test for when nano scheduling only is an option
-                if ( ! (walker instanceof TreeReducible) ) badNT(engine, walker);
-                return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads(), threadAllocation.monitorThreadEfficiency());
+                return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, threadAllocation);
             }
         } else {
-            return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads(), threadAllocation.monitorThreadEfficiency());
+            if ( threadAllocation.getNumCPUThreadsPerDataThread() > 1 && ! (walker instanceof NanoSchedulable) )
+                throw badNT("cnt", engine, walker);
+            return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation);
         }
     }
 
-    private static void badNT(final GenomeAnalysisEngine engine, final Walker walker) {
-        throw new UserException.BadArgumentValue("nt", String.format("The analysis %s currently does not support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
+    private static UserException badNT(final String parallelArg, final GenomeAnalysisEngine engine, final Walker walker) {
+        throw new UserException.BadArgumentValue("nt",
+                String.format("The analysis %s currently does not support parallel execution with %s.  " +
+                        "Please run your analysis without the %s option.", engine.getWalkerName(walker.getClass()), parallelArg, parallelArg));
     }
 
     /**
@@ -130,23 +135,27 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @param reads   The reads.
      * @param reference The reference.
      * @param rods    the rods to include in the traversal
-     * @param numThreads the number of threads we are using in the underlying traversal
+     * @param threadAllocation the allocation of threads to use in the underlying traversal
      */
     protected MicroScheduler(final GenomeAnalysisEngine engine,
                              final Walker walker,
                              final SAMDataSource reads,
                              final IndexedFastaSequenceFile reference,
                              final Collection<ReferenceOrderedDataSource> rods,
-                             final int numThreads) {
+                             final ThreadAllocation threadAllocation) {
         this.engine = engine;
         this.reads = reads;
         this.reference = reference;
         this.rods = rods;
 
         if (walker instanceof ReadWalker) {
-            traversalEngine = numThreads > 1 ? new TraverseReadsNano(numThreads) : new TraverseReads();
+            traversalEngine = USE_NANOSCHEDULER_FOR_EVERYTHING || threadAllocation.getNumCPUThreadsPerDataThread() > 1
+                    ? new TraverseReadsNano(threadAllocation.getNumCPUThreadsPerDataThread())
+                    : new TraverseReads();
         } else if (walker instanceof LocusWalker) {
-            traversalEngine = new TraverseLoci();
+            traversalEngine = USE_NANOSCHEDULER_FOR_EVERYTHING || threadAllocation.getNumCPUThreadsPerDataThread() > 1
+                    ? new TraverseLociNano(threadAllocation.getNumCPUThreadsPerDataThread())
+                    : new TraverseLociLinear();
         } else if (walker instanceof DuplicateWalker) {
             traversalEngine = new TraverseDuplicates();
         } else if (walker instanceof ReadPairWalker) {

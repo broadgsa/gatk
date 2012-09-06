@@ -27,5 +27,5 @@ package org.broadinstitute.sting.gatk.walkers;
  * declare that their map function is thread-safe and so multiple
  * map calls can be run in parallel in the same JVM instance.
  */
-public interface ThreadSafeMapReduce {
+public interface NanoSchedulable {
 }
