@@ -36,6 +36,7 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.*;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
@@ -142,6 +143,8 @@ public class GenomeAnalysisEngine {
      * Controls the allocation of threads between CPU vs IO.
      */
     private ThreadAllocation threadAllocation;
+
+    private ReadMetrics cumulativeMetrics = null;
 
     /**
      * A currently hacky unique name for this GATK instance
@@ -398,27 +401,21 @@ public class GenomeAnalysisEngine {
      * Parse out the thread allocation from the given command-line argument.
      */
     private void determineThreadAllocation() {
-        Tags tags = parsingEngine.getTags(argCollection.numberOfThreads);
+        if ( argCollection.numberOfDataThreads < 1 ) throw new UserException.BadArgumentValue("num_threads", "cannot be less than 1, but saw " + argCollection.numberOfDataThreads);
+        if ( argCollection.numberOfCPUThreadsPerDataThread < 1 ) throw new UserException.BadArgumentValue("num_cpu_threads", "cannot be less than 1, but saw " + argCollection.numberOfCPUThreadsPerDataThread);
+        if ( argCollection.numberOfIOThreads < 0 ) throw new UserException.BadArgumentValue("num_io_threads", "cannot be less than 0, but saw " + argCollection.numberOfIOThreads);
 
-        // TODO: Kill this complicated logic once Queue supports arbitrary tagged parameters.
-        Integer numCPUThreads = null;
-        if(tags.containsKey("cpu") && argCollection.numberOfCPUThreads != null)
-            throw new UserException("Number of CPU threads specified both directly on the command-line and as a tag to the nt argument.  Please specify only one or the other.");
-        else if(tags.containsKey("cpu"))
-            numCPUThreads = Integer.parseInt(tags.getValue("cpu"));
-        else if(argCollection.numberOfCPUThreads != null)
-            numCPUThreads = argCollection.numberOfCPUThreads;
-
-        Integer numIOThreads = null;
-        if(tags.containsKey("io") && argCollection.numberOfIOThreads != null)
-            throw new UserException("Number of IO threads specified both directly on the command-line and as a tag to the nt argument.  Please specify only one or the other.");
-        else if(tags.containsKey("io"))
-            numIOThreads = Integer.parseInt(tags.getValue("io"));
-        else if(argCollection.numberOfIOThreads != null)
-            numIOThreads = argCollection.numberOfIOThreads;
-
-        this.threadAllocation = new ThreadAllocation(argCollection.numberOfThreads, numCPUThreads, numIOThreads, ! argCollection.disableEfficiencyMonitor);
+        this.threadAllocation = new ThreadAllocation(argCollection.numberOfDataThreads,
+                argCollection.numberOfCPUThreadsPerDataThread,
+                argCollection.numberOfIOThreads,
+                ! argCollection.disableEfficiencyMonitor);
     }
+
+    public int getTotalNumberOfThreads() {
+        return this.threadAllocation == null ? 1 : threadAllocation.getTotalNumThreads();
+    }
+
+
 
     /**
      * Allow subclasses and others within this package direct access to the walker manager.
@@ -445,14 +442,18 @@ public class GenomeAnalysisEngine {
 
     protected DownsamplingMethod getDownsamplingMethod() {
         GATKArgumentCollection argCollection = this.getArguments();
-        DownsamplingMethod method;
-        if(argCollection.getDownsamplingMethod() != null)
-            method = argCollection.getDownsamplingMethod();
-        else if(WalkerManager.getDownsamplingMethod(walker) != null)
-            method = WalkerManager.getDownsamplingMethod(walker);
-        else
-            method = GATKArgumentCollection.getDefaultDownsamplingMethod();
-        return method;
+        boolean useExperimentalDownsampling = argCollection.enableExperimentalDownsampling;
+
+        // until the file pointer bug with the experimental downsamplers is fixed, disallow running with experimental downsampling
+        if ( useExperimentalDownsampling ) {
+            throw new UserException("The experimental downsampling implementation is currently crippled by a file-pointer-related bug. Until this bug is fixed, it's not safe (or possible) for anyone to use the experimental implementation!");
+        }
+
+        DownsamplingMethod commandLineMethod = argCollection.getDownsamplingMethod();
+        DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker, useExperimentalDownsampling);
+        DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker, useExperimentalDownsampling);
+
+        return commandLineMethod != null ? commandLineMethod : (walkerMethod != null ? walkerMethod : defaultMethod);
     }
 
     protected void setDownsamplingMethod(DownsamplingMethod method) {
@@ -825,11 +826,13 @@ public class GenomeAnalysisEngine {
      * @return A data source for the given set of reads.
      */
     private SAMDataSource createReadsDataSource(GATKArgumentCollection argCollection, GenomeLocParser genomeLocParser, IndexedFastaSequenceFile refReader) {
-        DownsamplingMethod method = getDownsamplingMethod();
+        DownsamplingMethod downsamplingMethod = getDownsamplingMethod();
 
         // Synchronize the method back into the collection so that it shows up when
         // interrogating for the downsample method during command line recreation.
-        setDownsamplingMethod(method);
+        setDownsamplingMethod(downsamplingMethod);
+
+        logger.info(downsamplingMethod);
 
         if (argCollection.removeProgramRecords && argCollection.keepProgramRecords)
             throw new UserException.BadArgumentValue("rpr / kpr", "Cannot enable both options");
@@ -847,7 +850,7 @@ public class GenomeAnalysisEngine {
                 argCollection.useOriginalBaseQualities,
                 argCollection.strictnessLevel,
                 argCollection.readBufferSize,
-                method,
+                downsamplingMethod,
                 new ValidationExclusion(Arrays.asList(argCollection.unsafe)),
                 filters,
                 readTransformers,
@@ -1035,7 +1038,10 @@ public class GenomeAnalysisEngine {
      *         owned by the caller; the caller can do with the object what they wish.
      */
     public ReadMetrics getCumulativeMetrics() {
-        return readsDataSource == null ? null : readsDataSource.getCumulativeReadMetrics();
+        // todo -- probably shouldn't be lazy
+        if ( cumulativeMetrics == null )
+            cumulativeMetrics = readsDataSource == null ? new ReadMetrics() : readsDataSource.getCumulativeReadMetrics();
+        return cumulativeMetrics;
     }
 
     /**

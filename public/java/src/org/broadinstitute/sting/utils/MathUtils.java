@@ -75,6 +75,17 @@ public class MathUtils {
         }
     }
 
+    /**
+     * Get a random int between min and max (inclusive) using the global GATK random number generator
+     *
+     * @param min lower bound of the range
+     * @param max upper bound of the range
+     * @return a random int >= min and <= max
+     */
+    public static int randomIntegerInRange( int min, int max ) {
+        return GenomeAnalysisEngine.getRandomGenerator().nextInt(max - min + 1) + min;
+    }
+
     // A fast implementation of the Math.round() method.  This method does not perform
     // under/overflow checking, so this shouldn't be used in the general case (but is fine
     // if one is already make those checks before calling in to the rounding).
@@ -1655,5 +1666,4 @@ public class MathUtils {
         return result;
 
     }
-
 }

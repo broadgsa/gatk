@@ -577,6 +577,7 @@
                  docletpathref="doclet.classpath"
                  classpathref="external.dependencies"
                  classpath="${java.classes}"
+		 maxmemory="2g"
                  additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -out ${basedir}/${resource.path} -quiet">
             <sourcefiles>
                 <union>
@@ -780,6 +781,7 @@
                  docletpathref="doclet.classpath"
                  classpathref="external.dependencies"
                  classpath="${java.classes}"
+		 maxmemory="2g"
                  additionalparam="${gatkdocs.include.hidden.arg} -private -build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -quiet"> <!-- -test to only do DocumentationTest walker -->
             <sourcefiles>
                 <fileset refid="java.source.files"/>

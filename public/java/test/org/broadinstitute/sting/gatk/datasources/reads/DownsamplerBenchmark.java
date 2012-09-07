@@ -29,7 +29,7 @@ import net.sf.picard.filter.FilteringIterator;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Tags;
-import org.broadinstitute.sting.gatk.DownsamplingMethod;
+import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
+import org.broadinstitute.sting.gatk.walkers.qc.CountLoci;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.Collections;
@@ -97,7 +98,7 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
         },
         PER_SAMPLE {
             @Override
-            DownsamplingMethod create() { return GATKArgumentCollection.getDefaultDownsamplingMethod(); }
+            DownsamplingMethod create() { return DownsamplingMethod.getDefaultDownsamplingMethod(new CountLoci(), false); }
         };
         abstract DownsamplingMethod create();
     }

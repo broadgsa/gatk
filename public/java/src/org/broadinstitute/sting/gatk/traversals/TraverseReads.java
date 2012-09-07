@@ -99,8 +99,11 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
                 sum = walker.reduce(x, sum);
             }
 
-            GenomeLoc locus = read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX ? null : engine.getGenomeLocParser().createGenomeLoc(read.getReferenceName(),read.getAlignmentStart());
-            printProgress(dataProvider.getShard(),locus);
+            final GenomeLoc locus = read.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX ? null : engine.getGenomeLocParser().createGenomeLoc(read.getReferenceName(),read.getAlignmentStart());
+
+            updateCumulativeMetrics(dataProvider.getShard());
+            printProgress(locus);
+
             done = walker.isDone();
         }
         return sum;

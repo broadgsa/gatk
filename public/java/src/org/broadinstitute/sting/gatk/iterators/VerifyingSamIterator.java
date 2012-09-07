@@ -10,13 +10,11 @@ import java.util.Iterator;
  * Verifies that the incoming stream of reads is correctly sorted
  */
 public class VerifyingSamIterator implements StingSAMIterator {
-    private GenomeLocParser genomeLocParser;
     StingSAMIterator it;
     SAMRecord last = null;
     boolean checkOrderP = true;
 
-    public VerifyingSamIterator(GenomeLocParser genomeLocParser,StingSAMIterator it) {
-        this.genomeLocParser = genomeLocParser;
+    public VerifyingSamIterator(StingSAMIterator it) {
         this.it = it;
     }
 

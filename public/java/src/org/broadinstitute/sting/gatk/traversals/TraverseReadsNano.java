@@ -34,34 +34,34 @@ import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
 import org.broadinstitute.sting.gatk.datasources.reads.ReadShard;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.utils.nanoScheduler.MapFunction;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.nanoScheduler.NSMapFunction;
+import org.broadinstitute.sting.utils.nanoScheduler.NSReduceFunction;
 import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
-import org.broadinstitute.sting.utils.nanoScheduler.ReduceFunction;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
- * @author aaron
+ * A nano-scheduling version of TraverseReads.
+ *
+ * Implements the traversal of a walker that accepts individual reads, the reference, and
+ * RODs per map call.  Directly supports shared memory parallelism via NanoScheduler
+ *
+ * @author depristo
  * @version 1.0
- * @date Apr 24, 2009
- * <p/>
- * Class TraverseReads
- * <p/>
- * This class handles traversing by reads in the new shardable style
+ * @date 9/2/2012
  */
 public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,ReadShardDataProvider> {
     /** our log, which we want to capture anything from this class */
     protected static final Logger logger = Logger.getLogger(TraverseReadsNano.class);
     private static final boolean DEBUG = false;
-    private static final int MIN_GROUP_SIZE = 100;
-    final NanoScheduler<MapData, M, T> nanoScheduler;
+    final NanoScheduler<MapData, MapResult, T> nanoScheduler;
 
     public TraverseReadsNano(int nThreads) {
         final int bufferSize = ReadShard.getReadBufferSize() + 1; // actually has 1 more than max
-        final int mapGroupSize = (int)Math.max(Math.ceil(bufferSize / 50.0 + 1), MIN_GROUP_SIZE);
-        nanoScheduler = new NanoScheduler<MapData, M, T>(bufferSize, mapGroupSize, nThreads);
+        nanoScheduler = new NanoScheduler<MapData, MapResult, T>(bufferSize, nThreads);
     }
 
     @Override
@@ -89,19 +89,32 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
         final TraverseReadsMap myMap = new TraverseReadsMap(walker);
         final TraverseReadsReduce myReduce = new TraverseReadsReduce(walker);
 
-        T result = nanoScheduler.execute(aggregateMapData(dataProvider).iterator(), myMap, sum, myReduce);
-        // TODO -- how do we print progress?
-        //printProgress(dataProvider.getShard(), ???);
+        final List<MapData> aggregatedInputs = aggregateMapData(dataProvider);
+        final T result = nanoScheduler.execute(aggregatedInputs.iterator(), myMap, sum, myReduce);
+
+        final GATKSAMRecord lastRead = aggregatedInputs.get(aggregatedInputs.size() - 1).read;
+        final GenomeLoc locus = engine.getGenomeLocParser().createGenomeLoc(lastRead);
+
+        updateCumulativeMetrics(dataProvider.getShard());
+        printProgress(locus);
 
         return result;
     }
 
+    /**
+     * Aggregate all of the inputs for all map calls into MapData, to be provided
+     * to NanoScheduler for Map/Reduce
+     *
+     * @param dataProvider the source of our data
+     * @return a linked list of MapData objects holding the read, ref, and ROD info for every map/reduce
+     *          should execute
+     */
     private List<MapData> aggregateMapData(final ReadShardDataProvider dataProvider) {
         final ReadView reads = new ReadView(dataProvider);
         final ReadReferenceView reference = new ReadReferenceView(dataProvider);
         final ReadBasedReferenceOrderedView rodView = new ReadBasedReferenceOrderedView(dataProvider);
 
-        final List<MapData> mapData = new ArrayList<MapData>();  // TODO -- need size of reads
+        final List<MapData> mapData = new LinkedList<MapData>();
         for ( final SAMRecord read : reads ) {
             final ReferenceContext refContext = ! read.getReadUnmappedFlag()
                     ? reference.getReferenceContext(read)
@@ -127,19 +140,9 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
         super.printOnTraversalDone();
     }
 
-    private class TraverseReadsReduce implements ReduceFunction<M, T> {
-        final ReadWalker<M,T> walker;
-
-        private TraverseReadsReduce(ReadWalker<M, T> walker) {
-            this.walker = walker;
-        }
-
-        @Override
-        public T apply(M one, T sum) {
-            return walker.reduce(one, sum);
-        }
-    }
-
+    /**
+     * The input data needed for each map call.  The read, the reference, and the RODs
+     */
     private class MapData {
         final GATKSAMRecord read;
         final ReferenceContext refContext;
@@ -152,7 +155,43 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
         }
     }
 
-    private class TraverseReadsMap implements MapFunction<MapData, M> {
+    /**
+     * Contains the results of a map call, indicating whether the call was good, filtered, or done
+     */
+    private class MapResult {
+        final M value;
+        final boolean reduceMe;
+
+        /**
+         * Create a MapResult with value that should be reduced
+         *
+         * @param value the value to reduce
+         */
+        private MapResult(final M value) {
+            this.value = value;
+            this.reduceMe = true;
+        }
+
+        /**
+         * Create a MapResult that shouldn't be reduced
+         */
+        private MapResult() {
+            this.value = null;
+            this.reduceMe = false;
+        }
+    }
+
+    /**
+     * A static object that tells reduce that the result of map should be skipped (filtered or done)
+     */
+    private final MapResult SKIP_REDUCE = new MapResult();
+
+    /**
+     * MapFunction for TraverseReads meeting NanoScheduler interface requirements
+     *
+     * Applies walker.map to MapData, returning a MapResult object containing the result
+     */
+    private class TraverseReadsMap implements NSMapFunction<MapData, MapResult> {
         final ReadWalker<M,T> walker;
 
         private TraverseReadsMap(ReadWalker<M, T> walker) {
@@ -160,15 +199,36 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
         }
 
         @Override
-        public M apply(final MapData data) {
+        public MapResult apply(final MapData data) {
             if ( ! walker.isDone() ) {
                 final boolean keepMeP = walker.filter(data.refContext, data.read);
-                if (keepMeP) {
-                    return walker.map(data.refContext, data.read, data.tracker);
-                }
+                if (keepMeP)
+                    return new MapResult(walker.map(data.refContext, data.read, data.tracker));
             }
 
-            return null; // TODO -- what should we return in the case where the walker is done or the read is filtered?
+            return SKIP_REDUCE;
+        }
+    }
+
+    /**
+     * NSReduceFunction for TraverseReads meeting NanoScheduler interface requirements
+     *
+     * Takes a MapResult object and applies the walkers reduce function to each map result, when applicable
+     */
+    private class TraverseReadsReduce implements NSReduceFunction<MapResult, T> {
+        final ReadWalker<M,T> walker;
+
+        private TraverseReadsReduce(ReadWalker<M, T> walker) {
+            this.walker = walker;
+        }
+
+        @Override
+        public T apply(MapResult one, T sum) {
+            if ( one.reduceMe )
+                // only run reduce on values that aren't DONE or FAILED
+                return walker.reduce(one.value, sum);
+            else
+                return sum;
         }
     }
 }

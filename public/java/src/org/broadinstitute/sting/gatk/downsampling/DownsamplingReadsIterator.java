@@ -33,7 +33,8 @@ import java.util.NoSuchElementException;
 
 
 /**
- * StingSAMIterator wrapper around our generic reads downsampler interface
+ * StingSAMIterator wrapper around our generic reads downsampler interface. Converts the push-style
+ * downsampler interface to a pull model.
  *
  * @author David Roazen
  */
@@ -42,35 +43,50 @@ public class DownsamplingReadsIterator implements StingSAMIterator {
     private StingSAMIterator nestedSAMIterator;
     private ReadsDownsampler<SAMRecord> downsampler;
     private Collection<SAMRecord> downsampledReadsCache;
-    private Iterator<SAMRecord> downsampledReadsCacheIterator;
+    private SAMRecord nextRead = null;
+    private Iterator<SAMRecord> downsampledReadsCacheIterator = null;
 
+    /**
+     * @param iter wrapped iterator from which this iterator will pull reads
+     * @param downsampler downsampler through which the reads will be fed
+     */
     public DownsamplingReadsIterator( StingSAMIterator iter, ReadsDownsampler<SAMRecord> downsampler ) {
         nestedSAMIterator = iter;
         this.downsampler = downsampler;
-        fillDownsampledReadsCache();
+
+        advanceToNextRead();
     }
 
     public boolean hasNext() {
-        if ( downsampledReadsCacheIterator.hasNext() ) {
-            return true;
-        }
-        else if ( ! nestedSAMIterator.hasNext() || ! fillDownsampledReadsCache() ) {
-            return false;
-        }
-
-        return true;
+        return nextRead != null;
     }
 
     public SAMRecord next() {
-        if ( ! downsampledReadsCacheIterator.hasNext() && ! fillDownsampledReadsCache() ) {
+        if ( nextRead == null ) {
             throw new NoSuchElementException("next() called when there are no more items");
         }
 
-        return downsampledReadsCacheIterator.next();
+        SAMRecord toReturn = nextRead;
+        advanceToNextRead();
+
+        return toReturn;
+    }
+
+    private void advanceToNextRead() {
+        if ( ! readyToReleaseReads() && ! fillDownsampledReadsCache() ) {
+            nextRead = null;
+        }
+        else {
+            nextRead = downsampledReadsCacheIterator.next();
+        }
+    }
+
+    private boolean readyToReleaseReads() {
+        return downsampledReadsCacheIterator != null && downsampledReadsCacheIterator.hasNext();
     }
 
     private boolean fillDownsampledReadsCache() {
-        while ( nestedSAMIterator.hasNext() && ! downsampler.hasDownsampledItems() ) {
+        while ( nestedSAMIterator.hasNext() && ! downsampler.hasFinalizedItems() ) {
             downsampler.submit(nestedSAMIterator.next());
         }
 
@@ -78,7 +94,8 @@ public class DownsamplingReadsIterator implements StingSAMIterator {
             downsampler.signalEndOfInput();
         }
 
-        downsampledReadsCache = downsampler.consumeDownsampledItems();
+        // use returned collection directly rather than make a copy, for speed
+        downsampledReadsCache = downsampler.consumeFinalizedItems();
         downsampledReadsCacheIterator = downsampledReadsCache.iterator();
 
         return downsampledReadsCacheIterator.hasNext();

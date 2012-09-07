@@ -27,6 +27,8 @@ package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
+import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
@@ -304,9 +306,10 @@ public class WalkerManager extends PluginManager<Walker> {
      * downsampling method is specified on the command-line, the command-line version will
      * be used instead.
      * @param walkerClass The class of the walker to interrogate.
+     * @param useExperimentalDownsampling If true, use the experimental downsampling implementation
      * @return The downsampling method, as specified by the walker.  Null if none exists.
      */
-    public static DownsamplingMethod getDownsamplingMethod(Class<? extends Walker> walkerClass) {
+    public static DownsamplingMethod getDownsamplingMethod(Class<? extends Walker> walkerClass, boolean useExperimentalDownsampling) {
         DownsamplingMethod downsamplingMethod = null;
 
         if( walkerClass.isAnnotationPresent(Downsample.class) ) {
@@ -314,7 +317,7 @@ public class WalkerManager extends PluginManager<Walker> {
             DownsampleType type = downsampleParameters.by();
             Integer toCoverage = downsampleParameters.toCoverage() >= 0 ? downsampleParameters.toCoverage() : null;
             Double toFraction = downsampleParameters.toFraction() >= 0.0d ? downsampleParameters.toFraction() : null;
-            downsamplingMethod = new DownsamplingMethod(type,toCoverage,toFraction);
+            downsamplingMethod = new DownsamplingMethod(type,toCoverage,toFraction,useExperimentalDownsampling);
         }
 
         return downsamplingMethod;
@@ -333,10 +336,11 @@ public class WalkerManager extends PluginManager<Walker> {
      * downsampling method is specified on the command-line, the command-line version will
      * be used instead.
      * @param walker The walker to interrogate.
+     * @param useExperimentalDownsampling If true, use the experimental downsampling implementation
      * @return The downsampling method, as specified by the walker.  Null if none exists.
      */
-    public static DownsamplingMethod getDownsamplingMethod(Walker walker) {
-        return getDownsamplingMethod(walker.getClass());
+    public static DownsamplingMethod getDownsamplingMethod(Walker walker, boolean useExperimentalDownsampling) {
+        return getDownsamplingMethod(walker.getClass(), useExperimentalDownsampling);
     }
 
     /**

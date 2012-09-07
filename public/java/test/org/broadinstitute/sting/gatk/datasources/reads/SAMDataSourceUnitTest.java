@@ -25,36 +25,40 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMProgramRecord;
-import net.sf.samtools.SAMRecord;
+import net.sf.samtools.*;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
+import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
+import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.sting.utils.sam.ArtificialSingleSampleReadStream;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+import org.testng.Assert;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import static org.testng.Assert.*;
 
 /**
- * @author aaron
- * @version 1.0
- * @date Apr 8, 2009
  * <p/>
  * Class SAMDataSourceUnitTest
  * <p/>
@@ -65,6 +69,161 @@ public class SAMDataSourceUnitTest extends BaseTest {
     private List<SAMReaderID> readers;
     private IndexedFastaSequenceFile seq;
     private GenomeLocParser genomeLocParser;
+
+
+    /***********************************
+     * Tests for the fillShard() method
+     ***********************************/
+
+    /**
+     * Tests to ensure that the fillShard() method does not place shard boundaries at inappropriate places,
+     * such as within an alignment start position
+     */
+    private static class SAMDataSourceFillShardBoundaryTest extends TestDataProvider {
+        private int numContigs;
+        private int numStacksPerContig;
+        private int stackSize;
+        private int numUnmappedReads;
+        private DownsamplingMethod downsamplingMethod;
+
+        private SAMFileHeader header;
+
+        public SAMDataSourceFillShardBoundaryTest( int numContigs,
+                                                   int numStacksPerContig,
+                                                   int stackSize,
+                                                   int numUnmappedReads,
+                                                   int downsamplingTargetCoverage ) {
+            super(SAMDataSourceFillShardBoundaryTest.class);
+
+            this.numContigs = numContigs;
+            this.numStacksPerContig = numStacksPerContig;
+            this.stackSize = stackSize;
+            this.numUnmappedReads = numUnmappedReads;
+
+            this.downsamplingMethod = new DownsamplingMethod(DownsampleType.BY_SAMPLE, downsamplingTargetCoverage, null, true);
+
+            setName(String.format("%s: numContigs=%d numStacksPerContig=%d stackSize=%d numUnmappedReads=%d downsamplingTargetCoverage=%d",
+                                  getClass().getSimpleName(), numContigs, numStacksPerContig, stackSize, numUnmappedReads, downsamplingTargetCoverage));
+        }
+
+        public void run() {
+            SAMDataSource dataSource = new SAMDataSource(Arrays.asList(createTestBAM()),
+                                                         new ThreadAllocation(),
+                                                         null,
+                                                         new GenomeLocParser(header.getSequenceDictionary()),
+                                                         false,
+                                                         SAMFileReader.ValidationStringency.SILENT,
+                                                         null,
+                                                         downsamplingMethod,
+                                                         new ValidationExclusion(),
+                                                         new ArrayList<ReadFilter>(),
+                                                         false);
+
+            Assert.assertTrue(dataSource.usingExpandedShards());
+
+            Iterable<Shard> shardIterator = dataSource.createShardIteratorOverAllReads(new ReadShardBalancer());
+
+            SAMRecord readAtEndOfLastShard = null;
+
+            for ( Shard shard : shardIterator ) {
+                int numContigsThisShard = 0;
+                SAMRecord lastRead = null;
+
+                for ( SAMRecord read : shard.iterator() ) {
+                    if ( lastRead == null ) {
+                        numContigsThisShard = 1;
+                    }
+                    else if ( ! read.getReadUnmappedFlag() && ! lastRead.getReferenceIndex().equals(read.getReferenceIndex()) ) {
+                        numContigsThisShard++;
+                    }
+
+                    // If the last read from the previous shard is not unmapped, we have to make sure
+                    // that no reads in this shard start at the same position
+                    if ( readAtEndOfLastShard != null && ! readAtEndOfLastShard.getReadUnmappedFlag() ) {
+                        Assert.assertFalse(readAtEndOfLastShard.getReferenceIndex().equals(read.getReferenceIndex()) &&
+                                           readAtEndOfLastShard.getAlignmentStart() == read.getAlignmentStart(),
+                                           String.format("Reads from alignment start position %d:%d are split across multiple shards",
+                                                         read.getReferenceIndex(), read.getAlignmentStart()));
+                    }
+
+                    lastRead = read;
+                }
+
+                // There should never be reads from more than 1 contig in a shard (ignoring unmapped reads)
+                Assert.assertTrue(numContigsThisShard == 1, "found a shard with reads from multiple contigs");
+
+                readAtEndOfLastShard = lastRead;
+            }
+        }
+
+        private SAMReaderID createTestBAM() {
+            header = ArtificialSAMUtils.createArtificialSamHeader(numContigs, 1, 100000);
+            SAMReadGroupRecord readGroup = new SAMReadGroupRecord("foo");
+            readGroup.setSample("testSample");
+            header.addReadGroup(readGroup);
+            ArtificialSingleSampleReadStream artificialReads = new ArtificialSingleSampleReadStream(header,
+                                                                                                    "foo",
+                                                                                                    numContigs,
+                                                                                                    numStacksPerContig,
+                                                                                                    stackSize,
+                                                                                                    stackSize,
+                                                                                                    1,
+                                                                                                    100,
+                                                                                                    50,
+                                                                                                    150,
+                                                                                                    numUnmappedReads);
+
+            File testBAMFile;
+            try {
+                testBAMFile = File.createTempFile("SAMDataSourceFillShardBoundaryTest", ".bam");
+                testBAMFile.deleteOnExit();
+            }
+            catch ( IOException e ) {
+                throw new ReviewedStingException(String.format("Failed to create temp bam file for test %s. %s", this, e.getMessage()));
+            }
+
+            SAMFileWriter bamWriter = new SAMFileWriterFactory().setCreateIndex(true).makeBAMWriter(header, true, testBAMFile);
+            for ( SAMRecord read : artificialReads ) {
+                bamWriter.addAlignment(read);
+            }
+            bamWriter.close();
+
+            return new SAMReaderID(testBAMFile, new Tags());
+        }
+    }
+
+    @DataProvider(name = "SAMDataSourceFillShardTestDataProvider")
+    public Object[][] createSAMDataSourceFillShardBoundaryTests() {
+        // Take downsampling out of the equation for these tests -- we are only interested in whether the
+        // shard boundaries occur at the right places in the read stream, and removing downsampling as a
+        // factor simplifies that task (note that we still need to provide a specific downsampling method with
+        // experimental downsampling enabled to trigger the shard expansion behavior, for now)
+        int downsamplingTargetCoverage = ReadShard.MAX_READS * 10;
+
+        for ( int numContigs = 1; numContigs <= 3; numContigs++ ) {
+            for ( int numStacksPerContig : Arrays.asList(1, 2, 4) ) {
+                // Use crucial read shard boundary values as the stack sizes
+                for ( int stackSize : Arrays.asList(ReadShard.MAX_READS / 2, ReadShard.MAX_READS / 2 + 10, ReadShard.MAX_READS, ReadShard.MAX_READS - 1, ReadShard.MAX_READS + 1, ReadShard.MAX_READS * 2) ) {
+                    for ( int numUnmappedReads : Arrays.asList(0, ReadShard.MAX_READS / 2, ReadShard.MAX_READS * 2) ) {
+                        new SAMDataSourceFillShardBoundaryTest(numContigs, numStacksPerContig, stackSize, numUnmappedReads, downsamplingTargetCoverage);
+                    }
+                }
+            }
+        }
+
+        return SAMDataSourceFillShardBoundaryTest.getTests(SAMDataSourceFillShardBoundaryTest.class);
+    }
+
+    // TODO: re-enable these tests once the issues with filepointer ordering + the downsamplers are worked out
+    @Test(dataProvider = "SAMDataSourceFillShardTestDataProvider", enabled = false)
+    public void testSAMDataSourceFillShard( SAMDataSourceFillShardBoundaryTest test ) {
+        logger.warn("Running test: " + test);
+
+        test.run();
+    }
+
+
+    // TODO: the legacy tests below should really be replaced with a more comprehensive suite of tests for SAMDataSource
 
     /**
      * This function does the setup of our parser, before each method call.

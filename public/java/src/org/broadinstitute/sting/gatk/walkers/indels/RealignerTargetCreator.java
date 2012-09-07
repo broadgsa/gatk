@@ -57,7 +57,7 @@ import java.util.TreeSet;
  * is minimized across all the reads. In general, a large percent of regions requiring local realignment are due to the presence of an insertion
  * or deletion (indels) in the individual's genome with respect to the reference genome.  Such alignment artifacts result in many bases mismatching
  * the reference near the misalignment, which are easily mistaken as SNPs.  Moreover, since read mapping algorithms operate on each read independently,
- * it is impossible to place reads on the reference genome such at mismatches are minimized across all reads.  Consequently, even when some reads are
+ * it is impossible to place reads on the reference genome such that mismatches are minimized across all reads.  Consequently, even when some reads are
  * correctly mapped with indels, reads covering the indel near just the start or end of the read are often incorrectly mapped with respect the true indel,
  * also requiring realignment.  Local realignment serves to transform regions with misalignments due to indels into clean reads containing a consensus
  * indel suitable for standard variant discovery approaches.  Unlike most mappers, this walker uses the full alignment context to determine whether an
@@ -69,7 +69,7 @@ import java.util.TreeSet;
  *     <li>Running the realigner over those intervals (see the IndelRealigner tool)</li>
  *     </ol>
  *     <p>
- * An important note: the input bam(s), reference, and known indel file(s) should be the same ones to be used for the IndelRealigner step.
+ * An important note: the input BAM(s), reference, and known indel file(s) should be the same ones to be used for the IndelRealigner step.
  * <p>
  * Another important note: because reads produced from the 454 technology inherently contain false indels, the realigner will not currently work with them
  * (or with reads from similar technologies).   This tool also ignores MQ0 reads and reads with consecutive indel operators in the CIGAR string.

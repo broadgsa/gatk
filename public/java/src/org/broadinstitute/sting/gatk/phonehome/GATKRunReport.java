@@ -218,7 +218,7 @@ public class GATKRunReport {
         // if there was an exception, capture it
         this.mException = e == null ? null : new ExceptionToXML(e);
 
-        numThreads = engine.getArguments().numberOfThreads;
+        numThreads = engine.getTotalNumberOfThreads();
         percentTimeRunning = getThreadEfficiencyPercent(engine, ThreadEfficiencyMonitor.State.USER_CPU);
         percentTimeBlocking = getThreadEfficiencyPercent(engine, ThreadEfficiencyMonitor.State.BLOCKING);
         percentTimeWaiting = getThreadEfficiencyPercent(engine, ThreadEfficiencyMonitor.State.WAITING);

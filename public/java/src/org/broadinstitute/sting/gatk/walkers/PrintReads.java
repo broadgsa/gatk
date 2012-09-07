@@ -93,7 +93,7 @@ import java.util.*;
 @ReadTransformersMode(ApplicationTime = ReadTransformer.ApplicationTime.HANDLED_IN_WALKER)
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = ReadTransformer.ApplicationTime.HANDLED_IN_WALKER)
 @Requires({DataSource.READS, DataSource.REFERENCE})
-public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> implements ThreadSafeMapReduce {
+public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> implements NanoSchedulable {
 
     @Output(doc="Write output to this BAM filename instead of STDOUT", required = true)
     SAMFileWriter out;
@@ -228,7 +228,6 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
         GATKSAMRecord workingRead = readIn;
 
         for ( final ReadTransformer transformer : readTransformers ) {
-            if ( logger.isDebugEnabled() ) logger.debug("Applying transformer " + transformer + " to read " + readIn.getReadName());
             workingRead = transformer.apply(workingRead);
         }
 

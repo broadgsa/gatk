@@ -112,31 +112,31 @@ public class CommandLineGATK extends CommandLineExecutable {
         }
     }
 
-    protected static final String PICARD_TEXT_SAM_FILE_ERROR_1 = "Cannot use index file with textual SAM file";
-    protected static final String PICARD_TEXT_SAM_FILE_ERROR_2 = "Cannot retrieve file pointers within SAM text files";
+    public static final String PICARD_TEXT_SAM_FILE_ERROR_1 = "Cannot use index file with textual SAM file";
+    public static final String PICARD_TEXT_SAM_FILE_ERROR_2 = "Cannot retrieve file pointers within SAM text files";
     private static void checkForMaskedUserErrors(final Throwable t) {
         final String message = t.getMessage();
         if ( message == null )
             return;
 
         // we know what to do about the common "Too many open files" error
-        if ( message.indexOf("Too many open files") != -1 )
+        if ( message.contains("Too many open files") )
             exitSystemWithUserError(new UserException.TooManyOpenFiles());
 
         // malformed BAM looks like a SAM file
-        if ( message.indexOf(PICARD_TEXT_SAM_FILE_ERROR_1) != -1 ||
-                message.indexOf(PICARD_TEXT_SAM_FILE_ERROR_2) != -1 )
+        if ( message.contains(PICARD_TEXT_SAM_FILE_ERROR_1) ||
+                message.contains(PICARD_TEXT_SAM_FILE_ERROR_2) )
             exitSystemWithSamError(t);
 
         // can't close tribble index when writing
-        if ( message.indexOf("Unable to close index for") != -1 )
+        if ( message.contains("Unable to close index for") )
             exitSystemWithUserError(new UserException(t.getCause() == null ? message : t.getCause().getMessage()));
 
         // disk is full
-        if ( message.indexOf("No space left on device") != -1 )
-            exitSystemWithUserError(new UserException(t.getMessage()));
-        if ( t.getCause() != null && t.getCause().getMessage().indexOf("No space left on device") != -1 )
-            exitSystemWithUserError(new UserException(t.getCause().getMessage()));
+        if ( message.contains("No space left on device") )
+            exitSystemWithUserError(new UserException.NoSpaceOnDevice());
+        if ( t.getCause() != null && t.getCause().getMessage().contains("No space left on device") )
+            exitSystemWithUserError(new UserException.NoSpaceOnDevice());
     }
 
     /**

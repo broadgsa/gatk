@@ -44,23 +44,11 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,ProviderType extends ShardDataProvider> {
+    /** our log, which we want to capture anything from this class */
+    protected static final Logger logger = Logger.getLogger(TraversalEngine.class);
+
     // Time in milliseconds since we initialized this engine
     private static final int HISTORY_WINDOW_SIZE = 50;
-
-    private static class ProcessingHistory {
-        double elapsedSeconds;
-        long unitsProcessed;
-        long bpProcessed;
-        GenomeLoc loc;
-
-        public ProcessingHistory(double elapsedSeconds, GenomeLoc loc, long unitsProcessed, long bpProcessed) {
-            this.elapsedSeconds = elapsedSeconds;
-            this.loc = loc;
-            this.unitsProcessed = unitsProcessed;
-            this.bpProcessed = bpProcessed;
-        }
-
-    }
 
     /** lock object to sure updates to history are consistent across threads */
     private static final Object lock = new Object();
@@ -70,13 +58,12 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     private SimpleTimer timer = null;
 
     // How long can we go without printing some progress info?
-    private static final int PRINT_PROGRESS_CHECK_FREQUENCY_IN_CYCLES = 1000;
-    private int printProgressCheckCounter = 0;
     private long lastProgressPrintTime = -1;                       // When was the last time we printed progress log?
-    private long MIN_ELAPSED_TIME_BEFORE_FIRST_PROGRESS = 30 * 1000; // in milliseconds
-    private long PROGRESS_PRINT_FREQUENCY = 10 * 1000;             // in milliseconds
-    private final double TWO_HOURS_IN_SECONDS = 2.0 * 60.0 * 60.0;
-    private final double TWELVE_HOURS_IN_SECONDS = 12.0 * 60.0 * 60.0;
+
+    private final static long MIN_ELAPSED_TIME_BEFORE_FIRST_PROGRESS = 30 * 1000; // in milliseconds
+    private final static double TWO_HOURS_IN_SECONDS                 = 2.0 * 60.0 * 60.0;
+    private final static double TWELVE_HOURS_IN_SECONDS              = 12.0 * 60.0 * 60.0;
+    private long progressPrintFrequency                              = 10 * 1000; // in milliseconds
     private boolean progressMeterInitialized = false;
 
     // for performance log
@@ -85,14 +72,11 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     private File performanceLogFile;
     private PrintStream performanceLog = null;
     private long lastPerformanceLogPrintTime = -1;                   // When was the last time we printed to the performance log?
-    private final long PERFORMANCE_LOG_PRINT_FREQUENCY = PROGRESS_PRINT_FREQUENCY;  // in milliseconds
+    private final long PERFORMANCE_LOG_PRINT_FREQUENCY = progressPrintFrequency;  // in milliseconds
 
     /** Size, in bp, of the area we are processing.  Updated once in the system in initial for performance reasons */
     long targetSize = -1;
     GenomeLocSortedSet targetIntervals = null;
-
-    /** our log, which we want to capture anything from this class */
-    protected static final Logger logger = Logger.getLogger(TraversalEngine.class);
 
     protected GenomeAnalysisEngine engine;
 
@@ -187,14 +171,34 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     }
 
     /**
+     * Update the cumulative traversal metrics according to the data in this shard
+     *
+     * @param shard a non-null shard
+     */
+    public void updateCumulativeMetrics(final Shard shard) {
+        updateCumulativeMetrics(shard.getReadMetrics());
+    }
+
+    /**
+     * Update the cumulative traversal metrics according to the data in this shard
+     *
+     * @param singleTraverseMetrics read metrics object containing the information about a single shard's worth
+     *                              of data processing
+     */
+    public void updateCumulativeMetrics(final ReadMetrics singleTraverseMetrics) {
+        engine.getCumulativeMetrics().incrementMetrics(singleTraverseMetrics);
+    }
+
+    /**
      * Forward request to printProgress
      *
-     * @param shard the given shard currently being processed.
+     * Assumes that one cycle has been completed
+     *
      * @param loc  the location
      */
-    public void printProgress(Shard shard, GenomeLoc loc) {
+    public void printProgress(final GenomeLoc loc) {
         // A bypass is inserted here for unit testing.
-        printProgress(loc,shard.getReadMetrics(),false);
+        printProgress(loc, false);
     }
 
     /**
@@ -202,15 +206,10 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      * every M seconds, for N and M set in global variables.
      *
      * @param loc       Current location, can be null if you are at the end of the traversal
-     * @param metrics   Data processed since the last cumulative
      * @param mustPrint If true, will print out info, regardless of nRecords or time interval
      */
-    private void printProgress(GenomeLoc loc, ReadMetrics metrics, boolean mustPrint) {
-        if ( mustPrint || printProgressCheckCounter++ % PRINT_PROGRESS_CHECK_FREQUENCY_IN_CYCLES != 0 )
-            // don't do any work more often than PRINT_PROGRESS_CHECK_FREQUENCY_IN_CYCLES
-            return;
-
-        if(!progressMeterInitialized && mustPrint == false ) {
+    private synchronized void printProgress(final GenomeLoc loc, boolean mustPrint) {
+        if( ! progressMeterInitialized ) {
             logger.info("[INITIALIZATION COMPLETE; TRAVERSAL STARTING]");
             logger.info(String.format("%15s processed.%s  runtime per.1M.%s completed total.runtime remaining",
                     "Location", getTraversalType(), getTraversalType()));
@@ -218,40 +217,34 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
         }
 
         final long curTime = timer.currentTime();
-        boolean printProgress = mustPrint || maxElapsedIntervalForPrinting(curTime, lastProgressPrintTime, PROGRESS_PRINT_FREQUENCY);
+        boolean printProgress = mustPrint || maxElapsedIntervalForPrinting(curTime, lastProgressPrintTime, progressPrintFrequency);
         boolean printLog = performanceLog != null && maxElapsedIntervalForPrinting(curTime, lastPerformanceLogPrintTime, PERFORMANCE_LOG_PRINT_FREQUENCY);
 
         if ( printProgress || printLog ) {
-            // getting and appending metrics data actually turns out to be quite a heavyweight
-            // operation.  Postpone it until after determining whether to print the log message.
-            ReadMetrics cumulativeMetrics = engine.getCumulativeMetrics() != null ? engine.getCumulativeMetrics() : new ReadMetrics();
-            if(metrics != null)
-                cumulativeMetrics.incrementMetrics(metrics);
-
-            final long nRecords = cumulativeMetrics.getNumIterations();
-
-            ProcessingHistory last = updateHistory(loc,cumulativeMetrics);
+            final ProcessingHistory last = updateHistory(loc, engine.getCumulativeMetrics());
 
             final AutoFormattingTime elapsed = new AutoFormattingTime(last.elapsedSeconds);
-            final AutoFormattingTime bpRate = new AutoFormattingTime(secondsPerMillionBP(last));
-            final AutoFormattingTime unitRate = new AutoFormattingTime(secondsPerMillionElements(last));
-            final double fractionGenomeTargetCompleted = calculateFractionGenomeTargetCompleted(last);
+            final AutoFormattingTime bpRate = new AutoFormattingTime(last.secondsPerMillionBP());
+            final AutoFormattingTime unitRate = new AutoFormattingTime(last.secondsPerMillionElements());
+            final double fractionGenomeTargetCompleted = last.calculateFractionGenomeTargetCompleted(targetSize);
             final AutoFormattingTime estTotalRuntime = new AutoFormattingTime(elapsed.getTimeInSeconds() / fractionGenomeTargetCompleted);
             final AutoFormattingTime timeToCompletion = new AutoFormattingTime(estTotalRuntime.getTimeInSeconds() - elapsed.getTimeInSeconds());
+            final long nRecords = engine.getCumulativeMetrics().getNumIterations();
 
             if ( printProgress ) {
                 lastProgressPrintTime = curTime;
 
                 // dynamically change the update rate so that short running jobs receive frequent updates while longer jobs receive fewer updates
                 if ( estTotalRuntime.getTimeInSeconds() > TWELVE_HOURS_IN_SECONDS )
-                    PROGRESS_PRINT_FREQUENCY = 60 * 1000; // in milliseconds
+                    progressPrintFrequency = 60 * 1000; // in milliseconds
                 else if ( estTotalRuntime.getTimeInSeconds() > TWO_HOURS_IN_SECONDS )
-                    PROGRESS_PRINT_FREQUENCY = 30 * 1000; // in milliseconds
+                    progressPrintFrequency = 30 * 1000; // in milliseconds
                 else
-                    PROGRESS_PRINT_FREQUENCY = 10 * 1000; // in milliseconds
+                    progressPrintFrequency = 10 * 1000; // in milliseconds
 
-                logger.info(String.format("%15s        %5.2e %s     %s     %4.1f%%      %s  %s",
-                        loc == null ? "done with mapped reads" : loc, nRecords*1.0, elapsed, unitRate,
+                final String posName = loc == null ? (mustPrint ? "done" : "unmapped reads") : String.format("%s:%d", loc.getContig(), loc.getStart());
+                logger.info(String.format("%15s        %5.2e %s     %s    %5.1f%%      %s  %s",
+                        posName, nRecords*1.0, elapsed, unitRate,
                         100*fractionGenomeTargetCompleted, estTotalRuntime, timeToCompletion));
 
             }
@@ -277,7 +270,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      * @param metrics information about what's been processed already
      * @return
      */
-    private final ProcessingHistory updateHistory(GenomeLoc loc, ReadMetrics metrics) {
+    private ProcessingHistory updateHistory(GenomeLoc loc, ReadMetrics metrics) {
         synchronized (lock) {
             if ( history.size() > HISTORY_WINDOW_SIZE )
                 history.pop();
@@ -290,26 +283,11 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
         }
     }
 
-    /** How long in seconds to process 1M traversal units? */
-    private final double secondsPerMillionElements(ProcessingHistory last) {
-        return (last.elapsedSeconds * 1000000.0) / Math.max(last.unitsProcessed, 1);
-    }
-
-    /** How long in seconds to process 1M bp on the genome? */
-    private final double secondsPerMillionBP(ProcessingHistory last) {
-        return (last.elapsedSeconds * 1000000.0) / Math.max(last.bpProcessed, 1);
-    }
-
-    /** What fractoin of the target intervals have we covered? */
-    private final double calculateFractionGenomeTargetCompleted(ProcessingHistory last) {
-        return (1.0*last.bpProcessed) / targetSize;
-    }
-
     /**
      * Called after a traversal to print out information about the traversal process
      */
     public void printOnTraversalDone() {
-        printProgress(null, null, true);
+        printProgress(null, true);
 
         final double elapsed = timer == null ? 0 : timer.getElapsedTime();
 
@@ -370,7 +348,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      * @return Frequency, in seconds, of performance log writes.
      */
     public long getPerformanceProgressPrintFrequencySeconds() {
-        return PROGRESS_PRINT_FREQUENCY;
+        return progressPrintFrequency;
     }
 
     /**
@@ -378,6 +356,35 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      * @param seconds number of seconds between messages indicating performance frequency.
      */
     public void setPerformanceProgressPrintFrequencySeconds(long seconds) {
-        PROGRESS_PRINT_FREQUENCY = seconds;
+        progressPrintFrequency = seconds;
+    }
+
+    private static class ProcessingHistory {
+        double elapsedSeconds;
+        long unitsProcessed;
+        long bpProcessed;
+        GenomeLoc loc;
+
+        public ProcessingHistory(double elapsedSeconds, GenomeLoc loc, long unitsProcessed, long bpProcessed) {
+            this.elapsedSeconds = elapsedSeconds;
+            this.loc = loc;
+            this.unitsProcessed = unitsProcessed;
+            this.bpProcessed = bpProcessed;
+        }
+
+        /** How long in seconds to process 1M traversal units? */
+        private double secondsPerMillionElements() {
+            return (elapsedSeconds * 1000000.0) / Math.max(unitsProcessed, 1);
+        }
+
+        /** How long in seconds to process 1M bp on the genome? */
+        private double secondsPerMillionBP() {
+            return (elapsedSeconds * 1000000.0) / Math.max(bpProcessed, 1);
+        }
+
+        /** What fractoin of the target intervals have we covered? */
+        private double calculateFractionGenomeTargetCompleted(final long targetSize) {
+            return (1.0*bpProcessed) / targetSize;
+        }
     }
 }

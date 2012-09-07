@@ -196,7 +196,8 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
                 sum = walker.reduce(x, sum);
             }
 
-            printProgress(dataProvider.getShard(),site);
+            updateCumulativeMetrics(dataProvider.getShard());
+            printProgress(site);
             done = walker.isDone();
         }
 

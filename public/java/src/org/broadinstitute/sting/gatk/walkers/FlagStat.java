@@ -45,7 +45,7 @@ import java.text.NumberFormat;
  */
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS})
-public class FlagStat extends ReadWalker<FlagStat.FlagStatus, FlagStat.FlagStatus> implements ThreadSafeMapReduce {
+public class FlagStat extends ReadWalker<FlagStat.FlagStatus, FlagStat.FlagStatus> implements NanoSchedulable {
     @Output
     PrintStream out;
 

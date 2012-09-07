@@ -65,7 +65,8 @@ public class TraverseReadPairs<M,T> extends TraversalEngine<M,T, ReadPairWalker<
                 pairs.clear();
                 pairs.add(read);
 
-                printProgress(dataProvider.getShard(),null);
+                updateCumulativeMetrics(dataProvider.getShard());
+                printProgress(null);
             }
 
             done = walker.isDone();

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2010.  The Broad Institute
+ * Copyright (c) 2012, The Broad Institute
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,7 +12,7 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
@@ -20,12 +21,25 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.broadinstitute.sting.gatk.walkers;
+
+package org.broadinstitute.sting.gatk.downsampling;
+
+import net.sf.samtools.SAMRecord;
 
 /**
- * Root parallelism interface.  Walkers that implement this
- * declare that their map function is thread-safe and so multiple
- * map calls can be run in parallel in the same JVM instance.
+ * Factory for creating ReservoirDownsamplers on demand
+ *
+ * @author David Roazen
  */
-public interface ThreadSafeMapReduce {
+public class ReservoirDownsamplerFactory<T extends SAMRecord> implements ReadsDownsamplerFactory<T> {
+
+    private int targetSampleSize;
+
+    public ReservoirDownsamplerFactory( int targetSampleSize ) {
+        this.targetSampleSize = targetSampleSize;
+    }
+
+    public ReadsDownsampler<T> newInstance() {
+        return new ReservoirDownsampler<T>(targetSampleSize);
+    }
 }

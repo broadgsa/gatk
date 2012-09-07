@@ -33,6 +33,9 @@ public class AlleleBalanceBySample extends GenotypeAnnotation implements Experim
                          final Genotype g,
                          final GenotypeBuilder gb,
                          final PerReadAlleleLikelihoodMap alleleLikelihoodMap){
+        if ( stratifiedContext == null )
+            return;
+
         Double ratio = annotateSNP(stratifiedContext, vc, g);
         if (ratio == null)
             return;

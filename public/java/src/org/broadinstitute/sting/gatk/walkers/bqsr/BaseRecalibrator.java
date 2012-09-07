@@ -109,7 +109,7 @@ import java.util.ArrayList;
 @ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class}) // only look at covered loci, not every loci of the reference file
 @Requires({DataSource.READS, DataSource.REFERENCE}) // filter out all reads with zero or unavailable mapping quality
 @PartitionBy(PartitionType.LOCUS) // this walker requires both -I input.bam and -R reference.fasta
-public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeReducible<Long> {
+public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeReducible<Long>, NanoSchedulable {
     @ArgumentCollection
     private final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection(); // all the command line arguments for BQSR and it's covariates
 
