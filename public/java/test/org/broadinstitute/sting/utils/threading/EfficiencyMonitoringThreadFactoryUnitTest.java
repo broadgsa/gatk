@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class EfficiencyMonitoringThreadFactoryUnitTest extends BaseTest {
     // the duration of the tests -- 100 ms is tolerable given the number of tests we are doing
-    private final static long THREAD_TARGET_DURATION_IN_MILLISECOND = 10000;
+    private final static long THREAD_TARGET_DURATION_IN_MILLISECOND = 100000;
     private final static int MAX_THREADS = 4;
     final static Object GLOBAL_LOCK = new Object();
 
