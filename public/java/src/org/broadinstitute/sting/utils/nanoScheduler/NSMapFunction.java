@@ -9,7 +9,7 @@ package org.broadinstitute.sting.utils.nanoScheduler;
  * Date: 8/24/12
  * Time: 9:49 AM
  */
-public interface NanoSchedulerMapFunction<InputType, ResultType> {
+public interface NSMapFunction<InputType, ResultType> {
     /**
      * Return function on input, returning a value of ResultType
      * @param input

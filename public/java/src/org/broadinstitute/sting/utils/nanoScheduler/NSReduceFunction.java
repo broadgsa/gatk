@@ -7,7 +7,7 @@ package org.broadinstitute.sting.utils.nanoScheduler;
  * Date: 8/24/12
  * Time: 9:49 AM
  */
-public interface NanoSchedulerReduceFunction<MapType, ReduceType> {
+public interface NSReduceFunction<MapType, ReduceType> {
     /**
      * Combine one with sum into a new ReduceType
      * @param one the result of a map call on an input element

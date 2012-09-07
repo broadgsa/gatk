@@ -17,12 +17,12 @@ import java.util.concurrent.*;
  *
  * The overall framework works like this
  *
- * nano <- new Nanoschedule(bufferSize, numberOfMapElementsToProcessTogether, nThreads)
+ * nano <- new Nanoschedule(inputBufferSize, numberOfMapElementsToProcessTogether, nThreads)
  * List[Input] outerData : outerDataLoop )
  *   result = nano.execute(outerData.iterator(), map, reduce)
  *
- * bufferSize determines how many elements from the input stream are read in one go by the
- * nanoscheduler.  The scheduler may hold up to bufferSize in memory at one time, as well
+ * inputBufferSize determines how many elements from the input stream are read in one go by the
+ * nanoscheduler.  The scheduler may hold up to inputBufferSize in memory at one time, as well
  * as up to inputBufferSize map results as well.
  *
  * numberOfMapElementsToProcessTogether determines how many input elements are processed
@@ -48,40 +48,45 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     private final static boolean LOG_MAP_TIMES = false;
     private final static boolean TIME_CALLS = true;
 
-    final int bufferSize;
-    final int nThreads;
+    private final static int MAP_BUFFER_SIZE_SCALE_FACTOR = 100;
 
+    final int inputBufferSize;
+    final int mapBufferSize;
+    final int nThreads;
     final ExecutorService inputExecutor;
     final ExecutorService reduceExecutor;
-    final ExecutorService mapExecutor;
+    final ThreadPoolExecutor mapExecutor;
+
     boolean shutdown = false;
     boolean debug = false;
+    private NSProgressFunction<InputType> progressFunction = null;
 
-    private NanoSchedulerProgressFunction<InputType> progressFunction = null;
-
-    final SimpleTimer outsideSchedulerTimer = new SimpleTimer("outside");
-    final SimpleTimer inputTimer = new SimpleTimer("input");
-    final SimpleTimer mapTimer = new SimpleTimer("map");
-    final SimpleTimer reduceTimer = new SimpleTimer("reduce");
+    final SimpleTimer outsideSchedulerTimer = TIME_CALLS ? new SimpleTimer("outside") : null;
+    final SimpleTimer inputTimer = TIME_CALLS ? new SimpleTimer("input") : null;
+    final SimpleTimer mapTimer = TIME_CALLS ? new SimpleTimer("map") : null;
+    final SimpleTimer reduceTimer = TIME_CALLS ? new SimpleTimer("reduce") : null;
 
     /**
-     * Create a new nanoschedule with the desire characteristics requested by the argument
+     * Create a new nanoscheduler with the desire characteristics requested by the argument
      *
-     * @param bufferSize the number of input elements to read in each scheduling cycle.
-     * @param nThreads the number of threads to use to get work done, in addition to the thread calling execute
+     * @param inputBufferSize the number of input elements to read in each scheduling cycle.
+     * @param nThreads the number of threads to use to get work done, in addition to the
+     *                 thread calling execute
      */
-    public NanoScheduler(final int bufferSize,
-                         final int nThreads) {
-        if ( bufferSize < 1 ) throw new IllegalArgumentException("bufferSize must be >= 1, got " + bufferSize);
+    public NanoScheduler(final int inputBufferSize, final int nThreads) {
+        if ( inputBufferSize < 1 ) throw new IllegalArgumentException("inputBufferSize must be >= 1, got " + inputBufferSize);
         if ( nThreads < 1 ) throw new IllegalArgumentException("nThreads must be >= 1, got " + nThreads);
 
-        this.bufferSize = bufferSize;
+        this.inputBufferSize = inputBufferSize;
+        this.mapBufferSize = inputBufferSize * MAP_BUFFER_SIZE_SCALE_FACTOR;
         this.nThreads = nThreads;
 
         if ( nThreads == 1 ) {
-            this.mapExecutor = this.inputExecutor = this.reduceExecutor = null;
+            this.mapExecutor = null;
+            this.inputExecutor = this.reduceExecutor = null;
         } else {
-            this.mapExecutor = Executors.newFixedThreadPool(nThreads-1, new NamedThreadFactory("NS-map-thread-%d"));
+            this.mapExecutor = (ThreadPoolExecutor)Executors.newFixedThreadPool(nThreads-1, new NamedThreadFactory("NS-map-thread-%d"));
+            this.mapExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
             this.inputExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NS-input-thread-%d"));
             this.reduceExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NS-reduce-thread-%d"));
         }
@@ -104,8 +109,8 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      * @return
      */
     @Ensures("result > 0")
-    public int getBufferSize() {
-        return bufferSize;
+    public int getInputBufferSize() {
+        return inputBufferSize;
     }
 
     /**
@@ -116,9 +121,11 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     public void shutdown() {
         outsideSchedulerTimer.stop();
 
-        shutdownExecutor("inputExecutor", inputExecutor);
-        shutdownExecutor("mapExecutor", mapExecutor);
-        shutdownExecutor("reduceExecutor", reduceExecutor);
+        if ( nThreads > 1 ) {
+            shutdownExecutor("inputExecutor", inputExecutor);
+            shutdownExecutor("mapExecutor", mapExecutor);
+            shutdownExecutor("reduceExecutor", reduceExecutor);
+        }
         shutdown = true;
 
         if (TIME_CALLS) {
@@ -136,15 +143,15 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      * @param name a string name for error messages for the executorService we are shutting down
      * @param executorService the executorService to shut down
      */
+    @Requires({"name != null", "executorService != null"})
+    @Ensures("executorService.isShutdown()")
     private void shutdownExecutor(final String name, final ExecutorService executorService) {
-        if ( executorService != null ) {
-            if ( executorService.isShutdown() || executorService.isTerminated() )
-                throw new IllegalStateException("Executor service " + name + " is already shut down!");
+        if ( executorService.isShutdown() || executorService.isTerminated() )
+            throw new IllegalStateException("Executor service " + name + " is already shut down!");
 
-            final List<Runnable> remaining = executorService.shutdownNow();
-            if ( ! remaining.isEmpty() )
-                throw new IllegalStateException(remaining.size() + " remaining tasks found in an executor " + name + ", unexpected behavior!");
-        }
+        final List<Runnable> remaining = executorService.shutdownNow();
+        if ( ! remaining.isEmpty() )
+            throw new IllegalStateException(remaining.size() + " remaining tasks found in an executor " + name + ", unexpected behavior!");
     }
 
     /**
@@ -204,7 +211,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      *
      * @param progressFunction a progress function to call, or null if you don't want any progress callback
      */
-    public void setProgressFunction(final NanoSchedulerProgressFunction<InputType> progressFunction) {
+    public void setProgressFunction(final NSProgressFunction<InputType> progressFunction) {
         this.progressFunction = progressFunction;
     }
 
@@ -231,9 +238,9 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      * @return the last reduce value
      */
     public ReduceType execute(final Iterator<InputType> inputReader,
-                              final NanoSchedulerMapFunction<InputType, MapType> map,
+                              final NSMapFunction<InputType, MapType> map,
                               final ReduceType initialValue,
-                              final NanoSchedulerReduceFunction<MapType, ReduceType> reduce) {
+                              final NSReduceFunction<MapType, ReduceType> reduce) {
         if ( isShutdown() ) throw new IllegalStateException("execute called on already shutdown NanoScheduler");
         if ( inputReader == null ) throw new IllegalArgumentException("inputReader cannot be null");
         if ( map == null ) throw new IllegalArgumentException("map function cannot be null");
@@ -259,9 +266,9 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      */
     @Requires({"inputReader != null", "map != null", "reduce != null"})
     private ReduceType executeSingleThreaded(final Iterator<InputType> inputReader,
-                                             final NanoSchedulerMapFunction<InputType, MapType> map,
+                                             final NSMapFunction<InputType, MapType> map,
                                              final ReduceType initialValue,
-                                             final NanoSchedulerReduceFunction<MapType, ReduceType> reduce) {
+                                             final NSReduceFunction<MapType, ReduceType> reduce) {
         ReduceType sum = initialValue;
         int i = 0;
 
@@ -278,7 +285,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
             if ( LOG_MAP_TIMES ) logger.info("MAP TIME " + (mapTimer.currentTimeNano() - preMapTime));
             if ( TIME_CALLS ) mapTimer.stop();
 
-            if ( i++ % bufferSize == 0 && progressFunction != null )
+            if ( i++ % inputBufferSize == 0 && progressFunction != null )
                 progressFunction.progress(input);
 
             // reduce
@@ -299,55 +306,53 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      */
     @Requires({"inputReader != null", "map != null", "reduce != null"})
     private ReduceType executeMultiThreaded(final Iterator<InputType> inputReader,
-                                            final NanoSchedulerMapFunction<InputType, MapType> map,
+                                            final NSMapFunction<InputType, MapType> map,
                                             final ReduceType initialValue,
-                                            final NanoSchedulerReduceFunction<MapType, ReduceType> reduce) {
+                                            final NSReduceFunction<MapType, ReduceType> reduce) {
         debugPrint("Executing nanoScheduler");
 
-        // a completion service that tracks when jobs complete, so we can wait in this thread
-        // until all of the map jobs are completed, without having to shut down the executor itself
-        final ExecutorCompletionService<Integer> mapJobCompletionService =
-                new ExecutorCompletionService<Integer>(mapExecutor);
-
         // a blocking queue that limits the number of input datum to the requested buffer size
-        final BlockingQueue<InputDatum> inputQueue = new LinkedBlockingDeque<InputDatum>(bufferSize);
+        final BlockingQueue<InputProducer<InputType>.InputValue> inputQueue
+                = new LinkedBlockingDeque<InputProducer<InputType>.InputValue>(inputBufferSize);
 
-        // a priority queue that stores up to bufferSize * MAP_QUEUE_SCALE_FACTOR elements
+        // a priority queue that stores up to mapBufferSize elements
         // produced by completed map jobs.
-        final PriorityBlockingQueue<MapResult> mapResultQueue = new PriorityBlockingQueue<MapResult>(bufferSize*100);
+        final BlockingQueue<Future<MapResult<MapType>>> mapResultQueue =
+                new LinkedBlockingDeque<Future<MapResult<MapType>>>(mapBufferSize);
 
-        // TODO -- the logic of this blocking queue is wrong!  We need to wait for map jobs in order, not just
-        //      -- in the order in which they are produced
+        // Start running the input reader thread
+        inputExecutor.submit(new InputProducer<InputType>(inputReader, inputTimer, inputQueue));
 
-        // TODO -- map executor must have fixed size map jobs queue
-
-        inputExecutor.submit(new InputProducer(inputReader, inputQueue));
-        final Future<ReduceType> reduceResult = reduceExecutor.submit(new ReducerThread(reduce, initialValue, mapResultQueue));
+        // Start running the reducer thread
+        final ReducerThread<MapType, ReduceType> reducer
+                = new ReducerThread<MapType, ReduceType>(reduce, reduceTimer, initialValue, mapResultQueue);
+        final Future<ReduceType> reduceResult = reduceExecutor.submit(reducer);
 
         try {
             int numJobs = 0;
+
             while ( true ) {
                 // block on input
-                final InputDatum inputEnqueueWrapped = inputQueue.take();
+                final InputProducer<InputType>.InputValue inputEnqueueWrapped = inputQueue.take();
 
                 if ( ! inputEnqueueWrapped.isLast() ) {
                     // get the object itself
-                    final InputType input = inputEnqueueWrapped.datum;
+                    final InputType input = inputEnqueueWrapped.getValue();
 
-                    // the next map call has id + 1
+                    // the next map call has jobID + 1
                     numJobs++;
 
                     // send job for map via the completion service
-                    final CallableMap doMap = new CallableMap(map, numJobs, input, mapResultQueue);
-                    mapJobCompletionService.submit(doMap, numJobs);
+                    final CallableMap doMap = new CallableMap(map, numJobs, input);
+                    final Future<MapResult<MapType>> mapJob = mapExecutor.submit(doMap);
+                    mapResultQueue.put(mapJob);
 
                     debugPrint("  Done with cycle of map/reduce");
 
-                    if ( progressFunction != null ) // TODO -- don't cycle so often
+                    if ( numJobs % inputBufferSize == 0 && progressFunction != null )
                         progressFunction.progress(input);
                 } else {
-                    waitForLastJob(mapJobCompletionService, numJobs);
-                    mapResultQueue.add(new MapResult());
+                    mapResultQueue.put(new FutureValue<MapResult<MapType>>(new MapResult<MapType>()));
                     return reduceResult.get(); // wait for our result of reduce
                 }
             }
@@ -359,146 +364,29 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     }
 
     /**
-     * Helper routine that will wait until the last map job finishes running
-     * by taking numJob values from the executor completion service, using
-     * the blocking take() call.
-     */
-    private void waitForLastJob(final ExecutorCompletionService<Integer> mapJobCompletionService,
-                                final int numJobs ) throws InterruptedException {
-        for ( int i = 0; i < numJobs; i++ )
-            mapJobCompletionService.take();
-    }
-
-    private class ReducerThread implements Callable {
-        final NanoSchedulerReduceFunction<MapType, ReduceType> reduce;
-        ReduceType sum;
-        final PriorityBlockingQueue<MapResult> mapResultQueue;
-
-        public ReducerThread(final NanoSchedulerReduceFunction<MapType, ReduceType> reduce,
-                             final ReduceType sum,
-                             final PriorityBlockingQueue<MapResult> mapResultQueue) {
-            this.reduce = reduce;
-            this.sum = sum;
-            this.mapResultQueue = mapResultQueue;
-        }
-
-        public ReduceType call() {
-            try {
-                while ( true ) {
-                    final MapResult result = mapResultQueue.take();
-                    //System.out.println("Reduce of map result " + result.id + " with sum " + sum);
-                    if ( result.isLast() ) {
-                        //System.out.println("Saw last! " + result.id);
-                        return sum;
-                    }
-                    else {
-                        if ( TIME_CALLS ) reduceTimer.restart();
-                        sum = reduce.apply(result.datum, sum);
-                        if ( TIME_CALLS ) reduceTimer.stop();
-                    }
-                }
-            } catch (InterruptedException ex) {
-                //System.out.println("Interrupted");
-                throw new ReviewedStingException("got execution exception", ex);
-            }
-        }
-    }
-
-    private class InputProducer implements Runnable {
-        final Iterator<InputType> inputReader;
-        final BlockingQueue<InputDatum> outputQueue;
-
-        public InputProducer(final Iterator<InputType> inputReader, final BlockingQueue<InputDatum> outputQueue) {
-            this.inputReader = inputReader;
-            this.outputQueue = outputQueue;
-        }
-
-        public void run() {
-            try {
-                while ( inputReader.hasNext() ) {
-                    if ( TIME_CALLS ) inputTimer.restart();
-                    final InputType input = inputReader.next();
-                    if ( TIME_CALLS ) inputTimer.stop();
-                    outputQueue.put(new InputDatum(input));
-                }
-
-                // add the EOF object so we know we are done
-                outputQueue.put(new InputDatum());
-            } catch (InterruptedException ex) {
-                throw new ReviewedStingException("got execution exception", ex);
-            }
-        }
-    }
-
-    private class BlockingDatum<T> {
-        final boolean isLast;
-        final T datum;
-
-        private BlockingDatum(final T datum) {
-            isLast = false;
-            this.datum = datum;
-        }
-
-        private BlockingDatum() {
-            isLast = true;
-            this.datum = null;
-        }
-
-        public boolean isLast() {
-            return isLast;
-        }
-    }
-
-
-    private class InputDatum extends BlockingDatum<InputType> {
-        private InputDatum(InputType datum) { super(datum); }
-        private InputDatum() { }
-    }
-
-    private class MapResult extends BlockingDatum<MapType> implements Comparable<MapResult> {
-        final Integer id;
-
-        private MapResult(MapType datum, Integer id) {
-            super(datum);
-            this.id = id;
-        }
-
-        private MapResult() {
-            this.id = Integer.MAX_VALUE;
-        }
-
-        @Override
-        public int compareTo(MapResult o) {
-            return id.compareTo(o.id);
-        }
-    }
-
-    /**
      * A simple callable version of the map function for use with the executor pool
      */
-    private class CallableMap implements Runnable {
+    private class CallableMap implements Callable<MapResult<MapType>> {
         final int id;
         final InputType input;
-        final NanoSchedulerMapFunction<InputType, MapType> map;
-        final PriorityBlockingQueue<MapResult> mapResultQueue;
+        final NSMapFunction<InputType, MapType> map;
 
         @Requires({"map != null"})
-        private CallableMap(final NanoSchedulerMapFunction<InputType, MapType> map,
+        private CallableMap(final NSMapFunction<InputType, MapType> map,
                             final int id,
-                            final InputType input,
-                            final PriorityBlockingQueue<MapResult> mapResultQueue) {
+                            final InputType input) {
             this.id = id;
             this.input = input;
             this.map = map;
-            this.mapResultQueue = mapResultQueue;
         }
 
-        @Override public void run() {
+        @Override
+        public MapResult<MapType> call() {
             if ( TIME_CALLS ) mapTimer.restart();
             if ( debug ) debugPrint("\t\tmap " + input);
             final MapType result = map.apply(input);
             if ( TIME_CALLS ) mapTimer.stop();
-            mapResultQueue.add(new MapResult(result, id));
+            return new MapResult<MapType>(result, id);
         }
     }
 }

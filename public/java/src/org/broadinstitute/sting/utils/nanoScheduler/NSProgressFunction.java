@@ -7,6 +7,6 @@ package org.broadinstitute.sting.utils.nanoScheduler;
  * Time: 2:10 PM
  * To change this template use File | Settings | File Templates.
  */
-public interface NanoSchedulerProgressFunction<InputType> {
+public interface NSProgressFunction<InputType> {
     public void progress(final InputType lastMapInput);
 }

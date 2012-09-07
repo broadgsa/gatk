@@ -22,11 +22,11 @@ import java.util.List;
 public class NanoSchedulerUnitTest extends BaseTest {
     public static final int NANO_SCHEDULE_MAX_RUNTIME = 60000;
 
-    private static class Map2x implements NanoSchedulerMapFunction<Integer, Integer> {
+    private static class Map2x implements NSMapFunction<Integer, Integer> {
         @Override public Integer apply(Integer input) { return input * 2; }
     }
 
-    private static class ReduceSum implements NanoSchedulerReduceFunction<Integer, Integer> {
+    private static class ReduceSum implements NSReduceFunction<Integer, Integer> {
         int prevOne = Integer.MIN_VALUE;
 
         @Override public Integer apply(Integer one, Integer sum) {
@@ -35,7 +35,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         }
     }
 
-    private static class ProgressCallback implements NanoSchedulerProgressFunction<Integer> {
+    private static class ProgressCallback implements NSProgressFunction<Integer> {
         int callBacks = 0;
 
         @Override
@@ -120,7 +120,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         final ProgressCallback callback = new ProgressCallback();
         nanoScheduler.setProgressFunction(callback);
 
-        Assert.assertEquals(nanoScheduler.getBufferSize(), test.bufferSize, "bufferSize argument");
+        Assert.assertEquals(nanoScheduler.getInputBufferSize(), test.bufferSize, "inputBufferSize argument");
         Assert.assertEquals(nanoScheduler.getnThreads(), test.nThreads, "nThreads argument");
 
         final Integer sum = nanoScheduler.execute(test.makeReader(), test.makeMap(), test.initReduce(), test.makeReduce());

@@ -8,10 +8,10 @@ import org.broadinstitute.sting.gatk.datasources.providers.ReferenceOrderedView;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.nanoScheduler.NSMapFunction;
+import org.broadinstitute.sting.utils.nanoScheduler.NSProgressFunction;
+import org.broadinstitute.sting.utils.nanoScheduler.NSReduceFunction;
 import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
-import org.broadinstitute.sting.utils.nanoScheduler.NanoSchedulerMapFunction;
-import org.broadinstitute.sting.utils.nanoScheduler.NanoSchedulerProgressFunction;
-import org.broadinstitute.sting.utils.nanoScheduler.NanoSchedulerReduceFunction;
 
 import java.util.Iterator;
 
@@ -153,7 +153,7 @@ public class TraverseLociNano<M,T> extends TraverseLociBase<M,T> {
      *
      * Applies walker.map to MapData, returning a MapResult object containing the result
      */
-    private class TraverseLociMap implements NanoSchedulerMapFunction<MapData, MapResult> {
+    private class TraverseLociMap implements NSMapFunction<MapData, MapResult> {
         final LocusWalker<M,T> walker;
 
         private TraverseLociMap(LocusWalker<M, T> walker) {
@@ -174,11 +174,11 @@ public class TraverseLociNano<M,T> extends TraverseLociBase<M,T> {
     }
 
     /**
-     * NanoSchedulerReduceFunction for TraverseReads meeting NanoScheduler interface requirements
+     * NSReduceFunction for TraverseReads meeting NanoScheduler interface requirements
      *
      * Takes a MapResult object and applies the walkers reduce function to each map result, when applicable
      */
-    private class TraverseLociReduce implements NanoSchedulerReduceFunction<MapResult, T> {
+    private class TraverseLociReduce implements NSReduceFunction<MapResult, T> {
         final LocusWalker<M,T> walker;
 
         private TraverseLociReduce(LocusWalker<M, T> walker) {
@@ -195,7 +195,7 @@ public class TraverseLociNano<M,T> extends TraverseLociBase<M,T> {
         }
     }
 
-    private class TraverseLociProgress implements NanoSchedulerProgressFunction<MapData> {
+    private class TraverseLociProgress implements NSProgressFunction<MapData> {
         @Override
         public void progress(MapData lastProcessedMap) {
             if (lastProcessedMap.alignmentContext != null)
