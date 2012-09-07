@@ -44,7 +44,7 @@ public class ForumAPIUtils {
     /**
      * How we post to the forum
      */
-    private final static String API_URL = "https://gatk.vanillaforums.com/";
+    private final static String API_URL = "https://gatkforums.broadinstitute.org/api/v1/";
     final private static String ACCESS_TOKEN = "access_token=";
 
     public static List<String> getPostedTools(String forumKey) {
