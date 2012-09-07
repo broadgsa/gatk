@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
@@ -45,20 +46,23 @@ public class ErrorThrowing extends RodWalker<Integer,Integer> implements TreeRed
     @Input(fullName="exception", shortName = "E", doc="Java class of exception to throw", required=true)
     public String exceptionToThrow;
 
+    @Argument(fullName = "failMethod", shortName = "fail", doc = "Determines which method to fail in", required = false)
+    public FailMethod failMethod = FailMethod.MAP;
+
+    public enum FailMethod {
+          MAP,
+          REDUCE,
+          TREE_REDUCE
+    }
+
     //
     // Template code to allow us to build the walker, doesn't actually do anything
     //
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( exceptionToThrow.equals("UserException") ) {
-            throw new UserException("UserException");
-        } else if ( exceptionToThrow.equals("NullPointerException") ) {
-            throw new NullPointerException();
-        } else if ( exceptionToThrow.equals("ReviewedStingException") ) {
-            throw new ReviewedStingException("ReviewedStingException");
-        } else {
-            throw new UserException.BadArgumentValue("exception", "exception isn't a recognized value " + exceptionToThrow);
-        }
+        if ( failMethod == FailMethod.MAP )
+            fail();
+        return 0;
     }
 
     @Override
@@ -68,10 +72,32 @@ public class ErrorThrowing extends RodWalker<Integer,Integer> implements TreeRed
 
     @Override
     public Integer reduce(Integer value, Integer sum) {
+        if ( failMethod == FailMethod.REDUCE )
+            fail();
         return value + sum;
     }
 
     public Integer treeReduce(final Integer lhs, final Integer rhs) {
+        if ( failMethod == FailMethod.TREE_REDUCE )
+            fail();
         return lhs + rhs;
+    }
+
+    private void fail() {
+        if ( exceptionToThrow.equals("UserException") ) {
+            throw new UserException("UserException");
+        } else if ( exceptionToThrow.equals("NullPointerException") ) {
+            throw new NullPointerException();
+        } else if ( exceptionToThrow.equals("ReviewedStingException") ) {
+            throw new ReviewedStingException("ReviewedStingException");
+        } else if ( exceptionToThrow.equals("SamError1") ) {
+            throw new RuntimeException(CommandLineGATK.PICARD_TEXT_SAM_FILE_ERROR_1);
+        } else if ( exceptionToThrow.equals("SamError2") ) {
+            throw new RuntimeException(CommandLineGATK.PICARD_TEXT_SAM_FILE_ERROR_2);
+        } else if ( exceptionToThrow.equals("NoSpace") ) {
+            throw new net.sf.samtools.util.RuntimeIOException(new java.io.IOException("No space left on device java.io.FileOutputStream.writeBytes(Native Method)"));
+        } else {
+            throw new UserException.BadArgumentValue("exception", "exception isn't a recognized value " + exceptionToThrow);
+        }
     }
 }

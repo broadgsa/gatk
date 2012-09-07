@@ -141,6 +141,12 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class NoSpaceOnDevice extends UserException {
+        public NoSpaceOnDevice() {
+            super("There is no space left on the device, so writing failed");
+        }
+    }
+
     public static class CouldNotReadInputFile extends UserException {
         public CouldNotReadInputFile(String message, Exception e) {
             super(String.format("Couldn't read file because %s caused by %s", message, getMessage(e)));
