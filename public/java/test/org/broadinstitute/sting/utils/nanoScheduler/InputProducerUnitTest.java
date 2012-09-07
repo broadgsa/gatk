@@ -13,7 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 
 /**
- * UnitTests for the NanoScheduler
+ * UnitTests for the InputProducer
  *
  * User: depristo
  * Date: 8/24/12
@@ -35,7 +35,7 @@ public class InputProducerUnitTest extends BaseTest {
     }
 
     @Test(enabled = true, dataProvider = "InputProducerTest", timeOut = NanoSchedulerUnitTest.NANO_SCHEDULE_MAX_RUNTIME)
-    public void testSingleThreadedNanoScheduler(final int nElements, final int queueSize) throws InterruptedException {
+    public void testInputProducer(final int nElements, final int queueSize) throws InterruptedException {
         final List<Integer> elements = new ArrayList<Integer>(nElements);
         for ( int i = 0; i < nElements; i++ ) elements.add(i);
 
@@ -52,7 +52,7 @@ public class InputProducerUnitTest extends BaseTest {
         while ( true ) {
             final int observedQueueSize = readQueue.size();
             Assert.assertTrue(observedQueueSize <= queueSize,
-                    "Reader is enqueuing more elements " + queueSize + " than allowed " + queueSize);
+                    "Reader is enqueuing more elements " + observedQueueSize + " than allowed " + queueSize);
 
             final InputProducer<Integer>.InputValue value = readQueue.take();
             if ( value.isLast() ) {

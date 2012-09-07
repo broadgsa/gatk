@@ -49,6 +49,7 @@ class ReducerThread<MapType, ReduceType> implements Callable<ReduceType> {
                     // make sure the map results are coming in order
                     throw new IllegalStateException("BUG: last jobID " + lastJobID + " > current jobID " + result.getJobID());
                 } else {
+                    lastJobID = result.getJobID();
                     // apply reduce, keeping track of sum
                     if ( reduceTimer != null ) reduceTimer.restart();
                     sum = reduce.apply(result.getValue(), sum);
