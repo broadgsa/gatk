@@ -102,9 +102,15 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @return The best-fit microscheduler.
      */
     public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, ThreadAllocation threadAllocation) {
-        if ( threadAllocation.isRunningInParallelMode() )
+        if ( threadAllocation.isRunningInParallelMode() ) {
+            // TODO -- remove me when we fix running NCT within HMS
+            if ( threadAllocation.getNumDataThreads() > 1 && threadAllocation.getNumCPUThreadsPerDataThread() > 1)
+                throw new UserException("Currently the GATK does not support running CPU threads within data threads, " +
+                        "please specify only one of NT and NCT");
+
             logger.info(String.format("Running the GATK in parallel mode with %d CPU thread(s) for each of %d data thread(s)",
                     threadAllocation.getNumCPUThreadsPerDataThread(), threadAllocation.getNumDataThreads()));
+        }
 
         if ( threadAllocation.getNumDataThreads() > 1 ) {
             if (walker.isReduceByInterval())
