@@ -20,7 +20,7 @@ public abstract class TraverseLociBase<M,T> extends TraversalEngine<M,T,LocusWal
     protected static final Logger logger = Logger.getLogger(TraversalEngine.class);
 
     @Override
-    protected final String getTraversalType() {
+    public final String getTraversalUnits() {
         return "sites";
     }
 

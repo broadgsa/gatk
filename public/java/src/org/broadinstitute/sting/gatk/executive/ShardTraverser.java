@@ -10,7 +10,6 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 /**
  * User: hanna
  * Date: Apr 29, 2009
@@ -56,7 +55,6 @@ public class ShardTraverser implements Callable {
 
     public Object call() {
         try {
-            traversalEngine.startTimersIfNecessary();
             final long startTime = System.currentTimeMillis();
 
             Object accumulator = walker.reduceInit();

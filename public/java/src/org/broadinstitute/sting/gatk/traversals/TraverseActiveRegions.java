@@ -36,7 +36,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
     private final LinkedHashSet<GATKSAMRecord> myReads = new LinkedHashSet<GATKSAMRecord>();
 
     @Override
-    protected String getTraversalType() {
+    public String getTraversalUnits() {
         return "active regions";
     }
 

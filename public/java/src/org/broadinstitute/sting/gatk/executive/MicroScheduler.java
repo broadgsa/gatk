@@ -44,6 +44,7 @@ import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.Collection;
 
@@ -88,6 +89,8 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * may be null
      */
     ThreadEfficiencyMonitor threadEfficiencyMonitor = null;
+
+    final TraversalProgressMeter progressMeter;
 
     /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
@@ -170,9 +173,12 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
             traversalEngine = new TraverseActiveRegions();
         } else {
             throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
-        }        
+        }
 
-        traversalEngine.initialize(engine);
+        final File progressLogFile = engine.getArguments() == null ? null : engine.getArguments().performanceLog;
+        this.progressMeter = new TraversalProgressMeter(engine.getCumulativeMetrics(), progressLogFile,
+                traversalEngine.getTraversalUnits(), engine.getRegionsOfGenomeBeingProcessed());
+        traversalEngine.initialize(engine, progressMeter);
 
         // JMX does not allow multiple instances with the same ObjectName to be registered with the same platform MXBean.
         // To get around this limitation and since we have no job identifier at this point, register a simple counter that
@@ -232,17 +238,14 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
     }
 
     /**
-     * Print summary information for the analysis.
-     * @param sum The final reduce output.
-     */
-    protected void printOnTraversalDone(Object sum) {
-        traversalEngine.printOnTraversalDone();
-    }
-
-    /**
      * Must be called by subclasses when execute is done
      */
     protected void executionIsDone() {
+        progressMeter.printOnDone();
+
+        // TODO -- generalize to all local thread copies
+        traversalEngine.shutdown();
+
         // Print out the threading efficiency of this HMS, if state monitoring is enabled
         if ( threadEfficiencyMonitor != null ) {
             // include the master thread information
@@ -268,38 +271,6 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @return The reference maintained by this scheduler.
      */
     public IndexedFastaSequenceFile getReference() { return reference; }
-
-    /**
-     * Gets the filename to which performance data is currently being written.
-     * @return Filename to which performance data is currently being written.
-     */
-    public String getPerformanceLogFileName() {
-        return traversalEngine.getPerformanceLogFileName();
-    }
-
-    /**
-     * Set the filename of the log for performance.  If set,
-     * @param fileName filename to use when writing performance data.
-     */
-    public void setPerformanceLogFileName(String fileName) {
-        traversalEngine.setPerformanceLogFileName(fileName);
-    }
-
-    /**
-     * Gets the frequency with which performance data is written.
-     * @return Frequency, in seconds, of performance log writes.
-     */
-    public long getPerformanceProgressPrintFrequencySeconds() {
-        return traversalEngine.getPerformanceProgressPrintFrequencySeconds();
-    }    
-
-    /**
-     * How often should the performance log message be written?
-     * @param seconds number of seconds between messages indicating performance frequency.
-     */
-    public void setPerformanceProgressPrintFrequencySeconds(long seconds) {
-        traversalEngine.setPerformanceProgressPrintFrequencySeconds(seconds);
-    }
 
     protected void cleanup() {
         try {
