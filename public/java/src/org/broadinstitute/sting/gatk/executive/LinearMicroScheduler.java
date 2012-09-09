@@ -69,7 +69,7 @@ public class LinearMicroScheduler extends MicroScheduler {
                         getReadIterator(shard), shard.getGenomeLocs(), SampleUtils.getSAMFileSamples(engine));
                 for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
                     ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),engine.getGenomeLocParser(),iterator.getLocus(),iterator,reference,rods);
-                    Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
+                    Object result = getTraversalEngine().traverse(walker, dataProvider, accumulator.getReduceInit());
                     accumulator.accumulate(dataProvider,result);
                     dataProvider.close();
                     if ( walker.isDone() ) break;
@@ -78,7 +78,7 @@ public class LinearMicroScheduler extends MicroScheduler {
             }
             else {
                 ShardDataProvider dataProvider = new ReadShardDataProvider(shard,engine.getGenomeLocParser(),getReadIterator(shard),reference,rods);
-                Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
+                Object result = getTraversalEngine().traverse(walker, dataProvider, accumulator.getReduceInit());
                 accumulator.accumulate(dataProvider,result);
                 dataProvider.close();
             }
@@ -87,8 +87,8 @@ public class LinearMicroScheduler extends MicroScheduler {
         }
 
         // Special function call to empty out the work queue. Ugly for now but will be cleaned up when we eventually push this functionality more into the engine
-        if( traversalEngine instanceof TraverseActiveRegions ) {
-            final Object result = ((TraverseActiveRegions) traversalEngine).endTraversal(walker, accumulator.getReduceInit());
+        if( getTraversalEngine() instanceof TraverseActiveRegions ) {
+            final Object result = ((TraverseActiveRegions) getTraversalEngine()).endTraversal(walker, accumulator.getReduceInit());
             accumulator.accumulate(null, result); // Assumes only used with StandardAccumulator
         }
                 

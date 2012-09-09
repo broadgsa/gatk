@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.executive;
 
+import com.google.java.contract.Ensures;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -50,6 +51,8 @@ import javax.management.ObjectName;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 
@@ -78,7 +81,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      */
     protected final GenomeAnalysisEngine engine;
 
-    protected final TraversalEngine traversalEngine;
+    private final TraversalEngineCreator traversalEngineCreator;
     protected final IndexedFastaSequenceFile reference;
 
     private final SAMDataSource reads;
@@ -110,11 +113,6 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      */
     public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, ThreadAllocation threadAllocation) {
         if ( threadAllocation.isRunningInParallelMode() ) {
-            // TODO -- remove me when we fix running NCT within HMS
-            if ( threadAllocation.getNumDataThreads() > 1 && threadAllocation.getNumCPUThreadsPerDataThread() > 1)
-                throw new UserException("Currently the GATK does not support running CPU threads within data threads, " +
-                        "please specify only one of NT and NCT");
-
             logger.info(String.format("Running the GATK in parallel mode with %d CPU thread(s) for each of %d data thread(s)",
                     threadAllocation.getNumCPUThreadsPerDataThread(), threadAllocation.getNumDataThreads()));
         }
@@ -160,30 +158,12 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         this.reads = reads;
         this.reference = reference;
         this.rods = rods;
-
-        if (walker instanceof ReadWalker) {
-            traversalEngine = USE_NANOSCHEDULER_FOR_EVERYTHING || threadAllocation.getNumCPUThreadsPerDataThread() > 1
-                    ? new TraverseReadsNano(threadAllocation.getNumCPUThreadsPerDataThread())
-                    : new TraverseReads();
-        } else if (walker instanceof LocusWalker) {
-            traversalEngine = USE_NANOSCHEDULER_FOR_EVERYTHING || threadAllocation.getNumCPUThreadsPerDataThread() > 1
-                    ? new TraverseLociNano(threadAllocation.getNumCPUThreadsPerDataThread())
-                    : new TraverseLociLinear();
-        } else if (walker instanceof DuplicateWalker) {
-            traversalEngine = new TraverseDuplicates();
-        } else if (walker instanceof ReadPairWalker) {
-            traversalEngine = new TraverseReadPairs();
-        } else if (walker instanceof ActiveRegionWalker) {
-            traversalEngine = new TraverseActiveRegions();
-        } else {
-            throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
-        }
+        this.traversalEngineCreator = new TraversalEngineCreator(walker, threadAllocation);
 
         final File progressLogFile = engine.getArguments() == null ? null : engine.getArguments().performanceLog;
         this.progressMeter = new ProgressMeter(progressLogFile,
-                traversalEngine.getTraversalUnits(),
+                traversalEngineCreator.getTraversalUnits(),
                 engine.getRegionsOfGenomeBeingProcessed());
-        traversalEngine.initialize(engine, progressMeter);
 
         // JMX does not allow multiple instances with the same ObjectName to be registered with the same platform MXBean.
         // To get around this limitation and since we have no job identifier at this point, register a simple counter that
@@ -249,8 +229,8 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         progressMeter.notifyDone(engine.getCumulativeMetrics().getNumIterations());
         printReadFilteringStats();
 
-        // TODO -- generalize to all local thread copies
-        traversalEngine.shutdown();
+        for ( final TraversalEngine te : traversalEngineCreator.getCreatedEngines() )
+            te.shutdown();
 
         // Print out the threading efficiency of this HMS, if state monitoring is enabled
         if ( threadEfficiencyMonitor != null ) {
@@ -315,6 +295,117 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         }
         catch (JMException ex) {
             throw new ReviewedStingException("Unable to unregister microscheduler with JMX", ex);
+        }
+    }
+
+    /**
+     * Returns a traversal engine suitable for use in this thread.
+     *
+     * May create a new traversal engine for this thread, if this is the first
+     * time this thread ever asked for a TraversalEngine.
+     *
+     * @return a non-null TraversalEngine suitable for execution in this scheduler
+     */
+    public TraversalEngine getTraversalEngine() {
+        return traversalEngineCreator.get();
+    }
+
+    /**
+     * ThreadLocal TraversalEngine creator
+     *
+     * TraversalEngines are thread local variables to the MicroScheduler.  This is necessary
+     * because in the HMS case you have multiple threads executing a traversal engine independently, and
+     * these engines may need to create separate resources for efficiency or implementation reasons.  For example,
+     * the nanoScheduler creates threads to implement the traversal, and this creation is instance specific.
+     * So each HMS thread needs to have it's own distinct copy of the traversal engine if it wants to have
+     * N data threads x M nano threads => N * M threads total.
+     *
+     * This class also tracks all created traversal engines so this microscheduler can properly
+     * shut them all down when the scheduling is done.
+     */
+    private class TraversalEngineCreator extends ThreadLocal<TraversalEngine> {
+        final List<TraversalEngine> createdEngines = new LinkedList<TraversalEngine>();
+        final Walker walker;
+        final ThreadAllocation threadAllocation;
+
+        /**
+         * Creates an initialized TraversalEngine appropriate for walker and threadAllocation,
+         * and adds it to the list of created engines for later shutdown.
+         *
+         * @return a non-null traversal engine
+         */
+        @Override
+        protected synchronized TraversalEngine initialValue() {
+            final TraversalEngine traversalEngine = createEngine();
+            traversalEngine.initialize(engine, progressMeter);
+            createdEngines.add(traversalEngine);
+            return traversalEngine;
+        }
+
+        /**
+         * Returns the traversal units for traversal engines created here.
+         *
+         * This (unfortunately) creates an uninitialized tmp. TraversalEngine so we can get
+         * it's traversal units, and then immediately shuts it down...
+         *
+         * @return the traversal unit as returned by getTraversalUnits of TraversalEngines created here
+         */
+        protected String getTraversalUnits() {
+            final TraversalEngine tmp = createEngine();
+            final String units = tmp.getTraversalUnits();
+            tmp.shutdown();
+            return units;
+        }
+
+        /**
+         * Really make us a traversal engine of the appropriate type for walker and thread allocation
+         *
+         * @return a non-null uninitialized traversal engine
+         */
+        @Ensures("result != null")
+        protected TraversalEngine createEngine() {
+            if (walker instanceof ReadWalker) {
+                if ( USE_NANOSCHEDULER_FOR_EVERYTHING || threadAllocation.getNumCPUThreadsPerDataThread() > 1 )
+                    return new TraverseReadsNano(threadAllocation.getNumCPUThreadsPerDataThread());
+                else
+                    return new TraverseReads();
+            } else if (walker instanceof LocusWalker) {
+                if ( USE_NANOSCHEDULER_FOR_EVERYTHING || threadAllocation.getNumCPUThreadsPerDataThread() > 1 )
+                    return new TraverseLociNano(threadAllocation.getNumCPUThreadsPerDataThread());
+                else
+                    return new TraverseLociLinear();
+            } else if (walker instanceof DuplicateWalker) {
+                return new TraverseDuplicates();
+            } else if (walker instanceof ReadPairWalker) {
+                return new TraverseReadPairs();
+            } else if (walker instanceof ActiveRegionWalker) {
+                return new TraverseActiveRegions();
+            } else {
+                throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
+            }
+        }
+
+        /**
+         * Create a TraversalEngineCreator that makes TraversalEngines appropriate for walker and threadAllocation
+         *
+         * @param walker the walker we need traversal engines for
+         * @param threadAllocation what kind of threading will we use in the traversal?
+         */
+        @com.google.java.contract.Requires({"walker != null", "threadAllocation != null"})
+        public TraversalEngineCreator(final Walker walker, final ThreadAllocation threadAllocation) {
+            super();
+            this.walker = walker;
+            this.threadAllocation = threadAllocation;
+        }
+
+        /**
+         * Get the list of all traversal engines we've created
+         *
+         * @return a non-null list of engines created so far
+         */
+        @Ensures("result != null")
+        public List<TraversalEngine> getCreatedEngines() {
+            return createdEngines;
         }
     }
 }

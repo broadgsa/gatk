@@ -5,7 +5,6 @@ import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvide
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
-import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -29,7 +28,6 @@ public class ShardTraverser implements Callable {
     final private HierarchicalMicroScheduler microScheduler;
     final private Walker walker;
     final private Shard shard;
-    final private TraversalEngine traversalEngine;
     final private ThreadLocalOutputTracker outputTracker;
     private OutputMergeTask outputMergeTask;
 
@@ -42,13 +40,11 @@ public class ShardTraverser implements Callable {
     private boolean complete = false;
 
     public ShardTraverser( HierarchicalMicroScheduler microScheduler,
-                           TraversalEngine traversalEngine,
                            Walker walker,
                            Shard shard,
                            ThreadLocalOutputTracker outputTracker) {
         this.microScheduler = microScheduler;
         this.walker = walker;
-        this.traversalEngine = traversalEngine;
         this.shard = shard;
         this.outputTracker = outputTracker;
     }
@@ -65,7 +61,7 @@ public class ShardTraverser implements Callable {
 
             for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
                 final ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),microScheduler.getEngine().getGenomeLocParser(),iterator.getLocus(),iterator,microScheduler.reference,microScheduler.rods);
-                accumulator = traversalEngine.traverse( walker, dataProvider, accumulator );
+                accumulator = microScheduler.getTraversalEngine().traverse(walker, dataProvider, accumulator);
                 dataProvider.close();
             }
 
