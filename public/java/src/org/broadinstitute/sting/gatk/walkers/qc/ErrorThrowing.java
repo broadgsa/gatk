@@ -94,8 +94,10 @@ public class ErrorThrowing extends RodWalker<Integer,Integer> implements TreeRed
             throw new RuntimeException(CommandLineGATK.PICARD_TEXT_SAM_FILE_ERROR_1);
         } else if ( exceptionToThrow.equals("SamError2") ) {
             throw new RuntimeException(CommandLineGATK.PICARD_TEXT_SAM_FILE_ERROR_2);
-        } else if ( exceptionToThrow.equals("NoSpace") ) {
+        } else if ( exceptionToThrow.equals("NoSpace1") ) {
             throw new net.sf.samtools.util.RuntimeIOException(new java.io.IOException("No space left on device java.io.FileOutputStream.writeBytes(Native Method)"));
+        } else if ( exceptionToThrow.equals("NoSpace2") ) {
+            throw new net.sf.samtools.SAMException("Exception writing BAM index file", new java.io.IOException("No space left on device java.io.FileOutputStream.writeBytes(Native Method)"));
         } else {
             throw new UserException.BadArgumentValue("exception", "exception isn't a recognized value " + exceptionToThrow);
         }

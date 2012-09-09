@@ -137,6 +137,10 @@ public class CommandLineGATK extends CommandLineExecutable {
             exitSystemWithUserError(new UserException.NoSpaceOnDevice());
         if ( t.getCause() != null && t.getCause().getMessage().contains("No space left on device") )
             exitSystemWithUserError(new UserException.NoSpaceOnDevice());
+
+        // masked out of memory error
+        if ( t.getCause() != null && t.getCause() instanceof OutOfMemoryError )
+            exitSystemWithUserError(new UserException.NotEnoughMemory());
     }
 
     /**
