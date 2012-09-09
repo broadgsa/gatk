@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.executive;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
@@ -37,8 +38,10 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
 import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import javax.management.JMException;
@@ -47,6 +50,7 @@ import javax.management.ObjectName;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.Collection;
+import java.util.Map;
 
 
 /**
@@ -90,7 +94,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      */
     ThreadEfficiencyMonitor threadEfficiencyMonitor = null;
 
-    final TraversalProgressMeter progressMeter;
+    final ProgressMeter progressMeter;
 
     /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
@@ -176,8 +180,9 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         }
 
         final File progressLogFile = engine.getArguments() == null ? null : engine.getArguments().performanceLog;
-        this.progressMeter = new TraversalProgressMeter(engine.getCumulativeMetrics(), progressLogFile,
-                traversalEngine.getTraversalUnits(), engine.getRegionsOfGenomeBeingProcessed());
+        this.progressMeter = new ProgressMeter(progressLogFile,
+                traversalEngine.getTraversalUnits(),
+                engine.getRegionsOfGenomeBeingProcessed());
         traversalEngine.initialize(engine, progressMeter);
 
         // JMX does not allow multiple instances with the same ObjectName to be registered with the same platform MXBean.
@@ -241,7 +246,8 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * Must be called by subclasses when execute is done
      */
     protected void executionIsDone() {
-        progressMeter.printOnDone();
+        progressMeter.notifyDone(engine.getCumulativeMetrics().getNumIterations());
+        printReadFilteringStats();
 
         // TODO -- generalize to all local thread copies
         traversalEngine.shutdown();
@@ -251,6 +257,37 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
             // include the master thread information
             threadEfficiencyMonitor.threadIsDone(Thread.currentThread());
             threadEfficiencyMonitor.printUsageInformation(logger);
+        }
+    }
+
+    /**
+     * Prints out information about number of reads observed and filtering, if any reads were used in the traversal
+     *
+     * Looks like:
+     *
+     * INFO  10:40:47,370 MicroScheduler - 22 reads were filtered out during traversal out of 101 total (21.78%)
+     * INFO  10:40:47,370 MicroScheduler -   -> 1 reads (0.99% of total) failing BadMateFilter
+     * INFO  10:40:47,370 MicroScheduler -   -> 20 reads (19.80% of total) failing DuplicateReadFilter
+     * INFO  10:40:47,370 MicroScheduler -   -> 1 reads (0.99% of total) failing FailsVendorQualityCheckFilter
+     */
+    private void printReadFilteringStats() {
+        final ReadMetrics cumulativeMetrics = engine.getCumulativeMetrics();
+        if ( cumulativeMetrics.getNumReadsSeen() > 0 ) {
+            // count up the number of skipped reads by summing over all filters
+            long nSkippedReads = 0L;
+            for ( final long countsByFilter : cumulativeMetrics.getCountsByFilter().values())
+                nSkippedReads += countsByFilter;
+
+            logger.info(String.format("%d reads were filtered out during traversal out of %d total (%.2f%%)",
+                    nSkippedReads,
+                    cumulativeMetrics.getNumReadsSeen(),
+                    100.0 * MathUtils.ratio(nSkippedReads, cumulativeMetrics.getNumReadsSeen())));
+
+            for ( final Map.Entry<String, Long> filterCounts : cumulativeMetrics.getCountsByFilter().entrySet() ) {
+                long count = filterCounts.getValue();
+                logger.info(String.format("  -> %d reads (%.2f%% of total) failing %s",
+                        count, 100.0 * MathUtils.ratio(count,cumulativeMetrics.getNumReadsSeen()), filterCounts.getKey()));
+            }
         }
     }
 

@@ -32,13 +32,14 @@ import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
 
 public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,ProviderType extends ShardDataProvider> {
     /** our log, which we want to capture anything from this class */
     protected static final Logger logger = Logger.getLogger(TraversalEngine.class);
 
     protected GenomeAnalysisEngine engine;
-    private TraversalProgressMeter progressMeter;
+    private ProgressMeter progressMeter;
 
     // ----------------------------------------------------------------------------------------------------
     //
@@ -72,7 +73,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      * @param engine GenomeAnalysisEngine for this traversal
      * @param progressMeter An optional (null == optional) meter to track our progress
      */
-    public void initialize(final GenomeAnalysisEngine engine, final TraversalProgressMeter progressMeter) {
+    public void initialize(final GenomeAnalysisEngine engine, final ProgressMeter progressMeter) {
         if ( engine == null )
             throw new ReviewedStingException("BUG: GenomeAnalysisEngine cannot be null!");
 
@@ -118,14 +119,15 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     }
 
     /**
-     * Forward request to printProgress
+     * Forward request to notifyOfProgress
      *
      * Assumes that one cycle has been completed
      *
      * @param loc  the location
      */
     public void printProgress(final GenomeLoc loc) {
-        if ( progressMeter != null ) progressMeter.printProgress(loc);
+        if ( progressMeter != null )
+            progressMeter.notifyOfProgress(loc, engine.getCumulativeMetrics().getNumIterations());
     }
 }
 
