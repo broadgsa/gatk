@@ -81,7 +81,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      */
     protected final GenomeAnalysisEngine engine;
 
-    private final TraversalEngineCreator traversalEngineCreator;
+    private TraversalEngineCreator traversalEngineCreator;
     protected final IndexedFastaSequenceFile reference;
 
     private final SAMDataSource reads;
@@ -229,8 +229,8 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         progressMeter.notifyDone(engine.getCumulativeMetrics().getNumIterations());
         printReadFilteringStats();
 
-        for ( final TraversalEngine te : traversalEngineCreator.getCreatedEngines() )
-            te.shutdown();
+        traversalEngineCreator.shutdown();
+        traversalEngineCreator = null;
 
         // Print out the threading efficiency of this HMS, if state monitoring is enabled
         if ( threadEfficiencyMonitor != null ) {
@@ -399,13 +399,13 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         }
 
         /**
-         * Get the list of all traversal engines we've created
-         *
-         * @return a non-null list of engines created so far
+         * Shutdown all of the created engines, and clear the list of created engines, dropping
+         * pointers to the traversal engines
          */
-        @Ensures("result != null")
-        public List<TraversalEngine> getCreatedEngines() {
-            return createdEngines;
+        public synchronized void shutdown() {
+            for ( final TraversalEngine te : traversalEngineCreator.createdEngines )
+                te.shutdown();
+            createdEngines.clear();
         }
     }
 }
