@@ -54,7 +54,7 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
                          final Genotype g,
                          final GenotypeBuilder gb,
                          final PerReadAlleleLikelihoodMap alleleLikelihoodMap) {
-        if ( g == null || !g.isCalled() )
+        if ( g == null || !g.isCalled() || ( stratifiedContext == null && alleleLikelihoodMap == null) )
             return;
 
         if (alleleLikelihoodMap != null && !alleleLikelihoodMap.isEmpty())
@@ -97,7 +97,6 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
             if (!vc.getAlleles().contains(a))
                 continue; // sanity check - shouldn't be needed
             alleleCounts.put(a,alleleCounts.get(a)+1);
-
         }
         final int[] counts = new int[alleleCounts.size()];
         counts[0] = alleleCounts.get(vc.getReference());

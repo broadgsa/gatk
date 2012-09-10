@@ -39,7 +39,7 @@ import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
@@ -477,7 +477,7 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
 
 
 	@Override
-	public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
+	public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) {
 
     //        if ( read.getReadName().equals("428EFAAXX090610:2:36:1384:639#0") ) System.out.println("GOT READ");
 
@@ -1181,10 +1181,10 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
         if ( event_length == 0 ) { // insertion
 
             l.add( Allele.create(referencePaddingBase,true) );
-            l.add( Allele.create(referencePaddingBase + call.getVariant().getBases(), false ));
+            l.add( Allele.create((char)referencePaddingBase + new String(call.getVariant().getBases()), false ));
 
         } else { //deletion:
-            l.add( Allele.create(referencePaddingBase + call.getVariant().getBases(), true ));
+            l.add( Allele.create((char)referencePaddingBase + new String(call.getVariant().getBases()), true ));
             l.add( Allele.create(referencePaddingBase,false) );
         }
     }

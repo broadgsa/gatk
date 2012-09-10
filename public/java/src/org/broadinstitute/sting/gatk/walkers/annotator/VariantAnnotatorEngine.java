@@ -34,7 +34,6 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
@@ -218,7 +217,10 @@ public class VariantAnnotatorEngine {
 
         // go through all the requested info annotationTypes
         for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
-            Map<String, Object> annotationsFromCurrentType = ((ActiveRegionBasedAnnotation)annotationType).annotate(perReadAlleleLikelihoodMap, vc);
+            if ( !(annotationType instanceof ActiveRegionBasedAnnotation) )
+                continue;
+
+            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(perReadAlleleLikelihoodMap, vc);
             if ( annotationsFromCurrentType != null ) {
                 infoAnnotations.putAll(annotationsFromCurrentType);
             }
@@ -298,16 +300,12 @@ public class VariantAnnotatorEngine {
             if (stratifiedPerReadAlleleLikelihoodMap != null)
                 perReadAlleleLikelihoodMap = stratifiedPerReadAlleleLikelihoodMap.get(genotype.getSampleName());
 
-            if ( context == null && perReadAlleleLikelihoodMap == null) {
-                // no likelihoods nor pileup available: just move on to next sample
-                genotypes.add(genotype);
-            } else {
-                final GenotypeBuilder gb = new GenotypeBuilder(genotype);
-                for ( final GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
-                    annotation.annotate(tracker, walker, ref, context, vc, genotype, gb, perReadAlleleLikelihoodMap);
-                }
-                genotypes.add(gb.make());
+
+            final GenotypeBuilder gb = new GenotypeBuilder(genotype);
+            for ( final GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
+                annotation.annotate(tracker, walker, ref, context, vc, genotype, gb, perReadAlleleLikelihoodMap);
             }
+            genotypes.add(gb.make());
         }
 
         return genotypes;

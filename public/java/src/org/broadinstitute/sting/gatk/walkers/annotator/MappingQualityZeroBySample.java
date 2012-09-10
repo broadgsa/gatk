@@ -55,7 +55,7 @@ public class MappingQualityZeroBySample extends GenotypeAnnotation {
                          final Genotype g,
                          final GenotypeBuilder gb,
                          final PerReadAlleleLikelihoodMap alleleLikelihoodMap){
-        if ( g == null || !g.isCalled() )
+        if ( g == null || !g.isCalled() || stratifiedContext == null )
             return;
 
         int mq0 = 0;

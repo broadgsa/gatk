@@ -245,7 +245,7 @@ public class FastaSequenceIndexBuilder {
      * Reset iterators and add contig to sequence index
      */
     private void finishReadingContig(FastaSequenceIndex sequenceIndex) {
-        sequenceIndex.add(new FastaSequenceIndexEntry(contig, location, size, (int) basesPerLine, (int) bytesPerLine, thisSequenceIndex++));
+        sequenceIndex.add(new FastaSequenceIndexEntry(trimContigName(contig), location, size, (int) basesPerLine, (int) bytesPerLine, thisSequenceIndex++));
         status = Status.NONE;
         contig = "";
         size = 0;
@@ -256,6 +256,14 @@ public class FastaSequenceIndexBuilder {
                 System.out.println(String.format("PROGRESS UPDATE: file is %d percent complete", percentProgress));
             lastTimestamp = System.currentTimeMillis();
         }
+    }
+
+    /*
+     * Trims the contig name to the expected value by removing any characters after the first whitespace
+     */
+    private static String trimContigName(final String contigName) {
+        int whitespaceIndex = contigName.indexOf(' ');
+        return ( whitespaceIndex == -1 ) ? contigName : contigName.substring(0, whitespaceIndex);
     }
 
     /**

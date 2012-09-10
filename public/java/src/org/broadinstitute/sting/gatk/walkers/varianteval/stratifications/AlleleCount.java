@@ -45,12 +45,22 @@ public class AlleleCount extends VariantStratifier {
         if (eval != null) {
             int AC = 0; // by default, the site is considered monomorphic
 
-            if ( eval.hasAttribute(VCFConstants.MLE_ALLELE_COUNT_KEY) && eval.isBiallelic() ) {
-                // the MLEAC is allowed to be larger than the AN (e.g. in the case of all PLs being 0, the GT is ./. but the exact model may arbitrarily choose an AC>1)
-                AC = Math.min(eval.getAttributeAsInt(VCFConstants.MLE_ALLELE_COUNT_KEY, 0), nchrom);
-            } else if ( eval.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) && eval.isBiallelic() ) {
-                AC = eval.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY, 0);
-            } else if ( eval.isVariant() ) {
+            try {
+                if ( eval.isBiallelic() ) {
+                    if ( eval.hasAttribute(VCFConstants.MLE_ALLELE_COUNT_KEY) ) {
+                        // the MLEAC is allowed to be larger than the AN (e.g. in the case of all PLs being 0, the GT is ./. but the exact model may arbitrarily choose an AC>1)
+                        AC = Math.min(eval.getAttributeAsInt(VCFConstants.MLE_ALLELE_COUNT_KEY, 0), nchrom);
+                    } else if ( eval.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) ) {
+                        AC = eval.getAttributeAsInt(VCFConstants.ALLELE_COUNT_KEY, 0);
+                    }
+                }
+            } catch ( ClassCastException e ) {
+                // protect ourselves from bad inputs
+                // TODO -- fully decode VC
+            }
+
+            if ( AC == 0 && eval.isVariant() ) {
+                // fall back to the direct calculation
                 for (Allele allele : eval.getAlternateAlleles())
                     AC = Math.max(AC, eval.getCalledChrCount(allele));
             }

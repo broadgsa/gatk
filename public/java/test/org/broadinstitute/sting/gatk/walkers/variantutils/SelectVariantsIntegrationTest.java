@@ -129,6 +129,19 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testIndelLengthSelection() {
+        String testFile = privateTestDir + "complexExample1.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b36KGReference + " -selectType INDEL --variant " + testFile + " -o %s --no_cmdline_in_header --maxIndelSize 3",
+                1,
+                Arrays.asList("004589868ca5dc887e2dff876b4cc797")
+        );
+
+        executeTest("testIndelLengthSelection--" + testFile, spec);
+    }
+
+    @Test
     public void testUsingDbsnpName() {
         String testFile = privateTestDir + "combine.3.vcf";
 

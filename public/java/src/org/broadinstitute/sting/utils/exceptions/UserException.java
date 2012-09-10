@@ -63,6 +63,18 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class MalformedReadFilterException extends CommandLineException {
+        public MalformedReadFilterException(String message) {
+            super(String.format("Malformed read filter: %s",message));
+        }
+    }
+
+    public static class MalformedWalkerArgumentsException extends CommandLineException {
+        public MalformedWalkerArgumentsException(String message) {
+            super(String.format("Malformed walker argument: %s",message));
+        }
+    }
+
     public static class MalformedGenomeLoc extends UserException {
         public MalformedGenomeLoc(String message, GenomeLoc loc) {
             super(String.format("Badly formed genome loc: %s: %s", message, loc));
@@ -126,6 +138,12 @@ public class UserException extends ReviewedStingException {
     public static class ErrorWritingBamFile extends UserException {
         public ErrorWritingBamFile(String message) {
             super(String.format("An error occurred when trying to write the BAM file.  Usually this happens when there is not enough space in the directory to which the data is being written (generally the temp directory) or when your system's open file handle limit is too small.  To tell Java to use a bigger/better file system use -Djava.io.tmpdir=X on the command line.  The exact error was %s", message));
+        }
+    }
+
+    public static class NoSpaceOnDevice extends UserException {
+        public NoSpaceOnDevice() {
+            super("There is no space left on the device, so writing failed");
         }
     }
 

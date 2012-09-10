@@ -64,10 +64,10 @@ object QCommandLine extends Logging {
         Runtime.getRuntime.removeShutdownHook(shutdownHook)
         qCommandLine.shutdown()
       } catch {
-        case _ => /* ignore, example 'java.lang.IllegalStateException: Shutdown in progress' */
+        case e: Exception => /* ignore, example 'java.lang.IllegalStateException: Shutdown in progress' */
       }
       if (CommandLineProgram.result != 0)
-        System.exit(CommandLineProgram.result);
+        System.exit(CommandLineProgram.result)
     } catch {
       case e: Exception => CommandLineProgram.exitSystemWithError(e)
     }
@@ -105,9 +105,11 @@ class QCommandLine extends CommandLineProgram with Logging {
   def execute = {
     if (settings.qSettings.runName == null)
       settings.qSettings.runName = FilenameUtils.removeExtension(scripts.head.getName)
+    if (IOUtils.isDefaultTempDir(settings.qSettings.tempDirectory))
+      settings.qSettings.tempDirectory = IOUtils.absolute(settings.qSettings.runDirectory, ".queue/tmp")
     qGraph.initializeWithSettings(settings)
 
-    val allQScripts = pluginManager.createAllTypes();
+    val allQScripts = pluginManager.createAllTypes()
     for (script <- allQScripts) {
       logger.info("Scripting " + pluginManager.getName(script.getClass.asSubclass(classOf[QScript])))
       loadArgumentsIntoObject(script)

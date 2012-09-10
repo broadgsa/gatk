@@ -104,6 +104,12 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                     String sex = mVals.containsKey("sex") ? mVals.get("sex") : "3";
                     String pheno = mVals.get("phenotype");
                     outFam.printf("%s\t%s\t%s\t%s\t%s\t%s%n",fid,sample,pid,mid,sex,pheno);
+                } else {
+                    // even if a fam file is input, we can't diverge the bed file from the fam file, which
+                    // could lead to a malformed plink trio. Fail fast if there's any extra sample in the VCF.
+                    if ( ! sampleMetaValues.containsKey(sample) ) {
+                        throw new UserException("No metadata provided for sample "+sample);
+                    }
                 }
                 try {
                     File temp = File.createTempFile("VariantsToBPed_"+sample, ".tmp");

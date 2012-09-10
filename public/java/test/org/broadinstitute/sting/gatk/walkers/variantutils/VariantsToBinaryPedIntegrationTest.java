@@ -87,6 +87,31 @@ public class VariantsToBinaryPedIntegrationTest extends WalkerTest {
 
         executeTest(testName, spec);
     }
+
+    @Test
+    public void testFailFast() {
+        String testName = "testFailFast";
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString("HapMap.testFailFast.vcf", "HapMap_only_famids.fam",10),
+                3,
+                UserException.class
+        );
+
+        executeTest(testName, spec);
+    }
+
+    @Test
+    public void testFailFastMeta() {
+    String testName = "testFailFastMeta";
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString("HapMap.testFailFast.vcf", "HapMap_only_famids.metadata.txt",10),
+                3,
+                UserException.class
+        );
+
+        executeTest(testName, spec);
+
+    }
 }
 
 

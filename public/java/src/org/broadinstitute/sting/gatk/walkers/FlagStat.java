@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.walkers;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -45,12 +45,12 @@ import java.text.NumberFormat;
  */
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS})
-public class FlagStat extends ReadWalker<Integer, Integer> {
+public class FlagStat extends ReadWalker<FlagStat.FlagStatus, FlagStat.FlagStatus> implements NanoSchedulable {
     @Output
     PrintStream out;
 
     // what comes out of the flagstat
-    static class FlagStatus {
+    public final static class FlagStatus {
         long readCount = 0L;
         long QC_failure = 0L;
         long duplicates = 0L;
@@ -117,62 +117,84 @@ public class FlagStat extends ReadWalker<Integer, Integer> {
             return builder.toString();
         }
 
-    }
+        public FlagStatus add(final FlagStatus other) {
+            readCount += other.readCount;
+            QC_failure += other.QC_failure;
+            duplicates += other.duplicates;
+            mapped += other.mapped;
+            paired_in_sequencing += other.paired_in_sequencing;
+            read1 += other.read1;
+            read2 += other.read2;
+            properly_paired += other.properly_paired;
+            with_itself_and_mate_mapped += other.with_itself_and_mate_mapped;
+            singletons += other.singletons;
+            with_mate_mapped_to_a_different_chr += other.with_mate_mapped_to_a_different_chr;
+            with_mate_mapped_to_a_different_chr_maq_greaterequal_than_5 += other.with_mate_mapped_to_a_different_chr_maq_greaterequal_than_5;
 
-
-    private FlagStatus myStat = new FlagStatus();
-
-    public Integer map( ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker ) {
-        myStat.readCount++;
-        if (read.getReadFailsVendorQualityCheckFlag()) {
-            myStat.QC_failure++;
+            return this;
         }
-        if (read.getDuplicateReadFlag()) {
-            myStat.duplicates++;
-        }
-        if (!read.getReadUnmappedFlag()) {
-            myStat.mapped++;
-        }
-        if (read.getReadPairedFlag()) {
-            myStat.paired_in_sequencing++;
 
-            if (read.getSecondOfPairFlag()) {
-                myStat.read2++;
-            } else if (read.getReadPairedFlag()) {
-                myStat.read1++;
+        public FlagStatus add(final GATKSAMRecord read) {
+            this.readCount++;
+
+            if (read.getReadFailsVendorQualityCheckFlag()) {
+                this.QC_failure++;
             }
-            if (read.getProperPairFlag()) {
-                myStat.properly_paired++;
+            if (read.getDuplicateReadFlag()) {
+                this.duplicates++;
             }
-            if (!read.getReadUnmappedFlag() && !read.getMateUnmappedFlag()) {
-                myStat.with_itself_and_mate_mapped++;
+            if (!read.getReadUnmappedFlag()) {
+                this.mapped++;
+            }
+            if (read.getReadPairedFlag()) {
+                this.paired_in_sequencing++;
 
-                if (!read.getReferenceIndex().equals(read.getMateReferenceIndex())) {
-                    myStat.with_mate_mapped_to_a_different_chr++;
+                if (read.getSecondOfPairFlag()) {
+                    this.read2++;
+                } else if (read.getReadPairedFlag()) {
+                    this.read1++;
+                }
+                if (read.getProperPairFlag()) {
+                    this.properly_paired++;
+                }
+                if (!read.getReadUnmappedFlag() && !read.getMateUnmappedFlag()) {
+                    this.with_itself_and_mate_mapped++;
 
-                    if (read.getMappingQuality() >= 5) {
-                        myStat.with_mate_mapped_to_a_different_chr_maq_greaterequal_than_5++;
+                    if (!read.getReferenceIndex().equals(read.getMateReferenceIndex())) {
+                        this.with_mate_mapped_to_a_different_chr++;
+
+                        if (read.getMappingQuality() >= 5) {
+                            this.with_mate_mapped_to_a_different_chr_maq_greaterequal_than_5++;
+                        }
                     }
                 }
+                if (!read.getReadUnmappedFlag() && read.getMateUnmappedFlag()) {
+                    this.singletons++;
+                }
             }
-            if (!read.getReadUnmappedFlag() && read.getMateUnmappedFlag()) {
-                myStat.singletons++;
-            }
+
+            return this;
         }
-        return 1;
-
     }
 
-    public Integer reduceInit() {
-        return 0;
+
+    @Override
+    public FlagStatus map( final ReferenceContext ref, final GATKSAMRecord read, final RefMetaDataTracker metaDataTracker ) {
+        return new FlagStatus().add(read);
+   }
+
+    @Override
+    public FlagStatus reduceInit() {
+        return new FlagStatus();
     }
 
-    public Integer reduce(Integer value, Integer sum) {
-        return value + sum;
+    @Override
+    public FlagStatus reduce(final FlagStatus value, final FlagStatus sum) {
+        return sum.add(value);
     }
 
-    public void onTraversalDone(Integer result) {
-        //out.println("[REDUCE RESULT] Traversal result is: " + result);
-        out.println(myStat.toString());
+    @Override
+    public void onTraversalDone(final FlagStatus result) {
+        out.println(result.toString());
     }
 }

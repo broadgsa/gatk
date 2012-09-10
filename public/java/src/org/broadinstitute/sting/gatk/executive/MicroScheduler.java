@@ -39,6 +39,7 @@ import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import javax.management.JMException;
 import javax.management.MBeanServer;
@@ -58,6 +59,8 @@ import java.util.Collection;
 
 /** Shards and schedules data in manageable chunks. */
 public abstract class MicroScheduler implements MicroSchedulerMBean {
+    // TODO -- remove me and retire non nano scheduled versions of traversals
+    private final static boolean USE_NANOSCHEDULER_FOR_EVERYTHING = true;
     protected static final Logger logger = Logger.getLogger(MicroScheduler.class);
 
     /**
@@ -80,6 +83,13 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
     private final ObjectName mBeanName;
 
     /**
+     * Threading efficiency monitor for tracking the resource utilization of the GATK
+     *
+     * may be null
+     */
+    ThreadEfficiencyMonitor threadEfficiencyMonitor = null;
+
+    /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
      * selected walker.
      *
@@ -92,18 +102,36 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @return The best-fit microscheduler.
      */
     public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, ThreadAllocation threadAllocation) {
-        if (walker instanceof TreeReducible && threadAllocation.getNumCPUThreads() > 1) {
-            if(walker.isReduceByInterval())
-                throw new UserException.BadArgumentValue("nt", String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
-            if(walker instanceof ReadWalker)
-                throw new UserException.BadArgumentValue("nt", String.format("The analysis %s is a read walker.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
-            logger.info(String.format("Running the GATK in parallel mode with %d concurrent threads",threadAllocation.getNumCPUThreads()));
-            return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, threadAllocation.getNumCPUThreads());
-        } else {
-            if(threadAllocation.getNumCPUThreads() > 1)
-                throw new UserException.BadArgumentValue("nt", String.format("The analysis %s currently does not support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
-            return new LinearMicroScheduler(engine, walker, reads, reference, rods);
+        if ( threadAllocation.isRunningInParallelMode() ) {
+            // TODO -- remove me when we fix running NCT within HMS
+            if ( threadAllocation.getNumDataThreads() > 1 && threadAllocation.getNumCPUThreadsPerDataThread() > 1)
+                throw new UserException("Currently the GATK does not support running CPU threads within data threads, " +
+                        "please specify only one of NT and NCT");
+
+            logger.info(String.format("Running the GATK in parallel mode with %d CPU thread(s) for each of %d data thread(s)",
+                    threadAllocation.getNumCPUThreadsPerDataThread(), threadAllocation.getNumDataThreads()));
         }
+
+        if ( threadAllocation.getNumDataThreads() > 1 ) {
+            if (walker.isReduceByInterval())
+                throw new UserException.BadArgumentValue("nt", String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
+
+            if ( ! (walker instanceof TreeReducible) ) {
+                throw badNT("nt", engine, walker);
+            } else {
+                return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, threadAllocation);
+            }
+        } else {
+            if ( threadAllocation.getNumCPUThreadsPerDataThread() > 1 && ! (walker instanceof NanoSchedulable) )
+                throw badNT("nct", engine, walker);
+            return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation);
+        }
+    }
+
+    private static UserException badNT(final String parallelArg, final GenomeAnalysisEngine engine, final Walker walker) {
+        throw new UserException.BadArgumentValue("nt",
+                String.format("The analysis %s currently does not support parallel execution with %s.  " +
+                        "Please run your analysis without the %s option.", engine.getWalkerName(walker.getClass()), parallelArg, parallelArg));
     }
 
     /**
@@ -113,17 +141,27 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @param reads   The reads.
      * @param reference The reference.
      * @param rods    the rods to include in the traversal
+     * @param threadAllocation the allocation of threads to use in the underlying traversal
      */
-    protected MicroScheduler(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
+    protected MicroScheduler(final GenomeAnalysisEngine engine,
+                             final Walker walker,
+                             final SAMDataSource reads,
+                             final IndexedFastaSequenceFile reference,
+                             final Collection<ReferenceOrderedDataSource> rods,
+                             final ThreadAllocation threadAllocation) {
         this.engine = engine;
         this.reads = reads;
         this.reference = reference;
         this.rods = rods;
 
         if (walker instanceof ReadWalker) {
-            traversalEngine = new TraverseReads();
+            traversalEngine = USE_NANOSCHEDULER_FOR_EVERYTHING || threadAllocation.getNumCPUThreadsPerDataThread() > 1
+                    ? new TraverseReadsNano(threadAllocation.getNumCPUThreadsPerDataThread())
+                    : new TraverseReads();
         } else if (walker instanceof LocusWalker) {
-            traversalEngine = new TraverseLoci();
+            traversalEngine = USE_NANOSCHEDULER_FOR_EVERYTHING || threadAllocation.getNumCPUThreadsPerDataThread() > 1
+                    ? new TraverseLociNano(threadAllocation.getNumCPUThreadsPerDataThread())
+                    : new TraverseLociLinear();
         } else if (walker instanceof DuplicateWalker) {
             traversalEngine = new TraverseDuplicates();
         } else if (walker instanceof ReadPairWalker) {
@@ -148,6 +186,24 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         catch (JMException ex) {
             throw new ReviewedStingException("Unable to register microscheduler with JMX", ex);
         }
+    }
+
+    /**
+     * Return the ThreadEfficiencyMonitor we are using to track our resource utilization, if there is one
+     *
+     * @return the monitor, or null if none is active
+     */
+    public ThreadEfficiencyMonitor getThreadEfficiencyMonitor() {
+        return threadEfficiencyMonitor;
+    }
+
+    /**
+     * Inform this Microscheduler to use the efficiency monitor used to create threads in subclasses
+     *
+     * @param threadEfficiencyMonitor
+     */
+    public void setThreadEfficiencyMonitor(final ThreadEfficiencyMonitor threadEfficiencyMonitor) {
+        this.threadEfficiencyMonitor = threadEfficiencyMonitor;
     }
 
     /**
@@ -181,6 +237,18 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      */
     protected void printOnTraversalDone(Object sum) {
         traversalEngine.printOnTraversalDone();
+    }
+
+    /**
+     * Must be called by subclasses when execute is done
+     */
+    protected void executionIsDone() {
+        // Print out the threading efficiency of this HMS, if state monitoring is enabled
+        if ( threadEfficiencyMonitor != null ) {
+            // include the master thread information
+            threadEfficiencyMonitor.threadIsDone(Thread.currentThread());
+            threadEfficiencyMonitor.printUsageInformation(logger);
+        }
     }
 
     /**

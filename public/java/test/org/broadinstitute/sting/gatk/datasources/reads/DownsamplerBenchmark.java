@@ -29,15 +29,16 @@ import net.sf.picard.filter.FilteringIterator;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Tags;
-import org.broadinstitute.sting.gatk.DownsamplingMethod;
+import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
+import org.broadinstitute.sting.gatk.walkers.qc.CountLoci;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.baq.BAQ;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -69,18 +70,15 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
         for(int i = 0; i < reps; i++) {
             SAMFileReader reader = new SAMFileReader(inputFile);
             ReadProperties readProperties = new ReadProperties(Collections.<SAMReaderID>singletonList(new SAMReaderID(inputFile,new Tags())),
-                                                               reader.getFileHeader(),
-                                                               false,
-                                                               SAMFileReader.ValidationStringency.SILENT,
-                                                               downsampling.create(),
-                                                               new ValidationExclusion(Collections.singletonList(ValidationExclusion.TYPE.ALL)),
-                                                               Collections.<ReadFilter>emptyList(),
-                                                               false,
-                                                               BAQ.CalculationMode.OFF,
-                                                               BAQ.QualityMode.DONT_MODIFY,
-                                                               null, // no BAQ
-                                                               null, // no BQSR
-                                                               (byte)0);
+                    reader.getFileHeader(),
+                    false,
+                    SAMFileReader.ValidationStringency.SILENT,
+                    downsampling.create(),
+                    new ValidationExclusion(Collections.singletonList(ValidationExclusion.TYPE.ALL)),
+                    Collections.<ReadFilter>emptyList(),
+                    Collections.<ReadTransformer>emptyList(),
+                    false,
+                    (byte)0);
 
             GenomeLocParser genomeLocParser = new GenomeLocParser(reader.getFileHeader().getSequenceDictionary());
             // Filter unmapped reads.  TODO: is this always strictly necessary?  Who in the GATK normally filters these out?
@@ -100,7 +98,7 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
         },
         PER_SAMPLE {
             @Override
-            DownsamplingMethod create() { return GATKArgumentCollection.getDefaultDownsamplingMethod(); }
+            DownsamplingMethod create() { return DownsamplingMethod.getDefaultDownsamplingMethod(new CountLoci(), false); }
         };
         abstract DownsamplingMethod create();
     }

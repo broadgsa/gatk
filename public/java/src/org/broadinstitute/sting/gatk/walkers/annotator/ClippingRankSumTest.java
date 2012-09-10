@@ -16,6 +16,10 @@ import java.util.*;
  * Date: 6/28/12
  */
 
+/**
+ * The u-based z-approximation from the Mann-Whitney Rank Sum Test for reads with clipped bases (reads with ref bases vs. those with the alternate allele)
+ * Note that the clipping rank sum test can not be calculated for sites without a mixture of reads showing both the reference and alternate alleles.
+ */
 public class ClippingRankSumTest extends RankSumTest {
 
     public List<String> getKeyNames() { return Arrays.asList("ClippingRankSum"); }

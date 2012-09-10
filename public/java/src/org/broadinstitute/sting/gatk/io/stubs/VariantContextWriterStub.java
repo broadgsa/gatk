@@ -32,9 +32,9 @@ import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.writer.Options;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
@@ -269,7 +269,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
      * @return
      */
     public boolean alsoWriteBCFForTest() {
-        return engine.getArguments().numberOfThreads == 1 && // only works single threaded
+        return engine.getArguments().numberOfDataThreads == 1 && // only works single threaded
                 ! isCompressed() && // for non-compressed outputs
                 getFile() != null && // that are going to disk
                 engine.getArguments().generateShadowBCF; // and we actually want to do it

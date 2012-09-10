@@ -27,6 +27,8 @@ package org.broadinstitute.sting.utils.classloader;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
+import org.broadinstitute.sting.gatk.WalkerManager;
+import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -276,8 +278,16 @@ public class PluginManager<PluginType> {
      */
     public PluginType createByName(String pluginName) {
         Class<? extends PluginType> plugin = pluginsByName.get(pluginName);
-        if( plugin == null )
-            throw new UserException(String.format("Could not find %s with name: %s", pluginCategory,pluginName));
+        if( plugin == null ) {
+            String errorMessage = formatErrorMessage(pluginCategory,pluginName);
+            if ( this.getClass().isAssignableFrom(FilterManager.class) ) {
+                throw new UserException.MalformedReadFilterException(errorMessage);
+            } else if ( this.getClass().isAssignableFrom(WalkerManager.class) ) {
+                throw new UserException.MalformedWalkerArgumentsException(errorMessage);
+            } else {
+                throw new UserException.CommandLineException(errorMessage);
+            }
+        }
         try {
             return plugin.newInstance();
         } catch (Exception e) {
@@ -329,5 +339,15 @@ public class PluginManager<PluginType> {
         }
 
         return pluginName;
+    }
+
+    /**
+     * Generate the error message for the plugin manager. The message is allowed to depend on the class.
+     * @param pluginCategory - string, the category of the plugin (e.g. read filter)
+     * @param pluginName - string, what we were trying to match (but failed to)
+     * @return error message text describing the error
+     */
+    protected String formatErrorMessage(String pluginCategory, String pluginName ) {
+        return String.format("Could not find %s with name: %s", pluginCategory,pluginName);
     }
 }

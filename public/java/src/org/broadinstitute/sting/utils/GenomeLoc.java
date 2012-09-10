@@ -126,6 +126,15 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     }
 
     /**
+     * Return true if this GenomeLoc represents the UNMAPPED location
+     * @return
+     */
+    public final boolean isUnmapped() {
+        return isUnmapped(this);
+    }
+
+
+    /**
      * Returns a new GenomeLoc that represents the entire span of this and that.  Requires that
      * this and that GenomeLoc are contiguous and both mapped
      */
@@ -141,7 +150,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
         }
 
         if (!(this.contiguousP(that))) {
-            throw new ReviewedStingException("The two genome loc's need to be contigous");
+            throw new ReviewedStingException("The two genome loc's need to be contiguous");
         }
 
         return new GenomeLoc(getContig(), this.contigIndex,
@@ -418,7 +427,10 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
                 result = cmpContig;
             } else {
                 if ( this.getStart() < that.getStart() ) result = -1;
-                if ( this.getStart() > that.getStart() ) result = 1;
+                else if ( this.getStart() > that.getStart() ) result = 1;
+                // these have the same start, so check the ends
+                else if ( this.getStop() < that.getStop() ) result = -1;
+                else if ( this.getStop() > that.getStop() ) result = 1;
             }
         }
 

@@ -810,4 +810,25 @@ public class Utils {
         return Collections.unmodifiableMap(map);
     }
 
+    /**
+     * Divides the input list into a list of sublists, which contains group size elements (except potentially the last one)
+     *
+     * list = [A, B, C, D, E]
+     * groupSize = 2
+     * result = [[A, B], [C, D], [E]]
+     *
+     * @param list
+     * @param groupSize
+     * @return
+     */
+    public static <T> List<List<T>> groupList(final List<T> list, final int groupSize) {
+        if ( groupSize < 1 ) throw new IllegalArgumentException("groupSize >= 1");
+
+        final List<List<T>> subLists = new LinkedList<List<T>>();
+        int n = list.size();
+        for ( int i = 0; i < n; i += groupSize ) {
+            subLists.add(list.subList(i, Math.min(i + groupSize, n)));
+        }
+        return subLists;
+    }
 }

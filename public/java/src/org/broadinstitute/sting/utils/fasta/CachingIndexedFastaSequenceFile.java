@@ -29,6 +29,7 @@ import net.sf.picard.reference.FastaSequenceIndex;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.SAMSequenceRecord;
+import org.apache.log4j.Priority;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
@@ -38,13 +39,10 @@ import java.util.Arrays;
 /**
  * A caching version of the IndexedFastaSequenceFile that avoids going to disk as often as the raw indexer.
  *
- * Thread-safe!  Uses a lock object to protect write and access to the cache.
+ * Thread-safe!  Uses a thread-local cache
  */
 public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
     protected static final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(CachingIndexedFastaSequenceFile.class);
-
-    /** global enable flag */
-    private static final boolean USE_CACHE = true;
 
     /** do we want to print debugging information about cache efficiency? */
     private static final boolean PRINT_EFFICIENCY = false;
@@ -53,17 +51,17 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
     private static final int PRINT_FREQUENCY = 10000;
 
     /** The default cache size in bp */
-    private static final long DEFAULT_CACHE_SIZE = 1000000;
+    public static final long DEFAULT_CACHE_SIZE = 1000000;
+
+    /** The cache size of this CachingIndexedFastaSequenceFile */
+    final long cacheSize;
+
+    /** When we have a cache miss at position X, we load sequence from X - cacheMissBackup */
+    final long cacheMissBackup;
 
     // information about checking efficiency
     long cacheHits = 0;
     long cacheMisses = 0;
-
-    /** The cache size of this CachingIndexedFastaSequenceFile */
-    long cacheSize = DEFAULT_CACHE_SIZE;
-
-    /** When we have a cache miss at position X, we load sequence from X - cacheMissBackup */
-    long cacheMissBackup = 100;
 
     /** Represents a specific cached sequence, with a specific start and stop, as well as the bases */
     private static class Cache {
@@ -71,13 +69,11 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
         ReferenceSequence seq = null;
     }
 
+    /**
+     * Thread local cache to allow multi-threaded use of this class
+     */
     private ThreadLocal<Cache> cache;
-
     {
-        resetThreadLocalCache();
-    }
-
-    protected void resetThreadLocalCache() {
         cache = new ThreadLocal<Cache> () {
             @Override protected Cache initialValue() {
                 return new Cache();
@@ -87,76 +83,107 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
 
     /**
      * Same as general constructor but allows one to override the default cacheSize
-     * @param file
+     *
+     * @param fasta
      * @param index
      * @param cacheSize
      */
-    public CachingIndexedFastaSequenceFile(final File file, final FastaSequenceIndex index, long cacheSize) {
-        super(file, index);
-        setCacheSize(cacheSize);
-    }
-
-    private void setCacheSize(long cacheSize) {
+    public CachingIndexedFastaSequenceFile(final File fasta, final FastaSequenceIndex index, final long cacheSize) {
+        super(fasta, index);
+        if ( cacheSize < 0 ) throw new IllegalArgumentException("cacheSize must be > 0");
         this.cacheSize = cacheSize;
         this.cacheMissBackup = Math.max(cacheSize / 1000, 1);
     }
 
     /**
      * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
-     * @param file The file to open.
+     *
+     * @param fasta The file to open.
      * @param index Pre-built FastaSequenceIndex, for the case in which one does not exist on disk.
      * @throws java.io.FileNotFoundException If the fasta or any of its supporting files cannot be found.
      */
-    public CachingIndexedFastaSequenceFile(final File file, final FastaSequenceIndex index) {
-        this(file, index, DEFAULT_CACHE_SIZE);
+    public CachingIndexedFastaSequenceFile(final File fasta, final FastaSequenceIndex index) {
+        this(fasta, index, DEFAULT_CACHE_SIZE);
     }
 
     /**
      * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
-     * @param file The file to open.
+     *
+     * Looks for a index file for fasta on disk
+     *
+     * @param fasta The file to open.
      */
-    public CachingIndexedFastaSequenceFile(final File file) throws FileNotFoundException {
-        this(file, DEFAULT_CACHE_SIZE);
+    public CachingIndexedFastaSequenceFile(final File fasta) throws FileNotFoundException {
+        this(fasta, DEFAULT_CACHE_SIZE);
     }
 
-    public CachingIndexedFastaSequenceFile(final File file, long cacheSize ) throws FileNotFoundException {
-        super(file);
-        setCacheSize(cacheSize);
+    /**
+     * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
+     *
+     * Looks for a index file for fasta on disk
+     * Uses provided cacheSize instead of the default
+     *
+     * @param fasta The file to open.
+     */
+    public CachingIndexedFastaSequenceFile(final File fasta, final long cacheSize ) throws FileNotFoundException {
+        super(fasta);
+        if ( cacheSize < 0 ) throw new IllegalArgumentException("cacheSize must be > 0");
+        this.cacheSize = cacheSize;
+        this.cacheMissBackup = Math.max(cacheSize / 1000, 1);
     }
 
-    public void printEfficiency() {
-        // comment out to disable tracking
-        if ( (cacheHits + cacheMisses) % PRINT_FREQUENCY == 0 ) {
-            logger.info(String.format("### CachingIndexedFastaReader: hits=%d misses=%d efficiency %.6f%%%n", cacheHits, cacheMisses, calcEfficiency()));
-        }
+    /**
+     * Print the efficiency (hits / queries) to logger with priority
+     */
+    public void printEfficiency(final Priority priority) {
+        logger.log(priority, String.format("### CachingIndexedFastaReader: hits=%d misses=%d efficiency %.6f%%", cacheHits, cacheMisses, calcEfficiency()));
     }
 
+    /**
+     * Returns the efficiency (% of hits of all queries) of this object
+     * @return
+     */
     public double calcEfficiency() {
         return 100.0 * cacheHits / (cacheMisses + cacheHits * 1.0);
     }
 
+    /**
+     * @return the number of cache hits that have occurred
+     */
     public long getCacheHits() {
         return cacheHits;
     }
 
+    /**
+     * @return the number of cache misses that have occurred
+     */
     public long getCacheMisses() {
         return cacheMisses;
     }
 
+    /**
+     * @return the size of the cache we are using
+     */
+    public long getCacheSize() {
+        return cacheSize;
+    }
 
     /**
      * Gets the subsequence of the contig in the range [start,stop]
+     *
+     * Uses the sequence cache if possible, or updates the cache to handle the request.  If the range
+     * is larger than the cache itself, just loads the sequence directly, not changing the cache at all
+     *
      * @param contig Contig whose subsequence to retrieve.
      * @param start inclusive, 1-based start of region.
      * @param stop inclusive, 1-based stop of region.
      * @return The partial reference sequence associated with this range.
      */
-    public ReferenceSequence getSubsequenceAt( String contig, long start, long stop ) {
-        ReferenceSequence result;
-        Cache myCache = cache.get();
-        //System.out.printf("getSubsequentAt cache=%s%n", myCache);
+    public ReferenceSequence getSubsequenceAt( final String contig, final long start, final long stop ) {
+        final ReferenceSequence result;
+        final Cache myCache = cache.get();
 
-        if ( ! USE_CACHE || (stop - start) >= cacheSize ) {
+        if ( (stop - start) >= cacheSize ) {
             cacheMisses++;
             result = super.getSubsequenceAt(contig, start, stop);
         } else {
@@ -177,8 +204,8 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
             }
 
             // at this point we determine where in the cache we want to extract the requested subsequence
-            int cacheOffsetStart = (int)(start - myCache.start);
-            int cacheOffsetStop = (int)(stop - start + cacheOffsetStart + 1);
+            final int cacheOffsetStart = (int)(start - myCache.start);
+            final int cacheOffsetStop = (int)(stop - start + cacheOffsetStart + 1);
 
             try {
                 result = new ReferenceSequence(myCache.seq.getName(), myCache.seq.getContigIndex(), Arrays.copyOfRange(myCache.seq.getBases(), cacheOffsetStart, cacheOffsetStop));
@@ -188,12 +215,8 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
             }
         }
 
-//        // comment out to disable testing
-//        ReferenceSequence verify = super.getSubsequenceAt(contig, start, stop);
-//        if ( ! Arrays.equals(verify.getBases(), result.getBases()) )
-//            throw new ReviewedStingException(String.format("BUG: cached reference sequence not the same as clean fetched version at %s %d %d", contig, start, stop));
-
-        if ( PRINT_EFFICIENCY ) printEfficiency();
+        if ( PRINT_EFFICIENCY && (getCacheHits() + getCacheMisses()) % PRINT_FREQUENCY == 0 )
+            printEfficiency(Priority.INFO);
         return result;
     }
 }

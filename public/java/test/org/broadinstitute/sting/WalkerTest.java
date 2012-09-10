@@ -40,13 +40,13 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextTestProvider;
-
-import java.io.*;
-
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeMethod;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -251,18 +251,41 @@ public class WalkerTest extends BaseTest {
         return false;
     }
 
-    protected Pair<List<File>, List<String>> executeTestParallel(final String name, WalkerTestSpec spec) {
-        return executeTest(name, spec, Arrays.asList(1, 4));
+    public enum ParallelTestType {
+        TREE_REDUCIBLE,
+        NANO_SCHEDULED,
+        BOTH
     }
 
-    protected Pair<List<File>, List<String>> executeTest(final String name, WalkerTestSpec spec, List<Integer> parallelThreads) {
+    protected Pair<List<File>, List<String>> executeTestParallel(final String name, WalkerTestSpec spec, ParallelTestType testType) {
+        final List<Integer> ntThreads  = testType == ParallelTestType.TREE_REDUCIBLE || testType == ParallelTestType.BOTH ? Arrays.asList(1, 4) : Collections.<Integer>emptyList();
+        final List<Integer> cntThreads = testType == ParallelTestType.NANO_SCHEDULED || testType == ParallelTestType.BOTH ? Arrays.asList(1, 4) : Collections.<Integer>emptyList();
+
+        return executeTest(name, spec, ntThreads, cntThreads);
+    }
+
+    protected Pair<List<File>, List<String>> executeTestParallel(final String name, WalkerTestSpec spec) {
+        return executeTestParallel(name, spec, ParallelTestType.TREE_REDUCIBLE);
+    }
+
+    protected Pair<List<File>, List<String>> executeTest(final String name, WalkerTestSpec spec, List<Integer> ntThreads, List<Integer> cpuThreads) {
         String originalArgs = spec.args;
         Pair<List<File>, List<String>> results = null;
 
-        for ( int nt : parallelThreads ) {
+        boolean ran1 = false;
+        for ( int nt : ntThreads ) {
             String extra = nt == 1 ? "" : (" -nt " + nt);
+            ran1 = ran1 || nt == 1;
             spec.args = originalArgs + extra;
             results = executeTest(name + "-nt-" + nt, spec);
+        }
+
+        for ( int nct : cpuThreads ) {
+            if ( nct != 1 ) {
+                String extra = " -nct " + nct;
+                spec.args = originalArgs + extra;
+                results = executeTest(name + "-cnt-" + nct, spec);
+            }
         }
 
         return results;

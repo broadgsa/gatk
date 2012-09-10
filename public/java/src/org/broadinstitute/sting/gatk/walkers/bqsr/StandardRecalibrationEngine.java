@@ -54,6 +54,7 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
      * @param pileupElement The pileup element to update
      * @param refBase       The reference base at this locus
      */
+    @Override
     public synchronized void updateDataForPileupElement(final PileupElement pileupElement, final byte refBase) {
         final int offset = pileupElement.getOffset();
         final ReadCovariates readCovariates = covariateKeySetFrom(pileupElement.getRead());
@@ -67,7 +68,7 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
         final NestedIntegerArray<RecalDatum> rgRecalTable = recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE);
         final RecalDatum rgPreviousDatum = rgRecalTable.get(keys[0], eventIndex);
         final RecalDatum rgThisDatum = createDatumObject(qual, isError);
-        if (rgPreviousDatum == null)                                                                                // key doesn't exist yet in the map so make a new bucket and add it
+        if (rgPreviousDatum == null) // key doesn't exist yet in the map so make a new bucket and add it
             rgRecalTable.put(rgThisDatum, keys[0], eventIndex);
         else
             rgPreviousDatum.combine(rgThisDatum);
@@ -91,6 +92,11 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
         }
     }
 
+    @Override
+    public synchronized void updateDataForRead( final GATKSAMRecord read, final boolean[] skip, final double[] snpErrors, final double[] insertionErrors, final double[] deletionErrors ) {
+        throw new UnsupportedOperationException("Delocalized BQSR is not available in the GATK-lite version");
+    }
+
     /**
      * creates a datum object with one observation and one or zero error
      *
@@ -100,6 +106,10 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
      */
     protected RecalDatum createDatumObject(final byte reportedQual, final boolean isError) {
         return new RecalDatum(1, isError ? 1:0, reportedQual);
+    }
+
+    protected RecalDatum createDatumObject(final byte reportedQual, final double isError) {
+        return new RecalDatum(1, isError, reportedQual);
     }
 
     /**
