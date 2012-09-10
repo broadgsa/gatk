@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvide
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
+import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -50,6 +51,7 @@ public class ShardTraverser implements Callable {
     }
 
     public Object call() {
+        final TraversalEngine traversalEngine = microScheduler.borrowTraversalEngine();
         try {
             final long startTime = System.currentTimeMillis();
 
@@ -61,7 +63,7 @@ public class ShardTraverser implements Callable {
 
             for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
                 final ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),microScheduler.getEngine().getGenomeLocParser(),iterator.getLocus(),iterator,microScheduler.reference,microScheduler.rods);
-                accumulator = microScheduler.getTraversalEngine().traverse(walker, dataProvider, accumulator);
+                accumulator = traversalEngine.traverse(walker, dataProvider, accumulator);
                 dataProvider.close();
             }
 
@@ -79,6 +81,7 @@ public class ShardTraverser implements Callable {
         } finally {
             synchronized(this) {
                 complete = true;
+                microScheduler.returnTraversalEngine(traversalEngine);
                 notifyAll();
             }
         }

@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.traversals.TraverseActiveRegions;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -60,6 +61,7 @@ public class LinearMicroScheduler extends MicroScheduler {
         boolean done = walker.isDone();
         int counter = 0;
 
+        final TraversalEngine traversalEngine = borrowTraversalEngine();
         for (Shard shard : shardStrategy ) {
             if ( done || shard == null ) // we ran out of shards that aren't owned
                 break;
@@ -69,7 +71,7 @@ public class LinearMicroScheduler extends MicroScheduler {
                         getReadIterator(shard), shard.getGenomeLocs(), SampleUtils.getSAMFileSamples(engine));
                 for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
                     ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),engine.getGenomeLocParser(),iterator.getLocus(),iterator,reference,rods);
-                    Object result = getTraversalEngine().traverse(walker, dataProvider, accumulator.getReduceInit());
+                    Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
                     accumulator.accumulate(dataProvider,result);
                     dataProvider.close();
                     if ( walker.isDone() ) break;
@@ -78,7 +80,7 @@ public class LinearMicroScheduler extends MicroScheduler {
             }
             else {
                 ShardDataProvider dataProvider = new ReadShardDataProvider(shard,engine.getGenomeLocParser(),getReadIterator(shard),reference,rods);
-                Object result = getTraversalEngine().traverse(walker, dataProvider, accumulator.getReduceInit());
+                Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
                 accumulator.accumulate(dataProvider,result);
                 dataProvider.close();
             }
@@ -87,14 +89,15 @@ public class LinearMicroScheduler extends MicroScheduler {
         }
 
         // Special function call to empty out the work queue. Ugly for now but will be cleaned up when we eventually push this functionality more into the engine
-        if( getTraversalEngine() instanceof TraverseActiveRegions ) {
-            final Object result = ((TraverseActiveRegions) getTraversalEngine()).endTraversal(walker, accumulator.getReduceInit());
+        if( traversalEngine instanceof TraverseActiveRegions ) {
+            final Object result = ((TraverseActiveRegions) traversalEngine).endTraversal(walker, accumulator.getReduceInit());
             accumulator.accumulate(null, result); // Assumes only used with StandardAccumulator
         }
                 
         Object result = accumulator.finishTraversal();
 
         outputTracker.close();
+        returnTraversalEngine(traversalEngine);
         cleanup();
         executionIsDone();
 
