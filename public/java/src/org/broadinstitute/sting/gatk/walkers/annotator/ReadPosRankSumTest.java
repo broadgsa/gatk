@@ -20,7 +20,7 @@ import java.util.*;
 
 /**
  * The u-based z-approximation from the Mann-Whitney Rank Sum Test for the distance from the end of the read for reads with the alternate allele; if the alternate allele is only seen near the ends of reads this is indicative of error).
- * Note that the read position rank sum test can not be calculated for homozygous sites.
+ * Note that the read position rank sum test can not be calculated for sites without a mixture of reads showing both the reference and alternate alleles.
  */
 public class ReadPosRankSumTest extends RankSumTest implements StandardAnnotation {
 

@@ -16,7 +16,7 @@ import java.util.*;
 
 /**
  * The u-based z-approximation from the Mann-Whitney Rank Sum Test for base qualities (ref bases vs. bases of the alternate allele).
- * Note that the base quality rank sum test can not be calculated for homozygous sites.
+ * Note that the base quality rank sum test can not be calculated for sites without a mixture of reads showing both the reference and alternate alleles.
  */
 public class BaseQualityRankSumTest extends RankSumTest implements StandardAnnotation {
     public List<String> getKeyNames() { return Arrays.asList("BaseQRankSum"); }
