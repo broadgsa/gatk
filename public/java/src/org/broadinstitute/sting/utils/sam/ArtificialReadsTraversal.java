@@ -69,7 +69,7 @@ public class ArtificialReadsTraversal<M,T> extends TraversalEngine<M,T,Walker<M,
     }
 
     @Override
-    protected String getTraversalType() {
+    public String getTraversalUnits() {
         return "reads";
     }
 

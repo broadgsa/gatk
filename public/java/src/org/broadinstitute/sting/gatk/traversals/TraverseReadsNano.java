@@ -65,7 +65,7 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
     }
 
     @Override
-    protected String getTraversalType() {
+    public String getTraversalUnits() {
         return "reads";
     }
 
@@ -135,9 +135,8 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
     }
 
     @Override
-    public void printOnTraversalDone() {
+    public void shutdown() {
         nanoScheduler.shutdown();
-        super.printOnTraversalDone();
     }
 
     /**

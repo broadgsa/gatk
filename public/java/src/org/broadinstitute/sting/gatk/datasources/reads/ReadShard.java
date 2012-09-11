@@ -8,7 +8,10 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -149,7 +152,12 @@ public class ReadShard extends Shard {
                 if ( read.getAlignmentEnd() > stop ) stop = read.getAlignmentEnd();
             }
 
-            return parser.createGenomeLoc(contig, start, stop);
+            assert contig != null;
+
+            if ( contig.equals("*") ) // all reads are unmapped
+                return GenomeLoc.UNMAPPED;
+            else
+                return parser.createGenomeLoc(contig, start, stop);
         }
     }
 }

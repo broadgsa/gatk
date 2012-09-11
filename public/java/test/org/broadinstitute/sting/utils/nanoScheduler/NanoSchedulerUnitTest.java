@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils.nanoScheduler;
 
 import org.apache.log4j.BasicConfigurator;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.SimpleTimer;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -86,7 +87,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
     static NanoSchedulerBasicTest exampleTest = null;
     @DataProvider(name = "NanoSchedulerBasicTest")
     public Object[][] createNanoSchedulerBasicTest() {
-        for ( final int bufferSize : Arrays.asList(1, 10, 1000, 1000000) ) {
+        for ( final int bufferSize : Arrays.asList(1, 10, 1000, 1000000, 10000000) ) {
             for ( final int nt : Arrays.asList(1, 2, 4) ) {
                 for ( final int start : Arrays.asList(0) ) {
                     for ( final int end : Arrays.asList(0, 1, 2, 11, 10000, 100000) ) {
@@ -114,6 +115,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
     }
 
     private void testNanoScheduler(final NanoSchedulerBasicTest test) throws InterruptedException {
+        final SimpleTimer timer = new SimpleTimer().start();
         final NanoScheduler<Integer, Integer, Integer> nanoScheduler =
                 new NanoScheduler<Integer, Integer, Integer>(test.bufferSize, test.nThreads);
 
@@ -129,6 +131,17 @@ public class NanoSchedulerUnitTest extends BaseTest {
 
         Assert.assertTrue(callback.callBacks >= test.nExpectedCallbacks(), "Not enough callbacks detected.  Expected at least " + test.nExpectedCallbacks() + " but saw only " + callback.callBacks);
         nanoScheduler.shutdown();
+
+        // TODO -- need to enable only in the case where there's serious time spend in
+        // TODO -- read /map / reduce, otherwise the "outside" timer doesn't add up
+        final double myTimeEstimate = timer.getElapsedTime();
+        final double tolerance = 0.1;
+        if ( false && myTimeEstimate > 0.1 ) {
+            Assert.assertTrue(nanoScheduler.getTotalRuntime() > myTimeEstimate * tolerance,
+                    "NanoScheduler said that the total runtime was " + nanoScheduler.getTotalRuntime()
+                            + " but the overall test time was " + myTimeEstimate + ", beyond our tolerance factor of "
+                            + tolerance);
+        }
     }
 
     @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest", dependsOnMethods = "testMultiThreadedNanoScheduler", timeOut = NANO_SCHEDULE_MAX_RUNTIME)

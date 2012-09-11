@@ -92,9 +92,8 @@ public class TraverseLociNano<M,T> extends TraverseLociBase<M,T> {
     }
 
     @Override
-    public void printOnTraversalDone() {
+    public void shutdown() {
         nanoScheduler.shutdown();
-        super.printOnTraversalDone();
     }
 
     /**

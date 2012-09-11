@@ -50,7 +50,7 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
     protected static final Logger logger = Logger.getLogger(TraverseReads.class);
 
     @Override
-    protected String getTraversalType() {
+    public String getTraversalUnits() {
         return "reads";
     }
 

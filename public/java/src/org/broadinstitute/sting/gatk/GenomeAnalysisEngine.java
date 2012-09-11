@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk;
 
+import com.google.java.contract.Ensures;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.SAMFileHeader;
@@ -682,14 +683,14 @@ public class GenomeAnalysisEngine {
 
         // if include argument isn't given, create new set of all possible intervals
 
-        Pair<GenomeLocSortedSet, GenomeLocSortedSet> includeExcludePair = IntervalUtils.parseIntervalBindingsPair(
+        final Pair<GenomeLocSortedSet, GenomeLocSortedSet> includeExcludePair = IntervalUtils.parseIntervalBindingsPair(
                 this.referenceDataSource,
                 argCollection.intervals,
                 argCollection.intervalSetRule, argCollection.intervalMerging, argCollection.intervalPadding,
                 argCollection.excludeIntervals);
 
-        GenomeLocSortedSet includeSortedSet = includeExcludePair.getFirst();
-        GenomeLocSortedSet excludeSortedSet = includeExcludePair.getSecond();
+        final GenomeLocSortedSet includeSortedSet = includeExcludePair.getFirst();
+        final GenomeLocSortedSet excludeSortedSet = includeExcludePair.getSecond();
 
         // if no exclude arguments, can return parseIntervalArguments directly
         if ( excludeSortedSet == null )
@@ -700,13 +701,15 @@ public class GenomeAnalysisEngine {
             intervals = includeSortedSet.subtractRegions(excludeSortedSet);
 
             // logging messages only printed when exclude (-XL) arguments are given
-            long toPruneSize = includeSortedSet.coveredSize();
-            long toExcludeSize = excludeSortedSet.coveredSize();
-            long intervalSize = intervals.coveredSize();
+            final long toPruneSize = includeSortedSet.coveredSize();
+            final long toExcludeSize = excludeSortedSet.coveredSize();
+            final long intervalSize = intervals.coveredSize();
             logger.info(String.format("Initial include intervals span %d loci; exclude intervals span %d loci", toPruneSize, toExcludeSize));
             logger.info(String.format("Excluding %d loci from original intervals (%.2f%% reduction)",
                     toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
         }
+
+        logger.info(String.format("Processing %d bp from intervals", intervals.coveredSize()));
     }
 
     /**
@@ -979,6 +982,22 @@ public class GenomeAnalysisEngine {
      */
     public GenomeLocSortedSet getIntervals() {
         return this.intervals;
+    }
+
+    /**
+     * Get the list of regions of the genome being processed.  If the user
+     * requested specific intervals, return those, otherwise return regions
+     * corresponding to the entire genome.  Never returns null.
+     *
+     * @return a non-null set of intervals being processed
+     */
+    @Ensures("result != null")
+    public GenomeLocSortedSet getRegionsOfGenomeBeingProcessed() {
+        if ( getIntervals() == null )
+            // if we don't have any intervals defined, create intervals from the reference itself
+            return GenomeLocSortedSet.createSetFromSequenceDictionary(getReferenceDataSource().getReference().getSequenceDictionary());
+        else
+            return getIntervals();
     }
 
     /**
