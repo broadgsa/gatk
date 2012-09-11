@@ -29,6 +29,7 @@ class ReducerThread<MapType, ReduceType> implements Callable<ReduceType> {
                          final ReduceType sum,
                          final BlockingQueue<Future<MapResult<MapType>>> mapResultQueue) {
         if ( reduce == null ) throw new IllegalArgumentException("Reduce function cannot be null");
+        if ( reduceTimer == null ) throw new IllegalArgumentException("reduceTimer cannot be null");
         if ( mapResultQueue == null ) throw new IllegalArgumentException("mapResultQueue cannot be null");
 
         this.reduce = reduce;
@@ -51,9 +52,9 @@ class ReducerThread<MapType, ReduceType> implements Callable<ReduceType> {
                 } else {
                     lastJobID = result.getJobID();
                     // apply reduce, keeping track of sum
-                    if ( reduceTimer != null ) reduceTimer.restart();
+                    reduceTimer.restart();
                     sum = reduce.apply(result.getValue(), sum);
-                    if ( reduceTimer != null ) reduceTimer.stop();
+                    reduceTimer.stop();
                 }
             }
         } catch (ExecutionException ex) {

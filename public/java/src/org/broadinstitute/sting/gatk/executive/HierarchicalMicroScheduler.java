@@ -107,7 +107,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
         this.traversalTasks = shardStrategy.iterator();
 
-        ReduceTree reduceTree = new ReduceTree(this);
+        final ReduceTree reduceTree = new ReduceTree(this);
         initializeWalker(walker);
 
         while (isShardTraversePending() || isTreeReducePending()) {
@@ -186,7 +186,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         outputTracker.bypassThreadLocalStorage(true);
         try {
             walker.onTraversalDone(result);
-            printOnTraversalDone(result);
         }
         finally {
             outputTracker.bypassThreadLocalStorage(false);
@@ -302,17 +301,13 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         if (!traversalTasks.hasNext())
             throw new IllegalStateException("Cannot traverse; no pending traversals exist.");
 
-        Shard shard = traversalTasks.next();
+        final Shard shard = traversalTasks.next();
 
         // todo -- add ownership claim here
 
-        ShardTraverser traverser = new ShardTraverser(this,
-                traversalEngine,
-                walker,
-                shard,
-                outputTracker);
+        final ShardTraverser traverser = new ShardTraverser(this, walker, shard, outputTracker);
 
-        Future traverseResult = threadPool.submit(traverser);
+        final Future traverseResult = threadPool.submit(traverser);
 
         // Add this traverse result to the reduce tree.  The reduce tree will call a callback to throw its entries on the queue.
         reduceTree.addEntry(traverseResult);
@@ -327,7 +322,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     protected void queueNextTreeReduce( Walker walker ) {
         if (reduceTasks.size() == 0)
             throw new IllegalStateException("Cannot reduce; no pending reduces exist.");
-        TreeReduceTask reducer = reduceTasks.remove();
+        final TreeReduceTask reducer = reduceTasks.remove();
         reducer.setWalker((TreeReducible) walker);
 
         threadPool.submit(reducer);
@@ -335,7 +330,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
     /** Blocks until a free slot appears in the thread queue. */
     protected void waitForFreeQueueSlot() {
-        ThreadPoolMonitor monitor = new ThreadPoolMonitor();
+        final ThreadPoolMonitor monitor = new ThreadPoolMonitor();
         synchronized (monitor) {
             threadPool.submit(monitor);
             monitor.watch();
@@ -347,8 +342,8 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
      *
      * @return A new, composite future of the result of this reduce.
      */
-    public Future notifyReduce( Future lhs, Future rhs ) {
-        TreeReduceTask reducer = new TreeReduceTask(new TreeReducer(this, lhs, rhs));
+    public Future notifyReduce( final Future lhs, final Future rhs ) {
+        final TreeReduceTask reducer = new TreeReduceTask(new TreeReducer(this, lhs, rhs));
         reduceTasks.add(reducer);
         return reducer;
     }
@@ -376,7 +371,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         return this.error;
     }
 
-    private final RuntimeException toRuntimeException(final Throwable error) {
+    private RuntimeException toRuntimeException(final Throwable error) {
         // If the error is already a Runtime, pass it along as is.  Otherwise, wrap it.
         if (error instanceof RuntimeException)
             return (RuntimeException)error;
@@ -387,7 +382,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
     /** A small wrapper class that provides the TreeReducer interface along with the FutureTask semantics. */
     private class TreeReduceTask extends FutureTask {
-        private TreeReducer treeReducer = null;
+        final private TreeReducer treeReducer;
 
         public TreeReduceTask( TreeReducer treeReducer ) {
             super(treeReducer);

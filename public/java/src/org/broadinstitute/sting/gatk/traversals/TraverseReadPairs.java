@@ -27,7 +27,7 @@ public class TraverseReadPairs<M,T> extends TraversalEngine<M,T, ReadPairWalker<
     protected static final Logger logger = Logger.getLogger(TraverseReadPairs.class);
 
     @Override
-    protected String getTraversalType() {
+    public String getTraversalUnits() {
         return "read pairs";
     }
 

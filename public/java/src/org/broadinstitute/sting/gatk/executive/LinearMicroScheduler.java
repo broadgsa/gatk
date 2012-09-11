@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.traversals.TraverseActiveRegions;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -60,7 +61,7 @@ public class LinearMicroScheduler extends MicroScheduler {
         boolean done = walker.isDone();
         int counter = 0;
 
-        traversalEngine.startTimersIfNecessary();
+        final TraversalEngine traversalEngine = borrowTraversalEngine();
         for (Shard shard : shardStrategy ) {
             if ( done || shard == null ) // we ran out of shards that aren't owned
                 break;
@@ -95,9 +96,8 @@ public class LinearMicroScheduler extends MicroScheduler {
                 
         Object result = accumulator.finishTraversal();
 
-        printOnTraversalDone(result);
-
         outputTracker.close();
+        returnTraversalEngine(traversalEngine);
         cleanup();
         executionIsDone();
 

@@ -29,6 +29,7 @@ class InputProducer<InputType> implements Runnable {
                          final SimpleTimer inputTimer,
                          final BlockingQueue<InputValue> outputQueue) {
         if ( inputReader == null ) throw new IllegalArgumentException("inputReader cannot be null");
+        if ( inputTimer == null ) throw new IllegalArgumentException("inputTimer cannot be null");
         if ( outputQueue == null ) throw new IllegalArgumentException("OutputQueue cannot be null");
 
         this.inputReader = inputReader;
@@ -38,11 +39,16 @@ class InputProducer<InputType> implements Runnable {
 
     public void run() {
         try {
-            while ( inputReader.hasNext() ) {
-                if ( inputTimer != null ) inputTimer.restart();
-                final InputType input = inputReader.next();
-                if ( inputTimer != null ) inputTimer.stop();
-                outputQueue.put(new InputValue(input));
+            while ( true ) {
+                inputTimer.restart();
+                if ( ! inputReader.hasNext() ) {
+                    inputTimer.stop();
+                    break;
+                } else {
+                    final InputType input = inputReader.next();
+                    inputTimer.stop();
+                    outputQueue.put(new InputValue(input));
+                }
             }
 
             // add the EOF object so our consumer knows we are done in all inputs
