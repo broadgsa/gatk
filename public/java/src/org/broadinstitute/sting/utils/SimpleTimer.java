@@ -145,4 +145,13 @@ public class SimpleTimer {
     public synchronized long getElapsedTimeNano() {
         return running ? (currentTimeNano() - startTimeNano + elapsedTimeNano) : elapsedTimeNano;
     }
+
+    /**
+     * Add the elapsed time from toAdd to this elapsed time
+     *
+     * @param toAdd the timer whose elapsed time we want to add to this timer
+     */
+    public synchronized void addElapsed(final SimpleTimer toAdd) {
+        elapsedTimeNano += toAdd.getElapsedTimeNano();
+    }
 }

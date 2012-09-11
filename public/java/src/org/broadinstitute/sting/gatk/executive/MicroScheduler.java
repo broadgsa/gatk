@@ -42,6 +42,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
 import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
 import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
@@ -314,6 +315,9 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
 
         for ( final TraversalEngine te : allCreatedTraversalEngines)
             te.shutdown();
+
+        // horrible hack to print nano scheduling information across all nano schedulers, if any were used
+        NanoScheduler.printCombinedRuntimeProfile();
 
         allCreatedTraversalEngines.clear();
         availableTraversalEngines.clear();

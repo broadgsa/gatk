@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.nanoScheduler;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.SimpleTimer;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -61,7 +62,7 @@ public class ReducerThreadUnitTest extends BaseTest {
 
         final ReduceSumTest reduce = new ReduceSumTest(mapResultsQueue);
         final ReducerThread<Integer, Integer> thread
-                = new ReducerThread<Integer, Integer>(reduce, null, 0, mapResultsQueue);
+                = new ReducerThread<Integer, Integer>(reduce, new SimpleTimer(), 0, mapResultsQueue);
 
         final ExecutorService es = Executors.newSingleThreadExecutor();
         final Future<Integer> value = es.submit(thread);
