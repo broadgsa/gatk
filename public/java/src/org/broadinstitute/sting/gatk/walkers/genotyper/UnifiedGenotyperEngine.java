@@ -38,7 +38,6 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -198,23 +197,7 @@ public class UnifiedGenotyperEngine {
             }        
         }
 
-        return addMissingSamples(results, allSamples);
-    }
-
-    private List<VariantCallContext> addMissingSamples(final List<VariantCallContext> calls, final Set<String> allSamples) {
-        if ( calls.isEmpty() || allSamples == null ) return calls;
-
-        final List<VariantCallContext> withAllSamples = new ArrayList<VariantCallContext>(calls.size());
-        for ( final VariantCallContext call : calls ) {
-            if ( call == null )
-                withAllSamples.add(null);
-            else {
-                final VariantContext withoutMissing = VariantContextUtils.addMissingSamples(call, allSamples);
-                withAllSamples.add(new VariantCallContext(withoutMissing, call.confidentlyCalled, call.shouldEmit));
-            }
-        }
-
-        return withAllSamples;
+        return results;
     }
 
     /**
