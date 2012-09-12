@@ -53,6 +53,7 @@ import java.util.*;
  */
 @Invariant({"alleles != null"})
 public final class GenotypeBuilder {
+    private static final List<Allele> HAPLOID_NO_CALL = Arrays.asList(Allele.NO_CALL);
     private static final List<Allele> DIPLOID_NO_CALL = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 
     private String sampleName = null;
@@ -99,8 +100,14 @@ public final class GenotypeBuilder {
      * @param sampleName the name of this sample
      * @return an initialized Genotype with sampleName that's a diploid ./. no call genotype
      */
-    public static Genotype createMissing(final String sampleName) {
-        return new GenotypeBuilder(sampleName).alleles(DIPLOID_NO_CALL).make();
+    public static Genotype createMissing(final String sampleName, final int ploidy) {
+        final GenotypeBuilder builder = new GenotypeBuilder(sampleName);
+        switch ( ploidy ) {
+            case 1:  builder.alleles(HAPLOID_NO_CALL); break;
+            case 2:  builder.alleles(DIPLOID_NO_CALL); break;
+            default: builder.alleles(Collections.nCopies(ploidy, Allele.NO_CALL)); break;
+        }
+        return builder.make();
     }
 
     /**

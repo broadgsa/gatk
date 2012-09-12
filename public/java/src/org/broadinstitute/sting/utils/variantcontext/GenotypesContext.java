@@ -413,18 +413,25 @@ public class GenotypesContext implements List<Genotype> {
     }
 
     /**
-     * What is the max ploidy among all samples?  Returns 0 if no genotypes are present
+     * What is the max ploidy among all samples?  Returns defaultPloidy if no genotypes are present
      *
+     * @param defaultPloidy the default ploidy, if all samples are no-called
      * @return
      */
     @Ensures("result >= 0")
-    public int getMaxPloidy() {
+    public int getMaxPloidy(final int defaultPloidy) {
+        if ( defaultPloidy < 0 ) throw new IllegalArgumentException("defaultPloidy must be greater than or equal to 0");
+
         if ( maxPloidy == -1 ) {
             maxPloidy = 0; // necessary in the case where there are no genotypes
             for ( final Genotype g : getGenotypes() ) {
                 maxPloidy = Math.max(g.getPloidy(), maxPloidy);
             }
+
+            // everything is no called so we return the default ploidy
+            if ( maxPloidy == 0 ) maxPloidy = defaultPloidy;
         }
+
         return maxPloidy;
     }
 

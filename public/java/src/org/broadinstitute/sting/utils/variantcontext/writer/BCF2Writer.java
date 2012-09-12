@@ -353,7 +353,7 @@ class BCF2Writer extends IndexingVariantContextWriter {
             writer.start(encoder, vc);
             for ( final String name : sampleNames ) {
                 Genotype g = vc.getGenotype(name);
-                if ( g == null ) g = GenotypeBuilder.createMissing(name);
+                if ( g == null ) g = GenotypeBuilder.createMissing(name, writer.nValuesPerGenotype);
                 writer.addGenotype(encoder, vc, g);
             }
             writer.done(encoder, vc);

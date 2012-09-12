@@ -338,11 +338,13 @@ class VCFWriter extends IndexingVariantContextWriter {
      */
     private void addGenotypeData(VariantContext vc, Map<Allele, String> alleleMap, List<String> genotypeFormatKeys)
     throws IOException {
+        final int ploidy = vc.getMaxPloidy(2);
+
         for ( String sample : mHeader.getGenotypeSamples() ) {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             Genotype g = vc.getGenotype(sample);
-            if ( g == null ) g = GenotypeBuilder.createMissing(sample);
+            if ( g == null ) g = GenotypeBuilder.createMissing(sample, ploidy);
 
             final List<String> attrs = new ArrayList<String>(genotypeFormatKeys.size());
             for ( String field : genotypeFormatKeys ) {
