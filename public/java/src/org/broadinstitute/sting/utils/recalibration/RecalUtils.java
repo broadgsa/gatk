@@ -366,9 +366,9 @@ public class RecalUtils {
 
         final RScriptExecutor executor = new RScriptExecutor();
         executor.addScript(new Resource(SCRIPT_FILE, RecalUtils.class));
-        //executor.addArgs(RAC.RECAL_CSV.getAbsolutePath());
-        //executor.addArgs(RAC.RECAL_TABLE.getAbsolutePath());
-        //executor.addArgs(RAC.RECAL_PDF.getAbsolutePath());
+        executor.addArgs(RAC.RECAL_CSV_FILE.getAbsolutePath());
+        executor.addArgs(RAC.RECAL_TABLE_FILE.getAbsolutePath());
+        executor.addArgs(RAC.RECAL_PDF_FILE.getAbsolutePath());
         executor.exec();
     }
 
@@ -377,20 +377,20 @@ public class RecalUtils {
     }
 
     public static void generateRecalibrationPlot(final RecalibrationArgumentCollection RAC, final RecalibrationTables original, final RecalibrationTables recalibrated, final Covariate[] requestedCovariates) {
-        File temporaryFile = null;
-        if ( RAC.RECAL_CSV == null ) {
-            try {
-                temporaryFile = File.createTempFile("BQSR", ".csv");
-                temporaryFile.deleteOnExit();
-                RAC.RECAL_CSV = new PrintStream(temporaryFile);
-            } catch (IOException e) {
-                throw new UserException.CouldNotCreateOutputFile(temporaryFile, "Temporary csv file " + temporaryFile + " could not be created because " + e.getMessage());
+        final PrintStream csvFile;
+        try {
+            if ( RAC.RECAL_CSV_FILE == null ) {
+                RAC.RECAL_CSV_FILE = File.createTempFile("BQSR", ".csv");
+                RAC.RECAL_CSV_FILE.deleteOnExit();
             }
+            csvFile = new PrintStream(RAC.RECAL_CSV_FILE);
+        } catch (IOException e) {
+            throw new UserException.CouldNotCreateOutputFile(RAC.RECAL_CSV_FILE, e);
         }
 
         if ( recalibrated != null )
-            writeCSV(RAC.RECAL_CSV, recalibrated, "RECALIBRATED", requestedCovariates, true);
-        writeCSV(RAC.RECAL_CSV, original, "ORIGINAL", requestedCovariates, recalibrated == null);
+            writeCSV(csvFile, recalibrated, "RECALIBRATED", requestedCovariates, true);
+        writeCSV(csvFile, original, "ORIGINAL", requestedCovariates, recalibrated == null);
         outputRecalibrationPlot(RAC);
     }
 

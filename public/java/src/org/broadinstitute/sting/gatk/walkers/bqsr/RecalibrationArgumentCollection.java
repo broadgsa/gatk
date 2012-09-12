@@ -59,10 +59,11 @@ public class RecalibrationArgumentCollection {
      * After the header, data records occur one per line until the end of the file. The first several items on a line are the
      * values of the individual covariates and will change depending on which covariates were specified at runtime. The last
      * three items are the data- that is, number of observations for this combination of covariates, number of reference mismatches,
-     * and the raw empirical quality score calculated by phred-scaling the mismatch rate.
+     * and the raw empirical quality score calculated by phred-scaling the mismatch rate.   Use '/dev/stdout' to print to standard out.
      */
     @Gather(BQSRGatherer.class)
     @Output(doc = "The output recalibration table file to create", required = true)
+    public File RECAL_TABLE_FILE = null;
     public PrintStream RECAL_TABLE;
 
     /**
@@ -70,14 +71,14 @@ public class RecalibrationArgumentCollection {
      * However, we *highly* recommend that users generate these plots whenever possible for QC checking.
      */
     @Output(fullName = "plot_pdf_file", shortName = "plots", doc = "The output recalibration pdf file to create", required = false)
-    public PrintStream RECAL_PDF = null;
+    public File RECAL_PDF_FILE = null;
 
     /**
      * If not provided, then a temporary file is created and then deleted upon completion.
      */
     @Hidden
-    @Output(fullName = "intermediate_csv_file", shortName = "intermediate", doc = "The intermediate csv file to create", required = false)
-    public PrintStream RECAL_CSV = null;
+    @Argument(fullName = "intermediate_csv_file", shortName = "intermediate", doc = "The intermediate csv file to create", required = false)
+    public File RECAL_CSV_FILE = null;
 
     /**
      * List all implemented covariates.
@@ -181,7 +182,7 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "force_platform", shortName = "fP", required = false, doc = "If provided, the platform of EVERY read will be forced to be the provided String. Valid options are illumina, 454, and solid.")
     public String FORCE_PLATFORM = null;
 
-    public File recalibrationReport = null;
+    public File existingRecalibrationReport = null;
 
     public GATKReportTable generateReportTable(final String covariateNames) {
         GATKReportTable argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run", 2);
@@ -214,7 +215,9 @@ public class RecalibrationArgumentCollection {
         argumentsTable.addRowID("quantizing_levels", true);
         argumentsTable.set("quantizing_levels", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, QUANTIZING_LEVELS);
         argumentsTable.addRowID("recalibration_report", true);
-        argumentsTable.set("recalibration_report", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, recalibrationReport == null ? "null" : recalibrationReport.getAbsolutePath());
+        argumentsTable.set("recalibration_report", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, existingRecalibrationReport == null ? "null" : existingRecalibrationReport.getAbsolutePath());
+        argumentsTable.addRowID("plot_pdf_file", true);
+        argumentsTable.set("plot_pdf_file", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, RECAL_PDF_FILE == null ? "null" : RECAL_PDF_FILE.getAbsolutePath());
         argumentsTable.addRowID("binary_tag_name", true);
         argumentsTable.set("binary_tag_name", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, BINARY_TAG_NAME == null ? "null" : BINARY_TAG_NAME);
         return argumentsTable;

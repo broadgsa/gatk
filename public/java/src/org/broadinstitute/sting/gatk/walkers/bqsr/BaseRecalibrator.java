@@ -50,6 +50,8 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 
@@ -149,7 +151,7 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
             RecalUtils.listAvailableCovariates(logger);
             System.exit(0);
         }
-        RAC.recalibrationReport = getToolkit().getArguments().BQSR_RECAL_FILE; // if we have a recalibration file, record it so it goes on the report table
+        RAC.existingRecalibrationReport = getToolkit().getArguments().BQSR_RECAL_FILE; // if we have a recalibration file, record it so it goes on the report table
 
         Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalUtils.initializeCovariates(RAC); // initialize the required and optional covariates
         ArrayList<Covariate> requiredCovariates = covariates.getFirst();
@@ -166,6 +168,12 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
         for (Covariate cov : requestedCovariates) { // list all the covariates being used
             logger.info("\t" + cov.getClass().getSimpleName());
             cov.initialize(RAC); // initialize any covariate member variables using the shared argument collection
+        }
+
+        try {
+            RAC.RECAL_TABLE = new PrintStream(RAC.RECAL_TABLE_FILE);
+        } catch (IOException e) {
+            throw new UserException.CouldNotCreateOutputFile(RAC.RECAL_TABLE_FILE, e);
         }
 
         int numReadGroups = 0;
@@ -283,7 +291,7 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
         generateReport();
         logger.info("...done!");
 
-        if (RAC.RECAL_PDF != null) {
+        if (RAC.RECAL_PDF_FILE != null) {
             logger.info("Generating recalibration plots...");
             generatePlots();
         }

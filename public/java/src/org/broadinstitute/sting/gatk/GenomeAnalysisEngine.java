@@ -733,21 +733,6 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Iterates over all registered output stubs and tries to find the one representing the given OutputStream.
-     *
-     * @param output  the stream to check for
-     * @return the file associated with the given stream/stub if available, null otherwise
-     */
-    public File getFilenameFromAssociatedOutputStream(final OutputStream output) {
-        for ( final Stub<?> stub : outputs ) {
-            if ( stub.getOutputStream() == output )
-                return stub.getOutputFile();
-        }
-
-        return null;
-    }
-
-    /**
      * Returns the tag associated with a given command-line argument.
      * @param key Object for which to inspect the tag.
      * @return Tags object associated with the given key, or an empty Tag structure if none are present. 
