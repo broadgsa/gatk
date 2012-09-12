@@ -63,6 +63,7 @@ import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import java.io.File;
+import java.io.OutputStream;
 import java.util.*;
 
 /**
@@ -729,6 +730,21 @@ public class GenomeAnalysisEngine {
      */
     public void addOutput(Stub<?> stub) {
         outputs.add(stub);
+    }
+
+    /**
+     * Iterates over all registered output stubs and tries to find the one representing the given OutputStream.
+     *
+     * @param output  the stream to check for
+     * @return the file associated with the given stream/stub if available, null otherwise
+     */
+    public File getFilenameFromAssociatedOutputStream(final OutputStream output) {
+        for ( final Stub<?> stub : outputs ) {
+            if ( stub.getOutputStream() == output )
+                return stub.getOutputFile();
+        }
+
+        return null;
     }
 
     /**
