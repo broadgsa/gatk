@@ -333,6 +333,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         return new ReadProperties(
                 Collections.<SAMReaderID>emptyList(),
                 new SAMFileHeader(),
+                SAMFileHeader.SortOrder.coordinate,
                 false,
                 SAMFileReader.ValidationStringency.STRICT,
                 null,

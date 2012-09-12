@@ -50,16 +50,37 @@ public class FilePointer {
 
     public FilePointer(final GenomeLoc... locations) {
         this.locations.addAll(Arrays.asList(locations));
+        this.isRegionUnmapped = checkUnmappedStatus();
+    }
+
+    public FilePointer( Map<SAMReaderID,SAMFileSpan> fileSpans, List<GenomeLoc> locations ) {
+        this.fileSpans.putAll(fileSpans);
+        this.locations.addAll(locations);
+        this.isRegionUnmapped = checkUnmappedStatus();
+    }
+
+    private boolean checkUnmappedStatus() {
         boolean foundMapped = false, foundUnmapped = false;
-        for(GenomeLoc location: locations) {
-            if(GenomeLoc.isUnmapped(location))
+
+        for( GenomeLoc location: locations ) {
+            if ( GenomeLoc.isUnmapped(location) )
                 foundUnmapped = true;
             else
                 foundMapped = true;
         }
-        if(foundMapped && foundUnmapped)
+        if ( foundMapped && foundUnmapped )
             throw new ReviewedStingException("BUG: File pointers cannot be mixed mapped/unmapped.");
-        this.isRegionUnmapped = foundUnmapped;
+
+        return foundUnmapped;
+    }
+
+    /**
+     * Returns an immutable view of this FilePointer's file spans
+     *
+     * @return an immutable view of this FilePointer's file spans
+     */
+    public Map<SAMReaderID, SAMFileSpan> getFileSpans() {
+        return Collections.unmodifiableMap(fileSpans);
     }
 
     /**
@@ -98,7 +119,13 @@ public class FilePointer {
     }
 
     public void addLocation(final GenomeLoc location) {
-        locations.add(location);
+        this.locations.add(location);
+        checkUnmappedStatus();
+    }
+
+    public void addLocations( final List<GenomeLoc> locations ) {
+        this.locations.addAll(locations);
+        checkUnmappedStatus();
     }
 
     public void addFileSpans(final SAMReaderID id, final SAMFileSpan fileSpan) {
@@ -214,6 +241,32 @@ public class FilePointer {
         for(int i = 1; i < iterators.length; i++)
             fileSpan = fileSpan.union((GATKBAMFileSpan)iterators[i].next().getValue());
         combined.addFileSpans(initialElement.getKey(),fileSpan);
+    }
+
+    /**
+     * Returns true if any of the file spans in this FilePointer overlap their counterparts in
+     * the other FilePointer. "Overlap" is defined as having an overlapping extent (the region
+     * from the start of the first chunk to the end of the last chunk).
+     *
+     * @param other the FilePointer against which to check overlap with this FilePointer
+     * @return true if any file spans overlap their counterparts in other, otherwise false
+     */
+    public boolean hasFileSpansOverlappingWith( FilePointer other ) {
+        for ( Map.Entry<SAMReaderID, SAMFileSpan> thisFilePointerEntry : fileSpans.entrySet() ) {
+            GATKBAMFileSpan thisFileSpan = new GATKBAMFileSpan(thisFilePointerEntry.getValue());
+
+            SAMFileSpan otherEntry = other.fileSpans.get(thisFilePointerEntry.getKey());
+            if ( otherEntry == null ) {
+                continue;  // no counterpart for this file span in other
+            }
+            GATKBAMFileSpan otherFileSpan = new GATKBAMFileSpan(otherEntry);
+
+            if ( thisFileSpan.getExtent().overlaps(otherFileSpan.getExtent()) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override

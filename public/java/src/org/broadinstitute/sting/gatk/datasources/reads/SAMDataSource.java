@@ -99,6 +99,8 @@ public class SAMDataSource {
 
     /**
      * How far along is each reader?
+     *
+     * TODO: delete this once the experimental downsampling engine fork collapses
      */
     private final Map<SAMReaderID,GATKBAMFileSpan> readerPositions = new HashMap<SAMReaderID,GATKBAMFileSpan>();
 
@@ -153,8 +155,6 @@ public class SAMDataSource {
      * How are threads allocated.
      */
     private final ThreadAllocation threadAllocation;
-
-    private final boolean expandShardsForDownsampling;
 
     /**
      * Create a new SAM data source given the supplied read metadata.
@@ -297,6 +297,7 @@ public class SAMDataSource {
         readProperties = new ReadProperties(
                 samFiles,
                 mergedHeader,
+                sortOrder,
                 useOriginalBaseQualities,
                 strictness,
                 downsamplingMethod,
@@ -305,11 +306,6 @@ public class SAMDataSource {
                 readTransformers,
                 includeReadsWithDeletionAtLoci,
                 defaultBaseQualities);
-
-        expandShardsForDownsampling = readProperties.getDownsamplingMethod() != null &&
-                                      readProperties.getDownsamplingMethod().useExperimentalDownsampling &&
-                                      readProperties.getDownsamplingMethod().type != DownsampleType.NONE &&
-                                      readProperties.getDownsamplingMethod().toCoverage != null;
 
         // cache the read group id (original) -> read group id (merged)
         // and read group id (merged) -> read group id (original) mappings.
@@ -384,7 +380,10 @@ public class SAMDataSource {
     /**
      * Retrieves the current position within the BAM file.
      * @return A mapping of reader to current position.
+     *
+     * TODO: delete this once the experimental downsampling engine fork collapses
      */
+    @Deprecated
     public Map<SAMReaderID,GATKBAMFileSpan> getCurrentPosition() {
         return readerPositions;
     }
@@ -467,19 +466,15 @@ public class SAMDataSource {
     }
 
     /**
-     * Are we expanding shards as necessary to prevent shard boundaries from occurring at improper places?
+     * Legacy method to fill the given buffering shard with reads.
      *
-     * @return true if we are using expanded shards, otherwise false
-     */
-    public boolean usingExpandedShards() {
-        return expandShardsForDownsampling;
-    }
-
-
-    /**
-     * Fill the given buffering shard with reads.
+     * Shard.fill() is used instead of this method when experimental downsampling is enabled
+     *
+     * TODO: delete this method once the experimental downsampling engine fork collapses
+     *
      * @param shard Shard to fill.
      */
+    @Deprecated
     public void fillShard(Shard shard) {
         if(!shard.buffersReads())
             throw new ReviewedStingException("Attempting to fill a non-buffering shard.");
@@ -503,31 +498,6 @@ public class SAMDataSource {
             }
         }
 
-        // If the reads are sorted in coordinate order, ensure that all reads
-        // having the same alignment start become part of the same shard, to allow
-        // downsampling to work better across shard boundaries. Note that because our
-        // read stream has already been fed through the positional downsampler, which
-        // ensures that at each alignment start position there are no more than dcov
-        // reads, we're in no danger of accidentally creating a disproportionately huge
-        // shard
-        if ( expandShardsForDownsampling && sortOrder == SAMFileHeader.SortOrder.coordinate ) {
-            while ( iterator.hasNext() ) {
-                SAMRecord additionalRead = iterator.next();
-
-                // Stop filling the shard as soon as we encounter a read having a different
-                // alignment start or contig from the last read added in the earlier loop
-                // above, or an unmapped read
-                if ( read == null ||
-                     additionalRead.getReadUnmappedFlag() ||
-                     ! additionalRead.getReferenceIndex().equals(read.getReferenceIndex()) ||
-                     additionalRead.getAlignmentStart() != read.getAlignmentStart() ) {
-                    break;
-                }
-                shard.addRead(additionalRead);
-                noteFilePositionUpdate(positionUpdates, additionalRead);
-            }
-        }
-
         // If the reads are sorted in queryname order, ensure that all reads
         // having the same queryname become part of the same shard.
         if(sortOrder == SAMFileHeader.SortOrder.queryname) {
@@ -547,6 +517,10 @@ public class SAMDataSource {
             readerPositions.put(readers.getReaderID(positionUpdate.getKey()),positionUpdate.getValue());
     }
 
+    /*
+     * TODO: delete this method once the experimental downsampling engine fork collapses
+     */
+    @Deprecated
     private void noteFilePositionUpdate(Map<SAMFileReader,GATKBAMFileSpan> positionMapping, SAMRecord read) {
         GATKBAMFileSpan endChunk = new GATKBAMFileSpan(read.getFileSource().getFilePointer().getContentsFollowing());
         positionMapping.put(read.getFileSource().getReader(),endChunk);
@@ -557,8 +531,7 @@ public class SAMDataSource {
             return shard.iterator();
         }
         else {
-            SAMReaders readers = resourcePool.getAvailableReaders();
-            return getIterator(readers,shard,shard instanceof ReadShard);
+            return getIterator(shard);
         }
     }
 
@@ -578,11 +551,42 @@ public class SAMDataSource {
 
     /**
      * Initialize the current reader positions
+     *
+     * TODO: delete this once the experimental downsampling engine fork collapses
+     *
      * @param readers
      */
+    @Deprecated
     private void initializeReaderPositions(SAMReaders readers) {
         for(SAMReaderID id: getReaderIDs())
             readerPositions.put(id,new GATKBAMFileSpan(readers.getReader(id).getFilePointerSpanningReads()));
+    }
+
+    /**
+     * Get the initial reader positions across all BAM files
+     *
+     * @return the start positions of the first chunk of reads for all BAM files
+     */
+    public Map<SAMReaderID, GATKBAMFileSpan> getInitialReaderPositions() {
+        Map<SAMReaderID, GATKBAMFileSpan> initialPositions = new HashMap<SAMReaderID, GATKBAMFileSpan>();
+        SAMReaders readers = resourcePool.getAvailableReaders();
+
+        for ( SAMReaderID id: getReaderIDs() ) {
+            initialPositions.put(id, new GATKBAMFileSpan(readers.getReader(id).getFilePointerSpanningReads()));
+        }
+
+        resourcePool.releaseReaders(readers);
+        return initialPositions;
+    }
+
+    /**
+     * Get an iterator over the data types specified in the shard.
+     *
+     * @param shard The shard specifying the data limits.
+     * @return An iterator over the selected data.
+     */
+    public StingSAMIterator getIterator( Shard shard ) {
+        return getIterator(resourcePool.getAvailableReaders(), shard, shard instanceof ReadShard);
     }
 
     /**

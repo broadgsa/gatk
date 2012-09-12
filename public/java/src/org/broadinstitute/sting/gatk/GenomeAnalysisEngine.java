@@ -548,6 +548,7 @@ public class GenomeAnalysisEngine {
      */
     protected Iterable<Shard> getShardStrategy(SAMDataSource readsDataSource, ReferenceSequenceFile drivingDataSource, GenomeLocSortedSet intervals) {
         ValidationExclusion exclusions = (readsDataSource != null ? readsDataSource.getReadsInfo().getValidationExclusionList() : null);
+        DownsamplingMethod downsamplingMethod = readsDataSource != null ? readsDataSource.getReadsInfo().getDownsamplingMethod() : null;
         ReferenceDataSource referenceDataSource = this.getReferenceDataSource();
 
         // If reads are present, assume that accessing the reads is always the dominant factor and shard based on that supposition.
@@ -582,10 +583,15 @@ public class GenomeAnalysisEngine {
                         throw new UserException.CommandLineException("Pairs traversal cannot be used in conjunction with intervals.");
                 }
 
+                // Use the experimental ReadShardBalancer if experimental downsampling is enabled
+                ShardBalancer readShardBalancer = downsamplingMethod != null && downsamplingMethod.useExperimentalDownsampling ?
+                                                  new ExperimentalReadShardBalancer() :
+                                                  new ReadShardBalancer();
+
                 if(intervals == null)
-                    return readsDataSource.createShardIteratorOverAllReads(new ReadShardBalancer());
+                    return readsDataSource.createShardIteratorOverAllReads(readShardBalancer);
                 else
-                    return readsDataSource.createShardIteratorOverIntervals(intervals,new ReadShardBalancer());
+                    return readsDataSource.createShardIteratorOverIntervals(intervals, readShardBalancer);
             }
             else
                 throw new ReviewedStingException("Unable to determine walker type for walker " + walker.getClass().getName());
