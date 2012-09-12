@@ -7,7 +7,9 @@ import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgume
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -15,6 +17,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
@@ -278,7 +281,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
 
     private byte getFlippedEncoding(Genotype g, int offset) {
         byte b;
-        if ( g.hasGQ() && g.getGQ() < minGenotypeQuality ) {
+        if ( ! checkGQIsGood(g) ) {
             b = NO_CALL;
         } else if ( g.isHomRef() ) {
             b = HOM_VAR;
@@ -291,6 +294,16 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         }
 
         return (byte) (b << (2*offset));
+    }
+
+    private boolean checkGQIsGood(Genotype genotype) {
+        if ( genotype.hasGQ() ) {
+            return genotype.getGQ() >= minGenotypeQuality;
+        } else if ( genotype.hasLikelihoods() ) {
+            return GenotypeLikelihoods.getGQLog10FromLikelihoods(genotype.getType().ordinal()-1,genotype.getLikelihoods().getAsVector()) >= minGenotypeQuality;
+        }
+
+        return false;
     }
 
     private static String getID(VariantContext v) {
