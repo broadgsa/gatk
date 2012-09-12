@@ -396,10 +396,17 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         commandLineUniqueSamples.addAll(samplesFromExpressions);
         commandLineUniqueSamples.addAll(sampleNames);
         commandLineUniqueSamples.removeAll(vcfSamples);
+
+        // second, add the requested samples
+        samples.addAll(sampleNames);
+        samples.addAll(samplesFromExpressions);
+        samples.addAll(samplesFromFile);
+
+        logger.debug(Utils.join(",",commandLineUniqueSamples));
+
         if ( commandLineUniqueSamples.size() > 0 && ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES ) {
             logger.warn("Samples present on command line input that are not present in the VCF. These samples will be ignored.");
-            samplesFromFile.removeAll(commandLineUniqueSamples);
-            samplesFromExpressions.retainAll(commandLineUniqueSamples);
+            samples.removeAll(commandLineUniqueSamples);
         } else if (commandLineUniqueSamples.size() > 0 ) {
             throw new UserException.BadInput(String.format("%s%n%n%s%n%n%s%n%n%s",
                     "Samples entered on command line (through -sf or -sn) that are not present in the VCF.",
@@ -408,11 +415,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                     "To ignore these samples, run with --ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES"));
         }
 
-        // second, add the requested samples
-        samples.addAll(sampleNames);
-        samples.addAll(samplesFromExpressions);
-        samples.addAll(samplesFromFile);
-        samples.removeAll(commandLineUniqueSamples);
 
         // if none were requested, we want all of them
         if ( samples.isEmpty() ) {
