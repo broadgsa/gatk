@@ -40,6 +40,7 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
@@ -325,6 +326,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Argument(doc="indel size select",required=false,fullName="maxIndelSize")
     private int maxIndelSize = Integer.MAX_VALUE;
 
+    @Argument(doc="Allow a samples other than those in the VCF to be specified on the command line. These samples will be ignored.",required=false,fullName="ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES")
+    private boolean ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES = false;
+
 
     /* Private class used to store the intermediate variants in the integer random selection process */
     private static class RandomVariantStructure {
@@ -386,10 +390,29 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         Collection<String> samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFiles);
         Collection<String> samplesFromExpressions = SampleUtils.matchSamplesExpressions(vcfSamples, sampleExpressions);
 
-        // first, add any requested samples
-        samples.addAll(samplesFromFile);
-        samples.addAll(samplesFromExpressions);
+        // first, check overlap between requested and present samples
+        Set<String> commandLineUniqueSamples = new HashSet<String>(samplesFromFile.size()+samplesFromExpressions.size()+sampleNames.size());
+        commandLineUniqueSamples.addAll(samplesFromFile);
+        commandLineUniqueSamples.addAll(samplesFromExpressions);
+        commandLineUniqueSamples.addAll(sampleNames);
+        commandLineUniqueSamples.removeAll(vcfSamples);
+        if ( commandLineUniqueSamples.size() > 0 && ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES ) {
+            logger.warn("Samples present on command line input that are not present in the VCF. These samples will be ignored.");
+            samplesFromFile.removeAll(commandLineUniqueSamples);
+            samplesFromExpressions.retainAll(commandLineUniqueSamples);
+        } else if (commandLineUniqueSamples.size() > 0 ) {
+            throw new UserException.BadInput(String.format("%s%n%n%s%n%n%s%n%n%s",
+                    "Samples entered on command line (through -sf or -sn) that are not present in the VCF.",
+                    "A list of these samples:",
+                    Utils.join(",",commandLineUniqueSamples),
+                    "To ignore these samples, run with --ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES"));
+        }
+
+        // second, add the requested samples
         samples.addAll(sampleNames);
+        samples.addAll(samplesFromExpressions);
+        samples.addAll(samplesFromFile);
+        samples.removeAll(commandLineUniqueSamples);
 
         // if none were requested, we want all of them
         if ( samples.isEmpty() ) {

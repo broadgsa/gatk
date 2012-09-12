@@ -71,6 +71,20 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testComplexSelectionWithNonExistingSamples() {
+        String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
+        String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString(" --ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES -sn A -se '[CDH]' -sn Z -sn T -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile),
+                1,
+                Arrays.asList("4386fbb258dcef4437495a37f5a83c53")
+        );
+        spec.disableShadowBCF();
+        executeTest("testComplexSelectionWithNonExistingSamples--" + testfile, spec);
+    }
+
+    @Test
     public void testNonExistingFieldSelection() {
         String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
 
@@ -96,6 +110,21 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         spec.disableShadowBCF();
 
         executeTest("testSampleExclusion--" + testfile, spec);
+    }
+
+    @Test
+    public void testSampleInclusionWithNonexistingSamples() {
+        String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
+        String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b36KGReference + " -L 1:1-1000000 -o %s --no_cmdline_in_header -sn A -sn Z -sn Q -sf " + samplesFile + " --variant " + testfile,
+                1,
+                UserException.BadInput.class
+        );
+        spec.disableShadowBCF();
+
+        executeTest("testSampleInclusionWithNonexistingSamples--" + testfile, spec);
     }
 
 

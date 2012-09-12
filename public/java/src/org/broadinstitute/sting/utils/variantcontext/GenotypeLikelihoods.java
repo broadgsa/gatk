@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.List;
 
 public class GenotypeLikelihoods {
     private final static int NUM_LIKELIHOODS_CACHE_N_ALLELES = 5;
@@ -167,8 +168,34 @@ public class GenotypeLikelihoods {
 
     //Return the neg log10 Genotype Quality (GQ) for the given genotype
     //Returns Double.NEGATIVE_INFINITY in case of missing genotype
+
+    /**
+     * This is really dangerous and returns completely wrong results for genotypes from a multi-allelic context.
+     * Use getLog10GQ(Genotype,VariantContext) or getLog10GQ(Genotype,List<Allele>) in place of it.
+     *
+     * If you **know** you're biallelic, use getGQLog10FromLikelihoods directly.
+     * @param genotype - actually a genotype type (no call, hom ref, het, hom var)
+     * @return an unsafe quantity that could be negative. In the bi-allelic case, the GQ resulting from best minus next best (if the type is the best).
+     */
+    @Deprecated
     public double getLog10GQ(GenotypeType genotype){
         return getGQLog10FromLikelihoods(genotype.ordinal() - 1 /* NO_CALL IS FIRST */, getAsVector());
+    }
+
+    @Requires({"genotypeAlleles != null","genotypeAlleles.size()==2","contextAlleles != null","contextAlleles.size() >= 1"})
+    private double getLog10GQ(List<Allele> genotypeAlleles,List<Allele> contextAlleles) {
+        int allele1Index = contextAlleles.indexOf(genotypeAlleles.get(0));
+        int allele2Index = contextAlleles.indexOf(genotypeAlleles.get(1));
+        int plIndex = calculatePLindex(allele1Index,allele2Index);
+        return getGQLog10FromLikelihoods(plIndex,getAsVector());
+    }
+
+    public double getLog10GQ(Genotype genotype, List<Allele> vcAlleles ) {
+        return getLog10GQ(genotype.getAlleles(),vcAlleles);
+    }
+
+    public double getLog10GQ(Genotype genotype, VariantContext context) {
+        return getLog10GQ(genotype,context.getAlleles());
     }
 
     public static double getGQLog10FromLikelihoods(int iOfChoosenGenotype, double[] likelihoods){
