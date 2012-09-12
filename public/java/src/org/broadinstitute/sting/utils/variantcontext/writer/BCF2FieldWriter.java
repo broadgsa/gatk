@@ -275,7 +275,7 @@ public abstract class BCF2FieldWriter {
             nValuesPerGenotype = vc.getMaxPloidy();
 
             // deal with the case where we have no call everywhere, in which case we write out diploid
-            if ( nValuesPerGenotype == -1 )
+            if ( nValuesPerGenotype == 0 )
                 nValuesPerGenotype = 2;
 
             super.start(encoder, vc);

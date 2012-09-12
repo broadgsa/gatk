@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
 import com.google.java.contract.Ensures;
-import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
 
 import java.util.*;
@@ -413,6 +412,11 @@ public class GenotypesContext implements List<Genotype> {
         return getGenotypes().get(i);
     }
 
+    /**
+     * What is the max ploidy among all samples?  Returns 0 if no genotypes are present
+     *
+     * @return
+     */
     @Ensures("result >= 0")
     public int getMaxPloidy() {
         if ( maxPloidy == -1 ) {
