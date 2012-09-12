@@ -88,8 +88,8 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
             case UNBOUNDED:     return -1;
             case A:             return vc.getNAlleles() - 1;
             case G:
-                final int ploidy = vc.getMaxPloidy();
-                return GenotypeLikelihoods.numLikelihoods(vc.getNAlleles(), ploidy == 0 ? 2 : ploidy);
+                final int ploidy = vc.getMaxPloidy(2);
+                return GenotypeLikelihoods.numLikelihoods(vc.getNAlleles(), ploidy);
             default:
                 throw new ReviewedStingException("Unknown count type: " + countType);
         }
