@@ -32,7 +32,10 @@ import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Codec;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Type;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCF2Utils;
 import org.broadinstitute.sting.utils.codecs.bcf2.BCFVersion;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFContigHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -345,10 +348,12 @@ class BCF2Writer extends IndexingVariantContextWriter {
             final BCF2FieldWriter.GenotypesWriter writer = fieldManager.getGenotypeFieldWriter(field);
             if ( writer == null ) errorUnexpectedFieldToWrite(vc, field, "FORMAT");
 
+            assert writer != null;
+
             writer.start(encoder, vc);
             for ( final String name : sampleNames ) {
                 Genotype g = vc.getGenotype(name);
-                if ( g == null ) VCFWriter.missingSampleError(vc, header);
+                if ( g == null ) g = GenotypeBuilder.createMissing(name, writer.nValuesPerGenotype);
                 writer.addGenotype(encoder, vc, g);
             }
             writer.done(encoder, vc);

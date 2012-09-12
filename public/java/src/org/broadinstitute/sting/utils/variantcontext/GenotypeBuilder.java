@@ -53,6 +53,9 @@ import java.util.*;
  */
 @Invariant({"alleles != null"})
 public final class GenotypeBuilder {
+    private static final List<Allele> HAPLOID_NO_CALL = Arrays.asList(Allele.NO_CALL);
+    private static final List<Allele> DIPLOID_NO_CALL = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
+
     private String sampleName = null;
     private List<Allele> alleles = Collections.emptyList();
 
@@ -88,6 +91,23 @@ public final class GenotypeBuilder {
                                            final List<Allele> alleles,
                                            final double[] gls) {
         return new GenotypeBuilder(sampleName, alleles).PL(gls).make();
+    }
+
+    /**
+     * Create a new Genotype object for a sample that's missing from the VC (i.e., in
+     * the output header).  Defaults to a diploid no call genotype ./.
+     *
+     * @param sampleName the name of this sample
+     * @return an initialized Genotype with sampleName that's a diploid ./. no call genotype
+     */
+    public static Genotype createMissing(final String sampleName, final int ploidy) {
+        final GenotypeBuilder builder = new GenotypeBuilder(sampleName);
+        switch ( ploidy ) {
+            case 1:  builder.alleles(HAPLOID_NO_CALL); break;
+            case 2:  builder.alleles(DIPLOID_NO_CALL); break;
+            default: builder.alleles(Collections.nCopies(ploidy, Allele.NO_CALL)); break;
+        }
+        return builder.make();
     }
 
     /**

@@ -313,7 +313,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             VariantContextUtils.calculateChromosomeCounts(builder, false);
             if ( minimalVCF )
                 VariantContextUtils.pruneVariantContext(builder, Arrays.asList(SET_KEY));
-            vcfWriter.add(VariantContextUtils.addMissingSamples(builder.make(), samples));
+            vcfWriter.add(builder.make());
         }
 
         return vcs.isEmpty() ? 0 : 1;

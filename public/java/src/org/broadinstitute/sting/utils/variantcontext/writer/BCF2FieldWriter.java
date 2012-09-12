@@ -272,11 +272,7 @@ public abstract class BCF2FieldWriter {
 
             encodingType = BCF2Type.INT8;
             buildAlleleMap(vc);
-            nValuesPerGenotype = vc.getMaxPloidy();
-
-            // deal with the case where we have no call everywhere, in which case we write out diploid
-            if ( nValuesPerGenotype == -1 )
-                nValuesPerGenotype = 2;
+            nValuesPerGenotype = vc.getMaxPloidy(2);
 
             super.start(encoder, vc);
         }
