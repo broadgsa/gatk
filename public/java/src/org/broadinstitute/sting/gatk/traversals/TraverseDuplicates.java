@@ -54,7 +54,7 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
     private final boolean DEBUG = false;
 
     @Override
-    protected String getTraversalType() {
+    public String getTraversalUnits() {
         return "dups";
     }
 

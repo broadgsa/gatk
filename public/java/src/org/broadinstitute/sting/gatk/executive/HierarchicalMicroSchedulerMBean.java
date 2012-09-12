@@ -16,7 +16,7 @@ package org.broadinstitute.sting.gatk.executive;
  * An interface for retrieving runtime statistics about how the hierarchical
  * microscheduler is behaving. 
  */
-public interface HierarchicalMicroSchedulerMBean extends MicroSchedulerMBean {
+public interface HierarchicalMicroSchedulerMBean {
     /**
      * How many tree reduces are waiting in the tree reduce queue?
      * @return Total number of reduces waiting in the tree reduce queue?

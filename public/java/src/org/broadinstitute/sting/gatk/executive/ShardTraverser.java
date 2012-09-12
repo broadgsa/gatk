@@ -10,7 +10,6 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 /**
  * User: hanna
  * Date: Apr 29, 2009
@@ -30,7 +29,6 @@ public class ShardTraverser implements Callable {
     final private HierarchicalMicroScheduler microScheduler;
     final private Walker walker;
     final private Shard shard;
-    final private TraversalEngine traversalEngine;
     final private ThreadLocalOutputTracker outputTracker;
     private OutputMergeTask outputMergeTask;
 
@@ -43,20 +41,18 @@ public class ShardTraverser implements Callable {
     private boolean complete = false;
 
     public ShardTraverser( HierarchicalMicroScheduler microScheduler,
-                           TraversalEngine traversalEngine,
                            Walker walker,
                            Shard shard,
                            ThreadLocalOutputTracker outputTracker) {
         this.microScheduler = microScheduler;
         this.walker = walker;
-        this.traversalEngine = traversalEngine;
         this.shard = shard;
         this.outputTracker = outputTracker;
     }
 
     public Object call() {
+        final TraversalEngine traversalEngine = microScheduler.borrowTraversalEngine();
         try {
-            traversalEngine.startTimersIfNecessary();
             final long startTime = System.currentTimeMillis();
 
             Object accumulator = walker.reduceInit();
@@ -67,7 +63,7 @@ public class ShardTraverser implements Callable {
 
             for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
                 final ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),microScheduler.getEngine().getGenomeLocParser(),iterator.getLocus(),iterator,microScheduler.reference,microScheduler.rods);
-                accumulator = traversalEngine.traverse( walker, dataProvider, accumulator );
+                accumulator = traversalEngine.traverse(walker, dataProvider, accumulator);
                 dataProvider.close();
             }
 
@@ -85,6 +81,7 @@ public class ShardTraverser implements Callable {
         } finally {
             synchronized(this) {
                 complete = true;
+                microScheduler.returnTraversalEngine(traversalEngine);
                 notifyAll();
             }
         }
