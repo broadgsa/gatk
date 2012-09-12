@@ -21,12 +21,11 @@ import java.util.Iterator;
 public class TraverseLociNano<M,T> extends TraverseLociBase<M,T> {
     /** our log, which we want to capture anything from this class */
     private static final boolean DEBUG = false;
-    private static final int BUFFER_SIZE = 1000;
 
     final NanoScheduler<MapData, MapResult, T> nanoScheduler;
 
     public TraverseLociNano(int nThreads) {
-        nanoScheduler = new NanoScheduler<MapData, MapResult, T>(BUFFER_SIZE, nThreads);
+        nanoScheduler = new NanoScheduler<MapData, MapResult, T>(nThreads);
         nanoScheduler.setProgressFunction(new TraverseLociProgress());
     }
 

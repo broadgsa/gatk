@@ -27,6 +27,22 @@ public class NanoSchedulerUnitTest extends BaseTest {
         @Override public Integer apply(Integer input) { return input * 2; }
     }
 
+    private static class Map2xWithDelays extends Map2x {
+        @Override public Integer apply(Integer input) {
+            try {
+                if ( input % 7 == 0 ) {
+                    final int milliToSleep = (input % 10);
+                    //System.out.printf("Sleeping %d millseconds%n", milliToSleep);
+                    Thread.sleep(milliToSleep);
+                }
+
+                return input * 2;
+            } catch ( InterruptedException ex ) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
     private static class ReduceSum implements NSReduceFunction<Integer, Integer> {
         int prevOne = Integer.MIN_VALUE;
 
@@ -55,16 +71,18 @@ public class NanoSchedulerUnitTest extends BaseTest {
 
     private static class NanoSchedulerBasicTest extends TestDataProvider {
         final int bufferSize, nThreads, start, end, expectedResult;
+        final boolean addDelays;
 
-        public NanoSchedulerBasicTest(final int bufferSize, final int nThreads, final int start, final int end) {
+        public NanoSchedulerBasicTest(final int bufferSize, final int nThreads, final int start, final int end, final boolean addDelays) {
             super(NanoSchedulerBasicTest.class);
             this.bufferSize = bufferSize;
             this.nThreads = nThreads;
             this.start = start;
             this.end = end;
             this.expectedResult = sum2x(start, end);
-            setName(String.format("%s nt=%d buf=%d start=%d end=%d sum=%d",
-                    getClass().getSimpleName(), nThreads, bufferSize, start, end, expectedResult));
+            this.addDelays = addDelays;
+            setName(String.format("%s nt=%d buf=%d start=%d end=%d sum=%d delays=%b",
+                    getClass().getSimpleName(), nThreads, bufferSize, start, end, expectedResult, addDelays));
         }
 
         public Iterator<Integer> makeReader() {
@@ -79,19 +97,39 @@ public class NanoSchedulerUnitTest extends BaseTest {
             return nElements / bufferSize;
         }
 
-        public Map2x makeMap() { return new Map2x(); }
+        public Map2x makeMap() { return addDelays ? new Map2xWithDelays() : new Map2x(); }
         public Integer initReduce() { return 0; }
         public ReduceSum makeReduce() { return new ReduceSum(); }
+
+        public NanoScheduler<Integer, Integer, Integer> makeScheduler() {
+            if ( bufferSize == -1 )
+                return new NanoScheduler<Integer, Integer, Integer>(nThreads);
+            else
+                return new NanoScheduler<Integer, Integer, Integer>(bufferSize, nThreads);
+        }
     }
 
     static NanoSchedulerBasicTest exampleTest = null;
     @DataProvider(name = "NanoSchedulerBasicTest")
     public Object[][] createNanoSchedulerBasicTest() {
-        for ( final int bufferSize : Arrays.asList(1, 10, 1000, 1000000, 10000000) ) {
+//        for ( final int bufferSize : Arrays.asList(1, 10) ) {
+//            for ( final int nt : Arrays.asList(1, 2, 4) ) {
+//                for ( final int start : Arrays.asList(0) ) {
+//                    for ( final int end : Arrays.asList(0, 1, 2) ) {
+//                        exampleTest = new NanoSchedulerBasicTest(bufferSize, nt, start, end);
+//                    }
+//                }
+//            }
+//        }
+
+        for ( final int bufferSize : Arrays.asList(-1, 1, 10, 100) ) {
             for ( final int nt : Arrays.asList(1, 2, 4) ) {
                 for ( final int start : Arrays.asList(0) ) {
-                    for ( final int end : Arrays.asList(0, 1, 2, 11, 10000, 100000) ) {
-                        exampleTest = new NanoSchedulerBasicTest(bufferSize, nt, start, end);
+                    for ( final int end : Arrays.asList(0, 1, 2, 11, 100, 10000, 100000) ) {
+                        for ( final boolean addDelays : Arrays.asList(true, false) ) {
+                            if ( end < 1000 )
+                                exampleTest = new NanoSchedulerBasicTest(bufferSize, nt, start, end, addDelays);
+                        }
                     }
                 }
             }
@@ -116,13 +154,13 @@ public class NanoSchedulerUnitTest extends BaseTest {
 
     private void testNanoScheduler(final NanoSchedulerBasicTest test) throws InterruptedException {
         final SimpleTimer timer = new SimpleTimer().start();
-        final NanoScheduler<Integer, Integer, Integer> nanoScheduler =
-                new NanoScheduler<Integer, Integer, Integer>(test.bufferSize, test.nThreads);
+        final NanoScheduler<Integer, Integer, Integer> nanoScheduler = test.makeScheduler();
 
         final ProgressCallback callback = new ProgressCallback();
         nanoScheduler.setProgressFunction(callback);
 
-        Assert.assertEquals(nanoScheduler.getInputBufferSize(), test.bufferSize, "inputBufferSize argument");
+        if ( test.bufferSize > -1 )
+            Assert.assertEquals(nanoScheduler.getBufferSize(), test.bufferSize, "bufferSize argument");
         Assert.assertEquals(nanoScheduler.getnThreads(), test.nThreads, "nThreads argument");
 
         final Integer sum = nanoScheduler.execute(test.makeReader(), test.makeMap(), test.initReduce(), test.makeReduce());
@@ -149,8 +187,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         if ( test.bufferSize > 1) {
             logger.warn("Running " + test);
 
-            final NanoScheduler<Integer, Integer, Integer> nanoScheduler =
-                    new NanoScheduler<Integer, Integer, Integer>(test.bufferSize, test.nThreads);
+            final NanoScheduler<Integer, Integer, Integer> nanoScheduler = test.makeScheduler();
 
             // test reusing the scheduler
             for ( int i = 0; i < 10; i++ ) {
@@ -183,7 +220,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         BasicConfigurator.configure();
         logger.setLevel(org.apache.log4j.Level.DEBUG);
 
-        final NanoSchedulerBasicTest test = new NanoSchedulerBasicTest(1000, Integer.valueOf(args[0]), 0, Integer.valueOf(args[1]));
+        final NanoSchedulerBasicTest test = new NanoSchedulerBasicTest(1000, Integer.valueOf(args[0]), 0, Integer.valueOf(args[1]), false);
         final NanoScheduler<Integer, Integer, Integer> nanoScheduler =
                 new NanoScheduler<Integer, Integer, Integer>(test.bufferSize, test.nThreads);
         nanoScheduler.setDebug(true);

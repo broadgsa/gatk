@@ -31,7 +31,6 @@ import org.broadinstitute.sting.gatk.datasources.providers.ReadBasedReferenceOrd
 import org.broadinstitute.sting.gatk.datasources.providers.ReadReferenceView;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
-import org.broadinstitute.sting.gatk.datasources.reads.ReadShard;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -60,8 +59,7 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
     final NanoScheduler<MapData, MapResult, T> nanoScheduler;
 
     public TraverseReadsNano(int nThreads) {
-        final int bufferSize = ReadShard.getReadBufferSize() + 1; // actually has 1 more than max
-        nanoScheduler = new NanoScheduler<MapData, MapResult, T>(bufferSize, nThreads);
+        nanoScheduler = new NanoScheduler<MapData, MapResult, T>(nThreads);
     }
 
     @Override

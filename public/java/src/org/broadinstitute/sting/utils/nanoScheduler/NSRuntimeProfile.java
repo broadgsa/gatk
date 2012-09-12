@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.utils.nanoScheduler;
 
-import com.google.java.contract.Ensures;
-import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.AutoFormattingTime;
 import org.broadinstitute.sting.utils.SimpleTimer;
@@ -46,7 +44,7 @@ public class NSRuntimeProfile {
     /**
      * @return the total runtime for all functions of this nano scheduler
      */
-    @Ensures("result >= 0.0")
+    //@Ensures("result >= 0.0")
     public double totalRuntimeInSeconds() {
         return inputTimer.getElapsedTime()
                 + mapTimer.getElapsedTime()
@@ -60,7 +58,7 @@ public class NSRuntimeProfile {
      * @param label the name of the timer to display.  Should be human readable
      * @param timer the timer whose elapsed time we will display
      */
-    @Requires({"label != null", "timer != null"})
+    //@Requires({"label != null", "timer != null"})
     private void log1(final Logger logger, final String label, final SimpleTimer timer) {
         final double myTimeInSec = timer.getElapsedTime();
         final double myTimePercent = myTimeInSec / totalRuntimeInSeconds() * 100;

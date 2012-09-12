@@ -1,15 +1,13 @@
 package org.broadinstitute.sting.utils.nanoScheduler;
 
 import org.broadinstitute.sting.utils.SimpleTimer;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Iterator;
-import java.util.concurrent.BlockingQueue;
 
 /**
  * Producer Thread that reads input values from an inputReads and puts them into a BlockingQueue
  */
-class InputProducer<InputType> implements Runnable {
+class InputProducer<InputType> {
     /**
      * The iterator we are using to get data from
      */
@@ -20,42 +18,32 @@ class InputProducer<InputType> implements Runnable {
      */
     final SimpleTimer inputTimer;
 
-    /**
-     * Where we put our input values for consumption
-     */
-    final BlockingQueue<InputValue> outputQueue;
-
     public InputProducer(final Iterator<InputType> inputReader,
-                         final SimpleTimer inputTimer,
-                         final BlockingQueue<InputValue> outputQueue) {
+                         final SimpleTimer inputTimer) {
         if ( inputReader == null ) throw new IllegalArgumentException("inputReader cannot be null");
         if ( inputTimer == null ) throw new IllegalArgumentException("inputTimer cannot be null");
-        if ( outputQueue == null ) throw new IllegalArgumentException("OutputQueue cannot be null");
 
         this.inputReader = inputReader;
         this.inputTimer = inputTimer;
-        this.outputQueue = outputQueue;
     }
 
-    public void run() {
-        try {
-            while ( true ) {
-                inputTimer.restart();
-                if ( ! inputReader.hasNext() ) {
-                    inputTimer.stop();
-                    break;
-                } else {
-                    final InputType input = inputReader.next();
-                    inputTimer.stop();
-                    outputQueue.put(new InputValue(input));
-                }
-            }
+    public synchronized boolean hasNextNow() {
+        return inputReader.hasNext();
+    }
 
-            // add the EOF object so our consumer knows we are done in all inputs
-            outputQueue.put(new InputValue());
-        } catch (InterruptedException ex) {
-            throw new ReviewedStingException("got execution exception", ex);
+    public synchronized InputValue next() {
+        inputTimer.restart();
+
+        final InputValue v;
+        if ( inputReader.hasNext() ) {
+            v = new InputValue(inputReader.next());
+        } else {
+            v = new InputValue();
         }
+
+        inputTimer.stop();
+
+        return v;
     }
 
     /**

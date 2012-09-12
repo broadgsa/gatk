@@ -4,7 +4,7 @@ package org.broadinstitute.sting.utils.nanoScheduler;
  * Holds the results of a map job suitable for producer/consumer threading
  * via a BlockingQueue
  */
-class MapResult<MapType> extends BlockingQueueValue<MapType> {
+class MapResult<MapType> extends BlockingQueueValue<MapType> implements Comparable<MapResult<MapType>> {
     final int jobID;
 
     /**
@@ -15,6 +15,12 @@ class MapResult<MapType> extends BlockingQueueValue<MapType> {
      */
     MapResult(final MapType datum, final int jobID) {
         super(datum);
+        this.jobID = jobID;
+        if ( jobID < 0 ) throw new IllegalArgumentException("JobID must be >= 0");
+    }
+
+    MapResult(final int jobID) {
+        super();
         this.jobID = jobID;
         if ( jobID < 0 ) throw new IllegalArgumentException("JobID must be >= 0");
     }
@@ -32,5 +38,10 @@ class MapResult<MapType> extends BlockingQueueValue<MapType> {
      */
     public int getJobID() {
         return jobID;
+    }
+
+    @Override
+    public int compareTo(MapResult<MapType> o) {
+        return Integer.valueOf(jobID).compareTo(o.getJobID());
     }
 }
