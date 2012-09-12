@@ -284,12 +284,6 @@ public class RecalibrationReport {
             else if (argument.equals("quantizing_levels"))
                 RAC.QUANTIZING_LEVELS = Integer.parseInt((String) value);
 
-            else if (argument.equals("keep_intermediate_files"))
-                RAC.KEEP_INTERMEDIATE_FILES = Boolean.parseBoolean((String) value);
-
-            else if (argument.equals("no_plots"))
-                RAC.NO_PLOTS = Boolean.parseBoolean((String) value);
-
             else if (argument.equals("recalibration_report"))
                 RAC.recalibrationReport = (value == null) ? null : new File((String) value);
 

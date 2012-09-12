@@ -49,7 +49,6 @@ public class BQSRGatherer extends Gatherer  {
 
     @Override
     public void gather(List<File> inputs, File output) {
-        RecalibrationReport generalReport = null;
         final PrintStream outputFile;
         try {
             outputFile = new PrintStream(output);
@@ -57,6 +56,7 @@ public class BQSRGatherer extends Gatherer  {
             throw new UserException.MissingArgument("output", MISSING_OUTPUT_FILE);
         }
 
+        RecalibrationReport generalReport = null;
         for (File input : inputs) {
             final RecalibrationReport inputReport = new RecalibrationReport(input);
             if (generalReport == null)
@@ -70,14 +70,12 @@ public class BQSRGatherer extends Gatherer  {
         generalReport.calculateQuantizedQualities();
 
         RecalibrationArgumentCollection RAC = generalReport.getRAC();
-        if (RAC.recalibrationReport != null && !RAC.NO_PLOTS) {
-            final File recal_out = new File(output.getName() + ".original");
+        if (RAC.recalibrationReport != null && RAC.RECAL_PDF != null) {
             final RecalibrationReport originalReport = new RecalibrationReport(RAC.recalibrationReport);
-            RecalUtils.generateRecalibrationPlot(recal_out, originalReport.getRecalibrationTables(), generalReport.getRecalibrationTables(), generalReport.getCovariates(), RAC.KEEP_INTERMEDIATE_FILES);
+            RecalUtils.generateRecalibrationPlot(RAC, originalReport.getRecalibrationTables(), generalReport.getRecalibrationTables(), generalReport.getCovariates());
         }
-        else if (!RAC.NO_PLOTS) {
-            final File recal_out = new File(output.getName() + ".recal");
-            RecalUtils.generateRecalibrationPlot(recal_out, generalReport.getRecalibrationTables(), generalReport.getCovariates(), RAC.KEEP_INTERMEDIATE_FILES);
+        else if (RAC.RECAL_PDF != null) {
+            RecalUtils.generateRecalibrationPlot(RAC, generalReport.getRecalibrationTables(), generalReport.getCovariates());
         }
 
         generalReport.output(outputFile);

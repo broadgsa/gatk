@@ -50,8 +50,6 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 
@@ -110,6 +108,7 @@ import java.util.ArrayList;
 @Requires({DataSource.READS, DataSource.REFERENCE}) // filter out all reads with zero or unavailable mapping quality
 @PartitionBy(PartitionType.LOCUS) // this walker requires both -I input.bam and -R reference.fasta
 public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeReducible<Long>, NanoSchedulable {
+
     @ArgumentCollection
     private final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection(); // all the command line arguments for BQSR and it's covariates
 
@@ -284,7 +283,7 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
         generateReport();
         logger.info("...done!");
 
-        if (!RAC.NO_PLOTS) {
+        if (RAC.RECAL_PDF != null) {
             logger.info("Generating recalibration plots...");
             generatePlots();
         }
@@ -296,10 +295,10 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
         File recalFile = getToolkit().getArguments().BQSR_RECAL_FILE;
         if (recalFile != null) {
             RecalibrationReport report = new RecalibrationReport(recalFile);
-            RecalUtils.generateRecalibrationPlot(RAC.RECAL_FILE, report.getRecalibrationTables(), recalibrationTables, requestedCovariates, RAC.KEEP_INTERMEDIATE_FILES);
+            RecalUtils.generateRecalibrationPlot(RAC, report.getRecalibrationTables(), recalibrationTables, requestedCovariates);
         }
         else
-            RecalUtils.generateRecalibrationPlot(RAC.RECAL_FILE, recalibrationTables, requestedCovariates, RAC.KEEP_INTERMEDIATE_FILES);
+            RecalUtils.generateRecalibrationPlot(RAC, recalibrationTables, requestedCovariates);
     }
 
 
@@ -313,14 +312,7 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
     }
 
     private void generateReport() {
-        PrintStream output;
-        try {
-            output = new PrintStream(RAC.RECAL_FILE);
-        } catch (FileNotFoundException e) {
-            throw new UserException.CouldNotCreateOutputFile(RAC.RECAL_FILE, "could not be created");
-        }
-
-        RecalUtils.outputRecalibrationReport(RAC, quantizationInfo, recalibrationTables, requestedCovariates, output);
+        RecalUtils.outputRecalibrationReport(RAC, quantizationInfo, recalibrationTables, requestedCovariates);
     }
 }
 

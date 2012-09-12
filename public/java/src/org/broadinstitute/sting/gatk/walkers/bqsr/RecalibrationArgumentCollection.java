@@ -28,10 +28,10 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.recalibration.RecalUtils;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
 
@@ -62,8 +62,22 @@ public class RecalibrationArgumentCollection {
      * and the raw empirical quality score calculated by phred-scaling the mismatch rate.
      */
     @Gather(BQSRGatherer.class)
-    @Output
-    public File RECAL_FILE;
+    @Output(doc = "The output recalibration table file to create", required = true)
+    public PrintStream RECAL_TABLE;
+
+    /**
+     * If not provided, then no plots will be generated (useful for queue scatter/gathering).
+     * However, we *highly* recommend that users generate these plots whenever possible for QC checking.
+     */
+    @Output(fullName = "plot_pdf_file", shortName = "plots", doc = "The output recalibration pdf file to create", required = false)
+    public PrintStream RECAL_PDF = null;
+
+    /**
+     * If not provided, then a temporary file is created and then deleted upon completion.
+     */
+    @Hidden
+    @Output(fullName = "intermediate_csv_file", shortName = "intermediate", doc = "The intermediate csv file to create", required = false)
+    public PrintStream RECAL_CSV = null;
 
     /**
      * List all implemented covariates.
@@ -166,12 +180,6 @@ public class RecalibrationArgumentCollection {
     @Hidden
     @Argument(fullName = "force_platform", shortName = "fP", required = false, doc = "If provided, the platform of EVERY read will be forced to be the provided String. Valid options are illumina, 454, and solid.")
     public String FORCE_PLATFORM = null;
-    @Hidden
-    @Argument(fullName = "keep_intermediate_files", shortName = "k", required = false, doc ="does not remove the temporary csv file created to generate the plots")
-    public boolean KEEP_INTERMEDIATE_FILES = false;
-    @Hidden
-    @Argument(fullName = "no_plots", shortName = "np", required = false, doc = "does not generate any plots -- useful for queue scatter/gathering")
-    public boolean NO_PLOTS = false;
 
     public File recalibrationReport = null;
 
@@ -205,10 +213,6 @@ public class RecalibrationArgumentCollection {
         argumentsTable.set("force_platform", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, FORCE_PLATFORM);
         argumentsTable.addRowID("quantizing_levels", true);
         argumentsTable.set("quantizing_levels", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, QUANTIZING_LEVELS);
-        argumentsTable.addRowID("keep_intermediate_files", true);
-        argumentsTable.set("keep_intermediate_files", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, KEEP_INTERMEDIATE_FILES);
-        argumentsTable.addRowID("no_plots", true);
-        argumentsTable.set("no_plots", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, NO_PLOTS);
         argumentsTable.addRowID("recalibration_report", true);
         argumentsTable.set("recalibration_report", RecalUtils.ARGUMENT_VALUE_COLUMN_NAME, recalibrationReport == null ? "null" : recalibrationReport.getAbsolutePath());
         argumentsTable.addRowID("binary_tag_name", true);
