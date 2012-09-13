@@ -190,7 +190,6 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
             allCreatedTraversalEngines.add(traversalEngine);
             availableTraversalEngines.add(traversalEngine);
         }
-        logger.info("Creating " + threadAllocation.getNumDataThreads() + " traversal engines");
 
         // Create our progress meter
         this.progressMeter = new ProgressMeter(progressLogFile,

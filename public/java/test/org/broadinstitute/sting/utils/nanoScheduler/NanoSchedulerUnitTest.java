@@ -21,6 +21,7 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class NanoSchedulerUnitTest extends BaseTest {
+    private final static boolean debug = false;
     public static final int NANO_SCHEDULE_MAX_RUNTIME = 60000;
 
     private static class Map2x implements NSMapFunction<Integer, Integer> {
@@ -102,10 +103,14 @@ public class NanoSchedulerUnitTest extends BaseTest {
         public ReduceSum makeReduce() { return new ReduceSum(); }
 
         public NanoScheduler<Integer, Integer, Integer> makeScheduler() {
+            final NanoScheduler <Integer, Integer, Integer> nano;
             if ( bufferSize == -1 )
-                return new NanoScheduler<Integer, Integer, Integer>(nThreads);
+                nano = new NanoScheduler<Integer, Integer, Integer>(nThreads);
             else
-                return new NanoScheduler<Integer, Integer, Integer>(bufferSize, nThreads);
+                nano = new NanoScheduler<Integer, Integer, Integer>(bufferSize, nThreads);
+
+            nano.setDebug(debug);
+            return nano;
         }
     }
 

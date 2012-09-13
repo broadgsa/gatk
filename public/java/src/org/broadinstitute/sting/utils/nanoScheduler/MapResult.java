@@ -4,7 +4,7 @@ package org.broadinstitute.sting.utils.nanoScheduler;
  * Holds the results of a map job suitable for producer/consumer threading
  * via a BlockingQueue
  */
-class MapResult<MapType> extends BlockingQueueValue<MapType> implements Comparable<MapResult<MapType>> {
+class MapResult<MapType> extends EOFMarkedValue<MapType> implements Comparable<MapResult<MapType>> {
     final int jobID;
 
     /**
@@ -40,8 +40,19 @@ class MapResult<MapType> extends BlockingQueueValue<MapType> implements Comparab
         return jobID;
     }
 
+    /**
+     * Compare these MapResults in order of JobID.
+     *
+     * @param o
+     * @return
+     */
     @Override
     public int compareTo(MapResult<MapType> o) {
         return Integer.valueOf(jobID).compareTo(o.getJobID());
+    }
+
+    @Override
+    public String toString() {
+        return "[MapResult id=" + jobID + "]";
     }
 }

@@ -3,7 +3,7 @@ package org.broadinstitute.sting.utils.nanoScheduler;
 import com.google.java.contract.Invariant;
 
 /**
- * Wrapper to hold data for a blocking queue, distinguishing an EOF marker from a real object
+ * Wrapper to hold data that distinguishing an special EOF marker from a real object
  *
  * The only way to tell in a consumer thread that a blocking queue has no more data ever
  * coming down the pipe is to pass in a "poison" or EOF object.  This class provides
@@ -14,13 +14,13 @@ import com.google.java.contract.Invariant;
  * BlockingQueue q
  * producer:
  *   while ( x has items )
- *      q.put(new BlockingQueueValue(x))
- *   q.put(new BlockingQueueValue())
+ *      q.put(new EOFMarkedValue(x))
+ *   q.put(new EOFMarkedValue())
  *
  * Consumer:
  *   while ( true )
  *       value = q.take()
- *       if ( value.isLast() )
+ *       if ( value.isEOFMarker() )
  *          break
  *       else
  *          do something useful with value
@@ -30,8 +30,8 @@ import com.google.java.contract.Invariant;
  * Date: 9/6/12
  * Time: 3:08 PM
  */
-@Invariant("! isLast || value == null")
-class BlockingQueueValue<T> {
+@Invariant("! isEOFMarker() || value == null")
+class EOFMarkedValue<T> {
     /**
      * True if this is the EOF marker object
      */
@@ -43,18 +43,18 @@ class BlockingQueueValue<T> {
     final private T value;
 
     /**
-     * Create a new BlockingQueueValue containing a real value, where last is false
+     * Create a new EOFMarkedValue containing a real value, where last is false
      * @param value
      */
-    BlockingQueueValue(final T value) {
+    EOFMarkedValue(final T value) {
         isLast = false;
         this.value = value;
     }
 
     /**
-     * Create a new BlockingQueueValue that is the last item
+     * Create a new EOFMarkedValue that is the last item
      */
-    BlockingQueueValue() {
+    EOFMarkedValue() {
         isLast = true;
         this.value = null;
     }
@@ -64,18 +64,18 @@ class BlockingQueueValue<T> {
      *
      * @return true if so, else false
      */
-    public boolean isLast() {
+    public boolean isEOFMarker() {
         return isLast;
     }
 
     /**
-     * Get the value held by this BlockingQueueValue
+     * Get the value held by this EOFMarkedValue
      *
      * @return the value
      * @throws IllegalStateException if this is the last item
      */
     public T getValue() {
-        if ( isLast() )
+        if ( isEOFMarker() )
             throw new IllegalStateException("Cannot get value for last object");
         return value;
     }
