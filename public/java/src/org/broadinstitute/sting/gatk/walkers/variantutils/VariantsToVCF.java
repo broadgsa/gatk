@@ -246,7 +246,6 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         }
 
         vc = VariantContextUtils.purgeUnallowedGenotypeAttributes(vc, allowedGenotypeFormatStrings);
-        vc = VariantContextUtils.addMissingSamples(vc, samples);
         vcfwriter.add(vc);
     }
 

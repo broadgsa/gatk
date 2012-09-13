@@ -150,7 +150,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      * Retrieves the SAM file to (ultimately) be created.
      * @return The SAM file.  Must not be null.
      */
-    public File getSAMFile() {
+    public File getOutputFile() {
         return samFile;
     }
 
@@ -162,7 +162,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
         simplifyBAM = v;
     }
 
-    public OutputStream getSAMOutputStream() {
+    public OutputStream getOutputStream() {
         return samOutputStream;
     }
 
@@ -220,7 +220,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
 
     /**
      * Gets whether to generate an md5 on-the-fly for this BAM.
-     * @return True generates the md5.  False means skip writing the file.
+     * @param generateMD5   True generates the md5.  False means skip writing the file.
      */
     public void setGenerateMD5(boolean generateMD5) {
         if(writeStarted)

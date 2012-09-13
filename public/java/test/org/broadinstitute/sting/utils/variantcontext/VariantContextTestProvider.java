@@ -596,6 +596,51 @@ public class VariantContextTestProvider {
         return TEST_DATAs;
     }
 
+    public static void testReaderWriterWithMissingGenotypes(final VariantContextIOTest tester, final VariantContextTestData data) throws IOException {
+        final int nSamples = data.header.getNGenotypeSamples();
+        if ( nSamples > 2 ) {
+            for ( final VariantContext vc : data.vcs )
+                if ( vc.isSymbolic() )
+                    // cannot handle symbolic alleles because they may be weird non-call VCFs
+                    return;
+
+            final File tmpFile = File.createTempFile("testReaderWriter", tester.getExtension());
+            tmpFile.deleteOnExit();
+
+            // write expected to disk
+            final EnumSet<Options> options = EnumSet.of(Options.INDEX_ON_THE_FLY);
+            final VariantContextWriter writer = tester.makeWriter(tmpFile, options);
+
+            final Set<String> samplesInVCF = new HashSet<String>(data.header.getGenotypeSamples());
+            final List<String> missingSamples = Arrays.asList("MISSING1", "MISSING2");
+            final List<String> allSamples = new ArrayList<String>(missingSamples);
+            allSamples.addAll(samplesInVCF);
+
+            final VCFHeader header = new VCFHeader(data.header.getMetaDataInInputOrder(), allSamples);
+            writeVCsToFile(writer, header, data.vcs);
+
+            // ensure writing of expected == actual
+            final Pair<VCFHeader, Iterable<VariantContext>> p = readAllVCs(tmpFile, tester.makeCodec());
+            final Iterable<VariantContext> actual = p.getSecond();
+
+            int i = 0;
+            for ( final VariantContext readVC : actual ) {
+                if ( readVC == null ) continue; // sometimes we read null records...
+                final VariantContext expected = data.vcs.get(i++);
+                for ( final Genotype g : readVC.getGenotypes() ) {
+                    Assert.assertTrue(allSamples.contains(g.getSampleName()));
+                    if ( samplesInVCF.contains(g.getSampleName()) ) {
+                        assertEquals(g, expected.getGenotype(g.getSampleName()));
+                    } else {
+                        // missing
+                        Assert.assertTrue(g.isNoCall());
+                    }
+                }
+            }
+
+        }
+    }
+
     public static void testReaderWriter(final VariantContextIOTest tester, final VariantContextTestData data) throws IOException {
         testReaderWriter(tester, data.header, data.vcs, data.vcs, true);
     }

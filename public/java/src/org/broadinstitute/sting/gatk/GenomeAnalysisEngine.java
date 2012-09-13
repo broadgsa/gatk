@@ -63,6 +63,7 @@ import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import java.io.File;
+import java.io.OutputStream;
 import java.util.*;
 
 /**
