@@ -8,10 +8,12 @@ import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.Semaphore;
 
 /**
 * UnitTests for the InputProducer
@@ -47,20 +49,21 @@ public class InputProducerUnitTest extends BaseTest {
 
         final ExecutorService es = Executors.newSingleThreadExecutor();
 
-        Assert.assertEquals(ip.getNElementsInInputStream(), -1, "InputProvider told me that the queue was done, but I haven't started reading yet");
+        Assert.assertFalse(ip.allInputsHaveBeenRead(), "InputProvider said that all inputs have been read, but I haven't started reading yet");
+        Assert.assertEquals(ip.getNumInputValues(), -1, "InputProvider told me that the queue was done, but I haven't started reading yet");
 
         es.submit(ip);
 
         int lastValue = -1;
         int nRead = 0;
         while ( true ) {
-            final int nTotalElements = ip.getNElementsInInputStream();
+            final int nTotalElements = ip.getNumInputValues();
             final int observedQueueSize = readQueue.size();
             Assert.assertTrue(observedQueueSize <= queueSize,
                     "Reader is enqueuing more elements " + observedQueueSize + " than allowed " + queueSize);
 
             if ( nRead + observedQueueSize < nElements )
-                Assert.assertEquals(nTotalElements, -1, "getNElementsInInputStream should have returned -1 with not all elements read");
+                Assert.assertEquals(nTotalElements, -1, "getNumInputValues should have returned -1 with not all elements read");
             // note, cannot test else case because elements input could have emptied between calls
 
             final InputProducer<Integer>.InputValue value = readQueue.take();
@@ -77,7 +80,9 @@ public class InputProducerUnitTest extends BaseTest {
             }
         }
 
-        Assert.assertEquals(ip.getNElementsInInputStream(), nElements, "Wrong number of total elements getNElementsInInputStream");
+        Assert.assertTrue(ip.allInputsHaveBeenRead(), "InputProvider said that all inputs haven't been read, but I read them all");
+        Assert.assertEquals(ip.getNumInputValues(), nElements, "Wrong number of total elements getNumInputValues");
+        es.shutdownNow();
     }
 
     @Test(enabled = true, dataProvider = "InputProducerTest", timeOut = NanoSchedulerUnitTest.NANO_SCHEDULE_MAX_RUNTIME)
@@ -95,10 +100,88 @@ public class InputProducerUnitTest extends BaseTest {
 
         ip.waitForDone();
 
-        Assert.assertEquals(ip.getNElementsInInputStream(), nElements, "InputProvider told me that the queue was done, but I haven't started reading yet");
+        Assert.assertEquals(ip.getNumInputValues(), nElements, "InputProvider told me that the queue was done, but I haven't started reading yet");
         Assert.assertEquals(readQueue.size(), nElements + 1, "readQueue should have had all elements read into it");
     }
 
-    // TODO -- add a test that really tests ip.getNElementsInInputStream
-    // Create an iterator, containing a semaphore, that allows us to step through the reader
+    final static class BlockingIterator<T> implements Iterator<T> {
+        final Semaphore blockNext = new Semaphore(0);
+        final Semaphore blockOnNext = new Semaphore(0);
+        final Iterator<T> underlyingIterator;
+
+        BlockingIterator(Iterator<T> underlyingIterator) {
+            this.underlyingIterator = underlyingIterator;
+        }
+
+        public void allowNext() {
+            blockNext.release(1);
+        }
+
+        public void blockTillNext() throws InterruptedException {
+            blockOnNext.acquire(1);
+        }
+
+        @Override
+        public boolean hasNext() {
+            return underlyingIterator.hasNext();
+        }
+
+        @Override
+        public T next() {
+            try {
+                blockNext.acquire(1);
+                T value = underlyingIterator.next();
+                blockOnNext.release(1);
+                return value;
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("x");
+        }
+    }
+
+    // TODO -- this doesn't work because the synchronization in InputProvider...
+//    @Test(enabled = false, dataProvider = "InputProducerTest", dependsOnMethods = "testInputProducer", timeOut = NanoSchedulerUnitTest.NANO_SCHEDULE_MAX_RUNTIME)
+//    public void testInputProducerSingleStepIterator(final int nElements, final int queueSize) throws InterruptedException {
+//
+//        final List<Integer> elements = new ArrayList<Integer>(nElements);
+//        for ( int i = 0; i < nElements; i++ ) elements.add(i);
+//
+//        //final BlockingIterator<Integer> myIterator = new BlockingIterator<Integer>(elements.iterator());
+//
+//        final LinkedBlockingDeque<InputProducer<Integer>.InputValue> readQueue =
+//                new LinkedBlockingDeque<InputProducer<Integer>.InputValue>(queueSize);
+//
+//        final InputProducer<Integer> ip = new InputProducer<Integer>(elements.iterator(), new SimpleTimer(), readQueue);
+//
+//        final ExecutorService es = Executors.newSingleThreadExecutor();
+//
+//        Assert.assertFalse(ip.allInputsHaveBeenRead(), "InputProvider said that all inputs have been read, but I haven't started reading yet");
+//        Assert.assertEquals(ip.getNumInputValues(), -1, "InputProvider told me that the queue was done, but I haven't started reading yet");
+//
+//        //es.submit(ip);
+//
+//        for ( int nCycles = 0; nCycles < nElements; nCycles++ ) {
+//            Assert.assertFalse(ip.allInputsHaveBeenRead(), "InputProvider said that all inputs have been read, but I'm not down reading yet");
+//            Assert.assertEquals(ip.getNumInputValues(), -1, "InputProvider told me that the queue was done, but I'm not down reading yet");
+//
+////            final int observedQueueSize = readQueue.size();
+////            Assert.assertEquals(observedQueueSize, nCycles, "Reader enqueued " + observedQueueSize + " elements but expected expected " + nCycles);
+//
+//            //myIterator.allowNext();
+//            //myIterator.blockTillNext();
+//            ip.runOne();
+//        }
+//
+//        //myIterator.allowNext();
+//        //Thread.sleep(100);
+//
+//        Assert.assertTrue(ip.allInputsHaveBeenRead(), "InputProvider said that all inputs haven't been read, but I read them all");
+//        Assert.assertEquals(ip.getNumInputValues(), nElements, "Wrong number of total elements getNumInputValues");
+//        es.shutdownNow();
+//    }
 }

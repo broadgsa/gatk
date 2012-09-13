@@ -30,7 +30,7 @@ class InputProducer<InputType> implements Runnable {
      * Have we read the last value from inputReader?
      *
      * Must be a local variable, as inputReader.hasNext() can actually end up doing a lot
-     * of work, and the method getNElementsInInputStream() is supposed to be called not in the
+     * of work, and the method getNumInputValues() is supposed to be called not in the
      * thread executing the reading of values but in the thread enqueuing results
      */
     boolean readLastValue = false;
@@ -61,8 +61,17 @@ class InputProducer<InputType> implements Runnable {
      *
      * @return the total number of elements in input stream, or -1 if some are still to be read
      */
-    public synchronized int getNElementsInInputStream() {
-        return readLastValue ? nRead : -1;
+    public synchronized int getNumInputValues() {
+        return allInputsHaveBeenRead() ? nRead : -1;
+    }
+
+    /**
+     * Returns true if all of the elements have been read from the input stream
+     *
+     * @return true if all of the elements have been read from the input stream
+     */
+    public synchronized boolean allInputsHaveBeenRead() {
+        return readLastValue;
     }
 
     /**
@@ -100,22 +109,26 @@ class InputProducer<InputType> implements Runnable {
     public void run() {
         try {
             while ( true ) {
-                final InputType value = readNextItem();
-                if ( value == null ) {
-                    // add the EOF marker
-                    // add the EOF object so our consumer knows we are done in all inputs
-                    outputQueue.put(new InputValue());
-
+                final InputValue inputValue = runOne();
+                outputQueue.put(inputValue);
+                if ( inputValue.isEOFMarker() )
                     break;
-                } else {
-                    // add the actual value
-                    outputQueue.put(new InputValue(value));
-                }
             }
 
             latch.countDown();
         } catch (InterruptedException ex) {
             throw new ReviewedStingException("got execution exception", ex);
+        }
+    }
+
+    protected InputValue runOne() throws InterruptedException {
+        final InputType value = readNextItem();
+        if ( value == null ) {
+            // add the EOF object so our consumer knows we are done in all inputs
+            return new InputValue();
+        } else {
+            // add the actual value
+            return new InputValue(value);
         }
     }
 

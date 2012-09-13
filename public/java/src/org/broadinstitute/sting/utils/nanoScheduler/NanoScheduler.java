@@ -383,7 +383,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      * @return
      */
     private boolean continueToSubmitJobs(final int nJobsSubmitted, final InputProducer<InputType> inputProducer) {
-        final int nReadItems = inputProducer.getNElementsInInputStream();
+        final int nReadItems = inputProducer.getNumInputValues();
         return nReadItems == -1 || nJobsSubmitted < nReadItems;
     }
 
