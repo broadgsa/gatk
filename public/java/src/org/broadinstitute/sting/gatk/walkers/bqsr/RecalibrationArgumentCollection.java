@@ -81,7 +81,7 @@ public class RecalibrationArgumentCollection {
     public File RECAL_CSV_FILE = null;
 
     /**
-     * List all implemented covariates.
+     * Note that the --list argument requires a fully resolved and correct command-line to work.
      */
     @Argument(fullName = "list", shortName = "ls", doc = "List the available covariates and exit", required = false)
     public boolean LIST_ONLY = false;
