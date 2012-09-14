@@ -161,6 +161,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     @Argument(fullName="useAllAnnotations", shortName="all", doc="Use all possible annotations (not for the faint of heart)", required=false)
     protected Boolean USE_ALL_ANNOTATIONS = false;
 
+    /**
+     * Note that the --list argument requires a fully resolved and correct command-line to work.
+     */
     @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit")
     protected Boolean LIST = false;
 

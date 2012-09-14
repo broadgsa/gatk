@@ -642,14 +642,15 @@ public class VariantContext implements Feature { // to enable tribble integratio
     }
 
     /**
-     * Returns the maximum ploidy of all samples in this VC, or -1 if there are no genotypes
+     * Returns the maximum ploidy of all samples in this VC, or default if there are no genotypes
      *
      * This function is caching, so it's only expensive on the first call
      *
-     * @return -1, or the max ploidy
+     * @param defaultPloidy the default ploidy, if all samples are no-called
+     * @return default, or the max ploidy
      */
-    public int getMaxPloidy() {
-        return genotypes.getMaxPloidy();
+    public int getMaxPloidy(final int defaultPloidy) {
+        return genotypes.getMaxPloidy(defaultPloidy);
     }
 
     /**

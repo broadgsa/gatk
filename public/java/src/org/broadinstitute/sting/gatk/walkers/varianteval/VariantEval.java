@@ -126,7 +126,9 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
     @Input(fullName="goldStandard", shortName = "gold", doc="Evaluations that count calls at sites of true variation (e.g., indel calls) will use this argument as their gold standard for comparison", required=false)
     public RodBinding<VariantContext> goldStandard = null;
 
-    // Help arguments
+    /**
+     * Note that the --list argument requires a fully resolved and correct command-line to work.
+     */
     @Argument(fullName="list", shortName="ls", doc="List the available eval modules and exit", required=false)
     protected Boolean LIST = false;
 
