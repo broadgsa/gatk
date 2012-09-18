@@ -135,8 +135,16 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      */
     public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, ThreadAllocation threadAllocation) {
         if ( threadAllocation.isRunningInParallelMode() ) {
-            logger.info(String.format("Running the GATK in parallel mode with %d CPU thread(s) for each of %d data thread(s)",
-                    threadAllocation.getNumCPUThreadsPerDataThread(), threadAllocation.getNumDataThreads()));
+            logger.info(String.format("Running the GATK in parallel mode with %d total threads, " +
+                    "%d CPU thread(s) for each of %d data thread(s), of %d processors available on this machine",
+                    threadAllocation.getTotalNumThreads(),
+                    threadAllocation.getNumCPUThreadsPerDataThread(),
+                    threadAllocation.getNumDataThreads(),
+                    Runtime.getRuntime().availableProcessors()));
+            if ( threadAllocation.getTotalNumThreads() > Runtime.getRuntime().availableProcessors() )
+                logger.warn(String.format("Number of requested GATK threads %d is more than the number of " +
+                        "available processors on this machine %d", threadAllocation.getTotalNumThreads(),
+                        Runtime.getRuntime().availableProcessors()));
         }
 
         if ( threadAllocation.getNumDataThreads() > 1 ) {
