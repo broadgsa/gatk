@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.utils.nanoScheduler;
 
-import com.google.java.contract.Invariant;
-
 /**
  * Wrapper to hold data that distinguishing an special EOF marker from a real object
  *
@@ -30,7 +28,7 @@ import com.google.java.contract.Invariant;
  * Date: 9/6/12
  * Time: 3:08 PM
  */
-@Invariant("! isEOFMarker() || value == null")
+//@Invariant("! isEOFMarker() || value == null")
 class EOFMarkedValue<T> {
     /**
      * True if this is the EOF marker object
