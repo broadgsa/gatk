@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.utils.nanoScheduler;
 
-import com.google.java.contract.Ensures;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.SimpleTimer;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -187,7 +186,7 @@ class InputProducer<InputType> implements Runnable {
          *
          * @return ID
          */
-        @Ensures({"result.isEOFMarker()", "result.getId() == getId() + 1"})
+        //@Ensures({"result.isEOFMarker()", "result.getId() == getId() + 1"})
         public InputValue nextEOF() {
             if ( ! isEOFMarker() )
                 throw new IllegalArgumentException("Cannot request next EOF marker for non-EOF marker InputValue");
