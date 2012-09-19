@@ -88,11 +88,6 @@ public class ReducerUnitTest extends BaseTest {
         if ( groupSize == -1 )
             groupSize = allJobs.size();
 
-        int lastJobID = -1;
-        for ( final MapResult<Integer> job : allJobs ) {
-            lastJobID = Math.max(job.getJobID(), lastJobID);
-        }
-
         final PriorityBlockingQueue<MapResult<Integer>> mapResultsQueue = new PriorityBlockingQueue<MapResult<Integer>>();
 
         final List<List<MapResult<Integer>>> jobGroups = Utils.groupList(allJobs, groupSize);
@@ -122,9 +117,9 @@ public class ReducerUnitTest extends BaseTest {
 
             Assert.assertFalse(reducer.latchIsReleased(), "Latch should be closed at the start");
 
-            if ( jobGroupCount == 0 && lastJobID != -1 && setJobIDAtStart ) {
+            if ( jobGroupCount == 0 && setJobIDAtStart ) {
                 // only can do the setJobID if jobs cannot be submitted out of order
-                reducer.setLastJobID(lastJobID);
+                reducer.setTotalJobCount(allJobs.size());
                 Assert.assertFalse(reducer.latchIsReleased(), "Latch should be closed even after setting last job if we haven't processed anything");
             }
 
@@ -146,10 +141,8 @@ public class ReducerUnitTest extends BaseTest {
             Assert.assertTrue(reducer.latchIsReleased(), "Latch should be released after reducing with last job id being set");
         else {
             Assert.assertFalse(reducer.latchIsReleased(), "Latch should be closed after reducing without last job id being set");
-            if ( lastJobID != -1 ) {
-                reducer.setLastJobID(lastJobID);
-                Assert.assertTrue(reducer.latchIsReleased(), "Latch should be released after reducing after setting last job id ");
-            }
+            reducer.setTotalJobCount(allJobs.size());
+            Assert.assertTrue(reducer.latchIsReleased(), "Latch should be released after reducing after setting last job id ");
         }
 
         Assert.assertEquals(reduce.nRead, allJobs.size(), "number of read values not all of the values in the reducer queue");
@@ -163,8 +156,8 @@ public class ReducerUnitTest extends BaseTest {
 
         final Reducer<Integer, Integer> reducer = new Reducer<Integer, Integer>(new ReduceSumTest(), new SimpleTimer(), 0);
 
-        reducer.setLastJobID(10);
-        reducer.setLastJobID(15);
+        reducer.setTotalJobCount(10);
+        reducer.setTotalJobCount(15);
     }
 
     public class ReduceSumTest implements NSReduceFunction<Integer, Integer> {

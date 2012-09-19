@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.nanoScheduler;
 
+import com.google.java.contract.Ensures;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.SimpleTimer;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -11,6 +13,8 @@ import java.util.concurrent.CountDownLatch;
  * Producer Thread that reads input values from an inputReads and puts them into an output queue
  */
 class InputProducer<InputType> implements Runnable {
+    private final static Logger logger = Logger.getLogger(InputProducer.class);
+
     /**
      * The iterator we are using to get data from
      */
@@ -36,6 +40,7 @@ class InputProducer<InputType> implements Runnable {
     boolean readLastValue = false;
 
     int nRead = 0;
+    int inputID = -1;
 
     /**
      * A latch used to block threads that want to start up only when all of the values
@@ -109,26 +114,24 @@ class InputProducer<InputType> implements Runnable {
     public void run() {
         try {
             while ( true ) {
-                final InputValue inputValue = runOne();
-                outputQueue.put(inputValue);
-                if ( inputValue.isEOFMarker() )
+                final InputType value = readNextItem();
+
+                if ( value == null ) {
+                    // add the EOF object so our consumer knows we are done in all inputs
+                    // note that we do not increase inputID here, so that variable indicates the ID
+                    // of the last real value read from the queue
+                    outputQueue.put(new InputValue(inputID + 1));
                     break;
+                } else {
+                    // add the actual value to the outputQueue
+                    outputQueue.put(new InputValue(++inputID, value));
+                }
             }
 
             latch.countDown();
-        } catch (InterruptedException ex) {
+        } catch (Exception ex) {
+            logger.warn("Got exception " + ex);
             throw new ReviewedStingException("got execution exception", ex);
-        }
-    }
-
-    protected InputValue runOne() throws InterruptedException {
-        final InputType value = readNextItem();
-        if ( value == null ) {
-            // add the EOF object so our consumer knows we are done in all inputs
-            return new InputValue();
-        } else {
-            // add the actual value
-            return new InputValue(value);
         }
     }
 
@@ -146,9 +149,49 @@ class InputProducer<InputType> implements Runnable {
 
     /**
      * Helper class that contains a read value suitable for EOF marking in a BlockingQueue
+     *
+     * This class also contains an ID, an integer incrementing from 0 to N, for N total
+     * values in the input stream.  This ID indicates which element in the element stream this
+     * InputValue corresponds to.  Necessary for tracking and ordering results by input position.
+     *
+     * Note that EOF markers have IDs > N, and ID values >> N can occur if many EOF markers
+     * are enqueued in the outputQueue.
      */
     class InputValue extends EOFMarkedValue<InputType> {
-        private InputValue(InputType datum) { super(datum); }
-        private InputValue() { }
+        final int id;
+
+        private InputValue(final int id, InputType datum) {
+            super(datum);
+            if ( id < 0 ) throw new IllegalArgumentException("id must be >= 0");
+            this.id = id;
+        }
+        private InputValue(final int id) {
+            super();
+            if ( id < 0 ) throw new IllegalArgumentException("id must be >= 0");
+            this.id = id;
+        }
+
+        /**
+         * Returns the ID of this input marker
+         * @return id >= 0
+         */
+        public int getId() {
+            return id;
+        }
+
+        /**
+         * Create another EOF marker with ID + 1 to this one.
+         *
+         * Useful in the case where we need to enqueue another EOF marker for future jobs and we
+         * want them to have a meaningful ID, one greater than the last one.
+         *
+         * @return ID
+         */
+        @Ensures({"result.isEOFMarker()", "result.getId() == getId() + 1"})
+        public InputValue nextEOF() {
+            if ( ! isEOFMarker() )
+                throw new IllegalArgumentException("Cannot request next EOF marker for non-EOF marker InputValue");
+            return new InputValue(getId() + 1);
+        }
     }
 }

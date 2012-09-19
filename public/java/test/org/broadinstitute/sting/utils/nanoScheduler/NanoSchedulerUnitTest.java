@@ -121,7 +121,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
 //            for ( final int nt : Arrays.asList(1, 2, 4) ) {
 //                for ( final int start : Arrays.asList(0) ) {
 //                    for ( final int end : Arrays.asList(0, 1, 2) ) {
-//                        exampleTest = new NanoSchedulerBasicTest(bufferSize, nt, start, end);
+//                        exampleTest = new NanoSchedulerBasicTest(bufferSize, nt, start, end, false);
 //                    }
 //                }
 //            }

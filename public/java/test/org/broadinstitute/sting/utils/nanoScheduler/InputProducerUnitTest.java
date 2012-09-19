@@ -143,45 +143,4 @@ public class InputProducerUnitTest extends BaseTest {
             throw new UnsupportedOperationException("x");
         }
     }
-
-    // TODO -- this doesn't work because the synchronization in InputProvider...
-//    @Test(enabled = false, dataProvider = "InputProducerTest", dependsOnMethods = "testInputProducer", timeOut = NanoSchedulerUnitTest.NANO_SCHEDULE_MAX_RUNTIME)
-//    public void testInputProducerSingleStepIterator(final int nElements, final int queueSize) throws InterruptedException {
-//
-//        final List<Integer> elements = new ArrayList<Integer>(nElements);
-//        for ( int i = 0; i < nElements; i++ ) elements.add(i);
-//
-//        //final BlockingIterator<Integer> myIterator = new BlockingIterator<Integer>(elements.iterator());
-//
-//        final LinkedBlockingDeque<InputProducer<Integer>.InputValue> readQueue =
-//                new LinkedBlockingDeque<InputProducer<Integer>.InputValue>(queueSize);
-//
-//        final InputProducer<Integer> ip = new InputProducer<Integer>(elements.iterator(), new SimpleTimer(), readQueue);
-//
-//        final ExecutorService es = Executors.newSingleThreadExecutor();
-//
-//        Assert.assertFalse(ip.allInputsHaveBeenRead(), "InputProvider said that all inputs have been read, but I haven't started reading yet");
-//        Assert.assertEquals(ip.getNumInputValues(), -1, "InputProvider told me that the queue was done, but I haven't started reading yet");
-//
-//        //es.submit(ip);
-//
-//        for ( int nCycles = 0; nCycles < nElements; nCycles++ ) {
-//            Assert.assertFalse(ip.allInputsHaveBeenRead(), "InputProvider said that all inputs have been read, but I'm not down reading yet");
-//            Assert.assertEquals(ip.getNumInputValues(), -1, "InputProvider told me that the queue was done, but I'm not down reading yet");
-//
-////            final int observedQueueSize = readQueue.size();
-////            Assert.assertEquals(observedQueueSize, nCycles, "Reader enqueued " + observedQueueSize + " elements but expected expected " + nCycles);
-//
-//            //myIterator.allowNext();
-//            //myIterator.blockTillNext();
-//            ip.runOne();
-//        }
-//
-//        //myIterator.allowNext();
-//        //Thread.sleep(100);
-//
-//        Assert.assertTrue(ip.allInputsHaveBeenRead(), "InputProvider said that all inputs haven't been read, but I read them all");
-//        Assert.assertEquals(ip.getNumInputValues(), nElements, "Wrong number of total elements getNumInputValues");
-//        es.shutdownNow();
-//    }
 }
