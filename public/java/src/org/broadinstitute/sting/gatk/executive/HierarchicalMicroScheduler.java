@@ -11,7 +11,7 @@ import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.TraversalErrorManager;
+import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.threading.EfficiencyMonitoringThreadFactory;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
@@ -46,7 +46,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     /**
      * An exception that's occurred in this traversal.  If null, no exception has occurred.
      */
-    final TraversalErrorManager errorTracker = new TraversalErrorManager();
+    final MultiThreadedErrorTracker errorTracker = new MultiThreadedErrorTracker();
 
     /**
      * Queue of incoming shards.
@@ -351,7 +351,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
      * Allows other threads to notify of an error during traversal.
      */
     protected synchronized RuntimeException notifyOfTraversalError(Throwable error) {
-        return errorTracker.notifyOfTraversalError(error);
+        return errorTracker.notifyOfError(error);
     }
 
     /** A small wrapper class that provides the TreeReducer interface along with the FutureTask semantics. */

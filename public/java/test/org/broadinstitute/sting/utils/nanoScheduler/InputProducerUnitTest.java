@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.nanoScheduler;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
 import org.broadinstitute.sting.utils.SimpleTimer;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -45,7 +46,7 @@ public class InputProducerUnitTest extends BaseTest {
         final LinkedBlockingDeque<InputProducer<Integer>.InputValue> readQueue =
                 new LinkedBlockingDeque<InputProducer<Integer>.InputValue>(queueSize);
 
-        final InputProducer<Integer> ip = new InputProducer<Integer>(elements.iterator(), new SimpleTimer(), readQueue);
+        final InputProducer<Integer> ip = new InputProducer<Integer>(elements.iterator(), new MultiThreadedErrorTracker(), new SimpleTimer(), readQueue);
 
         final ExecutorService es = Executors.newSingleThreadExecutor();
 
@@ -93,7 +94,7 @@ public class InputProducerUnitTest extends BaseTest {
         final LinkedBlockingDeque<InputProducer<Integer>.InputValue> readQueue =
                 new LinkedBlockingDeque<InputProducer<Integer>.InputValue>();
 
-        final InputProducer<Integer> ip = new InputProducer<Integer>(elements.iterator(), new SimpleTimer(), readQueue);
+        final InputProducer<Integer> ip = new InputProducer<Integer>(elements.iterator(), new MultiThreadedErrorTracker(), new SimpleTimer(), readQueue);
 
         final ExecutorService es = Executors.newSingleThreadExecutor();
         es.submit(ip);

@@ -5,6 +5,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.SimpleTimer;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.Assert;
+import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -116,6 +117,12 @@ public class NanoSchedulerUnitTest extends BaseTest {
     }
 
     static NanoSchedulerBasicTest exampleTest = null;
+
+    @BeforeSuite
+    public void setUp() throws Exception {
+        exampleTest = new NanoSchedulerBasicTest(10, 2, 1, 10, false);
+    }
+
     @DataProvider(name = "NanoSchedulerBasicTest")
     public Object[][] createNanoSchedulerBasicTest() {
 //        for ( final int bufferSize : Arrays.asList(1, 10) ) {
@@ -134,7 +141,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
                     for ( final int end : Arrays.asList(0, 1, 2, 11, 100, 10000, 100000) ) {
                         for ( final boolean addDelays : Arrays.asList(true, false) ) {
                             if ( end < 1000 )
-                                exampleTest = new NanoSchedulerBasicTest(bufferSize, nt, start, end, addDelays);
+                                new NanoSchedulerBasicTest(bufferSize, nt, start, end, addDelays);
                         }
                     }
                 }
@@ -221,12 +228,12 @@ public class NanoSchedulerUnitTest extends BaseTest {
         nanoScheduler.execute(exampleTest.makeReader(), exampleTest.makeMap(), exampleTest.initReduce(), exampleTest.makeReduce());
     }
 
-    @Test(expectedExceptions = NullPointerException.class, timeOut = 1000)
+    @Test(expectedExceptions = NullPointerException.class, timeOut = 10000)
     public void testInputErrorIsThrown_NPE() throws InterruptedException {
         executeTestErrorThrowingInput(new NullPointerException());
     }
 
-    @Test(expectedExceptions = NullPointerException.class, timeOut = 1000)
+    @Test(expectedExceptions = ReviewedStingException.class, timeOut = 10000)
     public void testInputErrorIsThrown_RSE() throws InterruptedException {
         executeTestErrorThrowingInput(new ReviewedStingException("test"));
     }

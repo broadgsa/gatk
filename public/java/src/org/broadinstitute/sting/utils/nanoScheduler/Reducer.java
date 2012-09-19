@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.nanoScheduler;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
 import org.broadinstitute.sting.utils.SimpleTimer;
 
 import java.util.concurrent.CountDownLatch;
@@ -34,6 +35,7 @@ class Reducer<MapType, ReduceType> {
     final CountDownLatch countDownLatch = new CountDownLatch(1);
     final NSReduceFunction<MapType, ReduceType> reduce;
     final SimpleTimer reduceTimer;
+    final MultiThreadedErrorTracker errorTracker;
 
     /**
      * The sum of the reduce function applied to all MapResults.  After this Reducer
@@ -63,11 +65,14 @@ class Reducer<MapType, ReduceType> {
      * @param initialSum the initial reduce sum
      */
     public Reducer(final NSReduceFunction<MapType, ReduceType> reduce,
+                   final MultiThreadedErrorTracker errorTracker,
                    final SimpleTimer reduceTimer,
                    final ReduceType initialSum) {
+        if ( errorTracker == null ) throw new IllegalArgumentException("Error tracker cannot be null");
         if ( reduce == null ) throw new IllegalArgumentException("Reduce function cannot be null");
         if ( reduceTimer == null ) throw new IllegalArgumentException("reduceTimer cannot be null");
 
+        this.errorTracker = errorTracker;
         this.reduce = reduce;
         this.reduceTimer = reduceTimer;
         this.sum = initialSum;
@@ -105,31 +110,34 @@ class Reducer<MapType, ReduceType> {
      * @throws InterruptedException
      */
     @Ensures("result >= 0")
-    public synchronized int reduceAsMuchAsPossible(final PriorityBlockingQueue<MapResult<MapType>> mapResultQueue) throws InterruptedException {
+    public synchronized int reduceAsMuchAsPossible(final PriorityBlockingQueue<MapResult<MapType>> mapResultQueue) {
         if ( mapResultQueue == null ) throw new IllegalArgumentException("mapResultQueue cannot be null");
         int nReducesNow = 0;
 
 //        if ( numSubmittedJobs != UNSET_NUM_SUBMITTED_JOBS )
 //            logger.warn("  maybeReleaseLatch " + numJobsReduced + " numSubmittedJobs " + numSubmittedJobs + " queue " + mapResultQueue.size());
+        try {
+            while ( reduceNextValueInQueue(mapResultQueue) ) {
+                final MapResult<MapType> result = mapResultQueue.take();
+                prevJobID = result.getJobID();
 
-        while ( reduceNextValueInQueue(mapResultQueue) ) {
-            final MapResult<MapType> result = mapResultQueue.take();
-            prevJobID = result.getJobID();
+                if ( ! result.isEOFMarker() ) {
+                    nReducesNow++;
 
-            if ( ! result.isEOFMarker() ) {
-                nReducesNow++;
+                    // apply reduce, keeping track of sum
+                    reduceTimer.restart();
+                    sum = reduce.apply(result.getValue(), sum);
+                    reduceTimer.stop();
 
-                // apply reduce, keeping track of sum
-                reduceTimer.restart();
-                sum = reduce.apply(result.getValue(), sum);
-                reduceTimer.stop();
+                }
 
+                numJobsReduced++;
+                maybeReleaseLatch();
             }
-
-            numJobsReduced++;
-            maybeReleaseLatch();
+        } catch (Exception ex) {
+            errorTracker.notifyOfError(ex);
+            countDownLatch.countDown();
         }
-
 //        if ( numSubmittedJobs == UNSET_NUM_SUBMITTED_JOBS )
 //            logger.warn("  maybeReleaseLatch " + numJobsReduced + " numSubmittedJobs " + numSubmittedJobs + " queue " + mapResultQueue.size());
 

@@ -91,7 +91,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
             super(EngineErrorHandlingTestProvider.class);
             this.expectedException = exceptedException;
             this.args = args;
-            this.iterationsToTest = args.equals("") ? 1 : 1; // TODO -- update to 1000
+            this.iterationsToTest = args.equals("") ? 1 : 10;
             setName(String.format("Engine error handling: expected %s with args %s", exceptedException, args));
         }
     }
@@ -103,7 +103,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
                 continue; // cannot reliably throw errors in TREE_REDUCE
 
             final String failArg = " -fail " + failMethod.name();
-            for ( final String args : Arrays.asList("", " -nt 2") ) { // , " -nct 2") ) {
+            for ( final String args : Arrays.asList("", " -nt 2", " -nct 2") ) {
                 new EngineErrorHandlingTestProvider(NullPointerException.class, failArg + args);
                 new EngineErrorHandlingTestProvider(UserException.class, failArg + args);
                 new EngineErrorHandlingTestProvider(ReviewedStingException.class, failArg + args);
@@ -116,7 +116,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     //
     // Loop over errors to throw, make sure they are the errors we get back from the engine, regardless of NT type
     //
-    @Test(dataProvider = "EngineErrorHandlingTestProvider", timeOut = 60 * 1000 )
+    @Test(enabled = true, dataProvider = "EngineErrorHandlingTestProvider", timeOut = 60 * 1000 )
     public void testEngineErrorHandlingTestProvider(final EngineErrorHandlingTestProvider cfg) {
         for ( int i = 0; i < cfg.iterationsToTest; i++ ) {
             final String root = "-T ErrorThrowing -R " + exampleFASTA;

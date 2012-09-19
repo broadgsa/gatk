@@ -63,7 +63,6 @@ import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
 import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import java.io.File;
-import java.io.OutputStream;
 import java.util.*;
 
 /**
@@ -410,7 +409,7 @@ public class GenomeAnalysisEngine {
         this.threadAllocation = new ThreadAllocation(argCollection.numberOfDataThreads,
                 argCollection.numberOfCPUThreadsPerDataThread,
                 argCollection.numberOfIOThreads,
-                ! argCollection.disableEfficiencyMonitor);
+                argCollection.monitorThreadEfficiency);
     }
 
     public int getTotalNumberOfThreads() {

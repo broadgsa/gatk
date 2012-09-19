@@ -1179,7 +1179,7 @@
 
 	    <!-- copy the report to our private_html directory for easy viewing in a broswer -->
             <mkdir dir="${iwww.report.dir}/@{testtype}"/>
-            <copy todir="${iwww.report.dir}/@{testtype}" verbose="true">
+            <copy todir="${iwww.report.dir}/@{testtype}" verbose="false">
               <fileset dir="@{outputdir}"/>
             </copy>
 

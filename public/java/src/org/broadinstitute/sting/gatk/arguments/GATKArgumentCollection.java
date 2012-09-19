@@ -307,12 +307,12 @@ public class GATKArgumentCollection {
     public int numberOfIOThreads = 0;
 
     /**
-     * By default the GATK monitors its own efficiency, but this can have a itsy-bitsy tiny
-     * cost (< 0.1%) in runtime because of turning on the JavaBean.  This argument allows you
-     * to disable the monitor
+     * Enable GATK to monitor its own threading efficiency, at a itsy-bitsy tiny
+     * cost (< 0.1%) in runtime because of turning on the JavaBean.  This is largely for
+     * debugging purposes.
      */
-    @Argument(fullName = "disableThreadEfficiencyMonitor", shortName = "dtem", doc = "Disable GATK efficiency monitoring", required = false)
-    public Boolean disableEfficiencyMonitor = false;
+    @Argument(fullName = "monitorThreadEfficiency", shortName = "mte", doc = "Enable GATK threading efficiency monitoring", required = false)
+    public Boolean monitorThreadEfficiency = false;
 
     @Argument(fullName = "num_bam_file_handles", shortName = "bfh", doc="The total number of BAM file handles to keep open simultaneously", required=false)
     public Integer numberOfBAMFileHandles = null;

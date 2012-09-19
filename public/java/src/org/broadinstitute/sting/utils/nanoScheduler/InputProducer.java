@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.utils.nanoScheduler;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
 import org.broadinstitute.sting.utils.SimpleTimer;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
@@ -29,6 +29,8 @@ class InputProducer<InputType> implements Runnable {
      */
     final BlockingQueue<InputValue> outputQueue;
 
+    final MultiThreadedErrorTracker errorTracker;
+
     /**
      * Have we read the last value from inputReader?
      *
@@ -48,13 +50,16 @@ class InputProducer<InputType> implements Runnable {
     final CountDownLatch latch = new CountDownLatch(1);
 
     public InputProducer(final Iterator<InputType> inputReader,
+                         final MultiThreadedErrorTracker errorTracker,
                          final SimpleTimer inputTimer,
                          final BlockingQueue<InputValue> outputQueue) {
         if ( inputReader == null ) throw new IllegalArgumentException("inputReader cannot be null");
+        if ( errorTracker == null ) throw new IllegalArgumentException("errorTracker cannot be null");
         if ( inputTimer == null ) throw new IllegalArgumentException("inputTimer cannot be null");
         if ( outputQueue == null ) throw new IllegalArgumentException("OutputQueue cannot be null");
 
         this.inputReader = inputReader;
+        this.errorTracker = errorTracker;
         this.inputTimer = inputTimer;
         this.outputQueue = outputQueue;
     }
@@ -129,8 +134,7 @@ class InputProducer<InputType> implements Runnable {
 
             latch.countDown();
         } catch (Exception ex) {
-            logger.warn("Got exception " + ex);
-            throw new ReviewedStingException("got execution exception", ex);
+            errorTracker.notifyOfError(ex);
         }
     }
 
