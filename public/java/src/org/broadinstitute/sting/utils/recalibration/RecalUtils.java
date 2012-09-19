@@ -47,7 +47,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -333,8 +333,8 @@ public class RecalUtils {
         return covariate.getClass().getSimpleName().split("Covariate")[0];
     }
 
-    public static void outputRecalibrationReport(final RecalibrationArgumentCollection RAC, final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, final PrintStream outputFile) {
-        outputRecalibrationReport(RAC.generateReportTable(covariateNames(requestedCovariates)), quantizationInfo.generateReportTable(), generateReportTables(recalibrationTables, requestedCovariates), outputFile);
+    public static void outputRecalibrationReport(final RecalibrationArgumentCollection RAC, final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates) {
+        outputRecalibrationReport(RAC.generateReportTable(covariateNames(requestedCovariates)), quantizationInfo.generateReportTable(), generateReportTables(recalibrationTables, requestedCovariates), RAC.RECAL_TABLE);
     }
 
     /**
@@ -362,46 +362,36 @@ public class RecalUtils {
         report.print(outputFile);
     }
 
-    private static Pair<PrintStream, File> initializeRecalibrationPlot(File filename) {
-        final PrintStream deltaTableStream;
-        final File deltaTableFileName = new File(filename + ".csv");
-        try {
-            deltaTableStream = new PrintStream(deltaTableFileName);
-        } catch (FileNotFoundException e) {
-            throw new UserException.CouldNotCreateOutputFile(deltaTableFileName, "File " + deltaTableFileName + " could not be created");
-        }
-        return new Pair<PrintStream, File>(deltaTableStream, deltaTableFileName);
-    }
-
-    private static void outputRecalibrationPlot(final File gatkReportFilename, Pair<PrintStream, File> files, boolean keepIntermediates) {
-        final File csvFileName = files.getSecond();
-        final File plotFileName = new File(csvFileName + ".pdf");
-        files.getFirst().close();
+    private static void outputRecalibrationPlot(final RecalibrationArgumentCollection RAC) {
 
         final RScriptExecutor executor = new RScriptExecutor();
         executor.addScript(new Resource(SCRIPT_FILE, RecalUtils.class));
-        executor.addArgs(csvFileName.getAbsolutePath());
-        executor.addArgs(gatkReportFilename.getAbsolutePath());
-        executor.addArgs(plotFileName.getAbsolutePath());
+        executor.addArgs(RAC.RECAL_CSV_FILE.getAbsolutePath());
+        executor.addArgs(RAC.RECAL_TABLE_FILE.getAbsolutePath());
+        executor.addArgs(RAC.RECAL_PDF_FILE.getAbsolutePath());
         executor.exec();
-
-        if (!keepIntermediates)
-            if (!csvFileName.delete())
-                throw new ReviewedStingException("Could not find file " + csvFileName.getAbsolutePath());
-
     }
 
-    public static void generateRecalibrationPlot(final File filename, final RecalibrationTables original, final Covariate[] requestedCovariates, final boolean keepIntermediates) {
-        final Pair<PrintStream, File> files = initializeRecalibrationPlot(filename);
-        writeCSV(files.getFirst(), original, "ORIGINAL", requestedCovariates, true);
-        outputRecalibrationPlot(filename, files, keepIntermediates);
+    public static void generateRecalibrationPlot(final RecalibrationArgumentCollection RAC, final RecalibrationTables original, final Covariate[] requestedCovariates) {
+        generateRecalibrationPlot(RAC, original, null, requestedCovariates);
     }
 
-    public static void generateRecalibrationPlot(final File filename, final RecalibrationTables original, final RecalibrationTables recalibrated, final Covariate[] requestedCovariates, final boolean keepIntermediates) {
-        final Pair<PrintStream, File> files = initializeRecalibrationPlot(filename);
-        writeCSV(files.getFirst(), recalibrated, "RECALIBRATED", requestedCovariates, true);
-        writeCSV(files.getFirst(), original, "ORIGINAL", requestedCovariates, false);
-        outputRecalibrationPlot(filename, files, keepIntermediates);
+    public static void generateRecalibrationPlot(final RecalibrationArgumentCollection RAC, final RecalibrationTables original, final RecalibrationTables recalibrated, final Covariate[] requestedCovariates) {
+        final PrintStream csvFile;
+        try {
+            if ( RAC.RECAL_CSV_FILE == null ) {
+                RAC.RECAL_CSV_FILE = File.createTempFile("BQSR", ".csv");
+                RAC.RECAL_CSV_FILE.deleteOnExit();
+            }
+            csvFile = new PrintStream(RAC.RECAL_CSV_FILE);
+        } catch (IOException e) {
+            throw new UserException.CouldNotCreateOutputFile(RAC.RECAL_CSV_FILE, e);
+        }
+
+        if ( recalibrated != null )
+            writeCSV(csvFile, recalibrated, "RECALIBRATED", requestedCovariates, true);
+        writeCSV(csvFile, original, "ORIGINAL", requestedCovariates, recalibrated == null);
+        outputRecalibrationPlot(RAC);
     }
 
     private static void writeCSV(final PrintStream deltaTableFile, final RecalibrationTables recalibrationTables, final String recalibrationMode, final Covariate[] requestedCovariates, final boolean printHeader) {

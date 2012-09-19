@@ -69,9 +69,9 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
      * @param stub Stub to use when constructing the output file.
      */
     public VariantContextWriterStorage(VariantContextWriterStub stub)  {
-        if ( stub.getFile() != null ) {
-            this.file = stub.getFile();
-            writer = vcfWriterToFile(stub,stub.getFile(),true);
+        if ( stub.getOutputFile() != null ) {
+            this.file = stub.getOutputFile();
+            writer = vcfWriterToFile(stub,stub.getOutputFile(),true);
         }
         else if ( stub.getOutputStream() != null ) {
             this.file = null;

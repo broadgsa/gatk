@@ -120,13 +120,15 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
     /**
      * Some analyses want to count overlap not with dbSNP (which is in general very open) but
      * actually want to itemize their overlap specifically with a set of gold standard sites
-     * such as HapMap, OMNI, or the gold standard indels.  Theis argument provides a mechanism
+     * such as HapMap, OMNI, or the gold standard indels.  This argument provides a mechanism
      * for communicating which file to use
      */
     @Input(fullName="goldStandard", shortName = "gold", doc="Evaluations that count calls at sites of true variation (e.g., indel calls) will use this argument as their gold standard for comparison", required=false)
     public RodBinding<VariantContext> goldStandard = null;
 
-    // Help arguments
+    /**
+     * Note that the --list argument requires a fully resolved and correct command-line to work.
+     */
     @Argument(fullName="list", shortName="ls", doc="List the available eval modules and exit", required=false)
     protected Boolean LIST = false;
 
