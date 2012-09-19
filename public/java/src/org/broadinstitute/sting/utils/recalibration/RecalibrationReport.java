@@ -2,11 +2,12 @@ package org.broadinstitute.sting.utils.recalibration;
 
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
-import org.broadinstitute.sting.gatk.walkers.bqsr.*;
-import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -193,9 +194,20 @@ public class RecalibrationReport {
         }
     }
 
+    private double asDouble(final Object o) {
+        if ( o instanceof Double )
+            return (Double)o;
+        else if ( o instanceof Integer )
+            return (Integer)o;
+        else if ( o instanceof Long )
+            return (Long)o;
+        else
+            throw new ReviewedStingException("Object " + o + " is expected to be either a double, long or integer but its not either: " + o.getClass());
+    }
+
     private RecalDatum getRecalDatum(final GATKReportTable reportTable, final int row, final boolean hasEstimatedQReportedColumn) {
-        final double nObservations = (Double) reportTable.get(row, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME);
-        final double nErrors = (Double) reportTable.get(row, RecalUtils.NUMBER_ERRORS_COLUMN_NAME);
+        final double nObservations = asDouble(reportTable.get(row, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME));
+        final double nErrors = asDouble(reportTable.get(row, RecalUtils.NUMBER_ERRORS_COLUMN_NAME));
         final double empiricalQuality = (Double) reportTable.get(row, RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME);
 
         // the estimatedQreported column only exists in the ReadGroup table
