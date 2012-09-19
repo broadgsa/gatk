@@ -194,8 +194,8 @@ public class RecalibrationReport {
     }
 
     private RecalDatum getRecalDatum(final GATKReportTable reportTable, final int row, final boolean hasEstimatedQReportedColumn) {
-        final long nObservations = (Long) reportTable.get(row, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME);
-        final long nErrors = (Long) reportTable.get(row, RecalUtils.NUMBER_ERRORS_COLUMN_NAME);
+        final double nObservations = (Double) reportTable.get(row, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME);
+        final double nErrors = (Double) reportTable.get(row, RecalUtils.NUMBER_ERRORS_COLUMN_NAME);
         final double empiricalQuality = (Double) reportTable.get(row, RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME);
 
         // the estimatedQreported column only exists in the ReadGroup table

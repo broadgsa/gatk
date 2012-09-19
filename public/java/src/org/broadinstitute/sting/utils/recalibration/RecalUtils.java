@@ -92,8 +92,8 @@ public class RecalUtils {
     private static final Pair<String, String> eventType          = new Pair<String, String>(RecalUtils.EVENT_TYPE_COLUMN_NAME, "%s");
     private static final Pair<String, String> empiricalQuality   = new Pair<String, String>(RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME, "%.4f");
     private static final Pair<String, String> estimatedQReported = new Pair<String, String>(RecalUtils.ESTIMATED_Q_REPORTED_COLUMN_NAME, "%.4f");
-    private static final Pair<String, String> nObservations      = new Pair<String, String>(RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME, "%d");
-    private static final Pair<String, String> nErrors            = new Pair<String, String>(RecalUtils.NUMBER_ERRORS_COLUMN_NAME, "%d");
+    private static final Pair<String, String> nObservations      = new Pair<String, String>(RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME, "%.2f");
+    private static final Pair<String, String> nErrors            = new Pair<String, String>(RecalUtils.NUMBER_ERRORS_COLUMN_NAME, "%.2f");
 
     /**
      * Generates two lists : required covariates and optional covariates based on the user's requests.
@@ -318,8 +318,8 @@ public class RecalUtils {
                 reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEmpiricalQuality());
                 if (tableIndex == RecalibrationTables.TableType.READ_GROUP_TABLE.index)
                     reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEstimatedQReported()); // we only add the estimated Q reported in the RG table
-                reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), Math.round(datum.getNumObservations()));
-                reportTable.set(rowIndex, columnNames.get(columnIndex).getFirst(), Math.round(datum.getNumMismatches()));
+                reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getNumObservations());
+                reportTable.set(rowIndex, columnNames.get(columnIndex).getFirst(), datum.getNumMismatches());
 
                 rowIndex++;
             }

@@ -199,11 +199,11 @@ public class RecalDatum {
 
     @Override
     public String toString() {
-        return String.format("%d,%d,%d", Math.round(getNumObservations()), Math.round(getNumMismatches()), (byte) Math.floor(getEmpiricalQuality()));
+        return String.format("%.2f,%,2f,%.2f", getNumObservations(), getNumMismatches(), getEmpiricalQuality());
     }
 
     public String stringForCSV() {
-        return String.format("%s,%d,%.2f", toString(), (byte) Math.floor(getEstimatedQReported()), getEmpiricalQuality() - getEstimatedQReported());
+        return String.format("%s,%.2f,%.2f", toString(), getEstimatedQReported(), getEmpiricalQuality() - getEstimatedQReported());
     }
 
 //    /**
