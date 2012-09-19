@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.TraversalErrorManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.threading.EfficiencyMonitoringThreadFactory;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
@@ -45,7 +46,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     /**
      * An exception that's occurred in this traversal.  If null, no exception has occurred.
      */
-    private RuntimeException error = null;
+    final TraversalErrorManager errorTracker = new TraversalErrorManager();
 
     /**
      * Queue of incoming shards.
@@ -112,8 +113,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
         while (isShardTraversePending() || isTreeReducePending()) {
             // Check for errors during execution.
-            if(hasTraversalErrorOccurred())
-                throw getTraversalError();
+            errorTracker.throwErrorIfPending();
 
             // Too many files sitting around taking up space?  Merge them.
             if (isMergeLimitExceeded())
@@ -130,8 +130,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
                 queueNextShardTraverse(walker, reduceTree);
         }
 
-        if(hasTraversalErrorOccurred())
-            throw getTraversalError();
+        errorTracker.throwErrorIfPending();
 
         threadPool.shutdown();
 
@@ -147,7 +146,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
             throw ex;
         } catch ( ExecutionException ex ) {
             // the thread died and we are failing to get the result, rethrow it as a runtime exception
-            throw toRuntimeException(ex.getCause());
+            throw notifyOfTraversalError(ex.getCause());
         } catch (Exception ex) {
             throw new ReviewedStingException("Unable to retrieve result", ex);
         }
@@ -349,36 +348,11 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     }
 
     /**
-     * Detects whether an execution error has occurred.
-     * @return True if an error has occurred.  False otherwise.
-     */
-    private synchronized boolean hasTraversalErrorOccurred() {
-        return error != null;
-    }
-
-    private synchronized RuntimeException getTraversalError() {
-        if(!hasTraversalErrorOccurred())
-            throw new ReviewedStingException("User has attempted to retrieve a traversal error when none exists");
-        return error;
-    }
-
-    /**
      * Allows other threads to notify of an error during traversal.
      */
     protected synchronized RuntimeException notifyOfTraversalError(Throwable error) {
-        // If the error is already a Runtime, pass it along as is.  Otherwise, wrap it.
-        this.error = toRuntimeException(error);
-        return this.error;
+        return errorTracker.notifyOfTraversalError(error);
     }
-
-    private RuntimeException toRuntimeException(final Throwable error) {
-        // If the error is already a Runtime, pass it along as is.  Otherwise, wrap it.
-        if (error instanceof RuntimeException)
-            return (RuntimeException)error;
-        else
-            return new ReviewedStingException("An error occurred during the traversal.  Message=" + error.getMessage(), error);
-    }
-
 
     /** A small wrapper class that provides the TreeReducer interface along with the FutureTask semantics. */
     private class TreeReduceTask extends FutureTask {

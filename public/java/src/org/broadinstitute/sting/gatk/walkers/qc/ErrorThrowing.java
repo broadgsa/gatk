@@ -31,7 +31,8 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.NanoSchedulable;
+import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -42,7 +43,7 @@ import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
  */
 @Hidden
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
-public class ErrorThrowing extends RodWalker<Integer,Integer> implements TreeReducible<Integer> {
+public class ErrorThrowing extends RefWalker<Integer,Integer> implements TreeReducible<Integer>, NanoSchedulable {
     @Input(fullName="exception", shortName = "E", doc="Java class of exception to throw", required=true)
     public String exceptionToThrow;
 
@@ -60,8 +61,12 @@ public class ErrorThrowing extends RodWalker<Integer,Integer> implements TreeRed
     //
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        if ( ref == null ) // only throw exception when we are in proper map, not special map(null) call
+            return null;
+
         if ( failMethod == FailMethod.MAP )
             fail();
+
         return 0;
     }
 
@@ -72,15 +77,15 @@ public class ErrorThrowing extends RodWalker<Integer,Integer> implements TreeRed
 
     @Override
     public Integer reduce(Integer value, Integer sum) {
-        if ( failMethod == FailMethod.REDUCE )
+        if ( value != null && failMethod == FailMethod.REDUCE )
             fail();
-        return value + sum;
+        return sum;
     }
 
     public Integer treeReduce(final Integer lhs, final Integer rhs) {
         if ( failMethod == FailMethod.TREE_REDUCE )
             fail();
-        return lhs + rhs;
+        return rhs;
     }
 
     private void fail() {

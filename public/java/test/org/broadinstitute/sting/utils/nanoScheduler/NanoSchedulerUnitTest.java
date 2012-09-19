@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.nanoScheduler;
 import org.apache.log4j.BasicConfigurator;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.SimpleTimer;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -218,6 +219,33 @@ public class NanoSchedulerUnitTest extends BaseTest {
         final NanoScheduler<Integer, Integer, Integer> nanoScheduler = new NanoScheduler<Integer, Integer, Integer>(1, 2);
         nanoScheduler.shutdown();
         nanoScheduler.execute(exampleTest.makeReader(), exampleTest.makeMap(), exampleTest.initReduce(), exampleTest.makeReduce());
+    }
+
+    @Test(expectedExceptions = NullPointerException.class, timeOut = 1000)
+    public void testInputErrorIsThrown_NPE() throws InterruptedException {
+        executeTestErrorThrowingInput(new NullPointerException());
+    }
+
+    @Test(expectedExceptions = NullPointerException.class, timeOut = 1000)
+    public void testInputErrorIsThrown_RSE() throws InterruptedException {
+        executeTestErrorThrowingInput(new ReviewedStingException("test"));
+    }
+
+    private void executeTestErrorThrowingInput(final RuntimeException ex) {
+        final NanoScheduler<Integer, Integer, Integer> nanoScheduler = new NanoScheduler<Integer, Integer, Integer>(1, 2);
+        nanoScheduler.execute(new ErrorThrowingIterator(ex), exampleTest.makeMap(), exampleTest.initReduce(), exampleTest.makeReduce());
+    }
+
+    private static class ErrorThrowingIterator implements Iterator<Integer> {
+        final RuntimeException ex;
+
+        private ErrorThrowingIterator(RuntimeException ex) {
+            this.ex = ex;
+        }
+
+        @Override public boolean hasNext() { throw ex; }
+        @Override public Integer next() { throw ex; }
+        @Override public void remove() { throw ex; }
     }
 
     public static void main(String [ ] args) {
