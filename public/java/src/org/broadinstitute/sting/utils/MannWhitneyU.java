@@ -30,16 +30,26 @@ public class MannWhitneyU {
     private int sizeSet2;
     private ExactMode exactMode;
 
-    public MannWhitneyU() {
-        observations = new TreeSet<Pair<Number,USet>>(new DitheringComparator());
+    public MannWhitneyU(ExactMode mode, boolean dither) {
+        if ( dither )
+            observations = new TreeSet<Pair<Number,USet>>(new DitheringComparator());
+        else
+            observations = new TreeSet<Pair<Number,USet>>(new NumberedPairComparator());
         sizeSet1 = 0;
         sizeSet2 = 0;
-        exactMode = ExactMode.POINT;
+        exactMode = mode;
+    }
+
+    public MannWhitneyU() {
+        this(ExactMode.POINT,true);
+    }
+
+    public MannWhitneyU(boolean dither) {
+        this(ExactMode.POINT,dither);
     }
 
     public MannWhitneyU(ExactMode mode) {
-        super();
-        exactMode = mode;
+        this(mode,true);
     }
 
     /**
@@ -448,6 +458,22 @@ public class MannWhitneyU {
             if ( comp > 0 ) { return 1; }
             if ( comp < 0 ) { return -1; }
             return GenomeAnalysisEngine.getRandomGenerator().nextBoolean() ? -1 : 1;
+        }
+    }
+
+    /**
+     * A comparator that reaches into the pair and compares numbers without tie-braking.
+     */
+    private static class NumberedPairComparator implements Comparator<Pair<Number,USet>>, Serializable {
+
+        public NumberedPairComparator() {}
+
+        @Override
+        public boolean equals(Object other) { return false; }
+
+        @Override
+        public int compare(Pair<Number,USet> left, Pair<Number,USet> right ) {
+            return Double.compare(left.first.doubleValue(),right.first.doubleValue());
         }
     }
 
