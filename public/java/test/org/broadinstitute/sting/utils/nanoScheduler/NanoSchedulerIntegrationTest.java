@@ -20,8 +20,8 @@ public class NanoSchedulerIntegrationTest extends WalkerTest {
         for ( final int nt : Arrays.asList(1, 2) )
             for ( final int nct : Arrays.asList(1, 2) ) {
 //                tests.add(new Object[]{ "SNP",   "a1c7546f32a8919a3f3a70a04b2e8322", nt, nct });
-//                tests.add(new Object[]{ "INDEL", "0a6d2be79f4f8a4b0eb788cc4751b31b", nt, nct });
-                tests.add(new Object[]{ "BOTH",  "1eaf8ac30cdefd573850e58c1ec38790", nt, nct });
+////                tests.add(new Object[]{ "INDEL", "0a6d2be79f4f8a4b0eb788cc4751b31b", nt, nct });
+                tests.add(new Object[]{ "BOTH",  "081d077786ac0af24e9f97259a55209c", nt, nct });
             }
 
         return tests.toArray(new Object[][]{});
@@ -35,7 +35,7 @@ public class NanoSchedulerIntegrationTest extends WalkerTest {
                         "-nosl --no_cmdline_in_header -G",
                         //"--dbsnp " + b37dbSNP132,
                         "-I " + privateTestDir + "NA12878.HiSeq.b37.chr20.10_11mb.bam",
-                        "-L 20:10,000,000-11,000,000",
+                        "-L 20:10,000,000-10,100,000",
                         "-glm " + glm,
                         "-nt " + nt,
                         "-nct " + nct,
