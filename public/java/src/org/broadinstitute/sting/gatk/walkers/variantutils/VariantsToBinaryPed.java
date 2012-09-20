@@ -37,6 +37,28 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
+    /**
+     * The metaData file can take two formats, the first of which is the first 6 lines of the standard ped file. This
+     * is what Plink describes as a fam file. An example fam file is (note that there is no header):
+     *
+     * CEUTrio NA12878 NA12891 NA12892 2 -9
+     * CEUTrio NA12891 UNKN1 UNKN2 2 -9
+     * CEUTrio NA12892 UNKN3 UNKN4 1 -9
+     *
+     * where the entries are (FamilyID IndividualID DadID MomID Phenotype Sex)
+     *
+     * An alternate format is a two-column key-value file
+     *
+     * NA12878        fid=CEUTrio;dad=NA12891;mom=NA12892;sex=2;phenotype=-9
+     * NA12891        fid=CEUTrio;sex=2;phenotype=-9
+     * NA12892        fid=CEUTrio;sex=1;phenotype=-9
+     *
+     * wherein unknown parents needn't be specified. The columns are the individual ID, and a list of key-value pairs.
+     *
+     * Regardless of which file is specified, the walker will output a .fam file alongside the bed file. If the
+     * command line has "-md [name].fam", the fam file will simply be copied. However, if a metadata file of the
+     * alternate format is passed by "-md [name].txt", the walker will construct a formatted .fam file from the data.
+     */
     @Input(shortName="m",fullName = "metaData",required=true,doc="Sample metadata file. You may specify a .fam file " +
             "(in which case it will be copied to the file you provide as fam output).")
     File metaDataFile;
