@@ -34,7 +34,7 @@ public class QuantizationInfo {
         for (int i = 0; i < qualHistogram.length; i++)
             qualHistogram[i] = 0L;
 
-        final NestedIntegerArray<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE); // get the quality score table
+        final NestedIntegerArray<RecalDatum> qualTable = recalibrationTables.getQualityScoreTable(); // get the quality score table
 
         for (final RecalDatum value : qualTable.getAllValues()) {
             final RecalDatum datum = value;

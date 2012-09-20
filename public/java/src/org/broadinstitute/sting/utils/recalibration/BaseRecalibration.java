@@ -166,8 +166,8 @@ public class BaseRecalibration {
     private byte performSequentialQualityCalculation(final int[] key, final EventType errorModel) {
 
         final byte qualFromRead = (byte)(long)key[1];
-        final double globalDeltaQ = calculateGlobalDeltaQ(recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE), key, errorModel);
-        final double deltaQReported = calculateDeltaQReported(recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE), key, errorModel, globalDeltaQ, qualFromRead);
+        final double globalDeltaQ = calculateGlobalDeltaQ(recalibrationTables.getReadGroupTable(), key, errorModel);
+        final double deltaQReported = calculateDeltaQReported(recalibrationTables.getQualityScoreTable(), key, errorModel, globalDeltaQ, qualFromRead);
         final double deltaQCovariates = calculateDeltaQCovariates(recalibrationTables, key, errorModel, globalDeltaQ, deltaQReported, qualFromRead);
 
         double recalibratedQual = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates; // calculate the recalibrated qual using the BQSR formula

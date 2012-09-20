@@ -67,8 +67,12 @@ public class RecalibrationTables {
             tables[i] = new NestedIntegerArray<RecalDatum>(numReadGroups, qualDimension, covariates[i].maximumKeyValue()+1, eventDimension);
     }
 
-    public NestedIntegerArray<RecalDatum> getTable(final TableType type) {
-        return (NestedIntegerArray<RecalDatum>)tables[type.index];
+    public NestedIntegerArray<RecalDatum> getReadGroupTable() {
+        return (NestedIntegerArray<RecalDatum>)tables[TableType.READ_GROUP_TABLE.index];
+    }
+
+    public NestedIntegerArray<RecalDatum> getQualityScoreTable() {
+        return (NestedIntegerArray<RecalDatum>)tables[TableType.QUALITY_SCORE_TABLE.index];
     }
 
     public NestedIntegerArray<RecalDatum> getTable(final int index) {

@@ -61,9 +61,9 @@ public class RecalibrationReport {
 
         recalibrationTables = new RecalibrationTables(requestedCovariates, countReadGroups(report.getTable(RecalUtils.READGROUP_REPORT_TABLE_TITLE)));
 
-        parseReadGroupTable(report.getTable(RecalUtils.READGROUP_REPORT_TABLE_TITLE), recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE));
+        parseReadGroupTable(report.getTable(RecalUtils.READGROUP_REPORT_TABLE_TITLE), recalibrationTables.getReadGroupTable());
 
-        parseQualityScoreTable(report.getTable(RecalUtils.QUALITY_SCORE_REPORT_TABLE_TITLE), recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE));
+        parseQualityScoreTable(report.getTable(RecalUtils.QUALITY_SCORE_REPORT_TABLE_TITLE), recalibrationTables.getQualityScoreTable());
 
         parseAllCovariatesTable(report.getTable(RecalUtils.ALL_COVARIATES_REPORT_TABLE_TITLE), recalibrationTables);
 
@@ -106,9 +106,9 @@ public class RecalibrationReport {
     */
     public void combine(final RecalibrationReport other) {
 
-        for (RecalibrationTables.TableType type : RecalibrationTables.TableType.values()) {
-            final NestedIntegerArray<RecalDatum> myTable = recalibrationTables.getTable(type);
-            final NestedIntegerArray<RecalDatum> otherTable = other.recalibrationTables.getTable(type);
+        for ( int tableIndex = 0; tableIndex < recalibrationTables.numTables(); tableIndex++ ) {
+            final NestedIntegerArray<RecalDatum> myTable = recalibrationTables.getTable(tableIndex);
+            final NestedIntegerArray<RecalDatum> otherTable = other.recalibrationTables.getTable(tableIndex);
 
             for (final NestedIntegerArray.Leaf row : otherTable.getAllLeaves()) {
                 final RecalDatum myDatum = myTable.get(row.keys);

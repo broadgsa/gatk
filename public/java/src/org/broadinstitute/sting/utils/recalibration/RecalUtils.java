@@ -68,6 +68,7 @@ public class RecalUtils {
     public final static String QUALITY_SCORE_REPORT_TABLE_TITLE = "RecalTable1";
     public final static String ALL_COVARIATES_REPORT_TABLE_TITLE = "RecalTable2";
 
+    public final static String ARGUMENT_COLUMN_NAME = "Argument";
     public final static String ARGUMENT_VALUE_COLUMN_NAME = "Value";
     public final static String QUANTIZED_VALUE_COLUMN_NAME = "QuantizedScore";
     public static final String QUANTIZED_COUNT_COLUMN_NAME = "Count";
@@ -399,7 +400,7 @@ public class RecalUtils {
         final NestedHashMap deltaTable = new NestedHashMap();
 
         // add the quality score table to the delta table
-        final NestedIntegerArray<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE);
+        final NestedIntegerArray<RecalDatum> qualTable = recalibrationTables.getQualityScoreTable();
         for (final NestedIntegerArray.Leaf leaf : qualTable.getAllLeaves()) { // go through every element in the covariates table to create the delta table
             final int[] newCovs = new int[4];
             newCovs[0] = leaf.keys[0];
