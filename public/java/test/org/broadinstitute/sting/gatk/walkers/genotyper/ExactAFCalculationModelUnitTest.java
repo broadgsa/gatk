@@ -109,4 +109,19 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         int calculatedAlleleCount = result.getAlleleCountsOfMAP()[0];
         Assert.assertEquals(calculatedAlleleCount, 6);
     }
+
+    @Test
+    public void testMismatchedGLs() {
+
+        final double[] AB = new double[]{-2000.0, 0.0, -2000.0, -2000.0, -2000.0, -2000.0};
+        final double[] AC = new double[]{-100.0, -100.0, -100.0, 0.0, -100.0, -100.0};
+        GetGLsTest cfg = new GetGLsTest("B1C1", 2, createGenotype("1", AC), createGenotype("2", AB));
+
+        final AlleleFrequencyCalculationResult result = new AlleleFrequencyCalculationResult(2);
+
+        ExactAFCalculationModel.linearExactMultiAllelic(cfg.GLs, cfg.numAltAlleles, priors, result);
+
+        Assert.assertEquals(result.getAlleleCountsOfMAP()[0], 1);
+        Assert.assertEquals(result.getAlleleCountsOfMAP()[1], 1);
+    }
 }

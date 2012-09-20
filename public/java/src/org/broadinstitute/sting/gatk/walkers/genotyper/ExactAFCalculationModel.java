@@ -68,7 +68,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
 
     private static final int PL_INDEX_OF_HOM_REF = 0;
-    private static final List<Allele> chooseMostLikelyAlternateAlleles(VariantContext vc, int numAllelesToChoose) {
+    private static List<Allele> chooseMostLikelyAlternateAlleles(VariantContext vc, int numAllelesToChoose) {
         final int numOriginalAltAlleles = vc.getAlternateAlleles().size();
         final LikelihoodSum[] likelihoodSums = new LikelihoodSum[numOriginalAltAlleles];
         for ( int i = 0; i < numOriginalAltAlleles; i++ )
@@ -132,14 +132,15 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         indexesToACset.put(zeroSet.ACcounts, zeroSet);
 
         // keep processing while we have AC conformations that need to be calculated
-        double maxLog10L = Double.NEGATIVE_INFINITY;
+        MaxLikelihoodSeen maxLikelihoodSeen = new MaxLikelihoodSeen();
         while ( !ACqueue.isEmpty() ) {
             // compute log10Likelihoods
             final ExactACset set = ACqueue.remove();
-            final double log10LofKs = calculateAlleleCountConformation(set, genotypeLikelihoods, maxLog10L, numChr, ACqueue, indexesToACset, log10AlleleFrequencyPriors, result);
+            final double log10LofKs = calculateAlleleCountConformation(set, genotypeLikelihoods, maxLikelihoodSeen, numChr, ACqueue, indexesToACset, log10AlleleFrequencyPriors, result);
 
             // adjust max likelihood seen if needed
-            maxLog10L = Math.max(maxLog10L, log10LofKs);
+            if ( log10LofKs > maxLikelihoodSeen.maxLog10L )
+                maxLikelihoodSeen.update(log10LofKs, set.ACcounts);
 
             // clean up memory
             indexesToACset.remove(set.ACcounts);
@@ -160,7 +161,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     private static double calculateAlleleCountConformation(final ExactACset set,
                                                            final ArrayList<double[]> genotypeLikelihoods,
-                                                           final double maxLog10L,
+                                                           final MaxLikelihoodSeen maxLikelihoodSeen,
                                                            final int numChr,
                                                            final LinkedList<ExactACset> ACqueue,
                                                            final HashMap<ExactACcounts, ExactACset> indexesToACset,
@@ -176,7 +177,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         final double log10LofK = set.log10Likelihoods[set.log10Likelihoods.length-1];
 
         // can we abort early because the log10Likelihoods are so small?
-        if ( log10LofK < maxLog10L - MAX_LOG10_ERROR_TO_STOP_EARLY ) {
+        if ( log10LofK < maxLikelihoodSeen.maxLog10L - MAX_LOG10_ERROR_TO_STOP_EARLY && maxLikelihoodSeen.isLowerAC(set.ACcounts) ) {
             //if ( DEBUG )
             //    System.out.printf(" *** breaking early set=%s log10L=%.2f maxLog10L=%.2f%n", set.ACcounts, log10LofK, maxLog10L);
             return log10LofK;

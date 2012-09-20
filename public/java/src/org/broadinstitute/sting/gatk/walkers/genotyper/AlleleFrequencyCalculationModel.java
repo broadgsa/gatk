@@ -204,4 +204,28 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
             return (obj instanceof ExactACset) && ACcounts.equals(((ExactACset)obj).ACcounts);
         }
     }
+
+    protected static final class MaxLikelihoodSeen {
+        double maxLog10L = Double.NEGATIVE_INFINITY;
+        ExactACcounts ACs = null;
+
+        public MaxLikelihoodSeen() {}
+
+        public void update(final double maxLog10L, final ExactACcounts ACs) {
+            this.maxLog10L = maxLog10L;
+            this.ACs = ACs;
+        }
+
+        // returns true iff all ACs in this object are less than or equal to their corresponding ACs in the provided set
+        public boolean isLowerAC(final ExactACcounts otherACs) {
+            final int[] myACcounts = this.ACs.getCounts();
+            final int[] otherACcounts = otherACs.getCounts();
+
+            for ( int i = 0; i < myACcounts.length; i++ ) {
+                if ( myACcounts[i] > otherACcounts[i] )
+                    return false;
+            }
+            return true;
+        }
+    }
 }
