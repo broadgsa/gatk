@@ -24,7 +24,7 @@ import java.util.List;
  */
 public class NanoSchedulerUnitTest extends BaseTest {
     private final static boolean debug = false;
-    public static final int NANO_SCHEDULE_MAX_RUNTIME = 60000;
+    public static final int NANO_SCHEDULE_MAX_RUNTIME = 10000;
 
     private static class Map2x implements NSMapFunction<Integer, Integer> {
         @Override public Integer apply(Integer input) { return input * 2; }
@@ -228,12 +228,12 @@ public class NanoSchedulerUnitTest extends BaseTest {
         nanoScheduler.execute(exampleTest.makeReader(), exampleTest.makeMap(), exampleTest.initReduce(), exampleTest.makeReduce());
     }
 
-    @Test(expectedExceptions = NullPointerException.class, timeOut = 10000)
+    @Test(expectedExceptions = NullPointerException.class, timeOut = 10000, invocationCount = 50)
     public void testInputErrorIsThrown_NPE() throws InterruptedException {
         executeTestErrorThrowingInput(new NullPointerException());
     }
 
-    @Test(expectedExceptions = ReviewedStingException.class, timeOut = 10000)
+    @Test(expectedExceptions = ReviewedStingException.class, timeOut = 10000, invocationCount = 50)
     public void testInputErrorIsThrown_RSE() throws InterruptedException {
         executeTestErrorThrowingInput(new ReviewedStingException("test"));
     }
