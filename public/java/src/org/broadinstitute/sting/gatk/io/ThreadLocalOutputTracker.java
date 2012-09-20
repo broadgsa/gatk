@@ -39,14 +39,17 @@ import java.util.Map;
 /**
  * An output tracker that can either track its output per-thread or directly,
  *
- * @author mhanna
- * @version 0.1
+ * @author mhanna, depristo
+ * @version 0.2
  */
 public class ThreadLocalOutputTracker extends OutputTracker {
     /**
      * Thread-local storage for output streams.
+     *
+     * MUST BE A INHERITABLE THREAD LOCAL
+     * -- NanoScheduler creates subthreads, and these threads must inherit the binding from their parent
      */
-    private ThreadLocal<Map<Stub, Storage>> storage = new ThreadLocal<Map<Stub,Storage>>();
+    private ThreadLocal<Map<Stub, Storage>> storage = new InheritableThreadLocal<Map<Stub, Storage>>();
 
     /**
      * A total hack.  If bypass = true, bypass thread local storage and write directly
@@ -55,6 +58,29 @@ public class ThreadLocalOutputTracker extends OutputTracker {
     private boolean bypass = false;
     public void bypassThreadLocalStorage(boolean bypass) {
         this.bypass = bypass;
+    }
+
+    /**
+     * Initialize the storage map for this thread, if necessary.
+     *
+     * Checks if there's a thread local binding for this thread, and if
+     * not initializes it.
+     *
+     * Particularly useful in the case where we want to initialize the map in
+     * a parent thread but have it used available to all the children via
+     * the InheritedThreadLocal map.
+     *
+     * @return the storage
+     */
+    public Map<Stub,Storage> getStorageAndInitializeIfNecessary() {
+        Map<Stub,Storage> threadLocalOutputStreams = storage.get();
+
+        if( threadLocalOutputStreams == null ) {
+            threadLocalOutputStreams = new HashMap<Stub,Storage>();
+            storage.set( threadLocalOutputStreams );
+        }
+
+        return threadLocalOutputStreams;
     }
 
     public <T> T getStorage( Stub<T> stub ) {
@@ -68,12 +94,7 @@ public class ThreadLocalOutputTracker extends OutputTracker {
             }
         }
         else {
-            Map<Stub,Storage> threadLocalOutputStreams = storage.get();
-
-            if( threadLocalOutputStreams == null ) {
-                threadLocalOutputStreams = new HashMap<Stub,Storage>();
-                storage.set( threadLocalOutputStreams );
-            }
+            final Map<Stub,Storage> threadLocalOutputStreams = getStorageAndInitializeIfNecessary();
 
             target = threadLocalOutputStreams.get(stub);
             if( target == null ) {

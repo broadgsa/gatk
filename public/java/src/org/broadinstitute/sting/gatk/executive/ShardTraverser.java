@@ -55,6 +55,10 @@ public class ShardTraverser implements Callable {
         try {
             final long startTime = System.currentTimeMillis();
 
+            // this is CRITICAL -- initializes the thread-local output maps in the parent thread,
+            // so that any subthreads created by the traversal itself are shared...
+            outputTracker.getStorageAndInitializeIfNecessary();
+
             Object accumulator = walker.reduceInit();
             final WindowMaker windowMaker = new WindowMaker(shard,microScheduler.getEngine().getGenomeLocParser(),
                     microScheduler.getReadIterator(shard),
