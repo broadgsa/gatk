@@ -90,7 +90,7 @@ public class ExperimentalReadShardBalancerUnitTest extends BaseTest {
                                                          new GenomeLocParser(header.getSequenceDictionary()),
                                                          false,
                                                          SAMFileReader.ValidationStringency.SILENT,
-                                                         null,
+                                                         ReadShard.DEFAULT_MAX_READS,  // reset ReadShard.MAX_READS to ReadShard.DEFAULT_MAX_READS for each test
                                                          downsamplingMethod,
                                                          new ValidationExclusion(),
                                                          new ArrayList<ReadFilter>(),
@@ -180,10 +180,10 @@ public class ExperimentalReadShardBalancerUnitTest extends BaseTest {
         for ( int numContigs = 1; numContigs <= 3; numContigs++ ) {
             for ( int numStacksPerContig : Arrays.asList(1, 2, 4) ) {
                 // Use crucial read shard boundary values as the stack sizes
-                for ( int stackSize : Arrays.asList(ReadShard.MAX_READS / 2, ReadShard.MAX_READS / 2 + 10, ReadShard.MAX_READS, ReadShard.MAX_READS - 1, ReadShard.MAX_READS + 1, ReadShard.MAX_READS * 2) ) {
-                    for ( int numUnmappedReads : Arrays.asList(0, ReadShard.MAX_READS / 2, ReadShard.MAX_READS * 2) ) {
+                for ( int stackSize : Arrays.asList(ReadShard.DEFAULT_MAX_READS / 2, ReadShard.DEFAULT_MAX_READS / 2 + 10, ReadShard.DEFAULT_MAX_READS, ReadShard.DEFAULT_MAX_READS - 1, ReadShard.DEFAULT_MAX_READS + 1, ReadShard.DEFAULT_MAX_READS * 2) ) {
+                    for ( int numUnmappedReads : Arrays.asList(0, ReadShard.DEFAULT_MAX_READS / 2, ReadShard.DEFAULT_MAX_READS * 2) ) {
                         // The first value will result in no downsampling at all, the others in some downsampling
-                        for ( int downsamplingTargetCoverage : Arrays.asList(ReadShard.MAX_READS * 10, ReadShard.MAX_READS, ReadShard.MAX_READS / 2) ) {
+                        for ( int downsamplingTargetCoverage : Arrays.asList(ReadShard.DEFAULT_MAX_READS * 10, ReadShard.DEFAULT_MAX_READS, ReadShard.DEFAULT_MAX_READS / 2) ) {
                             new ExperimentalReadShardBalancerTest(numContigs, numStacksPerContig, stackSize, numUnmappedReads, downsamplingTargetCoverage);
                         }
                     }

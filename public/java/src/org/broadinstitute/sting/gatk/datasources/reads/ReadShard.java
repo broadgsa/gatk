@@ -34,10 +34,21 @@ import java.util.*;
  * @version 0.1
  */
 public class ReadShard extends Shard {
+
+    /**
+     * Default read shard buffer size
+     */
+    public static final int DEFAULT_MAX_READS = 10000;
+
     /**
      * What is the maximum number of reads per BAM file which should go into a read shard.
+     *
+     * TODO: this non-final static variable should either be made final or turned into an
+     * TODO: instance variable somewhere -- as both static and mutable it wreaks havoc
+     * TODO: with tests that use multiple instances of SAMDataSource (since SAMDataSource
+     * TODO: changes this value)
      */
-    public static int MAX_READS = 10000;
+    public static int MAX_READS = DEFAULT_MAX_READS;
 
     /**
      * The reads making up this shard.
@@ -51,6 +62,9 @@ public class ReadShard extends Shard {
     /**
      * Sets the maximum number of reads buffered in a read shard.  Implemented as a weirdly static interface
      * until we know what effect tuning this parameter has.
+     *
+     * TODO: this mutable static interface is awful and breaks tests -- need to refactor
+     *
      * @param bufferSize New maximum number
      */
     static void setReadBufferSize(final int bufferSize) {

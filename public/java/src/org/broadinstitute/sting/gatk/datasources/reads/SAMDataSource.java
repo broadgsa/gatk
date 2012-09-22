@@ -252,7 +252,7 @@ public class SAMDataSource {
         validationStringency = strictness;
         this.removeProgramRecords = removeProgramRecords;
         if(readBufferSize != null)
-            ReadShard.setReadBufferSize(readBufferSize);
+            ReadShard.setReadBufferSize(readBufferSize);   // TODO: use of non-final static variable here is just awful, especially for parallel tests
         else {
             // Choose a sensible default for the read buffer size.  For the moment, we're picking 1000 reads per BAM per shard (which effectively
             // will mean per-thread once ReadWalkers are parallelized) with a max cap of 250K reads in memory at once.
