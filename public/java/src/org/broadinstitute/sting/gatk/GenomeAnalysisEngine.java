@@ -445,11 +445,6 @@ public class GenomeAnalysisEngine {
         GATKArgumentCollection argCollection = this.getArguments();
         boolean useExperimentalDownsampling = argCollection.enableExperimentalDownsampling;
 
-        // until the file pointer bug with the experimental downsamplers is fixed, disallow running with experimental downsampling
-        if ( useExperimentalDownsampling ) {
-            throw new UserException("The experimental downsampling implementation is currently crippled by a file-pointer-related bug. Until this bug is fixed, it's not safe (or possible) for anyone to use the experimental implementation!");
-        }
-
         DownsamplingMethod commandLineMethod = argCollection.getDownsamplingMethod();
         DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker, useExperimentalDownsampling);
         DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker, useExperimentalDownsampling);
