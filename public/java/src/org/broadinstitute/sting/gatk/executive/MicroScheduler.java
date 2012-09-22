@@ -145,6 +145,8 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
                 logger.warn(String.format("Number of requested GATK threads %d is more than the number of " +
                         "available processors on this machine %d", threadAllocation.getTotalNumThreads(),
                         Runtime.getRuntime().availableProcessors()));
+            if ( threadAllocation.getNumDataThreads() > 1 && threadAllocation.getNumCPUThreadsPerDataThread() > 1)
+                throw new UserException("The GATK currently doesn't support running with both -nt > 1 and -nct > 1");
         }
 
         if ( threadAllocation.getNumDataThreads() > 1 ) {
