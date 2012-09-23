@@ -4,7 +4,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.io.ThreadBasedOutputTracker;
+import org.broadinstitute.sting.gatk.io.ThreadGroupOutputTracker;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.Utils;
@@ -30,7 +30,7 @@ public class ShardTraverser implements Callable {
     final private HierarchicalMicroScheduler microScheduler;
     final private Walker walker;
     final private Shard shard;
-    final private ThreadBasedOutputTracker outputTracker;
+    final private ThreadGroupOutputTracker outputTracker;
     private OutputMergeTask outputMergeTask;
 
     /** our log, which we want to capture anything from this class */
@@ -44,7 +44,7 @@ public class ShardTraverser implements Callable {
     public ShardTraverser( HierarchicalMicroScheduler microScheduler,
                            Walker walker,
                            Shard shard,
-                           ThreadBasedOutputTracker outputTracker) {
+                           ThreadGroupOutputTracker outputTracker) {
         this.microScheduler = microScheduler;
         this.walker = walker;
         this.shard = shard;

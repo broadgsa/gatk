@@ -51,12 +51,12 @@ import java.util.Map;
  * @author mhanna, depristo
  * @version 0.2
  */
-public class ThreadBasedOutputTracker extends OutputTracker {
+public class ThreadGroupOutputTracker extends OutputTracker {
     /**
      * A map from thread ID of the master thread to the storage map from
      * Stub to Storage objects
      */
-    private Map<Long, Map<Stub, Storage>> threadsToStorage = new HashMap<Long, Map<Stub, Storage>>();
+    private Map<ThreadGroup, Map<Stub, Storage>> threadsToStorage = new HashMap<ThreadGroup, Map<Stub, Storage>>();
 
     /**
      * A total hack.  If bypass = true, bypass thread local storage and write directly
@@ -79,12 +79,12 @@ public class ThreadBasedOutputTracker extends OutputTracker {
      * the master thread ID.
      */
     public synchronized void initializeStorage() {
-        final long threadID = Thread.currentThread().getId();
-        Map<Stub,Storage> threadLocalOutputStreams = threadsToStorage.get(threadID);
+        final ThreadGroup group = Thread.currentThread().getThreadGroup();
+        Map<Stub,Storage> threadLocalOutputStreams = threadsToStorage.get(group);
 
         if( threadLocalOutputStreams == null ) {
             threadLocalOutputStreams = new HashMap<Stub,Storage>();
-            threadsToStorage.put( threadID, threadLocalOutputStreams );
+            threadsToStorage.put( group, threadLocalOutputStreams );
         }
 
         for ( final Stub stub : outputs.keySet() ) {
@@ -118,27 +118,15 @@ public class ThreadBasedOutputTracker extends OutputTracker {
     }
 
 
-    final Thread[] members = new Thread[1000]; // TODO -- dangerous -- fixme
     private synchronized Map<Stub,Storage> findStorage(final Thread thread) {
-        final Map<Stub, Storage> map = threadsToStorage.get(thread.getId());
+        final Map<Stub, Storage> map = threadsToStorage.get(thread.getThreadGroup());
+
         if ( map != null ) {
             return map;
         } else {
-            final ThreadGroup tg = thread.getThreadGroup();
-            final int nInfo = tg.enumerate(members);
-            if ( nInfo == members.length )
-                throw new ReviewedStingException("too many threads in thread-group " + tg + " to safely get info.  " +
-                        "Maximum allowed threads is " + members.length);
-
-            for ( int i = 0; i < nInfo; i++ ) {
-                final Map<Stub, Storage> map2 = threadsToStorage.get(members[i].getId());
-                if ( map2 != null )
-                    return map2;
-            }
-
             // something is terribly wrong, we have a storage lookup for a thread that doesn't have
             // any map data associated with it!
-            throw new ReviewedStingException("Couldn't find storage map associated with thread " + thread + " id " + thread.getId());
+            throw new ReviewedStingException("Couldn't find storage map associated with thread " + thread + " in group " + thread.getThreadGroup());
         }
     }
 

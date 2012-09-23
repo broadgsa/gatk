@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.gatk.io.ThreadBasedOutputTracker;
+import org.broadinstitute.sting.gatk.io.ThreadGroupOutputTracker;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -39,7 +39,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     /**
      * A thread local output tracker for managing output per-thread.
      */
-    private ThreadBasedOutputTracker outputTracker = new ThreadBasedOutputTracker();
+    private ThreadGroupOutputTracker outputTracker = new ThreadGroupOutputTracker();
 
     private final Queue<TreeReduceTask> reduceTasks = new LinkedList<TreeReduceTask>();
 
@@ -101,7 +101,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
     /**
      * Creates threads for HMS each with a unique thread group.  Critical to
-     * track outputs via the ThreadBasedOutputTracker.
+     * track outputs via the ThreadGroupOutputTracker.
      */
     private static class UniqueThreadGroupThreadFactory implements ThreadFactory {
         int counter = 0;
