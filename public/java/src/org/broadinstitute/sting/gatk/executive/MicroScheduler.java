@@ -51,10 +51,7 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import java.io.File;
 import java.lang.management.ManagementFactory;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -93,6 +90,11 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * ThreadLocal variables.
      */
     final LinkedList<TraversalEngine> availableTraversalEngines = new LinkedList<TraversalEngine>();
+
+    /**
+     * Engines that have been allocated to a key already.
+     */
+    final HashMap<Object, TraversalEngine> allocatedTraversalEngines = new HashMap<Object, TraversalEngine>();
 
     /**
      * Counts the number of instances of the class that are currently alive.
@@ -145,8 +147,8 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
                 logger.warn(String.format("Number of requested GATK threads %d is more than the number of " +
                         "available processors on this machine %d", threadAllocation.getTotalNumThreads(),
                         Runtime.getRuntime().availableProcessors()));
-            if ( threadAllocation.getNumDataThreads() > 1 && threadAllocation.getNumCPUThreadsPerDataThread() > 1)
-                throw new UserException("The GATK currently doesn't support running with both -nt > 1 and -nct > 1");
+//            if ( threadAllocation.getNumDataThreads() > 1 && threadAllocation.getNumCPUThreadsPerDataThread() > 1)
+//                throw new UserException("The GATK currently doesn't support running with both -nt > 1 and -nct > 1");
         }
 
         if ( threadAllocation.getNumDataThreads() > 1 ) {
@@ -391,21 +393,37 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
     }
 
     /**
-     * Returns a traversal engine suitable for use in this thread.
+     * Returns a traversal engine suitable for use, associated with key
      *
-     * Pops the next available engine from the available ones maintained by this
+     * Key is an arbitrary object that is used to retrieve the same traversal
+     * engine over and over.  This can be important in the case where the
+     * traversal engine has data associated with it in some other context,
+     * and we need to ensure that the context always sees the same traversal
+     * engine.  This happens in the HierarchicalMicroScheduler, where you want
+     * the a thread executing traversals to retrieve the same engine each time,
+     * as outputs are tracked w.r.t. that engine.
+     *
+     * If no engine is associated with key yet, pops the next available engine
+     * from the available ones maintained by this
      * microscheduler.  Note that it's a runtime error to pop a traversal engine
      * from this scheduler if there are none available.  Callers that
      * once pop'd an engine for use must return it with returnTraversalEngine
      *
+     * @param key the key to associate with this engine
      * @return a non-null TraversalEngine suitable for execution in this scheduler
      */
     @Ensures("result != null")
-    protected synchronized TraversalEngine borrowTraversalEngine() {
-        if ( availableTraversalEngines.isEmpty() )
-            throw new IllegalStateException("no traversal engines were available");
-        else {
-            return availableTraversalEngines.pop();
+    protected synchronized TraversalEngine borrowTraversalEngine(final Object key) {
+        if ( key == null ) throw new IllegalArgumentException("key cannot be null");
+
+        final TraversalEngine engine = allocatedTraversalEngines.get(key);
+        if ( engine == null ) {
+            if ( availableTraversalEngines.isEmpty() )
+                throw new IllegalStateException("no traversal engines were available");
+            allocatedTraversalEngines.put(key, availableTraversalEngines.pop());
+            return allocatedTraversalEngines.get(key);
+        } else {
+            return engine;
         }
     }
 
@@ -413,14 +431,18 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * Return a borrowed traversal engine to this MicroScheduler, for later use
      * in another traversal execution
      *
+     * @param key the key used to id the engine, provided to the borrowTraversalEngine function
      * @param traversalEngine the borrowed traversal engine.  Must have been previously borrowed.
      */
-    protected synchronized void returnTraversalEngine(final TraversalEngine traversalEngine) {
+    protected synchronized void returnTraversalEngine(final Object key, final TraversalEngine traversalEngine) {
         if ( traversalEngine == null )
             throw new IllegalArgumentException("Attempting to push a null traversal engine");
         if ( ! allCreatedTraversalEngines.contains(traversalEngine) )
             throw new IllegalArgumentException("Attempting to push a traversal engine not created by this MicroScheduler" + engine);
+        if ( ! allocatedTraversalEngines.containsKey(key) )
+            throw new IllegalArgumentException("No traversal engine was never checked out with key " + key);
 
-        availableTraversalEngines.push(traversalEngine);
+        // note there's nothing to actually do here, but a function implementation
+        // might want to do something
     }
 }

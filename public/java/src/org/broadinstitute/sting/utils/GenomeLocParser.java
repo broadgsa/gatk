@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.utils;
 
 import com.google.java.contract.Ensures;
-import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
 import com.google.java.contract.ThrowEnsures;
 import net.sf.picard.reference.ReferenceSequenceFile;
@@ -70,7 +69,6 @@ public final class GenomeLocParser {
     private CachingSequenceDictionary getContigInfo() {
         if ( contigInfoPerThread.get() == null ) {
             // initialize for this thread
-            logger.debug("Creating thread-local caching sequence dictionary for thread " + Thread.currentThread().getName());
             contigInfoPerThread.set(new CachingSequenceDictionary(SINGLE_MASTER_SEQUENCE_DICTIONARY));
         }
 

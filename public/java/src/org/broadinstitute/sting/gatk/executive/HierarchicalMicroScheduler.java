@@ -7,13 +7,13 @@ import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
+import org.broadinstitute.sting.gatk.io.ThreadBasedOutputTracker;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.threading.EfficiencyMonitoringThreadFactory;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import java.util.Collection;
@@ -39,7 +39,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     /**
      * A thread local output tracker for managing output per-thread.
      */
-    private ThreadLocalOutputTracker outputTracker = new ThreadLocalOutputTracker();
+    private ThreadBasedOutputTracker outputTracker = new ThreadBasedOutputTracker();
 
     private final Queue<TreeReduceTask> reduceTasks = new LinkedList<TreeReduceTask>();
 
@@ -93,11 +93,23 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
         final int nThreadsToUse = threadAllocation.getNumDataThreads();
         if ( threadAllocation.monitorThreadEfficiency() ) {
-            final EfficiencyMonitoringThreadFactory monitoringThreadFactory = new EfficiencyMonitoringThreadFactory(nThreadsToUse);
-            setThreadEfficiencyMonitor(monitoringThreadFactory);
-            this.threadPool = Executors.newFixedThreadPool(nThreadsToUse, monitoringThreadFactory);
-        } else {
-            this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
+            throw new UserException.BadArgumentValue("nt", "Cannot monitor thread efficiency with -nt, sorry");
+        }
+
+        this.threadPool = Executors.newFixedThreadPool(nThreadsToUse, new UniqueThreadGroupThreadFactory());
+    }
+
+    /**
+     * Creates threads for HMS each with a unique thread group.  Critical to
+     * track outputs via the ThreadBasedOutputTracker.
+     */
+    private static class UniqueThreadGroupThreadFactory implements ThreadFactory {
+        int counter = 0;
+
+        @Override
+        public Thread newThread(Runnable r) {
+            final ThreadGroup group = new ThreadGroup("HMS-group-" + counter++);
+            return new Thread(group, r);
         }
     }
 
@@ -253,6 +265,9 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     protected void mergeExistingOutput( boolean wait ) {
         long startTime = System.currentTimeMillis();
 
+//        logger.warn("MergingExistingOutput");
+//        printOutputMergeTasks();
+
         // Create a list of the merge tasks that will be performed in this run of the mergeExistingOutput().
         Queue<ShardTraverser> mergeTasksInSession = new LinkedList<ShardTraverser>();
         while( !outputMergeTasks.isEmpty() ) {
@@ -266,8 +281,12 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
             mergeTasksInSession.add(traverser);
         }
 
+//        logger.warn("Selected things to merge:");
+//        printOutputMergeTasks(mergeTasksInSession);
+
         // Actually run through, merging the tasks in the working queue.
         for( ShardTraverser traverser: mergeTasksInSession ) {
+            //logger.warn("*** Merging " + traverser.getIntervalsString());
             if( !traverser.isComplete() )
                 traverser.waitForComplete();
 
@@ -312,9 +331,22 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         reduceTree.addEntry(traverseResult);
         outputMergeTasks.add(traverser);
 
+//        logger.warn("adding merge task");
+//        printOutputMergeTasks();
+
         // No more data?  Let the reduce tree know so it can finish processing what it's got.
         if (!isShardTraversePending())
             reduceTree.complete();
+    }
+
+    private synchronized void printOutputMergeTasks() {
+        printOutputMergeTasks(outputMergeTasks);
+    }
+
+    private synchronized void printOutputMergeTasks(final Queue<ShardTraverser> tasks) {
+        logger.info("Output merge tasks " + tasks.size());
+        for ( final ShardTraverser traverser : tasks )
+            logger.info(String.format("\t%s: complete? %b", traverser.getIntervalsString(), traverser.isComplete()));
     }
 
     /** Pulls the next reduce from the queue and runs it. */
