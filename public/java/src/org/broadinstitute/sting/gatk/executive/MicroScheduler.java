@@ -319,10 +319,11 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * pointers to the traversal engines
      */
     public synchronized void shutdownTraversalEngines() {
-        if ( availableTraversalEngines.size() != allCreatedTraversalEngines.size() )
-            throw new IllegalStateException("Shutting down TraversalEngineCreator but not all engines " +
-                    "have been returned.  Expected " + allCreatedTraversalEngines.size() + " but only " + availableTraversalEngines.size()
-                    + " have been returned");
+        // no longer applicable because engines are allocated to keys now
+//        if ( availableTraversalEngines.size() != allCreatedTraversalEngines.size() )
+//            throw new IllegalStateException("Shutting down TraversalEngineCreator but not all engines " +
+//                    "have been returned.  Expected " + allCreatedTraversalEngines.size() + " but only " + availableTraversalEngines.size()
+//                    + " have been returned");
 
         for ( final TraversalEngine te : allCreatedTraversalEngines)
             te.shutdown();
