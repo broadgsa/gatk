@@ -96,6 +96,7 @@ class DataProcessingPipeline extends QScript {
 
   var cleanModelEnum: ConsensusDeterminationModel = ConsensusDeterminationModel.USE_READS
 
+  val bwaParameters: String = " -q 5 -l 32 -k 2 -t 4 -o 1 "
 
 
 
@@ -165,12 +166,15 @@ class DataProcessingPipeline extends QScript {
     var realignedBams: Seq[File] = Seq()
     var index = 1
     for (bam <- bams) {
-      // first revert the BAM file to the original qualities
-      val saiFile1 = swapExt(bam, ".bam", "." + index + ".1.sai")
-      val saiFile2 = swapExt(bam, ".bam", "." + index + ".2.sai")
-      val realignedSamFile = swapExt(bam, ".bam", "." + index + ".realigned.sam")
-      val realignedBamFile = swapExt(bam, ".bam", "." + index + ".realigned.bam")
-      val rgRealignedBamFile = swapExt(bam, ".bam", "." + index + ".realigned.rg.bam")
+      val extension = bam.toString.substring(bam.toString.length - 4)
+
+
+
+      val saiFile1 = swapExt(bam, extension, "." + index + ".1.sai")
+      val saiFile2 = swapExt(bam, extension, "." + index + ".2.sai")
+      val realignedSamFile = swapExt(bam, extension, "." + index + ".realigned.sam")
+      val realignedBamFile = swapExt(bam, extension, "." + index + ".realigned.bam")
+      val rgRealignedBamFile = swapExt(bam, extension, "." + index + ".realigned.rg.bam")
 
       if (useBWAse) {
         val revertedBAM = revertBAM(bam, true)
@@ -444,7 +448,7 @@ class DataProcessingPipeline extends QScript {
   case class bwa_aln_se (inBam: File, outSai: File) extends CommandLineFunction with ExternalCommonArgs {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Output(doc="output sai file") var sai = outSai
-    def commandLine = bwaPath + " aln -t " + bwaThreads + " -q 5 " + reference + " -b " + bam + " > " + sai
+    def commandLine = bwaPath + " aln -t " + bwaThreads + bwaParameters + reference + " -b " + bam + " > " + sai
     this.analysisName = queueLogDir + outSai + ".bwa_aln_se"
     this.jobName = queueLogDir + outSai + ".bwa_aln_se"
   }
@@ -452,7 +456,7 @@ class DataProcessingPipeline extends QScript {
   case class bwa_aln_pe (inBam: File, outSai1: File, index: Int) extends CommandLineFunction with ExternalCommonArgs {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Output(doc="output sai file for 1st mating pair") var sai = outSai1
-    def commandLine = bwaPath + " aln -t " + bwaThreads + " -q 5 " + reference + " -b" + index + " " + bam + " > " + sai
+    def commandLine = bwaPath + " aln -t " + bwaThreads + bwaParameters + reference + " -b" + index + " " + bam + " > " + sai
     this.analysisName = queueLogDir + outSai1 + ".bwa_aln_pe1"
     this.jobName = queueLogDir + outSai1 + ".bwa_aln_pe1"
   }
