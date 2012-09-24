@@ -99,7 +99,7 @@ public class AssessReducedCoverage extends LocusWalker<GenomeLoc, GenomeLoc> imp
         final Set<String> tags = new HashSet<String>(10);
 
         for ( final PileupElement p : pileup ) {
-            if ( (int)p.getQual() > 2 && p.getMappingQual() > 0 )
+            if ( (int)p.getQual() > 2 && p.getMappingQual() > 0 && !p.isDeletion() )
                 tags.addAll(getToolkit().getReaderIDForRead(p.getRead()).getTags().getPositionalTags());
         }
 
