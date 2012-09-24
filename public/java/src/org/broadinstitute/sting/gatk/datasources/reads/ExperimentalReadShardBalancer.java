@@ -89,6 +89,10 @@ public class ExperimentalReadShardBalancer extends ShardBalancer {
 
                     // If we've exhausted the current file pointer of reads, move to the next file pointer (if there is one):
                     if ( currentFilePointerReadsIterator != null && ! currentFilePointerReadsIterator.hasNext() ) {
+
+                        // Close the old, exhausted chain of iterators to release resources
+                        currentFilePointerReadsIterator.close();
+
                         do {
                             advanceFilePointer();
                         } while ( currentFilePointer != null && isEmpty(currentFilePointer.fileSpans) ); // skip empty file pointers
