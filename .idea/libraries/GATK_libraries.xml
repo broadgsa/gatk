@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="GATK libraries">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/lib" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../../picard/src/java" />
+      <root url="jar:///Library/Java/JavaVirtualMachines/1.6.0_31-b04-411.jdk/Contents/Home/src.jar!/src" />
+    </SOURCES>
+    <jarDirectory url="file://$PROJECT_DIR$/lib" recursive="false" />
+  </library>
+</component>
