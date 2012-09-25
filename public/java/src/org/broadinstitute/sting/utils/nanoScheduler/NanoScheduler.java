@@ -92,7 +92,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
             runningMapJobSlots = new Semaphore(this.bufferSize);
 
             this.inputExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NS-input-thread-%d"));
-            this.masterExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NS-input-thread-%d"));
+            this.masterExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NS-master-thread-%d"));
         }
 
         // start timing the time spent outside of the nanoScheduler
