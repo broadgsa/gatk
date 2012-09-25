@@ -57,7 +57,8 @@ object QScriptUtils {
     for (file <- fromFile(in).getLines())
       if (!file.startsWith("#") && !file.isEmpty )
         list :+= new File(file.trim())
-    list.sortWith(_.compareTo(_) < 0)
+//    list.sortWith(_.compareTo(_) < 0)
+    list
   }
 
   /**
