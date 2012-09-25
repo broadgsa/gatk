@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="da24b138-3df4-4b46-abff-e428e3df7aee" name="Default" comment="" />
+    <list default="true" id="da24b138-3df4-4b46-abff-e428e3df7aee" name="Default" comment="Generic input file name recognition (still need to implement support to FastQ, but it now can at least accept it)">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/libraries/GATK_libraries.xml" afterPath="$PROJECT_DIR$/.idea/libraries/GATK_libraries.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmi-gatk.iml" afterPath="$PROJECT_DIR$/cmi-gatk.iml" />
+    </list>
     <ignored path="gatk.unstable.iws" />
     <ignored path=".idea/workspace.xml" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -61,16 +66,27 @@
       <file leaf-file-name="DataProcessingPipeline.scala" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/public/scala/qscript/org/broadinstitute/sting/queue/qscripts/DataProcessingPipeline.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="234" column="40" selection-start="10480" selection-end="10480" vertical-scroll-proportion="0.40685225">
+            <state line="211" column="39" selection-start="9612" selection-end="9612" vertical-scroll-proportion="1.4740821">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="QScriptUtils.scala" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/public/scala/src/org/broadinstitute/sting/queue/util/QScriptUtils.scala">
+      <file leaf-file-name="CompareBAMAlignments.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/private/java/src/org/broadinstitute/sting/tools/CompareBAMAlignments.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="46" column="6" selection-start="1607" selection-end="1607" vertical-scroll-proportion="0.0">
+            <state line="47" column="81" selection-start="1757" selection-end="1757" vertical-scroll-proportion="0.0">
+              <folding>
+                <element signature="imports" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="ReduceReads.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/protected/java/src/org/broadinstitute/sting/gatk/walkers/compression/reducereads/ReduceReads.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="331" column="81" selection-start="15985" selection-end="15985" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
@@ -78,8 +94,20 @@
       </file>
     </leaf>
   </component>
+  <component name="FindManager">
+    <FindUsagesManager>
+      <setting name="OPEN_NEW_TAB" value="false" />
+    </FindUsagesManager>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="changedFiles">
+      <list>
+        <option value="$PROJECT_DIR$/public/scala/qscript/org/broadinstitute/sting/queue/qscripts/DataProcessingPipeline.scala" />
+      </list>
+    </option>
   </component>
   <component name="ProjectFrameBounds">
     <option name="x" value="-1200" />
@@ -101,7 +129,7 @@
     <option name="STATE" value="0" />
   </component>
   <component name="ProjectView">
-    <navigator currentView="ProjectPane" proportions="" version="1" splitterProportion="0.5">
+    <navigator proportions="" version="1" splitterProportion="0.5">
       <flattenPackages />
       <showMembers />
       <showModules />
@@ -112,33 +140,7 @@
       <autoscrollFromSource />
       <sortByType />
     </navigator>
-    <panes>
-      <pane id="PackagesPane">
-        <subPane>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="cmi-gatk" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="cmi-gatk" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
-            </PATH_ELEMENT>
-          </PATH>
-        </subPane>
-      </pane>
-      <pane id="ProjectPane">
-        <subPane>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="cmi-gatk" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-          </PATH>
-        </subPane>
-      </pane>
-      <pane id="Scope" />
-    </panes>
+    <panes />
   </component>
   <component name="PropertiesComponent">
     <property name="GoToFile.includeJavaFiles" value="false" />
@@ -147,7 +149,7 @@
     <property name="options.splitter.main.proportions" value="0.3" />
     <property name="MemberChooser.sorted" value="false" />
     <property name="options.lastSelected" value="project.propVCSSupport.VCSs.Git" />
-    <property name="project.structure.side.proportion" value="0.0" />
+    <property name="project.structure.side.proportion" value="0.2" />
     <property name="GoToClass.includeJavaFiles" value="false" />
     <property name="MemberChooser.copyJavadoc" value="false" />
     <property name="GoToClass.toSaveIncludeLibraries" value="false" />
@@ -228,8 +230,9 @@
   <component name="ShelveChangesManager" show_recycled="false" />
   <component name="ToolWindowManager">
     <frame x="-1200" y="-870" width="1200" height="1562" extended-state="0" />
-    <editor active="true" />
+    <editor active="false" />
     <layout>
+      <window_info id="Messages" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.3296322" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -286,7 +289,7 @@
     <option name="SHOW_VCS_ERROR_NOTIFICATIONS" value="true" />
     <option name="FORCE_NON_EMPTY_COMMENT" value="false" />
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="false" />
-    <option name="LAST_COMMIT_MESSAGE" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updating working environment and adding scala to the project" />
     <option name="MAKE_NEW_CHANGELIST_ACTIVE" value="false" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="false" />
     <option name="CHECK_FILES_UP_TO_DATE_BEFORE_COMMIT" value="false" />
@@ -299,21 +302,149 @@
     <option name="UPDATE_GROUP_BY_CHANGELIST" value="false" />
     <option name="SHOW_FILE_HISTORY_AS_TREE" value="false" />
     <option name="FILE_HISTORY_SPLITTER_PROPORTION" value="0.6" />
+    <MESSAGE value="Generic input file name recognition (still need to implement support to FastQ, but it now can at least accept it)" />
+    <MESSAGE value="Updating working environment and adding scala to the project" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager />
   </component>
+  <component name="antWorkspaceConfiguration">
+    <option name="IS_AUTOSCROLL_TO_SOURCE" value="false" />
+    <option name="FILTER_TARGETS" value="false" />
+    <buildFile url="file://$PROJECT_DIR$/build.xml">
+      <antCommandLine value="" />
+      <runInBackground value="true" />
+      <targetFilters>
+        <filter targetName="queue" isVisible="false" />
+        <filter targetName="queuelite.binary.release.tests" isVisible="false" />
+        <filter targetName="test" isVisible="false" />
+        <filter targetName="generate.build.version" isVisible="false" />
+        <filter targetName="clean.gsalib" isVisible="false" />
+        <filter targetName="package" isVisible="true" />
+        <filter targetName="gatklite.binary.release.tests" isVisible="false" />
+        <filter targetName="javadoc" isVisible="false" />
+        <filter targetName="init.scaladoc" isVisible="false" />
+        <filter targetName="sting-utils.manifests" isVisible="false" />
+        <filter targetName="test.init.compile" isVisible="false" />
+        <filter targetName="queue.manifests" isVisible="false" />
+        <filter targetName="release.queue.full" isVisible="false" />
+        <filter targetName="init.scala.compile" isVisible="true" />
+        <filter targetName="extracthelp" isVisible="true" />
+        <filter targetName="R.public.tar" isVisible="false" />
+        <filter targetName="init.manifests" isVisible="false" />
+        <filter targetName="gsalib" isVisible="false" />
+        <filter targetName="init.buildqueuefull" isVisible="false" />
+        <filter targetName="test.init" isVisible="false" />
+        <filter targetName="package.queue.lite" isVisible="false" />
+        <filter targetName="test.java.internal.compile" isVisible="false" />
+        <filter targetName="integrationtest" isVisible="true" />
+        <filter targetName="queue.jar" isVisible="false" />
+        <filter targetName="scala.compile" isVisible="false" />
+        <filter targetName="clean.gatkdocs" isVisible="false" />
+        <filter targetName="scaladoc" isVisible="false" />
+        <filter targetName="init.publicprotectedonly" isVisible="false" />
+        <filter targetName="init" isVisible="false" />
+        <filter targetName="gatkfull.binary.release.tests" isVisible="false" />
+        <filter targetName="failed-pipeline" isVisible="false" />
+        <filter targetName="require.executable" isVisible="false" />
+        <filter targetName="tagged.build.version" isVisible="false" />
+        <filter targetName="init.publiconly" isVisible="false" />
+        <filter targetName="unittest" isVisible="true" />
+        <filter targetName="test.scala.compile" isVisible="false" />
+        <filter targetName="init.buildgatklite" isVisible="false" />
+        <filter targetName="release.gatk.lite" isVisible="false" />
+        <filter targetName="package.gatk.full" isVisible="false" />
+        <filter targetName="gatk" isVisible="false" />
+        <filter targetName="init.buildqueuelite" isVisible="false" />
+        <filter targetName="scala.jar" isVisible="false" />
+        <filter targetName="release" isVisible="true" />
+        <filter targetName="test.java.compile" isVisible="false" />
+        <filter targetName="init.testqueuejar" isVisible="false" />
+        <filter targetName="dist" isVisible="false" />
+        <filter targetName="failed-largescale" isVisible="false" />
+        <filter targetName="untagged.build.version" isVisible="false" />
+        <filter targetName="gatk.contracts" isVisible="false" />
+        <filter targetName="release.gatk.full" isVisible="false" />
+        <filter targetName="stage" isVisible="true" />
+        <filter targetName="scala" isVisible="true" />
+        <filter targetName="failed-integration" isVisible="false" />
+        <filter targetName="queuefull.binary.release.tests" isVisible="false" />
+        <filter targetName="test.java.external.compile" isVisible="false" />
+        <filter targetName="init.queue-extensions.generate" isVisible="false" />
+        <filter targetName="largescaletest" isVisible="true" />
+        <filter targetName="init.javaandscala" isVisible="false" />
+        <filter targetName="init.usecontracts" isVisible="false" />
+        <filter targetName="git.rev-parse" isVisible="false" />
+        <filter targetName="clean" isVisible="true" />
+        <filter targetName="sting.manifests" isVisible="false" />
+        <filter targetName="clean.javadoc" isVisible="false" />
+        <filter targetName="pipelinetest" isVisible="true" />
+        <filter targetName="init.javaonly" isVisible="false" />
+        <filter targetName="vcf.jar" isVisible="false" />
+        <filter targetName="gatk.compile.external.source" isVisible="false" />
+        <filter targetName="resolve" isVisible="true" />
+        <filter targetName="init.buildgatkfull" isVisible="false" />
+        <filter targetName="fasttest" isVisible="false" />
+        <filter targetName="sting-utils.jar" isVisible="false" />
+        <filter targetName="gatk.compile" isVisible="false" />
+        <filter targetName="gatkdocs" isVisible="true" />
+        <filter targetName="clean.scaladoc" isVisible="false" />
+        <filter targetName="init.extracthelp" isVisible="false" />
+        <filter targetName="gatk.jar" isVisible="true" />
+        <filter targetName="gatk.compile.internal.source" isVisible="false" />
+        <filter targetName="committests" isVisible="false" />
+        <filter targetName="git.describe" isVisible="false" />
+        <filter targetName="package.gatk.lite" isVisible="false" />
+        <filter targetName="init.testgatkjar" isVisible="false" />
+        <filter targetName="init.jar" isVisible="false" />
+        <filter targetName="queue-extensions.generate" isVisible="true" />
+        <filter targetName="test.compile" isVisible="false" />
+        <filter targetName="gatk.manifests" isVisible="false" />
+        <filter targetName="sting.jar" isVisible="false" />
+        <filter targetName="R.script.stage" isVisible="false" />
+        <filter targetName="init.resolve" isVisible="false" />
+        <filter targetName="release.queue.lite" isVisible="false" />
+        <filter targetName="gatk.compile.source" isVisible="true" />
+        <filter targetName="init.javadoc" isVisible="false" />
+        <filter targetName="build-picard-private" isVisible="false" />
+        <filter targetName="package.queue.full" isVisible="false" />
+        <filter targetName="failed-unit" isVisible="false" />
+        <filter targetName="pipelinetestrun" isVisible="true" />
+        <filter targetName="sting.compile" isVisible="false" />
+      </targetFilters>
+      <treeView value="true" />
+      <verbose value="true" />
+      <viewClosedWhenNoErrors value="false" />
+      <expanded value="true" />
+    </buildFile>
+  </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/public/scala/src/org/broadinstitute/sting/queue/util/QScriptUtils.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="46" column="6" selection-start="1607" selection-end="1607" vertical-scroll-proportion="0.0">
+        <state line="46" column="6" selection-start="1607" selection-end="1607" vertical-scroll-proportion="0.21216407">
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/protected/java/src/org/broadinstitute/sting/gatk/walkers/compression/reducereads/ReduceReads.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="331" column="81" selection-start="15985" selection-end="15985" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/private/java/src/org/broadinstitute/sting/tools/CompareBAMAlignments.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="47" column="81" selection-start="1757" selection-end="1757" vertical-scroll-proportion="0.0">
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/public/scala/qscript/org/broadinstitute/sting/queue/qscripts/DataProcessingPipeline.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="234" column="40" selection-start="10480" selection-end="10480" vertical-scroll-proportion="0.40685225">
+        <state line="211" column="39" selection-start="9612" selection-end="9612" vertical-scroll-proportion="1.4740821">
           <folding />
         </state>
       </provider>
@@ -324,6 +455,18 @@
       <state key="ArtifactsStructureConfigurable.UI">
         <settings>
           <artifact-editor />
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+      <state key="FacetStructureConfigurable.UI">
+        <settings>
+          <last-edited>Detection</last-edited>
           <splitter-proportions>
             <option name="proportions">
               <list>
@@ -346,6 +489,7 @@
       </state>
       <state key="JdkListConfigurable.UI">
         <settings>
+          <last-edited>1.6</last-edited>
           <splitter-proportions>
             <option name="proportions">
               <list>
@@ -362,7 +506,6 @@
             <option name="proportions">
               <list>
                 <option value="0.2" />
-                <option value="0.5" />
               </list>
             </option>
           </splitter-proportions>
