@@ -42,8 +42,10 @@ public class LocusShardBalancer extends ShardBalancer {
 
             public Shard next() {
                 FilePointer current = filePointers.next();
-                while(filePointers.hasNext() && current.minus(filePointers.peek()) == 0)
-                    current = current.combine(parser,filePointers.next());
+
+                // FilePointers have already been combined as necessary at the IntervalSharder level. No
+                // need to do so again here.
+
                 return new LocusShard(parser,readsDataSource,current.getLocations(),current.fileSpans);
             }
 
