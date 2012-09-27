@@ -7,7 +7,9 @@ import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgume
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -15,6 +17,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
@@ -34,6 +37,28 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     @ArgumentCollection
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
+    /**
+     * The metaData file can take two formats, the first of which is the first 6 lines of the standard ped file. This
+     * is what Plink describes as a fam file. An example fam file is (note that there is no header):
+     *
+     * CEUTrio NA12878 NA12891 NA12892 2 -9
+     * CEUTrio NA12891 UNKN1 UNKN2 2 -9
+     * CEUTrio NA12892 UNKN3 UNKN4 1 -9
+     *
+     * where the entries are (FamilyID IndividualID DadID MomID Phenotype Sex)
+     *
+     * An alternate format is a two-column key-value file
+     *
+     * NA12878        fid=CEUTrio;dad=NA12891;mom=NA12892;sex=2;phenotype=-9
+     * NA12891        fid=CEUTrio;sex=2;phenotype=-9
+     * NA12892        fid=CEUTrio;sex=1;phenotype=-9
+     *
+     * wherein unknown parents needn't be specified. The columns are the individual ID, and a list of key-value pairs.
+     *
+     * Regardless of which file is specified, the walker will output a .fam file alongside the bed file. If the
+     * command line has "-md [name].fam", the fam file will simply be copied. However, if a metadata file of the
+     * alternate format is passed by "-md [name].txt", the walker will construct a formatted .fam file from the data.
+     */
     @Input(shortName="m",fullName = "metaData",required=true,doc="Sample metadata file. You may specify a .fam file " +
             "(in which case it will be copied to the file you provide as fam output).")
     File metaDataFile;
@@ -76,47 +101,11 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     private List<String> famOrder = new ArrayList<String>();
 
     public void initialize() {
-        vv.variantCollection = variantCollection;
-        vv.dbsnp = dbsnp;
-        vv.DO_NOT_VALIDATE_FILTERED = true;
-        vv.type = ValidateVariants.ValidationType.REF;
+        initializeValidator();
+        writeBedHeader();
+        Map<String,Map<String,String>> sampleMetaValues = parseMetaData();
         // create temporary output streams and buffers
 
-        // write magic bits into the ped file
-        try {
-            outBed.write(new byte[] { (byte) 0x6c, (byte) 0x1b, 0x0});
-            // ultimately, the bed will be in individual-major mode
-        } catch (IOException e) {
-            throw new ReviewedStingException("error writing to output file.");
-        }
-        // write to the fam file, the first six columns of the standard ped file
-        // first, load data from the input meta data file
-        Map<String,Map<String,String>> metaValues = new HashMap<String,Map<String,String>>();
-        logger.debug("Reading in metadata...");
-        try {
-            if ( metaDataFile.getAbsolutePath().endsWith(".fam") ) {
-                for ( String line : new XReadLines(metaDataFile) ) {
-                    String[] famSplit = line.split("\\t");
-                    String sid = famSplit[1];
-                    outFam.printf("%s%n",line);
-                }
-            } else {
-                for ( String line : new XReadLines(metaDataFile) ) {
-                    logger.debug(line);
-                    String[] split = line.split("\\t");
-                    String sampleID = split[0];
-                    String keyVals = split[1];
-                    HashMap<String,String> values = new HashMap<String, String>();
-                    for ( String kvp : keyVals.split(";") ) {
-                        String[] kvp_split = kvp.split("=");
-                        values.put(kvp_split[0],kvp_split[1]);
-                    }
-                    metaValues.put(sampleID,values);
-                }
-            }
-        } catch (FileNotFoundException e) {
-            throw new UserException("Meta data file not found: "+metaDataFile.getAbsolutePath(),e);
-        }
         // family ID, individual ID, Paternal ID, Maternal ID, Sex, Phenotype
         int dummyID = 0; // increments for dummy parental and family IDs used
         // want to be especially careful to maintain order here
@@ -126,21 +115,29 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                 continue;
             }
             for ( String sample : header.getValue().getGenotypeSamples() ) {
-                Map<String,String> mVals = metaValues.get(sample);
-                if ( mVals == null ) {
-                    throw new UserException("No metadata provided for sample "+sample);
+                if ( ! metaDataFile.getAbsolutePath().endsWith(".fam") ) {
+                    Map<String,String> mVals = sampleMetaValues.get(sample);
+                    if ( mVals == null ) {
+                        throw new UserException("No metadata provided for sample "+sample);
+                    }
+                    if ( ! mVals.containsKey("phenotype") ) {
+                        throw new UserException("No phenotype data provided for sample "+sample);
+                    }
+                    String fid = mVals.containsKey("fid") ? mVals.get("fid") : String.format("dummy_%d",++dummyID);
+                    String pid = mVals.containsKey("dad") ? mVals.get("dad") : String.format("dummy_%d",++dummyID);
+                    String mid = mVals.containsKey("mom") ? mVals.get("mom") : String.format("dummy_%d",++dummyID);
+                    String sex = mVals.containsKey("sex") ? mVals.get("sex") : "3";
+                    String pheno = mVals.get("phenotype");
+                    outFam.printf("%s\t%s\t%s\t%s\t%s\t%s%n",fid,sample,pid,mid,sex,pheno);
+                } else {
+                    // even if a fam file is input, we can't diverge the bed file from the fam file, which
+                    // could lead to a malformed plink trio. Fail fast if there's any extra sample in the VCF.
+                    if ( ! sampleMetaValues.containsKey(sample) ) {
+                        throw new UserException("No metadata provided for sample "+sample);
+                    }
                 }
-                if ( ! mVals.containsKey("phenotype") ) {
-                    throw new UserException("No phenotype data provided for sample "+sample);
-                }
-                String fid = mVals.containsKey("fid") ? mVals.get("fid") : String.format("dummy_%d",++dummyID);
-                String pid = mVals.containsKey("dad") ? mVals.get("dad") : String.format("dummy_%d",++dummyID);
-                String mid = mVals.containsKey("mom") ? mVals.get("mom") : String.format("dummy_%d",++dummyID);
-                String sex = mVals.containsKey("sex") ? mVals.get("sex") : "3";
-                String pheno = mVals.get("phenotype");
-                outFam.printf("%s\t%s\t%s\t%s\t%s\t%s%n",fid,sample,pid,mid,sex,pheno);
                 try {
-                    File temp = File.createTempFile(sample, ".tmp");
+                    File temp = File.createTempFile("VariantsToBPed_"+sample, ".tmp");
                     printMap.put(sample,new PrintStream(temp));
                     tempFiles.put(sample,temp);
                 } catch (IOException e) {
@@ -216,6 +213,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                     // reset the buffer for this sample
                     genotypeBuffer.put(sample,new byte[BUFFER_SIZE]);
                 }
+                byteCount = 0;
             }
             genotypeCount = 0;
         }
@@ -305,7 +303,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
 
     private byte getFlippedEncoding(Genotype g, int offset) {
         byte b;
-        if ( g.hasGQ() && g.getGQ() < minGenotypeQuality ) {
+        if ( ! checkGQIsGood(g) ) {
             b = NO_CALL;
         } else if ( g.isHomRef() ) {
             b = HOM_VAR;
@@ -318,6 +316,16 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         }
 
         return (byte) (b << (2*offset));
+    }
+
+    private boolean checkGQIsGood(Genotype genotype) {
+        if ( genotype.hasGQ() ) {
+            return genotype.getGQ() >= minGenotypeQuality;
+        } else if ( genotype.hasLikelihoods() ) {
+            return GenotypeLikelihoods.getGQLog10FromLikelihoods(genotype.getType().ordinal()-1,genotype.getLikelihoods().getAsVector()) >= minGenotypeQuality;
+        }
+
+        return false;
     }
 
     private static String getID(VariantContext v) {
@@ -336,5 +344,70 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         } else {
             throw new UserException("Allele frequency appears to be neither String nor Double. Please check the header of your VCF.");
         }
+    }
+
+    private void initializeValidator() {
+        vv.variantCollection = variantCollection;
+        vv.dbsnp = dbsnp;
+        vv.DO_NOT_VALIDATE_FILTERED = true;
+        vv.type = ValidateVariants.ValidationType.REF;
+    }
+
+    private void writeBedHeader() {
+        // write magic bits into the ped file
+        try {
+            outBed.write(new byte[] { (byte) 0x6c, (byte) 0x1b, 0x0});
+            // ultimately, the bed will be in individual-major mode
+        } catch (IOException e) {
+            throw new ReviewedStingException("error writing to output file.");
+        }
+    }
+
+    private Map<String,Map<String,String>> parseMetaData() {
+        // write to the fam file, the first six columns of the standard ped file
+        // first, load data from the input meta data file
+        Map<String,Map<String,String>> metaValues = new HashMap<String,Map<String,String>>();
+        logger.debug("Reading in metadata...");
+        try {
+            if ( metaDataFile.getAbsolutePath().endsWith(".fam") ) {
+                for ( String line : new XReadLines(metaDataFile) ) {
+                    String[] famSplit = line.split("\\s+");
+                    if ( famSplit.length != 6 ) {
+                        throw new UserException("Line of the fam file is malformatted. Expected 6 entries. Line is "+line);
+                    }
+                    String sid = famSplit[1];
+                    String fid = famSplit[0];
+                    String mom = famSplit[2];
+                    String dad = famSplit[3];
+                    String sex = famSplit[4];
+                    String pheno = famSplit[5];
+                    HashMap<String,String> values = new HashMap<String, String>();
+                    values.put("mom",mom);
+                    values.put("dad",dad);
+                    values.put("fid",fid);
+                    values.put("sex",sex);
+                    values.put("phenotype",pheno);
+                    metaValues.put(sid,values);
+                    outFam.printf("%s%n",line);
+                }
+            } else {
+                for ( String line : new XReadLines(metaDataFile) ) {
+                    logger.debug(line);
+                    String[] split = line.split("\\s+");
+                    String sampleID = split[0];
+                    String keyVals = split[1];
+                    HashMap<String,String> values = new HashMap<String, String>();
+                    for ( String kvp : keyVals.split(";") ) {
+                        String[] kvp_split = kvp.split("=");
+                        values.put(kvp_split[0],kvp_split[1]);
+                    }
+                    metaValues.put(sampleID,values);
+                }
+            }
+        } catch (FileNotFoundException e) {
+            throw new UserException("Meta data file not found: "+metaDataFile.getAbsolutePath(),e);
+        }
+
+        return metaValues;
     }
 }
