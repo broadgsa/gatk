@@ -61,7 +61,7 @@ public class LinearMicroScheduler extends MicroScheduler {
         boolean done = walker.isDone();
         int counter = 0;
 
-        final TraversalEngine traversalEngine = borrowTraversalEngine();
+        final TraversalEngine traversalEngine = borrowTraversalEngine(this);
         for (Shard shard : shardStrategy ) {
             if ( done || shard == null ) // we ran out of shards that aren't owned
                 break;
@@ -97,7 +97,7 @@ public class LinearMicroScheduler extends MicroScheduler {
         Object result = accumulator.finishTraversal();
 
         outputTracker.close();
-        returnTraversalEngine(traversalEngine);
+        returnTraversalEngine(this, traversalEngine);
         cleanup();
         executionIsDone();
 

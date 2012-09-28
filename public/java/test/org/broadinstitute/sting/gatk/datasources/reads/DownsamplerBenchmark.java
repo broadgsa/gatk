@@ -26,6 +26,7 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 
 import com.google.caliper.Param;
 import net.sf.picard.filter.FilteringIterator;
+import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Tags;
@@ -71,6 +72,7 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
             SAMFileReader reader = new SAMFileReader(inputFile);
             ReadProperties readProperties = new ReadProperties(Collections.<SAMReaderID>singletonList(new SAMReaderID(inputFile,new Tags())),
                     reader.getFileHeader(),
+                    SAMFileHeader.SortOrder.coordinate,
                     false,
                     SAMFileReader.ValidationStringency.SILENT,
                     downsampling.create(),

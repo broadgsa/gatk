@@ -445,11 +445,6 @@ public class GenomeAnalysisEngine {
         GATKArgumentCollection argCollection = this.getArguments();
         boolean useExperimentalDownsampling = argCollection.enableExperimentalDownsampling;
 
-        // until the file pointer bug with the experimental downsamplers is fixed, disallow running with experimental downsampling
-        if ( useExperimentalDownsampling ) {
-            throw new UserException("The experimental downsampling implementation is currently crippled by a file-pointer-related bug. Until this bug is fixed, it's not safe (or possible) for anyone to use the experimental implementation!");
-        }
-
         DownsamplingMethod commandLineMethod = argCollection.getDownsamplingMethod();
         DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker, useExperimentalDownsampling);
         DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker, useExperimentalDownsampling);
@@ -548,6 +543,7 @@ public class GenomeAnalysisEngine {
      */
     protected Iterable<Shard> getShardStrategy(SAMDataSource readsDataSource, ReferenceSequenceFile drivingDataSource, GenomeLocSortedSet intervals) {
         ValidationExclusion exclusions = (readsDataSource != null ? readsDataSource.getReadsInfo().getValidationExclusionList() : null);
+        DownsamplingMethod downsamplingMethod = readsDataSource != null ? readsDataSource.getReadsInfo().getDownsamplingMethod() : null;
         ReferenceDataSource referenceDataSource = this.getReferenceDataSource();
 
         // If reads are present, assume that accessing the reads is always the dominant factor and shard based on that supposition.
@@ -582,10 +578,15 @@ public class GenomeAnalysisEngine {
                         throw new UserException.CommandLineException("Pairs traversal cannot be used in conjunction with intervals.");
                 }
 
+                // Use the experimental ReadShardBalancer if experimental downsampling is enabled
+                ShardBalancer readShardBalancer = downsamplingMethod != null && downsamplingMethod.useExperimentalDownsampling ?
+                                                  new ExperimentalReadShardBalancer() :
+                                                  new ReadShardBalancer();
+
                 if(intervals == null)
-                    return readsDataSource.createShardIteratorOverAllReads(new ReadShardBalancer());
+                    return readsDataSource.createShardIteratorOverAllReads(readShardBalancer);
                 else
-                    return readsDataSource.createShardIteratorOverIntervals(intervals,new ReadShardBalancer());
+                    return readsDataSource.createShardIteratorOverIntervals(intervals, readShardBalancer);
             }
             else
                 throw new ReviewedStingException("Unable to determine walker type for walker " + walker.getClass().getName());

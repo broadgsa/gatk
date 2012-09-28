@@ -502,6 +502,7 @@ public class LocusIteratorByStateExperimentalUnitTest extends BaseTest {
         return new ReadProperties(
                 Collections.<SAMReaderID>emptyList(),
                 new SAMFileHeader(),
+                SAMFileHeader.SortOrder.coordinate,
                 false,
                 SAMFileReader.ValidationStringency.STRICT,
                 downsamplingMethod,

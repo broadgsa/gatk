@@ -171,6 +171,9 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
     @Argument(shortName="mvq", fullName="mendelianViolationQualThreshold", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation. Default is 50.", required=false)
     protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 50;
 
+    @Argument(shortName="ploidy", fullName="samplePloidy", doc="Per-sample ploidy (number of chromosomes per sample)", required=false)
+    protected int ploidy = VariantContextUtils.DEFAULT_PLOIDY;
+
     @Argument(fullName="ancestralAlignments", shortName="aa", doc="Fasta file with ancestral alleles", required=false)
     private File ancestralAlignmentsFile = null;
 
@@ -574,6 +577,7 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
 
     public double getMinPhaseQuality() { return MIN_PHASE_QUALITY; }
 
+    public int getSamplePloidy() { return ploidy; }
     public double getMendelianViolationQualThreshold() { return MENDELIAN_VIOLATION_QUAL_THRESHOLD; }
 
     public static String getAllSampleName() { return ALL_SAMPLE_NAME; }

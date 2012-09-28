@@ -158,10 +158,10 @@ public class PerSampleDownsamplingReadsIterator implements StingSAMIterator {
                 numPositionalChanges++;
             }
 
-            // If the number of times we've changed position exceeds a certain threshold, inform all
-            // downsamplers of the current position in the read stream. This is to prevent downsamplers
-            // for samples with sparser reads than others from getting stuck too long in a pending state.
-            if ( numPositionalChanges > DOWNSAMPLER_POSITIONAL_UPDATE_INTERVAL ) {
+            // Periodically inform all downsamplers of the current position in the read stream. This is
+            // to prevent downsamplers for samples with sparser reads than others from getting stuck too
+            // long in a pending state.
+            if ( numPositionalChanges > 0 && numPositionalChanges % DOWNSAMPLER_POSITIONAL_UPDATE_INTERVAL == 0 ) {
                 for ( ReadsDownsampler<SAMRecord> perSampleDownsampler : perSampleDownsamplers.values() ) {
                     perSampleDownsampler.signalNoMoreReadsBefore(read);
                     updateEarliestPendingRead(perSampleDownsampler);

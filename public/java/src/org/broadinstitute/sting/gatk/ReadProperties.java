@@ -30,6 +30,7 @@ import java.util.List;
 public class ReadProperties {
     private final Collection<SAMReaderID> readers;
     private final SAMFileHeader header;
+    private final SAMFileHeader.SortOrder sortOrder;
     private final SAMFileReader.ValidationStringency validationStringency;
     private final DownsamplingMethod downsamplingMethod;
     private final ValidationExclusion exclusionList;
@@ -62,6 +63,14 @@ public class ReadProperties {
      */
     public SAMFileHeader getHeader() {
         return header;
+    }
+
+    /**
+     * Gets the sort order of the reads
+     * @return the sort order of the reads
+     */
+    public SAMFileHeader.SortOrder getSortOrder() {
+        return sortOrder;
     }
 
     /**
@@ -130,6 +139,7 @@ public class ReadProperties {
      */
     public ReadProperties( Collection<SAMReaderID> samFiles,
            SAMFileHeader header,
+           SAMFileHeader.SortOrder sortOrder,
            boolean useOriginalBaseQualities,
            SAMFileReader.ValidationStringency strictness,
            DownsamplingMethod downsamplingMethod,
@@ -140,6 +150,7 @@ public class ReadProperties {
            byte defaultBaseQualities) {
         this.readers = samFiles;
         this.header = header;
+        this.sortOrder = sortOrder;
         this.validationStringency = strictness;
         this.downsamplingMethod = downsamplingMethod == null ? DownsamplingMethod.NONE : downsamplingMethod;
         this.exclusionList = exclusionList == null ? new ValidationExclusion() : exclusionList;
