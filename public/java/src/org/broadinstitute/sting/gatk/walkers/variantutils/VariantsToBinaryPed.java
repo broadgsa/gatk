@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.broad.tribble.TribbleException;
+import org.broadinstitute.sting.alignment.bwa.java.AlignmentMatchSequence;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
@@ -7,19 +9,19 @@ import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgume
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.*;
 import java.util.*;
@@ -30,6 +32,7 @@ import java.util.*;
  * produces a binary ped file in individual major mode.
  */
 @DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
+@Reference(window=@Window(start=0,stop=100))
 public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
@@ -78,8 +81,6 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     @Argument(fullName="majorAlleleFirst",required=false,doc="Sets the major allele to be 'reference' for the bim file, rather than the ref allele")
     boolean majorAlleleFirst = false;
 
-    private ValidateVariants vv = new ValidateVariants();
-
     private static double APPROX_CM_PER_BP = 1000000.0/750000.0;
 
     private static final byte HOM_REF = 0x0;
@@ -88,6 +89,8 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     private static final byte NO_CALL = 0x1;
 
     private static final int BUFFER_SIZE = 1000; //4k genotypes per sample = Nmb for N*1000 samples
+
+    private static final String PLINK_DELETION_MARKER = "-";
 
     // note that HET and NO_CALL are flipped from the documentation: that's because
     // plink actually reads these in backwards; and we want to use a shift operator
@@ -101,7 +104,6 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     private List<String> famOrder = new ArrayList<String>();
 
     public void initialize() {
-        initializeValidator();
         writeBedHeader();
         Map<String,Map<String,String>> sampleMetaValues = parseMetaData();
         // create temporary output streams and buffers
@@ -150,22 +152,25 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if ( tracker == null || ! tracker.hasValues(variantCollection.variants) ||
-                tracker.getFirstValue(variantCollection.variants).isFiltered() ||
-                ! tracker.getFirstValue(variantCollection.variants).isSNP() ||
-                ! tracker.getFirstValue(variantCollection.variants).isBiallelic()) {
+        if ( tracker == null ) {
+            return 0;
+        }
+
+        VariantContext vc = tracker.getFirstValue(variantCollection.variants,context.getLocation());
+        if ( vc == null || vc.isFiltered() || ! vc.isBiallelic() ) {
             return 0;
         }
         try {
-            vv.map(tracker,ref,context);
-        } catch (UserException e) {
+            validateVariantSite(vc,ref,context);
+        } catch (TribbleException e) {
             throw new UserException("Input VCF file is invalid; we cannot guarantee the resulting ped file. "+
-            "Please run ValidateVariants for more detailed information.");
+            "Please run ValidateVariants for more detailed information. This error is: "+e.getMessage());
         }
 
-        VariantContext vc = tracker.getFirstValue(variantCollection.variants);
         String refOut;
         String altOut;
+        String vcRef = getReferenceAllele(vc);
+        String vcAlt = getAlternateAllele(vc);
         boolean altMajor;
         if ( majorAlleleFirst ) {
             // want to use the major allele as ref
@@ -174,17 +179,17 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                 VariantContextUtils.calculateChromosomeCounts(vc,ats,true);
             }
             if ( getAF(ats.get("AF")) > 0.5 ) {
-                refOut = vc.getAlternateAllele(0).getBaseString();
-                altOut = vc.getReference().getBaseString();
+                refOut = vcAlt;
+                altOut = vcRef;
                 altMajor = true;
             } else {
-                refOut = vc.getReference().getBaseString();
-                altOut = vc.getAlternateAllele(0).getBaseString();
+                refOut = vcRef;
+                altOut = vcAlt;
                 altMajor = false;
             }
         } else {
-            refOut = vc.getReference().getBaseString();
-            altOut = vc.getAlternateAllele(0).getBaseString();
+            refOut = vcRef;
+            altOut = vcAlt;
             altMajor = false;
         }
         // write an entry into the map file
@@ -286,8 +291,8 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
 
     private byte getStandardEncoding(Genotype g, int offset) {
         byte b;
-        if ( g.hasGQ() && g.getGQ() < minGenotypeQuality ) {
-                b = NO_CALL;
+        if ( ! checkGQIsGood(g) ) {
+            b = NO_CALL;
         } else if ( g.isHomRef() ) {
             b = HOM_REF;
         } else if ( g.isHomVar() ) {
@@ -322,7 +327,8 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         if ( genotype.hasGQ() ) {
             return genotype.getGQ() >= minGenotypeQuality;
         } else if ( genotype.hasLikelihoods() ) {
-            return GenotypeLikelihoods.getGQLog10FromLikelihoods(genotype.getType().ordinal()-1,genotype.getLikelihoods().getAsVector()) >= minGenotypeQuality;
+            double log10gq = GenotypeLikelihoods.getGQLog10FromLikelihoods(genotype.getType().ordinal()-1,genotype.getLikelihoods().getAsVector());
+            return MathUtils.log10ProbabilityToPhredScale(log10gq) >= minGenotypeQuality;
         }
 
         return false;
@@ -344,13 +350,6 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         } else {
             throw new UserException("Allele frequency appears to be neither String nor Double. Please check the header of your VCF.");
         }
-    }
-
-    private void initializeValidator() {
-        vv.variantCollection = variantCollection;
-        vv.dbsnp = dbsnp;
-        vv.DO_NOT_VALIDATE_FILTERED = true;
-        vv.type = ValidateVariants.ValidationType.REF;
     }
 
     private void writeBedHeader() {
@@ -409,5 +408,54 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         }
 
         return metaValues;
+    }
+
+    private void validateVariantSite(VariantContext vc, ReferenceContext ref, AlignmentContext context) {
+        final Allele reportedRefAllele = vc.getReference();
+        final int refLength = reportedRefAllele.length();
+        if ( refLength > 100 ) {
+            logger.info(String.format("Reference allele is too long (%d) at position %s:%d; skipping that record.", refLength, vc.getChr(), vc.getStart()));
+            return;
+        }
+
+        final byte[] observedRefBases = new byte[refLength];
+        System.arraycopy(ref.getBases(), 0, observedRefBases, 0, refLength);
+        final Allele observedRefAllele = Allele.create(observedRefBases);
+        vc.validateReferenceBases(reportedRefAllele, observedRefAllele);
+        vc.validateAlternateAlleles();
+    }
+
+    private String getReferenceAllele(VariantContext vc) {
+        if ( vc.isSimpleInsertion() ) {
+            // bi-allelic, so we just have "-" for ped output
+            return PLINK_DELETION_MARKER;
+        }
+        if ( vc.isSymbolic() ) {
+            // either symbolic or really long alleles. Plink alleles are allowed to be 1 or 2. Reference will just be 1.
+            return "1";
+        }
+        if ( vc.isSimpleDeletion() ) {
+            // bi-allelic. Want to take the standard representation and strip off the leading base.
+            return vc.getReference().getBaseString().substring(1);
+        }
+        // snp or mnp
+        return vc.getReference().getBaseString();
+    }
+
+    private String getAlternateAllele(VariantContext vc ) {
+        if ( vc.isSimpleInsertion() ) {
+            // bi-allelic. Want to take the standard representation and strip off the leading base.
+            return vc.getAlternateAllele(0).getBaseString().substring(1);
+        }
+        if ( vc.isSymbolic() ) {
+            // either symbolic or really long alleles. Plink alleles are allowed to be 1 or 2. Alt will just be 2.
+            return "2";
+        }
+        if ( vc.isSimpleDeletion() ) {
+            // bi-allelic, so we just have "-" for ped output
+            return PLINK_DELETION_MARKER;
+        }
+        // snp or mnp
+        return vc.getAlternateAllele(0).getBaseString();
     }
 }
