@@ -26,8 +26,10 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -54,6 +56,7 @@ public class AlleleFrequencyCalculationResult {
     private double log10LikelihoodOfAFzero;
     private double log10PosteriorOfAFzero;
 
+    private List<Allele> allelesUsedInGenotyping;
 
     public AlleleFrequencyCalculationResult(final int maxAltAlleles) {
         alleleCountsOfMLE = new int[maxAltAlleles];
@@ -93,13 +96,14 @@ public class AlleleFrequencyCalculationResult {
     }
 
     public void reset() {
-        log10MLE = log10MAP = log10LikelihoodOfAFzero = log10PosteriorOfAFzero = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
+        log10MLE = log10MAP = log10LikelihoodOfAFzero = log10PosteriorOfAFzero = AlleleFrequencyCalculation.VALUE_NOT_CALCULATED;
         for ( int i = 0; i < alleleCountsOfMLE.length; i++ ) {
             alleleCountsOfMLE[i] = 0;
             alleleCountsOfMAP[i] = 0;
         }
         currentPosteriorsCacheIndex = 0;
         log10PosteriorMatrixSum = null;
+        allelesUsedInGenotyping = null;
     }
 
     public void updateMLEifNeeded(final double log10LofK, final int[] alleleCountsForK) {
@@ -146,5 +150,13 @@ public class AlleleFrequencyCalculationResult {
             log10MAP = log10PosteriorOfAFzero;
             Arrays.fill(alleleCountsOfMAP, 0);
         }
+    }
+
+    public List<Allele> getAllelesUsedInGenotyping() {
+        return allelesUsedInGenotyping;
+    }
+
+    public void setAllelesUsedInGenotyping(List<Allele> allelesUsedInGenotyping) {
+        this.allelesUsedInGenotyping = allelesUsedInGenotyping;
     }
 }

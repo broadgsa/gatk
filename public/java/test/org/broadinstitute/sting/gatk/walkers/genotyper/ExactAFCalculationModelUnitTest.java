@@ -1,16 +1,14 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
+import java.util.List;
 
 
 public class ExactAFCalculationModelUnitTest extends BaseTest {
@@ -43,6 +41,19 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
             GLs = GenotypesContext.create(arg);
             this.name = name;
             this.numAltAlleles = numAltAlleles;
+        }
+
+        public VariantContext getVC() {
+            VariantContextBuilder builder = new VariantContextBuilder("test", "1", 1, 1, getAlleles());
+            builder.genotypes(GLs);
+            return builder.make();
+        }
+
+        public List<Allele> getAlleles() {
+            return Arrays.asList(Allele.create("A", true),
+                    Allele.create("C"),
+                    Allele.create("G"),
+                    Allele.create("T")).subList(0, numAltAlleles+1);
         }
 
         public String toString() {
@@ -83,9 +94,8 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
     @Test(dataProvider = "getGLs")
     public void testGLs(GetGLsTest cfg) {
 
-        final AlleleFrequencyCalculationResult result = new AlleleFrequencyCalculationResult(2);
-
-        ExactAFCalculationModel.linearExactMultiAllelic(cfg.GLs, cfg.numAltAlleles, priors, result);
+        final DiploidExactAFCalculation afCalculation = new DiploidExactAFCalculation(cfg.getVC().getNSamples(), cfg.numAltAlleles);
+        final AlleleFrequencyCalculationResult result = afCalculation.getLog10PNonRef(cfg.getVC(), priors);
 
         int nameIndex = 1;
         for ( int allele = 0; allele < cfg.numAltAlleles; allele++, nameIndex+=2 ) {
@@ -102,9 +112,8 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         final double[] BB = new double[]{-20000000.0, -20000000.0, 0.0};
         GetGLsTest cfg = new GetGLsTest("B6", 1, createGenotype("1", BB), createGenotype("2", BB), createGenotype("3", BB));
 
-        final AlleleFrequencyCalculationResult result = new AlleleFrequencyCalculationResult(2);
-
-        ExactAFCalculationModel.linearExactMultiAllelic(cfg.GLs, cfg.numAltAlleles, priors, result);
+        final DiploidExactAFCalculation afCalculation = new DiploidExactAFCalculation(1, 1);
+        final AlleleFrequencyCalculationResult result = afCalculation.getLog10PNonRef(cfg.getVC(), priors);
 
         int calculatedAlleleCount = result.getAlleleCountsOfMAP()[0];
         Assert.assertEquals(calculatedAlleleCount, 6);
@@ -117,9 +126,8 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         final double[] AC = new double[]{-100.0, -100.0, -100.0, 0.0, -100.0, -100.0};
         GetGLsTest cfg = new GetGLsTest("B1C1", 2, createGenotype("1", AC), createGenotype("2", AB));
 
-        final AlleleFrequencyCalculationResult result = new AlleleFrequencyCalculationResult(2);
-
-        ExactAFCalculationModel.linearExactMultiAllelic(cfg.GLs, cfg.numAltAlleles, priors, result);
+        final DiploidExactAFCalculation afCalculation = new DiploidExactAFCalculation(2, 2);
+        final AlleleFrequencyCalculationResult result = afCalculation.getLog10PNonRef(cfg.getVC(), priors);
 
         Assert.assertEquals(result.getAlleleCountsOfMAP()[0], 1);
         Assert.assertEquals(result.getAlleleCountsOfMAP()[1], 1);

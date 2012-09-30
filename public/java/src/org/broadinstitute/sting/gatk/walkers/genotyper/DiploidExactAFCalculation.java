@@ -27,98 +27,49 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.SimpleTimer;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.*;
 
-public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
-    private SimpleTimer callTimer = new SimpleTimer();
-    private PrintStream callReport = null;
-
+public class DiploidExactAFCalculation extends ExactAFCalculation {
     // private final static boolean DEBUG = false;
 
     private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
 
-    protected ExactAFCalculationModel(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
+    public DiploidExactAFCalculation(final int nSamples, final int maxAltAlleles) {
+        super(nSamples, maxAltAlleles, false, null, null, null);
+    }
+
+    public DiploidExactAFCalculation(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
         super(UAC, N, logger, verboseWriter);
-        if ( UAC.exactCallsLog != null )
-            initializeOutputFile(UAC.exactCallsLog);
     }
 
-    public void initializeOutputFile(final File outputFile) {
-        try {
-            if (outputFile != null) {
-                callReport = new PrintStream( new FileOutputStream(outputFile) );
-                callReport.println(Utils.join("\t", Arrays.asList("loc", "variable", "key", "value")));
-            }
-        } catch ( FileNotFoundException e ) {
-            throw new UserException.CouldNotCreateOutputFile(outputFile, e);
-        }
+    @Override
+    public void computeLog10PNonRef(final VariantContext vc,
+                                    final double[] log10AlleleFrequencyPriors,
+                                    final AlleleFrequencyCalculationResult result) {
+        linearExactMultiAllelic(vc.getGenotypes(), vc.getNAlleles() - 1, log10AlleleFrequencyPriors, result);
     }
 
-    public List<Allele> getLog10PNonRef(final VariantContext vc,
-                                        final double[] log10AlleleFrequencyPriors,
-                                        final AlleleFrequencyCalculationResult result) {
-
-        GenotypesContext GLs = vc.getGenotypes();
-        List<Allele> alleles = vc.getAlleles();
-
+    @Override
+    protected VariantContext reduceScope(final VariantContext vc) {
         final int myMaxAltAllelesToGenotype = CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS && vc.getType().equals(VariantContext.Type.INDEL) ? 2 : MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
 
         // don't try to genotype too many alternate alleles
         if ( vc.getAlternateAlleles().size() > myMaxAltAllelesToGenotype ) {
             logger.warn("this tool is currently set to genotype at most " + myMaxAltAllelesToGenotype + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + (vc.getAlternateAlleles().size()) + " alternate alleles so only the top alleles will be used; see the --max_alternate_alleles argument");
 
-            alleles = new ArrayList<Allele>(myMaxAltAllelesToGenotype + 1);
+            VariantContextBuilder builder = new VariantContextBuilder(vc);
+            List<Allele> alleles = new ArrayList<Allele>(myMaxAltAllelesToGenotype + 1);
             alleles.add(vc.getReference());
             alleles.addAll(chooseMostLikelyAlternateAlleles(vc, myMaxAltAllelesToGenotype));
-            GLs = VariantContextUtils.subsetDiploidAlleles(vc, alleles, false);
+            builder.alleles(alleles);
+            builder.genotypes(VariantContextUtils.subsetDiploidAlleles(vc, alleles, false));
+            return builder.make();
+        } else {
+            return vc;
         }
-
-        callTimer.start();
-        linearExactMultiAllelic(GLs, alleles.size() - 1, log10AlleleFrequencyPriors, result);
-        final long nanoTime = callTimer.getElapsedTimeNano();
-
-        if ( callReport != null )
-            printCallInfo(vc, alleles, GLs, log10AlleleFrequencyPriors, nanoTime, result.getLog10PosteriorOfAFzero());
-
-        return alleles;
-    }
-
-    private void printCallInfo(final VariantContext vc,
-                               final List<Allele> alleles,
-                               final GenotypesContext GLs,
-                               final double[] log10AlleleFrequencyPriors,
-                               final long runtimeNano,
-                               final double log10PosteriorOfAFzero) {
-        printCallElement(vc, "type", "ignore", vc.getType());
-
-        int allelei = 0;
-        for ( final Allele a : alleles )
-            printCallElement(vc, "allele", allelei++, a.getDisplayString());
-
-        for ( final Genotype g : GLs )
-            printCallElement(vc, "PL", g.getSampleName(), g.getLikelihoodsString());
-
-        for ( int priorI = 0; priorI < log10AlleleFrequencyPriors.length; priorI++ )
-            printCallElement(vc, "priorI", priorI, log10AlleleFrequencyPriors[priorI]);
-
-        printCallElement(vc, "runtime.nano", "ignore", runtimeNano);
-        printCallElement(vc, "log10PosteriorOfAFzero", "ignore", log10PosteriorOfAFzero);
-
-        callReport.flush();
-    }
-
-    private void printCallElement(final VariantContext vc, final Object variable, final Object key, final Object value) {
-        final String loc = String.format("%s:%d", vc.getChr(), vc.getStart());
-        callReport.println(Utils.join("\t", Arrays.asList(loc, variable, key, value)));
     }
 
     private static final int PL_INDEX_OF_HOM_REF = 0;

@@ -78,7 +78,7 @@ public class UnifiedGenotyperEngine {
     private ThreadLocal<Map<String, GenotypeLikelihoodsCalculationModel>> glcm = new ThreadLocal<Map<String, GenotypeLikelihoodsCalculationModel>>();
 
     // the model used for calculating p(non-ref)
-    private ThreadLocal<AlleleFrequencyCalculationModel> afcm = new ThreadLocal<AlleleFrequencyCalculationModel>();
+    private ThreadLocal<AlleleFrequencyCalculation> afcm = new ThreadLocal<AlleleFrequencyCalculation>();
 
     // the allele frequency likelihoods and posteriors (allocated once as an optimization)
     private ThreadLocal<AlleleFrequencyCalculationResult> alleleFrequencyCalculationResult = new ThreadLocal<AlleleFrequencyCalculationResult>();
@@ -371,7 +371,7 @@ public class UnifiedGenotyperEngine {
         }
 
         AFresult.reset();
-        List<Allele> allelesUsedInGenotyping = afcm.get().getLog10PNonRef(vc, getAlleleFrequencyPriors(model), AFresult);
+        afcm.get().getLog10PNonRef(vc, getAlleleFrequencyPriors(model), AFresult);
 
         // is the most likely frequency conformation AC=0 for all alternate alleles?
         boolean bestGuessIsRef = true;
@@ -382,7 +382,7 @@ public class UnifiedGenotyperEngine {
         myAlleles.add(vc.getReference());
         for ( int i = 0; i < vc.getAlternateAlleles().size(); i++ ) {
             final Allele alternateAllele = vc.getAlternateAllele(i);
-            final int indexOfAllele = allelesUsedInGenotyping.indexOf(alternateAllele);
+            final int indexOfAllele = AFresult.getAllelesUsedInGenotyping().indexOf(alternateAllele);
             // the genotyping model may have stripped it out
             if ( indexOfAllele == -1 )
                 continue;
@@ -754,32 +754,34 @@ public class UnifiedGenotyperEngine {
         return glcm;
     }
 
-    private static AlleleFrequencyCalculationModel getAlleleFrequencyCalculationObject(int N, Logger logger, PrintStream verboseWriter, UnifiedArgumentCollection UAC) {
+    private static AlleleFrequencyCalculation getAlleleFrequencyCalculationObject(int N, Logger logger, PrintStream verboseWriter, UnifiedArgumentCollection UAC) {
 
-        List<Class<? extends AlleleFrequencyCalculationModel>> afClasses = new PluginManager<AlleleFrequencyCalculationModel>(AlleleFrequencyCalculationModel.class).getPlugins();
+        List<Class<? extends AlleleFrequencyCalculation>> afClasses = new PluginManager<AlleleFrequencyCalculation>(AlleleFrequencyCalculation.class).getPlugins();
 
         // user-specified name
-        String afModelName = UAC.AFmodel.name();
+        String afModelName = UAC.AFmodel.implementationName;
 
         if (!afModelName.contains(GPSTRING) && UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY)
             afModelName = GPSTRING + afModelName;
+        else
+            afModelName = "Diploid" + afModelName;
 
         for (int i = 0; i < afClasses.size(); i++) {
-            Class<? extends AlleleFrequencyCalculationModel> afClass = afClasses.get(i);
+            Class<? extends AlleleFrequencyCalculation> afClass = afClasses.get(i);
             String key = afClass.getSimpleName().replace("AFCalculationModel","").toUpperCase();
             if (afModelName.equalsIgnoreCase(key)) {
                 try {
                     Object args[] = new Object[]{UAC,N,logger,verboseWriter};
                     Constructor c = afClass.getDeclaredConstructor(UnifiedArgumentCollection.class, int.class, Logger.class, PrintStream.class);
 
-                    return (AlleleFrequencyCalculationModel)c.newInstance(args);
+                    return (AlleleFrequencyCalculation)c.newInstance(args);
                 }
                 catch (Exception e) {
-                    throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculationModel " + UAC.AFmodel);
+                    throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculation " + UAC.AFmodel);
                 }
             }
         }
-        throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculationModel " + UAC.AFmodel);
+        throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculation " + UAC.AFmodel);
     }
 
     public static VariantContext getVCFromAllelesRod(RefMetaDataTracker tracker, ReferenceContext ref, GenomeLoc loc, boolean requireSNP, Logger logger, final RodBinding<VariantContext> allelesBinding) {

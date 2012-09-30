@@ -24,7 +24,7 @@
 package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
 
 import org.broadinstitute.sting.gatk.walkers.genotyper.AlleleFrequencyCalculationResult;
-import org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel;
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidExactAFCalculation;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.TreeSet;
@@ -51,7 +51,7 @@ public class GLBasedSampleSelector extends SampleSelector {
             flatPriors = new double[1+2*samples.size()];
         }
         AlleleFrequencyCalculationResult result = new AlleleFrequencyCalculationResult(vc.getAlternateAlleles().size());
-        ExactAFCalculationModel.linearExactMultiAllelic(subContext.getGenotypes(),vc.getAlternateAlleles().size(),flatPriors,result);
+        DiploidExactAFCalculation.linearExactMultiAllelic(subContext.getGenotypes(), vc.getAlternateAlleles().size(), flatPriors, result);
         // do we want to let this qual go up or down?
         if ( result.getLog10PosteriorOfAFzero() < referenceLikelihood ) {
             return true;

@@ -41,7 +41,7 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
      */
     @Advanced
     @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ", required = false)
-    protected AlleleFrequencyCalculationModel.Model AFmodel = AlleleFrequencyCalculationModel.Model.EXACT;
+    protected AlleleFrequencyCalculation.Model AFmodel = AlleleFrequencyCalculation.Model.EXACT;
 
     /**
      * The PCR error rate is independent of the sequencing error rate, which is necessary because we cannot necessarily
