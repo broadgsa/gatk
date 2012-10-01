@@ -56,6 +56,8 @@ public class AlleleFrequencyCalculationResult {
     private double log10LikelihoodOfAFzero;
     private double log10PosteriorOfAFzero;
 
+    int nEvaluations = 0;
+
     /**
      * The list of alleles actually used in computing the AF
      */
@@ -120,6 +122,15 @@ public class AlleleFrequencyCalculationResult {
     @Ensures("result != null")
     public int[] getAlleleCountsOfMAP() {
         return alleleCountsOfMAP;
+    }
+
+    /**
+     * Returns the number of cycles used to evaluate the pNonRef for this AF calculation
+     *
+     * @return the number of evaluations required to produce the answer for this AF calculation
+     */
+    public int getnEvaluations() {
+        return nEvaluations;
     }
 
     /**
@@ -189,6 +200,13 @@ public class AlleleFrequencyCalculationResult {
         currentPosteriorsCacheIndex = 0;
         log10PosteriorMatrixSum = null;
         allelesUsedInGenotyping = null;
+    }
+
+    /**
+     * Tell this result we used one more evaluation cycle
+     */
+    protected void incNEvaluations() {
+        nEvaluations++;
     }
 
     protected void updateMLEifNeeded(final double log10LofK, final int[] alleleCountsForK) {

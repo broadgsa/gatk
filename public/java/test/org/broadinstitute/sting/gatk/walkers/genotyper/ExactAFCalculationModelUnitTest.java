@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variantcontext.*;
 import org.testng.Assert;
@@ -21,6 +22,9 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
     static Genotype AA1, AB1, BB1, NON_INFORMATIVE1;
     static Genotype AA2, AB2, AC2, BB2, BC2, CC2, NON_INFORMATIVE2;
     final double[] FLAT_3SAMPLE_PRIORS = new double[2*3+1];  // flat priors
+    final private static boolean INCLUDE_BIALLELIC = true;
+    final private static boolean INCLUDE_TRIALLELIC = true;
+    final private static boolean Guillermo_FIXME = false; // TODO -- can only be enabled when GdA fixes bug
 
     @BeforeSuite
     public void before() {
@@ -51,13 +55,15 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         final ExactAFCalculation calc;
         final int[] expectedACs;
         final double[] priors;
+        final String priorName;
 
-        private GetGLsTest(final ExactAFCalculation calculation, int numAltAlleles, List<Genotype> arg, final double[] priors) {
+        private GetGLsTest(final ExactAFCalculation calculation, int numAltAlleles, List<Genotype> arg, final double[] priors, final String priorName) {
             super(GetGLsTest.class);
             GLs = GenotypesContext.create(new ArrayList<Genotype>(arg));
             this.numAltAlleles = numAltAlleles;
             this.calc = calculation;
             this.priors = priors;
+            this.priorName = priorName;
 
             expectedACs = new int[numAltAlleles+1];
             for ( int alleleI = 0; alleleI < expectedACs.length; alleleI++ ) {
@@ -103,8 +109,8 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         }
 
         public String toString() {
-            return String.format("%s model=%s input=%s", super.toString(), calc.getClass().getSimpleName(),
-                    GLs.size() > 5 ? String.format("%d samples", GLs.size()) : GLs);
+            return String.format("%s model=%s prior=%s input=%s", super.toString(), calc.getClass().getSimpleName(),
+                    priorName, GLs.size() > 5 ? String.format("%d samples", GLs.size()) : GLs);
         }
     }
 
@@ -116,17 +122,26 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         for ( final int nSamples : Arrays.asList(1, 2, 3, 4) ) {
             final DiploidExactAFCalculation diploidCalc = new DiploidExactAFCalculation(nSamples, 4);
             final GeneralPloidyExactAFCalculation generalCalc = new GeneralPloidyExactAFCalculation(nSamples, 4, 2);
-            final double[] priors = new double[2*nSamples+1];  // flat priors
 
-            for ( ExactAFCalculation model : Arrays.asList(diploidCalc, generalCalc) ) {
-                // bi-allelic
-                if ( nSamples <= biAllelicSamples.size() )
-                    for ( List<Genotype> genotypes : Utils.makePermutations(biAllelicSamples, nSamples, true) )
-                        new GetGLsTest(model, 1, genotypes, priors);
+            final int nPriorValues = 2*nSamples+1;
+            final double[] flatPriors = MathUtils.normalizeFromLog10(new double[nPriorValues], true);  // flat priors
+            final double[] humanPriors = new double[nPriorValues];
+            UnifiedGenotyperEngine.computeAlleleFrequencyPriors(nPriorValues-1, humanPriors, 0.001);
 
-                // tri-allelic
-                for ( List<Genotype> genotypes : Utils.makePermutations(triAllelicSamples, nSamples, true) )
-                    new GetGLsTest(model, 2, genotypes, priors);
+            for ( final double[] priors : Arrays.asList(flatPriors, humanPriors) ) { // , humanPriors) ) {
+                for ( ExactAFCalculation model : Arrays.asList(diploidCalc, generalCalc) ) {
+                    final String priorName = priors == humanPriors ? "human" : "flat";
+
+                    // bi-allelic
+                    if ( INCLUDE_BIALLELIC && nSamples <= biAllelicSamples.size() )
+                        for ( List<Genotype> genotypes : Utils.makePermutations(biAllelicSamples, nSamples, true) )
+                            new GetGLsTest(model, 1, genotypes, priors, priorName);
+
+                    // tri-allelic
+                    if ( INCLUDE_TRIALLELIC && ( ! priorName.equals("human") || model != generalCalc || Guillermo_FIXME ) )
+                        for ( List<Genotype> genotypes : Utils.makePermutations(triAllelicSamples, nSamples, true) )
+                            new GetGLsTest(model, 2, genotypes, priors, priorName);
+                }
             }
         }
 
@@ -166,11 +181,11 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
                 final double[] priors = new double[2*nSamples+1];  // flat priors
 
                 for ( ExactAFCalculation model : Arrays.asList(diploidCalc, generalCalc) ) {
-                    final GetGLsTest onlyInformative = new GetGLsTest(model, testData.nAltAlleles, testData.called, priors);
+                    final GetGLsTest onlyInformative = new GetGLsTest(model, testData.nAltAlleles, testData.called, priors, "flat");
 
                     for ( int rotation = 0; rotation < nSamples; rotation++ ) {
                         Collections.rotate(samples, 1);
-                        final GetGLsTest withNonInformative = new GetGLsTest(model, testData.nAltAlleles, samples, priors);
+                        final GetGLsTest withNonInformative = new GetGLsTest(model, testData.nAltAlleles, samples, priors, "flat");
                         tests.add(new Object[]{onlyInformative, withNonInformative});
                     }
                 }
@@ -202,36 +217,46 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         Assert.assertEquals(actual.getAllelesUsedInGenotyping(), expected.getAllelesUsedInGenotyping());
     }
 
-
     private void testResultSimple(final GetGLsTest cfg) {
         final AlleleFrequencyCalculationResult result = cfg.execute();
 
         if ( cfg.isNonRef() ) {
             //logger.warn("pNonRef = " + result.getLog10PosteriorOfAFzero());
             Assert.assertTrue(result.getLog10PosteriorOfAFzero() < -1, "Genotypes imply pNonRef > 0 but we had posterior AF = 0 of " + result.getLog10PosteriorOfAFzero());
+        } else {
+            // TODO -- I don't know why these two don't work
+            //Assert.assertTrue(result.getLog10PosteriorOfAFzero() > -1, "Genotypes imply pNonRef is low but we had posterior AF = 0 of " + result.getLog10PosteriorOfAFzero());
 
-            // TODO -- why does this fail?
-            //Assert.assertTrue(result.getLog10PosteriorsMatrixSumWithoutAFzero() > -1, "Genotypes imply pNonRef > 0 but posterior sum over all non-AF0 fields was only " + result.getLog10PosteriorsMatrixSumWithoutAFzero());
-
-            // todo -- I'm not sure this is supposed to be true
-            //Assert.assertEquals(Math.pow(10, result.getLog10PosteriorOfAFzero()) + Math.pow(10, result.getLog10PosteriorsMatrixSumWithoutAFzero()), 1.0, 1e-3, "Total posterior prob didn't sum to 1");
+            // TODO -- I don't know why these two don't work
+            //Assert.assertTrue(result.getLog10PosteriorsMatrixSumWithoutAFzero() > -1,
+            //        "Genotypes imply pNonRef is low but posterior sum over all non-AF0 fields was " + result.getLog10PosteriorsMatrixSumWithoutAFzero()
+            //                + " pNonRef = " + result.getLog10PosteriorOfAFzero());
         }
 
+        final int minNumberOfEvaluations = cfg.getVC().getCalledChrCount();
+        Assert.assertTrue(result.getnEvaluations() >= minNumberOfEvaluations,
+                "Number of evaluations " + result.getnEvaluations() + " must be at least " + minNumberOfEvaluations);
         Assert.assertNotNull(result.getAllelesUsedInGenotyping());
         Assert.assertTrue(cfg.getAlleles().containsAll(result.getAllelesUsedInGenotyping()), "Result object has alleles not in our initial allele list");
 
         for ( int altAlleleI = 0; altAlleleI < cfg.numAltAlleles; altAlleleI++ ) {
             int expectedAlleleCount = cfg.getExpectedAltAC(altAlleleI);
-            int calculatedAlleleCount = result.getAlleleCountsOfMAP()[altAlleleI];
+            int calcAC_MLE = result.getAlleleCountsOfMLE()[altAlleleI];
 
-            Assert.assertEquals(calculatedAlleleCount, expectedAlleleCount);
+            final Allele allele = cfg.getAlleles().get(altAlleleI+1);
+            Assert.assertEquals(calcAC_MLE, expectedAlleleCount, "MLE AC not equal to expected AC for allele " + allele);
         }
+
+        // not true in general
+//        final int AC_MLE = (int)MathUtils.sum(result.getAlleleCountsOfMLE());
+//        final int AC_MAP = (int)MathUtils.sum(result.getAlleleCountsOfMAP());
+//        Assert.assertTrue(AC_MAP <= AC_MLE, "Requires sum MAP AC <= sum MLE AC for but saw " + AC_MAP + " vs " + AC_MLE);
     }
 
     @Test
     public void testLargeGLs() {
         final Genotype BB = makePL(Arrays.asList(C, C), 20000000, 20000000, 0);
-        GetGLsTest cfg = new GetGLsTest(new DiploidExactAFCalculation(1, 1), 1, Arrays.asList(BB, BB, BB), FLAT_3SAMPLE_PRIORS);
+        GetGLsTest cfg = new GetGLsTest(new DiploidExactAFCalculation(1, 1), 1, Arrays.asList(BB, BB, BB), FLAT_3SAMPLE_PRIORS, "flat");
 
         final AlleleFrequencyCalculationResult result = cfg.execute();
 
@@ -243,7 +268,7 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
     public void testMismatchedGLs() {
         final Genotype AB = makePL(Arrays.asList(A,C), 2000, 0, 2000, 2000, 2000, 2000);
         final Genotype AC = makePL(Arrays.asList(A,G), 100, 100, 100, 0, 100, 100);
-        GetGLsTest cfg = new GetGLsTest(new DiploidExactAFCalculation(2, 2), 2, Arrays.asList(AB, AC), FLAT_3SAMPLE_PRIORS);
+        GetGLsTest cfg = new GetGLsTest(new DiploidExactAFCalculation(2, 2), 2, Arrays.asList(AB, AC), FLAT_3SAMPLE_PRIORS, "flat");
 
         final AlleleFrequencyCalculationResult result = cfg.execute();
 

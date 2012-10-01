@@ -147,6 +147,8 @@ public class DiploidExactAFCalculation extends ExactAFCalculation {
         // keep processing while we have AC conformations that need to be calculated
         MaxLikelihoodSeen maxLikelihoodSeen = new MaxLikelihoodSeen();
         while ( !ACqueue.isEmpty() ) {
+            result.incNEvaluations(); // keep track of the number of evaluations
+
             // compute log10Likelihoods
             final ExactACset set = ACqueue.remove();
             final double log10LofKs = calculateAlleleCountConformation(set, genotypeLikelihoods, maxLikelihoodSeen, numChr, ACqueue, indexesToACset, log10AlleleFrequencyPriors, result);
