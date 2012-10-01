@@ -41,6 +41,14 @@ public class DiploidExactAFCalculation extends ExactAFCalculation {
         super(nSamples, maxAltAlleles, false, null, null, null);
     }
 
+    /**
+     * Dynamically found in UnifiedGenotyperEngine
+     *
+     * @param UAC
+     * @param N
+     * @param logger
+     * @param verboseWriter
+     */
     public DiploidExactAFCalculation(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
         super(UAC, N, logger, verboseWriter);
     }

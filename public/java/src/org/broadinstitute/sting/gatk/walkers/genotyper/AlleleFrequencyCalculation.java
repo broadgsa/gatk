@@ -100,7 +100,7 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
      *
      * Allocates a new results object.  Useful for testing but slow in practice.
      */
-    public AlleleFrequencyCalculationResult getLog10PNonRef(final VariantContext vc,
+    public final AlleleFrequencyCalculationResult getLog10PNonRef(final VariantContext vc,
                                                             final double[] log10AlleleFrequencyPriors) {
         return getLog10PNonRef(vc, log10AlleleFrequencyPriors, new AlleleFrequencyCalculationResult(MAX_ALTERNATE_ALLELES_TO_GENOTYPE));
     }
@@ -113,15 +113,17 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
      * @param result a pre-allocated (for efficiency) object to hold the result of the calculation
      * @return result (for programming convenience)
      */
-    public AlleleFrequencyCalculationResult getLog10PNonRef(final VariantContext vc,
-                                                            final double[] log10AlleleFrequencyPriors,
-                                                            final AlleleFrequencyCalculationResult result) {
+    public final AlleleFrequencyCalculationResult getLog10PNonRef(final VariantContext vc,
+                                                                  final double[] log10AlleleFrequencyPriors,
+                                                                  final AlleleFrequencyCalculationResult result) {
         if ( vc == null ) throw new IllegalArgumentException("VariantContext cannot be null");
         if ( log10AlleleFrequencyPriors == null ) throw new IllegalArgumentException("priors vector cannot be null");
         if ( result == null ) throw new IllegalArgumentException("Results object cannot be null");
 
+        // reset the result, so we can store our new result there
+        result.reset();
+
         final VariantContext vcWorking = reduceScope(vc);
-        result.setAllelesUsedInGenotyping(vcWorking.getAlleles());
 
         callTimer.start();
         computeLog10PNonRef(vcWorking, log10AlleleFrequencyPriors, result);
@@ -130,6 +132,7 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
         if ( callReport != null )
             printCallInfo(vcWorking, log10AlleleFrequencyPriors, nanoTime, result.getLog10PosteriorOfAFzero());
 
+        result.setAllelesUsedInGenotyping(vcWorking.getAlleles());
         return result;
     }
 
