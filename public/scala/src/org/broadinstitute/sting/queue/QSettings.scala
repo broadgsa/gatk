@@ -31,6 +31,10 @@ import org.broadinstitute.sting.commandline.{ClassType, Argument}
  * Default settings settable on the command line and passed to CommandLineFunctions.
  */
 class QSettings {
+  
+  @Argument(fullName="job_walltime", shortName="wallTime", doc="Setting the required walltime when using the drmaa job runner.", required=false)
+  var jobWalltime: Option[Long] = None
+  
   @Argument(fullName="run_name", shortName="runName", doc="A name for this run used for various status messages.", required=false)
   var runName: String = _
 
