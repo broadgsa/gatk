@@ -179,7 +179,7 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
         int numReadGroups = 0;
         for ( final SAMFileHeader header : getToolkit().getSAMFileHeaders() )
             numReadGroups += header.getReadGroups().size();
-        recalibrationTables = new RecalibrationTables(requestedCovariates, numReadGroups);
+        recalibrationTables = new RecalibrationTables(requestedCovariates, numReadGroups, RAC.RECAL_TABLE_UPDATE_LOG);
 
         recalibrationEngine = initializeRecalibrationEngine();
         recalibrationEngine.initialize(requestedCovariates, recalibrationTables);
