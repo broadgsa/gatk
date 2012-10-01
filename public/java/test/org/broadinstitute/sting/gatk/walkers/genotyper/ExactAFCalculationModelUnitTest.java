@@ -8,10 +8,7 @@ import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 
 public class ExactAFCalculationModelUnitTest extends BaseTest {
@@ -21,8 +18,8 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
     static Allele T = Allele.create("T");
 
     static int sampleNameCounter = 0;
-    static Genotype AA1, AB1, BB1;
-    static Genotype AA2, AB2, AC2, BB2, BC2, CC2;
+    static Genotype AA1, AB1, BB1, NON_INFORMATIVE1;
+    static Genotype AA2, AB2, AC2, BB2, BC2, CC2, NON_INFORMATIVE2;
     final double[] FLAT_3SAMPLE_PRIORS = new double[2*3+1];  // flat priors
 
     @BeforeSuite
@@ -30,6 +27,7 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         AA1 = makePL(Arrays.asList(A, A), 0, 20, 20);
         AB1 = makePL(Arrays.asList(A, C), 20, 0, 20);
         BB1 = makePL(Arrays.asList(C, C), 20, 20, 0);
+        NON_INFORMATIVE1 = makePL(Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 0, 0, 0);
 
         AA2 = makePL(Arrays.asList(A, A), 0, 20, 20, 20, 20, 20);
         AB2 = makePL(Arrays.asList(A, C), 20, 0, 20, 20, 20, 20);
@@ -37,6 +35,7 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         AC2 = makePL(Arrays.asList(A, G), 20, 20, 20, 0, 20, 20);
         BC2 = makePL(Arrays.asList(C, G), 20, 20, 20, 20, 0, 20);
         CC2 = makePL(Arrays.asList(G, G), 20, 20, 20, 20, 20, 0);
+        NON_INFORMATIVE2 = makePL(Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 0, 0, 0, 0, 0, 0);
     }
 
     private Genotype makePL(final List<Allele> expectedGT, int ... pls) {
@@ -104,7 +103,8 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         }
 
         public String toString() {
-            return String.format("%s model=%s input=%s", super.toString(), calc.getClass().getSimpleName(), GLs);
+            return String.format("%s model=%s input=%s", super.toString(), calc.getClass().getSimpleName(),
+                    GLs.size() > 5 ? String.format("%d samples", GLs.size()) : GLs);
         }
     }
 
@@ -133,9 +133,77 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         return GetGLsTest.getTests(GetGLsTest.class);
     }
 
+    private static class NonInformativeData {
+        final Genotype nonInformative;
+        final List<Genotype> called;
+        final int nAltAlleles;
+
+        private NonInformativeData(List<Genotype> called, Genotype nonInformative, int nAltAlleles) {
+            this.called = called;
+            this.nonInformative = nonInformative;
+            this.nAltAlleles = nAltAlleles;
+        }
+    }
+
+    @DataProvider(name = "GLsWithNonInformative")
+    public Object[][] makeGLsWithNonInformative() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final List<NonInformativeData> nonInformativeTests = new LinkedList<NonInformativeData>();
+        nonInformativeTests.add(new NonInformativeData(Arrays.asList(AB1), NON_INFORMATIVE1, 1));
+        nonInformativeTests.add(new NonInformativeData(Arrays.asList(AB2), NON_INFORMATIVE2, 2));
+        nonInformativeTests.add(new NonInformativeData(Arrays.asList(AB2, BC2), NON_INFORMATIVE2, 2));
+
+        for ( final int nNonInformative : Arrays.asList(1, 10, 100) ) {
+            for ( final NonInformativeData testData : nonInformativeTests ) {
+                final List<Genotype> samples = new ArrayList<Genotype>();
+                samples.addAll(testData.called);
+                samples.addAll(Collections.nCopies(nNonInformative, testData.nonInformative));
+
+                final int nSamples = samples.size();
+                final DiploidExactAFCalculation diploidCalc = new DiploidExactAFCalculation(nSamples, 4);
+                final GeneralPloidyExactAFCalculation generalCalc = new GeneralPloidyExactAFCalculation(nSamples, 4, 2);
+                final double[] priors = new double[2*nSamples+1];  // flat priors
+
+                for ( ExactAFCalculation model : Arrays.asList(diploidCalc, generalCalc) ) {
+                    final GetGLsTest onlyInformative = new GetGLsTest(model, testData.nAltAlleles, testData.called, priors);
+
+                    for ( int rotation = 0; rotation < nSamples; rotation++ ) {
+                        Collections.rotate(samples, 1);
+                        final GetGLsTest withNonInformative = new GetGLsTest(model, testData.nAltAlleles, samples, priors);
+                        tests.add(new Object[]{onlyInformative, withNonInformative});
+                    }
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
 
     @Test(dataProvider = "wellFormedGLs")
     public void testGLs(GetGLsTest cfg) {
+        testResultSimple(cfg);
+    }
+
+    @Test(dataProvider = "GLsWithNonInformative", dependsOnMethods = "testGLs")
+    public void testGLsWithNonInformative(GetGLsTest onlyInformative, GetGLsTest withNonInformative) {
+        final AlleleFrequencyCalculationResult expected = onlyInformative.execute();
+        final AlleleFrequencyCalculationResult actual = withNonInformative.execute();
+
+        testResultSimple(withNonInformative);
+
+        Assert.assertEquals(actual.getLog10PosteriorOfAFzero(), expected.getLog10LikelihoodOfAFzero());
+        Assert.assertEquals(actual.getLog10LikelihoodOfAFzero(), expected.getLog10LikelihoodOfAFzero());
+        Assert.assertEquals(actual.getLog10PosteriorsMatrixSumWithoutAFzero(), expected.getLog10PosteriorsMatrixSumWithoutAFzero());
+        Assert.assertEquals(actual.getAlleleCountsOfMAP(), expected.getAlleleCountsOfMAP());
+        Assert.assertEquals(actual.getAlleleCountsOfMLE(), expected.getAlleleCountsOfMLE());
+        Assert.assertEquals(actual.getLog10MAP(), expected.getLog10MAP());
+        Assert.assertEquals(actual.getLog10MLE(), expected.getLog10MLE());
+        Assert.assertEquals(actual.getAllelesUsedInGenotyping(), expected.getAllelesUsedInGenotyping());
+    }
+
+
+    private void testResultSimple(final GetGLsTest cfg) {
         final AlleleFrequencyCalculationResult result = cfg.execute();
 
         if ( cfg.isNonRef() ) {
