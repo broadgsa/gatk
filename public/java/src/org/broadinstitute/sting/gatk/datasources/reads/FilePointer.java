@@ -50,6 +50,14 @@ public class FilePointer {
      */
     protected final boolean isRegionUnmapped;
 
+    /**
+     * Is this FilePointer "monolithic"? That is, does it represent all regions in all files that we will
+     * ever visit during this GATK run? If this is set to true, the engine will expect to see only this
+     * one FilePointer during the entire run, and this FilePointer will be allowed to contain intervals
+     * from more than one contig.
+     */
+    private boolean isMonolithic = false;
+
     public FilePointer( List<GenomeLoc> locations ) {
         this.locations.addAll(locations);
         this.isRegionUnmapped = checkUnmappedStatus();
@@ -81,7 +89,8 @@ public class FilePointer {
     }
 
     private void validateLocations() {
-        if ( isRegionUnmapped ) {
+        // Unmapped and monolithic FilePointers are exempted from the one-contig-only restriction
+        if ( isRegionUnmapped || isMonolithic ) {
             return;
         }
 
@@ -121,6 +130,29 @@ public class FilePointer {
      */
     public int getContigIndex() {
         return locations.size() > 0 ? locations.get(0).getContigIndex() : SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
+    }
+
+    /**
+     * Is this FilePointer "monolithic"? That is, does it represent all regions in all files that we will
+     * ever visit during this GATK run? If this is set to true, the engine will expect to see only this
+     * one FilePointer during the entire run, and this FilePointer will be allowed to contain intervals
+     * from more than one contig.
+     *
+     * @return true if this FP is a monolithic FP representing all regions in all files, otherwise false
+     */
+    public boolean isMonolithic() {
+        return isMonolithic;
+    }
+
+    /**
+     * Set this FP's "monolithic" status to true or false. An FP is monolithic if it represents all
+     * regions in all files that we will ever visit, and is the only FP we will ever create. A monolithic
+     * FP may contain intervals from more than one contig.
+     *
+     * @param isMonolithic set this FP's monolithic status to this value
+     */
+    public void setIsMonolithic( boolean isMonolithic ) {
+        this.isMonolithic = isMonolithic;
     }
 
     @Override
