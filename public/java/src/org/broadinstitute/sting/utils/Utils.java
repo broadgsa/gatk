@@ -236,6 +236,12 @@ public class Utils {
         }
     }
 
+    public static <T> List<T> append(final List<T> left, T ... elts) {
+        final List<T> l = new LinkedList<T>(left);
+        l.addAll(Arrays.asList(elts));
+        return l;
+    }
+
     /**
      * Returns a string of the values in joined by separator, such as A,B,C
      *
