@@ -82,7 +82,6 @@ public class UnifiedGenotyperEngine {
 
     // the allele frequency likelihoods and posteriors (allocated once as an optimization)
     private ThreadLocal<AlleleFrequencyCalculationResult> alleleFrequencyCalculationResult = new ThreadLocal<AlleleFrequencyCalculationResult>();
-    private ThreadLocal<double[]> posteriorsArray = new ThreadLocal<double[]>();
 
     // because the allele frequency priors are constant for a given i, we cache the results to avoid having to recompute everything
     private final double[] log10AlleleFrequencyPriorsSNPs;
@@ -357,7 +356,6 @@ public class UnifiedGenotyperEngine {
         if ( afcm.get() == null ) {
             afcm.set(getAlleleFrequencyCalculationObject(N, logger, verboseWriter, UAC));
             alleleFrequencyCalculationResult.set(new AlleleFrequencyCalculationResult(UAC.MAX_ALTERNATE_ALLELES));
-            posteriorsArray.set(new double[2]);
         }
         AlleleFrequencyCalculationResult AFresult = alleleFrequencyCalculationResult.get();
 
@@ -402,16 +400,16 @@ public class UnifiedGenotyperEngine {
         }
 
         // calculate p(f>0):
-        final double[] normalizedPosteriors = generateNormalizedPosteriors(AFresult, posteriorsArray.get());
-        final double PofF = 1.0 - normalizedPosteriors[0];
+        final double PoFEq0 = AFresult.getNormalizedPosteriorOfAFzero();
+        final double PoFGT0 = AFresult.getNormalizedPosteriorOfAFGTZero();
 
         double phredScaledConfidence;
         if ( !bestGuessIsRef || UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
-            phredScaledConfidence = QualityUtils.phredScaleErrorRate(normalizedPosteriors[0]);
+            phredScaledConfidence = QualityUtils.phredScaleErrorRate(PoFEq0);
             if ( Double.isInfinite(phredScaledConfidence) )
                 phredScaledConfidence = -10.0 * AFresult.getLog10PosteriorOfAFzero();
         } else {
-            phredScaledConfidence = QualityUtils.phredScaleErrorRate(PofF);
+            phredScaledConfidence = QualityUtils.phredScaleErrorRate(PoFGT0);
             if ( Double.isInfinite(phredScaledConfidence) ) {
                 final double sum = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
                 phredScaledConfidence = (MathUtils.compareDoubles(sum, 0.0) == 0 ? 0 : -10.0 * sum);
@@ -422,7 +420,7 @@ public class UnifiedGenotyperEngine {
         if ( UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES && !passesEmitThreshold(phredScaledConfidence, bestGuessIsRef) ) {
             // technically, at this point our confidence in a reference call isn't accurately estimated
             //  because it didn't take into account samples with no data, so let's get a better estimate
-            return limitedContext ? null : estimateReferenceConfidence(vc, stratifiedContexts, getTheta(model), true, 1.0 - PofF);
+            return limitedContext ? null : estimateReferenceConfidence(vc, stratifiedContexts, getTheta(model), true, PoFGT0);
         }
 
         // start constructing the resulting VC
@@ -438,7 +436,7 @@ public class UnifiedGenotyperEngine {
 
         // print out stats if we have a writer
         if ( verboseWriter != null && !limitedContext )
-            printVerboseData(refContext.getLocus().toString(), vc, PofF, phredScaledConfidence, model);
+            printVerboseData(refContext.getLocus().toString(), vc, PoFGT0, phredScaledConfidence, model);
 
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         final HashMap<String, Object> attributes = new HashMap<String, Object>();
@@ -521,13 +519,7 @@ public class UnifiedGenotyperEngine {
             vcCall = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall, perReadAlleleLikelihoodMap);
         }
 
-        return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
-    }
-
-    public static double[] generateNormalizedPosteriors(final AlleleFrequencyCalculationResult AFresult, final double[] normalizedPosteriors) {
-        normalizedPosteriors[0] = AFresult.getLog10PosteriorOfAFzero();
-        normalizedPosteriors[1] = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
-        return MathUtils.normalizeFromLog10(normalizedPosteriors);
+        return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PoFGT0));
     }
 
     private Map<String, AlignmentContext> getFilteredAndStratifiedContexts(UnifiedArgumentCollection UAC, ReferenceContext refContext, AlignmentContext rawContext, final GenotypeLikelihoodsCalculationModel.Model model) {

@@ -38,6 +38,8 @@ import java.util.List;
  * Date: Dec 14, 2011
  *
  * Useful helper class to communicate the results of the allele frequency calculation
+ *
+ * TODO -- WHAT IS THE CONTRACT ON MAP AC AND P NON REF?
  */
 public class AlleleFrequencyCalculationResult {
     // These variables are intended to contain the MLE and MAP (and their corresponding allele counts) of the site over all alternate alleles
@@ -179,6 +181,28 @@ public class AlleleFrequencyCalculationResult {
         return allelesUsedInGenotyping;
     }
 
+    /**
+     * Get the normalized -- across all AFs -- of AC == 0, NOT LOG10
+     * @return
+     */
+    @Ensures({"result >= 0.0", "result <= 1.0"})
+    public double getNormalizedPosteriorOfAFzero() {
+        return getNormalizedPosteriors()[0];
+    }
+
+    /**
+     * Get the normalized -- across all AFs -- of AC > 0, NOT LOG10
+     * @return
+     */
+    @Ensures({"result >= 0.0", "result <= 1.0"})
+    public double getNormalizedPosteriorOfAFGTZero() {
+        return getNormalizedPosteriors()[1];
+    }
+
+    private double[] getNormalizedPosteriors() {
+        final double[] posteriors = new double[]{ getLog10PosteriorOfAFzero(), getLog10PosteriorsMatrixSumWithoutAFzero() };
+        return MathUtils.normalizeFromLog10(posteriors);
+    }
 
     // --------------------------------------------------------------------------------
     //

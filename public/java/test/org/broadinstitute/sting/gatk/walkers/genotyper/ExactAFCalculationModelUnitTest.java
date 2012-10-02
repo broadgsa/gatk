@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variantcontext.*;
 import org.testng.Assert;
@@ -195,12 +196,12 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "wellFormedGLs")
+    @Test(enabled = true, dataProvider = "wellFormedGLs")
     public void testGLs(GetGLsTest cfg) {
         testResultSimple(cfg);
     }
 
-    @Test(dataProvider = "GLsWithNonInformative", dependsOnMethods = "testGLs")
+    @Test(enabled = true, dataProvider = "GLsWithNonInformative", dependsOnMethods = "testGLs")
     public void testGLsWithNonInformative(GetGLsTest onlyInformative, GetGLsTest withNonInformative) {
         final AlleleFrequencyCalculationResult expected = onlyInformative.execute();
         final AlleleFrequencyCalculationResult actual = withNonInformative.execute();
@@ -220,18 +221,7 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
     private void testResultSimple(final GetGLsTest cfg) {
         final AlleleFrequencyCalculationResult result = cfg.execute();
 
-        if ( cfg.isNonRef() ) {
-            //logger.warn("pNonRef = " + result.getLog10PosteriorOfAFzero());
-            Assert.assertTrue(result.getLog10PosteriorOfAFzero() < -1, "Genotypes imply pNonRef > 0 but we had posterior AF = 0 of " + result.getLog10PosteriorOfAFzero());
-        } else {
-            // TODO -- I don't know why these two don't work
-            //Assert.assertTrue(result.getLog10PosteriorOfAFzero() > -1, "Genotypes imply pNonRef is low but we had posterior AF = 0 of " + result.getLog10PosteriorOfAFzero());
-
-            // TODO -- I don't know why these two don't work
-            //Assert.assertTrue(result.getLog10PosteriorsMatrixSumWithoutAFzero() > -1,
-            //        "Genotypes imply pNonRef is low but posterior sum over all non-AF0 fields was " + result.getLog10PosteriorsMatrixSumWithoutAFzero()
-            //                + " pNonRef = " + result.getLog10PosteriorOfAFzero());
-        }
+        Assert.assertEquals(result.getNormalizedPosteriorOfAFzero() + result.getNormalizedPosteriorOfAFGTZero(), 1.0, 1e-4);
 
         final int minNumberOfEvaluations = cfg.getVC().getCalledChrCount();
         Assert.assertTrue(result.getnEvaluations() >= minNumberOfEvaluations,
@@ -247,13 +237,18 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
             Assert.assertEquals(calcAC_MLE, expectedAlleleCount, "MLE AC not equal to expected AC for allele " + allele);
         }
 
-        // not true in general
-//        final int AC_MLE = (int)MathUtils.sum(result.getAlleleCountsOfMLE());
+        // TODO
+        // TODO -- enable when we understand the contract between AC_MAP and pNonRef
+        // TODO
 //        final int AC_MAP = (int)MathUtils.sum(result.getAlleleCountsOfMAP());
-//        Assert.assertTrue(AC_MAP <= AC_MLE, "Requires sum MAP AC <= sum MLE AC for but saw " + AC_MAP + " vs " + AC_MLE);
+//        if ( AC_MAP > 0  ) {
+//            Assert.assertTrue(result.getNormalizedPosteriorOfAFzero() < 0.50, "MAP AC " + AC_MAP + " > 0 but we had posterior AF = 0 > 0.5 of " + result.getNormalizedPosteriorOfAFzero());
+//        } else {
+//            Assert.assertTrue(result.getNormalizedPosteriorOfAFzero() > 0.50, "MAP AC " + AC_MAP + " == 0 but we had posterior AF = 0 < 0.5 of " + result.getNormalizedPosteriorOfAFzero());
+//        }
     }
 
-    @Test
+    @Test(enabled = true)
     public void testLargeGLs() {
         final Genotype BB = makePL(Arrays.asList(C, C), 20000000, 20000000, 0);
         GetGLsTest cfg = new GetGLsTest(new DiploidExactAFCalculation(1, 1), 1, Arrays.asList(BB, BB, BB), FLAT_3SAMPLE_PRIORS, "flat");
@@ -264,7 +259,7 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
         Assert.assertEquals(calculatedAlleleCount, 6);
     }
 
-    @Test
+    @Test(enabled = true)
     public void testMismatchedGLs() {
         final Genotype AB = makePL(Arrays.asList(A,C), 2000, 0, 2000, 2000, 2000, 2000);
         final Genotype AC = makePL(Arrays.asList(A,G), 100, 100, 100, 0, 100, 100);
@@ -274,5 +269,82 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
 
         Assert.assertEquals(result.getAlleleCountsOfMAP()[0], 1);
         Assert.assertEquals(result.getAlleleCountsOfMAP()[1], 1);
+    }
+
+    @DataProvider(name = "Models")
+    public Object[][] makeModels() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        tests.add(new Object[]{new DiploidExactAFCalculation(1, 4)});
+        tests.add(new Object[]{new GeneralPloidyExactAFCalculation(1, 4, 2)});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(enabled = true, dataProvider = "Models")
+    public void testBiallelicPriors(final ExactAFCalculation model) {
+        final int REF_PL = 10;
+        final Genotype AB = makePL(Arrays.asList(A,C), REF_PL, 0, 10000);
+
+        for ( int log10NonRefPrior = 1; log10NonRefPrior < 100*REF_PL; log10NonRefPrior += 1 ) {
+            final double refPrior = 1 - QualityUtils.qualToErrorProb(log10NonRefPrior);
+            final double[] priors = MathUtils.toLog10(new double[]{refPrior, (1-refPrior) / 2, (1-refPrior) / 2});
+            GetGLsTest cfg = new GetGLsTest(model, 1, Arrays.asList(AB), priors, "pNonRef" + log10NonRefPrior);
+            final AlleleFrequencyCalculationResult result = cfg.execute();
+            final int actualAC = result.getAlleleCountsOfMAP()[0];
+
+            final double pRefWithPrior = AB.getLikelihoods().getAsVector()[0] + priors[0];
+            final double pHetWithPrior = AB.getLikelihoods().getAsVector()[1] + priors[1];
+            final boolean expectNonRef = pRefWithPrior <= pHetWithPrior;
+
+            if ( expectNonRef )
+                Assert.assertTrue(result.getNormalizedPosteriorOfAFGTZero() > 0.5);
+            else
+                Assert.assertTrue(result.getNormalizedPosteriorOfAFGTZero() < 0.5);
+
+            final int expectedAC = expectNonRef ? 1 : 0;
+            Assert.assertEquals(actualAC, expectedAC,
+                    "actual AC with priors " + log10NonRefPrior + " not expected "
+                            + expectedAC + " priors " + Utils.join(",", priors));
+        }
+    }
+
+    @Test(enabled = false, dataProvider = "Models")
+    public void testTriallelicPriors(final ExactAFCalculation model) {
+        // TODO
+        // TODO
+        // TODO THIS SEEMS TO ID A BUG IN THE EXACT MODEL FOR MULTI-ALLELICS, AS THE
+        // TODO SECOND ALLELE ISN'T HAVING A SQUARED PRIOR.  TALK TO ERIC AND CONFIRM
+        // TODO
+        // TODO
+        final int REF_PL_AB = 10, REF_PL_AC = 20; // first AC goes, then AB
+        final Genotype AB = makePL(Arrays.asList(A,C), REF_PL_AB, 0, 10000, 10000, 10000);
+        final Genotype AC = makePL(Arrays.asList(A, G), REF_PL_AC, 10000, 10000, 0, 10000, 10000);
+
+        for ( int log10NonRefPrior = 1; log10NonRefPrior < 100*REF_PL_AC; log10NonRefPrior += 1 ) {
+            final double refPrior = 1 - QualityUtils.qualToErrorProb(log10NonRefPrior);
+            final double nonRefPrior = (1-refPrior) / 2;
+            final double[] priors = MathUtils.toLog10(new double[]{refPrior, nonRefPrior, nonRefPrior, nonRefPrior, nonRefPrior, nonRefPrior});
+            GetGLsTest cfg = new GetGLsTest(model, 2, Arrays.asList(AB, AC), priors, "pNonRef" + log10NonRefPrior);
+            final AlleleFrequencyCalculationResult result = cfg.execute();
+            final int actualAC_AB = result.getAlleleCountsOfMAP()[0];
+
+            final double pRefABWithPrior = AB.getLikelihoods().getAsVector()[0] + priors[0];
+            final double pHetABWithPrior = AB.getLikelihoods().getAsVector()[1] + priors[1];
+            final int expectedAC_AB = pRefABWithPrior <= pHetABWithPrior ? 1 : 0;
+            Assert.assertEquals(actualAC_AB, expectedAC_AB,
+                    "actual AC with priors " + log10NonRefPrior + " not expected "
+                            + expectedAC_AB + " priors " + Utils.join(",", priors));
+
+            final double nonRefPriorSecondAllele = Math.pow(nonRefPrior, 2);
+            final double refPriorSecondAllele = 1 - nonRefPriorSecondAllele;
+            final int actualAC_AC = result.getAlleleCountsOfMAP()[1];
+            final double pRefACWithPrior = AB.getLikelihoods().getAsVector()[0] + Math.log10(refPriorSecondAllele);
+            final double pHetACWithPrior = AC.getLikelihoods().getAsVector()[3] + Math.log10(nonRefPriorSecondAllele);
+            final int expectedAC_AC = pRefACWithPrior <= pHetACWithPrior ? 1 : 0;
+            Assert.assertEquals(actualAC_AC, expectedAC_AC,
+                    "actual AC with priors " + log10NonRefPrior + " not expected "
+                            + expectedAC_AC + " priors " + Utils.join(",", priors));
+        }
     }
 }
