@@ -28,6 +28,13 @@ public class VariantsToBinaryPedIntegrationTest extends WalkerTest {
 
     }
 
+    public static String baseTestString(String inputVCF, String inputMetaData, int gq, String mode) {
+        return "-T VariantsToBinaryPed -R " + b37KGReference + " -mode "+mode +
+                " -V " + VTBP_DATA_DIR+inputVCF + " -m "+VTBP_DATA_DIR+inputMetaData + String.format(" -mgq %d",gq) +
+                " -bim %s -fam %s -bed %s";
+
+    }
+
     @Test
     public void testNA12878Alone() {
         String testName = "testNA12878Alone";
@@ -47,6 +54,18 @@ public class VariantsToBinaryPedIntegrationTest extends WalkerTest {
                 baseTestString("NA12878.subset.vcf", "CEUTrio.NA12878.metadata.txt",10),
                 3,
                 Arrays.asList("411ef932095728bfa5e509c2c0e4cfa8","7251ca4e8a515b698e7e7d25cff91978","02f1c462ebc8576e399d0e94f729fd95")
+        );
+
+        executeTest(testName, spec);
+    }
+
+    @Test
+    public void testNA12878AloneSNPMajor() {
+        String testName = "testNA12878AloneSNPMajor";
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString("NA12878.subset.vcf", "CEUTrio.NA12878.metadata.txt",10,"SNP_MAJOR"),
+                3,
+                Arrays.asList("411ef932095728bfa5e509c2c0e4cfa8","7251ca4e8a515b698e7e7d25cff91978","ada1acc475d096012b921b3219c3a446")
         );
 
         executeTest(testName, spec);
@@ -83,6 +102,16 @@ public class VariantsToBinaryPedIntegrationTest extends WalkerTest {
                 baseTestString("1000G_selected_allVariants.vcf", "1000G_selected_allVariants.md.txt",0),
                 3,
                 Arrays.asList("3c98112434d9948dc47da72ad14e8d84","3aceda4f9bb5b5457797c1fe5a85b03d","451498ceff06c1649890900fa994f1af")
+        );
+    }
+
+    @Test
+    public void test1000GWithIndelsSNPMajor() {
+        String testName = "test1000GWithIndelsSNPMajor";
+         WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString("1000G_selected_allVariants.vcf", "1000G_selected_allVariants.md.txt",0,"SNP_MAJOR"),
+                3,
+                Arrays.asList("3c98112434d9948dc47da72ad14e8d84","4a0ba3d0594b06306aa6459e4e28ec9a","451498ceff06c1649890900fa994f1af")
         );
     }
 

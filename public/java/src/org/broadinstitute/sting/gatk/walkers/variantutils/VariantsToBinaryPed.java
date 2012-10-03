@@ -66,6 +66,9 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
             "(in which case it will be copied to the file you provide as fam output).")
     File metaDataFile;
 
+    @Input(shortName="mode",fullName="outputMode",required=false,doc="The output file mode (SNP major or individual major)")
+    OutputMode mode = OutputMode.INDIVIDUAL_MAJOR;
+
     @Output(shortName="bed",fullName = "bed",required=true,doc="output ped file")
     PrintStream outBed;
 
@@ -80,6 +83,8 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
 
     @Argument(fullName="majorAlleleFirst",required=false,doc="Sets the major allele to be 'reference' for the bim file, rather than the ref allele")
     boolean majorAlleleFirst = false;
+
+    enum OutputMode { INDIVIDUAL_MAJOR,SNP_MAJOR }
 
     private static double APPROX_CM_PER_BP = 1000000.0/750000.0;
 
@@ -138,14 +143,18 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                         throw new UserException("No metadata provided for sample "+sample);
                     }
                 }
-                try {
-                    File temp = File.createTempFile("VariantsToBPed_"+sample, ".tmp");
-                    printMap.put(sample,new PrintStream(temp));
-                    tempFiles.put(sample,temp);
-                } catch (IOException e) {
-                    throw new ReviewedStingException("Error creating temporary file",e);
+                if ( mode == OutputMode.INDIVIDUAL_MAJOR ) {
+                    // only need to instantiate the files and buffers if in individual major.
+                    // Cut down on memory.
+                    try {
+                        File temp = File.createTempFile("VariantsToBPed_"+sample, ".tmp");
+                        printMap.put(sample,new PrintStream(temp));
+                        tempFiles.put(sample,temp);
+                    } catch (IOException e) {
+                        throw new ReviewedStingException("Error creating temporary file",e);
+                    }
+                    genotypeBuffer.put(sample,new byte[BUFFER_SIZE]);
                 }
-                genotypeBuffer.put(sample,new byte[BUFFER_SIZE]);
                 famOrder.add(sample);
             }
         }
@@ -195,6 +204,17 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         // write an entry into the map file
         outBim.printf("%s\t%s\t%.2f\t%d\t%s\t%s%n",vc.getChr(),getID(vc),APPROX_CM_PER_BP*vc.getStart(),vc.getStart(),
                 refOut,altOut);
+        if ( mode == OutputMode.INDIVIDUAL_MAJOR ) {
+            writeIndividualMajor(vc,altMajor);
+        } else {
+            writeSNPMajor(vc,altMajor);
+        }
+
+
+        return 1;
+    }
+
+    public void writeIndividualMajor(VariantContext vc, boolean altMajor) {
         // store genotypes per sample into the buffer
         for ( Genotype g : vc.getGenotypes() ) {
             String sample = g.getSampleName();
@@ -202,6 +222,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
             byte enc = getEncoding(g,genotypeCount,altMajor);
             samBuf[byteCount] |= enc;
         }
+
         genotypeCount++;
         if ( genotypeCount % 4 == 0 ) {
             byteCount++;
@@ -222,8 +243,29 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
             }
             genotypeCount = 0;
         }
+    }
 
-        return 1;
+    public void writeSNPMajor(VariantContext vc, boolean altMajor) {
+        // for each sample, write the genotype into the bed file, in the
+        // order of the fam file
+        genotypeCount = 0;
+        byteCount = 0;
+        byte[] bytes = new byte[(3+famOrder.size())/4]; // this exploits java integer fractions, which round down by default (1-4) -> 1, (5-8) -> 2
+        for ( Genotype g : vc.getGenotypesOrderedBy(famOrder) ) {
+            byte enc = getEncoding(g,genotypeCount,altMajor);
+            bytes[byteCount] |= enc;
+            genotypeCount++;
+            if ( genotypeCount % 4 == 0 ) {
+                byteCount++;
+                genotypeCount = 0;
+            }
+        }
+
+        try {
+            outBed.write(bytes);
+        } catch (IOException e) {
+            throw new ReviewedStingException("Error writing to output bed file",e);
+        }
     }
 
     public Integer reduce(Integer m, Integer r) {
@@ -236,6 +278,14 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
 
     public void onTraversalDone(Integer numSites) {
         logger.info(String.format("%d sites processed!",numSites));
+
+        if ( mode == OutputMode.INDIVIDUAL_MAJOR ) {
+            mergeGenotypeTempFiles(numSites);
+        }
+
+    }
+
+    private void mergeGenotypeTempFiles(int numSites) {
         // push out the remaining genotypes and close stream
         for ( String sample : printMap.keySet() ) {
             try {
@@ -278,7 +328,6 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                 throw new ReviewedStingException("Error reading form temp file for input.",e);
             }
         }
-
     }
 
     private byte getEncoding(Genotype g, int offset, boolean altMajor) {
@@ -355,7 +404,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     private void writeBedHeader() {
         // write magic bits into the ped file
         try {
-            outBed.write(new byte[] { (byte) 0x6c, (byte) 0x1b, 0x0});
+            outBed.write(new byte[] { (byte) 0x6c, (byte) 0x1b, (byte) (mode == OutputMode.INDIVIDUAL_MAJOR ? 0x0 : 0x1)});
             // ultimately, the bed will be in individual-major mode
         } catch (IOException e) {
             throw new ReviewedStingException("error writing to output file.");
