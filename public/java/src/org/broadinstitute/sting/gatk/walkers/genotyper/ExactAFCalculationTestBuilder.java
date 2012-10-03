@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.ArrayList;
@@ -65,24 +66,45 @@ public class ExactAFCalculationTestBuilder {
         }
     }
 
-    public VariantContext makeACTest(final int ac, final int nonTypePL) {
+    public VariantContext makeACTest(final int[] ACs, final int nonTypePL) {
         final int nChrom = nSamples * 2;
-        final double p = ac / (1.0 * nChrom);
-        final int nhomvar = (int)Math.floor(nChrom * p * p);
-        final int nhet = ac - 2 * nhomvar;
 
-        final int calcAC = nhet + 2 * nhomvar;
-        if ( calcAC != ac )
-            throw new IllegalStateException("calculated AC " + calcAC + " not equal to desired AC " + ac);
+        final int[] nhet = new int[numAltAlleles];
+        final int[] nhomvar = new int[numAltAlleles];
+
+        for ( int i = 0; i < ACs.length; i++ ) {
+            final double p = ACs[i] / (1.0 * nChrom);
+            nhomvar[i] = (int)Math.floor(nSamples * p * p);
+            nhet[i] = ACs[i] - 2 * nhomvar[i];
+
+            if ( nhet[i] < 0 )
+                throw new IllegalStateException("Bug!");
+        }
+
+        final long calcAC = MathUtils.sum(nhet) + 2 * MathUtils.sum(nhomvar);
+        if ( calcAC != MathUtils.sum(ACs) )
+            throw new IllegalStateException("calculated AC " + calcAC + " not equal to desired AC " + Utils.join(",", ACs));
 
         return makeACTest(nhet, nhomvar, nonTypePL);
     }
 
-    public VariantContext makeACTest(final int nhet, final int nhomvar, final int nonTypePL) {
-        final List<Genotype> samples = new ArrayList<Genotype>(nSamples);
-        for ( int i = 0; i < nhet; i++ ) samples.add(makePL(GenotypeType.HET, nonTypePL));
-        for ( int i = 0; i < nhomvar; i++ ) samples.add(makePL(GenotypeType.HOM_VAR, nonTypePL));
-        for ( int i = 0; i < (nSamples-nhet-nhomvar); i++ ) samples.add(makePL(GenotypeType.HOM_REF, nonTypePL));
+    public VariantContext makeACTest(final int[] nhet, final int[] nhomvar, final int nonTypePL) {
+        List<Genotype> samples = new ArrayList<Genotype>(nSamples);
+
+        for ( int altI = 0; altI < nhet.length; altI++ ) {
+            for ( int i = 0; i < nhet[altI]; i++ )
+                samples.add(makePL(GenotypeType.HET, nonTypePL, altI+1));
+            for ( int i = 0; i < nhomvar[altI]; i++ )
+                samples.add(makePL(GenotypeType.HOM_VAR, nonTypePL, altI+1));
+        }
+
+        final int nRef = (int)(nSamples - MathUtils.sum(nhet) - MathUtils.sum(nhomvar));
+        for ( int i = 0; i < nRef; i++ ) samples.add(makePL(GenotypeType.HOM_REF, nonTypePL, 0));
+
+        samples = samples.subList(0, nSamples);
+
+        if ( samples.size() > nSamples )
+            throw new IllegalStateException("too many samples");
 
         VariantContextBuilder vcb = new VariantContextBuilder("x", "1", 1, 1, getAlleles());
         vcb.genotypes(samples);
@@ -93,11 +115,11 @@ public class ExactAFCalculationTestBuilder {
         return Arrays.asList(A, C, G, T).subList(0, numAltAlleles+1);
     }
 
-    public List<Allele> getAlleles(final GenotypeType type) {
+    public List<Allele> getAlleles(final GenotypeType type, final int altI) {
         switch (type) {
             case HOM_REF: return Arrays.asList(getAlleles().get(0), getAlleles().get(0));
-            case HET:     return Arrays.asList(getAlleles().get(0), getAlleles().get(1));
-            case HOM_VAR: return Arrays.asList(getAlleles().get(1), getAlleles().get(1));
+            case HET:     return Arrays.asList(getAlleles().get(0), getAlleles().get(altI));
+            case HOM_VAR: return Arrays.asList(getAlleles().get(altI), getAlleles().get(altI));
             default: throw new IllegalArgumentException("Unexpected type " + type);
         }
     }
@@ -109,15 +131,25 @@ public class ExactAFCalculationTestBuilder {
         return gb.make();
     }
 
-    public Genotype makePL(final GenotypeType type, final int nonTypePL) {
-        GenotypeBuilder gb = new GenotypeBuilder("sample" + sampleNameCounter++);
-        gb.alleles(getAlleles(type));
+    private int numPLs() {
+        return GenotypeLikelihoods.numLikelihoods(numAltAlleles+1, 2);
+    }
 
-        switch (type) {
-            case HOM_REF: gb.PL(new double[]{0, nonTypePL, nonTypePL}); break;
-            case HET:     gb.PL(new double[]{nonTypePL, 0, nonTypePL}); break;
-            case HOM_VAR: gb.PL(new double[]{nonTypePL, nonTypePL, 0}); break;
+    public Genotype makePL(final GenotypeType type, final int nonTypePL, final int altI) {
+        GenotypeBuilder gb = new GenotypeBuilder("sample" + sampleNameCounter++);
+        gb.alleles(getAlleles(type, altI));
+
+        final int[] pls = new int[numPLs()];
+        Arrays.fill(pls, nonTypePL);
+
+        int index = 0;
+        switch ( type ) {
+            case HOM_REF: index = GenotypeLikelihoods.calculatePLindex(0, 0); break;
+            case HET:     index = GenotypeLikelihoods.calculatePLindex(0, altI); break;
+            case HOM_VAR: index = GenotypeLikelihoods.calculatePLindex(altI, altI); break;
         }
+        pls[index] = 0;
+        gb.PL(pls);
 
         return gb.make();
     }

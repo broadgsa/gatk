@@ -47,7 +47,7 @@ public class ExactAFCalculationPerformanceTest {
 
     private static class AnalyzeByACAndPL extends Analysis {
         public AnalyzeByACAndPL(final List<String> columns) {
-            super("AnalyzeByACAndPL", Utils.append(columns, "non.type.pls", "ac"));
+            super("AnalyzeByACAndPL", Utils.append(columns, "non.type.pls", "ac", "n.alt.seg", "other.ac"));
         }
 
         public void run(final ExactAFCalculationTestBuilder testBuilder, final List<Object> coreValues) {
@@ -57,18 +57,47 @@ public class ExactAFCalculationPerformanceTest {
                 final ExactAFCalculation calc = testBuilder.makeModel();
                 final double[] priors = testBuilder.makePriors();
 
-                for ( int ac = 0; ac < testBuilder.getnSamples(); ac++ ) {
-                    final VariantContext vc = testBuilder.makeACTest(ac, nonTypePL);
+                for ( int[] ACs : makeACs(testBuilder.numAltAlleles, testBuilder.nSamples*2) ) {
+                    final VariantContext vc = testBuilder.makeACTest(ACs, nonTypePL);
 
                     timer.start();
                     final AlleleFrequencyCalculationResult result = calc.getLog10PNonRef(vc, priors);
                     final long runtime = timer.getElapsedTimeNano();
 
+                    int otherAC = 0;
+                    int nAltSeg = 0;
+                    for ( int i = 0; i < ACs.length; i++ ) {
+                        nAltSeg += ACs[i] > 0 ? 1 : 0;
+                        if ( i > 0 ) otherAC += ACs[i];
+                    }
+
                     final List<Object> columns = new LinkedList<Object>(coreValues);
-                    columns.addAll(Arrays.asList(runtime, result.getnEvaluations(), nonTypePL, ac));
+                    columns.addAll(Arrays.asList(runtime, result.getnEvaluations(), nonTypePL, ACs[0], nAltSeg, otherAC));
                     report.addRowList(columns);
                 }
             }
+        }
+
+        private List<int[]> makeACs(final int nAltAlleles, final int nChrom) {
+            if ( nAltAlleles > 2 ) throw new IllegalArgumentException("nAltAlleles must be < 3");
+
+            final List<int[]> ACs = new LinkedList<int[]>();
+
+            if ( nAltAlleles == 1 )
+                for ( int i = 0; i < nChrom; i++ ) {
+                    ACs.add(new int[]{i});
+            } else if ( nAltAlleles == 2 ) {
+                for ( int i = 0; i < nChrom; i++ ) {
+                    for ( int j : Arrays.asList(0, 1, 5, 10, 50, 100, 1000, 10000, 100000) ) {
+                        if ( j < nChrom - i )
+                            ACs.add(new int[]{i, j});
+                    }
+                }
+            } else {
+                throw new IllegalStateException("cannot get here");
+            }
+
+            return ACs;
         }
     }
 
@@ -80,11 +109,12 @@ public class ExactAFCalculationPerformanceTest {
         public void run(final ExactAFCalculationTestBuilder testBuilder, final List<Object> coreValues) {
             final SimpleTimer timer = new SimpleTimer();
 
-            for ( final int nonTypePL : Arrays.asList(10, 100, 1000) ) {
+            for ( final int nonTypePL : Arrays.asList(100) ) {
                 final ExactAFCalculation calc = testBuilder.makeModel();
                 final double[] priors = testBuilder.makePriors();
 
-                int ac = 1;
+                final int[] ac = new int[testBuilder.numAltAlleles];
+                ac[0] = 1;
                 final VariantContext vc = testBuilder.makeACTest(ac, nonTypePL);
 
                 for ( int position = 0; position < vc.getNSamples(); position++ ) {
@@ -113,11 +143,12 @@ public class ExactAFCalculationPerformanceTest {
         public void run(final ExactAFCalculationTestBuilder testBuilder, final List<Object> coreValues) {
             final SimpleTimer timer = new SimpleTimer();
 
-            for ( final int nonTypePL : Arrays.asList(10, 100, 1000) ) {
+            for ( final int nonTypePL : Arrays.asList(100) ) {
                 final ExactAFCalculation calc = testBuilder.makeModel();
                 final double[] priors = testBuilder.makePriors();
 
-                int ac = 1;
+                final int[] ac = new int[testBuilder.numAltAlleles];
+                ac[0] = 1;
                 final VariantContext vc = testBuilder.makeACTest(ac, nonTypePL);
                 final Genotype nonInformative = testBuilder.makePL(Arrays.asList(Allele.NO_CALL, Allele.NO_CALL), 0, 0, 0);
 
@@ -159,21 +190,26 @@ public class ExactAFCalculationPerformanceTest {
                 ? Arrays.asList(ExactAFCalculationTestBuilder.PriorType.values())
                 : Arrays.asList(ExactAFCalculationTestBuilder.PriorType.human);
 
+        final int MAX_N_SAMPLES_FOR_MULTI_ALLELIC = 100;
+
         final List<Analysis> analyzes = new ArrayList<Analysis>();
         analyzes.add(new AnalyzeByACAndPL(coreColumns));
         analyzes.add(new AnalyzeBySingletonPosition(coreColumns));
         analyzes.add(new AnalyzeByNonInformative(coreColumns));
 
         for ( int iteration = 0; iteration < 1; iteration++ ) {
-            for ( final int nAltAlleles : Arrays.asList(1) ) {
-                for ( final int nSamples : Arrays.asList(1, 10, 100) ) {
+            for ( final int nAltAlleles : Arrays.asList(1, 2) ) {
+                for ( final int nSamples : Arrays.asList(1, 10, 100, 1000, 10000) ) {
+                    if ( nSamples > MAX_N_SAMPLES_FOR_MULTI_ALLELIC && nAltAlleles > 1 )
+                        continue; // skip things that will take forever!
+
                     for ( final ExactAFCalculationTestBuilder.ModelType modelType : modelTypes ) {
                         for ( final ExactAFCalculationTestBuilder.PriorType priorType : priorTypes ) {
                             final ExactAFCalculationTestBuilder testBuilder
-                                    = new ExactAFCalculationTestBuilder(nSamples, 1, modelType, priorType);
+                                    = new ExactAFCalculationTestBuilder(nSamples, nAltAlleles, modelType, priorType);
 
                             for ( final Analysis analysis : analyzes ) {
-                                logger.info(Utils.join("\t", Arrays.asList(iteration, nSamples, modelType, priorType, analysis.getName())));
+                                logger.info(Utils.join("\t", Arrays.asList(iteration, nAltAlleles, nSamples, modelType, priorType, analysis.getName())));
                                 final List<?> values = Arrays.asList(iteration, nAltAlleles, nSamples, modelType, priorType);
                                 analysis.run(testBuilder, (List<Object>)values);
                             }

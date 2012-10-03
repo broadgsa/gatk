@@ -17,7 +17,6 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
     static Allele A = Allele.create("A", true);
     static Allele C = Allele.create("C");
     static Allele G = Allele.create("G");
-    static Allele T = Allele.create("T");
 
     static int sampleNameCounter = 0;
     static Genotype AA1, AB1, BB1, NON_INFORMATIVE1;
@@ -99,10 +98,6 @@ public class ExactAFCalculationModelUnitTest extends BaseTest {
                     Allele.create("C"),
                     Allele.create("G"),
                     Allele.create("T")).subList(0, numAltAlleles+1);
-        }
-
-        public boolean isNonRef() {
-            return expectedACs[0] < getVC().getNSamples() * 2;
         }
 
         public int getExpectedAltAC(final int alleleI) {
