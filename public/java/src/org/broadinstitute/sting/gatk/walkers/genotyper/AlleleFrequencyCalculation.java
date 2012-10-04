@@ -63,7 +63,7 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
 
     protected int nSamples;
     protected int MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
-    protected boolean CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS;
+    protected int MAX_ALTERNATE_ALLELES_FOR_INDELS;
 
     protected Logger logger;
     protected PrintStream verboseWriter;
@@ -74,12 +74,12 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
     private PrintStream callReport = null;
 
     protected AlleleFrequencyCalculation(final UnifiedArgumentCollection UAC, final int nSamples, final Logger logger, final PrintStream verboseWriter) {
-        this(nSamples, UAC.MAX_ALTERNATE_ALLELES, UAC.CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS, UAC.exactCallsLog, logger, verboseWriter);
+        this(nSamples, UAC.MAX_ALTERNATE_ALLELES, UAC.MAX_ALTERNATE_ALLELES_FOR_INDELS, UAC.exactCallsLog, logger, verboseWriter);
     }
 
     protected AlleleFrequencyCalculation(final int nSamples,
                                          final int maxAltAlleles,
-                                         final boolean capMaxAltsForIndels,
+                                         final int maxAltAllelesForIndels,
                                          final File exactCallsLog,
                                          final Logger logger,
                                          final PrintStream verboseWriter) {
@@ -88,7 +88,7 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
 
         this.nSamples = nSamples;
         this.MAX_ALTERNATE_ALLELES_TO_GENOTYPE = maxAltAlleles;
-        this.CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS = capMaxAltsForIndels;
+        this.MAX_ALTERNATE_ALLELES_FOR_INDELS = maxAltAllelesForIndels;
         this.logger = logger == null ? defaultLogger : logger;
         this.verboseWriter = verboseWriter;
         if ( exactCallsLog != null )

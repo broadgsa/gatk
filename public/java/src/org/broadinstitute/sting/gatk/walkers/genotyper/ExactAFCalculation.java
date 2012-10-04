@@ -45,8 +45,8 @@ abstract class ExactAFCalculation extends AlleleFrequencyCalculation {
         super(UAC, nSamples, logger, verboseWriter);
     }
 
-    protected ExactAFCalculation(final int nSamples, int maxAltAlleles, boolean capMaxAltsForIndels, File exactCallsLog, Logger logger, PrintStream verboseWriter) {
-        super(nSamples, maxAltAlleles, capMaxAltsForIndels, exactCallsLog, logger, verboseWriter);
+    protected ExactAFCalculation(final int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, File exactCallsLog, Logger logger, PrintStream verboseWriter) {
+        super(nSamples, maxAltAlleles, maxAltAllelesForIndels, exactCallsLog, logger, verboseWriter);
     }
 
     /**

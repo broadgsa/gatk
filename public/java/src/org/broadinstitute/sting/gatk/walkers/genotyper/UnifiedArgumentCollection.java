@@ -75,10 +75,6 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
 
-    @Hidden
-    @Argument(fullName = "cap_max_alternate_alleles_for_indels", shortName = "capMaxAltAllelesForIndels", doc = "Cap the maximum number of alternate alleles to genotype for indel calls at 2; overrides the --max_alternate_alleles argument; GSA production use only", required = false)
-    public boolean CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS = false;
-
     // indel-related arguments
     /**
      * A candidate indel is genotyped (and potentially called) if there are this number of reads with a consensus indel at a site.
@@ -211,7 +207,7 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
         uac.INDEL_HAPLOTYPE_SIZE = INDEL_HAPLOTYPE_SIZE;
         uac.alleles = alleles;
         uac.MAX_ALTERNATE_ALLELES = MAX_ALTERNATE_ALLELES;
-        uac.CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS = CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS;
+        uac.MAX_ALTERNATE_ALLELES_FOR_INDELS = MAX_ALTERNATE_ALLELES_FOR_INDELS;
         uac.GLmodel = GLmodel;
         uac.TREAT_ALL_READS_AS_SINGLE_POOL = TREAT_ALL_READS_AS_SINGLE_POOL;
         uac.referenceSampleRod = referenceSampleRod;
@@ -239,6 +235,7 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
         this.GenotypingMode = SCAC.GenotypingMode;
         this.heterozygosity = SCAC.heterozygosity;
         this.MAX_ALTERNATE_ALLELES = SCAC.MAX_ALTERNATE_ALLELES;
+        this.MAX_ALTERNATE_ALLELES_FOR_INDELS = SCAC.MAX_ALTERNATE_ALLELES_FOR_INDELS;
         this.OutputMode = SCAC.OutputMode;
         this.STANDARD_CONFIDENCE_FOR_CALLING = SCAC.STANDARD_CONFIDENCE_FOR_CALLING;
         this.STANDARD_CONFIDENCE_FOR_EMITTING = SCAC.STANDARD_CONFIDENCE_FOR_EMITTING;

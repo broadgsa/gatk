@@ -38,7 +38,7 @@ public class DiploidExactAFCalculation extends ExactAFCalculation {
     private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
 
     public DiploidExactAFCalculation(final int nSamples, final int maxAltAlleles) {
-        super(nSamples, maxAltAlleles, false, null, null, null);
+        super(nSamples, maxAltAlleles, maxAltAlleles, null, null, null);
     }
 
     /**
@@ -62,7 +62,7 @@ public class DiploidExactAFCalculation extends ExactAFCalculation {
 
     @Override
     protected VariantContext reduceScope(final VariantContext vc) {
-        final int myMaxAltAllelesToGenotype = CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS && vc.getType().equals(VariantContext.Type.INDEL) ? 2 : MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
+        final int myMaxAltAllelesToGenotype = vc.getType().equals(VariantContext.Type.INDEL) ? MAX_ALTERNATE_ALLELES_FOR_INDELS : MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
 
         // don't try to genotype too many alternate alleles
         if ( vc.getAlternateAlleles().size() > myMaxAltAllelesToGenotype ) {
