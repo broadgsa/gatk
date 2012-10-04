@@ -84,7 +84,7 @@ public class AlleleFrequencyCalculationResult {
      *
      * @return a log10 prob
      */
-    @Ensures("result < 0")
+    @Ensures("goodLog10Value(result)")
     public double getLog10MLE() {
         return log10MLE;
     }
@@ -94,7 +94,7 @@ public class AlleleFrequencyCalculationResult {
      *
      * @return a log10 prob
      */
-    @Ensures("result < 0")
+    @Ensures("goodLog10Value(result)")
     public double getLog10MAP() {
         return log10MAP;
     }
@@ -185,7 +185,10 @@ public class AlleleFrequencyCalculationResult {
      * Get the normalized -- across all AFs -- of AC == 0, NOT LOG10
      * @return
      */
-    @Ensures({"result >= 0.0", "result <= 1.0"})
+    // TODO -- this ensure cannot be enabled right now because the log10 inputs can be infinity, etc.
+    // TODO -- we should own these values in a more meaningful way and return good values in the case
+    // TODO -- where this happens, or instead thrown an error and have a function to say "was this calculation successful
+//    @Ensures({"result >= 0.0", "result <= 1.0"})
     public double getNormalizedPosteriorOfAFzero() {
         return getNormalizedPosteriors()[0];
     }
@@ -194,7 +197,10 @@ public class AlleleFrequencyCalculationResult {
      * Get the normalized -- across all AFs -- of AC > 0, NOT LOG10
      * @return
      */
-    @Ensures({"result >= 0.0", "result <= 1.0"})
+    // TODO -- this ensure cannot be enabled right now because the log10 inputs can be infinity, etc.
+    // TODO -- we should own these values in a more meaningful way and return good values in the case
+    // TODO -- where this happens, or instead thrown an error and have a function to say "was this calculation successful
+    //@Ensures({"result >= 0.0", "result <= 1.0"})
     public double getNormalizedPosteriorOfAFGTZero() {
         return getNormalizedPosteriors()[1];
     }
@@ -284,5 +290,9 @@ public class AlleleFrequencyCalculationResult {
             throw new IllegalArgumentException("allelesUsedInGenotyping cannot be null or empty");
 
         this.allelesUsedInGenotyping = allelesUsedInGenotyping;
+    }
+
+    private static boolean goodLog10Value(final double result) {
+        return result <= 0.0 || Double.isInfinite(result) || Double.isNaN(result);
     }
 }

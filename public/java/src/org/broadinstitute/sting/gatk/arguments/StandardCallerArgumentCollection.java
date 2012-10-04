@@ -60,6 +60,6 @@ public class StandardCallerArgumentCollection {
     public int MAX_ALTERNATE_ALLELES = 3;
 
     @Hidden
-    @Argument(shortName = "logExactCalls", doc="x")
+    @Argument(shortName = "logExactCalls", doc="x", required=false)
     public File exactCallsLog = null;
 }
