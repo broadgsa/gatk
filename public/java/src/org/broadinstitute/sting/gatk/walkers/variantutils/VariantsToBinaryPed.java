@@ -27,9 +27,7 @@ import java.io.*;
 import java.util.*;
 
 /**
- * Yet another VCF to Ped converter. The world actually does need one that will
- * work efficiently on large VCFs (or at least give a progress bar). This
- * produces a binary ped file in individual major mode.
+ * Converts a VCF file to a binary plink Ped file (.bed/.bim/.fam)
  */
 @DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=0,stop=100))
@@ -43,24 +41,25 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     /**
      * The metaData file can take two formats, the first of which is the first 6 lines of the standard ped file. This
      * is what Plink describes as a fam file. An example fam file is (note that there is no header):
-     *
-     * CEUTrio NA12878 NA12891 NA12892 2 -9
-     * CEUTrio NA12891 UNKN1 UNKN2 2 -9
-     * CEUTrio NA12892 UNKN3 UNKN4 1 -9
-     *
+     * <p><p>
+     * CEUTrio NA12878 NA12891 NA12892 2 -9</p><p>
+     * CEUTrio NA12891 UNKN1 UNKN2 2 -9</p><p>
+     * CEUTrio NA12892 UNKN3 UNKN4 1 -9</p><p>
+     * </p>
      * where the entries are (FamilyID IndividualID DadID MomID Phenotype Sex)
-     *
+     * <p>
      * An alternate format is a two-column key-value file
-     *
-     * NA12878        fid=CEUTrio;dad=NA12891;mom=NA12892;sex=2;phenotype=-9
-     * NA12891        fid=CEUTrio;sex=2;phenotype=-9
-     * NA12892        fid=CEUTrio;sex=1;phenotype=-9
-     *
+     * </p><p><p>
+     * NA12878        fid=CEUTrio;dad=NA12891;mom=NA12892;sex=2;phenotype=-9</p><p>
+     * NA12891        fid=CEUTrio;sex=2;phenotype=-9</p><p>
+     * NA12892        fid=CEUTrio;sex=1;phenotype=-9</p><p>
+     * </p><p>
      * wherein unknown parents needn't be specified. The columns are the individual ID, and a list of key-value pairs.
-     *
+     * </p><p>
      * Regardless of which file is specified, the walker will output a .fam file alongside the bed file. If the
      * command line has "-md [name].fam", the fam file will simply be copied. However, if a metadata file of the
      * alternate format is passed by "-md [name].txt", the walker will construct a formatted .fam file from the data.
+     * </p>
      */
     @Input(shortName="m",fullName = "metaData",required=true,doc="Sample metadata file. You may specify a .fam file " +
             "(in which case it will be copied to the file you provide as fam output).")
@@ -107,6 +106,8 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     private int genotypeCount = 0;
     private int byteCount = 0;
     private List<String> famOrder = new ArrayList<String>();
+    private long totalByteCount = 0l;
+    private long totalGenotypeCount = 0l;
 
     public void initialize() {
         writeBedHeader();
@@ -217,6 +218,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     public void writeIndividualMajor(VariantContext vc, boolean altMajor) {
         // store genotypes per sample into the buffer
         for ( Genotype g : vc.getGenotypes() ) {
+            ++totalGenotypeCount;
             String sample = g.getSampleName();
             byte[] samBuf = genotypeBuffer.get(sample);
             byte enc = getEncoding(g,genotypeCount,altMajor);
@@ -260,7 +262,8 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                 genotypeCount = 0;
             }
         }
-
+        totalGenotypeCount += famOrder.size();
+        totalByteCount += bytes.length;
         try {
             outBed.write(bytes);
         } catch (IOException e) {
@@ -277,7 +280,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     }
 
     public void onTraversalDone(Integer numSites) {
-        logger.info(String.format("%d sites processed!",numSites));
+        logger.info(String.format("%d sites processed for a total of %d genotypes encoded in %d bytes",numSites,totalGenotypeCount,totalByteCount));
 
         if ( mode == OutputMode.INDIVIDUAL_MAJOR ) {
             mergeGenotypeTempFiles(numSites);
@@ -317,11 +320,13 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                     byte[] readGenotypes = new byte[BUFFER_SIZE];
                     inStream.read(readGenotypes);
                     outBed.write(readGenotypes);
+                    totalByteCount += BUFFER_SIZE;
                 }
                 if ( ttr > 0 ) {
                     byte[] readGenotypes = new byte[ttr];
                     inStream.read(readGenotypes);
                     outBed.write(readGenotypes);
+                    totalByteCount += ttr;
                 }
                 inStream.close();
             } catch (IOException e) {
@@ -380,7 +385,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
             return MathUtils.log10ProbabilityToPhredScale(log10gq) >= minGenotypeQuality;
         }
 
-        return false;
+        return minGenotypeQuality <= 0;
     }
 
     private static String getID(VariantContext v) {
