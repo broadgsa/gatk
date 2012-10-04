@@ -25,8 +25,11 @@
 
 package org.broadinstitute.sting.utils.recalibration;
 
+import org.broadinstitute.sting.utils.collections.LoggingNestedIntegerArray;
 import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
+
+import java.io.PrintStream;
 
 /**
  * Utility class to facilitate on-the-fly base quality score recalibration.
@@ -52,19 +55,31 @@ public class RecalibrationTables {
     private final NestedIntegerArray[] tables;
 
     public RecalibrationTables(final Covariate[] covariates) {
-        this(covariates, covariates[TableType.READ_GROUP_TABLE.index].maximumKeyValue() + 1);
+        this(covariates, covariates[TableType.READ_GROUP_TABLE.index].maximumKeyValue() + 1, null);
+    }
+
+    public RecalibrationTables(final Covariate[] covariates, final PrintStream log) {
+        this(covariates, covariates[TableType.READ_GROUP_TABLE.index].maximumKeyValue() + 1, log);
     }
 
     public RecalibrationTables(final Covariate[] covariates, final int numReadGroups) {
+        this(covariates, numReadGroups, null);
+    }
+
+    public RecalibrationTables(final Covariate[] covariates, final int numReadGroups, final PrintStream log) {
         tables = new NestedIntegerArray[covariates.length];
 
         final int qualDimension = covariates[TableType.QUALITY_SCORE_TABLE.index].maximumKeyValue() + 1;
         final int eventDimension = EventType.values().length;
 
-        tables[TableType.READ_GROUP_TABLE.index] = new NestedIntegerArray<RecalDatum>(numReadGroups, eventDimension);
-        tables[TableType.QUALITY_SCORE_TABLE.index] = new NestedIntegerArray<RecalDatum>(numReadGroups, qualDimension, eventDimension);
+        tables[TableType.READ_GROUP_TABLE.index] = log == null ? new NestedIntegerArray<RecalDatum>(numReadGroups, eventDimension) :
+                                                                 new LoggingNestedIntegerArray<RecalDatum>(log, "READ_GROUP_TABLE", numReadGroups, eventDimension);
+        tables[TableType.QUALITY_SCORE_TABLE.index] = log == null ? new NestedIntegerArray<RecalDatum>(numReadGroups, qualDimension, eventDimension) :
+                                                                    new LoggingNestedIntegerArray<RecalDatum>(log, "QUALITY_SCORE_TABLE", numReadGroups, qualDimension, eventDimension);
         for (int i = TableType.OPTIONAL_COVARIATE_TABLES_START.index; i < covariates.length; i++)
-            tables[i] = new NestedIntegerArray<RecalDatum>(numReadGroups, qualDimension, covariates[i].maximumKeyValue()+1, eventDimension);
+            tables[i] = log == null ? new NestedIntegerArray<RecalDatum>(numReadGroups, qualDimension, covariates[i].maximumKeyValue()+1, eventDimension) :
+                                      new LoggingNestedIntegerArray<RecalDatum>(log, String.format("OPTIONAL_COVARIATE_TABLE_%d", i - TableType.OPTIONAL_COVARIATE_TABLES_START.index + 1),
+                                                                                numReadGroups, qualDimension, covariates[i].maximumKeyValue()+1, eventDimension);
     }
 
     public NestedIntegerArray<RecalDatum> getReadGroupTable() {

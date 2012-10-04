@@ -189,7 +189,7 @@ class QCommandLine extends CommandLineProgram with Logging {
   private def createQueueHeader() : Seq[String] = {
     Seq(String.format("Queue v%s, Compiled %s", getQueueVersion, getBuildTimestamp),
          "Copyright (c) 2012 The Broad Institute",
-         "Fro support and documentation go to http://www.broadinstitute.org/gatk")
+         "For support and documentation go to http://www.broadinstitute.org/gatk")
   }
 
   private def getQueueVersion : String = {

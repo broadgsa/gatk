@@ -41,7 +41,7 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
      */
     @Advanced
     @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ", required = false)
-    protected AlleleFrequencyCalculationModel.Model AFmodel = AlleleFrequencyCalculationModel.Model.EXACT;
+    protected AlleleFrequencyCalculation.Model AFmodel = AlleleFrequencyCalculation.Model.EXACT;
 
     /**
      * The PCR error rate is independent of the sequencing error rate, which is necessary because we cannot necessarily
@@ -186,7 +186,6 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
     @Argument(shortName="ef", fullName="exclude_filtered_reference_sites", doc="Don't include in the analysis sites where the reference sample VCF is filtered. Default: false.", required=false)
     boolean EXCLUDE_FILTERED_REFERENCE_SITES = false;
 
-
     // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
     public UnifiedArgumentCollection clone() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
@@ -224,6 +223,7 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
         uac.minReferenceDepth = minReferenceDepth;
         uac.EXCLUDE_FILTERED_REFERENCE_SITES = EXCLUDE_FILTERED_REFERENCE_SITES;
         uac.IGNORE_LANE_INFO = IGNORE_LANE_INFO;
+        uac.exactCallsLog = exactCallsLog;
 
         // todo- arguments to remove
         uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
@@ -242,5 +242,6 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
         this.OutputMode = SCAC.OutputMode;
         this.STANDARD_CONFIDENCE_FOR_CALLING = SCAC.STANDARD_CONFIDENCE_FOR_CALLING;
         this.STANDARD_CONFIDENCE_FOR_EMITTING = SCAC.STANDARD_CONFIDENCE_FOR_EMITTING;
+        this.exactCallsLog = SCAC.exactCallsLog;
     }
 }

@@ -1,12 +1,11 @@
 package org.broadinstitute.sting.gatk.arguments;
 
-import org.broadinstitute.sting.commandline.Advanced;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+
+import java.io.File;
 
 /**
  * Created with IntelliJ IDEA.
@@ -59,4 +58,8 @@ public class StandardCallerArgumentCollection {
     @Advanced
     @Argument(fullName = "max_alternate_alleles", shortName = "maxAltAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
     public int MAX_ALTERNATE_ALLELES = 3;
+
+    @Hidden
+    @Argument(shortName = "logExactCalls", doc="x", required=false)
+    public File exactCallsLog = null;
 }
