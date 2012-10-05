@@ -23,11 +23,12 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.walkers.genotyper;
+package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.utils.SimpleTimer;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -54,7 +55,7 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
         /** The default model with the best performance in all cases */
         EXACT("ExactAFCalculation");
 
-        final String implementationName;
+        public final String implementationName;
 
         private Model(String implementationName) {
             this.implementationName = implementationName;
@@ -101,7 +102,7 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
      * Allocates a new results object.  Useful for testing but slow in practice.
      */
     public final AlleleFrequencyCalculationResult getLog10PNonRef(final VariantContext vc,
-                                                            final double[] log10AlleleFrequencyPriors) {
+                                                                  final double[] log10AlleleFrequencyPriors) {
         return getLog10PNonRef(vc, log10AlleleFrequencyPriors, new AlleleFrequencyCalculationResult(getMaxAltAlleles()));
     }
 
@@ -165,9 +166,9 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
      * @param result                            (pre-allocated) object to store results
      */
     // TODO -- add consistent requires among args
-    protected abstract void computeLog10PNonRef(final VariantContext vc,
-                                                final double[] log10AlleleFrequencyPriors,
-                                                final AlleleFrequencyCalculationResult result);
+    public abstract void computeLog10PNonRef(final VariantContext vc,
+                                             final double[] log10AlleleFrequencyPriors,
+                                             final AlleleFrequencyCalculationResult result);
 
     /**
      * Must be overridden by concrete subclasses
@@ -178,10 +179,10 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
      * @param ploidy
      * @return GenotypesContext object
      */
-    protected abstract GenotypesContext subsetAlleles(final VariantContext vc,
-                                                      final List<Allele> allelesToUse,
-                                                      final boolean assignGenotypes,
-                                                      final int ploidy);
+    public abstract GenotypesContext subsetAlleles(final VariantContext vc,
+                                                   final List<Allele> allelesToUse,
+                                                   final boolean assignGenotypes,
+                                                   final int ploidy);
 
     // ---------------------------------------------------------------------------
     //

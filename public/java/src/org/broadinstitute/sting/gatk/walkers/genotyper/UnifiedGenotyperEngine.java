@@ -34,6 +34,8 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AlleleFrequencyCalculation;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AlleleFrequencyCalculationResult;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -103,8 +105,6 @@ public class UnifiedGenotyperEngine {
 
     private final GenomeLocParser genomeLocParser;
     private final boolean BAQEnabledOnCMDLine;
-
-    protected static final double SUM_GL_THRESH_NOCALL = VariantContextUtils.SUM_GL_THRESH_NOCALL;
 
     // ---------------------------------------------------------------------------------------------------------
     //
@@ -689,7 +689,7 @@ public class UnifiedGenotyperEngine {
         return models;
     }
 
-    protected static void computeAlleleFrequencyPriors(final int N, final double[] priors, final double theta) {
+    public static void computeAlleleFrequencyPriors(final int N, final double[] priors, final double theta) {
 
         double sum = 0.0;
 

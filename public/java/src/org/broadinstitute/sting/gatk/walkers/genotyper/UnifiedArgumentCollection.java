@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardCallerArgumentCollection;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AlleleFrequencyCalculation;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
@@ -156,7 +157,7 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
         Sample ploidy - equivalent to number of chromosomes per pool. In pooled experiments this should be = # of samples in pool * individual sample ploidy
      */
     @Argument(shortName="ploidy", fullName="sample_ploidy", doc="Plody (number of chromosomes) per sample. For pooled data, set to (Number of samples in each pool * Sample Ploidy).", required=false)
-    int samplePloidy = VariantContextUtils.DEFAULT_PLOIDY;
+    public int samplePloidy = VariantContextUtils.DEFAULT_PLOIDY;
 
     @Hidden
     @Argument(shortName="minqs", fullName="min_quality_score", doc="Min quality score to consider. Smaller numbers process faster. Default: Q1.", required=false)

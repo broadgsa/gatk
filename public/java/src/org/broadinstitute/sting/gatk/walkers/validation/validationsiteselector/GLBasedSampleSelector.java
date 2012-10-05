@@ -23,9 +23,9 @@
  */
 package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
 
-import org.broadinstitute.sting.gatk.walkers.genotyper.AlleleFrequencyCalculationResult;
-import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidExactAFCalculation;
-import org.broadinstitute.sting.gatk.walkers.genotyper.ReferenceDiploidExactAFCalculation;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AlleleFrequencyCalculationResult;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.DiploidExactAFCalculation;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.ReferenceDiploidExactAFCalculation;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.TreeSet;

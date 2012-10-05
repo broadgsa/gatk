@@ -1,6 +1,7 @@
-package org.broadinstitute.sting.gatk.walkers.genotyper;
+package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.PrintStream;
@@ -14,7 +15,7 @@ public class ReferenceDiploidExactAFCalculation extends DiploidExactAFCalculatio
         super(UAC, N, logger, verboseWriter);
     }
 
-    protected MaxLikelihoodSeen makeMaxLikelihood(final VariantContext vc, final AlleleFrequencyCalculationResult result) {
-        return new ExactAFCalculation.MaxLikelihoodSeen();
+    protected StateTracker makeMaxLikelihood(final VariantContext vc, final AlleleFrequencyCalculationResult result) {
+        return new StateTracker();
     }
 }
