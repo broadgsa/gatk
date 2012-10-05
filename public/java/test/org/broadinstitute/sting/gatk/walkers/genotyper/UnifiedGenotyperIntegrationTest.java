@@ -438,18 +438,19 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 Arrays.asList("22c9fd65ce3298bd7fbf400c9c209f29"));
         executeTest("test calling on reads with Ns in CIGAR", spec);
     }
+
     // --------------------------------------------------------------------------------------------------------------
     //
-    // testing AD for reduced reads
+    // testing reduced reads
     //
     // --------------------------------------------------------------------------------------------------------------
 
     @Test
-    public void testADAnnotationInReducedBam() {
+    public void testReducedBam() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b37KGReference + " -nosl --no_cmdline_in_header -I " + privateTestDir + "bamExample.ReducedRead.ADAnnotation.bam -o %s -L 1:67,225,396-67,288,518", 1,
                 Arrays.asList("84486c88a0fd1ae996a6402490db8492"));
-        executeTest("test AD Annotation when calling on a ReducedRead BAM", spec);
+        executeTest("test calling on a ReducedRead BAM", spec);
     }
 
 }
