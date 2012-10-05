@@ -21,7 +21,7 @@ final class StateTracker {
     }
 
     /**
-     * Update the maximum log10L seen, if log10LofKs is higher
+     * Update the maximum log10L seen, if log10LofKs is higher, and the corresponding ACs of this state
      *
      * @param log10LofKs the likelihood of our current configuration state
      */

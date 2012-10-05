@@ -249,7 +249,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
                     throw new UserException("Incorrect genotype calculation model chosen. Only [POOLSNP|POOLINDEL|POOLBOTH] supported with this walker if sample ploidy != 2");
                 }
 
-                if (UAC.AFmodel != AlleleFrequencyCalculation.Model.POOL)
+                if (UAC.AFmodel != AFCalc.Model.POOL)
                     throw new UserException("Incorrect AF Calculation model. Only POOL model supported if sample ploidy != 2");
 
             }

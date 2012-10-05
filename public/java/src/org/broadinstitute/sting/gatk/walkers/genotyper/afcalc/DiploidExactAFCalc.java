@@ -33,21 +33,21 @@ import org.broadinstitute.sting.utils.variantcontext.*;
 import java.io.PrintStream;
 import java.util.*;
 
-public abstract class DiploidExactAFCalculation extends ExactAFCalculation {
-    public DiploidExactAFCalculation(final int nSamples, final int maxAltAlleles) {
+public abstract class DiploidExactAFCalc extends ExactAFCalc {
+    public DiploidExactAFCalc(final int nSamples, final int maxAltAlleles) {
         super(nSamples, maxAltAlleles, maxAltAlleles, null, null, null);
     }
 
-    public DiploidExactAFCalculation(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
+    public DiploidExactAFCalc(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
         super(UAC, N, logger, verboseWriter);
     }
 
-    protected abstract StateTracker makeMaxLikelihood(final VariantContext vc, final AlleleFrequencyCalculationResult result);
+    protected abstract StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResult result);
 
     @Override
     public void computeLog10PNonRef(final VariantContext vc,
                                     final double[] log10AlleleFrequencyPriors,
-                                    final AlleleFrequencyCalculationResult result) {
+                                    final AFCalcResult result) {
         final int numAlternateAlleles = vc.getNAlleles() - 1;
         final ArrayList<double[]> genotypeLikelihoods = getGLs(vc.getGenotypes());
         final int numSamples = genotypeLikelihoods.size()-1;
@@ -161,7 +161,7 @@ public abstract class DiploidExactAFCalculation extends ExactAFCalculation {
                                                     final LinkedList<ExactACset> ACqueue,
                                                     final HashMap<ExactACcounts, ExactACset> indexesToACset,
                                                     final double[] log10AlleleFrequencyPriors,
-                                                    final AlleleFrequencyCalculationResult result) {
+                                                    final AFCalcResult result) {
 
         //if ( DEBUG )
         //    System.out.printf(" *** computing LofK for set=%s%n", set.ACcounts);
@@ -250,7 +250,7 @@ public abstract class DiploidExactAFCalculation extends ExactAFCalculation {
     private void computeLofK(final ExactACset set,
                              final ArrayList<double[]> genotypeLikelihoods,
                              final double[] log10AlleleFrequencyPriors,
-                             final AlleleFrequencyCalculationResult result) {
+                             final AFCalcResult result) {
 
         set.getLog10Likelihoods()[0] = 0.0; // the zero case
         final int totalK = set.getACsum();

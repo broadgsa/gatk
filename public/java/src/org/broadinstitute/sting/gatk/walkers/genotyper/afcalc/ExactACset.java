@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 
+import org.broadinstitute.sting.utils.MathUtils;
+
 import java.util.Arrays;
 
 /**
@@ -21,16 +23,15 @@ public final class ExactACset {
     public ExactACset(final int size, final ExactACcounts ACcounts) {
         this.ACcounts = ACcounts;
         log10Likelihoods = new double[size];
-        Arrays.fill(getLog10Likelihoods(), Double.NEGATIVE_INFINITY);
+        Arrays.fill(log10Likelihoods, Double.NEGATIVE_INFINITY);
     }
 
-    // sum of all the non-reference alleles
+    /**
+     * sum of all the non-reference alleles
+     */
     public int getACsum() {
-        if ( sum == -1 ) {
-            sum = 0;
-            for ( int count : getACcounts().getCounts() )
-                sum += count;
-        }
+        if ( sum == -1 )
+            sum = (int)MathUtils.sum(getACcounts().getCounts());
         return sum;
     }
 

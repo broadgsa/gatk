@@ -41,7 +41,7 @@ import java.util.List;
  *
  * TODO -- WHAT IS THE CONTRACT ON MAP AC AND P NON REF?
  */
-public class AlleleFrequencyCalculationResult {
+public class AFCalcResult {
     // These variables are intended to contain the MLE and MAP (and their corresponding allele counts) of the site over all alternate alleles
     private double log10MLE;
     private double log10MAP;
@@ -71,7 +71,7 @@ public class AlleleFrequencyCalculationResult {
      *
      * @param maxAltAlleles an integer >= 1
      */
-    public AlleleFrequencyCalculationResult(final int maxAltAlleles) {
+    public AFCalcResult(final int maxAltAlleles) {
         if ( maxAltAlleles < 1 ) throw new IllegalArgumentException("maxAltAlleles must be >= 0, saw " + maxAltAlleles);
 
         alleleCountsOfMLE = new int[maxAltAlleles];
@@ -227,7 +227,7 @@ public class AlleleFrequencyCalculationResult {
      * Resetting of the data is done by the calculation model itself, so shouldn't be done by callers any longer
      */
     protected void reset() {
-        log10MLE = log10MAP = log10LikelihoodOfAFzero = log10PosteriorOfAFzero = AlleleFrequencyCalculation.VALUE_NOT_CALCULATED;
+        log10MLE = log10MAP = log10LikelihoodOfAFzero = log10PosteriorOfAFzero = AFCalc.VALUE_NOT_CALCULATED;
         for ( int i = 0; i < alleleCountsOfMLE.length; i++ ) {
             alleleCountsOfMLE[i] = 0;
             alleleCountsOfMAP[i] = 0;

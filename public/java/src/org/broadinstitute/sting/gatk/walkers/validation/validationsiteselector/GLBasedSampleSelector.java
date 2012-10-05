@@ -23,9 +23,9 @@
  */
 package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
 
-import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AlleleFrequencyCalculationResult;
-import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.DiploidExactAFCalculation;
-import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.ReferenceDiploidExactAFCalculation;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcResult;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.DiploidExactAFCalc;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.ReferenceDiploidExactAFCalc;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.TreeSet;
@@ -34,7 +34,7 @@ import java.util.TreeSet;
 public class GLBasedSampleSelector extends SampleSelector {
     double[] flatPriors = null;
     final double referenceLikelihood;
-    DiploidExactAFCalculation AFCalculator;
+    DiploidExactAFCalc AFCalculator;
 
     public GLBasedSampleSelector(TreeSet<String> sm, double refLik) {
         super(sm);
@@ -52,9 +52,9 @@ public class GLBasedSampleSelector extends SampleSelector {
         // do we want to apply a prior? maybe user-spec?
         if ( flatPriors == null ) {
             flatPriors = new double[1+2*samples.size()];
-            AFCalculator = new ReferenceDiploidExactAFCalculation(samples.size(), 4);
+            AFCalculator = new ReferenceDiploidExactAFCalc(samples.size(), 4);
         }
-        AlleleFrequencyCalculationResult result = new AlleleFrequencyCalculationResult(vc.getAlternateAlleles().size());
+        AFCalcResult result = new AFCalcResult(vc.getAlternateAlleles().size());
         AFCalculator.computeLog10PNonRef(subContext, flatPriors, result);
         // do we want to let this qual go up or down?
         if ( result.getLog10PosteriorOfAFzero() < referenceLikelihood ) {

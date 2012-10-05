@@ -34,8 +34,8 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
-import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AlleleFrequencyCalculation;
-import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AlleleFrequencyCalculationResult;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalc;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcResult;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -80,10 +80,10 @@ public class UnifiedGenotyperEngine {
     private ThreadLocal<Map<String, GenotypeLikelihoodsCalculationModel>> glcm = new ThreadLocal<Map<String, GenotypeLikelihoodsCalculationModel>>();
 
     // the model used for calculating p(non-ref)
-    private ThreadLocal<AlleleFrequencyCalculation> afcm = new ThreadLocal<AlleleFrequencyCalculation>();
+    private ThreadLocal<AFCalc> afcm = new ThreadLocal<AFCalc>();
 
     // the allele frequency likelihoods and posteriors (allocated once as an optimization)
-    private ThreadLocal<AlleleFrequencyCalculationResult> alleleFrequencyCalculationResult = new ThreadLocal<AlleleFrequencyCalculationResult>();
+    private ThreadLocal<AFCalcResult> alleleFrequencyCalculationResult = new ThreadLocal<AFCalcResult>();
 
     // because the allele frequency priors are constant for a given i, we cache the results to avoid having to recompute everything
     private final double[] log10AlleleFrequencyPriorsSNPs;
@@ -355,9 +355,9 @@ public class UnifiedGenotyperEngine {
         // initialize the data for this thread if that hasn't been done yet
         if ( afcm.get() == null ) {
             afcm.set(getAlleleFrequencyCalculationObject(N, logger, verboseWriter, UAC));
-            alleleFrequencyCalculationResult.set(new AlleleFrequencyCalculationResult(UAC.MAX_ALTERNATE_ALLELES));
+            alleleFrequencyCalculationResult.set(new AFCalcResult(UAC.MAX_ALTERNATE_ALLELES));
         }
-        AlleleFrequencyCalculationResult AFresult = alleleFrequencyCalculationResult.get();
+        AFCalcResult AFresult = alleleFrequencyCalculationResult.get();
 
         // estimate our confidence in a reference call and return
         if ( vc.getNSamples() == 0 ) {
@@ -743,9 +743,9 @@ public class UnifiedGenotyperEngine {
         return glcm;
     }
 
-    private static AlleleFrequencyCalculation getAlleleFrequencyCalculationObject(int N, Logger logger, PrintStream verboseWriter, UnifiedArgumentCollection UAC) {
+    private static AFCalc getAlleleFrequencyCalculationObject(int N, Logger logger, PrintStream verboseWriter, UnifiedArgumentCollection UAC) {
 
-        List<Class<? extends AlleleFrequencyCalculation>> afClasses = new PluginManager<AlleleFrequencyCalculation>(AlleleFrequencyCalculation.class).getPlugins();
+        List<Class<? extends AFCalc>> afClasses = new PluginManager<AFCalc>(AFCalc.class).getPlugins();
 
         // user-specified name
         String afModelName = UAC.AFmodel.implementationName;
@@ -756,21 +756,21 @@ public class UnifiedGenotyperEngine {
             afModelName = "Diploid" + afModelName;
 
         for (int i = 0; i < afClasses.size(); i++) {
-            Class<? extends AlleleFrequencyCalculation> afClass = afClasses.get(i);
+            Class<? extends AFCalc> afClass = afClasses.get(i);
             String key = afClass.getSimpleName().replace("AFCalculationModel","").toUpperCase();
             if (afModelName.equalsIgnoreCase(key)) {
                 try {
                     Object args[] = new Object[]{UAC,N,logger,verboseWriter};
                     Constructor c = afClass.getDeclaredConstructor(UnifiedArgumentCollection.class, int.class, Logger.class, PrintStream.class);
 
-                    return (AlleleFrequencyCalculation)c.newInstance(args);
+                    return (AFCalc)c.newInstance(args);
                 }
                 catch (Exception e) {
-                    throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculation " + UAC.AFmodel);
+                    throw new IllegalArgumentException("Unexpected AFCalc " + UAC.AFmodel);
                 }
             }
         }
-        throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculation " + UAC.AFmodel);
+        throw new IllegalArgumentException("Unexpected AFCalc " + UAC.AFmodel);
     }
 
     public static VariantContext getVCFromAllelesRod(RefMetaDataTracker tracker, ReferenceContext ref, GenomeLoc loc, boolean requireSNP, Logger logger, final RodBinding<VariantContext> allelesBinding) {

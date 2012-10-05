@@ -48,12 +48,12 @@ import java.util.List;
 /**
  * Generic interface for calculating the probability of alleles segregating given priors and genotype likelihoods
  */
-public abstract class AlleleFrequencyCalculation implements Cloneable {
-    private final static Logger defaultLogger = Logger.getLogger(AlleleFrequencyCalculation.class);
+public abstract class AFCalc implements Cloneable {
+    private final static Logger defaultLogger = Logger.getLogger(AFCalc.class);
 
     public enum Model {
         /** The default model with the best performance in all cases */
-        EXACT("ExactAFCalculation");
+        EXACT("ExactAFCalc");
 
         public final String implementationName;
 
@@ -74,16 +74,16 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
     private SimpleTimer callTimer = new SimpleTimer();
     private PrintStream callReport = null;
 
-    protected AlleleFrequencyCalculation(final UnifiedArgumentCollection UAC, final int nSamples, final Logger logger, final PrintStream verboseWriter) {
+    protected AFCalc(final UnifiedArgumentCollection UAC, final int nSamples, final Logger logger, final PrintStream verboseWriter) {
         this(nSamples, UAC.MAX_ALTERNATE_ALLELES, UAC.MAX_ALTERNATE_ALLELES_FOR_INDELS, UAC.exactCallsLog, logger, verboseWriter);
     }
 
-    protected AlleleFrequencyCalculation(final int nSamples,
-                                         final int maxAltAlleles,
-                                         final int maxAltAllelesForIndels,
-                                         final File exactCallsLog,
-                                         final Logger logger,
-                                         final PrintStream verboseWriter) {
+    protected AFCalc(final int nSamples,
+                     final int maxAltAlleles,
+                     final int maxAltAllelesForIndels,
+                     final File exactCallsLog,
+                     final Logger logger,
+                     final PrintStream verboseWriter) {
         if ( nSamples < 0 ) throw new IllegalArgumentException("nSamples must be greater than zero " + nSamples);
         if ( maxAltAlleles < 1 ) throw new IllegalArgumentException("maxAltAlleles must be greater than zero " + maxAltAlleles);
 
@@ -97,13 +97,13 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
     }
 
     /**
-     * @see #getLog10PNonRef(org.broadinstitute.sting.utils.variantcontext.VariantContext, double[], AlleleFrequencyCalculationResult)
+     * @see #getLog10PNonRef(org.broadinstitute.sting.utils.variantcontext.VariantContext, double[], AFCalcResult)
      *
      * Allocates a new results object.  Useful for testing but slow in practice.
      */
-    public final AlleleFrequencyCalculationResult getLog10PNonRef(final VariantContext vc,
+    public final AFCalcResult getLog10PNonRef(final VariantContext vc,
                                                                   final double[] log10AlleleFrequencyPriors) {
-        return getLog10PNonRef(vc, log10AlleleFrequencyPriors, new AlleleFrequencyCalculationResult(getMaxAltAlleles()));
+        return getLog10PNonRef(vc, log10AlleleFrequencyPriors, new AFCalcResult(getMaxAltAlleles()));
     }
 
     /**
@@ -114,9 +114,9 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
      * @param result a pre-allocated (for efficiency) object to hold the result of the calculation
      * @return result (for programming convenience)
      */
-    public final AlleleFrequencyCalculationResult getLog10PNonRef(final VariantContext vc,
+    public final AFCalcResult getLog10PNonRef(final VariantContext vc,
                                                                   final double[] log10AlleleFrequencyPriors,
-                                                                  final AlleleFrequencyCalculationResult result) {
+                                                                  final AFCalcResult result) {
         if ( vc == null ) throw new IllegalArgumentException("VariantContext cannot be null");
         if ( log10AlleleFrequencyPriors == null ) throw new IllegalArgumentException("priors vector cannot be null");
         if ( result == null ) throw new IllegalArgumentException("Results object cannot be null");
@@ -168,7 +168,7 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
     // TODO -- add consistent requires among args
     public abstract void computeLog10PNonRef(final VariantContext vc,
                                              final double[] log10AlleleFrequencyPriors,
-                                             final AlleleFrequencyCalculationResult result);
+                                             final AFCalcResult result);
 
     /**
      * Must be overridden by concrete subclasses

@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardCallerArgumentCollection;
-import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AlleleFrequencyCalculation;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalc;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
@@ -42,7 +42,7 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
      */
     @Advanced
     @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ", required = false)
-    protected AlleleFrequencyCalculation.Model AFmodel = AlleleFrequencyCalculation.Model.EXACT;
+    protected AFCalc.Model AFmodel = AFCalc.Model.EXACT;
 
     /**
      * The PCR error rate is independent of the sequencing error rate, which is necessary because we cannot necessarily

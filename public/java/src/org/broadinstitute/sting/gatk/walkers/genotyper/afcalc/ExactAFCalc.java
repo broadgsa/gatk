@@ -40,14 +40,14 @@ import java.util.ArrayList;
 /**
  * Uses the Exact calculation of Heng Li
  */
-abstract class ExactAFCalculation extends AlleleFrequencyCalculation {
+abstract class ExactAFCalc extends AFCalc {
     protected static final int HOM_REF_INDEX = 0;  // AA likelihoods are always first
 
-    protected ExactAFCalculation(final UnifiedArgumentCollection UAC, final int nSamples, final Logger logger, final PrintStream verboseWriter) {
+    protected ExactAFCalc(final UnifiedArgumentCollection UAC, final int nSamples, final Logger logger, final PrintStream verboseWriter) {
         super(UAC, nSamples, logger, verboseWriter);
     }
 
-    protected ExactAFCalculation(final int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, File exactCallsLog, Logger logger, PrintStream verboseWriter) {
+    protected ExactAFCalc(final int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, File exactCallsLog, Logger logger, PrintStream verboseWriter) {
         super(nSamples, maxAltAlleles, maxAltAllelesForIndels, exactCallsLog, logger, verboseWriter);
     }
 
