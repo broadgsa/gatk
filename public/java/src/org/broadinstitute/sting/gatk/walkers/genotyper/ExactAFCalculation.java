@@ -36,7 +36,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-
 /**
  * Uses the Exact calculation of Heng Li
  */
@@ -247,34 +246,14 @@ abstract class ExactAFCalculation extends AlleleFrequencyCalculation {
         }
     }
 
-    @Deprecated
-    protected static final class OldMaxLikelihoodSeen {
-        double maxLog10L = Double.NEGATIVE_INFINITY;
-        ExactACcounts ACs = null;
-
-        public OldMaxLikelihoodSeen() {}
-
-        public void update(final double maxLog10L, final ExactACcounts ACs) {
-            this.maxLog10L = maxLog10L;
-            this.ACs = ACs;
-        }
-
-        // returns true iff all ACs in this object are less than or equal to their corresponding ACs in the provided set
-        public boolean isLowerAC(final ExactACcounts otherACs) {
-            final int[] myACcounts = this.ACs.getCounts();
-            final int[] otherACcounts = otherACs.getCounts();
-
-            for ( int i = 0; i < myACcounts.length; i++ ) {
-                if ( myACcounts[i] > otherACcounts[i] )
-                    return false;
-            }
-            return true;
-        }
-    }
-
     protected static final class MaxLikelihoodSeen {
         double maxLog10L = Double.NEGATIVE_INFINITY;
         final int[] maxACsToConsider;
+        ExactACcounts ACsAtMax = null;
+
+        public MaxLikelihoodSeen() {
+            this(null);
+        }
 
         public MaxLikelihoodSeen(final int[] maxACsToConsider) {
             this.maxACsToConsider = maxACsToConsider;
@@ -285,9 +264,11 @@ abstract class ExactAFCalculation extends AlleleFrequencyCalculation {
          *
          * @param log10LofKs the likelihood of our current configuration state
          */
-        public void update(final double log10LofKs) {
-            if ( log10LofKs > maxLog10L )
+        public void update(final double log10LofKs, final ExactACcounts ACs) {
+            if ( log10LofKs > maxLog10L ) {
                 this.maxLog10L = log10LofKs;
+                this.ACsAtMax = ACs;
+            }
         }
 
         /**
@@ -308,6 +289,9 @@ abstract class ExactAFCalculation extends AlleleFrequencyCalculation {
          * @return true if otherACs is a state worth considering, or false otherwise
          */
         public boolean withinMaxACs(final ExactACcounts otherACs) {
+            if ( maxACsToConsider == null )
+                return true;
+
             final int[] otherACcounts = otherACs.getCounts();
 
             for ( int i = 0; i < maxACsToConsider.length; i++ ) {
@@ -317,6 +301,28 @@ abstract class ExactAFCalculation extends AlleleFrequencyCalculation {
             }
 
             return true;
+        }
+
+        /**
+         * returns true iff all ACs in this object are less than or equal to their corresponding ACs in the provided set
+         */
+        public boolean isLowerAC(final ExactACcounts otherACs) {
+            if ( ACsAtMax == null )
+                return true;
+
+            final int[] myACcounts = this.ACsAtMax.getCounts();
+            final int[] otherACcounts = otherACs.getCounts();
+
+            for ( int i = 0; i < myACcounts.length; i++ ) {
+                if ( myACcounts[i] > otherACcounts[i] )
+                    return false;
+            }
+
+            return true;
+        }
+
+        public boolean abort( final double log10LofK, final ExactACcounts ACs ) {
+            return tooLowLikelihood(log10LofK) && isLowerAC(ACs);
         }
     }
 }
