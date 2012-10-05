@@ -41,6 +41,8 @@ import java.util.Arrays;
  * Uses the Exact calculation of Heng Li
  */
 abstract class ExactAFCalculation extends AlleleFrequencyCalculation {
+    private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
+
     protected ExactAFCalculation(final UnifiedArgumentCollection UAC, final int nSamples, final Logger logger, final PrintStream verboseWriter) {
         super(UAC, nSamples, logger, verboseWriter);
     }
@@ -245,11 +247,12 @@ abstract class ExactAFCalculation extends AlleleFrequencyCalculation {
         }
     }
 
-    protected static final class MaxLikelihoodSeen {
+    @Deprecated
+    protected static final class OldMaxLikelihoodSeen {
         double maxLog10L = Double.NEGATIVE_INFINITY;
         ExactACcounts ACs = null;
 
-        public MaxLikelihoodSeen() {}
+        public OldMaxLikelihoodSeen() {}
 
         public void update(final double maxLog10L, final ExactACcounts ACs) {
             this.maxLog10L = maxLog10L;
@@ -265,6 +268,54 @@ abstract class ExactAFCalculation extends AlleleFrequencyCalculation {
                 if ( myACcounts[i] > otherACcounts[i] )
                     return false;
             }
+            return true;
+        }
+    }
+
+    protected static final class MaxLikelihoodSeen {
+        double maxLog10L = Double.NEGATIVE_INFINITY;
+        final int[] maxACsToConsider;
+
+        public MaxLikelihoodSeen(final int[] maxACsToConsider) {
+            this.maxACsToConsider = maxACsToConsider;
+        }
+
+        /**
+         * Update the maximum log10L seen, if log10LofKs is higher
+         *
+         * @param log10LofKs the likelihood of our current configuration state
+         */
+        public void update(final double log10LofKs) {
+            if ( log10LofKs > maxLog10L )
+                this.maxLog10L = log10LofKs;
+        }
+
+        /**
+         * Is the likelihood of configuration K too low to consider, related to the
+         * maximum likelihood seen already?
+         *
+         * @param log10LofK the log10 likelihood of the configuration we're considering analyzing
+         * @return true if the configuration cannot meaningfully contribute to our likelihood sum
+         */
+        public boolean tooLowLikelihood(final double log10LofK) {
+            return log10LofK < maxLog10L - MAX_LOG10_ERROR_TO_STOP_EARLY;
+        }
+
+        /**
+         * Are all ACs in otherACs less than or equal to their corresponding ACs in the maxACsToConsider?
+         *
+         * @param otherACs the set of otherACs that we want to know if we should consider analyzing
+         * @return true if otherACs is a state worth considering, or false otherwise
+         */
+        public boolean withinMaxACs(final ExactACcounts otherACs) {
+            final int[] otherACcounts = otherACs.getCounts();
+
+            for ( int i = 0; i < maxACsToConsider.length; i++ ) {
+                // consider one more than the max AC to collect a bit more likelihood mass
+                if ( otherACcounts[i] > maxACsToConsider[i] + 1 )
+                    return false;
+            }
+
             return true;
         }
     }

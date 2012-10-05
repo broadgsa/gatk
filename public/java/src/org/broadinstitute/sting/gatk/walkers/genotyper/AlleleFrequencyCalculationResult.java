@@ -57,6 +57,7 @@ public class AlleleFrequencyCalculationResult {
     // These variables are intended to contain the likelihood/posterior probability for the site's being monomorphic (i.e. AF=0 for all alternate alleles)
     private double log10LikelihoodOfAFzero;
     private double log10PosteriorOfAFzero;
+    private int[] AClimits;
 
     int nEvaluations = 0;
 
@@ -210,6 +211,10 @@ public class AlleleFrequencyCalculationResult {
         return MathUtils.normalizeFromLog10(posteriors);
     }
 
+    public int[] getAClimits() {
+        return AClimits;
+    }
+
     // --------------------------------------------------------------------------------
     //
     // Protected mutational methods only for use within the calculation models themselves
@@ -294,5 +299,9 @@ public class AlleleFrequencyCalculationResult {
 
     private static boolean goodLog10Value(final double result) {
         return result <= 0.0 || Double.isInfinite(result) || Double.isNaN(result);
+    }
+
+    protected void setAClimits(int[] AClimits) {
+        this.AClimits = AClimits;
     }
 }

@@ -145,7 +145,7 @@ public class DiploidExactAFCalculation extends ExactAFCalculation {
         indexesToACset.put(zeroSet.ACcounts, zeroSet);
 
         // keep processing while we have AC conformations that need to be calculated
-        MaxLikelihoodSeen maxLikelihoodSeen = new MaxLikelihoodSeen();
+        OldMaxLikelihoodSeen maxLikelihoodSeen = new OldMaxLikelihoodSeen();
         while ( !ACqueue.isEmpty() ) {
             result.incNEvaluations(); // keep track of the number of evaluations
 
@@ -176,7 +176,7 @@ public class DiploidExactAFCalculation extends ExactAFCalculation {
 
     private static double calculateAlleleCountConformation(final ExactACset set,
                                                            final ArrayList<double[]> genotypeLikelihoods,
-                                                           final MaxLikelihoodSeen maxLikelihoodSeen,
+                                                           final OldMaxLikelihoodSeen maxLikelihoodSeen,
                                                            final int numChr,
                                                            final LinkedList<ExactACset> ACqueue,
                                                            final HashMap<ExactACcounts, ExactACset> indexesToACset,
