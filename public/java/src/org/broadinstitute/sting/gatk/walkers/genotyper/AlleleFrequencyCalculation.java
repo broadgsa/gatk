@@ -102,7 +102,7 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
      */
     public final AlleleFrequencyCalculationResult getLog10PNonRef(final VariantContext vc,
                                                             final double[] log10AlleleFrequencyPriors) {
-        return getLog10PNonRef(vc, log10AlleleFrequencyPriors, new AlleleFrequencyCalculationResult(MAX_ALTERNATE_ALLELES_TO_GENOTYPE));
+        return getLog10PNonRef(vc, log10AlleleFrequencyPriors, new AlleleFrequencyCalculationResult(getMaxAltAlleles()));
     }
 
     /**
@@ -182,6 +182,17 @@ public abstract class AlleleFrequencyCalculation implements Cloneable {
                                                       final List<Allele> allelesToUse,
                                                       final boolean assignGenotypes,
                                                       final int ploidy);
+
+    // ---------------------------------------------------------------------------
+    //
+    // accessors
+    //
+    // ---------------------------------------------------------------------------
+
+    public int getMaxAltAlleles() {
+        return Math.max(MAX_ALTERNATE_ALLELES_TO_GENOTYPE, MAX_ALTERNATE_ALLELES_FOR_INDELS);
+    }
+
 
     // ---------------------------------------------------------------------------
     //
