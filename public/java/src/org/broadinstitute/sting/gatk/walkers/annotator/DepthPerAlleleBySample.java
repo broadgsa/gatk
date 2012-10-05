@@ -13,6 +13,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFStandardHeaderLines;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
@@ -91,12 +92,13 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
             alleleCounts.put(allele, 0);
         }
         for (Map.Entry<GATKSAMRecord,Map<Allele,Double>> el : perReadAlleleLikelihoodMap.getLikelihoodReadMap().entrySet()) {
+            final GATKSAMRecord read = el.getKey();
             final Allele a = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue());
             if (a.isNoCall())
                 continue; // read is non-informative
             if (!vc.getAlleles().contains(a))
                 continue; // sanity check - shouldn't be needed
-            alleleCounts.put(a,alleleCounts.get(a)+1);
+            alleleCounts.put(a, alleleCounts.get(a) + (read.isReducedRead() ? read.getReducedCount(ReadUtils.getReadCoordinateForReferenceCoordinate(read, vc.getStart(), ReadUtils.ClippingTail.RIGHT_TAIL)) : 1));
         }
         final int[] counts = new int[alleleCounts.size()];
         counts[0] = alleleCounts.get(vc.getReference());
