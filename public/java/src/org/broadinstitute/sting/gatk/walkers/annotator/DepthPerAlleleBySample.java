@@ -73,7 +73,7 @@ public class DepthPerAlleleBySample extends GenotypeAnnotation implements Standa
         ReadBackedPileup pileup = stratifiedContext.getBasePileup();
         for ( PileupElement p : pileup ) {
             if ( alleleCounts.containsKey(p.getBase()) )
-                alleleCounts.put(p.getBase(), alleleCounts.get(p.getBase())+1);
+                alleleCounts.put(p.getBase(), alleleCounts.get(p.getBase())+p.getRepresentativeCount());
         }
 
         // we need to add counts in the correct order

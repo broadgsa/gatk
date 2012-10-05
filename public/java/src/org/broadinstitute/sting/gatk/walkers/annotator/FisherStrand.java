@@ -275,7 +275,8 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             for (PileupElement p : sample.getValue().getBasePileup()) {
-                if ( ! RankSumTest.isUsableBase(p, false) || p.getRead().isReducedRead() ) // ignore deletions and reduced reads
+//                if ( ! RankSumTest.isUsableBase(p, false) || p.getRead().isReducedRead() ) // ignore deletions and reduced reads
+                if ( ! RankSumTest.isUsableBase(p, false) ) // ignore deletions
                     continue;
 
                 if ( p.getQual() < minQScoreToConsider || p.getMappingQual() < minQScoreToConsider )
@@ -290,7 +291,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
                     int row = matchesRef ? 0 : 1;
                     int column = isFW ? 0 : 1;
 
-                    table[row][column]++;
+                    table[row][column]+=p.getRepresentativeCount();
                 }
             }
         }
