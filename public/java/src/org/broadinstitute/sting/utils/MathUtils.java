@@ -1666,4 +1666,36 @@ public class MathUtils {
         return result;
 
     }
+
+    /**
+     * Returns a series of integer values between start and stop, inclusive,
+     * expontentially distributed between the two.  That is, if there are
+     * ten values between 0-10 there will be 10 between 10-100.
+     *
+     * WARNING -- BADLY TESTED
+     * @param start
+     * @param stop
+     * @param eps
+     * @return
+     */
+    public static List<Integer> log10LinearRange(final int start, final int stop, final double eps) {
+        final LinkedList<Integer> values = new LinkedList<Integer>();
+        final double log10range = Math.log10(stop - start);
+
+        if ( start == 0 )
+            values.add(0);
+
+        double i = 0.0;
+        while ( i <= log10range ) {
+            final int index = (int)Math.round(Math.pow(10, i)) + start;
+            if ( index < stop && (values.peekLast() == null || values.peekLast() != index ) )
+                values.add(index);
+            i += eps;
+        }
+
+        if ( values.peekLast() == null || values.peekLast() != stop )
+            values.add(stop);
+
+        return values;
+    }
 }
