@@ -63,7 +63,7 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
     @Test(enabled = true)
     public void testMultiAllelicOneRecord() {
         WalkerTestSpec spec = new WalkerTestSpec(variantsToTableMultiAllelicCmd(""),
-                Arrays.asList("13dd36c08be6c800f23988e6000d963e"));
+                Arrays.asList("0ff49c08690f61a38614606a090f23ea"));
         executeTest("testMultiAllelicOneRecord", spec);
     }
 
@@ -98,6 +98,19 @@ public class VariantsToTableIntegrationTest extends WalkerTest {
                 1,
                 Arrays.asList("29744059742ae71fd6aabd29e5c391fb"));
         executeTest("testGenotypeFieldsWithInline", spec);
+    }
+
+    @Test(enabled = true)
+    public void testListFields() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-R " + b36KGReference +
+                        " --variant " + privateTestDir + "vcfexample.withMLE.vcf" +
+                        " -T VariantsToTable" +
+                        " -GF PL" +
+                        " -o %s",
+                1,
+                Arrays.asList("1cb2737ab0eaee0a9ae25ab2e7ac3e7e"));
+        executeTest("testGenotypeFields", spec);
     }
 
     @Test(enabled = true)
