@@ -43,8 +43,8 @@ import java.util.List;
  */
 public class AFCalcResult {
     // These variables are intended to contain the MLE and MAP (and their corresponding allele counts) of the site over all alternate alleles
-    private double log10MLE;
-    private double log10MAP;
+    protected double log10MLE;
+    protected double log10MAP;
     private final int[] alleleCountsOfMLE;
     private final int[] alleleCountsOfMAP;
 
@@ -52,7 +52,7 @@ public class AFCalcResult {
     private static final int POSTERIORS_CACHE_SIZE = 5000;
     private final double[] log10PosteriorMatrixValues = new double[POSTERIORS_CACHE_SIZE];
     private int currentPosteriorsCacheIndex = 0;
-    private Double log10PosteriorMatrixSum = null;
+    protected Double log10PosteriorMatrixSum = null;
 
     // These variables are intended to contain the likelihood/posterior probability for the site's being monomorphic (i.e. AF=0 for all alternate alleles)
     private double log10LikelihoodOfAFzero;
@@ -235,6 +235,7 @@ public class AFCalcResult {
         currentPosteriorsCacheIndex = 0;
         log10PosteriorMatrixSum = null;
         allelesUsedInGenotyping = null;
+        nEvaluations = 0;
     }
 
     /**
