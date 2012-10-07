@@ -65,9 +65,9 @@ public class LiftoverVariantsIntegrationTest extends WalkerTest {
     @Test
     public void testLiftoverFilteringOfIndels() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T FilterLiftedVariants -o %s -R " + b37KGReference + " --variant:vcf " + privateTestDir + "liftover_indel_test.vcf",
+                "-T FilterLiftedVariants -o %s -R " + b37KGReference + " --variant:vcf " + privateTestDir + "liftover_indel_test.vcf --no_cmdline_in_header",
                 1,
-                Arrays.asList("b9280bb4f310c72284251bc6f2bf2bb2"));
+                Arrays.asList("0909a953291a5e701194668c9b8833ab"));
         executeTest("test liftover filtering of indels", spec);
     }
 }
