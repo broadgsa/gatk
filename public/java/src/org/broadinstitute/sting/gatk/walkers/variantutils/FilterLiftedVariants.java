@@ -75,7 +75,7 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
         boolean failed = false;
         byte[] recordRef = vc.getReference().getBases();
         for (int i = 0; i < recordRef.length && i < MAX_VARIANT_SIZE; i++) {
-            if ( recordRef[i] != ref[i + (vc.isPointEvent() ? 0 : 1)] ) {
+            if ( recordRef[i] != ref[i] ) {
                 failed = true;
                 break;
             }
