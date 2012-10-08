@@ -30,7 +30,9 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by IntelliJ IDEA.
@@ -81,26 +83,6 @@ class AFCalcResultTracker {
     }
 
     /**
-     * Get the log10 value of the probability mass at the MLE
-     *
-     * @return a log10 prob
-     */
-    @Ensures("goodLog10Value(result)")
-    public double getLog10MLE() {
-        return log10MLE;
-    }
-
-    /**
-     * Get the log10 value of the probability mass at the max. a posterior (MAP)
-     *
-     * @return a log10 prob
-     */
-    @Ensures("goodLog10Value(result)")
-    public double getLog10MAP() {
-        return log10MAP;
-    }
-
-    /**
      * Returns a vector with maxAltAlleles values containing AC values at the MLE
      *
      * The values of the ACs for this call are stored in the getAllelesUsedInGenotyping order,
@@ -125,15 +107,6 @@ class AFCalcResultTracker {
     @Ensures("result != null")
     public int[] getAlleleCountsOfMAP() {
         return alleleCountsOfMAP;
-    }
-
-    /**
-     * Returns the number of cycles used to evaluate the pNonRef for this AF calculation
-     *
-     * @return the number of evaluations required to produce the answer for this AF calculation
-     */
-    public int getnEvaluations() {
-        return nEvaluations;
     }
 
     /**
@@ -170,60 +143,21 @@ class AFCalcResultTracker {
         return log10PosteriorOfAFzero;
     }
 
-    /**
-     * Get the list of alleles actually used in genotyping.
-     *
-     * Due to computational / implementation constraints this may be smaller than
-     * the actual list of alleles requested
-     *
-     * @return a non-empty list of alleles used during genotyping
-     */
-    @Ensures({"result != null", "! result.isEmpty()"})
-    public List<Allele> getAllelesUsedInGenotyping() {
-        if ( allelesUsedInGenotyping == null )
-            throw new IllegalStateException("allelesUsedInGenotyping requested but not yet set");
-
-        return allelesUsedInGenotyping;
-    }
-
-    /**
-     * Get the normalized -- across all AFs -- of AC == 0, NOT LOG10
-     * @return
-     */
-    // TODO -- this ensure cannot be enabled right now because the log10 inputs can be infinity, etc.
-    // TODO -- we should own these values in a more meaningful way and return good values in the case
-    // TODO -- where this happens, or instead thrown an error and have a function to say "was this calculation successful
-//    @Ensures({"result >= 0.0", "result <= 1.0"})
-    public double getNormalizedPosteriorOfAFzero() {
-        return getNormalizedPosteriors()[0];
-    }
-
-    /**
-     * Get the normalized -- across all AFs -- of AC > 0, NOT LOG10
-     * @return
-     */
-    // TODO -- this ensure cannot be enabled right now because the log10 inputs can be infinity, etc.
-    // TODO -- we should own these values in a more meaningful way and return good values in the case
-    // TODO -- where this happens, or instead thrown an error and have a function to say "was this calculation successful
-    //@Ensures({"result >= 0.0", "result <= 1.0"})
-    public double getNormalizedPosteriorOfAFGTZero() {
-        return getNormalizedPosteriors()[1];
-    }
-
-    private double[] getNormalizedPosteriors() {
-        final double[] posteriors = new double[]{ getLog10PosteriorOfAFzero(), getLog10PosteriorsMatrixSumWithoutAFzero() };
-        return MathUtils.normalizeFromLog10(posteriors);
-    }
-
-    public int[] getAClimits() {
-        return AClimits;
-    }
-
     protected AFCalcResult toAFCalcResult(final double[] log10PriorsByAC) {
-        final int [] subACOfMLE = Arrays.copyOf(alleleCountsOfMLE, allelesUsedInGenotyping.size());
+        final int [] subACOfMLE = Arrays.copyOf(alleleCountsOfMLE, allelesUsedInGenotyping.size() - 1);
         final double[] log10Likelihoods = new double[]{getLog10LikelihoodOfAFzero(), getLog10LikelihoodOfAFNotZero()};
         final double[] log10Priors = new double[]{log10PriorsByAC[0], MathUtils.log10sumLog10(log10PriorsByAC, 1)};
-        return new AFCalcResult(subACOfMLE, nEvaluations, allelesUsedInGenotyping, log10Likelihoods, log10Priors);
+
+        // TODO -- replace with more meaningful computation
+        // TODO -- refactor this calculation into the ref calculation
+        final Map<Allele, Double> log10pNonRefByAllele = new HashMap<Allele, Double>(allelesUsedInGenotyping.size());
+        for ( int i = 0; i < subACOfMLE.length; i++ ) {
+            final Allele allele = allelesUsedInGenotyping.get(i+1);
+            final double log10PNonRef = getAlleleCountsOfMAP()[i] > 0 ? 0 : -10000; // TODO -- a total hack but in effect what the old behavior was
+            log10pNonRefByAllele.put(allele, log10PNonRef);
+        }
+
+        return new AFCalcResult(subACOfMLE, nEvaluations, allelesUsedInGenotyping, log10Likelihoods, log10Priors, log10pNonRefByAllele);
     }
 
     // --------------------------------------------------------------------------------
@@ -307,10 +241,6 @@ class AFCalcResultTracker {
             throw new IllegalArgumentException("allelesUsedInGenotyping cannot be null or empty");
 
         this.allelesUsedInGenotyping = allelesUsedInGenotyping;
-    }
-
-    private static boolean goodLog10Value(final double result) {
-        return result <= 0.0 || Double.isInfinite(result) || Double.isNaN(result);
     }
 
     protected void setAClimits(int[] AClimits) {

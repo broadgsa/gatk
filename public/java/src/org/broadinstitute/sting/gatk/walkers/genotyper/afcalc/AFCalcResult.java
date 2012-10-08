@@ -32,7 +32,9 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Describes the results of the AFCalc
@@ -51,6 +53,8 @@ public class AFCalcResult {
     private final double[] log10LikelihoodsOfAC;
     private final double[] log10PriorsOfAC;
     private final double[] log10PosteriorsOfAC;
+
+    private final Map<Allele, Double> log10pNonRefByAllele;
 
     /**
      * The AC values for all ALT alleles at the MLE
@@ -71,13 +75,17 @@ public class AFCalcResult {
                         final int nEvaluations,
                         final List<Allele> allelesUsedInGenotyping,
                         final double[] log10LikelihoodsOfAC,
-                        final double[] log10PriorsOfAC) {
+                        final double[] log10PriorsOfAC,
+                        final Map<Allele, Double> log10pNonRefByAllele) {
         if ( allelesUsedInGenotyping == null || allelesUsedInGenotyping.size() < 1 ) throw new IllegalArgumentException("allelesUsedInGenotyping must be non-null list of at least 1 value " + allelesUsedInGenotyping);
         if ( alleleCountsOfMLE == null ) throw new IllegalArgumentException("alleleCountsOfMLE cannot be null");
-        if ( alleleCountsOfMLE.length != allelesUsedInGenotyping.size() ) throw new IllegalArgumentException("alleleCountsOfMLE.length " + alleleCountsOfMLE.length + " != allelesUsedInGenotyping.size() " + allelesUsedInGenotyping.size());
+        if ( alleleCountsOfMLE.length != allelesUsedInGenotyping.size() - 1) throw new IllegalArgumentException("alleleCountsOfMLE.length " + alleleCountsOfMLE.length + " != allelesUsedInGenotyping.size() " + allelesUsedInGenotyping.size());
         if ( nEvaluations < 0 ) throw new IllegalArgumentException("nEvaluations must be >= 0 but saw " + nEvaluations);
         if ( log10LikelihoodsOfAC.length != 2 ) throw new IllegalArgumentException("log10LikelihoodsOfAC must have length equal 2");
         if ( log10PriorsOfAC.length != 2 ) throw new IllegalArgumentException("log10PriorsOfAC must have length equal 2");
+        if ( log10pNonRefByAllele == null ) throw new IllegalArgumentException("log10pNonRefByAllele cannot be null");
+        if ( log10pNonRefByAllele.size() != allelesUsedInGenotyping.size() - 1 ) throw new IllegalArgumentException("log10pNonRefByAllele has the wrong number of elements: log10pNonRefByAllele " + log10pNonRefByAllele + " but allelesUsedInGenotyping " + allelesUsedInGenotyping);
+        if ( ! allelesUsedInGenotyping.containsAll(log10pNonRefByAllele.keySet()) ) throw new IllegalArgumentException("log10pNonRefByAllele doesn't contain all of the alleles used in genotyping: log10pNonRefByAllele " + log10pNonRefByAllele + " but allelesUsedInGenotyping " + allelesUsedInGenotyping);
         if ( ! goodLog10ProbVector(log10LikelihoodsOfAC, LOG_10_ARRAY_SIZES, false) ) throw new IllegalArgumentException("log10LikelihoodsOfAC are bad " + Utils.join(",", log10LikelihoodsOfAC));
         if ( ! goodLog10ProbVector(log10PriorsOfAC, LOG_10_ARRAY_SIZES, true) ) throw new IllegalArgumentException("log10priors are bad " + Utils.join(",", log10PriorsOfAC));
 
@@ -88,6 +96,7 @@ public class AFCalcResult {
         this.log10LikelihoodsOfAC = Arrays.copyOf(log10LikelihoodsOfAC, LOG_10_ARRAY_SIZES);
         this.log10PriorsOfAC = Arrays.copyOf(log10PriorsOfAC, LOG_10_ARRAY_SIZES);
         this.log10PosteriorsOfAC = computePosteriors(log10LikelihoodsOfAC, log10PriorsOfAC);
+        this.log10pNonRefByAllele = new HashMap<Allele, Double>(log10pNonRefByAllele);
     }
 
     /**
@@ -103,6 +112,17 @@ public class AFCalcResult {
     @Ensures("result != null")
     public int[] getAlleleCountsOfMLE() {
         return alleleCountsOfMLE;
+    }
+
+    /**
+     * Returns the AC of allele a la #getAlleleCountsOfMLE
+     *
+     * @param allele the allele whose AC we want to know.  Error if its not in allelesUsedInGenotyping
+     * @throws IllegalStateException if allele isn't in allelesUsedInGenotyping
+     * @return the AC of allele
+     */
+    public int getAlleleCountAtMLE(final Allele allele) {
+        return getAlleleCountsOfMLE()[altAlleleIndex(allele)];
     }
 
     /**
@@ -124,58 +144,55 @@ public class AFCalcResult {
      */
     @Ensures({"result != null", "! result.isEmpty()"})
     public List<Allele> getAllelesUsedInGenotyping() {
-        if ( allelesUsedInGenotyping == null )
-            throw new IllegalStateException("allelesUsedInGenotyping requested but not yet set");
-
         return allelesUsedInGenotyping;
     }
 
     /**
-     * Get the log10 normalized -- across all ACs -- posterior probability of AC == 0
+     * Get the log10 normalized -- across all ACs -- posterior probability of AC == 0 for all alleles
      *
      * @return
      */
-    @Ensures({"goodLog10Value(result)"})
+    @Ensures({"goodLog10Probability(result)"})
     public double getLog10PosteriorOfAFEq0() {
         return log10PosteriorsOfAC[AF0];
     }
 
     /**
-     * Get the log10 normalized -- across all ACs -- posterior probability of AC > 0
+     * Get the log10 normalized -- across all ACs -- posterior probability of AC > 0 for any alleles
      *
      * @return
      */
-    @Ensures({"goodLog10Value(result)"})
+    @Ensures({"goodLog10Probability(result)"})
     public double getLog10PosteriorOfAFGT0() {
         return log10PosteriorsOfAC[AF1p];
     }
 
     /**
-     * Get the log10 unnormalized -- across all ACs -- likelihood of AC == 0
+     * Get the log10 unnormalized -- across all ACs -- likelihood of AC == 0 for all alleles
      *
      * @return
      */
-    @Ensures({"goodLog10Value(result)"})
+    @Ensures({"goodLog10Probability(result)"})
     public double getLog10LikelihoodOfAFEq0() {
         return log10LikelihoodsOfAC[AF0];
     }
 
     /**
-     * Get the log10 unnormalized -- across all ACs -- likelihood of AC > 0
+     * Get the log10 unnormalized -- across all ACs -- likelihood of AC > 0 for any alleles
      *
      * @return
      */
-    @Ensures({"goodLog10Value(result)"})
+    @Ensures({"goodLog10Probability(result)"})
     public double getLog10LikelihoodOfAFGT0() {
         return log10LikelihoodsOfAC[AF1p];
     }
 
     /**
-     * Get the log10 unnormalized -- across all ACs -- prior probability of AC == 0
+     * Get the log10 unnormalized -- across all ACs -- prior probability of AC == 0 for all alleles
      *
      * @return
      */
-    @Ensures({"goodLog10Value(result)"})
+    @Ensures({"goodLog10Probability(result)"})
     public double getLog10PriorOfAFEq0() {
         return log10PriorsOfAC[AF0];
     }
@@ -185,7 +202,7 @@ public class AFCalcResult {
      *
      * @return
      */
-    @Ensures({"goodLog10Value(result)"})
+    @Ensures({"goodLog10Probability(result)"})
     public double getLog10PriorOfAFGT0() {
         return log10PriorsOfAC[AF1p];
     }
@@ -202,8 +219,27 @@ public class AFCalcResult {
      *
      * @return true if there's enough confidence (relative to log10minPNonRef) to reject AF == 0
      */
-    public boolean isPolymorphic(final double log10minPNonRef) {
-        return getLog10PosteriorOfAFGT0() < log10minPNonRef;
+    public boolean isPolymorphic(final Allele allele, final double log10minPNonRef) {
+        return getLog10PosteriorOfAFGt0ForAllele(allele) < log10minPNonRef;
+    }
+
+    /**
+     * Returns the log10 probability that allele is segregating
+     *
+     * Unlike the sites-level annotation, this calculation is specific to allele, and can be
+     * used to separately determine how much evidence there is that allele is independently
+     * segregating as opposed to the site being polymorphic with any allele.  In the bi-allelic
+     * case these are obviously the same but for multiple alt alleles there can be lots of
+     * evidence for one allele but not so much for any other allele
+     *
+     * @param allele the allele we're interested in, must be in getAllelesUsedInGenotyping
+     * @return the log10 probability that allele is segregating at this site
+     */
+    @Ensures("goodLog10Probability(result)")
+    public double getLog10PosteriorOfAFGt0ForAllele(final Allele allele) {
+        final Double log10pNonRef = log10pNonRefByAllele.get(allele);
+        if ( log10pNonRef == null ) throw new IllegalArgumentException("Unknown allele " + allele);
+        return log10pNonRef;
     }
 
     /**
@@ -237,8 +273,8 @@ public class AFCalcResult {
         if ( vector.length != expectedSize ) return false;
 
         for ( final double pr : vector ) {
-            if ( pr > 0.0 ) return false; // log10 prob. vector should be < 0
-            if ( Double.isInfinite(pr) || Double.isNaN(pr) ) return false;
+            if ( ! goodLog10Probability(pr) )
+                return false;
         }
 
         if ( shouldSumToOne && MathUtils.compareDoubles(MathUtils.sumLog10(vector), 1.0, 1e-2) != 0 )
@@ -247,7 +283,35 @@ public class AFCalcResult {
         return true; // everything is good
     }
 
-    private static boolean goodLog10Value(final double result) {
+    /**
+     * Computes the offset into linear vectors indexed by alt allele for allele
+     *
+     * Things like our MLE allele count vector are indexed by alt allele index, with
+     * the first alt allele being 0, the second 1, etc.  This function computes the index
+     * associated with allele.
+     *
+     * @param allele the allele whose alt index we'd like to know
+     * @throws IllegalArgumentException if allele isn't in allelesUsedInGenotyping
+     * @return an index value greater than 0 suitable for indexing into the MLE and other alt allele indexed arrays
+     */
+    @Requires("allele != null")
+    @Ensures({"result >= 0", "result < allelesUsedInGenotyping.size() - 1"})
+    private int altAlleleIndex(final Allele allele) {
+        if ( allele.isReference() ) throw new IllegalArgumentException("Cannot get the alt allele index for reference allele " + allele);
+        final int index = allelesUsedInGenotyping.indexOf(allele);
+        if ( index == -1 )
+            throw new IllegalArgumentException("could not find allele " + allele + " in " + allelesUsedInGenotyping);
+        else
+            return index - 1;
+    }
+
+    /**
+     * Checks that the result is a well-formed log10 probability
+     *
+     * @param result a supposedly well-formed log10 probability value
+     * @return true if result is really well formed
+     */
+    private static boolean goodLog10Probability(final double result) {
         return result <= 0.0 && ! Double.isInfinite(result) && ! Double.isNaN(result);
     }
 }

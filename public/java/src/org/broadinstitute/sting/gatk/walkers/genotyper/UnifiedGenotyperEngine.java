@@ -374,27 +374,23 @@ public class UnifiedGenotyperEngine {
         myAlleles.add(vc.getReference());
         for ( int i = 0; i < vc.getAlternateAlleles().size(); i++ ) {
             final Allele alternateAllele = vc.getAlternateAllele(i);
-            final int indexOfAllele = AFresult.getAllelesUsedInGenotyping().indexOf(alternateAllele);
-            // the genotyping model may have stripped it out
-            if ( indexOfAllele == -1 )
-                continue;
 
             // we are non-ref if the probability of being non-ref > the emit confidence.
             // the emit confidence is phred-scaled, say 30 => 10^-3.
             // the posterior AF > 0 is log10: -5 => 10^-5
             // we are non-ref if 10^-5 < 10^-3 => -5 < -3
-            final boolean isNonRef = AFresult.isPolymorphic(UAC.STANDARD_CONFIDENCE_FOR_EMITTING / -10.0);
+            final boolean isNonRef = AFresult.isPolymorphic(alternateAllele, UAC.STANDARD_CONFIDENCE_FOR_EMITTING / -10.0);
 
             // if the most likely AC is not 0, then this is a good alternate allele to use
             if ( ! isNonRef ) {
                 myAlleles.add(alternateAllele);
-                alleleCountsofMLE.add(AFresult.getAlleleCountsOfMLE()[indexOfAllele-1]);
+                alleleCountsofMLE.add(AFresult.getAlleleCountAtMLE(alternateAllele));
                 bestGuessIsRef = false;
             }
             // if in GENOTYPE_GIVEN_ALLELES mode, we still want to allow the use of a poor allele
             else if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
                 myAlleles.add(alternateAllele);
-                alleleCountsofMLE.add(AFresult.getAlleleCountsOfMLE()[indexOfAllele-1]);
+                alleleCountsofMLE.add(AFresult.getAlleleCountAtMLE(alternateAllele));
             }
         }
 

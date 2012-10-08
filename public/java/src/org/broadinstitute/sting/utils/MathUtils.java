@@ -572,8 +572,22 @@ public class MathUtils {
         return normalizeFromLog10(array, takeLog10OfOutput, false);
     }
 
-    public static double[] normalizeFromLog10(double[] array, boolean takeLog10OfOutput, boolean keepInLogSpace) {
+    /**
+     * The smallest log10 value we'll emit from normalizeFromLog10 and other functions
+     * where the real-space value is 0.0.
+     */
+    final static double LOG10_P_OF_ZERO = -10000;
 
+    /**
+     * See #normalizeFromLog10 but with the additional option to use an approximation that keeps the calculation always in log-space
+     *
+     * @param array
+     * @param takeLog10OfOutput
+     * @param keepInLogSpace
+     *
+     * @return
+     */
+    public static double[] normalizeFromLog10(double[] array, boolean takeLog10OfOutput, boolean keepInLogSpace) {
         // for precision purposes, we need to add (or really subtract, since they're
         // all negative) the largest value; also, we need to convert to normal-space.
         double maxValue = arrayMax(array);
@@ -598,7 +612,8 @@ public class MathUtils {
         for (int i = 0; i < array.length; i++) {
             double x = normalized[i] / sum;
             if (takeLog10OfOutput)
-                x = Math.log10(x);
+                x = Math.max(Math.log10(x), LOG10_P_OF_ZERO);
+
             normalized[i] = x;
         }
 
