@@ -45,9 +45,9 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
     protected abstract StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResultTracker resultTracker);
 
     @Override
-    public void computeLog10PNonRef(final VariantContext vc,
-                                    final double[] log10AlleleFrequencyPriors,
-                                    final AFCalcResultTracker resultTracker) {
+    protected void computeLog10PNonRef(final VariantContext vc,
+                                       final double[] log10AlleleFrequencyPriors,
+                                       final AFCalcResultTracker resultTracker) {
         final int numAlternateAlleles = vc.getNAlleles() - 1;
         final ArrayList<double[]> genotypeLikelihoods = getGLs(vc.getGenotypes());
         final int numSamples = genotypeLikelihoods.size()-1;

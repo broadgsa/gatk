@@ -191,6 +191,22 @@ public class AFCalcResult {
     }
 
     /**
+     * Are we sufficiently confidence in being non-ref that the site is considered polymorphic?
+     *
+     * We are non-ref if the probability of being non-ref > the emit confidence (often an argument).
+     * Suppose posterior AF > 0 is log10: -5 => 10^-5
+     * And that log10minPNonRef is -3.
+     * We are considered polymorphic since 10^-5 < 10^-3 => -5 < -3
+     *
+     * @param log10minPNonRef the log10 scaled min pr of being non-ref to be considered polymorphic
+     *
+     * @return true if there's enough confidence (relative to log10minPNonRef) to reject AF == 0
+     */
+    public boolean isPolymorphic(final double log10minPNonRef) {
+        return getLog10PosteriorOfAFGT0() < log10minPNonRef;
+    }
+
+    /**
      * Returns the log10 normalized posteriors given the log10 likelihoods and priors
      *
      * @param log10LikelihoodsOfAC
@@ -221,11 +237,11 @@ public class AFCalcResult {
         if ( vector.length != expectedSize ) return false;
 
         for ( final double pr : vector ) {
-            if ( pr > 0 ) return false; // log10 prob. vector should be < 0
+            if ( pr > 0.0 ) return false; // log10 prob. vector should be < 0
             if ( Double.isInfinite(pr) || Double.isNaN(pr) ) return false;
         }
 
-        if ( shouldSumToOne || MathUtils.compareDoubles(MathUtils.sumLog10(vector), 0.0, 1e-2) != 0 )
+        if ( shouldSumToOne && MathUtils.compareDoubles(MathUtils.sumLog10(vector), 1.0, 1e-2) != 0 )
             return false;
 
         return true; // everything is good

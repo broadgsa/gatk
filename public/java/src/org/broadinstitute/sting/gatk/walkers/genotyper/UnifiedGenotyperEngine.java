@@ -35,7 +35,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalc;
-import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcResultTracker;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcResult;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -363,7 +363,7 @@ public class UnifiedGenotyperEngine {
                     generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext));
         }
 
-        AFCalcResultTracker AFresult = afcm.get().getLog10PNonRef(vc, getAlleleFrequencyPriors(model));
+        AFCalcResult AFresult = afcm.get().getLog10PNonRef(vc, getAlleleFrequencyPriors(model));
 
         // is the most likely frequency conformation AC=0 for all alternate alleles?
         boolean bestGuessIsRef = true;
@@ -379,10 +379,14 @@ public class UnifiedGenotyperEngine {
             if ( indexOfAllele == -1 )
                 continue;
 
-            final int indexOfBestAC = AFresult.getAlleleCountsOfMAP()[indexOfAllele-1];
+            // we are non-ref if the probability of being non-ref > the emit confidence.
+            // the emit confidence is phred-scaled, say 30 => 10^-3.
+            // the posterior AF > 0 is log10: -5 => 10^-5
+            // we are non-ref if 10^-5 < 10^-3 => -5 < -3
+            final boolean isNonRef = AFresult.isPolymorphic(UAC.STANDARD_CONFIDENCE_FOR_EMITTING / -10.0);
 
             // if the most likely AC is not 0, then this is a good alternate allele to use
-            if ( indexOfBestAC != 0 ) {
+            if ( ! isNonRef ) {
                 myAlleles.add(alternateAllele);
                 alleleCountsofMLE.add(AFresult.getAlleleCountsOfMLE()[indexOfAllele-1]);
                 bestGuessIsRef = false;
@@ -394,22 +398,10 @@ public class UnifiedGenotyperEngine {
             }
         }
 
-        // calculate p(f>0):
-        final double PoFEq0 = AFresult.getNormalizedPosteriorOfAFzero();
-        final double PoFGT0 = AFresult.getNormalizedPosteriorOfAFGTZero();
-
-        double phredScaledConfidence;
-        if ( !bestGuessIsRef || UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
-            phredScaledConfidence = QualityUtils.phredScaleErrorRate(PoFEq0);
-            if ( Double.isInfinite(phredScaledConfidence) )
-                phredScaledConfidence = -10.0 * AFresult.getLog10PosteriorOfAFzero();
-        } else {
-            phredScaledConfidence = QualityUtils.phredScaleErrorRate(PoFGT0);
-            if ( Double.isInfinite(phredScaledConfidence) ) {
-                final double sum = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
-                phredScaledConfidence = (MathUtils.compareDoubles(sum, 0.0) == 0 ? 0 : -10.0 * sum);
-            }
-        }
+        final double PoFGT0 = Math.pow(10, AFresult.getLog10PosteriorOfAFGT0());
+        final double phredScaledConfidence = ! bestGuessIsRef || UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES
+                ? -10 * AFresult.getLog10PosteriorOfAFEq0()
+                : -10 * AFresult.getLog10PosteriorOfAFGT0();
 
         // return a null call if we don't pass the confidence cutoff or the most likely allele frequency is zero
         if ( UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES && !passesEmitThreshold(phredScaledConfidence, bestGuessIsRef) ) {
@@ -462,7 +454,7 @@ public class UnifiedGenotyperEngine {
 
             // the overall lod
             //double overallLog10PofNull = AFresult.log10AlleleFrequencyPosteriors[0];
-            double overallLog10PofF = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
+            double overallLog10PofF = AFresult.getLog10LikelihoodOfAFGT0();
             //if ( DEBUG_SLOD ) System.out.println("overallLog10PofF=" + overallLog10PofF);
 
             List<Allele> allAllelesToUse = builder.make().getAlleles();
@@ -471,16 +463,16 @@ public class UnifiedGenotyperEngine {
             VariantContext vcForward = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.FORWARD, allAllelesToUse, false, model, perReadAlleleLikelihoodMap);
             AFresult = afcm.get().getLog10PNonRef(vcForward, getAlleleFrequencyPriors(model));
             //double[] normalizedLog10Posteriors = MathUtils.normalizeFromLog10(AFresult.log10AlleleFrequencyPosteriors, true);
-            double forwardLog10PofNull = AFresult.getLog10PosteriorOfAFzero();
-            double forwardLog10PofF = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
+            double forwardLog10PofNull = AFresult.getLog10LikelihoodOfAFEq0();
+            double forwardLog10PofF = AFresult.getLog10LikelihoodOfAFGT0();
             //if ( DEBUG_SLOD ) System.out.println("forwardLog10PofNull=" + forwardLog10PofNull + ", forwardLog10PofF=" + forwardLog10PofF);
 
             // the reverse lod
             VariantContext vcReverse = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.REVERSE, allAllelesToUse, false, model, perReadAlleleLikelihoodMap);
             AFresult = afcm.get().getLog10PNonRef(vcReverse, getAlleleFrequencyPriors(model));
             //normalizedLog10Posteriors = MathUtils.normalizeFromLog10(AFresult.log10AlleleFrequencyPosteriors, true);
-            double reverseLog10PofNull = AFresult.getLog10PosteriorOfAFzero();
-            double reverseLog10PofF = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
+            double reverseLog10PofNull = AFresult.getLog10LikelihoodOfAFEq0();
+            double reverseLog10PofF = AFresult.getLog10LikelihoodOfAFGT0();
             //if ( DEBUG_SLOD ) System.out.println("reverseLog10PofNull=" + reverseLog10PofNull + ", reverseLog10PofF=" + reverseLog10PofF);
 
             double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofF;

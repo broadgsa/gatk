@@ -4,6 +4,7 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -70,7 +71,7 @@ public class ConstrainedDiploidExactAFCalc extends DiploidExactAFCalc {
     @Requires({
             "g != null",
             "maxACs != null",
-            "MathUtils.sum(maxACs) >= 0"})
+            "goodMaxACs(maxACs)"})
     private void updateMaxACs(final Genotype g, final int[] maxACs) {
         final int[] PLs = g.getLikelihoods().getAsPLs();
 
@@ -101,9 +102,13 @@ public class ConstrainedDiploidExactAFCalc extends DiploidExactAFCalc {
     @Requires({
             "alleleI >= 0",
             "(alleleI - 1) < maxACs.length",
-            "MathUtils.sum(maxACs) >= 0"})
+            "goodMaxACs(maxACs)"})
     private void updateMaxACs(final int[] maxACs, final int alleleI) {
         if ( alleleI > 0 )
             maxACs[alleleI-1]++;
+    }
+
+    private static boolean goodMaxACs(final int[] maxACs) {
+        return MathUtils.sum(maxACs) >= 0;
     }
 }

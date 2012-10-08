@@ -60,19 +60,20 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
     public void computeLog10PNonRef(final VariantContext vc,
                                     final double[] log10AlleleFrequencyPriors,
                                     final AFCalcResultTracker resultTracker) {
-        final List<AFCalcResultTracker> independentResultTrackers = computeLog10PNonRefForEachAllele(vc, log10AlleleFrequencyPriors);
-        combineIndependentPNonRefs(vc, independentResultTrackers, log10AlleleFrequencyPriors, resultTracker);
+        refModel.computeLog10PNonRef(vc, log10AlleleFrequencyPriors, resultTracker);
+//        final List<AFCalcResult> independentResultTrackers = computeLog10PNonRefForEachAllele(vc, log10AlleleFrequencyPriors);
+//        combineIndependentPNonRefs(vc, independentResultTrackers, log10AlleleFrequencyPriors, resultTracker);
     }
 
-    protected List<AFCalcResultTracker> computeLog10PNonRefForEachAllele(final VariantContext vc,
+    protected List<AFCalcResult> computeLog10PNonRefForEachAllele(final VariantContext vc,
                                                                   final double[] log10AlleleFrequencyPriors) {
         final int nAltAlleles = vc.getNAlleles() - 1;
-        final List<AFCalcResultTracker> resultTrackers = new ArrayList<AFCalcResultTracker>(nAltAlleles);
+        final List<AFCalcResult> resultTrackers = new ArrayList<AFCalcResult>(nAltAlleles);
 
         for ( int altI = 0; altI < nAltAlleles; altI++ ) {
             final List<Allele> biallelic = Arrays.asList(vc.getReference(), vc.getAlternateAllele(altI));
             final VariantContext subvc = biallelicCombinedGLs(vc, biallelic, altI + 1);
-            final AFCalcResultTracker resultTracker = refModel.getLog10PNonRef(subvc, log10AlleleFrequencyPriors);
+            final AFCalcResult resultTracker = refModel.getLog10PNonRef(subvc, log10AlleleFrequencyPriors);
             resultTrackers.add(resultTracker);
         }
 
@@ -141,34 +142,34 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
      * @param resultTracker the destination for the combined result
      */
     protected void combineIndependentPNonRefs(final VariantContext vc,
-                                              final List<AFCalcResultTracker> independentPNonRefs,
+                                              final List<AFCalcResult> independentPNonRefs,
                                               final double[] log10AlleleFrequencyPriors,
                                               final AFCalcResultTracker resultTracker) {
-        final int nChrom = vc.getNSamples() * 2;
-
-        resultTracker.reset();
-
-        // both the likelihood and the posterior of AF=0 are the same for all alleles
-        // TODO -- check and ensure this is true
-        resultTracker.setLog10LikelihoodOfAFzero(independentPNonRefs.get(0).getLog10LikelihoodOfAFzero());
-        resultTracker.setLog10PosteriorOfAFzero(independentPNonRefs.get(0).getLog10PosteriorOfAFzero());
-        resultTracker.log10PosteriorMatrixSum = 0.0;
-
-        int altI = 0;
-        for ( final AFCalcResultTracker independentPNonRef : independentPNonRefs ) {
-            resultTracker.log10MLE += independentPNonRef.getLog10MLE();
-
-            // TODO -- technically double counting some posterior mass
-            resultTracker.log10MAP += independentPNonRef.getLog10MAP();
-
-            // TODO -- technically double counting some posterior mass
-            resultTracker.log10PosteriorMatrixSum += independentPNonRef.getLog10PosteriorsMatrixSumWithoutAFzero();
-
-            resultTracker.getAlleleCountsOfMAP()[altI] = independentPNonRef.getAlleleCountsOfMAP()[0];
-            resultTracker.getAlleleCountsOfMLE()[altI] = independentPNonRef.getAlleleCountsOfMLE()[0];
-
-            resultTracker.nEvaluations += independentPNonRef.nEvaluations;
-            altI++;
-        }
+//        final int nChrom = vc.getNSamples() * 2;
+//
+//        resultTracker.reset();
+//
+//        // both the likelihood and the posterior of AF=0 are the same for all alleles
+//        // TODO -- check and ensure this is true
+//        resultTracker.setLog10LikelihoodOfAFzero(independentPNonRefs.get(0).getLog10LikelihoodOfAFzero());
+//        resultTracker.setLog10PosteriorOfAFzero(independentPNonRefs.get(0).getLog10PosteriorOfAFzero());
+//        resultTracker.log10PosteriorMatrixSum = 0.0;
+//
+//        int altI = 0;
+//        for ( final AFCalcResult independentPNonRef : independentPNonRefs ) {
+//            resultTracker.log10MLE += independentPNonRef.getLog10MLE();
+//
+//            // TODO -- technically double counting some posterior mass
+//            resultTracker.log10MAP += independentPNonRef.getLog10MAP();
+//
+//            // TODO -- technically double counting some posterior mass
+//            resultTracker.log10PosteriorMatrixSum += independentPNonRef.getLog10PosteriorsMatrixSumWithoutAFzero();
+//
+//            resultTracker.getAlleleCountsOfMAP()[altI] = independentPNonRef.getAlleleCountsOfMAP()[0];
+//            resultTracker.getAlleleCountsOfMLE()[altI] = independentPNonRef.getAlleleCountsOfMLE()[0];
+//
+//            resultTracker.nEvaluations += independentPNonRef.nEvaluations;
+//            altI++;
+//        }
     }
 }

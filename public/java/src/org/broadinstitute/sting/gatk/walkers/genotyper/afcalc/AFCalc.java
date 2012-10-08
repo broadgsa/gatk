@@ -105,7 +105,7 @@ public abstract class AFCalc implements Cloneable {
      * @param log10AlleleFrequencyPriors a prior vector nSamples x 2 in length indicating the Pr(AF = i)
      * @return result (for programming convenience)
      */
-    public AFCalcResultTracker getLog10PNonRef(final VariantContext vc, final double[] log10AlleleFrequencyPriors) {
+    public AFCalcResult getLog10PNonRef(final VariantContext vc, final double[] log10AlleleFrequencyPriors) {
         if ( vc == null ) throw new IllegalArgumentException("VariantContext cannot be null");
         if ( log10AlleleFrequencyPriors == null ) throw new IllegalArgumentException("priors vector cannot be null");
         if ( resultTracker == null ) throw new IllegalArgumentException("Results object cannot be null");
@@ -123,7 +123,7 @@ public abstract class AFCalc implements Cloneable {
             printCallInfo(vcWorking, log10AlleleFrequencyPriors, nanoTime, resultTracker.getLog10PosteriorOfAFzero());
 
         resultTracker.setAllelesUsedInGenotyping(vcWorking.getAlleles());
-        return resultTracker;
+        return resultTracker.toAFCalcResult(log10AlleleFrequencyPriors);
     }
 
     // ---------------------------------------------------------------------------
@@ -155,9 +155,9 @@ public abstract class AFCalc implements Cloneable {
      * @param resultTracker                            (pre-allocated) object to store results
      */
     // TODO -- add consistent requires among args
-    public abstract void computeLog10PNonRef(final VariantContext vc,
-                                             final double[] log10AlleleFrequencyPriors,
-                                             final AFCalcResultTracker resultTracker);
+    protected abstract void computeLog10PNonRef(final VariantContext vc,
+                                                final double[] log10AlleleFrequencyPriors,
+                                                final AFCalcResultTracker resultTracker);
 
     /**
      * Must be overridden by concrete subclasses

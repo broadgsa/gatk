@@ -41,7 +41,7 @@ import java.util.List;
  *
  * TODO -- WHAT IS THE CONTRACT ON MAP AC AND P NON REF?
  */
-public class AFCalcResultTracker {
+class AFCalcResultTracker {
     // These variables are intended to contain the MLE and MAP (and their corresponding allele counts) of the site over all alternate alleles
     protected double log10MLE;
     protected double log10MAP;
@@ -157,6 +157,10 @@ public class AFCalcResultTracker {
         return log10LikelihoodOfAFzero;
     }
 
+    public double getLog10LikelihoodOfAFNotZero() {
+        return getLog10PosteriorsMatrixSumWithoutAFzero(); // TODO -- INCORRECT TEMPORARY CALCULATION
+    }
+
     /**
      * TODO -- eric what is this supposed to return?  my unit tests don't do what I think they should
      *
@@ -213,6 +217,13 @@ public class AFCalcResultTracker {
 
     public int[] getAClimits() {
         return AClimits;
+    }
+
+    protected AFCalcResult toAFCalcResult(final double[] log10PriorsByAC) {
+        final int [] subACOfMLE = Arrays.copyOf(alleleCountsOfMLE, allelesUsedInGenotyping.size());
+        final double[] log10Likelihoods = new double[]{getLog10LikelihoodOfAFzero(), getLog10LikelihoodOfAFNotZero()};
+        final double[] log10Priors = new double[]{log10PriorsByAC[0], MathUtils.log10sumLog10(log10PriorsByAC, 1)};
+        return new AFCalcResult(subACOfMLE, nEvaluations, allelesUsedInGenotyping, log10Likelihoods, log10Priors);
     }
 
     // --------------------------------------------------------------------------------
