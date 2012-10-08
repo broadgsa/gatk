@@ -200,15 +200,15 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
         }
     }
 
-    private boolean readHasBeenSkipped(GATKSAMRecord read) {
+    private boolean readHasBeenSkipped( final GATKSAMRecord read ) {
         return read.containsTemporaryAttribute(SKIP_RECORD_ATTRIBUTE);
     }
 
-    private boolean isLowQualityBase(GATKSAMRecord read, int offset) {
-        return read.getBaseQualities()[offset] < minimumQToUse;
+    private boolean isLowQualityBase( final PileupElement p ) {
+        return p.getQual() < minimumQToUse;
     }
 
-    private boolean readNotSeen(GATKSAMRecord read) {
+    private boolean readNotSeen( final GATKSAMRecord read ) {
         return !read.containsTemporaryAttribute(SEEN_ATTRIBUTE);
     }
 
@@ -230,7 +230,7 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
                 final int offset = p.getOffset();
 
                 // This read has been marked to be skipped or base is low quality (we don't recalibrate low quality bases)
-                if (readHasBeenSkipped(read) || isLowQualityBase(read, offset))
+                if (readHasBeenSkipped(read) || isLowQualityBase(p))
                     continue;
 
                 if (readNotSeen(read)) {
