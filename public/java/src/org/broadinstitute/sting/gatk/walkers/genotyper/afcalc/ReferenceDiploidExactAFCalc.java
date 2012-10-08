@@ -15,7 +15,7 @@ public class ReferenceDiploidExactAFCalc extends DiploidExactAFCalc {
         super(UAC, N, logger, verboseWriter);
     }
 
-    protected StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResult result) {
+    protected StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResultTracker resultTracker) {
         return new StateTracker();
     }
 }

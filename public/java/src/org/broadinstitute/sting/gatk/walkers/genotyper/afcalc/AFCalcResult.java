@@ -26,38 +26,36 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 
 import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 import java.util.Arrays;
 import java.util.List;
 
 /**
- * Created by IntelliJ IDEA.
- * User: ebanks
- * Date: Dec 14, 2011
+ * Describes the results of the AFCalc
  *
- * Useful helper class to communicate the results of the allele frequency calculation
+ * Only the bare essentials are represented here, as all AFCalc models must return meaningful results for
+ * all of these fields.
  *
- * TODO -- WHAT IS THE CONTRACT ON MAP AC AND P NON REF?
+ * Note that all of the values -- i.e. priors -- are checked now that they are meaningful, which means
+ * that users of this code can rely on the values coming out of these functions.
  */
 public class AFCalcResult {
-    // These variables are intended to contain the MLE and MAP (and their corresponding allele counts) of the site over all alternate alleles
-    protected double log10MLE;
-    protected double log10MAP;
+    private final static int AF0 = 0;
+    private final static int AF1p = 1;
+    private final static int LOG_10_ARRAY_SIZES = 2;
+
+    private final double[] log10LikelihoodsOfAC;
+    private final double[] log10PriorsOfAC;
+    private final double[] log10PosteriorsOfAC;
+
+    /**
+     * The AC values for all ALT alleles at the MLE
+     */
     private final int[] alleleCountsOfMLE;
-    private final int[] alleleCountsOfMAP;
-
-    // The posteriors seen, not including that of AF=0
-    private static final int POSTERIORS_CACHE_SIZE = 5000;
-    private final double[] log10PosteriorMatrixValues = new double[POSTERIORS_CACHE_SIZE];
-    private int currentPosteriorsCacheIndex = 0;
-    protected Double log10PosteriorMatrixSum = null;
-
-    // These variables are intended to contain the likelihood/posterior probability for the site's being monomorphic (i.e. AF=0 for all alternate alleles)
-    private double log10LikelihoodOfAFzero;
-    private double log10PosteriorOfAFzero;
-    private int[] AClimits;
 
     int nEvaluations = 0;
 
@@ -68,36 +66,28 @@ public class AFCalcResult {
 
     /**
      * Create a results object capability of storing results for calls with up to maxAltAlleles
-     *
-     * @param maxAltAlleles an integer >= 1
      */
-    public AFCalcResult(final int maxAltAlleles) {
-        if ( maxAltAlleles < 1 ) throw new IllegalArgumentException("maxAltAlleles must be >= 0, saw " + maxAltAlleles);
+    public AFCalcResult(final int[] alleleCountsOfMLE,
+                        final int nEvaluations,
+                        final List<Allele> allelesUsedInGenotyping,
+                        final double[] log10LikelihoodsOfAC,
+                        final double[] log10PriorsOfAC) {
+        if ( allelesUsedInGenotyping == null || allelesUsedInGenotyping.size() < 1 ) throw new IllegalArgumentException("allelesUsedInGenotyping must be non-null list of at least 1 value " + allelesUsedInGenotyping);
+        if ( alleleCountsOfMLE == null ) throw new IllegalArgumentException("alleleCountsOfMLE cannot be null");
+        if ( alleleCountsOfMLE.length != allelesUsedInGenotyping.size() ) throw new IllegalArgumentException("alleleCountsOfMLE.length " + alleleCountsOfMLE.length + " != allelesUsedInGenotyping.size() " + allelesUsedInGenotyping.size());
+        if ( nEvaluations < 0 ) throw new IllegalArgumentException("nEvaluations must be >= 0 but saw " + nEvaluations);
+        if ( log10LikelihoodsOfAC.length != 2 ) throw new IllegalArgumentException("log10LikelihoodsOfAC must have length equal 2");
+        if ( log10PriorsOfAC.length != 2 ) throw new IllegalArgumentException("log10PriorsOfAC must have length equal 2");
+        if ( ! goodLog10ProbVector(log10LikelihoodsOfAC, LOG_10_ARRAY_SIZES, false) ) throw new IllegalArgumentException("log10LikelihoodsOfAC are bad " + Utils.join(",", log10LikelihoodsOfAC));
+        if ( ! goodLog10ProbVector(log10PriorsOfAC, LOG_10_ARRAY_SIZES, true) ) throw new IllegalArgumentException("log10priors are bad " + Utils.join(",", log10PriorsOfAC));
 
-        alleleCountsOfMLE = new int[maxAltAlleles];
-        alleleCountsOfMAP = new int[maxAltAlleles];
+        this.alleleCountsOfMLE = alleleCountsOfMLE;
+        this.nEvaluations = nEvaluations;
+        this.allelesUsedInGenotyping = allelesUsedInGenotyping;
 
-        reset();
-    }
-
-    /**
-     * Get the log10 value of the probability mass at the MLE
-     *
-     * @return a log10 prob
-     */
-    @Ensures("goodLog10Value(result)")
-    public double getLog10MLE() {
-        return log10MLE;
-    }
-
-    /**
-     * Get the log10 value of the probability mass at the max. a posterior (MAP)
-     *
-     * @return a log10 prob
-     */
-    @Ensures("goodLog10Value(result)")
-    public double getLog10MAP() {
-        return log10MAP;
+        this.log10LikelihoodsOfAC = Arrays.copyOf(log10LikelihoodsOfAC, LOG_10_ARRAY_SIZES);
+        this.log10PriorsOfAC = Arrays.copyOf(log10PriorsOfAC, LOG_10_ARRAY_SIZES);
+        this.log10PosteriorsOfAC = computePosteriors(log10LikelihoodsOfAC, log10PriorsOfAC);
     }
 
     /**
@@ -116,54 +106,12 @@ public class AFCalcResult {
     }
 
     /**
-     * Returns a vector with maxAltAlleles values containing AC values at the MAP
-     *
-     * @see #getAlleleCountsOfMLE() for the encoding of results in this vector
-     *
-     * @return a non-null vector of ints
-     */
-    @Ensures("result != null")
-    public int[] getAlleleCountsOfMAP() {
-        return alleleCountsOfMAP;
-    }
-
-    /**
      * Returns the number of cycles used to evaluate the pNonRef for this AF calculation
      *
      * @return the number of evaluations required to produce the answer for this AF calculation
      */
     public int getnEvaluations() {
         return nEvaluations;
-    }
-
-    /**
-     * TODO -- eric what is this supposed to return?  my unit tests don't do what I think they should
-     *
-     * @return
-     */
-    public double getLog10PosteriorsMatrixSumWithoutAFzero() {
-        if ( log10PosteriorMatrixSum == null ) {
-            log10PosteriorMatrixSum = MathUtils.log10sumLog10(log10PosteriorMatrixValues, 0, currentPosteriorsCacheIndex);
-        }
-        return log10PosteriorMatrixSum;
-    }
-
-    /**
-     * TODO -- eric what is this supposed to return?  my unit tests don't do what I think they should
-     *
-     * @return
-     */
-    public double getLog10LikelihoodOfAFzero() {
-        return log10LikelihoodOfAFzero;
-    }
-
-    /**
-     * TODO -- eric what is this supposed to return?  my unit tests don't do what I think they should
-     *
-     * @return
-     */
-    public double getLog10PosteriorOfAFzero() {
-        return log10PosteriorOfAFzero;
     }
 
     /**
@@ -183,126 +131,107 @@ public class AFCalcResult {
     }
 
     /**
-     * Get the normalized -- across all AFs -- of AC == 0, NOT LOG10
-     * @return
-     */
-    // TODO -- this ensure cannot be enabled right now because the log10 inputs can be infinity, etc.
-    // TODO -- we should own these values in a more meaningful way and return good values in the case
-    // TODO -- where this happens, or instead thrown an error and have a function to say "was this calculation successful
-//    @Ensures({"result >= 0.0", "result <= 1.0"})
-    public double getNormalizedPosteriorOfAFzero() {
-        return getNormalizedPosteriors()[0];
-    }
-
-    /**
-     * Get the normalized -- across all AFs -- of AC > 0, NOT LOG10
-     * @return
-     */
-    // TODO -- this ensure cannot be enabled right now because the log10 inputs can be infinity, etc.
-    // TODO -- we should own these values in a more meaningful way and return good values in the case
-    // TODO -- where this happens, or instead thrown an error and have a function to say "was this calculation successful
-    //@Ensures({"result >= 0.0", "result <= 1.0"})
-    public double getNormalizedPosteriorOfAFGTZero() {
-        return getNormalizedPosteriors()[1];
-    }
-
-    private double[] getNormalizedPosteriors() {
-        final double[] posteriors = new double[]{ getLog10PosteriorOfAFzero(), getLog10PosteriorsMatrixSumWithoutAFzero() };
-        return MathUtils.normalizeFromLog10(posteriors);
-    }
-
-    public int[] getAClimits() {
-        return AClimits;
-    }
-
-    // --------------------------------------------------------------------------------
-    //
-    // Protected mutational methods only for use within the calculation models themselves
-    //
-    // --------------------------------------------------------------------------------
-
-    /**
-     * Reset the data in this results object, so that it can be used in a subsequent AF calculation
+     * Get the log10 normalized -- across all ACs -- posterior probability of AC == 0
      *
-     * Resetting of the data is done by the calculation model itself, so shouldn't be done by callers any longer
+     * @return
      */
-    protected void reset() {
-        log10MLE = log10MAP = log10LikelihoodOfAFzero = log10PosteriorOfAFzero = AFCalc.VALUE_NOT_CALCULATED;
-        for ( int i = 0; i < alleleCountsOfMLE.length; i++ ) {
-            alleleCountsOfMLE[i] = 0;
-            alleleCountsOfMAP[i] = 0;
-        }
-        currentPosteriorsCacheIndex = 0;
-        log10PosteriorMatrixSum = null;
-        allelesUsedInGenotyping = null;
-        nEvaluations = 0;
+    @Ensures({"goodLog10Value(result)"})
+    public double getLog10PosteriorOfAFEq0() {
+        return log10PosteriorsOfAC[AF0];
     }
 
     /**
-     * Tell this result we used one more evaluation cycle
+     * Get the log10 normalized -- across all ACs -- posterior probability of AC > 0
+     *
+     * @return
      */
-    protected void incNEvaluations() {
-        nEvaluations++;
+    @Ensures({"goodLog10Value(result)"})
+    public double getLog10PosteriorOfAFGT0() {
+        return log10PosteriorsOfAC[AF1p];
     }
 
-    protected void updateMLEifNeeded(final double log10LofK, final int[] alleleCountsForK) {
-        if ( log10LofK > log10MLE ) {
-            log10MLE = log10LofK;
-            for ( int i = 0; i < alleleCountsForK.length; i++ )
-                alleleCountsOfMLE[i] = alleleCountsForK[i];
+    /**
+     * Get the log10 unnormalized -- across all ACs -- likelihood of AC == 0
+     *
+     * @return
+     */
+    @Ensures({"goodLog10Value(result)"})
+    public double getLog10LikelihoodOfAFEq0() {
+        return log10LikelihoodsOfAC[AF0];
+    }
+
+    /**
+     * Get the log10 unnormalized -- across all ACs -- likelihood of AC > 0
+     *
+     * @return
+     */
+    @Ensures({"goodLog10Value(result)"})
+    public double getLog10LikelihoodOfAFGT0() {
+        return log10LikelihoodsOfAC[AF1p];
+    }
+
+    /**
+     * Get the log10 unnormalized -- across all ACs -- prior probability of AC == 0
+     *
+     * @return
+     */
+    @Ensures({"goodLog10Value(result)"})
+    public double getLog10PriorOfAFEq0() {
+        return log10PriorsOfAC[AF0];
+    }
+
+    /**
+     * Get the log10 unnormalized -- across all ACs -- prior probability of AC > 0
+     *
+     * @return
+     */
+    @Ensures({"goodLog10Value(result)"})
+    public double getLog10PriorOfAFGT0() {
+        return log10PriorsOfAC[AF1p];
+    }
+
+    /**
+     * Returns the log10 normalized posteriors given the log10 likelihoods and priors
+     *
+     * @param log10LikelihoodsOfAC
+     * @param log10PriorsOfAC
+     *
+     * @return freshly allocated log10 normalized posteriors vector
+     */
+    @Requires("log10LikelihoodsOfAC.length == log10PriorsOfAC.length")
+    @Ensures("goodLog10ProbVector(result, LOG_10_ARRAY_SIZES, true)")
+    private static double[] computePosteriors(final double[] log10LikelihoodsOfAC, final double[] log10PriorsOfAC) {
+        final double[] log10UnnormalizedPosteriors = new double[log10LikelihoodsOfAC.length];
+        for ( int i = 0; i < log10LikelihoodsOfAC.length; i++ )
+            log10UnnormalizedPosteriors[i] = log10LikelihoodsOfAC[i] + log10PriorsOfAC[i];
+
+        return MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true);
+    }
+
+    /**
+     * Check that the log10 prob vector vector is well formed
+     *
+     * @param vector
+     * @param expectedSize
+     * @param shouldSumToOne
+     *
+     * @return true if vector is well-formed, false otherwise
+     */
+    private static boolean goodLog10ProbVector(final double[] vector, final int expectedSize, final boolean shouldSumToOne) {
+        if ( vector.length != expectedSize ) return false;
+
+        for ( final double pr : vector ) {
+            if ( pr > 0 ) return false; // log10 prob. vector should be < 0
+            if ( Double.isInfinite(pr) || Double.isNaN(pr) ) return false;
         }
-    }
 
-    protected void updateMAPifNeeded(final double log10LofK, final int[] alleleCountsForK) {
-        addToPosteriorsCache(log10LofK);
+        if ( shouldSumToOne || MathUtils.compareDoubles(MathUtils.sumLog10(vector), 0.0, 1e-2) != 0 )
+            return false;
 
-        if ( log10LofK > log10MAP ) {
-            log10MAP = log10LofK;
-            for ( int i = 0; i < alleleCountsForK.length; i++ )
-                alleleCountsOfMAP[i] = alleleCountsForK[i];
-        }
-    }
-
-    private void addToPosteriorsCache(final double log10LofK) {
-        // add to the cache
-        log10PosteriorMatrixValues[currentPosteriorsCacheIndex++] = log10LofK;
-
-        // if we've filled up the cache, then condense by summing up all of the values and placing the sum back into the first cell
-        if ( currentPosteriorsCacheIndex == POSTERIORS_CACHE_SIZE ) {
-            final double temporarySum = MathUtils.log10sumLog10(log10PosteriorMatrixValues, 0, currentPosteriorsCacheIndex);
-            log10PosteriorMatrixValues[0] = temporarySum;
-            currentPosteriorsCacheIndex = 1;
-        }
-    }
-
-    protected void setLog10LikelihoodOfAFzero(final double log10LikelihoodOfAFzero) {
-        this.log10LikelihoodOfAFzero = log10LikelihoodOfAFzero;
-        if ( log10LikelihoodOfAFzero > log10MLE ) {
-            log10MLE = log10LikelihoodOfAFzero;
-            Arrays.fill(alleleCountsOfMLE, 0);
-        }
-    }
-
-    protected void setLog10PosteriorOfAFzero(final double log10PosteriorOfAFzero) {
-        this.log10PosteriorOfAFzero = log10PosteriorOfAFzero;
-        if ( log10PosteriorOfAFzero > log10MAP ) {
-            log10MAP = log10PosteriorOfAFzero;
-            Arrays.fill(alleleCountsOfMAP, 0);
-        }
-    }
-
-    protected void setAllelesUsedInGenotyping(List<Allele> allelesUsedInGenotyping) {
-        if ( allelesUsedInGenotyping == null || allelesUsedInGenotyping.isEmpty() )
-            throw new IllegalArgumentException("allelesUsedInGenotyping cannot be null or empty");
-
-        this.allelesUsedInGenotyping = allelesUsedInGenotyping;
+        return true; // everything is good
     }
 
     private static boolean goodLog10Value(final double result) {
-        return result <= 0.0 || Double.isInfinite(result) || Double.isNaN(result);
-    }
-
-    protected void setAClimits(int[] AClimits) {
-        this.AClimits = AClimits;
+        return result <= 0.0 && ! Double.isInfinite(result) && ! Double.isNaN(result);
     }
 }

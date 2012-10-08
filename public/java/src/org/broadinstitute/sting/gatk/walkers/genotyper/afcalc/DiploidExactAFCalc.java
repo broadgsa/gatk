@@ -42,12 +42,12 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
         super(UAC, N, logger, verboseWriter);
     }
 
-    protected abstract StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResult result);
+    protected abstract StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResultTracker resultTracker);
 
     @Override
     public void computeLog10PNonRef(final VariantContext vc,
                                     final double[] log10AlleleFrequencyPriors,
-                                    final AFCalcResult result) {
+                                    final AFCalcResultTracker resultTracker) {
         final int numAlternateAlleles = vc.getNAlleles() - 1;
         final ArrayList<double[]> genotypeLikelihoods = getGLs(vc.getGenotypes());
         final int numSamples = genotypeLikelihoods.size()-1;
@@ -66,16 +66,16 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
         indexesToACset.put(zeroSet.getACcounts(), zeroSet);
 
         // keep processing while we have AC conformations that need to be calculated
-        final StateTracker stateTracker = makeMaxLikelihood(vc, result);
+        final StateTracker stateTracker = makeMaxLikelihood(vc, resultTracker);
 
         while ( !ACqueue.isEmpty() ) {
-            result.incNEvaluations(); // keep track of the number of evaluations
+            resultTracker.incNEvaluations(); // keep track of the number of evaluations
 
             // compute log10Likelihoods
             final ExactACset set = ACqueue.remove();
 
             if ( stateTracker.withinMaxACs(set.getACcounts()) ) {
-                final double log10LofKs = calculateAlleleCountConformation(set, genotypeLikelihoods, stateTracker, numChr, ACqueue, indexesToACset, log10AlleleFrequencyPriors, result);
+                final double log10LofKs = calculateAlleleCountConformation(set, genotypeLikelihoods, stateTracker, numChr, ACqueue, indexesToACset, log10AlleleFrequencyPriors, resultTracker);
 
                 // adjust max likelihood seen if needed
                 stateTracker.update(log10LofKs, set.getACcounts());
@@ -161,13 +161,13 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
                                                     final LinkedList<ExactACset> ACqueue,
                                                     final HashMap<ExactACcounts, ExactACset> indexesToACset,
                                                     final double[] log10AlleleFrequencyPriors,
-                                                    final AFCalcResult result) {
+                                                    final AFCalcResultTracker resultTracker) {
 
         //if ( DEBUG )
         //    System.out.printf(" *** computing LofK for set=%s%n", set.ACcounts);
 
         // compute the log10Likelihoods
-        computeLofK(set, genotypeLikelihoods, log10AlleleFrequencyPriors, result);
+        computeLofK(set, genotypeLikelihoods, log10AlleleFrequencyPriors, resultTracker);
 
         final double log10LofK = set.getLog10Likelihoods()[set.getLog10Likelihoods().length-1];
 
@@ -250,7 +250,7 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
     private void computeLofK(final ExactACset set,
                              final ArrayList<double[]> genotypeLikelihoods,
                              final double[] log10AlleleFrequencyPriors,
-                             final AFCalcResult result) {
+                             final AFCalcResultTracker resultTracker) {
 
         set.getLog10Likelihoods()[0] = 0.0; // the zero case
         final int totalK = set.getACsum();
@@ -261,8 +261,8 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
                 set.getLog10Likelihoods()[j] = set.getLog10Likelihoods()[j-1] + genotypeLikelihoods.get(j)[HOM_REF_INDEX];
 
             final double log10Lof0 = set.getLog10Likelihoods()[set.getLog10Likelihoods().length-1];
-            result.setLog10LikelihoodOfAFzero(log10Lof0);
-            result.setLog10PosteriorOfAFzero(log10Lof0 + log10AlleleFrequencyPriors[0]);
+            resultTracker.setLog10LikelihoodOfAFzero(log10Lof0);
+            resultTracker.setLog10PosteriorOfAFzero(log10Lof0 + log10AlleleFrequencyPriors[0]);
             return;
         }
 
@@ -284,14 +284,14 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
         double log10LofK = set.getLog10Likelihoods()[set.getLog10Likelihoods().length-1];
 
         // update the MLE if necessary
-        result.updateMLEifNeeded(log10LofK, set.getACcounts().getCounts());
+        resultTracker.updateMLEifNeeded(log10LofK, set.getACcounts().getCounts());
 
         // apply the priors over each alternate allele
         for ( final int ACcount : set.getACcounts().getCounts() ) {
             if ( ACcount > 0 )
                 log10LofK += log10AlleleFrequencyPriors[ACcount];
         }
-        result.updateMAPifNeeded(log10LofK, set.getACcounts().getCounts());
+        resultTracker.updateMAPifNeeded(log10LofK, set.getACcounts().getCounts());
     }
 
     private void pushData(final ExactACset targetSet,

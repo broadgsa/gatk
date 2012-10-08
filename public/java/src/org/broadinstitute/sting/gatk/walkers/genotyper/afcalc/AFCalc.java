@@ -73,6 +73,7 @@ public abstract class AFCalc implements Cloneable {
 
     private SimpleTimer callTimer = new SimpleTimer();
     private PrintStream callReport = null;
+    private final AFCalcResultTracker resultTracker;
 
     protected AFCalc(final UnifiedArgumentCollection UAC, final int nSamples, final Logger logger, final PrintStream verboseWriter) {
         this(nSamples, UAC.MAX_ALTERNATE_ALLELES, UAC.MAX_ALTERNATE_ALLELES_FOR_INDELS, UAC.exactCallsLog, logger, verboseWriter);
@@ -94,16 +95,7 @@ public abstract class AFCalc implements Cloneable {
         this.verboseWriter = verboseWriter;
         if ( exactCallsLog != null )
             initializeOutputFile(exactCallsLog);
-    }
-
-    /**
-     * @see #getLog10PNonRef(org.broadinstitute.sting.utils.variantcontext.VariantContext, double[], AFCalcResult)
-     *
-     * Allocates a new results object.  Useful for testing but slow in practice.
-     */
-    public final AFCalcResult getLog10PNonRef(final VariantContext vc,
-                                                                  final double[] log10AlleleFrequencyPriors) {
-        return getLog10PNonRef(vc, log10AlleleFrequencyPriors, new AFCalcResult(getMaxAltAlleles()));
+        this.resultTracker = new AFCalcResultTracker(Math.max(maxAltAlleles, maxAltAllelesForIndels));
     }
 
     /**
@@ -111,30 +103,27 @@ public abstract class AFCalc implements Cloneable {
      *
      * @param vc the VariantContext holding the alleles and sample information
      * @param log10AlleleFrequencyPriors a prior vector nSamples x 2 in length indicating the Pr(AF = i)
-     * @param result a pre-allocated (for efficiency) object to hold the result of the calculation
      * @return result (for programming convenience)
      */
-    public final AFCalcResult getLog10PNonRef(final VariantContext vc,
-                                                                  final double[] log10AlleleFrequencyPriors,
-                                                                  final AFCalcResult result) {
+    public AFCalcResultTracker getLog10PNonRef(final VariantContext vc, final double[] log10AlleleFrequencyPriors) {
         if ( vc == null ) throw new IllegalArgumentException("VariantContext cannot be null");
         if ( log10AlleleFrequencyPriors == null ) throw new IllegalArgumentException("priors vector cannot be null");
-        if ( result == null ) throw new IllegalArgumentException("Results object cannot be null");
+        if ( resultTracker == null ) throw new IllegalArgumentException("Results object cannot be null");
 
         // reset the result, so we can store our new result there
-        result.reset();
+        resultTracker.reset();
 
         final VariantContext vcWorking = reduceScope(vc);
 
         callTimer.start();
-        computeLog10PNonRef(vcWorking, log10AlleleFrequencyPriors, result);
+        computeLog10PNonRef(vcWorking, log10AlleleFrequencyPriors, resultTracker);
         final long nanoTime = callTimer.getElapsedTimeNano();
 
         if ( callReport != null )
-            printCallInfo(vcWorking, log10AlleleFrequencyPriors, nanoTime, result.getLog10PosteriorOfAFzero());
+            printCallInfo(vcWorking, log10AlleleFrequencyPriors, nanoTime, resultTracker.getLog10PosteriorOfAFzero());
 
-        result.setAllelesUsedInGenotyping(vcWorking.getAlleles());
-        return result;
+        resultTracker.setAllelesUsedInGenotyping(vcWorking.getAlleles());
+        return resultTracker;
     }
 
     // ---------------------------------------------------------------------------
@@ -163,12 +152,12 @@ public abstract class AFCalc implements Cloneable {
      *
      * @param vc                                variant context with alleles and genotype likelihoods
      * @param log10AlleleFrequencyPriors        priors
-     * @param result                            (pre-allocated) object to store results
+     * @param resultTracker                            (pre-allocated) object to store results
      */
     // TODO -- add consistent requires among args
     public abstract void computeLog10PNonRef(final VariantContext vc,
                                              final double[] log10AlleleFrequencyPriors,
-                                             final AFCalcResult result);
+                                             final AFCalcResultTracker resultTracker);
 
     /**
      * Must be overridden by concrete subclasses

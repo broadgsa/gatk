@@ -19,9 +19,9 @@ public class ConstrainedDiploidExactAFCalc extends DiploidExactAFCalc {
         super(UAC, N, logger, verboseWriter);
     }
 
-    protected StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResult result) {
+    protected StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResultTracker resultTracker) {
         final int[] maxACsToConsider = computeMaxACs(vc);
-        result.setAClimits(maxACsToConsider);
+        resultTracker.setAClimits(maxACsToConsider);
         return new StateTracker(maxACsToConsider);
     }
 

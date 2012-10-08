@@ -35,7 +35,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalc;
-import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcResult;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcResultTracker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -81,9 +81,6 @@ public class UnifiedGenotyperEngine {
 
     // the model used for calculating p(non-ref)
     private ThreadLocal<AFCalc> afcm = new ThreadLocal<AFCalc>();
-
-    // the allele frequency likelihoods and posteriors (allocated once as an optimization)
-    private ThreadLocal<AFCalcResult> alleleFrequencyCalculationResult = new ThreadLocal<AFCalcResult>();
 
     // because the allele frequency priors are constant for a given i, we cache the results to avoid having to recompute everything
     private final double[] log10AlleleFrequencyPriorsSNPs;
@@ -355,9 +352,7 @@ public class UnifiedGenotyperEngine {
         // initialize the data for this thread if that hasn't been done yet
         if ( afcm.get() == null ) {
             afcm.set(getAlleleFrequencyCalculationObject(N, logger, verboseWriter, UAC));
-            alleleFrequencyCalculationResult.set(new AFCalcResult(UAC.MAX_ALTERNATE_ALLELES));
         }
-        AFCalcResult AFresult = alleleFrequencyCalculationResult.get();
 
         // estimate our confidence in a reference call and return
         if ( vc.getNSamples() == 0 ) {
@@ -368,7 +363,7 @@ public class UnifiedGenotyperEngine {
                     generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext));
         }
 
-        afcm.get().getLog10PNonRef(vc, getAlleleFrequencyPriors(model), AFresult);
+        AFCalcResultTracker AFresult = afcm.get().getLog10PNonRef(vc, getAlleleFrequencyPriors(model));
 
         // is the most likely frequency conformation AC=0 for all alternate alleles?
         boolean bestGuessIsRef = true;
@@ -474,7 +469,7 @@ public class UnifiedGenotyperEngine {
             
             // the forward lod
             VariantContext vcForward = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.FORWARD, allAllelesToUse, false, model, perReadAlleleLikelihoodMap);
-            afcm.get().getLog10PNonRef(vcForward, getAlleleFrequencyPriors(model), AFresult);
+            AFresult = afcm.get().getLog10PNonRef(vcForward, getAlleleFrequencyPriors(model));
             //double[] normalizedLog10Posteriors = MathUtils.normalizeFromLog10(AFresult.log10AlleleFrequencyPosteriors, true);
             double forwardLog10PofNull = AFresult.getLog10PosteriorOfAFzero();
             double forwardLog10PofF = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
@@ -482,7 +477,7 @@ public class UnifiedGenotyperEngine {
 
             // the reverse lod
             VariantContext vcReverse = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.REVERSE, allAllelesToUse, false, model, perReadAlleleLikelihoodMap);
-            afcm.get().getLog10PNonRef(vcReverse, getAlleleFrequencyPriors(model), AFresult);
+            AFresult = afcm.get().getLog10PNonRef(vcReverse, getAlleleFrequencyPriors(model));
             //normalizedLog10Posteriors = MathUtils.normalizeFromLog10(AFresult.log10AlleleFrequencyPosteriors, true);
             double reverseLog10PofNull = AFresult.getLog10PosteriorOfAFzero();
             double reverseLog10PofF = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
@@ -622,8 +617,6 @@ public class UnifiedGenotyperEngine {
             AFline.append(i + "/" + N + "\t");
             AFline.append(String.format("%.2f\t", ((float)i)/N));
             AFline.append(String.format("%.8f\t", getAlleleFrequencyPriors(model)[i]));
-            AFline.append(String.format("%.8f\t", alleleFrequencyCalculationResult.get().getLog10MLE()));
-            AFline.append(String.format("%.8f\t", alleleFrequencyCalculationResult.get().getLog10MAP()));
             verboseWriter.println(AFline.toString());
         }
 

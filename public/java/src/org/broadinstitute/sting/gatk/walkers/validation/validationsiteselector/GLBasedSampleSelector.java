@@ -23,7 +23,7 @@
  */
 package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
 
-import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcResult;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcResultTracker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.DiploidExactAFCalc;
 import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.ReferenceDiploidExactAFCalc;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -54,10 +54,10 @@ public class GLBasedSampleSelector extends SampleSelector {
             flatPriors = new double[1+2*samples.size()];
             AFCalculator = new ReferenceDiploidExactAFCalc(samples.size(), 4);
         }
-        AFCalcResult result = new AFCalcResult(vc.getAlternateAlleles().size());
-        AFCalculator.computeLog10PNonRef(subContext, flatPriors, result);
+        AFCalcResultTracker resultTracker = new AFCalcResultTracker(vc.getAlternateAlleles().size());
+        AFCalculator.computeLog10PNonRef(subContext, flatPriors, resultTracker);
         // do we want to let this qual go up or down?
-        if ( result.getLog10PosteriorOfAFzero() < referenceLikelihood ) {
+        if ( resultTracker.getLog10PosteriorOfAFzero() < referenceLikelihood ) {
             return true;
         }
 
