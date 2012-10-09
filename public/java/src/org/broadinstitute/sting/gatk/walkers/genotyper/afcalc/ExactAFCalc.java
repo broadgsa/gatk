@@ -71,10 +71,10 @@ abstract class ExactAFCalc extends AFCalc {
      * @param GLs            Input genotype context
      * @return               ArrayList of doubles corresponding to GL vectors
      */
-    protected static ArrayList<double[]> getGLs(GenotypesContext GLs) {
-        ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>(GLs.size());
+    protected static ArrayList<double[]> getGLs(final GenotypesContext GLs, final boolean includeDummy) {
+        ArrayList<double[]> genotypeLikelihoods = new ArrayList<double[]>(GLs.size() + 1);
 
-        genotypeLikelihoods.add(new double[]{0.0,0.0,0.0}); // dummy
+        if ( includeDummy ) genotypeLikelihoods.add(new double[]{0.0,0.0,0.0}); // dummy
         for ( Genotype sample : GLs.iterateInSampleNameOrder() ) {
             if ( sample.hasLikelihoods() ) {
                 double[] gls = sample.getLikelihoods().getAsVector();

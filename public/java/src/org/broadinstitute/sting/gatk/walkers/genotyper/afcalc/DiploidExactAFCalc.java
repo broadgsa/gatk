@@ -45,11 +45,10 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
     protected abstract StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResultTracker resultTracker);
 
     @Override
-    protected void computeLog10PNonRef(final VariantContext vc,
-                                       final double[] log10AlleleFrequencyPriors,
-                                       final AFCalcResultTracker resultTracker) {
+    protected AFCalcResult computeLog10PNonRef(final VariantContext vc,
+                                               final double[] log10AlleleFrequencyPriors) {
         final int numAlternateAlleles = vc.getNAlleles() - 1;
-        final ArrayList<double[]> genotypeLikelihoods = getGLs(vc.getGenotypes());
+        final ArrayList<double[]> genotypeLikelihoods = getGLs(vc.getGenotypes(), true);
         final int numSamples = genotypeLikelihoods.size()-1;
         final int numChr = 2*numSamples;
 
@@ -66,16 +65,16 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
         indexesToACset.put(zeroSet.getACcounts(), zeroSet);
 
         // keep processing while we have AC conformations that need to be calculated
-        final StateTracker stateTracker = makeMaxLikelihood(vc, resultTracker);
+        final StateTracker stateTracker = makeMaxLikelihood(vc, getResultTracker());
 
         while ( !ACqueue.isEmpty() ) {
-            resultTracker.incNEvaluations(); // keep track of the number of evaluations
+            getResultTracker().incNEvaluations(); // keep track of the number of evaluations
 
             // compute log10Likelihoods
             final ExactACset set = ACqueue.remove();
 
             if ( stateTracker.withinMaxACs(set.getACcounts()) ) {
-                final double log10LofKs = calculateAlleleCountConformation(set, genotypeLikelihoods, stateTracker, numChr, ACqueue, indexesToACset, log10AlleleFrequencyPriors, resultTracker);
+                final double log10LofKs = calculateAlleleCountConformation(set, genotypeLikelihoods, stateTracker, numChr, ACqueue, indexesToACset, log10AlleleFrequencyPriors, getResultTracker());
 
                 // adjust max likelihood seen if needed
                 stateTracker.update(log10LofKs, set.getACcounts());
@@ -86,6 +85,8 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
                 //    System.out.printf(" *** removing used set=%s%n", set.ACcounts);
             }
         }
+
+        return resultFromTracker(vc, log10AlleleFrequencyPriors);
     }
 
     @Override
@@ -116,7 +117,7 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
             likelihoodSums[i] = new LikelihoodSum(vc.getAlternateAllele(i));
 
         // based on the GLs, find the alternate alleles with the most probability; sum the GLs for the most likely genotype
-        final ArrayList<double[]> GLs = getGLs(vc.getGenotypes());
+        final ArrayList<double[]> GLs = getGLs(vc.getGenotypes(), true);
         for ( final double[] likelihoods : GLs ) {
             final int PLindexOfBestGL = MathUtils.maxElementIndex(likelihoods);
             if ( PLindexOfBestGL != PL_INDEX_OF_HOM_REF ) {

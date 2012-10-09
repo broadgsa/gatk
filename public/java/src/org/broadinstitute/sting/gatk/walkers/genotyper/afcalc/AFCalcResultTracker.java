@@ -51,10 +51,10 @@ class AFCalcResultTracker {
     private final int[] alleleCountsOfMAP;
 
     // The posteriors seen, not including that of AF=0
-    private static final int POSTERIORS_CACHE_SIZE = 5000;
-    private final double[] log10PosteriorMatrixValues = new double[POSTERIORS_CACHE_SIZE];
-    private int currentPosteriorsCacheIndex = 0;
-    protected Double log10PosteriorMatrixSum = null;
+    private static final int LIKELIHOODS_CACHE_SIZE = 5000;
+    private final double[] log10LikelihoodsMatrixValues = new double[LIKELIHOODS_CACHE_SIZE];
+    private int currentLikelihoodsCacheIndex = 0;
+    protected Double log10LikelihoodsMatrixSum = null;
 
     // These variables are intended to contain the likelihood/posterior probability for the site's being monomorphic (i.e. AF=0 for all alternate alleles)
     private double log10LikelihoodOfAFzero;
@@ -110,15 +110,15 @@ class AFCalcResultTracker {
     }
 
     /**
-     * TODO -- eric what is this supposed to return?  my unit tests don't do what I think they should
+     * Returns the likelihoods summed across all AC values for AC > 0
      *
      * @return
      */
-    public double getLog10PosteriorsMatrixSumWithoutAFzero() {
-        if ( log10PosteriorMatrixSum == null ) {
-            log10PosteriorMatrixSum = MathUtils.log10sumLog10(log10PosteriorMatrixValues, 0, currentPosteriorsCacheIndex);
+    public double getLog10LikelihoodOfAFNotZero() {
+        if ( log10LikelihoodsMatrixSum == null ) {
+            log10LikelihoodsMatrixSum = MathUtils.log10sumLog10(log10LikelihoodsMatrixValues, 0, currentLikelihoodsCacheIndex);
         }
-        return log10PosteriorMatrixSum;
+        return log10LikelihoodsMatrixSum;
     }
 
     /**
@@ -128,10 +128,6 @@ class AFCalcResultTracker {
      */
     public double getLog10LikelihoodOfAFzero() {
         return log10LikelihoodOfAFzero;
-    }
-
-    public double getLog10LikelihoodOfAFNotZero() {
-        return getLog10PosteriorsMatrixSumWithoutAFzero(); // TODO -- INCORRECT TEMPORARY CALCULATION
     }
 
     /**
@@ -157,7 +153,8 @@ class AFCalcResultTracker {
             log10pNonRefByAllele.put(allele, log10PNonRef);
         }
 
-        return new AFCalcResult(subACOfMLE, nEvaluations, allelesUsedInGenotyping, log10Likelihoods, log10Priors, log10pNonRefByAllele);
+        return new AFCalcResult(subACOfMLE, nEvaluations, allelesUsedInGenotyping,
+                MathUtils.normalizeFromLog10(log10Likelihoods, true, true), log10Priors, log10pNonRefByAllele);
     }
 
     // --------------------------------------------------------------------------------
@@ -177,8 +174,8 @@ class AFCalcResultTracker {
             alleleCountsOfMLE[i] = 0;
             alleleCountsOfMAP[i] = 0;
         }
-        currentPosteriorsCacheIndex = 0;
-        log10PosteriorMatrixSum = null;
+        currentLikelihoodsCacheIndex = 0;
+        log10LikelihoodsMatrixSum = null;
         allelesUsedInGenotyping = null;
         nEvaluations = 0;
     }
@@ -191,6 +188,8 @@ class AFCalcResultTracker {
     }
 
     protected void updateMLEifNeeded(final double log10LofK, final int[] alleleCountsForK) {
+        addToLikelihoodsCache(log10LofK);
+
         if ( log10LofK > log10MLE ) {
             log10MLE = log10LofK;
             for ( int i = 0; i < alleleCountsForK.length; i++ )
@@ -199,8 +198,6 @@ class AFCalcResultTracker {
     }
 
     protected void updateMAPifNeeded(final double log10LofK, final int[] alleleCountsForK) {
-        addToPosteriorsCache(log10LofK);
-
         if ( log10LofK > log10MAP ) {
             log10MAP = log10LofK;
             for ( int i = 0; i < alleleCountsForK.length; i++ )
@@ -208,15 +205,15 @@ class AFCalcResultTracker {
         }
     }
 
-    private void addToPosteriorsCache(final double log10LofK) {
+    private void addToLikelihoodsCache(final double log10LofK) {
         // add to the cache
-        log10PosteriorMatrixValues[currentPosteriorsCacheIndex++] = log10LofK;
+        log10LikelihoodsMatrixValues[currentLikelihoodsCacheIndex++] = log10LofK;
 
         // if we've filled up the cache, then condense by summing up all of the values and placing the sum back into the first cell
-        if ( currentPosteriorsCacheIndex == POSTERIORS_CACHE_SIZE ) {
-            final double temporarySum = MathUtils.log10sumLog10(log10PosteriorMatrixValues, 0, currentPosteriorsCacheIndex);
-            log10PosteriorMatrixValues[0] = temporarySum;
-            currentPosteriorsCacheIndex = 1;
+        if ( currentLikelihoodsCacheIndex == LIKELIHOODS_CACHE_SIZE) {
+            final double temporarySum = MathUtils.log10sumLog10(log10LikelihoodsMatrixValues, 0, currentLikelihoodsCacheIndex);
+            log10LikelihoodsMatrixValues[0] = temporarySum;
+            currentLikelihoodsCacheIndex = 1;
         }
     }
 

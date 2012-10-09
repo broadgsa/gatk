@@ -116,12 +116,17 @@ public abstract class AFCalc implements Cloneable {
         final VariantContext vcWorking = reduceScope(vc);
 
         callTimer.start();
-        computeLog10PNonRef(vcWorking, log10AlleleFrequencyPriors, resultTracker);
+        final AFCalcResult result = computeLog10PNonRef(vcWorking, log10AlleleFrequencyPriors);
         final long nanoTime = callTimer.getElapsedTimeNano();
 
         if ( callReport != null )
             printCallInfo(vcWorking, log10AlleleFrequencyPriors, nanoTime, resultTracker.getLog10PosteriorOfAFzero());
 
+        return result;
+    }
+
+    @Deprecated
+    protected AFCalcResult resultFromTracker(final VariantContext vcWorking, final double[] log10AlleleFrequencyPriors) {
         resultTracker.setAllelesUsedInGenotyping(vcWorking.getAlleles());
         return resultTracker.toAFCalcResult(log10AlleleFrequencyPriors);
     }
@@ -152,12 +157,11 @@ public abstract class AFCalc implements Cloneable {
      *
      * @param vc                                variant context with alleles and genotype likelihoods
      * @param log10AlleleFrequencyPriors        priors
-     * @param resultTracker                            (pre-allocated) object to store results
+     * @return a AFCalcResult object describing the results of this calculation
      */
     // TODO -- add consistent requires among args
-    protected abstract void computeLog10PNonRef(final VariantContext vc,
-                                                final double[] log10AlleleFrequencyPriors,
-                                                final AFCalcResultTracker resultTracker);
+    protected abstract AFCalcResult computeLog10PNonRef(final VariantContext vc,
+                                                        final double[] log10AlleleFrequencyPriors);
 
     /**
      * Must be overridden by concrete subclasses
@@ -231,4 +235,7 @@ public abstract class AFCalc implements Cloneable {
         callReport.println(Utils.join("\t", Arrays.asList(loc, variable, key, value)));
     }
 
+    public AFCalcResultTracker getResultTracker() {
+        return resultTracker;
+    }
 }
