@@ -1340,10 +1340,7 @@ public class VariantContextUtils {
 
     public static VariantContext reverseTrimAlleles( final VariantContext inputVC ) {
 
-        // TODO - this function doesn't work with mixed records or records that started as mixed and then became non-mixed
-
         // see whether we need to trim common reference base from all alleles
-
         final int trimExtent = computeReverseClipping(inputVC.getAlleles(), inputVC.getReference().getDisplayString().getBytes(), 0, false);
         if ( trimExtent <= 0 || inputVC.getAlleles().size() <= 1 )
             return inputVC;
