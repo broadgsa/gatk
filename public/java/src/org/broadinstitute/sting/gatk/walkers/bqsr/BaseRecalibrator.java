@@ -230,7 +230,7 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
                 final int offset = p.getOffset();
 
                 // This read has been marked to be skipped or base is low quality (we don't recalibrate low quality bases)
-                if (readHasBeenSkipped(read) || isLowQualityBase(p))
+                if (readHasBeenSkipped(read) || p.isInsertionAtBeginningOfRead() || isLowQualityBase(p) )
                     continue;
 
                 if (readNotSeen(read)) {
