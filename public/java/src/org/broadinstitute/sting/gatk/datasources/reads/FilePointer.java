@@ -58,10 +58,20 @@ public class FilePointer {
      */
     private boolean isMonolithic = false;
 
+    /**
+     * Index of the contig covered by this FilePointer. Only meaningful for non-monolithic, mapped FilePointers
+     */
+    private Integer contigIndex = null;
+
+
     public FilePointer( List<GenomeLoc> locations ) {
         this.locations.addAll(locations);
         this.isRegionUnmapped = checkUnmappedStatus();
-        validateLocations();
+
+        validateAllLocations();
+        if ( locations.size() > 0 ) {
+            contigIndex = locations.get(0).getContigIndex();
+        }
     }
 
     public FilePointer( final GenomeLoc... locations ) {
@@ -88,7 +98,7 @@ public class FilePointer {
         return foundUnmapped;
     }
 
-    private void validateLocations() {
+    private void validateAllLocations() {
         // Unmapped and monolithic FilePointers are exempted from the one-contig-only restriction
         if ( isRegionUnmapped || isMonolithic ) {
             return;
@@ -98,10 +108,19 @@ public class FilePointer {
 
         for ( GenomeLoc location : locations ) {
             if ( previousContigIndex != null && previousContigIndex != location.getContigIndex() ) {
-                throw new ReviewedStingException("File pointers must contain intervals from at most one contig");
+                throw new ReviewedStingException("Non-monolithic file pointers must contain intervals from at most one contig");
             }
 
             previousContigIndex = location.getContigIndex();
+        }
+    }
+
+    private void validateLocation( GenomeLoc location ) {
+        if ( isRegionUnmapped != GenomeLoc.isUnmapped(location) ) {
+            throw new ReviewedStingException("BUG: File pointers cannot be mixed mapped/unmapped.");
+        }
+        if ( ! isRegionUnmapped && ! isMonolithic && contigIndex != null && contigIndex != location.getContigIndex() ) {
+            throw new ReviewedStingException("Non-monolithic file pointers must contain intervals from at most one contig");
         }
     }
 
@@ -183,15 +202,12 @@ public class FilePointer {
     }
 
     public void addLocation(final GenomeLoc location) {
-        this.locations.add(location);
-        checkUnmappedStatus();
-        validateLocations();
-    }
+        validateLocation(location);
 
-    public void addLocations( final List<GenomeLoc> locations ) {
-        this.locations.addAll(locations);
-        checkUnmappedStatus();
-        validateLocations();
+        this.locations.add(location);
+        if ( contigIndex == null ) {
+            contigIndex = location.getContigIndex();
+        }
     }
 
     public void addFileSpans(final SAMReaderID id, final SAMFileSpan fileSpan) {
