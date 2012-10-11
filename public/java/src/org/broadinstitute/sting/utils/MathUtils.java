@@ -58,6 +58,12 @@ public class MathUtils {
     private static final int MAXN = 50000;
     private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
 
+    /**
+     * The smallest log10 value we'll emit from normalizeFromLog10 and other functions
+     * where the real-space value is 0.0.
+     */
+    public final static double LOG10_P_OF_ZERO = -10000;
+
     static {
         log10Cache = new double[LOG10_CACHE_SIZE];
         log10FactorialCache = new double[LOG10_CACHE_SIZE];
@@ -571,12 +577,6 @@ public class MathUtils {
     public static double[] normalizeFromLog10(double[] array, boolean takeLog10OfOutput) {
         return normalizeFromLog10(array, takeLog10OfOutput, false);
     }
-
-    /**
-     * The smallest log10 value we'll emit from normalizeFromLog10 and other functions
-     * where the real-space value is 0.0.
-     */
-    final static double LOG10_P_OF_ZERO = -10000;
 
     /**
      * See #normalizeFromLog10 but with the additional option to use an approximation that keeps the calculation always in log-space

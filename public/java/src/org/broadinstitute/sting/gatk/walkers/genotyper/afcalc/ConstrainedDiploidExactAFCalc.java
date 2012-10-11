@@ -2,22 +2,15 @@ package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.PrintStream;
-
+@Deprecated
 public class ConstrainedDiploidExactAFCalc extends DiploidExactAFCalc {
-    public ConstrainedDiploidExactAFCalc(final int nSamples, final int maxAltAlleles) {
-        super(nSamples, maxAltAlleles);
-    }
-
-    public ConstrainedDiploidExactAFCalc(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
-        super(UAC, N, logger, verboseWriter);
+    protected ConstrainedDiploidExactAFCalc(int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, final int ploidy) {
+        super(nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy);
     }
 
     protected StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResultTracker resultTracker) {

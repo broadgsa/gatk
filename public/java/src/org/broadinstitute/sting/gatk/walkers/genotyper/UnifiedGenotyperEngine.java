@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalc;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcFactory;
 import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcResult;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
@@ -351,7 +352,7 @@ public class UnifiedGenotyperEngine {
 
         // initialize the data for this thread if that hasn't been done yet
         if ( afcm.get() == null ) {
-            afcm.set(getAlleleFrequencyCalculationObject(N, logger, verboseWriter, UAC));
+            afcm.set(AFCalcFactory.createAFCalc(UAC, N, logger));
         }
 
         // estimate our confidence in a reference call and return
@@ -722,36 +723,6 @@ public class UnifiedGenotyperEngine {
          }
 
         return glcm;
-    }
-
-    private static AFCalc getAlleleFrequencyCalculationObject(int N, Logger logger, PrintStream verboseWriter, UnifiedArgumentCollection UAC) {
-
-        List<Class<? extends AFCalc>> afClasses = new PluginManager<AFCalc>(AFCalc.class).getPlugins();
-
-        // user-specified name
-        String afModelName = UAC.AFmodel.implementationName;
-
-        if (!afModelName.contains(GPSTRING) && UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY)
-            afModelName = GPSTRING + afModelName;
-        else
-            afModelName = "Diploid" + afModelName;
-
-        for (int i = 0; i < afClasses.size(); i++) {
-            Class<? extends AFCalc> afClass = afClasses.get(i);
-            String key = afClass.getSimpleName().replace("AFCalculationModel","").toUpperCase();
-            if (afModelName.equalsIgnoreCase(key)) {
-                try {
-                    Object args[] = new Object[]{UAC,N,logger,verboseWriter};
-                    Constructor c = afClass.getDeclaredConstructor(UnifiedArgumentCollection.class, int.class, Logger.class, PrintStream.class);
-
-                    return (AFCalc)c.newInstance(args);
-                }
-                catch (Exception e) {
-                    throw new IllegalArgumentException("Unexpected AFCalc " + UAC.AFmodel);
-                }
-            }
-        }
-        throw new IllegalArgumentException("Unexpected AFCalc " + UAC.AFmodel);
     }
 
     public static VariantContext getVCFromAllelesRod(RefMetaDataTracker tracker, ReferenceContext ref, GenomeLoc loc, boolean requireSNP, Logger logger, final RodBinding<VariantContext> allelesBinding) {

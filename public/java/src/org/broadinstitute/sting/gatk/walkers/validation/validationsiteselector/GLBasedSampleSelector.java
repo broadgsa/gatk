@@ -23,9 +23,9 @@
  */
 package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
 
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalc;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcFactory;
 import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcResult;
-import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.DiploidExactAFCalc;
-import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.ReferenceDiploidExactAFCalc;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.TreeSet;
@@ -34,7 +34,7 @@ import java.util.TreeSet;
 public class GLBasedSampleSelector extends SampleSelector {
     double[] flatPriors = null;
     final double referenceLikelihood;
-    DiploidExactAFCalc AFCalculator;
+    AFCalc AFCalculator;
 
     public GLBasedSampleSelector(TreeSet<String> sm, double refLik) {
         super(sm);
@@ -52,7 +52,7 @@ public class GLBasedSampleSelector extends SampleSelector {
         // do we want to apply a prior? maybe user-spec?
         if ( flatPriors == null ) {
             flatPriors = new double[1+2*samples.size()];
-            AFCalculator = new ReferenceDiploidExactAFCalc(samples.size(), 4);
+            AFCalculator = AFCalcFactory.createAFCalc(samples.size(), 4, 4, 2);
         }
         final AFCalcResult result = AFCalculator.getLog10PNonRef(subContext, flatPriors);
         // do we want to let this qual go up or down?

@@ -25,21 +25,15 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 
-import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
-import java.io.PrintStream;
 import java.util.*;
 
 public abstract class DiploidExactAFCalc extends ExactAFCalc {
-    public DiploidExactAFCalc(final int nSamples, final int maxAltAlleles) {
-        super(nSamples, maxAltAlleles, maxAltAlleles, null, null, null);
-    }
-
-    public DiploidExactAFCalc(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
-        super(UAC, N, logger, verboseWriter);
+    public DiploidExactAFCalc(final int nSamples, final int maxAltAlleles, final int maxAltAllelesForIndels, final int ploidy) {
+        super(nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy);
+        if ( ploidy != 2 ) throw new IllegalArgumentException("ploidy must be two for DiploidExactAFCalc and subclasses but saw " + ploidy);
     }
 
     protected abstract StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResultTracker resultTracker);
@@ -91,7 +85,7 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
 
     @Override
     protected VariantContext reduceScope(final VariantContext vc) {
-        final int myMaxAltAllelesToGenotype = vc.getType().equals(VariantContext.Type.INDEL) ? MAX_ALTERNATE_ALLELES_FOR_INDELS : MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
+        final int myMaxAltAllelesToGenotype = vc.getType().equals(VariantContext.Type.INDEL) ? maxAlternateAllelesForIndels : maxAlternateAllelesToGenotype;
 
         // don't try to genotype too many alternate alleles
         if ( vc.getAlternateAlleles().size() > myMaxAltAllelesToGenotype ) {

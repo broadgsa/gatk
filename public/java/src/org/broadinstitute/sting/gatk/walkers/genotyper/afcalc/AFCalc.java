@@ -28,7 +28,6 @@ package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.utils.SimpleTimer;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -51,51 +50,34 @@ import java.util.List;
 public abstract class AFCalc implements Cloneable {
     private final static Logger defaultLogger = Logger.getLogger(AFCalc.class);
 
-    public enum Model {
-        /** The default model with the best performance in all cases */
-        EXACT("ExactAFCalc");
+    protected final int nSamples;
+    protected final int maxAlternateAllelesToGenotype;
+    protected final int maxAlternateAllelesForIndels;
 
-        public final String implementationName;
-
-        private Model(String implementationName) {
-            this.implementationName = implementationName;
-        }
-    }
-
-    protected int nSamples;
-    protected int MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
-    protected int MAX_ALTERNATE_ALLELES_FOR_INDELS;
-
-    protected Logger logger;
-    protected PrintStream verboseWriter;
-
-    protected static final double VALUE_NOT_CALCULATED = Double.NEGATIVE_INFINITY;
+    protected Logger logger = defaultLogger;
 
     private SimpleTimer callTimer = new SimpleTimer();
     private PrintStream callReport = null;
     private final AFCalcResultTracker resultTracker;
 
-    protected AFCalc(final UnifiedArgumentCollection UAC, final int nSamples, final Logger logger, final PrintStream verboseWriter) {
-        this(nSamples, UAC.MAX_ALTERNATE_ALLELES, UAC.MAX_ALTERNATE_ALLELES_FOR_INDELS, UAC.exactCallsLog, logger, verboseWriter);
-    }
-
-    protected AFCalc(final int nSamples,
-                     final int maxAltAlleles,
-                     final int maxAltAllelesForIndels,
-                     final File exactCallsLog,
-                     final Logger logger,
-                     final PrintStream verboseWriter) {
+    protected AFCalc(final int nSamples, final int maxAltAlleles, final int maxAltAllelesForIndels, final int ploidy) {
         if ( nSamples < 0 ) throw new IllegalArgumentException("nSamples must be greater than zero " + nSamples);
         if ( maxAltAlleles < 1 ) throw new IllegalArgumentException("maxAltAlleles must be greater than zero " + maxAltAlleles);
+        if ( maxAltAllelesForIndels < 1 ) throw new IllegalArgumentException("maxAltAllelesForIndels must be greater than zero " + maxAltAllelesForIndels);
+        if ( ploidy < 1 ) throw new IllegalArgumentException("ploidy must be > 0 but got " + ploidy);
 
         this.nSamples = nSamples;
-        this.MAX_ALTERNATE_ALLELES_TO_GENOTYPE = maxAltAlleles;
-        this.MAX_ALTERNATE_ALLELES_FOR_INDELS = maxAltAllelesForIndels;
-        this.logger = logger == null ? defaultLogger : logger;
-        this.verboseWriter = verboseWriter;
-        if ( exactCallsLog != null )
-            initializeOutputFile(exactCallsLog);
+        this.maxAlternateAllelesToGenotype = maxAltAlleles;
+        this.maxAlternateAllelesForIndels = maxAltAllelesForIndels;
         this.resultTracker = new AFCalcResultTracker(Math.max(maxAltAlleles, maxAltAllelesForIndels));
+    }
+
+    public void enableProcessLog(final File exactCallsLog) {
+        initializeOutputFile(exactCallsLog);
+    }
+
+    public void setLogger(Logger logger) {
+        this.logger = logger;
     }
 
     /**
@@ -184,7 +166,7 @@ public abstract class AFCalc implements Cloneable {
     // ---------------------------------------------------------------------------
 
     public int getMaxAltAlleles() {
-        return Math.max(MAX_ALTERNATE_ALLELES_TO_GENOTYPE, MAX_ALTERNATE_ALLELES_FOR_INDELS);
+        return Math.max(maxAlternateAllelesToGenotype, maxAlternateAllelesForIndels);
     }
 
 

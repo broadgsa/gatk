@@ -44,6 +44,8 @@ import java.util.Map;
  * TODO -- WHAT IS THE CONTRACT ON MAP AC AND P NON REF?
  */
 class AFCalcResultTracker {
+    protected static final double VALUE_NOT_CALCULATED = Double.NEGATIVE_INFINITY;
+
     // These variables are intended to contain the MLE and MAP (and their corresponding allele counts) of the site over all alternate alleles
     protected double log10MLE;
     protected double log10MAP;
@@ -116,7 +118,10 @@ class AFCalcResultTracker {
      */
     public double getLog10LikelihoodOfAFNotZero() {
         if ( log10LikelihoodsMatrixSum == null ) {
-            log10LikelihoodsMatrixSum = MathUtils.log10sumLog10(log10LikelihoodsMatrixValues, 0, currentLikelihoodsCacheIndex);
+            if ( currentLikelihoodsCacheIndex == 0 ) // there's nothing to sum up, so make the sum equal to the smallest thing we have
+                log10LikelihoodsMatrixSum = MathUtils.LOG10_P_OF_ZERO;
+            else
+                log10LikelihoodsMatrixSum = MathUtils.log10sumLog10(log10LikelihoodsMatrixValues, 0, currentLikelihoodsCacheIndex);
         }
         return log10LikelihoodsMatrixSum;
     }
@@ -172,7 +177,7 @@ class AFCalcResultTracker {
      * Resetting of the data is done by the calculation model itself, so shouldn't be done by callers any longer
      */
     protected void reset() {
-        log10MLE = log10MAP = log10LikelihoodOfAFzero = log10PosteriorOfAFzero = AFCalc.VALUE_NOT_CALCULATED;
+        log10MLE = log10MAP = log10LikelihoodOfAFzero = log10PosteriorOfAFzero = VALUE_NOT_CALCULATED;
         for ( int i = 0; i < alleleCountsOfMLE.length; i++ ) {
             alleleCountsOfMLE[i] = 0;
             alleleCountsOfMAP[i] = 0;

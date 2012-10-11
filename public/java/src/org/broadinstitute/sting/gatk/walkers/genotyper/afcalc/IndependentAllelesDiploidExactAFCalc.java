@@ -27,26 +27,18 @@ package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
-import java.io.PrintStream;
 import java.util.*;
 
 public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
     private final static List<Allele> BIALLELIC_NOCALL = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
     final ReferenceDiploidExactAFCalc refModel;
 
-    public IndependentAllelesDiploidExactAFCalc(final int nSamples, final int maxAltAlleles) {
-        super(nSamples, maxAltAlleles);
-        refModel = new ReferenceDiploidExactAFCalc(nSamples, 1);
-    }
-
-    public IndependentAllelesDiploidExactAFCalc(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
-        super(UAC, N, logger, verboseWriter);
-        refModel = new ReferenceDiploidExactAFCalc(nSamples, 1);
+    protected IndependentAllelesDiploidExactAFCalc(int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, final int ploidy) {
+        super(nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy);
+        refModel = new ReferenceDiploidExactAFCalc(nSamples, 1, 1, ploidy);
     }
 
     @Override
@@ -160,9 +152,7 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
             final Allele altAllele = vc.getAlternateAllele(altI);
             final List<Allele> biallelic = Arrays.asList(vc.getReference(), altAllele);
             vcs.add(biallelicCombinedGLs(vc, biallelic, afZeroAlleles, altI + 1));
-
-            // TODO -- WE NEED TO TRUNCATE THE ALLELES TO COMPUTE THE TRUE POSTERIOR BUT MUST INCLUDE IT TO GET THE TRUE MLE
-//            afZeroAlleles.add(altAllele);
+            afZeroAlleles.add(altAllele);
         }
 
         return vcs;

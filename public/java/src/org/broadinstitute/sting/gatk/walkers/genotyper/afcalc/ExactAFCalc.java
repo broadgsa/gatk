@@ -25,16 +25,12 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 
-import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
-import java.io.File;
-import java.io.PrintStream;
 import java.util.ArrayList;
 
 /**
@@ -43,12 +39,8 @@ import java.util.ArrayList;
 abstract class ExactAFCalc extends AFCalc {
     protected static final int HOM_REF_INDEX = 0;  // AA likelihoods are always first
 
-    protected ExactAFCalc(final UnifiedArgumentCollection UAC, final int nSamples, final Logger logger, final PrintStream verboseWriter) {
-        super(UAC, nSamples, logger, verboseWriter);
-    }
-
-    protected ExactAFCalc(final int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, File exactCallsLog, Logger logger, PrintStream verboseWriter) {
-        super(nSamples, maxAltAlleles, maxAltAllelesForIndels, exactCallsLog, logger, verboseWriter);
+    protected ExactAFCalc(final int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, final int ploidy) {
+        super(nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy);
     }
 
     /**

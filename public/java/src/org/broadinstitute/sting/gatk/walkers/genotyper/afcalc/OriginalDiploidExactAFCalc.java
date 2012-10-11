@@ -1,12 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 
-import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
@@ -15,12 +12,8 @@ import java.util.Map;
  * Original bi-allelic ~O(N) implementation.  Kept here for posterity and reference
  */
 public class OriginalDiploidExactAFCalc extends DiploidExactAFCalc {
-    public OriginalDiploidExactAFCalc(final int nSamples, final int maxAltAlleles) {
-        super(nSamples, maxAltAlleles);
-    }
-
-    public OriginalDiploidExactAFCalc(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
-        super(UAC, N, logger, verboseWriter);
+    protected OriginalDiploidExactAFCalc(int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, final int ploidy) {
+        super(nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy);
     }
 
     protected StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResultTracker resultTracker) {
