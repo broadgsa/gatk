@@ -1517,15 +1517,32 @@ public class VariantContext implements Feature { // to enable tribble integratio
         return best;
     }
 
+    /**
+     * Lookup the index of allele in this variant context
+     *
+     * @param allele the allele whose index we want to get
+     * @return the index of the allele into getAlleles(), or -1 if it cannot be found
+     */
+    public int getAlleleIndex(final Allele allele) {
+        return getAlleles().indexOf(allele);
+    }
+
+    /**
+     * Return the allele index #getAlleleIndex for each allele in alleles
+     *
+     * @param alleles the alleles we want to look up
+     * @return a list of indices for each allele, in order
+     */
+    public List<Integer> getAlleleIndices(final Collection<Allele> alleles) {
+        final List<Integer> indices = new LinkedList<Integer>();
+        for ( final Allele allele : alleles )
+            indices.add(getAlleleIndex(allele));
+        return indices;
+    }
+
     public int[] getGLIndecesOfAlternateAllele(Allele targetAllele) {
-
-        int index = 1;
-        for ( Allele allele : getAlternateAlleles() ) {
-            if ( allele.equals(targetAllele) )
-                break;
-            index++;
-        }
-
+        final int index = getAlleleIndex(targetAllele);
+        if ( index == -1 ) throw new IllegalArgumentException("Allele " + targetAllele + " not in this VariantContex " + this);
         return GenotypeLikelihoods.getPLIndecesOfAlleles(0, index);
     }
 }

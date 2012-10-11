@@ -121,6 +121,10 @@ class AFCalcResultTracker {
         return log10LikelihoodsMatrixSum;
     }
 
+    public double getLog10LikelihoodOfAFNotZero(final boolean capAt0) {
+        return Math.min(getLog10LikelihoodOfAFNotZero(), capAt0 ? 0.0 : Double.POSITIVE_INFINITY);
+    }
+
     /**
      * TODO -- eric what is this supposed to return?  my unit tests don't do what I think they should
      *
@@ -141,7 +145,7 @@ class AFCalcResultTracker {
 
     protected AFCalcResult toAFCalcResult(final double[] log10PriorsByAC) {
         final int [] subACOfMLE = Arrays.copyOf(alleleCountsOfMLE, allelesUsedInGenotyping.size() - 1);
-        final double[] log10Likelihoods = new double[]{getLog10LikelihoodOfAFzero(), getLog10LikelihoodOfAFNotZero()};
+        final double[] log10Likelihoods = new double[]{getLog10LikelihoodOfAFzero(), getLog10LikelihoodOfAFNotZero(true)};
         final double[] log10Priors = new double[]{log10PriorsByAC[0], MathUtils.log10sumLog10(log10PriorsByAC, 1)};
 
         // TODO -- replace with more meaningful computation
@@ -153,8 +157,7 @@ class AFCalcResultTracker {
             log10pNonRefByAllele.put(allele, log10PNonRef);
         }
 
-        return new AFCalcResult(subACOfMLE, nEvaluations, allelesUsedInGenotyping,
-                MathUtils.normalizeFromLog10(log10Likelihoods, true, true), log10Priors, log10pNonRefByAllele);
+        return new AFCalcResult(subACOfMLE, nEvaluations, allelesUsedInGenotyping, log10Likelihoods, log10Priors, log10pNonRefByAllele);
     }
 
     // --------------------------------------------------------------------------------
@@ -178,6 +181,7 @@ class AFCalcResultTracker {
         log10LikelihoodsMatrixSum = null;
         allelesUsedInGenotyping = null;
         nEvaluations = 0;
+        Arrays.fill(log10LikelihoodsMatrixValues, Double.POSITIVE_INFINITY);
     }
 
     /**
@@ -212,6 +216,7 @@ class AFCalcResultTracker {
         // if we've filled up the cache, then condense by summing up all of the values and placing the sum back into the first cell
         if ( currentLikelihoodsCacheIndex == LIKELIHOODS_CACHE_SIZE) {
             final double temporarySum = MathUtils.log10sumLog10(log10LikelihoodsMatrixValues, 0, currentLikelihoodsCacheIndex);
+            Arrays.fill(log10LikelihoodsMatrixValues, Double.POSITIVE_INFINITY);
             log10LikelihoodsMatrixValues[0] = temporarySum;
             currentLikelihoodsCacheIndex = 1;
         }

@@ -5,7 +5,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
  * allowing us to abort the search before we visit the entire matrix of AC x samples
  */
 final class StateTracker {
-    private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
+    public final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
 
     final private int[] maxACsToConsider;
 

@@ -594,8 +594,10 @@ public class MathUtils {
 
         // we may decide to just normalize in log space without converting to linear space
         if (keepInLogSpace) {
-            for (int i = 0; i < array.length; i++)
+            for (int i = 0; i < array.length; i++) {
                 array[i] -= maxValue;
+                array[i] = Math.max(array[i], LOG10_P_OF_ZERO);
+            }
             return array;
         }
 
