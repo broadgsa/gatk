@@ -98,7 +98,7 @@ public class AFCalcFactory {
                                       final Logger logger) {
         final int maxAltAlleles = Math.max(UAC.MAX_ALTERNATE_ALLELES, UAC.MAX_ALTERNATE_ALLELES_FOR_INDELS);
         if ( ! UAC.AFmodel.usableForParams(UAC.samplePloidy, maxAltAlleles) ) {
-            logger.warn("Requested ploidy / maxAltAlleles " + UAC.samplePloidy + " not supported by requested model " + UAC.AFmodel + " looking for an option");
+            logger.info("Requested ploidy " + UAC.samplePloidy + " maxAltAlleles " + maxAltAlleles + " not supported by requested model " + UAC.AFmodel + " looking for an option");
             final List<Calculation> supportingCalculations = new LinkedList<Calculation>();
             for ( final Calculation calc : Calculation.values() ) {
                 if ( calc.usableForParams(UAC.samplePloidy, maxAltAlleles) )
@@ -108,9 +108,10 @@ public class AFCalcFactory {
             if ( supportingCalculations.isEmpty() )
                 throw new UserException("no AFCalculation model found that supports ploidy of " + UAC.samplePloidy + " and max alt alleles " + maxAltAlleles);
             else if ( supportingCalculations.size() > 1 )
-                logger.warn("Warning, multiple supporting AFCalcs found " + Utils.join(",", supportingCalculations) + " choosing first arbitrarily");
+                logger.debug("Warning, multiple supporting AFCalcs found " + Utils.join(",", supportingCalculations) + " choosing first arbitrarily");
             else
                 UAC.AFmodel = supportingCalculations.get(0);
+            logger.info("Selecting model " + UAC.AFmodel);
         }
 
         final AFCalc calc = createAFCalc(UAC.AFmodel, nSamples, UAC.MAX_ALTERNATE_ALLELES, UAC.MAX_ALTERNATE_ALLELES_FOR_INDELS, UAC.samplePloidy);
