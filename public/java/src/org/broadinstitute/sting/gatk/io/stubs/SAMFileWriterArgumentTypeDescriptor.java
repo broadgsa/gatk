@@ -124,32 +124,28 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
 
         // This parser has been passed a null filename and the GATK is not responsible for creating a type default for the object;
         // therefore, the user must have failed to specify a type default
-        if(writerFileName == null) {
-            if(!source.isRequired())
-                throw new MissingArgumentValueException(bamArgumentDefinition);
-            if(generateMD5)
+        if(writerFileName == null && generateMD5)
                 throw new ArgumentException("MD5 generation specified, but no output file specified.  If md5 generation is desired, please specify a BAM output file and an md5 file will be written alongside.");
-        }
 
         // Create the stub and set parameters.
-        SAMFileWriterStub stub;
-        if ( writerFileName != null )
+        SAMFileWriterStub stub = null;      // stub = new SAMFileWriterStub(engine, defaultOutputStream);
+
+        if ( writerFileName != null ) {
             stub = new SAMFileWriterStub(engine, new File(writerFileName));
-        else
-            stub = new SAMFileWriterStub(engine, defaultOutputStream);
 
-        if ( compressionLevel != null )
-            stub.setCompressionLevel(compressionLevel);
-        if ( indexOnTheFly )
-            stub.setIndexOnTheFly(indexOnTheFly);
-        if ( generateMD5 )
-            stub.setGenerateMD5(generateMD5);
-        if ( simplifyBAM )
-            stub.setSimplifyBAM(simplifyBAM);
+            if ( compressionLevel != null )
+                stub.setCompressionLevel(compressionLevel);
+            if ( indexOnTheFly )
+                stub.setIndexOnTheFly(indexOnTheFly);
+            if ( generateMD5 )
+                stub.setGenerateMD5(generateMD5);
+            if ( simplifyBAM )
+                stub.setSimplifyBAM(simplifyBAM);
 
-        // WARNING: Side effects required by engine!
-        parsingEngine.addTags(stub,getArgumentTags(matches));
-        engine.addOutput(stub);
+            // WARNING: Side effects required by engine!
+            parsingEngine.addTags(stub,getArgumentTags(matches));
+            engine.addOutput(stub);
+        }
 
         return stub;
     }
