@@ -113,4 +113,14 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
             executeTest(String.format("realigner [%s]", entry.getKey()), spec);
         }
     }
+
+    @Test
+    public void testNWayOut() {
+        WalkerTestSpec spec1 = new WalkerTestSpec(
+                baseCommandPrefix + " -nWayOut .clean.bam ",
+                1,
+                Arrays.asList("d41d8cd98f00b204e9800998ecf8427e"));
+        executeTest("test realigner nWayOut", spec1);
+    }
+
 }
