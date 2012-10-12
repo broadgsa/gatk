@@ -100,6 +100,16 @@ public class AFCalcResult {
     }
 
     /**
+     * Return a new AFCalcResult with a new prior probability
+     *
+     * @param log10PriorsOfAC
+     * @return
+     */
+    public AFCalcResult withNewPriors(final double[] log10PriorsOfAC) {
+        return new AFCalcResult(alleleCountsOfMLE, nEvaluations, allelesUsedInGenotyping, log10LikelihoodsOfAC, log10PriorsOfAC, log10pNonRefByAllele);
+    }
+
+    /**
      * Returns a vector with maxAltAlleles values containing AC values at the MLE
      *
      * The values of the ACs for this call are stored in the getAllelesUsedInGenotyping order,
@@ -257,7 +267,7 @@ public class AFCalcResult {
         for ( int i = 0; i < log10LikelihoodsOfAC.length; i++ )
             log10UnnormalizedPosteriors[i] = log10LikelihoodsOfAC[i] + log10PriorsOfAC[i];
 
-        return MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true);
+        return MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, true);
     }
 
     /**

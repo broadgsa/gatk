@@ -151,7 +151,7 @@ class AFCalcResultTracker {
     protected AFCalcResult toAFCalcResult(final double[] log10PriorsByAC) {
         final int [] subACOfMLE = Arrays.copyOf(alleleCountsOfMLE, allelesUsedInGenotyping.size() - 1);
         final double[] log10Likelihoods = new double[]{getLog10LikelihoodOfAFzero(), getLog10LikelihoodOfAFNotZero(true)};
-        final double[] log10Priors = new double[]{log10PriorsByAC[0], MathUtils.log10sumLog10(log10PriorsByAC, 1)};
+        final double[] log10Priors = MathUtils.normalizeFromLog10(new double[]{log10PriorsByAC[0], MathUtils.log10sumLog10(log10PriorsByAC, 1)}, true);
 
         // TODO -- replace with more meaningful computation
         // TODO -- refactor this calculation into the ref calculation

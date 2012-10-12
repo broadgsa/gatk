@@ -62,7 +62,7 @@ public class MathUtils {
      * The smallest log10 value we'll emit from normalizeFromLog10 and other functions
      * where the real-space value is 0.0.
      */
-    public final static double LOG10_P_OF_ZERO = -10000;
+    public final static double LOG10_P_OF_ZERO = -1000000.0;
 
     static {
         log10Cache = new double[LOG10_CACHE_SIZE];

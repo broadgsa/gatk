@@ -373,8 +373,8 @@ public class UnifiedGenotyperEngine {
         final List<Allele> myAlleles = new ArrayList<Allele>(vc.getAlleles().size());
         final List<Integer> alleleCountsofMLE = new ArrayList<Integer>(vc.getAlleles().size());
         myAlleles.add(vc.getReference());
-        for ( int i = 0; i < vc.getAlternateAlleles().size(); i++ ) {
-            final Allele alternateAllele = vc.getAlternateAllele(i);
+        for ( int i = 0; i < AFresult.getAllelesUsedInGenotyping().size(); i++ ) {
+            final Allele alternateAllele = AFresult.getAllelesUsedInGenotyping().get(i);
 
             // we are non-ref if the probability of being non-ref > the emit confidence.
             // the emit confidence is phred-scaled, say 30 => 10^-3.

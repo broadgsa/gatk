@@ -34,6 +34,16 @@ import java.util.*;
 
 public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
     private final static List<Allele> BIALLELIC_NOCALL = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
+
+    private final static class CompareAFCalcResultsByPNonRef implements Comparator<AFCalcResult> {
+        @Override
+        public int compare(AFCalcResult o1, AFCalcResult o2) {
+            return -1 * Double.compare(o1.getLog10LikelihoodOfAFGT0(), o2.getLog10LikelihoodOfAFGT0());
+        }
+    }
+
+    private final static CompareAFCalcResultsByPNonRef compareAFCalcResultsByPNonRef = new CompareAFCalcResultsByPNonRef();
+
     final ReferenceDiploidExactAFCalc refModel;
 
     protected IndependentAllelesDiploidExactAFCalc(int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, final int ploidy) {
@@ -60,7 +70,8 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
                                             final double[] log10AlleleFrequencyPriors) {
         final double log10LikelihoodOfRef = computelog10LikelihoodOfRef(vc);
         final List<AFCalcResult> independentResultTrackers = computeAlleleConditionalExact(vc, log10AlleleFrequencyPriors);
-        return combineIndependentPNonRefs(vc, log10LikelihoodOfRef, independentResultTrackers, log10AlleleFrequencyPriors);
+        final List<AFCalcResult> withMultiAllelicPriors = applyMultiAllelicPriors(independentResultTrackers);
+        return combineIndependentPNonRefs(vc, log10LikelihoodOfRef, withMultiAllelicPriors);
     }
 
     protected final double computelog10LikelihoodOfRef(final VariantContext vc) {
@@ -152,7 +163,7 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
             final Allele altAllele = vc.getAlternateAllele(altI);
             final List<Allele> biallelic = Arrays.asList(vc.getReference(), altAllele);
             vcs.add(biallelicCombinedGLs(vc, biallelic, afZeroAlleles, altI + 1));
-            afZeroAlleles.add(altAllele);
+            //afZeroAlleles.add(altAllele);
         }
 
         return vcs;
@@ -255,51 +266,62 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
         return allelesToDiscard.contains(pair.alleleIndex1) || allelesToDiscard.contains(pair.alleleIndex2);
     }
 
+    protected List<AFCalcResult> applyMultiAllelicPriors(final List<AFCalcResult> conditionalPNonRefResults) {
+        final ArrayList<AFCalcResult> sorted = new ArrayList<AFCalcResult>(conditionalPNonRefResults);
+
+        // sort the results, so the most likely allele is first
+        Collections.sort(sorted, compareAFCalcResultsByPNonRef);
+
+        final double log10SingleAllelePriorOfAFGt0 = conditionalPNonRefResults.get(0).getLog10PriorOfAFGT0();
+
+        for ( int i = 0; i < sorted.size(); i++ ) {
+            final double log10PriorAFGt0 = (i + 1) * log10SingleAllelePriorOfAFGt0;
+            final double log10PriorAFEq0 = Math.log10(1 - Math.pow(10, log10PriorAFGt0));
+            final double[] thetaTONPriors = new double[] { log10PriorAFEq0, log10PriorAFGt0 };
+
+            // bind pNonRef for allele to the posterior value of the AF > 0 with the new adjusted prior
+            sorted.set(i, sorted.get(i).withNewPriors(MathUtils.normalizeFromLog10(thetaTONPriors, true)));
+        }
+
+        return sorted;
+    }
+
+
     /**
      * Take the independent estimates of pNonRef for each alt allele and combine them into a single result
      *
-     * @param conditionalPNonRefResults the pNonRef result for each allele independently
+     * @param sortedResultsWithThetaNPriors the pNonRef result for each allele independently
      */
     protected AFCalcResult combineIndependentPNonRefs(final VariantContext vc,
                                                       final double log10LikelihoodsOfACEq0,
-                                                      final List<AFCalcResult> conditionalPNonRefResults,
-                                                      final double[] log10AlleleFrequencyPriors) {
+                                                      final List<AFCalcResult> sortedResultsWithThetaNPriors) {
         int nEvaluations = 0;
-        final int nAltAlleles = conditionalPNonRefResults.size();
+        final int nAltAlleles = sortedResultsWithThetaNPriors.size();
         final int[] alleleCountsOfMLE = new int[nAltAlleles];
         final double[] log10PriorsOfAC = new double[2];
         final Map<Allele, Double> log10pNonRefByAllele = new HashMap<Allele, Double>(nAltAlleles);
 
         // this value is a sum in real space so we need to store values to sum up later
         final double[] log10LikelihoodsOfACGt0 = new double[nAltAlleles];
-        //double log10LikelihoodsOfACEq0 = 0.0;
 
-        // TODO -- need to apply theta^alt prior after sorting by MLE
-
-        int altI = 0;
-        for ( final AFCalcResult independentPNonRef : conditionalPNonRefResults ) {
-            final Allele altAllele = vc.getAlternateAllele(altI);
+        for ( final AFCalcResult sortedResultWithThetaNPriors : sortedResultsWithThetaNPriors ) {
+            final Allele altAllele = sortedResultWithThetaNPriors.getAllelesUsedInGenotyping().get(1);
+            final int altI = vc.getAlleles().indexOf(altAllele) - 1;
 
             // MLE of altI allele is simply the MLE of this allele in altAlleles
-            alleleCountsOfMLE[altI] = independentPNonRef.getAlleleCountAtMLE(altAllele);
+            alleleCountsOfMLE[altI] = sortedResultWithThetaNPriors.getAlleleCountAtMLE(altAllele);
 
-            // TODO -- figure out real value, this is a temp (but good) approximation
-            if ( altI == 0 ) {
-                log10PriorsOfAC[0] = independentPNonRef.getLog10PriorOfAFEq0();
-                log10PriorsOfAC[1] = independentPNonRef.getLog10PriorOfAFGT0();
-            }
+            log10PriorsOfAC[0] += sortedResultWithThetaNPriors.getLog10PriorOfAFEq0();
+            log10PriorsOfAC[1] += sortedResultWithThetaNPriors.getLog10PriorOfAFGT0();
 
             // the AF > 0 case requires us to store the normalized likelihood for later summation
-            //log10LikelihoodsOfACEq0 += independentPNonRef.getLog10LikelihoodOfAFEq0();
-            log10LikelihoodsOfACGt0[altI] = independentPNonRef.getLog10LikelihoodOfAFGT0();
+            log10LikelihoodsOfACGt0[altI] = sortedResultWithThetaNPriors.getLog10LikelihoodOfAFGT0();
 
-            // bind pNonRef for allele to the posterior value of the AF > 0
-            // TODO -- should incorporate the theta^alt prior here from the likelihood itself
-            log10pNonRefByAllele.put(altAllele, independentPNonRef.getLog10PosteriorOfAFGt0ForAllele(altAllele));
+            // bind pNonRef for allele to the posterior value of the AF > 0 with the new adjusted prior
+            log10pNonRefByAllele.put(altAllele, sortedResultWithThetaNPriors.getLog10PosteriorOfAFGT0());
 
             // trivial -- update the number of evaluations
-            nEvaluations += independentPNonRef.nEvaluations;
-            altI++;
+            nEvaluations += sortedResultWithThetaNPriors.nEvaluations;
         }
 
         // the log10 likelihoods are the sum of the log10 likelihoods across all alt alleles
@@ -309,6 +331,7 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
 
         return new MyAFCalcResult(alleleCountsOfMLE, nEvaluations, vc.getAlleles(),
                 MathUtils.normalizeFromLog10(log10LikelihoodsOfAC, true, true), // necessary to ensure all values < 0
-                log10PriorsOfAC, log10pNonRefByAllele, conditionalPNonRefResults);
+                MathUtils.normalizeFromLog10(log10PriorsOfAC, true), // priors incorporate multiple alt alleles, must be normalized
+                log10pNonRefByAllele, sortedResultsWithThetaNPriors);
     }
 }
