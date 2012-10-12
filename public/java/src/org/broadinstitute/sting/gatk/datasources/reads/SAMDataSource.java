@@ -1008,6 +1008,12 @@ public class SAMDataSource {
             } catch ( SAMFormatException e ) {
                 throw new UserException.MalformedBAM(readerID.samFile, e.getMessage());
             }
+            // Picard is throwing a RuntimeException here when BAMs are malformed with bad headers (and so look like SAM files).
+            // Let's keep this separate from the SAMFormatException (which ultimately derives from RuntimeException) case,
+            // just in case we want to change this behavior later.
+            catch ( RuntimeException e ) {
+                throw new UserException.MalformedBAM(readerID.samFile, e.getMessage());
+            }
             reader.setSAMRecordFactory(factory);
             reader.enableFileSource(true);
             reader.setValidationStringency(validationStringency);
