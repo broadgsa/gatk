@@ -33,7 +33,7 @@ import org.broadinstitute.sting.commandline.Argument
 trait CommandLineFunction extends QFunction with Logging {
   def commandLine: String
 
-  /** Setting the wall time request for drmaa job*/
+  /** Setting the wall time request for DRMAA / run limit for LSF */
   var wallTime: Option[Long] = None
   
   /** Upper memory limit */

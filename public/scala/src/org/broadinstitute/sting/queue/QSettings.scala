@@ -31,10 +31,6 @@ import org.broadinstitute.sting.commandline.{ClassType, Argument}
  * Default settings settable on the command line and passed to CommandLineFunctions.
  */
 class QSettings {
-  
-  @Argument(fullName="job_walltime", shortName="wallTime", doc="Setting the required walltime when using the drmaa job runner.", required=false)
-  var jobWalltime: Option[Long] = None
-  
   @Argument(fullName="run_name", shortName="runName", doc="A name for this run used for various status messages.", required=false)
   var runName: String = _
 
@@ -75,6 +71,10 @@ class QSettings {
 
   @Argument(fullName="resident_memory_request_parameter", shortName="resMemReqParam", doc="Parameter for resident memory requests. By default not requested.", required=false)
   var residentRequestParameter: String = _
+
+  @Argument(fullName="job_walltime", shortName="wallTime", doc="Setting the required DRMAA walltime or LSF run limit.", required=false)
+  @ClassType(classOf[Long])
+  var jobWalltime: Option[Long] = None
 
   /** The name of the parallel environment (required for SGE, for example) */
   @Argument(fullName="job_parallel_env", shortName="jobParaEnv", doc="An SGE style parallel environment to use for jobs requesting more than 1 core.  Equivalent to submitting jobs with -pe ARG nt for jobs with nt > 1", required=false)
