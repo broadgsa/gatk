@@ -32,40 +32,53 @@ import org.broadinstitute.sting.utils.variantcontext.*;
 import java.io.PrintStream;
 import java.util.*;
 
-public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
-
+public class DiploidExactAFCalculation extends ExactAFCalculation {
     // private final static boolean DEBUG = false;
 
     private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
 
-    protected ExactAFCalculationModel(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
+    public DiploidExactAFCalculation(final int nSamples, final int maxAltAlleles) {
+        super(nSamples, maxAltAlleles, maxAltAlleles, null, null, null);
+    }
+
+    /**
+     * Dynamically found in UnifiedGenotyperEngine
+     *
+     * @param UAC
+     * @param N
+     * @param logger
+     * @param verboseWriter
+     */
+    public DiploidExactAFCalculation(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
         super(UAC, N, logger, verboseWriter);
     }
 
-    public List<Allele> getLog10PNonRef(final VariantContext vc,
-                                        final double[] log10AlleleFrequencyPriors,
-                                        final AlleleFrequencyCalculationResult result) {
+    @Override
+    public void computeLog10PNonRef(final VariantContext vc,
+                                    final double[] log10AlleleFrequencyPriors,
+                                    final AlleleFrequencyCalculationResult result) {
+        linearExactMultiAllelic(vc.getGenotypes(), vc.getNAlleles() - 1, log10AlleleFrequencyPriors, result);
+    }
 
-        GenotypesContext GLs = vc.getGenotypes();
-        List<Allele> alleles = vc.getAlleles();
-
-        final int myMaxAltAllelesToGenotype = CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS && vc.getType().equals(VariantContext.Type.INDEL) ? 2 : MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
+    @Override
+    protected VariantContext reduceScope(final VariantContext vc) {
+        final int myMaxAltAllelesToGenotype = vc.getType().equals(VariantContext.Type.INDEL) ? MAX_ALTERNATE_ALLELES_FOR_INDELS : MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
 
         // don't try to genotype too many alternate alleles
         if ( vc.getAlternateAlleles().size() > myMaxAltAllelesToGenotype ) {
             logger.warn("this tool is currently set to genotype at most " + myMaxAltAllelesToGenotype + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + (vc.getAlternateAlleles().size()) + " alternate alleles so only the top alleles will be used; see the --max_alternate_alleles argument");
 
-            alleles = new ArrayList<Allele>(myMaxAltAllelesToGenotype + 1);
+            VariantContextBuilder builder = new VariantContextBuilder(vc);
+            List<Allele> alleles = new ArrayList<Allele>(myMaxAltAllelesToGenotype + 1);
             alleles.add(vc.getReference());
             alleles.addAll(chooseMostLikelyAlternateAlleles(vc, myMaxAltAllelesToGenotype));
-            GLs = VariantContextUtils.subsetDiploidAlleles(vc, alleles, false);
+            builder.alleles(alleles);
+            builder.genotypes(VariantContextUtils.subsetDiploidAlleles(vc, alleles, false));
+            return builder.make();
+        } else {
+            return vc;
         }
-
-        linearExactMultiAllelic(GLs, alleles.size() - 1, log10AlleleFrequencyPriors, result);
-
-        return alleles;
     }
-
 
     private static final int PL_INDEX_OF_HOM_REF = 0;
     private static List<Allele> chooseMostLikelyAlternateAlleles(VariantContext vc, int numAllelesToChoose) {
@@ -134,6 +147,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         // keep processing while we have AC conformations that need to be calculated
         MaxLikelihoodSeen maxLikelihoodSeen = new MaxLikelihoodSeen();
         while ( !ACqueue.isEmpty() ) {
+            result.incNEvaluations(); // keep track of the number of evaluations
+
             // compute log10Likelihoods
             final ExactACset set = ACqueue.remove();
             final double log10LofKs = calculateAlleleCountConformation(set, genotypeLikelihoods, maxLikelihoodSeen, numChr, ACqueue, indexesToACset, log10AlleleFrequencyPriors, result);

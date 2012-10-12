@@ -182,12 +182,12 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     @Test
     public void testOutputParameterAllConfident() {
-        testOutputParameters("--output_mode EMIT_ALL_CONFIDENT_SITES", "da318257d25a02abd26a3348421c3c69");
+        testOutputParameters("--output_mode EMIT_ALL_CONFIDENT_SITES", "7bb6375fddc461c72d44f261f6d4b3c7");
     }
 
     @Test
     public void testOutputParameterAllSites() {
-        testOutputParameters("--output_mode EMIT_ALL_SITES", "13c4f01cffbbfac600318be95b3ca02f");
+        testOutputParameters("--output_mode EMIT_ALL_SITES", "2104dac76fa2a58a92c72b331c7f2095");
     }
 
     private void testOutputParameters(final String args, final String md5) {
@@ -438,4 +438,19 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 Arrays.asList("22c9fd65ce3298bd7fbf400c9c209f29"));
         executeTest("test calling on reads with Ns in CIGAR", spec);
     }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing reduced reads
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    @Test
+    public void testReducedBam() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R " + b37KGReference + " -nosl --no_cmdline_in_header -I " + privateTestDir + "bamExample.ReducedRead.ADAnnotation.bam -o %s -L 1:67,225,396-67,288,518", 1,
+                Arrays.asList("84486c88a0fd1ae996a6402490db8492"));
+        executeTest("test calling on a ReducedRead BAM", spec);
+    }
+
 }

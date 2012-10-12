@@ -78,11 +78,10 @@ public class UnifiedGenotyperEngine {
     private ThreadLocal<Map<String, GenotypeLikelihoodsCalculationModel>> glcm = new ThreadLocal<Map<String, GenotypeLikelihoodsCalculationModel>>();
 
     // the model used for calculating p(non-ref)
-    private ThreadLocal<AlleleFrequencyCalculationModel> afcm = new ThreadLocal<AlleleFrequencyCalculationModel>();
+    private ThreadLocal<AlleleFrequencyCalculation> afcm = new ThreadLocal<AlleleFrequencyCalculation>();
 
     // the allele frequency likelihoods and posteriors (allocated once as an optimization)
     private ThreadLocal<AlleleFrequencyCalculationResult> alleleFrequencyCalculationResult = new ThreadLocal<AlleleFrequencyCalculationResult>();
-    private ThreadLocal<double[]> posteriorsArray = new ThreadLocal<double[]>();
 
     // because the allele frequency priors are constant for a given i, we cache the results to avoid having to recompute everything
     private final double[] log10AlleleFrequencyPriorsSNPs;
@@ -357,7 +356,6 @@ public class UnifiedGenotyperEngine {
         if ( afcm.get() == null ) {
             afcm.set(getAlleleFrequencyCalculationObject(N, logger, verboseWriter, UAC));
             alleleFrequencyCalculationResult.set(new AlleleFrequencyCalculationResult(UAC.MAX_ALTERNATE_ALLELES));
-            posteriorsArray.set(new double[2]);
         }
         AlleleFrequencyCalculationResult AFresult = alleleFrequencyCalculationResult.get();
 
@@ -370,8 +368,7 @@ public class UnifiedGenotyperEngine {
                     generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext));
         }
 
-        AFresult.reset();
-        List<Allele> allelesUsedInGenotyping = afcm.get().getLog10PNonRef(vc, getAlleleFrequencyPriors(model), AFresult);
+        afcm.get().getLog10PNonRef(vc, getAlleleFrequencyPriors(model), AFresult);
 
         // is the most likely frequency conformation AC=0 for all alternate alleles?
         boolean bestGuessIsRef = true;
@@ -382,7 +379,7 @@ public class UnifiedGenotyperEngine {
         myAlleles.add(vc.getReference());
         for ( int i = 0; i < vc.getAlternateAlleles().size(); i++ ) {
             final Allele alternateAllele = vc.getAlternateAllele(i);
-            final int indexOfAllele = allelesUsedInGenotyping.indexOf(alternateAllele);
+            final int indexOfAllele = AFresult.getAllelesUsedInGenotyping().indexOf(alternateAllele);
             // the genotyping model may have stripped it out
             if ( indexOfAllele == -1 )
                 continue;
@@ -403,16 +400,16 @@ public class UnifiedGenotyperEngine {
         }
 
         // calculate p(f>0):
-        final double[] normalizedPosteriors = generateNormalizedPosteriors(AFresult, posteriorsArray.get());
-        final double PofF = 1.0 - normalizedPosteriors[0];
+        final double PoFEq0 = AFresult.getNormalizedPosteriorOfAFzero();
+        final double PoFGT0 = AFresult.getNormalizedPosteriorOfAFGTZero();
 
         double phredScaledConfidence;
         if ( !bestGuessIsRef || UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
-            phredScaledConfidence = QualityUtils.phredScaleErrorRate(normalizedPosteriors[0]);
+            phredScaledConfidence = QualityUtils.phredScaleErrorRate(PoFEq0);
             if ( Double.isInfinite(phredScaledConfidence) )
                 phredScaledConfidence = -10.0 * AFresult.getLog10PosteriorOfAFzero();
         } else {
-            phredScaledConfidence = QualityUtils.phredScaleErrorRate(PofF);
+            phredScaledConfidence = QualityUtils.phredScaleErrorRate(PoFGT0);
             if ( Double.isInfinite(phredScaledConfidence) ) {
                 final double sum = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
                 phredScaledConfidence = (MathUtils.compareDoubles(sum, 0.0) == 0 ? 0 : -10.0 * sum);
@@ -423,7 +420,7 @@ public class UnifiedGenotyperEngine {
         if ( UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES && !passesEmitThreshold(phredScaledConfidence, bestGuessIsRef) ) {
             // technically, at this point our confidence in a reference call isn't accurately estimated
             //  because it didn't take into account samples with no data, so let's get a better estimate
-            return limitedContext ? null : estimateReferenceConfidence(vc, stratifiedContexts, getTheta(model), true, 1.0 - PofF);
+            return limitedContext ? null : estimateReferenceConfidence(vc, stratifiedContexts, getTheta(model), true, PoFGT0);
         }
 
         // start constructing the resulting VC
@@ -439,7 +436,7 @@ public class UnifiedGenotyperEngine {
 
         // print out stats if we have a writer
         if ( verboseWriter != null && !limitedContext )
-            printVerboseData(refContext.getLocus().toString(), vc, PofF, phredScaledConfidence, model);
+            printVerboseData(refContext.getLocus().toString(), vc, PoFGT0, phredScaledConfidence, model);
 
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         final HashMap<String, Object> attributes = new HashMap<String, Object>();
@@ -477,7 +474,6 @@ public class UnifiedGenotyperEngine {
             
             // the forward lod
             VariantContext vcForward = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.FORWARD, allAllelesToUse, false, model, perReadAlleleLikelihoodMap);
-            AFresult.reset();
             afcm.get().getLog10PNonRef(vcForward, getAlleleFrequencyPriors(model), AFresult);
             //double[] normalizedLog10Posteriors = MathUtils.normalizeFromLog10(AFresult.log10AlleleFrequencyPosteriors, true);
             double forwardLog10PofNull = AFresult.getLog10PosteriorOfAFzero();
@@ -486,7 +482,6 @@ public class UnifiedGenotyperEngine {
 
             // the reverse lod
             VariantContext vcReverse = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.REVERSE, allAllelesToUse, false, model, perReadAlleleLikelihoodMap);
-            AFresult.reset();
             afcm.get().getLog10PNonRef(vcReverse, getAlleleFrequencyPriors(model), AFresult);
             //normalizedLog10Posteriors = MathUtils.normalizeFromLog10(AFresult.log10AlleleFrequencyPosteriors, true);
             double reverseLog10PofNull = AFresult.getLog10PosteriorOfAFzero();
@@ -513,10 +508,10 @@ public class UnifiedGenotyperEngine {
 
         // if we are subsetting alleles (either because there were too many or because some were not polymorphic)
         // then we may need to trim the alleles (because the original VariantContext may have had to pad at the end).
-        if ( myAlleles.size() != vc.getAlleles().size() && !limitedContext )
+        if ( myAlleles.size() != vc.getAlleles().size() && !limitedContext ) // limitedContext callers need to handle allele trimming on their own to keep their perReadAlleleLikelihoodMap alleles in sync
             vcCall = VariantContextUtils.reverseTrimAlleles(vcCall);
 
-        if ( annotationEngine != null && !limitedContext ) {
+        if ( annotationEngine != null && !limitedContext ) { // limitedContext callers need to handle annotations on their own by calling their own annotationEngine
             // Note: we want to use the *unfiltered* and *unBAQed* context for the annotations
             final ReadBackedPileup pileup = rawContext.getBasePileup();
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup);
@@ -524,13 +519,7 @@ public class UnifiedGenotyperEngine {
             vcCall = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall, perReadAlleleLikelihoodMap);
         }
 
-        return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
-    }
-
-    public static double[] generateNormalizedPosteriors(final AlleleFrequencyCalculationResult AFresult, final double[] normalizedPosteriors) {
-        normalizedPosteriors[0] = AFresult.getLog10PosteriorOfAFzero();
-        normalizedPosteriors[1] = AFresult.getLog10PosteriorsMatrixSumWithoutAFzero();
-        return MathUtils.normalizeFromLog10(normalizedPosteriors);
+        return new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PoFGT0));
     }
 
     private Map<String, AlignmentContext> getFilteredAndStratifiedContexts(UnifiedArgumentCollection UAC, ReferenceContext refContext, AlignmentContext rawContext, final GenotypeLikelihoodsCalculationModel.Model model) {
@@ -754,32 +743,34 @@ public class UnifiedGenotyperEngine {
         return glcm;
     }
 
-    private static AlleleFrequencyCalculationModel getAlleleFrequencyCalculationObject(int N, Logger logger, PrintStream verboseWriter, UnifiedArgumentCollection UAC) {
+    private static AlleleFrequencyCalculation getAlleleFrequencyCalculationObject(int N, Logger logger, PrintStream verboseWriter, UnifiedArgumentCollection UAC) {
 
-        List<Class<? extends AlleleFrequencyCalculationModel>> afClasses = new PluginManager<AlleleFrequencyCalculationModel>(AlleleFrequencyCalculationModel.class).getPlugins();
+        List<Class<? extends AlleleFrequencyCalculation>> afClasses = new PluginManager<AlleleFrequencyCalculation>(AlleleFrequencyCalculation.class).getPlugins();
 
         // user-specified name
-        String afModelName = UAC.AFmodel.name();
+        String afModelName = UAC.AFmodel.implementationName;
 
         if (!afModelName.contains(GPSTRING) && UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY)
             afModelName = GPSTRING + afModelName;
+        else
+            afModelName = "Diploid" + afModelName;
 
         for (int i = 0; i < afClasses.size(); i++) {
-            Class<? extends AlleleFrequencyCalculationModel> afClass = afClasses.get(i);
+            Class<? extends AlleleFrequencyCalculation> afClass = afClasses.get(i);
             String key = afClass.getSimpleName().replace("AFCalculationModel","").toUpperCase();
             if (afModelName.equalsIgnoreCase(key)) {
                 try {
                     Object args[] = new Object[]{UAC,N,logger,verboseWriter};
                     Constructor c = afClass.getDeclaredConstructor(UnifiedArgumentCollection.class, int.class, Logger.class, PrintStream.class);
 
-                    return (AlleleFrequencyCalculationModel)c.newInstance(args);
+                    return (AlleleFrequencyCalculation)c.newInstance(args);
                 }
                 catch (Exception e) {
-                    throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculationModel " + UAC.AFmodel);
+                    throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculation " + UAC.AFmodel);
                 }
             }
         }
-        throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculationModel " + UAC.AFmodel);
+        throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculation " + UAC.AFmodel);
     }
 
     public static VariantContext getVCFromAllelesRod(RefMetaDataTracker tracker, ReferenceContext ref, GenomeLoc loc, boolean requireSNP, Logger logger, final RodBinding<VariantContext> allelesBinding) {

@@ -24,22 +24,46 @@
 
 package org.broadinstitute.sting.queue.function
 
+import org.broadinstitute.sting.commandline.Argument
+
+object RetryMemoryLimit {
+  private val defaultRetryMemoryFunction: (Double => Double) = ( 2 * _ )
+  private val defaultMemoryLimitErrorText = Seq("OutOfMemory", "you did not provide enough memory", "TERM_MEMLIMIT")
+}
+
 /** A mixin that on retry increases the memory limit when certain text is found. */
 trait RetryMemoryLimit extends CommandLineFunction {
 
   /** How to increase the memory. By default doubles the memory. */
-  var retryMemoryFunction: (Double => Double) = (2 * _)
+  var retryMemoryFunction: (Double => Double) = RetryMemoryLimit.defaultRetryMemoryFunction
 
   /** Once the threshold is passed, no more memory will be added to memory limit. */
+  @Argument(doc="threshold to stop doubling the memory", required=false)
   var memoryLimitThreshold: Option[Double] = None
 
   /** Various strings to look for to determine we ran out of memory. */
-  var memoryLimitErrorText = Seq("OutOfMemory", "you did not provide enough memory", "TERM_MEMLIMIT")
+  @Argument(doc="text to look for in the errors", required = false)
+  var memoryLimitErrorText = RetryMemoryLimit.defaultMemoryLimitErrorText
 
   override def freezeFieldValues() {
     super.freezeFieldValues()
     if (this.memoryLimitThreshold.isEmpty)
       this.memoryLimitThreshold = this.qSettings.memoryLimitThreshold
+  }
+
+
+  override def copySettingsTo(function: QFunction) {
+    super.copySettingsTo(function)
+    function match {
+      case retryMemoryLimit: RetryMemoryLimit =>
+        if (retryMemoryLimit.memoryLimitThreshold.isEmpty)
+          retryMemoryLimit.memoryLimitThreshold = this.memoryLimitThreshold
+        if (retryMemoryLimit.retryMemoryFunction == RetryMemoryLimit.defaultRetryMemoryFunction)
+          retryMemoryLimit.retryMemoryFunction = this.retryMemoryFunction
+        if (retryMemoryLimit.memoryLimitErrorText == RetryMemoryLimit.defaultMemoryLimitErrorText)
+          retryMemoryLimit.memoryLimitErrorText = this.memoryLimitErrorText
+      case _ => /* ignore */
+    }
   }
 
   override def setupRetry() {

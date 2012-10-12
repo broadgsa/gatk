@@ -157,11 +157,8 @@ public class VariantContextUtils {
         builder.attributes(calculateChromosomeCounts(vc, new HashMap<String, Object>(vc.getAttributes()), removeStaleValues, founderIds));
     }
 
-    public static Genotype removePLs(Genotype g) {
-        if ( g.hasLikelihoods() )
-            return new GenotypeBuilder(g).noPL().make();
-        else
-            return g;
+    public static Genotype removePLsAndAD(final Genotype g) {
+        return ( g.hasLikelihoods() || g.hasAD() ) ? new GenotypeBuilder(g).noPL().noAD().make() : g;
     }
 
     public final static VCFCompoundHeaderLine getMetaDataForField(final VCFHeader header, final String field) {
@@ -573,7 +570,7 @@ public class VariantContextUtils {
         }
 
         // if we have more alternate alleles in the merged VC than in one or more of the
-        // original VCs, we need to strip out the GL/PLs (because they are no longer accurate), as well as allele-dependent attributes like AC,AF
+        // original VCs, we need to strip out the GL/PLs (because they are no longer accurate), as well as allele-dependent attributes like AC,AF, and AD
         for ( final VariantContext vc : VCs ) {
             if (vc.alleles.size() == 1)
                 continue;
@@ -581,7 +578,7 @@ public class VariantContextUtils {
                 if ( ! genotypes.isEmpty() )
                     logger.debug(String.format("Stripping PLs at %s due incompatible alleles merged=%s vs. single=%s",
                             genomeLocParser.createGenomeLoc(vc), alleles, vc.alleles));
-                genotypes = stripPLs(genotypes);
+                genotypes = stripPLsAndAD(genotypes);
                 // this will remove stale AC,AF attributed from vc
                 calculateChromosomeCounts(vc, attributes, true);
                 break;
@@ -672,11 +669,11 @@ public class VariantContextUtils {
         return true;
     }
 
-    public static GenotypesContext stripPLs(GenotypesContext genotypes) {
+    public static GenotypesContext stripPLsAndAD(GenotypesContext genotypes) {
         GenotypesContext newGs = GenotypesContext.create(genotypes.size());
 
         for ( final Genotype g : genotypes ) {
-            newGs.add(g.hasLikelihoods() ? removePLs(g) : g);
+            newGs.add(removePLsAndAD(g));
         }
 
         return newGs;
@@ -1343,10 +1340,7 @@ public class VariantContextUtils {
 
     public static VariantContext reverseTrimAlleles( final VariantContext inputVC ) {
 
-        // TODO - this function doesn't work with mixed records or records that started as mixed and then became non-mixed
-
         // see whether we need to trim common reference base from all alleles
-
         final int trimExtent = computeReverseClipping(inputVC.getAlleles(), inputVC.getReference().getDisplayString().getBytes(), 0, false);
         if ( trimExtent <= 0 || inputVC.getAlleles().size() <= 1 )
             return inputVC;

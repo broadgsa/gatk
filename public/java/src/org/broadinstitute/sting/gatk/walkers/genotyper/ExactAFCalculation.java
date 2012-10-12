@@ -30,40 +30,23 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 
 /**
- * The model representing how we calculate a genotype given the priors and a pile
- * of bases and quality scores
+ * Uses the Exact calculation of Heng Li
  */
-public abstract class AlleleFrequencyCalculationModel implements Cloneable {
-
-    public enum Model {
-        /** The default model with the best performance in all cases */
-        EXACT
+abstract class ExactAFCalculation extends AlleleFrequencyCalculation {
+    protected ExactAFCalculation(final UnifiedArgumentCollection UAC, final int nSamples, final Logger logger, final PrintStream verboseWriter) {
+        super(UAC, nSamples, logger, verboseWriter);
     }
 
-    protected int N;
-    protected int MAX_ALTERNATE_ALLELES_TO_GENOTYPE;
-    protected boolean CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS;
-
-    protected Logger logger;
-    protected PrintStream verboseWriter;
-
-    protected static final double VALUE_NOT_CALCULATED = Double.NEGATIVE_INFINITY;
-
-    protected AlleleFrequencyCalculationModel(final UnifiedArgumentCollection UAC, final int N, final Logger logger, final PrintStream verboseWriter) {
-        this.N = N;
-        this.MAX_ALTERNATE_ALLELES_TO_GENOTYPE = UAC.MAX_ALTERNATE_ALLELES;
-        this.CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS = UAC.CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS;
-        this.logger = logger;
-        this.verboseWriter = verboseWriter;
+    protected ExactAFCalculation(final int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, File exactCallsLog, Logger logger, PrintStream verboseWriter) {
+        super(nSamples, maxAltAlleles, maxAltAllelesForIndels, exactCallsLog, logger, verboseWriter);
     }
 
     /**
@@ -101,31 +84,6 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
         return genotypeLikelihoods;
     }
-
-    /**
-     * Must be overridden by concrete subclasses
-     * @param vc                                variant context with alleles and genotype likelihoods
-     * @param log10AlleleFrequencyPriors        priors
-     * @param result                            (pre-allocated) object to store likelihoods results
-     * @return the alleles used for genotyping
-     */
-    protected abstract List<Allele> getLog10PNonRef(final VariantContext vc,
-                                                    final double[] log10AlleleFrequencyPriors,
-                                                    final AlleleFrequencyCalculationResult result);
-
-    /**
-     * Must be overridden by concrete subclasses
-     * @param vc                                variant context with alleles and genotype likelihoods
-     * @param allelesToUse                      alleles to subset
-     * @param assignGenotypes
-     * @param ploidy
-     * @return GenotypesContext object
-     */
-    protected abstract GenotypesContext subsetAlleles(final VariantContext vc,
-                                                      final List<Allele> allelesToUse,
-                                                      final boolean assignGenotypes,
-                                                      final int ploidy);
-
 
     // -------------------------------------------------------------------------------------
     //

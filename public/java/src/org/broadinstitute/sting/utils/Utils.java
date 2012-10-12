@@ -236,6 +236,33 @@ public class Utils {
         }
     }
 
+    public static <T> List<T> append(final List<T> left, T ... elts) {
+        final List<T> l = new LinkedList<T>(left);
+        l.addAll(Arrays.asList(elts));
+        return l;
+    }
+
+    /**
+     * Returns a string of the values in joined by separator, such as A,B,C
+     *
+     * @param separator
+     * @param doubles
+     * @return
+     */
+    public static String join(String separator, double[] doubles) {
+        if ( doubles == null || doubles.length == 0)
+            return "";
+        else {
+            StringBuilder ret = new StringBuilder();
+            ret.append(doubles[0]);
+            for (int i = 1; i < doubles.length; ++i) {
+                ret.append(separator);
+                ret.append(doubles[i]);
+            }
+            return ret.toString();
+        }
+    }
+
     /**
      * Returns a string of the form elt1.toString() [sep elt2.toString() ... sep elt.toString()] for a collection of
      * elti objects (note there's no actual space between sep and the elti elements).  Returns

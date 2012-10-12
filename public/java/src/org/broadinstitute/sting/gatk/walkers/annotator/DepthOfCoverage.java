@@ -12,6 +12,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFStandardHeaderLines;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
@@ -49,8 +50,12 @@ public class DepthOfCoverage extends InfoFieldAnnotation implements StandardAnno
             if ( perReadAlleleLikelihoodMap.size() == 0 )
                 return null;
 
-            for ( Map.Entry<String, PerReadAlleleLikelihoodMap> sample : perReadAlleleLikelihoodMap.entrySet() )
-                depth += sample.getValue().getNumberOfStoredElements();
+            for (PerReadAlleleLikelihoodMap maps : perReadAlleleLikelihoodMap.values() ) {
+                for (Map.Entry<GATKSAMRecord,Map<Allele,Double>> el : maps.getLikelihoodReadMap().entrySet()) {
+                    final GATKSAMRecord read = el.getKey();
+                    depth += (read.isReducedRead() ? read.getReducedCount(ReadUtils.getReadCoordinateForReferenceCoordinate(read, vc.getStart(), ReadUtils.ClippingTail.RIGHT_TAIL)) : 1);
+                }
+            }
         }
         else
             return null;

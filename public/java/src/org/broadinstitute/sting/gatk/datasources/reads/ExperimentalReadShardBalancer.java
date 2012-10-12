@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
 
@@ -87,6 +88,17 @@ public class ExperimentalReadShardBalancer extends ShardBalancer {
              * used to fill all shards associated with a given file pointer
              */
             private PeekableIterator<SAMRecord> currentContigReadsIterator = null;
+
+            /**
+             * How many FilePointers have we pulled from the filePointers iterator?
+             */
+            private int totalFilePointersConsumed = 0;
+
+            /**
+             * Have we encountered a monolithic FilePointer?
+             */
+            private boolean encounteredMonolithicFilePointer = false;
+
 
             {
                 createNextContigFilePointer();
@@ -167,6 +179,20 @@ public class ExperimentalReadShardBalancer extends ShardBalancer {
                 logger.info("Loading BAM index data for next contig");
 
                 while ( filePointers.hasNext() ) {
+
+                    // Make sure that if we see a monolithic FilePointer (representing all regions in all files) that
+                    // it is the ONLY FilePointer we ever encounter
+                    if ( encounteredMonolithicFilePointer ) {
+                        throw new ReviewedStingException("Bug: encountered additional FilePointers after encountering a monolithic FilePointer");
+                    }
+                    if ( filePointers.peek().isMonolithic() ) {
+                        if ( totalFilePointersConsumed > 0 ) {
+                            throw new ReviewedStingException("Bug: encountered additional FilePointers before encountering a monolithic FilePointer");
+                        }
+                        encounteredMonolithicFilePointer = true;
+                        logger.debug(String.format("Encountered monolithic FilePointer: %s", filePointers.peek()));
+                    }
+
                     // If this is the first FP we've seen, or we're dealing with mapped regions and the next FP is on the
                     // same contig as previous FPs, or all our FPs are unmapped, add the next FP to the list of FPs to merge
                     if ( nextContigFilePointers.isEmpty() ||
@@ -175,6 +201,7 @@ public class ExperimentalReadShardBalancer extends ShardBalancer {
                                  (nextContigFilePointers.get(0).isRegionUnmapped && filePointers.peek().isRegionUnmapped) ) {
 
                         nextContigFilePointers.add(filePointers.next());
+                        totalFilePointersConsumed++;
                     }
                     else {
                         break; // next FilePointer is on a different contig or has different mapped/unmapped status,

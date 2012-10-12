@@ -26,19 +26,19 @@ package org.broadinstitute.sting.queue.extensions.gatk
 
 import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
 import org.broadinstitute.sting.queue.extensions.picard.PicardBamFunction
-import org.broadinstitute.sting.queue.function.QFunction
+import org.broadinstitute.sting.queue.function.{RetryMemoryLimit, QFunction}
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor
 
 /**
  * Merges BAM files using net.sf.picard.sam.MergeSamFiles.
  */
-class BamGatherFunction extends GatherFunction with PicardBamFunction {
+class BamGatherFunction extends GatherFunction with PicardBamFunction with RetryMemoryLimit {
   this.javaMainClass = "net.sf.picard.sam.MergeSamFiles"
   this.assumeSorted = Some(true)
   protected def inputBams = gatherParts
   protected def outputBam = originalOutput
 
-  override def freezeFieldValues {
+  override def freezeFieldValues() {
     val originalGATK = originalFunction.asInstanceOf[CommandLineGATK]
 
     // Whatever the original function can handle, merging *should* do less.

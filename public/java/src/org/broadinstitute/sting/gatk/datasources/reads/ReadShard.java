@@ -215,19 +215,29 @@ public class ReadShard extends Shard {
             int start = Integer.MAX_VALUE;
             int stop = Integer.MIN_VALUE;
             String contig = null;
+            boolean foundMapped = false;
 
             for ( final SAMRecord read : reads ) {
                 if ( contig != null && ! read.getReferenceName().equals(contig) )
                     throw new ReviewedStingException("ReadShard contains reads spanning contig boundaries, which is no longer allowed. "
                             + "First contig is " + contig + " next read was " + read.getReferenceName() );
                 contig = read.getReferenceName();
-                if ( read.getAlignmentStart() < start ) start = read.getAlignmentStart();
-                if ( read.getAlignmentEnd() > stop ) stop = read.getAlignmentEnd();
+
+                // Even if this shard as a *whole* is not "unmapped", we can still encounter *individual* unmapped mates
+                // of mapped reads within this shard's buffer. In fact, if we're very unlucky with shard boundaries,
+                // this shard might consist *only* of unmapped mates! We need to refrain from using the alignment
+                // starts/stops of these unmapped mates, and detect the case where the shard has been filled *only*
+                // with unmapped mates.
+                if ( ! read.getReadUnmappedFlag() ) {
+                    foundMapped = true;
+                    if ( read.getAlignmentStart() < start ) start = read.getAlignmentStart();
+                    if ( read.getAlignmentEnd() > stop ) stop = read.getAlignmentEnd();
+                }
             }
 
             assert contig != null;
 
-            if ( contig.equals("*") ) // all reads are unmapped
+            if ( ! foundMapped || contig.equals("*") ) // all reads are unmapped
                 return GenomeLoc.UNMAPPED;
             else
                 return parser.createGenomeLoc(contig, start, stop);
