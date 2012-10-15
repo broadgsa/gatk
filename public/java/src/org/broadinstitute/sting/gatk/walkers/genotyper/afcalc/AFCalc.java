@@ -28,19 +28,14 @@ package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.SimpleTimer;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.*;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
+import java.io.*;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 
@@ -218,7 +213,84 @@ public abstract class AFCalc implements Cloneable {
         callReport.println(Utils.join("\t", Arrays.asList(loc, variable, key, value)));
     }
 
+    public static class ExactCall {
+        final VariantContext vc;
+        final long origNanoTime;
+        long newNanoTime = -1;
+        final double origPNonRef;
+        double newPNonRef = -1;
+
+        public ExactCall(VariantContext vc, long origNanoTime, double origPNonRef) {
+            this.vc = vc;
+            this.origNanoTime = origNanoTime;
+            this.origPNonRef = origPNonRef;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("ExactCall %s:%d alleles=%s nSamples=%s orig.pNonRef=%.2f orig.runtime=%s new.pNonRef=%.2f new.runtime=%s",
+                    vc.getChr(), vc.getStart(), vc.getAlleles(), vc.getNSamples(),
+                    origPNonRef,
+                    new AutoFormattingTime(origNanoTime / 1e9).toString(),
+                    newPNonRef,
+                    newNanoTime == -1 ? "not.run" : new AutoFormattingTime(newNanoTime / 1e9).toString());
+        }
+    }
+
+    public static List<ExactCall> readExactLog(final BufferedReader reader, final List<Integer> startsToKeep, GenomeLocParser parser) throws IOException {
+        List<ExactCall> calls = new LinkedList<ExactCall>();
+
+        // skip the header line
+        reader.readLine();
+
+        while ( true ) {
+            final VariantContextBuilder builder = new VariantContextBuilder();
+            final List<Allele> alleles = new ArrayList<Allele>();
+            final List<Genotype> genotypes = new ArrayList<Genotype>();
+            long runtimeNano = -1;
+
+            GenomeLoc currentLoc = null;
+            while ( true ) {
+                final String line = reader.readLine();
+                if ( line == null )
+                    return calls;
+
+                final String[] parts = line.split("\t");
+                final GenomeLoc lineLoc = parser.parseGenomeLoc(parts[0]);
+                final String variable = parts[1];
+                final String key = parts[2];
+                final String value = parts[3];
+
+                if ( currentLoc == null )
+                    currentLoc = lineLoc;
+
+                if ( variable.equals("log10PosteriorOfAFzero") ) {
+                    if ( startsToKeep.isEmpty() || startsToKeep.contains(currentLoc.getStart()) ) {
+                        builder.alleles(alleles);
+                        final int stop = currentLoc.getStart() + alleles.get(0).length() - 1;
+                        builder.chr(currentLoc.getContig()).start(currentLoc.getStart()).stop(stop);
+                        builder.genotypes(genotypes);
+                        calls.add(new ExactCall(builder.make(), runtimeNano, Double.valueOf(value)));
+                    }
+                    break;
+                } else if ( variable.equals("allele") ) {
+                    final boolean isRef = key.equals("0");
+                    alleles.add(Allele.create(value, isRef));
+                } else if ( variable.equals("PL") ) {
+                    final GenotypeBuilder gb = new GenotypeBuilder(key);
+                    gb.PL(GenotypeLikelihoods.fromPLField(value).getAsPLs());
+                    genotypes.add(gb.make());
+                } else if ( variable.equals("runtime.nano") ) {
+                    runtimeNano = Long.valueOf(value);
+                } else {
+                    // nothing to do
+                }
+            }
+        }
+    }
+
     public AFCalcResultTracker getResultTracker() {
         return resultTracker;
     }
+
 }

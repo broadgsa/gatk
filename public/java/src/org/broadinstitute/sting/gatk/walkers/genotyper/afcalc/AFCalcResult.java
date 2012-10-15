@@ -31,10 +31,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Describes the results of the AFCalc
@@ -215,6 +212,14 @@ public class AFCalcResult {
     @Ensures({"goodLog10Probability(result)"})
     public double getLog10PriorOfAFGT0() {
         return log10PriorsOfAC[AF1p];
+    }
+
+    @Override
+    public String toString() {
+        final List<String> byAllele = new LinkedList<String>();
+        for ( final Allele a : getAllelesUsedInGenotyping() )
+            if ( a.isNonReference() ) byAllele.add(String.format("%s => MLE %d / posterior %.2f", a, getAlleleCountAtMLE(a), getLog10PosteriorOfAFGt0ForAllele(a)));
+        return String.format("AFCalc%n\t\tlog10PosteriorOfAFGT0=%.2f%n\t\t%s", getLog10LikelihoodOfAFGT0(), Utils.join("\n\t\t", byAllele));
     }
 
     /**
