@@ -27,7 +27,7 @@ package org.broadinstitute.sting.queue
 import engine.JobRunInfo
 import org.broadinstitute.sting.queue.function.QFunction
 import annotation.target.field
-import util.{ReflectionUtils, StringFileConversions, PrimitiveOptionConversions, Logging}
+import util._
 import org.broadinstitute.sting.utils.classloader.JVMUtils
 import java.lang.reflect.Field
 
