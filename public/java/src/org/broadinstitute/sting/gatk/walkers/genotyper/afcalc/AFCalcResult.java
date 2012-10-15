@@ -230,7 +230,7 @@ public class AFCalcResult {
      * @return true if there's enough confidence (relative to log10minPNonRef) to reject AF == 0
      */
     public boolean isPolymorphic(final Allele allele, final double log10minPNonRef) {
-        return getLog10PosteriorOfAFGt0ForAllele(allele) < log10minPNonRef;
+        return getLog10PosteriorOfAFGt0ForAllele(allele) >= log10minPNonRef;
     }
 
     /**
@@ -267,7 +267,14 @@ public class AFCalcResult {
         for ( int i = 0; i < log10LikelihoodsOfAC.length; i++ )
             log10UnnormalizedPosteriors[i] = log10LikelihoodsOfAC[i] + log10PriorsOfAC[i];
 
-        return MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, true);
+        // necessary because the posteriors may be so skewed that the log-space normalized value isn't
+        // good, so we have to try both log-space normalization as well as the real-space normalization if the
+        // result isn't good
+        final double[] logNormalized = MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, true);
+        if ( goodLog10ProbVector(logNormalized, logNormalized.length, true) )
+            return logNormalized;
+        else
+            return MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, false);
     }
 
     /**
@@ -287,7 +294,7 @@ public class AFCalcResult {
                 return false;
         }
 
-        if ( shouldSumToOne && MathUtils.compareDoubles(MathUtils.sumLog10(vector), 1.0, 1e-2) != 0 )
+        if ( shouldSumToOne && MathUtils.compareDoubles(MathUtils.sumLog10(vector), 1.0, 1e-4) != 0 )
             return false;
 
         return true; // everything is good

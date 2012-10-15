@@ -38,7 +38,7 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
     private final static class CompareAFCalcResultsByPNonRef implements Comparator<AFCalcResult> {
         @Override
         public int compare(AFCalcResult o1, AFCalcResult o2) {
-            return -1 * Double.compare(o1.getLog10LikelihoodOfAFGT0(), o2.getLog10LikelihoodOfAFGT0());
+            return Double.compare(o1.getLog10LikelihoodOfAFGT0(), o2.getLog10LikelihoodOfAFGT0());
         }
     }
 
@@ -82,7 +82,8 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
         // TODO -- can be easily optimized (currently looks at all GLs via getGLs)
         for ( int i = 0; i < allGLs.size(); i++ ) {
             final double[] GLs = allGLs.get(i);
-            log10LikelihoodOfHomRef += MathUtils.normalizeFromLog10(GLs, true)[0];
+            log10LikelihoodOfHomRef += GLs[0];
+            //log10LikelihoodOfHomRef += MathUtils.normalizeFromLog10(GLs, true)[0];
         }
 
         return log10LikelihoodOfHomRef;

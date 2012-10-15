@@ -385,7 +385,7 @@ public class UnifiedGenotyperEngine {
             final boolean isNonRef = AFresult.isPolymorphic(alternateAllele, UAC.STANDARD_CONFIDENCE_FOR_EMITTING / -10.0);
 
             // if the most likely AC is not 0, then this is a good alternate allele to use
-            if ( ! isNonRef ) {
+            if ( isNonRef ) {
                 myAlleles.add(alternateAllele);
                 alleleCountsofMLE.add(AFresult.getAlleleCountAtMLE(alternateAllele));
                 bestGuessIsRef = false;
@@ -398,9 +398,12 @@ public class UnifiedGenotyperEngine {
         }
 
         final double PoFGT0 = Math.pow(10, AFresult.getLog10PosteriorOfAFGT0());
-        final double phredScaledConfidence = ! bestGuessIsRef || UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES
-                ? -10 * AFresult.getLog10PosteriorOfAFEq0()
-                : -10 * AFresult.getLog10PosteriorOfAFGT0();
+
+        // note the math.abs is necessary because -10 * 0.0 => -0.0 which isn't nice
+        final double phredScaledConfidence =
+                Math.abs(! bestGuessIsRef || UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES
+                        ? -10 * AFresult.getLog10PosteriorOfAFEq0()
+                        : -10 * AFresult.getLog10PosteriorOfAFGT0());
 
         // return a null call if we don't pass the confidence cutoff or the most likely allele frequency is zero
         if ( UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES && !passesEmitThreshold(phredScaledConfidence, bestGuessIsRef) ) {
