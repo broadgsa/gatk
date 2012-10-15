@@ -46,6 +46,7 @@ import java.util.List;
 
 /**
  * Generic interface for calculating the probability of alleles segregating given priors and genotype likelihoods
+ *
  */
 public abstract class AFCalc implements Cloneable {
     private final static Logger defaultLogger = Logger.getLogger(AFCalc.class);
