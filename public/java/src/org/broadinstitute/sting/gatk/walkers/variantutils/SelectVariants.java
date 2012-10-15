@@ -50,7 +50,6 @@ import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -279,13 +278,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 0;
 
     /**
-     * Variants are kept in memory to guarantee that exactly n variants will be chosen randomly, so make sure you supply the program with enough memory
-     * given your input set.  This option will NOT work well for large callsets; use --select_random_fraction for sets with a large numbers of variants.
-     */
-    @Argument(fullName="select_random_number", shortName="number", doc="Selects a number of variants at random from the variant track", required=false)
-    protected int numRandom = 0;
-
-    /**
      * This routine is based on probability, so the final result is not guaranteed to carry the exact fraction.  Can be used for large fractions.
      */
     @Argument(fullName="select_random_fraction", shortName="fraction", doc="Selects a fraction (a number between 0 and 1) of the total variants at random from the variant track", required=false)
@@ -330,20 +322,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     private boolean ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES = false;
 
 
-    /* Private class used to store the intermediate variants in the integer random selection process */
-    private static class RandomVariantStructure {
-        private VariantContext vc;
-
-        RandomVariantStructure(VariantContext vcP) {
-            vc = vcP;
-        }
-
-        public void set (VariantContext vcP) {
-            vc = vcP;
-        }
-
-    }
-
     public enum NumberAlleleRestriction {
         ALL,
         BIALLELIC,
@@ -364,12 +342,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
 
     /* variables used by the SELECT RANDOM modules */
-    private boolean SELECT_RANDOM_NUMBER = false;
     private boolean SELECT_RANDOM_FRACTION = false;
-    private int variantNumber = 0;
-    private int nVariantsAdded = 0;
-    private int positionToAdd = 0;
-    private RandomVariantStructure [] variantArray;
 
     //Random number generator for the genotypes to remove
     private Random randomGenotypes = new Random();
@@ -478,12 +451,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             mv = new MendelianViolation(MENDELIAN_VIOLATION_QUAL_THRESHOLD,false,true);
         }
 
-        SELECT_RANDOM_NUMBER = numRandom > 0;
-        if (SELECT_RANDOM_NUMBER) {
-            logger.info("Selecting " + numRandom + " variants at random from the variant track");
-            variantArray = new RandomVariantStructure[numRandom];
-        }
-
         SELECT_RANDOM_FRACTION = fractionRandom > 0;
         if (SELECT_RANDOM_FRACTION) logger.info("Selecting approximately " + 100.0*fractionRandom + "% of the variants at random from the variant track");
 
@@ -588,14 +555,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
                         break;
                     }
                 }
-                if ( !failedJexlMatch ) {
-                    if (SELECT_RANDOM_NUMBER) {
-                        randomlyAddVariant(++variantNumber, sub);
-                    }
-                    else if (!SELECT_RANDOM_FRACTION || ( GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
-                        if ( ! justRead )
-                            vcfWriter.add(sub);
-                    }
+                if ( !failedJexlMatch &&
+                        !justRead &&
+                        ( !SELECT_RANDOM_FRACTION || GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom ) ) {
+                    vcfWriter.add(sub);
                 }
             }
         }
@@ -718,14 +681,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
     public void onTraversalDone(Integer result) {
         logger.info(result + " records processed.");
-
-        if (SELECT_RANDOM_NUMBER) {
-            int positionToPrint = positionToAdd;
-            for (int i=0; i<numRandom; i++) {
-                vcfWriter.add(variantArray[positionToPrint].vc);
-                positionToPrint = nextCircularPosition(positionToPrint);
-            }
-        }
     }
 
 
@@ -746,9 +701,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         GenotypesContext newGC = sub.getGenotypes();
 
-        // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs (because they are no longer accurate)
+        // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs and AD (because they are no longer accurate)
         if ( vc.getAlleles().size() != sub.getAlleles().size() )
-            newGC = VariantContextUtils.stripPLs(sub.getGenotypes());
+            newGC = VariantContextUtils.stripPLsAndAD(sub.getGenotypes());
 
         // if we have fewer samples in the selected VC than in the original VC, we need to strip out the MLE tags
         if ( vc.getNSamples() != sub.getNSamples() ) {
@@ -808,26 +763,5 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         if ( sawDP )
             builder.attribute("DP", depth);
-    }
-
-    private void randomlyAddVariant(int rank, VariantContext vc) {
-        if (nVariantsAdded < numRandom)
-            variantArray[nVariantsAdded++] = new RandomVariantStructure(vc);
-
-        else {
-            double v = GenomeAnalysisEngine.getRandomGenerator().nextDouble();
-            double t = (1.0/(rank-numRandom+1));
-            if ( v < t) {
-                variantArray[positionToAdd].set(vc);
-                nVariantsAdded++;
-                positionToAdd = nextCircularPosition(positionToAdd);
-            }
-        }
-    }
-
-    private int nextCircularPosition(int cur) {
-        if ((cur + 1) == variantArray.length)
-            return 0;
-        return cur + 1;
     }
 }

@@ -182,6 +182,10 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "force_platform", shortName = "fP", required = false, doc = "If provided, the platform of EVERY read will be forced to be the provided String. Valid options are illumina, 454, and solid.")
     public String FORCE_PLATFORM = null;
 
+    @Hidden
+    @Output(fullName = "recal_table_update_log", shortName = "recal_table_update_log", required = false, doc = "If provided, log all updates to the recalibration tables to the given file. For debugging/testing purposes only")
+    public PrintStream RECAL_TABLE_UPDATE_LOG = null;
+
     public File existingRecalibrationReport = null;
 
     public GATKReportTable generateReportTable(final String covariateNames) {

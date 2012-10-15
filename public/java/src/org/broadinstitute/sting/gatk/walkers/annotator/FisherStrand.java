@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
@@ -71,7 +72,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
         }
         else if (stratifiedPerReadAlleleLikelihoodMap != null) {
             // either SNP with no alignment context, or indels: per-read likelihood map needed
-            final int[][] table = getContingencyTable(stratifiedPerReadAlleleLikelihoodMap, vc.getReference(), vc.getAltAlleleWithHighestAlleleCount());
+            final int[][] table = getContingencyTable(stratifiedPerReadAlleleLikelihoodMap, vc);
             return pValueForBestTable(table, null);
         }
         else
@@ -235,14 +236,13 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
      *   allele2   #       #
      * @return a 2x2 contingency table
      */
-    private static int[][] getContingencyTable( final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap,
-                                                final Allele ref, final Allele alt) {
+    private static int[][] getContingencyTable( final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap, final VariantContext vc) {
+        final Allele ref = vc.getReference();
+        final Allele alt = vc.getAltAlleleWithHighestAlleleCount();
         int[][] table = new int[2][2];
 
         for (PerReadAlleleLikelihoodMap maps : stratifiedPerReadAlleleLikelihoodMap.values() ) {
             for (Map.Entry<GATKSAMRecord,Map<Allele,Double>> el : maps.getLikelihoodReadMap().entrySet()) {
-                if ( el.getKey().isReducedRead() ) // ignore reduced reads
-                    continue;
                 final boolean matchesRef = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue()).equals(ref,true);
                 final boolean matchesAlt = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue()).equals(alt,true);
 
@@ -254,7 +254,8 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
                 int row = matchesRef ? 0 : 1;
                 int column = isFW ? 0 : 1;
 
-                table[row][column]++;
+                final GATKSAMRecord read = el.getKey();
+                table[row][column] += (read.isReducedRead() ? read.getReducedCount(ReadUtils.getReadCoordinateForReferenceCoordinate(read, vc.getStart(), ReadUtils.ClippingTail.RIGHT_TAIL)) : 1);
             }
         }
 
@@ -275,7 +276,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             for (PileupElement p : sample.getValue().getBasePileup()) {
-                if ( ! RankSumTest.isUsableBase(p, false) || p.getRead().isReducedRead() ) // ignore deletions and reduced reads
+                if ( ! RankSumTest.isUsableBase(p, false) ) // ignore deletions
                     continue;
 
                 if ( p.getQual() < minQScoreToConsider || p.getMappingQual() < minQScoreToConsider )
@@ -290,7 +291,7 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
                     int row = matchesRef ? 0 : 1;
                     int column = isFW ? 0 : 1;
 
-                    table[row][column]++;
+                    table[row][column] += p.getRepresentativeCount();
                 }
             }
         }

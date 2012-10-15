@@ -477,10 +477,10 @@ class VCFWriter extends IndexingVariantContextWriter {
         else if ( val instanceof List ) {
             result = formatVCFField(((List)val).toArray());
         } else if ( val.getClass().isArray() ) {
-            int length = Array.getLength(val);
+            final int length = Array.getLength(val);
             if ( length == 0 )
                 return formatVCFField(null);
-            StringBuffer sb = new StringBuffer(formatVCFField(Array.get(val, 0)));
+            final StringBuilder sb = new StringBuilder(formatVCFField(Array.get(val, 0)));
             for ( int i = 1; i < length; i++) {
                 sb.append(",");
                 sb.append(formatVCFField(Array.get(val, i)));

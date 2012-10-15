@@ -114,6 +114,9 @@ public class CommandLineGATK extends CommandLineExecutable {
 
     public static final String PICARD_TEXT_SAM_FILE_ERROR_1 = "Cannot use index file with textual SAM file";
     public static final String PICARD_TEXT_SAM_FILE_ERROR_2 = "Cannot retrieve file pointers within SAM text files";
+    public static final String NO_SPACE_LEFT_ON_DEVICE_ERROR = "No space left on device";
+    public static final String DISK_QUOTA_EXCEEDED_ERROR = "Disk quota exceeded";
+
     private static void checkForMaskedUserErrors(final Throwable t) {
         final String message = t.getMessage();
         if ( message == null )
@@ -133,9 +136,9 @@ public class CommandLineGATK extends CommandLineExecutable {
             exitSystemWithUserError(new UserException(t.getCause() == null ? message : t.getCause().getMessage()));
 
         // disk is full
-        if ( message.contains("No space left on device") )
+        if ( message.contains(NO_SPACE_LEFT_ON_DEVICE_ERROR) || message.contains(DISK_QUOTA_EXCEEDED_ERROR) )
             exitSystemWithUserError(new UserException.NoSpaceOnDevice());
-        if ( t.getCause() != null && t.getCause().getMessage().contains("No space left on device") )
+        if ( t.getCause() != null && (t.getCause().getMessage().contains(NO_SPACE_LEFT_ON_DEVICE_ERROR) || t.getCause().getMessage().contains(DISK_QUOTA_EXCEEDED_ERROR)) )
             exitSystemWithUserError(new UserException.NoSpaceOnDevice());
 
         // masked out of memory error

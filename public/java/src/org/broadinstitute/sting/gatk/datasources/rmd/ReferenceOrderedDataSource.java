@@ -34,8 +34,10 @@ import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -239,6 +241,8 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<RMDTrack,LocationAwareS
             } else {
                 return new SeekableRODIterator(header,sequenceDictionary,referenceSequenceDictionary,genomeLocParser,track.getIterator());
             }
+        } catch (FileNotFoundException e) {
+            throw new UserException.CouldNotReadInputFile(fileDescriptor.getName(), "it could not be found");
         } catch (IOException e) {
             throw new ReviewedStingException("Unable to create iterator for rod named " + fileDescriptor.getName(),e);
         }

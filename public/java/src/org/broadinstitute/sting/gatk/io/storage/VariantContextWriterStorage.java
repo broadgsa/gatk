@@ -186,7 +186,7 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
             // that way we don't assume it's a specific type
             final FeatureManager.FeatureDescriptor fd = new FeatureManager().getByFiletype(file);
             if ( fd == null )
-                throw new ReviewedStingException("Unexpectedly couldn't find valid codec for temporary output file " + file);
+                throw new UserException.LocalParallelizationProblem(file);
 
             final FeatureCodec<VariantContext> codec = fd.getCodec();
             final AbstractFeatureReader<VariantContext> source =

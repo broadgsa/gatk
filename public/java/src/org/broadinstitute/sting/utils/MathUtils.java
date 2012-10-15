@@ -58,6 +58,12 @@ public class MathUtils {
     private static final int MAXN = 50000;
     private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
 
+    /**
+     * The smallest log10 value we'll emit from normalizeFromLog10 and other functions
+     * where the real-space value is 0.0.
+     */
+    public final static double LOG10_P_OF_ZERO = -1000000.0;
+
     static {
         log10Cache = new double[LOG10_CACHE_SIZE];
         log10FactorialCache = new double[LOG10_CACHE_SIZE];
@@ -572,16 +578,26 @@ public class MathUtils {
         return normalizeFromLog10(array, takeLog10OfOutput, false);
     }
 
+    /**
+     * See #normalizeFromLog10 but with the additional option to use an approximation that keeps the calculation always in log-space
+     *
+     * @param array
+     * @param takeLog10OfOutput
+     * @param keepInLogSpace
+     *
+     * @return
+     */
     public static double[] normalizeFromLog10(double[] array, boolean takeLog10OfOutput, boolean keepInLogSpace) {
-
         // for precision purposes, we need to add (or really subtract, since they're
         // all negative) the largest value; also, we need to convert to normal-space.
         double maxValue = arrayMax(array);
 
         // we may decide to just normalize in log space without converting to linear space
         if (keepInLogSpace) {
-            for (int i = 0; i < array.length; i++)
+            for (int i = 0; i < array.length; i++) {
                 array[i] -= maxValue;
+                array[i] = Math.max(array[i], LOG10_P_OF_ZERO);
+            }
             return array;
         }
 
@@ -598,7 +614,8 @@ public class MathUtils {
         for (int i = 0; i < array.length; i++) {
             double x = normalized[i] / sum;
             if (takeLog10OfOutput)
-                x = Math.log10(x);
+                x = Math.max(Math.log10(x), LOG10_P_OF_ZERO);
+
             normalized[i] = x;
         }
 
@@ -1665,5 +1682,37 @@ public class MathUtils {
 
         return result;
 
+    }
+
+    /**
+     * Returns a series of integer values between start and stop, inclusive,
+     * expontentially distributed between the two.  That is, if there are
+     * ten values between 0-10 there will be 10 between 10-100.
+     *
+     * WARNING -- BADLY TESTED
+     * @param start
+     * @param stop
+     * @param eps
+     * @return
+     */
+    public static List<Integer> log10LinearRange(final int start, final int stop, final double eps) {
+        final LinkedList<Integer> values = new LinkedList<Integer>();
+        final double log10range = Math.log10(stop - start);
+
+        if ( start == 0 )
+            values.add(0);
+
+        double i = 0.0;
+        while ( i <= log10range ) {
+            final int index = (int)Math.round(Math.pow(10, i)) + start;
+            if ( index < stop && (values.peekLast() == null || values.peekLast() != index ) )
+                values.add(index);
+            i += eps;
+        }
+
+        if ( values.peekLast() == null || values.peekLast() != stop )
+            values.add(stop);
+
+        return values;
     }
 }

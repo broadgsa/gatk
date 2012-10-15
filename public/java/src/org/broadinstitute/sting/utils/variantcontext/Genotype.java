@@ -289,6 +289,24 @@ public abstract class Genotype implements Comparable<Genotype> {
     }
 
     /**
+     * Are all likelihoods for this sample non-informative?
+     *
+     * Returns true if all PLs are 0 => 0,0,0 => true
+     * 0,0,0,0,0,0 => true
+     * 0,10,100 => false
+     *
+     * @return true if all samples PLs are equal and == 0
+     */
+    public boolean isNonInformative() {
+        for ( final int PL : getPL() ) {
+            if ( PL != 0 )
+                return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Unsafe low-level accessor the PL field itself, may be null.
      *
      * @return a pointer to the underlying PL data.  MUST NOT BE MODIFIED!

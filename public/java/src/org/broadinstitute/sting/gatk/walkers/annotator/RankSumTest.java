@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -10,6 +11,7 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsC
 import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.MannWhitneyU;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -19,10 +21,7 @@ import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -30,6 +29,7 @@ import java.util.Map;
  */
 public abstract class RankSumTest extends InfoFieldAnnotation implements ActiveRegionBasedAnnotation {
     static final boolean DEBUG = false;
+    private boolean useDithering = true;
 
     public Map<String, Object> annotate(final RefMetaDataTracker tracker,
                                         final AnnotatorCompatible walker,
@@ -70,7 +70,7 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements ActiveR
         if (refQuals.isEmpty() && altQuals.isEmpty())
             return null;
 
-        final MannWhitneyU mannWhitneyU = new MannWhitneyU();
+        final MannWhitneyU mannWhitneyU = new MannWhitneyU(useDithering);
         for (final Double qual : altQuals) {
             mannWhitneyU.add(qual, MannWhitneyU.USet.SET1);
         }
@@ -130,5 +130,16 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements ActiveR
                  p.getMappingQual() == 0 ||
                  p.getMappingQual() == QualityUtils.MAPPING_QUALITY_UNAVAILABLE ||
                  ((int) p.getQual()) < QualityUtils.MIN_USABLE_Q_SCORE); // need the unBAQed quality score here
+    }
+
+    /**
+     * Initialize the rank sum test annotation using walker and engine information. Right now this checks to see if
+     * engine randomization is turned off, and if so does not dither.
+     * @param walker
+     * @param toolkit
+     * @param headerLines
+     */
+    public void initialize ( AnnotatorCompatible walker, GenomeAnalysisEngine toolkit, Set<VCFHeaderLine> headerLines ) {
+        useDithering = ! toolkit.getArguments().disableRandomization;
     }
 }

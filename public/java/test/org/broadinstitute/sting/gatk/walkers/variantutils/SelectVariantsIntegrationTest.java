@@ -190,7 +190,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -regenotype -sn NA12892 --variant " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("52cb2f150559ca1457e9df7ec153dbb4")
+                Arrays.asList("549321a2543608f214ab4893ab478be6")
         );
 
         executeTest("testRegenotype--" + testFile, spec);
@@ -216,7 +216,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -regenotype -sn NA12892 --variant " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("52cb2f150559ca1457e9df7ec153dbb4")
+                Arrays.asList("549321a2543608f214ab4893ab478be6")
         );
 
         executeTest("testRemoveMLEAndRegenotype--" + testFile, spec);
@@ -255,7 +255,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b37KGReference + " -o %s --no_cmdline_in_header -sf " + samplesFile + " --excludeNonVariants --variant " + testfile,
                 1,
-                Arrays.asList("3ab35d5e81a29fb5db3e2add11c7e823")
+                Arrays.asList("f14d75892b99547d8e9ba3a03bfb04ea")
         );
         executeTest("test select from multi allelic with excludeNonVariants --" + testfile, spec);
     }

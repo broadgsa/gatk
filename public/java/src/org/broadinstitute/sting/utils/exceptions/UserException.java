@@ -129,6 +129,12 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class LocalParallelizationProblem extends UserException {
+        public LocalParallelizationProblem(final File file) {
+            super(String.format("There was a failure because temporary file %s could not be found while running the GATK with more than one thread.  Possible causes for this problem include: your system's open file handle limit is too small, your output or temp directories do not have sufficient space, or just an isolated file system blip", file.getAbsolutePath()));
+        }
+    }
+
     public static class NotEnoughMemory extends UserException {
         public NotEnoughMemory() {
             super(String.format("There was a failure because you did not provide enough memory to run this program.  See the -Xmx JVM argument to adjust the maximum heap size provided to Java"));
@@ -158,6 +164,10 @@ public class UserException extends ReviewedStingException {
 
         public CouldNotReadInputFile(File file, String message) {
             super(String.format("Couldn't read file %s because %s", file.getAbsolutePath(), message));
+        }
+
+        public CouldNotReadInputFile(String file, String message) {
+            super(String.format("Couldn't read file %s because %s", file, message));
         }
 
         public CouldNotReadInputFile(File file, String message, Exception e) {

@@ -27,10 +27,10 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
@@ -249,7 +249,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
                     throw new UserException("Incorrect genotype calculation model chosen. Only [POOLSNP|POOLINDEL|POOLBOTH] supported with this walker if sample ploidy != 2");
                 }
 
-                if (UAC.AFmodel != AlleleFrequencyCalculationModel.Model.POOL)
+                if (UAC.AFmodel != AFCalc.Model.POOL)
                     throw new UserException("Incorrect AF Calculation model. Only POOL model supported if sample ploidy != 2");
 
             }
