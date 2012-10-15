@@ -35,15 +35,15 @@ public class ArgumentMatchSourceUnitTest extends BaseTest {
     public void testCommandLine() {
         ArgumentMatchSource source = ArgumentMatchSource.COMMAND_LINE;
         Assert.assertEquals(source.getType(), ArgumentMatchSourceType.CommandLine);
-        Assert.assertNull(source.getFile());
+        Assert.assertNull(source.getDescription());
     }
 
     @Test
     public void testFile() {
         File f = new File("test");
-        ArgumentMatchSource source = new ArgumentMatchSource(f);
-        Assert.assertEquals(source.getType(), ArgumentMatchSourceType.File);
-        Assert.assertEquals(source.getFile(), f);
+        ArgumentMatchSource source = new ArgumentMatchFileSource(f);
+        Assert.assertEquals(source.getType(), ArgumentMatchSourceType.Provider);
+        Assert.assertEquals(source.getDescription(), "file " + f.getAbsolutePath());
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
@@ -54,8 +54,8 @@ public class ArgumentMatchSourceUnitTest extends BaseTest {
     @Test
     public void testEquals() {
         ArgumentMatchSource cmdLine = ArgumentMatchSource.COMMAND_LINE;
-        ArgumentMatchSource fileA = new ArgumentMatchSource(new File("a"));
-        ArgumentMatchSource fileB = new ArgumentMatchSource(new File("b"));
+        ArgumentMatchSource fileA = new ArgumentMatchFileSource(new File("a"));
+        ArgumentMatchSource fileB = new ArgumentMatchFileSource(new File("b"));
 
         Assert.assertFalse(cmdLine.equals(null));
 
@@ -75,8 +75,8 @@ public class ArgumentMatchSourceUnitTest extends BaseTest {
     @Test
     public void testCompareTo() {
         ArgumentMatchSource cmdLine = ArgumentMatchSource.COMMAND_LINE;
-        ArgumentMatchSource fileA = new ArgumentMatchSource(new File("a"));
-        ArgumentMatchSource fileB = new ArgumentMatchSource(new File("b"));
+        ArgumentMatchSource fileA = new ArgumentMatchFileSource(new File("a"));
+        ArgumentMatchSource fileB = new ArgumentMatchFileSource(new File("b"));
 
         Assert.assertTrue(cmdLine.compareTo(cmdLine) == 0);
         Assert.assertTrue(cmdLine.compareTo(fileA) < 0);

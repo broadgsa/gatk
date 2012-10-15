@@ -31,7 +31,6 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.io.File;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
@@ -111,10 +110,10 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches )  {
         // Extract all possible parameters that could be passed to a BAM file writer?
         ArgumentDefinition bamArgumentDefinition = createBAMArgumentDefinition(source);
-        String writerFileName = getArgumentValue( bamArgumentDefinition, matches );
+        ArgumentMatchValue writerFileName = getArgumentValue( bamArgumentDefinition, matches );
 
-        String compressionLevelText = getArgumentValue( createBAMCompressionArgumentDefinition(source), matches );
-        Integer compressionLevel = compressionLevelText != null ? Integer.valueOf(compressionLevelText) : null;
+        ArgumentMatchValue compressionLevelText = getArgumentValue( createBAMCompressionArgumentDefinition(source), matches );
+        Integer compressionLevel = compressionLevelText != null ? Integer.valueOf(compressionLevelText.asString()) : null;
 
         boolean indexOnTheFly = !argumentIsPresent(disableWriteIndexArgumentDefinition(source),matches);
         boolean generateMD5 = argumentIsPresent(this.enableMD5GenerationArgumentDefinition(source),matches);
@@ -124,14 +123,14 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
 
         // This parser has been passed a null filename and the GATK is not responsible for creating a type default for the object;
         // therefore, the user must have failed to specify a type default
-        if(writerFileName == null && generateMD5)
+        if(writerFileName.asFile() == null && generateMD5)
                 throw new ArgumentException("MD5 generation specified, but no output file specified.  If md5 generation is desired, please specify a BAM output file and an md5 file will be written alongside.");
 
         // Create the stub and set parameters.
         SAMFileWriterStub stub = null;      // stub = new SAMFileWriterStub(engine, defaultOutputStream);
 
-        if ( writerFileName != null ) {
-            stub = new SAMFileWriterStub(engine, new File(writerFileName));
+        if ( writerFileName.asFile() != null ) {
+            stub = new SAMFileWriterStub(engine, writerFileName.asFile());
 
             if ( compressionLevel != null )
                 stub.setCompressionLevel(compressionLevel);
