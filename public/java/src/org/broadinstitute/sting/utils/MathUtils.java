@@ -51,8 +51,8 @@ public class MathUtils {
     public static final double[] log10Cache;
     public static final double[] log10FactorialCache;
     private static final double[] jacobianLogTable;
-    private static final double JACOBIAN_LOG_TABLE_STEP = 0.001;
-    private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / 0.001;
+    private static final double JACOBIAN_LOG_TABLE_STEP = 0.0001;
+    private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / JACOBIAN_LOG_TABLE_STEP;
     private static final double MAX_JACOBIAN_TOLERANCE = 8.0;
     private static final int JACOBIAN_LOG_TABLE_SIZE = (int) (MAX_JACOBIAN_TOLERANCE / JACOBIAN_LOG_TABLE_STEP) + 1;
     private static final int MAXN = 50000;
