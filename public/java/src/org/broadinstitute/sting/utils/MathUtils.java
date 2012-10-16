@@ -596,7 +596,6 @@ public class MathUtils {
         if (keepInLogSpace) {
             for (int i = 0; i < array.length; i++) {
                 array[i] -= maxValue;
-                array[i] = Math.max(array[i], LOG10_P_OF_ZERO);
             }
             return array;
         }
@@ -613,8 +612,11 @@ public class MathUtils {
             sum += normalized[i];
         for (int i = 0; i < array.length; i++) {
             double x = normalized[i] / sum;
-            if (takeLog10OfOutput)
-                x = Math.max(Math.log10(x), LOG10_P_OF_ZERO);
+            if (takeLog10OfOutput) {
+                x = Math.log10(x);
+                if ( x < LOG10_P_OF_ZERO || Double.isInfinite(x) )
+                    x = array[i] - maxValue;
+            }
 
             normalized[i] = x;
         }

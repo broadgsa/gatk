@@ -271,15 +271,7 @@ public class AFCalcResult {
         final double[] log10UnnormalizedPosteriors = new double[log10LikelihoodsOfAC.length];
         for ( int i = 0; i < log10LikelihoodsOfAC.length; i++ )
             log10UnnormalizedPosteriors[i] = log10LikelihoodsOfAC[i] + log10PriorsOfAC[i];
-
-        // necessary because the posteriors may be so skewed that the log-space normalized value isn't
-        // good, so we have to try both log-space normalization as well as the real-space normalization if the
-        // result isn't good
-        final double[] logNormalized = MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, false);
-        if ( goodLog10ProbVector(logNormalized, logNormalized.length, true) )
-            return logNormalized;
-        else
-            return MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, true);
+        return MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, false);
     }
 
     /**
