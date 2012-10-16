@@ -100,7 +100,7 @@ class QCommandLine extends CommandLineProgram with Logging {
     new PluginManager[QStatusMessenger](classOf[QStatusMessenger])
   }
 
-  QFunction.parsingEngine = new ParsingEngine(this)
+  ClassFieldCache.parsingEngine = new ParsingEngine(this)
 
   /**
    * Takes the QScripts passed in, runs their script() methods, retrieves their generated
@@ -127,6 +127,9 @@ class QCommandLine extends CommandLineProgram with Logging {
     for (script <- allQScripts) {
       logger.info("Scripting " + qScriptPluginManager.getName(script.getClass.asSubclass(classOf[QScript])))
       loadArgumentsIntoObject(script)
+      // TODO: Pulling inputs can be time/io expensive! Some scripts are using the files to generate functions-- even for dry runs-- so pull it all down for now.
+      //if (settings.run)
+      script.pullInputs()
       script.qSettings = settings.qSettings
       try {
         script.script()
@@ -136,10 +139,6 @@ class QCommandLine extends CommandLineProgram with Logging {
       }
       script.functions.foreach(qGraph.add(_))
       logger.info("Added " + script.functions.size + " functions")
-    }
-
-    if (settings.run) {
-      allQScripts.foreach(_.pullInputs())
     }
 
     // Execute the job graph
@@ -170,7 +169,7 @@ class QCommandLine extends CommandLineProgram with Logging {
       if (settings.run) {
         allQScripts.foreach(_.pushOutputs())
         for (statusMessenger <- allStatusMessengers)
-          statusMessenger.done()
+          statusMessenger.done(allQScripts.map(_.remoteOutputs))
       }
       0
     }

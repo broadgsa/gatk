@@ -28,8 +28,7 @@ import engine.JobRunInfo
 import org.broadinstitute.sting.queue.function.QFunction
 import annotation.target.field
 import util._
-import org.broadinstitute.sting.utils.classloader.JVMUtils
-import java.lang.reflect.Field
+import org.broadinstitute.sting.commandline.ArgumentSource
 
 /**
  * Defines a Queue pipeline as a collection of CommandLineFunctions.
@@ -110,31 +109,29 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
   }
 
   def pullInputs() {
-    val inputs = getInputs
-    inputs.filter(_.isInstanceOf[RemoteFile]).map(_.asInstanceOf[RemoteFile]).foreach(_.pullToLocal())
+    val inputs = ClassFieldCache.getFieldFiles(this, inputFields)
+    filterRemoteFiles(inputs).foreach(_.pullToLocal())
   }
 
   def pushOutputs() {
-    val outputs = getOutputs
-    outputs.filter(_.isInstanceOf[RemoteFile]).map(_.asInstanceOf[RemoteFile]).foreach(_.pushToRemote())
+    val outputs = ClassFieldCache.getFieldFiles(this, outputFields)
+    filterRemoteFiles(outputs).foreach(_.pushToRemote())
   }
 
-  private def getInputs: Seq[File] = {
-    getFieldValues(classOf[Input])
-  }
+  def remoteOutputs: Map[ArgumentSource, Seq[RemoteFile]] =
+    outputFields.map(field => (field -> filterRemoteFiles(ClassFieldCache.getFieldFiles(this, field)))).filter(tuple => !tuple._2.isEmpty).toMap
 
-  private def getOutputs: Seq[File] = {
-    getFieldValues(classOf[Output])
-  }
+  private def filterRemoteFiles(fields: Seq[File]): Seq[RemoteFile] =
+    fields.filter(field => field != null && field.isInstanceOf[RemoteFile]).map(_.asInstanceOf[RemoteFile])
 
-  private def getFieldValues(annotation: Class[_ <: java.lang.annotation.Annotation]): Seq[File] = {
-    val filtered: Seq[Field] = fields.filter(field => ReflectionUtils.hasAnnotation(field, annotation))
-    val files = filtered.filter(field => classOf[File].isAssignableFrom(field.getType)).map(field => ReflectionUtils.getValue(this, field).asInstanceOf[File])
-    val seqFiles = filtered.filter(field => classOf[Seq[File]].isAssignableFrom(field.getType)).map(field => ReflectionUtils.getValue(this, field).asInstanceOf[Seq[File]])
-    seqFiles.foldLeft(files)(_ ++ _).filter(_ != null)
-  }
-
-  private lazy val fields = collection.JavaConversions.asScalaBuffer(JVMUtils.getAllFields(this.getClass)).toSeq
+  /** The complete list of fields. */
+  def functionFields: Seq[ArgumentSource] = ClassFieldCache.classFunctionFields(this.getClass)
+  /** The @Input fields. */
+  def inputFields: Seq[ArgumentSource] = ClassFieldCache.classInputFields(this.getClass)
+  /** The @Output fields. */
+  def outputFields: Seq[ArgumentSource] = ClassFieldCache.classOutputFields(this.getClass)
+  /** The @Argument fields. */
+  def argumentFields: Seq[ArgumentSource] = ClassFieldCache.classArgumentFields(this.getClass)
 }
 
 object QScript {
