@@ -21,7 +21,7 @@ public class NanoSchedulerIntegrationTest extends WalkerTest {
             for ( final int nct : Arrays.asList(1, 2) ) {
 //                tests.add(new Object[]{ "SNP",   "a1c7546f32a8919a3f3a70a04b2e8322", nt, nct });
 ////                tests.add(new Object[]{ "INDEL", "0a6d2be79f4f8a4b0eb788cc4751b31b", nt, nct });
-                tests.add(new Object[]{ "BOTH",  "f8184e336dec7632408aa9afa98e6914", nt, nct });
+                tests.add(new Object[]{ "BOTH",  "8cad82c3a5f5b932042933f136663c8a", nt, nct });
             }
 
         return tests.toArray(new Object[][]{});

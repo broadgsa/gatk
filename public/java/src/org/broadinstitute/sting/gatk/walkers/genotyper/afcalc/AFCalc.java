@@ -28,20 +28,17 @@ package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.sting.utils.SimpleTimer;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
+import java.io.File;
 import java.util.List;
 
 
 /**
  * Generic interface for calculating the probability of alleles segregating given priors and genotype likelihoods
- *
  */
 public abstract class AFCalc implements Cloneable {
     private final static Logger defaultLogger = Logger.getLogger(AFCalc.class);
@@ -53,8 +50,8 @@ public abstract class AFCalc implements Cloneable {
     protected Logger logger = defaultLogger;
 
     private SimpleTimer callTimer = new SimpleTimer();
-    private PrintStream callReport = null;
     private final AFCalcResultTracker resultTracker;
+    private ExactCallLogger exactCallLogger = null;
 
     protected AFCalc(final int nSamples, final int maxAltAlleles, final int maxAltAllelesForIndels, final int ploidy) {
         if ( nSamples < 0 ) throw new IllegalArgumentException("nSamples must be greater than zero " + nSamples);
@@ -69,7 +66,7 @@ public abstract class AFCalc implements Cloneable {
     }
 
     public void enableProcessLog(final File exactCallsLog) {
-        initializeOutputFile(exactCallsLog);
+        exactCallLogger = new ExactCallLogger(exactCallsLog);
     }
 
     public void setLogger(Logger logger) {
@@ -97,8 +94,8 @@ public abstract class AFCalc implements Cloneable {
         final AFCalcResult result = computeLog10PNonRef(vcWorking, log10AlleleFrequencyPriors);
         final long nanoTime = callTimer.getElapsedTimeNano();
 
-        if ( callReport != null )
-            printCallInfo(vcWorking, log10AlleleFrequencyPriors, nanoTime, resultTracker.getLog10PosteriorOfAFzero());
+        if ( exactCallLogger != null )
+            exactCallLogger.printCallInfo(vcWorking, log10AlleleFrequencyPriors, nanoTime, result);
 
         return result;
     }
@@ -163,130 +160,6 @@ public abstract class AFCalc implements Cloneable {
 
     public int getMaxAltAlleles() {
         return Math.max(maxAlternateAllelesToGenotype, maxAlternateAllelesForIndels);
-    }
-
-
-    // ---------------------------------------------------------------------------
-    //
-    // Print information about the call to the calls log
-    //
-    // ---------------------------------------------------------------------------
-
-    private void initializeOutputFile(final File outputFile) {
-        try {
-            if (outputFile != null) {
-                callReport = new PrintStream( new FileOutputStream(outputFile) );
-                callReport.println(Utils.join("\t", Arrays.asList("loc", "variable", "key", "value")));
-            }
-        } catch ( FileNotFoundException e ) {
-            throw new UserException.CouldNotCreateOutputFile(outputFile, e);
-        }
-    }
-
-    private void printCallInfo(final VariantContext vc,
-                               final double[] log10AlleleFrequencyPriors,
-                               final long runtimeNano,
-                               final double log10PosteriorOfAFzero) {
-        printCallElement(vc, "type", "ignore", vc.getType());
-
-        int allelei = 0;
-        for ( final Allele a : vc.getAlleles() )
-            printCallElement(vc, "allele", allelei++, a.getDisplayString());
-
-        for ( final Genotype g : vc.getGenotypes() )
-            printCallElement(vc, "PL", g.getSampleName(), g.getLikelihoodsString());
-
-        for ( int priorI = 0; priorI < log10AlleleFrequencyPriors.length; priorI++ )
-            printCallElement(vc, "priorI", priorI, log10AlleleFrequencyPriors[priorI]);
-
-        printCallElement(vc, "runtime.nano", "ignore", runtimeNano);
-        printCallElement(vc, "log10PosteriorOfAFzero", "ignore", log10PosteriorOfAFzero);
-
-        callReport.flush();
-    }
-
-    private void printCallElement(final VariantContext vc,
-                                  final Object variable,
-                                  final Object key,
-                                  final Object value) {
-        final String loc = String.format("%s:%d", vc.getChr(), vc.getStart());
-        callReport.println(Utils.join("\t", Arrays.asList(loc, variable, key, value)));
-    }
-
-    public static class ExactCall {
-        final VariantContext vc;
-        final long origNanoTime;
-        long newNanoTime = -1;
-        final double origPNonRef;
-        double newPNonRef = -1;
-
-        public ExactCall(VariantContext vc, long origNanoTime, double origPNonRef) {
-            this.vc = vc;
-            this.origNanoTime = origNanoTime;
-            this.origPNonRef = origPNonRef;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("ExactCall %s:%d alleles=%s nSamples=%s orig.pNonRef=%.2f orig.runtime=%s new.pNonRef=%.2f new.runtime=%s",
-                    vc.getChr(), vc.getStart(), vc.getAlleles(), vc.getNSamples(),
-                    origPNonRef,
-                    new AutoFormattingTime(origNanoTime / 1e9).toString(),
-                    newPNonRef,
-                    newNanoTime == -1 ? "not.run" : new AutoFormattingTime(newNanoTime / 1e9).toString());
-        }
-    }
-
-    public static List<ExactCall> readExactLog(final BufferedReader reader, final List<Integer> startsToKeep, GenomeLocParser parser) throws IOException {
-        List<ExactCall> calls = new LinkedList<ExactCall>();
-
-        // skip the header line
-        reader.readLine();
-
-        while ( true ) {
-            final VariantContextBuilder builder = new VariantContextBuilder();
-            final List<Allele> alleles = new ArrayList<Allele>();
-            final List<Genotype> genotypes = new ArrayList<Genotype>();
-            long runtimeNano = -1;
-
-            GenomeLoc currentLoc = null;
-            while ( true ) {
-                final String line = reader.readLine();
-                if ( line == null )
-                    return calls;
-
-                final String[] parts = line.split("\t");
-                final GenomeLoc lineLoc = parser.parseGenomeLoc(parts[0]);
-                final String variable = parts[1];
-                final String key = parts[2];
-                final String value = parts[3];
-
-                if ( currentLoc == null )
-                    currentLoc = lineLoc;
-
-                if ( variable.equals("log10PosteriorOfAFzero") ) {
-                    if ( startsToKeep.isEmpty() || startsToKeep.contains(currentLoc.getStart()) ) {
-                        builder.alleles(alleles);
-                        final int stop = currentLoc.getStart() + alleles.get(0).length() - 1;
-                        builder.chr(currentLoc.getContig()).start(currentLoc.getStart()).stop(stop);
-                        builder.genotypes(genotypes);
-                        calls.add(new ExactCall(builder.make(), runtimeNano, Double.valueOf(value)));
-                    }
-                    break;
-                } else if ( variable.equals("allele") ) {
-                    final boolean isRef = key.equals("0");
-                    alleles.add(Allele.create(value, isRef));
-                } else if ( variable.equals("PL") ) {
-                    final GenotypeBuilder gb = new GenotypeBuilder(key);
-                    gb.PL(GenotypeLikelihoods.fromPLField(value).getAsPLs());
-                    genotypes.add(gb.make());
-                } else if ( variable.equals("runtime.nano") ) {
-                    runtimeNano = Long.valueOf(value);
-                } else {
-                    // nothing to do
-                }
-            }
-        }
     }
 
     public AFCalcResultTracker getResultTracker() {
