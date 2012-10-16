@@ -91,6 +91,7 @@ import java.util.*;
      */
     private final static double MIN_LOG10_CONFIDENCE_TO_INCLUDE_ALLELE_IN_POSTERIOR = Math.log10(1e-20);
 
+    private final static int[] BIALLELIC_NON_INFORMATIVE_PLS = new int[]{0,0,0};
     private final static List<Allele> BIALLELIC_NOCALL = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 
     /**
@@ -105,19 +106,23 @@ import java.util.*;
 
     private final static CompareAFCalcResultsByPNonRef compareAFCalcResultsByPNonRef = new CompareAFCalcResultsByPNonRef();
 
-    final ReferenceDiploidExactAFCalc refModel;
+    /**
+     * The AFCalc model we are using to do the bi-allelic computation
+     */
+    final AFCalc biAlleleExactModel;
 
     protected IndependentAllelesDiploidExactAFCalc(int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, final int ploidy) {
         super(nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy);
-        refModel = new ReferenceDiploidExactAFCalc(nSamples, 1, 1, ploidy);
+        biAlleleExactModel = new ReferenceDiploidExactAFCalc(nSamples, 1, 1, ploidy);
     }
 
-    @Override
-    protected StateTracker makeMaxLikelihood(VariantContext vc, AFCalcResultTracker resultTracker) {
-        return refModel.makeMaxLikelihood(vc, resultTracker);
-    }
-
+    /**
+     * Trivial subclass that helps with debugging by keeping track of the supporting information for this joint call
+     */
     private static class MyAFCalcResult extends AFCalcResult {
+        /**
+         * List of the supporting bi-allelic AFCalcResults that went into making this multi-allelic joint call
+         */
         final List<AFCalcResult> supporting;
 
         private MyAFCalcResult(int[] alleleCountsOfMLE, int nEvaluations, List<Allele> allelesUsedInGenotyping, double[] log10LikelihoodsOfAC, double[] log10PriorsOfAC, Map<Allele, Double> log10pNonRefByAllele, List<AFCalcResult> supporting) {
@@ -129,58 +134,89 @@ import java.util.*;
     @Override
     public AFCalcResult computeLog10PNonRef(final VariantContext vc,
                                             final double[] log10AlleleFrequencyPriors) {
-        final List<AFCalcResult> independentResultTrackers = computeAlleleConditionalExact(vc, log10AlleleFrequencyPriors);
+        final List<AFCalcResult> independentResultTrackers = computeAlleleIndependentExact(vc, log10AlleleFrequencyPriors);
         final List<AFCalcResult> withMultiAllelicPriors = applyMultiAllelicPriors(independentResultTrackers);
         return combineIndependentPNonRefs(vc, withMultiAllelicPriors);
     }
 
 
     /**
+     * Compute the conditional exact AFCalcResult for each allele in vc independently, returning
+     * the result of each, in order of the alt alleles in VC
      *
-     * @param vc
-     * @param log10AlleleFrequencyPriors
-     * @return
+     * @param vc the VariantContext we want to analyze
+     * @param log10AlleleFrequencyPriors the priors
+     * @return a list of the AFCalcResults for each bi-allelic sub context of vc
      */
-    protected List<AFCalcResult> computeAlleleConditionalExact(final VariantContext vc,
-                                                               final double[] log10AlleleFrequencyPriors) {
+    @Requires({"vc != null", "log10AlleleFrequencyPriors != null"})
+    @Ensures("goodIndependentResult(vc, result)")
+    protected final List<AFCalcResult> computeAlleleIndependentExact(final VariantContext vc,
+                                                                     final double[] log10AlleleFrequencyPriors) {
         final List<AFCalcResult> results = new LinkedList<AFCalcResult>();
 
         for ( final VariantContext subvc : makeAlleleConditionalContexts(vc) ) {
-            final AFCalcResult resultTracker = refModel.getLog10PNonRef(subvc, log10AlleleFrequencyPriors);
+            final AFCalcResult resultTracker = biAlleleExactModel.getLog10PNonRef(subvc, log10AlleleFrequencyPriors);
             results.add(resultTracker);
         }
 
         return results;
     }
 
-    protected List<VariantContext> makeAlleleConditionalContexts(final VariantContext vc) {
+    /**
+     * Helper function to ensure that the computeAlleleIndependentExact is returning reasonable results
+     */
+    private static boolean goodIndependentResult(final VariantContext vc, final List<AFCalcResult> results) {
+        if ( results.size() != vc.getNAlleles() - 1) return false;
+        for ( int i = 0; i < results.size(); i++ ) {
+            if ( results.get(i).getAllelesUsedInGenotyping().size() != 2 )
+                return false;
+            if ( ! results.get(i).getAllelesUsedInGenotyping().contains(vc.getAlternateAllele(i)) )
+                return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Returns the bi-allelic variant context for each alt allele in vc with bi-allelic likelihoods, in order
+     *
+     * @param vc the variant context to split.  Must have n.alt.alleles > 1
+     * @return a bi-allelic variant context for each alt allele in vc
+     */
+    @Requires({"vc != null", "vc.getNAlleles() > 1"})
+    @Ensures("result.size() == vc.getNAlleles() - 1")
+    protected final List<VariantContext> makeAlleleConditionalContexts(final VariantContext vc) {
         final int nAltAlleles = vc.getNAlleles() - 1;
         final List<VariantContext> vcs = new LinkedList<VariantContext>();
 
-        final List<Allele> afZeroAlleles = new LinkedList<Allele>();
         for ( int altI = 0; altI < nAltAlleles; altI++ ) {
-            final Allele altAllele = vc.getAlternateAllele(altI);
-            final List<Allele> biallelic = Arrays.asList(vc.getReference(), altAllele);
-            vcs.add(biallelicCombinedGLs(vc, biallelic, afZeroAlleles, altI + 1));
-            //afZeroAlleles.add(altAllele);
+            vcs.add(biallelicCombinedGLs(vc, altI + 1));
         }
 
         return vcs;
     }
 
-    protected VariantContext biallelicCombinedGLs(final VariantContext rootVC, final List<Allele> biallelic, final List<Allele> afZeroAlleles, final int allele2) {
+    /**
+     * Create a single bi-allelic variant context from rootVC with alt allele with index altAlleleIndex
+     *
+     * @param rootVC the root (potentially multi-allelic) variant context
+     * @param altAlleleIndex index of the alt allele, from 0 == first alt allele
+     * @return a bi-allelic variant context based on rootVC
+     */
+    @Requires({"rootVC.getNAlleles() > 1", "altAlleleIndex < rootVC.getNAlleles()"})
+    @Ensures({"result.isBiallelic()"})
+    protected final VariantContext biallelicCombinedGLs(final VariantContext rootVC, final int altAlleleIndex) {
         if ( rootVC.isBiallelic() ) {
-            if ( ! afZeroAlleles.isEmpty() ) throw new IllegalArgumentException("Root VariantContext is biallelic but afZeroAlleles wasn't empty: " + afZeroAlleles);
             return rootVC;
         } else {
-            final Set<Integer> allelesToDiscard = new HashSet<Integer>(rootVC.getAlleleIndices(afZeroAlleles));
             final int nAlts = rootVC.getNAlleles() - 1;
             final List<Genotype> biallelicGenotypes = new ArrayList<Genotype>(rootVC.getNSamples());
             for ( final Genotype g : rootVC.getGenotypes() )
-                biallelicGenotypes.add(combineGLs(g, allele2, allelesToDiscard, nAlts));
+                biallelicGenotypes.add(combineGLs(g, altAlleleIndex, nAlts));
 
             final VariantContextBuilder vcb = new VariantContextBuilder(rootVC);
-            vcb.alleles(biallelic);
+            final Allele altAllele = rootVC.getAlternateAllele(altAlleleIndex - 1);
+            vcb.alleles(Arrays.asList(rootVC.getReference(), altAllele));
             vcb.genotypes(biallelicGenotypes);
             return vcb.make();
         }
@@ -201,30 +237,16 @@ import java.util.*;
      * XB = AB + BC
      * BB = BB
      *
-     * Supports the additional mode of simply dropping GLs whose allele index occurs in allelesToDiscard.  This is
-     * useful in the case where you want to drop alleles (not combine them), such as above:
-     *
-     * AA AB BB AC BC CC
-     *
-     * and we want to get the bi-allelic GLs for X/B, where X is everything not B, but dropping C (index 2)
-     *
-     * XX = AA (since X = A and C is dropped)
-     * XB = AB
-     * BB = BB
-     *
-     * This allows us to recover partial GLs the correspond to any allele in allelesToDiscard having strictly
-     * AF == 0.
-     *
      * @param original the original multi-allelic genotype
      * @param altIndex the index of the alt allele we wish to keep in the bialleic case -- with ref == 0
      * @param nAlts the total number of alt alleles
      * @return a new biallelic genotype with appropriate PLs
      */
-    @Requires({"original.hasLikelihoods()", "! allelesToDiscard.contains(altIndex)"})
+    @Requires({"original.hasLikelihoods()"}) // TODO -- add ploidy == 2 test "original.getPLs() == null || original.getPLs().length == 3"})
     @Ensures({"result.hasLikelihoods()", "result.getPL().length == 3"})
-    protected Genotype combineGLs(final Genotype original, final int altIndex, final Set<Integer> allelesToDiscard, final int nAlts ) {
+    protected Genotype combineGLs(final Genotype original, final int altIndex, final int nAlts ) {
         if ( original.isNonInformative() )
-            return new GenotypeBuilder(original).PL(new int[]{0,0,0}).alleles(BIALLELIC_NOCALL).make();
+            return new GenotypeBuilder(original).PL(BIALLELIC_NON_INFORMATIVE_PLS).alleles(BIALLELIC_NOCALL).make();
 
         if ( altIndex < 1 || altIndex > nAlts ) throw new IllegalStateException("altIndex must be between 1 and nAlts " + nAlts);
 
@@ -233,10 +255,6 @@ import java.util.*;
 
         for ( int index = 0; index < normalizedPr.length; index++ ) {
             final GenotypeLikelihoods.GenotypeLikelihoodsAllelePair pair = GenotypeLikelihoods.getAllelePair(index);
-
-            // just continue if we shouldn't include the pair because it's in the discard set
-            if ( discardAllelePair(pair, allelesToDiscard) )
-                continue;
 
             if ( pair.alleleIndex1 == altIndex ) {
                 if ( pair.alleleIndex2 == altIndex )
@@ -261,11 +279,7 @@ import java.util.*;
         return new GenotypeBuilder(original).PL(GLs).alleles(BIALLELIC_NOCALL).make();
     }
 
-    protected boolean discardAllelePair(final GenotypeLikelihoods.GenotypeLikelihoodsAllelePair pair, Set<Integer> allelesToDiscard) {
-        return allelesToDiscard.contains(pair.alleleIndex1) || allelesToDiscard.contains(pair.alleleIndex2);
-    }
-
-    protected List<AFCalcResult> applyMultiAllelicPriors(final List<AFCalcResult> conditionalPNonRefResults) {
+    protected final List<AFCalcResult> applyMultiAllelicPriors(final List<AFCalcResult> conditionalPNonRefResults) {
         final ArrayList<AFCalcResult> sorted = new ArrayList<AFCalcResult>(conditionalPNonRefResults);
 
         // sort the results, so the most likely allele is first
@@ -288,6 +302,8 @@ import java.util.*;
 
     /**
      * Take the independent estimates of pNonRef for each alt allele and combine them into a single result
+     *
+     * TODO -- add more docs
      *
      * @param sortedResultsWithThetaNPriors the pNonRef result for each allele independently
      */
