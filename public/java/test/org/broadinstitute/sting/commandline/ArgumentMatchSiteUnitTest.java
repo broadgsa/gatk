@@ -39,7 +39,7 @@ public class ArgumentMatchSiteUnitTest {
 
     @Test
     public void testFile() {
-        ArgumentMatchSource source = new ArgumentMatchSource(new File("test"));
+        ArgumentMatchSource source = new ArgumentMatchFileSource(new File("test"));
         ArgumentMatchSite site = new ArgumentMatchSite(source, 1);
         Assert.assertEquals(site.getSource(), source);
         Assert.assertEquals(site.getIndex(), 1);

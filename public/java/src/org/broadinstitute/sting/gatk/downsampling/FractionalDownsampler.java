@@ -33,7 +33,10 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Fractional Downsampler: selects a specified fraction of the reads for inclusion
+ * Fractional Downsampler: selects a specified fraction of the reads for inclusion.
+ *
+ * Since the selection is done randomly, the actual fraction of reads retained may be slightly
+ * more or less than the requested fraction, depending on the total number of reads submitted.
  *
  * @author David Roazen
  */
@@ -43,8 +46,16 @@ public class FractionalDownsampler<T extends SAMRecord> implements ReadsDownsamp
 
     private int cutoffForInclusion;
 
+    private int numDiscardedItems;
+
     private static final int RANDOM_POOL_SIZE = 10000;
 
+    /**
+     * Construct a FractionalDownsampler
+     *
+     * @param fraction Fraction of reads to preserve, between 0.0 (inclusive) and 1.0 (inclusive).
+     *                 Actual number of reads preserved may differ randomly.
+     */
     public FractionalDownsampler( double fraction ) {
         if ( fraction < 0.0 || fraction > 1.0 ) {
             throw new ReviewedStingException("Fraction of reads to include must be between 0.0 and 1.0, inclusive");
@@ -52,11 +63,15 @@ public class FractionalDownsampler<T extends SAMRecord> implements ReadsDownsamp
 
         cutoffForInclusion = (int)(fraction * RANDOM_POOL_SIZE);
         clear();
+        reset();
     }
 
     public void submit( T newRead ) {
         if ( GenomeAnalysisEngine.getRandomGenerator().nextInt(10000) < cutoffForInclusion ) {
             selectedReads.add(newRead);
+        }
+        else {
+            numDiscardedItems++;
         }
     }
 
@@ -66,11 +81,12 @@ public class FractionalDownsampler<T extends SAMRecord> implements ReadsDownsamp
         }
     }
 
-    public boolean hasDownsampledItems() {
+    public boolean hasFinalizedItems() {
         return selectedReads.size() > 0;
     }
 
-    public List<T> consumeDownsampledItems() {
+    public List<T> consumeFinalizedItems() {
+        // pass by reference rather than make a copy, for speed
         List<T> downsampledItems = selectedReads;
         clear();
         return downsampledItems;
@@ -78,6 +94,18 @@ public class FractionalDownsampler<T extends SAMRecord> implements ReadsDownsamp
 
     public boolean hasPendingItems() {
         return false;
+    }
+
+    public T peekFinalized() {
+        return selectedReads.isEmpty() ? null : selectedReads.get(0);
+    }
+
+    public T peekPending() {
+        return null;
+    }
+
+    public int getNumberOfDiscardedItems() {
+        return numDiscardedItems;
     }
 
     public void signalEndOfInput() {
@@ -88,7 +116,15 @@ public class FractionalDownsampler<T extends SAMRecord> implements ReadsDownsamp
         selectedReads = new ArrayList<T>();
     }
 
+    public void reset() {
+        numDiscardedItems = 0;
+    }
+
     public boolean requiresCoordinateSortOrder() {
         return false;
+    }
+
+    public void signalNoMoreReadsBefore( T read ) {
+        // NO-OP
     }
 }

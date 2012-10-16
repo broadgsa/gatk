@@ -121,8 +121,6 @@ public class TraverseReadsUnitTest extends BaseTest {
         Object accumulator = countReadWalker.reduceInit();
 
         for(Shard shard: shardStrategy) {
-            traversalEngine.startTimersIfNecessary();
-
             if (shard == null) {
                 fail("Shard == null");
             }

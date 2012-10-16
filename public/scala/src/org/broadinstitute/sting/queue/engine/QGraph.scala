@@ -39,7 +39,7 @@ import collection.immutable.{TreeSet, TreeMap}
 import org.broadinstitute.sting.queue.function.scattergather.{ScatterFunction, CloneFunction, GatherFunction, ScatterGatherableFunction}
 import java.util.Date
 import org.broadinstitute.sting.utils.Utils
-import org.apache.commons.io.{FileUtils, IOUtils}
+import org.apache.commons.io.{FilenameUtils, FileUtils, IOUtils}
 import java.io.{OutputStreamWriter, File}
 
 /**
@@ -71,6 +71,16 @@ class QGraph extends Logging {
   private val inProcessManager = new InProcessJobManager
   private def managers = Seq[Any](inProcessManager, commandLineManager)
 
+  /**
+   * If true, we will write out incremental job reports
+   */
+  private val INCREMENTAL_JOBS_REPORT = true
+
+  /**
+   * Holds the optional jobInfoReporter structure
+   */
+  private var jobInfoReporter: QJobsReporter = null
+
   private class StatusCounts {
     var pending = 0
     var running = 0
@@ -78,6 +88,19 @@ class QGraph extends Logging {
     var done = 0
   }
   private val statusCounts = new StatusCounts
+
+  /**
+   * Final initialization step of this QGraph -- tell it runtime setting information
+   *
+   * The settings aren't necessarily available until after this QGraph object has been constructed, so
+   * this function must be called once the QGraphSettings have been filled in.
+   *
+   * @param settings
+   */
+  def initializeWithSettings(settings: QGraphSettings) {
+    this.settings = settings
+    this.jobInfoReporter = createJobsReporter()
+  }
 
   /**
    * Adds a QScript created CommandLineFunction to the graph.
@@ -465,6 +488,12 @@ class QGraph extends Logging {
         if (running && failedJobs.size > 0) {
           emailFailedJobs(failedJobs)
           checkRetryJobs(failedJobs)
+        }
+
+        // incremental
+        if ( logNextStatusCounts && INCREMENTAL_JOBS_REPORT ) {
+          logger.info("Writing incremental jobs reports...")
+          writeJobsReport(false)
         }
 
         readyJobs ++= getReadyJobs
@@ -1082,6 +1111,39 @@ class QGraph extends Logging {
           }
       }
     }
+  }
+
+  /**
+   * Create the jobsReporter for this QGraph, based on the settings data.
+   *
+   * Must be called after settings has been initialized properly
+   *
+   * @return
+   */
+  private def createJobsReporter(): QJobsReporter = {
+    val jobStringName = if (settings.jobReportFile != null)
+      settings.jobReportFile
+    else
+      settings.qSettings.runName + ".jobreport.txt"
+
+    val reportFile = org.broadinstitute.sting.utils.io.IOUtils.absolute(settings.qSettings.runDirectory, jobStringName)
+
+    val pdfFile = if ( settings.run )
+      Some(org.broadinstitute.sting.utils.io.IOUtils.absolute(settings.qSettings.runDirectory, FilenameUtils.removeExtension(jobStringName) + ".pdf"))
+    else
+      None
+
+    new QJobsReporter(settings.disableJobReport, reportFile, pdfFile)
+  }
+
+  /**
+   * Write, if possible, the jobs report
+   */
+  def writeJobsReport(plot: Boolean = true) {
+    // note: the previous logic didn't write the job report if the system was shutting down, but I don't
+    // see any reason not to write the job report
+    if ( jobInfoReporter != null )
+      jobInfoReporter.write(this, plot)
   }
 
   /**

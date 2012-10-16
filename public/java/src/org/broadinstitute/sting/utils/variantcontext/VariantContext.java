@@ -178,9 +178,8 @@ import java.util.*;
  */
 public class VariantContext implements Feature { // to enable tribble integration
     private final static boolean WARN_ABOUT_BAD_END = true;
+    private final static int MAX_ALLELE_SIZE_FOR_NON_SV = 150;
     final protected static Logger logger = Logger.getLogger(VariantContext.class);
-
-
     private boolean fullyDecoded = false;
     protected CommonInfo commonInfo = null;
     public final static double NO_LOG10_PERROR = CommonInfo.NO_LOG10_PERROR;
@@ -530,6 +529,28 @@ public class VariantContext implements Feature { // to enable tribble integratio
         return getType() == Type.SYMBOLIC;
     }
 
+    public boolean isStructuralIndel() {
+        if ( getType() == Type.INDEL ) {
+            List<Integer> sizes = getIndelLengths();
+            if ( sizes != null ) {
+                for ( Integer length : sizes ) {
+                    if ( length > MAX_ALLELE_SIZE_FOR_NON_SV ) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     *
+     * @return true if the variant is symbolic or a large indel
+     */
+    public boolean isSymbolicOrSV() {
+        return isSymbolic() || isStructuralIndel();
+    }
+
     public boolean isMNP() {
         return getType() == Type.MNP;
     }
@@ -621,14 +642,15 @@ public class VariantContext implements Feature { // to enable tribble integratio
     }
 
     /**
-     * Returns the maximum ploidy of all samples in this VC, or -1 if there are no genotypes
+     * Returns the maximum ploidy of all samples in this VC, or default if there are no genotypes
      *
      * This function is caching, so it's only expensive on the first call
      *
-     * @return -1, or the max ploidy
+     * @param defaultPloidy the default ploidy, if all samples are no-called
+     * @return default, or the max ploidy
      */
-    public int getMaxPloidy() {
-        return genotypes.getMaxPloidy();
+    public int getMaxPloidy(final int defaultPloidy) {
+        return genotypes.getMaxPloidy(defaultPloidy);
     }
 
     /**
@@ -1250,6 +1272,7 @@ public class VariantContext implements Feature { // to enable tribble integratio
         // performs a pairwise comparison of a single alternate allele against the reference allele (whereas the MIXED type
         // is reserved for cases of multiple alternate alleles of different types).  Therefore, if we've reached this point
         // in the code (so we're not a SNP, MNP, or symbolic allele), we absolutely must be an INDEL.
+
         return Type.INDEL;
 
         // old incorrect logic:
@@ -1494,15 +1517,32 @@ public class VariantContext implements Feature { // to enable tribble integratio
         return best;
     }
 
+    /**
+     * Lookup the index of allele in this variant context
+     *
+     * @param allele the allele whose index we want to get
+     * @return the index of the allele into getAlleles(), or -1 if it cannot be found
+     */
+    public int getAlleleIndex(final Allele allele) {
+        return getAlleles().indexOf(allele);
+    }
+
+    /**
+     * Return the allele index #getAlleleIndex for each allele in alleles
+     *
+     * @param alleles the alleles we want to look up
+     * @return a list of indices for each allele, in order
+     */
+    public List<Integer> getAlleleIndices(final Collection<Allele> alleles) {
+        final List<Integer> indices = new LinkedList<Integer>();
+        for ( final Allele allele : alleles )
+            indices.add(getAlleleIndex(allele));
+        return indices;
+    }
+
     public int[] getGLIndecesOfAlternateAllele(Allele targetAllele) {
-
-        int index = 1;
-        for ( Allele allele : getAlternateAlleles() ) {
-            if ( allele.equals(targetAllele) )
-                break;
-            index++;
-        }
-
+        final int index = getAlleleIndex(targetAllele);
+        if ( index == -1 ) throw new IllegalArgumentException("Allele " + targetAllele + " not in this VariantContex " + this);
         return GenotypeLikelihoods.getPLIndecesOfAlleles(0, index);
     }
 }

@@ -101,7 +101,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
     public RefMetaDataTracker getReferenceOrderedDataAtLocus( GenomeLoc loc, ReferenceContext referenceContext ) {
         // special case the interval again -- add it into the ROD
         if ( interval != null ) { allTracksHere.add(interval); }
-        return new RefMetaDataTracker(allTracksHere, referenceContext);
+        return new RefMetaDataTracker(allTracksHere);
     }
 
     public boolean hasNext() {

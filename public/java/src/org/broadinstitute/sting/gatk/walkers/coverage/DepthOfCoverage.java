@@ -30,7 +30,7 @@ import org.broadinstitute.sting.commandline.Advanced;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.DownsampleType;
+import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;

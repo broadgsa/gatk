@@ -73,8 +73,15 @@ public class IntervalSharder implements Iterator<FilePointer> {
      */
     public FilePointer next() {
         FilePointer current = wrappedIterator.next();
-        while(wrappedIterator.hasNext() && current.isRegionUnmapped == wrappedIterator.peek().isRegionUnmapped && current.minus(wrappedIterator.peek()) == 0)
+
+        while ( wrappedIterator.hasNext() &&
+                current.isRegionUnmapped == wrappedIterator.peek().isRegionUnmapped &&
+                (current.getContigIndex() == wrappedIterator.peek().getContigIndex() || current.isRegionUnmapped) &&
+                current.minus(wrappedIterator.peek()) == 0 ) {
+
             current = current.combine(parser,wrappedIterator.next());
+        }
+
         return current;
     }
 

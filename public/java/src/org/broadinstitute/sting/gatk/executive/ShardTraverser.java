@@ -4,13 +4,13 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
+import org.broadinstitute.sting.gatk.io.ThreadGroupOutputTracker;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 /**
  * User: hanna
  * Date: Apr 29, 2009
@@ -30,8 +30,7 @@ public class ShardTraverser implements Callable {
     final private HierarchicalMicroScheduler microScheduler;
     final private Walker walker;
     final private Shard shard;
-    final private TraversalEngine traversalEngine;
-    final private ThreadLocalOutputTracker outputTracker;
+    final private ThreadGroupOutputTracker outputTracker;
     private OutputMergeTask outputMergeTask;
 
     /** our log, which we want to capture anything from this class */
@@ -43,21 +42,25 @@ public class ShardTraverser implements Callable {
     private boolean complete = false;
 
     public ShardTraverser( HierarchicalMicroScheduler microScheduler,
-                           TraversalEngine traversalEngine,
                            Walker walker,
                            Shard shard,
-                           ThreadLocalOutputTracker outputTracker) {
+                           ThreadGroupOutputTracker outputTracker) {
         this.microScheduler = microScheduler;
         this.walker = walker;
-        this.traversalEngine = traversalEngine;
         this.shard = shard;
         this.outputTracker = outputTracker;
     }
 
     public Object call() {
+        final Object traversalEngineKey = Thread.currentThread();
+        final TraversalEngine traversalEngine = microScheduler.borrowTraversalEngine(traversalEngineKey);
+
         try {
-            traversalEngine.startTimersIfNecessary();
             final long startTime = System.currentTimeMillis();
+
+            // this is CRITICAL -- initializes output maps in this master thread,
+            // so that any subthreads created by the traversal itself can access this map
+            outputTracker.initializeStorage();
 
             Object accumulator = walker.reduceInit();
             final WindowMaker windowMaker = new WindowMaker(shard,microScheduler.getEngine().getGenomeLocParser(),
@@ -67,7 +70,7 @@ public class ShardTraverser implements Callable {
 
             for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
                 final ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),microScheduler.getEngine().getGenomeLocParser(),iterator.getLocus(),iterator,microScheduler.reference,microScheduler.rods);
-                accumulator = traversalEngine.traverse( walker, dataProvider, accumulator );
+                accumulator = traversalEngine.traverse(walker, dataProvider, accumulator);
                 dataProvider.close();
             }
 
@@ -85,9 +88,18 @@ public class ShardTraverser implements Callable {
         } finally {
             synchronized(this) {
                 complete = true;
+                microScheduler.returnTraversalEngine(traversalEngineKey, traversalEngine);
                 notifyAll();
             }
         }
+    }
+
+    /**
+     * Return a human readable string describing the intervals this traverser is operating on
+     * @return
+     */
+    public String getIntervalsString() {
+        return Utils.join(",", shard.getGenomeLocs());
     }
 
     /**

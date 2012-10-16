@@ -126,6 +126,37 @@ public class GATKBAMFileSpan extends BAMFileSpan {
     }
 
     /**
+     * Get a GATKChunk representing the "extent" of this file span, from the start of the first
+     * chunk to the end of the last chunk.The chunks list must be sorted in order to use this method.
+     *
+     * @return a GATKChunk representing the extent of this file span, or a GATKChunk representing
+     *         a span of size 0 if there are no chunks
+     */
+    public GATKChunk getExtent() {
+        validateSorted();   // TODO: defensive measure: may be unnecessary
+
+        List<Chunk> chunks = getChunks();
+        if ( chunks.isEmpty() ) {
+            return new GATKChunk(0L, 0L);
+        }
+
+        return new GATKChunk(chunks.get(0).getChunkStart(), chunks.get(chunks.size() - 1).getChunkEnd());
+    }
+
+    /**
+     * Validates the list of chunks to ensure that they appear in sorted order.
+     */
+    private void validateSorted() {
+        List<Chunk> chunks = getChunks();
+        for ( int i = 1; i < chunks.size(); i++ ) {
+            if ( chunks.get(i).getChunkStart() < chunks.get(i-1).getChunkEnd() ) {
+                throw new ReviewedStingException(String.format("Chunk list is unsorted; chunk %s is before chunk %s", chunks.get(i-1), chunks.get(i)));
+
+            }
+        }
+    }
+
+    /**
      * Computes the union of two FileSpans.
      * @param other FileSpan to union with this one.
      * @return A file span that's been unioned.

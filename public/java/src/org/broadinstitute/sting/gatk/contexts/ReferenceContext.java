@@ -177,7 +177,7 @@ public class ReferenceContext {
      * @return The base at the given locus from the reference.
      */
     public byte getBase() {
-        return getBases()[(int)(locus.getStart() - window.getStart())];
+        return getBases()[(locus.getStart() - window.getStart())];
     }
 
     /**

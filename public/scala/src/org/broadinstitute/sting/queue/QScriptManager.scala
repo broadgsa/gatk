@@ -11,6 +11,7 @@ import org.apache.log4j.Level
 import scala.tools.nsc.util.{FakePos, NoPosition, Position}
 import org.broadinstitute.sting.queue.util.TextFormatUtils._
 import org.broadinstitute.sting.utils.classloader.JVMUtils
+import tools.util.StringOps
 
 /**
  * Plugin manager for QScripts which loads QScripts into the current class loader.
@@ -63,7 +64,7 @@ object QScriptManager extends Logging {
    * Heavily based on scala/src/compiler/scala/tools/nsc/reporters/ConsoleReporter.scala
    */
   private class Log4JReporter(val settings: Settings) extends AbstractReporter {
-    def displayPrompt { throw new UnsupportedOperationException("Unable to prompt the user.  Prompting should be off.") }
+    def displayPrompt() { throw new UnsupportedOperationException("Unable to prompt the user.  Prompting should be off.") }
 
     /**
      * Displays the message at position with severity.
@@ -98,9 +99,9 @@ object QScriptManager extends Logging {
      */
     def printSummary() {
       if (WARNING.count > 0)
-        printMessage(Level.WARN, countElementsAsString(WARNING.count, "warning") + " found")
+        printMessage(Level.WARN, StringOps.countElementsAsString(WARNING.count, "warning") + " found")
       if (ERROR.count > 0)
-        printMessage(Level.ERROR, countElementsAsString(ERROR.count, "error") + " found")
+        printMessage(Level.ERROR, StringOps.countElementsAsString(ERROR.count, "error") + " found")
     }
 
     /**

@@ -50,7 +50,7 @@ my %ref_order;
 my $n = 0;
 while ( <DICT> ) {
     chomp;
-    my ($contig, $rest) = split "\t";
+    my ($contig, $rest) = split '\s';
     die("Dictionary file is probably corrupt: multiple instances of contig $contig") if ( defined $ref_order{$contig} );
 
     $ref_order{$contig} = $n;

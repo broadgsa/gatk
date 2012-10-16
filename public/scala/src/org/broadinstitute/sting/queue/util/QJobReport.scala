@@ -25,13 +25,8 @@
 package org.broadinstitute.sting.queue.util
 
 import org.broadinstitute.sting.queue.function.QFunction
-import org.broadinstitute.sting.gatk.report.{GATKReportTable, GATKReport}
-import org.broadinstitute.sting.utils.exceptions.UserException
+import org.broadinstitute.sting.gatk.report.GATKReportTable
 import org.broadinstitute.sting.queue.engine.JobRunInfo
-import java.io.{PrintStream, File}
-import org.broadinstitute.sting.utils.R.{RScriptLibrary, RScriptExecutor}
-import org.broadinstitute.sting.utils.io.Resource
-import org.apache.commons.io.{IOUtils, FileUtils}
 
 /**
  * A mixin to add Job info to the class
@@ -98,30 +93,9 @@ trait QJobReport extends Logging {
 }
 
 object QJobReport {
-  val JOB_REPORT_QUEUE_SCRIPT = "queueJobReport.R"
-
   // todo -- fixme to have a unique name for Scatter/gather jobs as well
   var seenCounter = 1
   var seenNames = Set[String]()
-
-  def printReport(jobsRaw: Map[QFunction, JobRunInfo], dest: File) {
-    val jobs = jobsRaw.filter(_._2.isFilledIn).filter(_._1.includeInReport)
-    jobs foreach {case (qf, info) => qf.setRunInfo(info)}
-    val stream = new PrintStream(FileUtils.openOutputStream(dest))
-    try {
-      printJobLogging(jobs.keys.toSeq, stream)
-    } finally {
-      IOUtils.closeQuietly(stream)
-    }
-  }
-
-  def plotReport(reportFile: File, pdfFile: File) {
-    val executor = new RScriptExecutor
-    executor.addLibrary(RScriptLibrary.GSALIB)
-    executor.addScript(new Resource(JOB_REPORT_QUEUE_SCRIPT, classOf[QJobReport]))
-    executor.addArgs(reportFile.getAbsolutePath, pdfFile.getAbsolutePath)
-    executor.exec()
-  }
 
   def workAroundSameJobNames(func: QFunction):String = {
     if ( seenNames.apply(func.jobName) ) {
@@ -131,46 +105,5 @@ object QJobReport {
       seenNames += func.jobName
       func.jobName
     }
-  }
-
-  /**
-   * Prints the JobLogging logs to a GATKReport.  First splits up the
-   * logs by group, and for each group generates a GATKReportTable
-   */
-  private def printJobLogging(logs: Seq[QFunction], stream: PrintStream) {
-    // create the report
-    val report: GATKReport = new GATKReport
-
-    // create a table for each group of logs
-    for ( (group, groupLogs) <- groupLogs(logs) ) {
-      val keys = logKeys(groupLogs)
-      report.addTable(group, "Job logs for " + group, keys.size)
-      val table: GATKReportTable = report.getTable(group)
-
-      // add the columns
-      keys.foreach(table.addColumn(_))
-      for (log <- groupLogs) {
-        for ( key <- keys )
-          table.set(log.getReportName, key, log.getReportFeature(key))
-      }
-    }
-
-    report.print(stream)
-  }
-
-  private def groupLogs(logs: Seq[QFunction]): Map[String, Seq[QFunction]] = {
-    logs.groupBy(_.getReportGroup)
-  }
-
-  private def logKeys(logs: Seq[QFunction]): Set[String] = {
-    // the keys should be the same for each log, but we will check that
-    val keys = Set[String](logs(0).getReportFeatureNames : _*)
-
-    for ( log <- logs )
-      if ( keys.sameElements(Set(log.getReportFeatureNames)) )
-        throw new UserException(("All JobLogging jobs in the same group must have the same set of features.  " +
-          "We found one with %s and another with %s").format(keys, log.getReportFeatureNames))
-
-    keys
   }
 }

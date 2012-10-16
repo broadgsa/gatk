@@ -92,6 +92,6 @@ object GATKIntervals {
   }
 
   private def createBinding(interval: String, argumentName: String, tags: Tags): IntervalBinding[Feature] = {
-    ArgumentTypeDescriptor.parseBinding(interval, classOf[Feature], classOf[IntervalBinding[Feature]], argumentName, tags, argumentName).asInstanceOf[IntervalBinding[Feature]]
+    ArgumentTypeDescriptor.parseBinding(new ArgumentMatchStringValue(interval), classOf[Feature], classOf[IntervalBinding[Feature]], argumentName, tags, argumentName).asInstanceOf[IntervalBinding[Feature]]
   }
 }

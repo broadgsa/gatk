@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardCallerArgumentCollection;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcFactory;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
@@ -41,7 +42,7 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
      */
     @Advanced
     @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ", required = false)
-    protected AlleleFrequencyCalculationModel.Model AFmodel = AlleleFrequencyCalculationModel.Model.EXACT;
+    public AFCalcFactory.Calculation AFmodel = AFCalcFactory.Calculation.EXACT;
 
     /**
      * The PCR error rate is independent of the sequencing error rate, which is necessary because we cannot necessarily
@@ -74,10 +75,6 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
 
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
-
-    @Hidden
-    @Argument(fullName = "cap_max_alternate_alleles_for_indels", shortName = "capMaxAltAllelesForIndels", doc = "Cap the maximum number of alternate alleles to genotype for indel calls at 2; overrides the --max_alternate_alleles argument; GSA production use only", required = false)
-    public boolean CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS = false;
 
     // indel-related arguments
     /**
@@ -160,7 +157,7 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
         Sample ploidy - equivalent to number of chromosomes per pool. In pooled experiments this should be = # of samples in pool * individual sample ploidy
      */
     @Argument(shortName="ploidy", fullName="sample_ploidy", doc="Plody (number of chromosomes) per sample. For pooled data, set to (Number of samples in each pool * Sample Ploidy).", required=false)
-    int samplePloidy = VariantContextUtils.DEFAULT_PLOIDY;
+    public int samplePloidy = VariantContextUtils.DEFAULT_PLOIDY;
 
     @Hidden
     @Argument(shortName="minqs", fullName="min_quality_score", doc="Min quality score to consider. Smaller numbers process faster. Default: Q1.", required=false)
@@ -185,7 +182,6 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
     @Hidden
     @Argument(shortName="ef", fullName="exclude_filtered_reference_sites", doc="Don't include in the analysis sites where the reference sample VCF is filtered. Default: false.", required=false)
     boolean EXCLUDE_FILTERED_REFERENCE_SITES = false;
-
 
     // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
     public UnifiedArgumentCollection clone() {
@@ -212,7 +208,7 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
         uac.INDEL_HAPLOTYPE_SIZE = INDEL_HAPLOTYPE_SIZE;
         uac.alleles = alleles;
         uac.MAX_ALTERNATE_ALLELES = MAX_ALTERNATE_ALLELES;
-        uac.CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS = CAP_MAX_ALTERNATE_ALLELES_FOR_INDELS;
+        uac.MAX_ALTERNATE_ALLELES_FOR_INDELS = MAX_ALTERNATE_ALLELES_FOR_INDELS;
         uac.GLmodel = GLmodel;
         uac.TREAT_ALL_READS_AS_SINGLE_POOL = TREAT_ALL_READS_AS_SINGLE_POOL;
         uac.referenceSampleRod = referenceSampleRod;
@@ -224,6 +220,7 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
         uac.minReferenceDepth = minReferenceDepth;
         uac.EXCLUDE_FILTERED_REFERENCE_SITES = EXCLUDE_FILTERED_REFERENCE_SITES;
         uac.IGNORE_LANE_INFO = IGNORE_LANE_INFO;
+        uac.exactCallsLog = exactCallsLog;
 
         // todo- arguments to remove
         uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
@@ -239,8 +236,10 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
         this.GenotypingMode = SCAC.GenotypingMode;
         this.heterozygosity = SCAC.heterozygosity;
         this.MAX_ALTERNATE_ALLELES = SCAC.MAX_ALTERNATE_ALLELES;
+        this.MAX_ALTERNATE_ALLELES_FOR_INDELS = SCAC.MAX_ALTERNATE_ALLELES_FOR_INDELS;
         this.OutputMode = SCAC.OutputMode;
         this.STANDARD_CONFIDENCE_FOR_CALLING = SCAC.STANDARD_CONFIDENCE_FOR_CALLING;
         this.STANDARD_CONFIDENCE_FOR_EMITTING = SCAC.STANDARD_CONFIDENCE_FOR_EMITTING;
+        this.exactCallsLog = SCAC.exactCallsLog;
     }
 }

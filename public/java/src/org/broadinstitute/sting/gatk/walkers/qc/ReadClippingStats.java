@@ -29,7 +29,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
@@ -75,7 +75,7 @@ public class ReadClippingStats extends ReadWalker<ReadClippingStats.ReadClipping
         int readLength, nClippingEvents, nClippedBases;
     }
 
-    public ReadClippingInfo map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker) {
+    public ReadClippingInfo map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) {
         if ( AlignmentUtils.isReadUnmapped(read) && MAPPED_ONLY)
             return null;
 

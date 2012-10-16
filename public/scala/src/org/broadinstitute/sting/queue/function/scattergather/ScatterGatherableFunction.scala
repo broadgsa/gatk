@@ -91,7 +91,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       if (qSettings.jobScatterGatherDirectory != null) {
         this.scatterGatherDirectory = IOUtils.absolute(qSettings.jobScatterGatherDirectory)
       } else {
-        this.scatterGatherDirectory = IOUtils.absolute(this.commandDirectory, "queueScatterGather")
+        this.scatterGatherDirectory = IOUtils.absolute(this.commandDirectory, ".queue/scatterGather")
       }
     }
   }

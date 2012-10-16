@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
+import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.SAMFileSpan;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.ReadMetrics;
@@ -202,6 +203,12 @@ public abstract class Shard implements HasGenomeLocation {
      * @param read Add a read to the internal shard buffer.
      */
     public void addRead(SAMRecord read) { throw new UnsupportedOperationException("This shard does not buffer reads."); }
+
+    /**
+     * Fills the shard with reads. Can only do this with shards that buffer reads
+     * @param readIter Iterator from which to draw the reads to fill the shard
+     */
+    public void fill( PeekableIterator<SAMRecord> readIter ) { throw new UnsupportedOperationException("This shard does not buffer reads."); }
 
     /**
      * Gets the iterator over the elements cached in the shard.

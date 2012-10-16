@@ -29,12 +29,15 @@ package org.broadinstitute.sting.utils.variantcontext;
 // the imports for unit testing.
 
 
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.List;
 
 
 /**
@@ -44,6 +47,7 @@ public class GenotypeLikelihoodsUnitTest {
     double [] v = new double[]{-10.5, -1.25, -5.11};
     final static String vGLString = "-10.50,-1.25,-5.11";
     final static String vPLString = "93,0,39";
+    double[] triAllelic = new double[]{-4.2,-2.0,-3.0,-1.6,0.0,-4.0}; //AA,AB,AC,BB,BC,CC
 
     @Test
     public void testFromVector2() {
@@ -137,6 +141,28 @@ public class GenotypeLikelihoodsUnitTest {
             Assert.assertEquals(GenotypeLikelihoods.getGQLog10FromLikelihoods(i, likelihoods), expectedQuals[i], 1e-6,
                     "GQ value for genotype " + i + " was not calculated correctly");
         }
+    }
+
+    // this test is completely broken, the method is wrong.
+    public void testGetQualFromLikelihoodsMultiAllelicBroken() {
+        GenotypeLikelihoods gl = GenotypeLikelihoods.fromLog10Likelihoods(triAllelic);
+        double actualGQ = gl.getLog10GQ(GenotypeType.HET);
+        double expectedGQ = 1.6;
+        Assert.assertEquals(actualGQ,expectedGQ);
+    }
+
+    public void testGetQualFromLikelihoodsMultiAllelic() {
+        GenotypeLikelihoods gl = GenotypeLikelihoods.fromLog10Likelihoods(triAllelic);
+        Allele ref = Allele.create(BaseUtils.A,true);
+        Allele alt1 = Allele.create(BaseUtils.C);
+        Allele alt2 = Allele.create(BaseUtils.T);
+        List<Allele> allAlleles = Arrays.asList(ref,alt1,alt2);
+        List<Allele> gtAlleles = Arrays.asList(alt1,alt2);
+        GenotypeBuilder gtBuilder = new GenotypeBuilder();
+        gtBuilder.alleles(gtAlleles);
+        double actualGQ = gl.getLog10GQ(gtBuilder.make(),allAlleles);
+        double expectedGQ = 1.6;
+        Assert.assertEquals(actualGQ,expectedGQ);
     }
 
     private void assertDoubleArraysAreEqual(double[] v1, double[] v2) {

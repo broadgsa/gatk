@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.queue.function
 
 import org.broadinstitute.sting.queue.util._
+import org.broadinstitute.sting.commandline.Argument
 
 /**
  * A command line that will be run in a pipeline.
@@ -33,12 +34,15 @@ trait CommandLineFunction extends QFunction with Logging {
   def commandLine: String
 
   /** Upper memory limit */
+  @Argument(doc="Memory limit", required=false)
   var memoryLimit: Option[Double] = None
 
   /** Resident memory limit */
+  @Argument(doc="Resident memory limit", required=false)
   var residentLimit: Option[Double] = None
 
   /** Resident memory request */
+  @Argument(doc="Resident memory request", required=false)
   var residentRequest: Option[Double] = None
 
   /** the number of SMP cores this job wants */

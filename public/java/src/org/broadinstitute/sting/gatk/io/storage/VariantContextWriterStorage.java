@@ -69,9 +69,9 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
      * @param stub Stub to use when constructing the output file.
      */
     public VariantContextWriterStorage(VariantContextWriterStub stub)  {
-        if ( stub.getFile() != null ) {
-            this.file = stub.getFile();
-            writer = vcfWriterToFile(stub,stub.getFile(),true);
+        if ( stub.getOutputFile() != null ) {
+            this.file = stub.getOutputFile();
+            writer = vcfWriterToFile(stub,stub.getOutputFile(),true);
         }
         else if ( stub.getOutputStream() != null ) {
             this.file = null;
@@ -89,7 +89,7 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
      * @param tempFile File into which to direct the output data.
      */
     public VariantContextWriterStorage(VariantContextWriterStub stub, File tempFile) {
-        logger.debug("Creating temporary output file " + tempFile.getAbsolutePath() + " for VariantContext output.");
+        //logger.debug("Creating temporary output file " + tempFile.getAbsolutePath() + " for VariantContext output.");
         this.file = tempFile;
         this.writer = vcfWriterToFile(stub, file, false);
         writer.writeHeader(stub.getVCFHeader());
@@ -154,6 +154,7 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
     }
 
     public void add(VariantContext vc) {
+        if ( closed ) throw new ReviewedStingException("Attempting to write to a closed VariantContextWriterStorage " + vc.getStart() + " storage=" + this);
         writer.add(vc);
     }
 
@@ -170,8 +171,6 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
      * Close the VCF storage object.
      */
     public void close() {
-        if(file != null)
-            logger.debug("Closing temporary file " + file.getAbsolutePath());
         writer.close();
         closed = true;
     }
@@ -181,13 +180,13 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
             if ( ! closed )
                 throw new ReviewedStingException("Writer not closed, but we are merging into the file!");
             final String targetFilePath = target.file != null ? target.file.getAbsolutePath() : "/dev/stdin";
-            logger.debug(String.format("Merging %s into %s",file.getAbsolutePath(),targetFilePath));
+            logger.debug(String.format("Merging VariantContextWriterStorage from %s into %s", file.getAbsolutePath(), targetFilePath));
 
             // use the feature manager to determine the right codec for the tmp file
             // that way we don't assume it's a specific type
             final FeatureManager.FeatureDescriptor fd = new FeatureManager().getByFiletype(file);
             if ( fd == null )
-                throw new ReviewedStingException("Unexpectedly couldn't find valid codec for temporary output file " + file);
+                throw new UserException.LocalParallelizationProblem(file);
 
             final FeatureCodec<VariantContext> codec = fd.getCodec();
             final AbstractFeatureReader<VariantContext> source =

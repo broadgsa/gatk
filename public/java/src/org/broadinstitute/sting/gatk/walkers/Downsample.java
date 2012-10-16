@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers;
 
-import org.broadinstitute.sting.gatk.DownsampleType;
+import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 
 import java.lang.annotation.*;
 

@@ -47,6 +47,7 @@ trait JavaCommandLineFunction extends CommandLineFunction {
   /**
    * Memory limit for the java executable, or if None will use the default memoryLimit.
    */
+  @Argument(doc="Java memory limit", required=false)
   var javaMemoryLimit: Option[Double] = None
 
   /**

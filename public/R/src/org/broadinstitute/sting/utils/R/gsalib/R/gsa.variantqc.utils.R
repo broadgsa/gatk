@@ -1,5 +1,6 @@
 library(gplots)
 library(ggplot2)
+library(tools)
 
 # -------------------------------------------------------
 # Utilities for displaying multiple plots per page
@@ -59,6 +60,7 @@ closePDF <- function(outputPDF) {
   if ( ! is.na(outputPDF) ) {
     dev.off()
     if (exists("compactPDF")) {
+      print("compacting PDF")
       compactPDF(outputPDF)
     }
   }

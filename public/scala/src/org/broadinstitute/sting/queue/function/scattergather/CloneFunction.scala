@@ -30,6 +30,10 @@ import org.broadinstitute.sting.queue.function.{QFunction, CommandLineFunction}
 /**
  * Shadow clones another command line function.
  */
+object CloneFunction {
+  private lazy val cloneFunctionFields = QFunction.classFunctionFields(classOf[CloneFunction])
+}
+
 class CloneFunction extends CommandLineFunction {
   var originalFunction: ScatterGatherableFunction = _
   var cloneIndex: Int = _
@@ -41,10 +45,10 @@ class CloneFunction extends CommandLineFunction {
     var originalValues = Map.empty[ArgumentSource, Any]
     withScatterPartCount += 1
     if (withScatterPartCount == 1) {
-      overriddenFields.foreach{
-        case (field, overrideValue) => {
+      originalFunction.functionFields.foreach {
+        case (field) => {
           originalValues += field -> originalFunction.getFieldValue(field)
-          originalFunction.setFieldValue(field, overrideValue)
+          originalFunction.setFieldValue(field, getFieldValue(field))
         }
       }
     }
@@ -52,9 +56,11 @@ class CloneFunction extends CommandLineFunction {
       f()
     } finally {
       if (withScatterPartCount == 1) {
-        originalValues.foreach{
-          case (name, value) =>
-            originalFunction.setFieldValue(name, value)
+        originalFunction.functionFields.foreach {
+          case (field) => {
+            setFieldValue(field, originalFunction.getFieldValue(field))
+            originalFunction.setFieldValue(field, originalValues(field))
+          }
         }
       }
       withScatterPartCount -= 1
@@ -63,6 +69,8 @@ class CloneFunction extends CommandLineFunction {
 
   override def description = withScatterPart(() => originalFunction.description)
   override def shortDescription = withScatterPart(() => originalFunction.shortDescription)
+  override def setupRetry() { withScatterPart(() => originalFunction.setupRetry()) }
+
   override protected def functionFieldClass = originalFunction.getClass
 
   def commandLine = withScatterPart(() => originalFunction.commandLine)
@@ -73,13 +81,19 @@ class CloneFunction extends CommandLineFunction {
   }
 
   override def getFieldValue(source: ArgumentSource): AnyRef = {
-    overriddenFields.get(source) match {
-      case Some(value) => value.asInstanceOf[AnyRef]
-      case None => {
-        val value = originalFunction.getFieldValue(source)
-        overriddenFields += source -> value
-        value
-      }
+    CloneFunction.cloneFunctionFields.find(_.field.getName == source.field.getName) match {
+      case Some(cloneSource) =>
+        super.getFieldValue(cloneSource)
+      case None =>
+        overriddenFields.get(source) match {
+          case Some(value) =>
+            value.asInstanceOf[AnyRef]
+          case None => {
+            val value = originalFunction.getFieldValue(source)
+            overriddenFields += source -> value
+            value
+          }
+        }
     }
   }
 
