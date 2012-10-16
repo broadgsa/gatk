@@ -275,11 +275,11 @@ public class AFCalcResult {
         // necessary because the posteriors may be so skewed that the log-space normalized value isn't
         // good, so we have to try both log-space normalization as well as the real-space normalization if the
         // result isn't good
-        final double[] logNormalized = MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, true);
+        final double[] logNormalized = MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, false);
         if ( goodLog10ProbVector(logNormalized, logNormalized.length, true) )
             return logNormalized;
         else
-            return MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, false);
+            return MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, true);
     }
 
     /**

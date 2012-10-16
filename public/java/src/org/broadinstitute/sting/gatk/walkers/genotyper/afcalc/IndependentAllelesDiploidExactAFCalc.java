@@ -32,13 +32,74 @@ import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
 
-public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
+/**
+ * Computes the conditional bi-allelic exact results
+ *
+ * Suppose vc contains 2 alt allele: A* with C and T.  This function first computes:
+ *
+ * (1) P(D | AF_c > 0 && AF_t == *) [i.e., T can be anything]
+ *
+ * it then computes the conditional probability on AF_c == 0:
+ *
+ * (2) P(D | AF_t > 0 && AF_c == 0)
+ *
+ * Thinking about this visually, we have the following likelihood matrix where each cell is
+ * the P(D | AF_c == i && AF_t == j):
+ *
+ *     0 AF_c > 0
+ *    -----------------
+ * 0  |  |
+ *    |--|-------------
+ * a  |  |
+ * f  |  |
+ * _  |  |
+ * t  |  |
+ * >  |  |
+ * 0  |  |
+ *
+ * What we really want to know how
+ *
+ * (3) P(D | AF_c == 0 & AF_t == 0)
+ *
+ * compares with
+ *
+ * (4) P(D | AF_c > 0 || AF_t > 0)
+ *
+ * This is effectively asking for the value in the upper left vs. the sum of all cells.
+ *
+ * This class implements the conditional likelihoods summation for any number of alt
+ * alleles, where each alt allele has its EXACT probability of segregating calculated by
+ * reducing each alt B into the case XB and computing P(D | AF_b > 0 ) as follows:
+ *
+ * Suppose we have for a A/B/C site the following GLs:
+ *
+ * AA AB BB AC BC CC
+ *
+ * and we want to get the bi-allelic GLs for X/B, where X is everything not B
+ *
+ * XX = AA + AC + CC (since X = A or C)
+ * XB = AB + BC
+ * BB = BB
+ *
+ * After each allele has its probability calculated we compute the joint posterior
+ * as P(D | AF_* == 0) = prod_i P (D | AF_i == 0), after applying the theta^i
+ * prior for the ith least likely allele.
+ */
+ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
+    /**
+     * The min. confidence of an allele to be included in the joint posterior.
+     */
+    private final static double MIN_LOG10_CONFIDENCE_TO_INCLUDE_ALLELE_IN_POSTERIOR = Math.log10(1e-20);
+
     private final static List<Allele> BIALLELIC_NOCALL = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
 
+    /**
+     * Sorts AFCalcResults by their posteriors of AF > 0, so the
+     */
     private final static class CompareAFCalcResultsByPNonRef implements Comparator<AFCalcResult> {
         @Override
         public int compare(AFCalcResult o1, AFCalcResult o2) {
-            return Double.compare(o1.getLog10LikelihoodOfAFGT0(), o2.getLog10LikelihoodOfAFGT0());
+            return Double.compare(o1.getLog10PosteriorOfAFGT0(), o2.getLog10PosteriorOfAFGT0());
         }
     }
 
@@ -68,76 +129,13 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
     @Override
     public AFCalcResult computeLog10PNonRef(final VariantContext vc,
                                             final double[] log10AlleleFrequencyPriors) {
-        final double log10LikelihoodOfRef = computelog10LikelihoodOfRef(vc);
         final List<AFCalcResult> independentResultTrackers = computeAlleleConditionalExact(vc, log10AlleleFrequencyPriors);
         final List<AFCalcResult> withMultiAllelicPriors = applyMultiAllelicPriors(independentResultTrackers);
-        return combineIndependentPNonRefs(vc, log10LikelihoodOfRef, withMultiAllelicPriors);
+        return combineIndependentPNonRefs(vc, withMultiAllelicPriors);
     }
 
-    protected final double computelog10LikelihoodOfRef(final VariantContext vc) {
-        // this value just the likelihood of AF == 0 in the special constrained multi-allelic calculation
-        final List<double[]> allGLs = getGLs(vc.getGenotypes(), false);
-        double log10LikelihoodOfHomRef = 0.0;
-
-        // TODO -- can be easily optimized (currently looks at all GLs via getGLs)
-        for ( int i = 0; i < allGLs.size(); i++ ) {
-            final double[] GLs = allGLs.get(i);
-            log10LikelihoodOfHomRef += GLs[0];
-            //log10LikelihoodOfHomRef += MathUtils.normalizeFromLog10(GLs, true)[0];
-        }
-
-        return log10LikelihoodOfHomRef;
-    }
 
     /**
-     * Computes the conditional bi-allelic exact results
-     *
-     * Suppose vc contains 2 alt allele: A* with C and T.  This function first computes:
-     *
-     * (1) P(D | AF_c > 0 && AF_t == *) [i.e., T can be anything]
-     *
-     * it then computes the conditional probability on AF_c == 0:
-     *
-     * (2) P(D | AF_t > 0 && AF_c == 0)
-     *
-     * Thinking about this visually, we have the following likelihood matrix where each cell is
-     * the P(D | AF_c == i && AF_t == j):
-     *
-     *     0 AF_c > 0
-     *    -----------------
-     * 0  |  |
-     *    |--|-------------
-     * a  |  |
-     * f  |  |
-     * _  |  |
-     * t  |  |
-     * >  |  |
-     * 0  |  |
-     *
-     * What we really want to know how
-     *
-     * (3) P(D | AF_c == 0 & AF_t == 0)
-     *
-     * compares with
-     *
-     * (4) P(D | AF_c > 0 || AF_t > 0)
-     *
-     * This is effectively asking for the value in the upper left vs. the sum of all cells.
-     *
-     * The quantity (1) is the same of all cells except those with AF_c == 0, while (2) is the
-     * band at the top where AF_t > 0 and AF_c == 0
-     *
-     * So (4) is actually (1) + (2).
-     *
-     * (3) is the direct inverse of the (1) and (2), as we are simultaneously calculating
-     *
-     * (1*) P(D | AF_c == 0 && AF_t == *) [i.e., T can be anything]
-     * (2*) P(D | AF_t == 0 && AF_c == 0) [TODO -- note this value looks like the thing we are supposed to use]
-     *
-     * This function implements the conditional likelihoods summation for any number of alt
-     * alleles (not just the tri-allelic case), where each subsequent variant context is
-     * further constrained such that each already considered allele x has AF_x == 0 in the
-     * compute.
      *
      * @param vc
      * @param log10AlleleFrequencyPriors
@@ -294,7 +292,6 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
      * @param sortedResultsWithThetaNPriors the pNonRef result for each allele independently
      */
     protected AFCalcResult combineIndependentPNonRefs(final VariantContext vc,
-                                                      final double log10LikelihoodsOfACEq0,
                                                       final List<AFCalcResult> sortedResultsWithThetaNPriors) {
         int nEvaluations = 0;
         final int nAltAlleles = sortedResultsWithThetaNPriors.size();
@@ -302,8 +299,8 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
         final double[] log10PriorsOfAC = new double[2];
         final Map<Allele, Double> log10pNonRefByAllele = new HashMap<Allele, Double>(nAltAlleles);
 
-        // this value is a sum in real space so we need to store values to sum up later
-        final double[] log10LikelihoodsOfACGt0 = new double[nAltAlleles];
+        // this value is a sum in log space
+        double log10PosteriorOfACEq0Sum = 0.0;
 
         for ( final AFCalcResult sortedResultWithThetaNPriors : sortedResultsWithThetaNPriors ) {
             final Allele altAllele = sortedResultWithThetaNPriors.getAllelesUsedInGenotyping().get(1);
@@ -316,7 +313,8 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
             log10PriorsOfAC[1] += sortedResultWithThetaNPriors.getLog10PriorOfAFGT0();
 
             // the AF > 0 case requires us to store the normalized likelihood for later summation
-            log10LikelihoodsOfACGt0[altI] = sortedResultWithThetaNPriors.getLog10LikelihoodOfAFGT0();
+            if ( sortedResultWithThetaNPriors.getLog10PosteriorOfAFGT0() > MIN_LOG10_CONFIDENCE_TO_INCLUDE_ALLELE_IN_POSTERIOR )
+                log10PosteriorOfACEq0Sum += sortedResultWithThetaNPriors.getLog10PosteriorOfAFEq0();
 
             // bind pNonRef for allele to the posterior value of the AF > 0 with the new adjusted prior
             log10pNonRefByAllele.put(altAllele, sortedResultWithThetaNPriors.getLog10PosteriorOfAFGT0());
@@ -325,14 +323,19 @@ public class IndependentAllelesDiploidExactAFCalc extends DiploidExactAFCalc {
             nEvaluations += sortedResultWithThetaNPriors.nEvaluations;
         }
 
-        // the log10 likelihoods are the sum of the log10 likelihoods across all alt alleles
-        final double[] log10LikelihoodsOfAC = new double[]{
-                log10LikelihoodsOfACEq0,
-                MathUtils.log10sumLog10(log10LikelihoodsOfACGt0)};
+        // In principle, if B_p = x and C_p = y are the probabilities of being poly for alleles B and C,
+        // the probability of being poly is (1 - B_p) * (1 - C_p) = (1 - x) * (1 - y).  We want to estimate confidently
+        // log10((1 - x) * (1 - y)) which is log10(1 - x) + log10(1 - y).  This sum is log10PosteriorOfACEq0
+        final double log10PosteriorOfACGt0 = Math.max(Math.log10(1 - Math.pow(10, log10PosteriorOfACEq0Sum)), MathUtils.LOG10_P_OF_ZERO);
+        final double[] log10LikelihoodsOfAC = new double[] {
+                // L + prior = posterior => L = poster - prior
+                log10PosteriorOfACEq0Sum - log10PriorsOfAC[0],
+                log10PosteriorOfACGt0 - log10PriorsOfAC[1]
+        };
 
         return new MyAFCalcResult(alleleCountsOfMLE, nEvaluations, vc.getAlleles(),
-                MathUtils.normalizeFromLog10(log10LikelihoodsOfAC, true, true), // necessary to ensure all values < 0
-                MathUtils.normalizeFromLog10(log10PriorsOfAC, true), // priors incorporate multiple alt alleles, must be normalized
+                MathUtils.normalizeFromLog10(log10LikelihoodsOfAC, true),   // necessary to ensure all values < 0
+                MathUtils.normalizeFromLog10(log10PriorsOfAC, true),        // priors incorporate multiple alt alleles, must be normalized
                 log10pNonRefByAllele, sortedResultsWithThetaNPriors);
     }
 }
