@@ -1,20 +1,18 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 
-import org.broadinstitute.sting.utils.AutoFormattingTime;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
+import com.google.java.contract.Requires;
+import org.apache.commons.lang.ArrayUtils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Allows us to write out and read in information about exact calls (site, alleles, PLs, etc) in tabular format
+ *
+ * Once opened, calls can be writen to disk with printCallInfo
  */
 public class ExactCallLogger implements Cloneable {
     private PrintStream callReport = null;
@@ -38,32 +36,28 @@ public class ExactCallLogger implements Cloneable {
      */
     public static class ExactCall {
         final VariantContext vc;
-        final long origNanoTime;
-        long newNanoTime = -1;
-        final double origPNonRef;
-        double newPNonRef = -1;
+        final long runtime;
+        final AFCalcResult originalCall;
 
-        public ExactCall(VariantContext vc, long origNanoTime, double origPNonRef) {
+        public ExactCall(VariantContext vc, final long runtime, final AFCalcResult originalCall) {
             this.vc = vc;
-            this.origNanoTime = origNanoTime;
-            this.origPNonRef = origPNonRef;
+            this.runtime = runtime;
+            this.originalCall = originalCall;
         }
 
         @Override
         public String toString() {
-            return String.format("ExactCall %s:%d alleles=%s nSamples=%s orig.pNonRef=%.2f orig.runtime=%s new.pNonRef=%.2f new.runtime=%s",
+            return String.format("ExactCall %s:%d alleles=%s nSamples=%s orig.pNonRef=%.2f orig.runtime=%s",
                     vc.getChr(), vc.getStart(), vc.getAlleles(), vc.getNSamples(),
-                    origPNonRef,
-                    new AutoFormattingTime(origNanoTime / 1e9).toString(),
-                    newPNonRef,
-                    newNanoTime == -1 ? "not.run" : new AutoFormattingTime(newNanoTime / 1e9).toString());
+                    originalCall.getLog10PosteriorOfAFGT0(),
+                    new AutoFormattingTime(runtime / 1e9).toString());
         }
     }
 
-    protected void printCallInfo(final VariantContext vc,
-                                 final double[] log10AlleleFrequencyPriors,
-                                 final long runtimeNano,
-                                 final AFCalcResult result) {
+    protected final void printCallInfo(final VariantContext vc,
+                                       final double[] log10AlleleFrequencyPriors,
+                                       final long runtimeNano,
+                                       final AFCalcResult result) {
         printCallElement(vc, "type", "ignore", vc.getType());
 
         int allelei = 0;
@@ -90,6 +84,7 @@ public class ExactCallLogger implements Cloneable {
         callReport.flush();
     }
 
+    @Requires({"vc != null", "variable != null", "key != null", "value != null", "callReport != null"})
     private void printCallElement(final VariantContext vc,
                                   final Object variable,
                                   final Object key,
@@ -102,10 +97,10 @@ public class ExactCallLogger implements Cloneable {
      * Read in a list of ExactCall objects from reader, keeping only those
      * with starts in startsToKeep or all sites (if this is empty)
      *
-     * @param reader
-     * @param startsToKeep
-     * @param parser
-     * @return
+     * @param reader a just-opened reader sitting at the start of the file
+     * @param startsToKeep a list of start position of the calls to keep, or empty if all calls should be kept
+     * @param parser a genome loc parser to create genome locs
+     * @return a list of ExactCall objects in reader
      * @throws IOException
      */
     public static List<ExactCall> readExactLog(final BufferedReader reader, final List<Integer> startsToKeep, GenomeLocParser parser) throws IOException {
@@ -118,10 +113,17 @@ public class ExactCallLogger implements Cloneable {
         // skip the header line
         reader.readLine();
 
+        // skip the first "type" line
+        reader.readLine();
+
         while (true) {
             final VariantContextBuilder builder = new VariantContextBuilder();
             final List<Allele> alleles = new ArrayList<Allele>();
             final List<Genotype> genotypes = new ArrayList<Genotype>();
+            final double[] posteriors = new double[2];
+            final double[] priors = MathUtils.normalizeFromLog10(new double[]{0.5, 0.5}, true);
+            final List<Integer> mle = new ArrayList<Integer>();
+            final Map<Allele, Double> log10pNonRefByAllele = new HashMap<Allele, Double>();
             long runtimeNano = -1;
 
             GenomeLoc currentLoc = null;
@@ -139,13 +141,15 @@ public class ExactCallLogger implements Cloneable {
                 if (currentLoc == null)
                     currentLoc = lineLoc;
 
-                if (variable.equals("log10PosteriorOfAFzero")) {
+                if (variable.equals("type")) {
                     if (startsToKeep.isEmpty() || startsToKeep.contains(currentLoc.getStart())) {
                         builder.alleles(alleles);
                         final int stop = currentLoc.getStart() + alleles.get(0).length() - 1;
                         builder.chr(currentLoc.getContig()).start(currentLoc.getStart()).stop(stop);
                         builder.genotypes(genotypes);
-                        calls.add(new ExactCall(builder.make(), runtimeNano, Double.valueOf(value)));
+                        final int[] mleInts = ArrayUtils.toPrimitive(mle.toArray(new Integer[]{}));
+                        final AFCalcResult result = new AFCalcResult(mleInts, 1, alleles, posteriors, priors, log10pNonRefByAllele);
+                        calls.add(new ExactCall(builder.make(), runtimeNano, result));
                     }
                     break;
                 } else if (variable.equals("allele")) {
@@ -155,6 +159,15 @@ public class ExactCallLogger implements Cloneable {
                     final GenotypeBuilder gb = new GenotypeBuilder(key);
                     gb.PL(GenotypeLikelihoods.fromPLField(value).getAsPLs());
                     genotypes.add(gb.make());
+                } else if (variable.equals("log10PosteriorOfAFEq0")) {
+                    posteriors[0] = Double.valueOf(value);
+                } else if (variable.equals("log10PosteriorOfAFGt0")) {
+                    posteriors[1] = Double.valueOf(value);
+                } else if (variable.equals("MLE")) {
+                    mle.add(Integer.valueOf(value));
+                } else if (variable.equals("pNonRefByAllele")) {
+                    final Allele a = Allele.create(key);
+                    log10pNonRefByAllele.put(a, Double.valueOf(value));
                 } else if (variable.equals("runtime.nano")) {
                     runtimeNano = Long.valueOf(value);
                 } else {
