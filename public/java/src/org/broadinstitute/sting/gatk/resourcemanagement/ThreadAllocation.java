@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.gatk.resourcemanagement;
 
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 /**
  * Models how threads are distributed between various components of the GATK.
@@ -33,61 +33,83 @@ public class ThreadAllocation {
     /**
      * The number of CPU threads to be used by the GATK.
      */
-    private final int numCPUThreads;
+    private final int numDataThreads;
+
+    /**
+     * The number of CPU threads per data thread for GATK processing
+     */
+    private final int numCPUThreadsPerDataThread;
 
     /**
      * Number of threads to devote exclusively to IO.  Default is 0.
      */
     private final int numIOThreads;
 
-    public int getNumCPUThreads() {
-        return numCPUThreads;
+    /**
+     * Should we monitor thread efficiency?
+     */
+    private final boolean monitorEfficiency;
+
+    public int getNumDataThreads() {
+        return numDataThreads;
+    }
+
+    public int getNumCPUThreadsPerDataThread() {
+        return numCPUThreadsPerDataThread;
     }
 
     public int getNumIOThreads() {
         return numIOThreads;
     }
 
+    public boolean monitorThreadEfficiency() {
+        return monitorEfficiency;
+    }
+
+    /**
+     * Are we running in parallel mode?
+     *
+     * @return true if any parallel processing is enabled
+     */
+    public boolean isRunningInParallelMode() {
+        return getTotalNumThreads() > 1;
+    }
+
+    /**
+     * What is the total number of threads in use by the GATK?
+     *
+     * @return the sum of all thread allocations in this object
+     */
+    public int getTotalNumThreads() {
+        return getNumDataThreads() * getNumCPUThreadsPerDataThread() + getNumIOThreads();
+    }
+
     /**
      * Construct the default thread allocation.
      */
     public ThreadAllocation() {
-        this(1,null,null);
+        this(1, 1, 0, false);
     }
 
     /**
      * Set up the thread allocation.  Default allocation is 1 CPU thread, 0 IO threads.
      * (0 IO threads means that no threads are devoted exclusively to IO; they're inline on the CPU thread).
-     * @param totalThreads Complete number of threads to allocate.
-     * @param numCPUThreads Total number of threads allocated to the traversal.
+     * @param numDataThreads Total number of threads allocated to the traversal.
+     * @param numCPUThreadsPerDataThread The number of CPU threads per data thread to allocate
      * @param numIOThreads Total number of threads allocated exclusively to IO.
+     * @param monitorEfficiency should we monitor threading efficiency in the GATK?
      */
-    public ThreadAllocation(final int totalThreads, final Integer numCPUThreads, final Integer numIOThreads) {
-        // If no allocation information is present, allocate all threads to CPU
-        if(numCPUThreads == null && numIOThreads == null) {
-            this.numCPUThreads = totalThreads;
-            this.numIOThreads = 0;
-        }
-        // If only CPU threads are specified, allocate remainder to IO (minimum 0 dedicated IO threads).
-        else if(numIOThreads == null) {
-            if(numCPUThreads > totalThreads)
-                throw new UserException(String.format("Invalid thread allocation.  User requested %d threads in total, but the count of cpu threads (%d) is higher than the total threads",totalThreads,numCPUThreads));
-            this.numCPUThreads = numCPUThreads;
-            this.numIOThreads = totalThreads - numCPUThreads;
-        }
-        // If only IO threads are specified, allocate remainder to CPU (minimum 1 dedicated CPU thread).
-        else if(numCPUThreads == null) {
-            if(numIOThreads > totalThreads)
-                throw new UserException(String.format("Invalid thread allocation.  User requested %d threads in total, but the count of io threads (%d) is higher than the total threads",totalThreads,numIOThreads));
-            this.numCPUThreads = Math.max(1,totalThreads-numIOThreads);
-            this.numIOThreads = numIOThreads;
-        }
-        else {
-            if(numCPUThreads + numIOThreads != totalThreads)
-                throw new UserException(String.format("Invalid thread allocation.  User requested %d threads in total, but the count of cpu threads (%d) + the count of io threads (%d) does not match",totalThreads,numCPUThreads,numIOThreads));
-            this.numCPUThreads = numCPUThreads;
-            this.numIOThreads = numIOThreads;
-        }
-    }
+    public ThreadAllocation(final int numDataThreads,
+                            final int numCPUThreadsPerDataThread,
+                            final int numIOThreads,
+                            final boolean monitorEfficiency) {
+        if ( numDataThreads < 1 ) throw new ReviewedStingException("numDataThreads cannot be less than 1, but saw " + numDataThreads);
+        if ( numCPUThreadsPerDataThread < 1 ) throw new ReviewedStingException("numCPUThreadsPerDataThread cannot be less than 1, but saw " + numCPUThreadsPerDataThread);
+        if ( numIOThreads < 0 ) throw new ReviewedStingException("numIOThreads cannot be less than 0, but saw " + numIOThreads);
 
+        this.numDataThreads = numDataThreads;
+        this.numCPUThreadsPerDataThread = numCPUThreadsPerDataThread;
+        this.numIOThreads = numIOThreads;
+        this.monitorEfficiency = monitorEfficiency;
+    }
 }

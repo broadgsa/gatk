@@ -31,9 +31,9 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
+import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.util.*;
@@ -178,7 +178,18 @@ public class VariantAnnotatorEngine {
         this.requireStrictAlleleMatch = requireStrictAlleleMatch;
     }
 
-    public VariantContext annotateContext(final RefMetaDataTracker tracker, final ReferenceContext ref, final Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+    public  VariantContext annotateContext(final RefMetaDataTracker tracker,
+                                           final ReferenceContext ref,
+                                           final Map<String, AlignmentContext> stratifiedContexts,
+                                           VariantContext vc) {
+        return annotateContext(tracker, ref, stratifiedContexts, vc, null);
+    }
+
+    public VariantContext annotateContext(final RefMetaDataTracker tracker,
+                                          final ReferenceContext ref,
+                                          final Map<String, AlignmentContext> stratifiedContexts,
+                                          VariantContext vc,
+                                          final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
 
         // annotate db occurrences
@@ -189,7 +200,7 @@ public class VariantAnnotatorEngine {
 
         // go through all the requested info annotationTypes
         for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
-            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, walker, ref, stratifiedContexts, vc);
+            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, walker, ref, stratifiedContexts, vc, perReadAlleleLikelihoodMap);
             if ( annotationsFromCurrentType != null )
                 infoAnnotations.putAll(annotationsFromCurrentType);
         }
@@ -198,22 +209,28 @@ public class VariantAnnotatorEngine {
         VariantContextBuilder builder = new VariantContextBuilder(vc).attributes(infoAnnotations);
 
         // annotate genotypes, creating another new VC in the process
-        return builder.genotypes(annotateGenotypes(tracker, ref, stratifiedContexts, vc)).make();
+        return builder.genotypes(annotateGenotypes(tracker, ref, stratifiedContexts, vc, perReadAlleleLikelihoodMap)).make();
     }
 
-    public VariantContext annotateContext(final Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, VariantContext vc) {
+    public VariantContext annotateContext(final Map<String, PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap, VariantContext vc) {
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
 
         // go through all the requested info annotationTypes
         for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
-            Map<String, Object> annotationsFromCurrentType = ((ActiveRegionBasedAnnotation)annotationType).annotate(stratifiedContexts, vc);
+            if ( !(annotationType instanceof ActiveRegionBasedAnnotation) )
+                continue;
+
+            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(perReadAlleleLikelihoodMap, vc);
             if ( annotationsFromCurrentType != null ) {
                 infoAnnotations.putAll(annotationsFromCurrentType);
             }
         }
 
         // generate a new annotated VC
-        return new VariantContextBuilder(vc).attributes(infoAnnotations).make();
+        VariantContextBuilder builder = new VariantContextBuilder(vc).attributes(infoAnnotations);
+
+        // annotate genotypes, creating another new VC in the process
+        return builder.genotypes(annotateGenotypes(null, null, null, vc, perReadAlleleLikelihoodMap)).make();
     }
 
     private VariantContext annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {
@@ -266,23 +283,29 @@ public class VariantAnnotatorEngine {
         }
     }
 
-    private GenotypesContext annotateGenotypes(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+
+    private GenotypesContext annotateGenotypes(final RefMetaDataTracker tracker,
+                                               final ReferenceContext ref, final Map<String, AlignmentContext> stratifiedContexts,
+                                               final VariantContext vc,
+                                               final Map<String,PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap) {
         if ( requestedGenotypeAnnotations.isEmpty() )
             return vc.getGenotypes();
 
         final GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
         for ( final Genotype genotype : vc.getGenotypes() ) {
-            AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
+            AlignmentContext context = null;
+            PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap = null;
+            if (stratifiedContexts != null)
+                context = stratifiedContexts.get(genotype.getSampleName());
+            if (stratifiedPerReadAlleleLikelihoodMap != null)
+                perReadAlleleLikelihoodMap = stratifiedPerReadAlleleLikelihoodMap.get(genotype.getSampleName());
 
-            if ( context == null ) {
-                genotypes.add(genotype);
-            } else {
-                final GenotypeBuilder gb = new GenotypeBuilder(genotype);
-                for ( final GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
-                    annotation.annotate(tracker, walker, ref, context, vc, genotype, gb);
-                }
-                genotypes.add(gb.make());
+
+            final GenotypeBuilder gb = new GenotypeBuilder(genotype);
+            for ( final GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
+                annotation.annotate(tracker, walker, ref, context, vc, genotype, gb, perReadAlleleLikelihoodMap);
             }
+            genotypes.add(gb.make());
         }
 
         return genotypes;

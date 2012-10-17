@@ -613,6 +613,8 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
     /**
      * Returns a pileup randomly downsampled to the desiredCoverage.
      *
+     * TODO: delete this once the experimental downsampler stabilizes
+     *
      * @param desiredCoverage
      * @return
      */

@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.gatk.walkers.qc.ErrorThrowing;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.DataProvider;
@@ -83,24 +84,30 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
 
     private class EngineErrorHandlingTestProvider extends TestDataProvider {
         final Class expectedException;
-        final boolean multiThreaded;
+        final String args;
         final int iterationsToTest;
 
-        public EngineErrorHandlingTestProvider(Class exceptedException, final boolean multiThreaded) {
+        public EngineErrorHandlingTestProvider(Class exceptedException, final String args) {
             super(EngineErrorHandlingTestProvider.class);
             this.expectedException = exceptedException;
-            this.multiThreaded = multiThreaded;
-            this.iterationsToTest = multiThreaded ? 1000 : 1;
-            setName(String.format("Engine error handling: expected %s, is-multithreaded %b", exceptedException, multiThreaded));
+            this.args = args;
+            this.iterationsToTest = args.equals("") ? 1 : 10;
+            setName(String.format("Engine error handling: expected %s with args %s", exceptedException, args));
         }
     }
 
     @DataProvider(name = "EngineErrorHandlingTestProvider")
     public Object[][] makeEngineErrorHandlingTestProvider() {
-        for ( final boolean multiThreaded : Arrays.asList(true, false)) {
-            new EngineErrorHandlingTestProvider(NullPointerException.class, multiThreaded);
-            new EngineErrorHandlingTestProvider(UserException.class, multiThreaded);
-            new EngineErrorHandlingTestProvider(ReviewedStingException.class, multiThreaded);
+        for ( final ErrorThrowing.FailMethod failMethod : ErrorThrowing.FailMethod.values() ) {
+            if ( failMethod == ErrorThrowing.FailMethod.TREE_REDUCE )
+                continue; // cannot reliably throw errors in TREE_REDUCE
+
+            final String failArg = " -fail " + failMethod.name();
+            for ( final String args : Arrays.asList("", " -nt 2", " -nct 2") ) {
+                new EngineErrorHandlingTestProvider(NullPointerException.class, failArg + args);
+                new EngineErrorHandlingTestProvider(UserException.class, failArg + args);
+                new EngineErrorHandlingTestProvider(ReviewedStingException.class, failArg + args);
+            }
         }
 
         return EngineErrorHandlingTestProvider.getTests(EngineErrorHandlingTestProvider.class);
@@ -109,11 +116,11 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     //
     // Loop over errors to throw, make sure they are the errors we get back from the engine, regardless of NT type
     //
-    @Test(dataProvider = "EngineErrorHandlingTestProvider")
+    @Test(enabled = true, dataProvider = "EngineErrorHandlingTestProvider", timeOut = 60 * 1000 )
     public void testEngineErrorHandlingTestProvider(final EngineErrorHandlingTestProvider cfg) {
         for ( int i = 0; i < cfg.iterationsToTest; i++ ) {
             final String root = "-T ErrorThrowing -R " + exampleFASTA;
-            final String args = root + (cfg.multiThreaded ? " -nt 2" : "") + " -E " + cfg.expectedException.getSimpleName();
+            final String args = root + cfg.args + " -E " + cfg.expectedException.getSimpleName();
             WalkerTestSpec spec = new WalkerTestSpec(args, 0, cfg.expectedException);
             executeTest(cfg.toString(), spec);
         }

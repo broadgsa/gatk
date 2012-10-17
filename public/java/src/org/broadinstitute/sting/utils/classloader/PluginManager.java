@@ -25,15 +25,14 @@
 
 package org.broadinstitute.sting.utils.classloader;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
+import org.broadinstitute.sting.gatk.WalkerManager;
+import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.util.ConfigurationBuilder;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -55,9 +54,8 @@ public class PluginManager<PluginType> {
     private static final Reflections defaultReflections;
 
     static {
-        // turn off logging in the reflections library - they talk too much (to the wrong logger factory as well, logback)
-        Logger logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Reflections.class);
-        logger.setLevel(Level.OFF);
+        // turn off logging in the reflections library - they talk too much
+        Reflections.log = null;
 
         Set<URL> classPathUrls = new LinkedHashSet<URL>();
 
@@ -177,9 +175,9 @@ public class PluginManager<PluginType> {
     /**
      * Sorts, in place, the list of plugins according to getName() on each element
      *
-     * @param unsortedPlugins
+     * @param unsortedPlugins unsorted plugins
      */
-    private final void sortPlugins(final List<Class<? extends PluginType>> unsortedPlugins) {
+    private void sortPlugins(final List<Class<? extends PluginType>> unsortedPlugins) {
         Collections.sort(unsortedPlugins, new ComparePluginsByName());
     }
 
@@ -233,7 +231,7 @@ public class PluginManager<PluginType> {
      * @param plugin Name of the plugin for which to search.
      * @return True if the plugin exists, false otherwise.
      */
-    public boolean exists(Class<?> plugin) {
+    public boolean exists(Class<? extends PluginType> plugin) {
         return pluginsByName.containsValue(plugin);
     }
 
@@ -276,8 +274,16 @@ public class PluginManager<PluginType> {
      */
     public PluginType createByName(String pluginName) {
         Class<? extends PluginType> plugin = pluginsByName.get(pluginName);
-        if( plugin == null )
-            throw new UserException(String.format("Could not find %s with name: %s", pluginCategory,pluginName));
+        if( plugin == null ) {
+            String errorMessage = formatErrorMessage(pluginCategory,pluginName);
+            if ( this.getClass().isAssignableFrom(FilterManager.class) ) {
+                throw new UserException.MalformedReadFilterException(errorMessage);
+            } else if ( this.getClass().isAssignableFrom(WalkerManager.class) ) {
+                throw new UserException.MalformedWalkerArgumentsException(errorMessage);
+            } else {
+                throw new UserException.CommandLineException(errorMessage);
+            }
+        }
         try {
             return plugin.newInstance();
         } catch (Exception e) {
@@ -329,5 +335,15 @@ public class PluginManager<PluginType> {
         }
 
         return pluginName;
+    }
+
+    /**
+     * Generate the error message for the plugin manager. The message is allowed to depend on the class.
+     * @param pluginCategory - string, the category of the plugin (e.g. read filter)
+     * @param pluginName - string, what we were trying to match (but failed to)
+     * @return error message text describing the error
+     */
+    protected String formatErrorMessage(String pluginCategory, String pluginName ) {
+        return String.format("Could not find %s with name: %s", pluginCategory,pluginName);
     }
 }

@@ -24,38 +24,36 @@
 
 package org.broadinstitute.sting.commandline;
 
-import java.io.File;
-
 /**
- * Where an argument match originated, via the commandline or a file.
+ * Where an argument match originated, via the commandline or a custom provider.
  */
 public class ArgumentMatchSource implements Comparable<ArgumentMatchSource> {
     public static final ArgumentMatchSource COMMAND_LINE = new ArgumentMatchSource(ArgumentMatchSourceType.CommandLine, null);
 
     private final ArgumentMatchSourceType type;
-    private final File file;
+    private final String description;
 
     /**
      * Creates an argument match source from the specified file.
-     * @param file File specifying the arguments. Must not be null.
+     * @param description Where the arguments originated.
      */
-    public ArgumentMatchSource(File file) {
-        this(ArgumentMatchSourceType.File, file);
+    public ArgumentMatchSource(String description) {
+        this(ArgumentMatchSourceType.Provider, description);
     }
 
-    private ArgumentMatchSource(ArgumentMatchSourceType type, File file) {
-        if (type == ArgumentMatchSourceType.File && file == null)
-            throw new IllegalArgumentException("An argument match source of type File cannot have a null file.");
+    private ArgumentMatchSource(ArgumentMatchSourceType type, String description) {
+        if (type == ArgumentMatchSourceType.Provider && description == null)
+            throw new IllegalArgumentException("An argument match source provider cannot have a null description.");
         this.type = type;
-        this.file = file;
+        this.description = description;
     }
 
     public ArgumentMatchSourceType getType() {
         return type;
     }
 
-    public File getFile() {
-        return file;
+    public String getDescription() {
+        return description;
     }
 
     @Override
@@ -65,13 +63,13 @@ public class ArgumentMatchSource implements Comparable<ArgumentMatchSource> {
 
         ArgumentMatchSource that = (ArgumentMatchSource) o;
 
-        return (type == that.type) && (file == null ? that.file == null : file.equals(that.file));
+        return (type == that.type) && (description == null ? that.description == null : description.equals(that.description));
     }
 
     @Override
     public int hashCode() {
         int result = type != null ? type.hashCode() : 0;
-        result = 31 * result + (file != null ? file.hashCode() : 0);
+        result = 31 * result + (description != null ? description.hashCode() : 0);
         return result;
     }
 
@@ -84,15 +82,15 @@ public class ArgumentMatchSource implements Comparable<ArgumentMatchSource> {
         if (comp != 0)
             return comp;
 
-        File f1 = this.file;
-        File f2 = that.file;
+        String d1 = this.description;
+        String d2 = that.description;
 
-        if ((f1 == null) ^ (f2 == null)) {
-            // If one of the files is null and the other is not
-            // put the null file first
-            return f1 == null ? -1 : 1;
+        if ((d1 == null) ^ (d2 == null)) {
+            // If one of the descriptions is null and the other is not
+            // put the null description first
+            return d1 == null ? -1 : 1;
         }
 
-        return f1 == null ? 0 : f1.compareTo(f2);
+        return d1 == null ? 0 : d1.compareTo(d2);
     }
 }

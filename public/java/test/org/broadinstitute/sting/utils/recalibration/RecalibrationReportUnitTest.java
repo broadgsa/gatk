@@ -76,8 +76,8 @@ public class RecalibrationReportUnitTest {
         final ReadCovariates rc = RecalUtils.computeCovariates(read, requestedCovariates);
 
         final RecalibrationTables recalibrationTables = new RecalibrationTables(requestedCovariates);
-        final NestedIntegerArray<RecalDatum> rgTable = recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE);
-        final NestedIntegerArray<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE);
+        final NestedIntegerArray<RecalDatum> rgTable = recalibrationTables.getReadGroupTable();
+        final NestedIntegerArray<RecalDatum> qualTable = recalibrationTables.getQualityScoreTable();
 
         for (int offset = 0; offset < length; offset++) {
 

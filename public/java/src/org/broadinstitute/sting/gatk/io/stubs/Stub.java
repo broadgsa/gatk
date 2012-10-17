@@ -27,6 +27,9 @@ package org.broadinstitute.sting.gatk.io.stubs;
 
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 
+import java.io.File;
+import java.io.OutputStream;
+
 /**
  * A stub used for managing IO. Acts as a proxy for IO streams
  * not yet created or streams that need significant external
@@ -43,4 +46,14 @@ public interface Stub<StreamType> {
      * @param outputTracker The connector used to provide an appropriate stream.
      */
     public void register( OutputTracker outputTracker );
+
+    /**
+     * Returns the OutputStream represented by this stub or null if not available.
+     */
+    public OutputStream getOutputStream();
+
+    /**
+     * Returns the File represented by this stub or null if not available.
+     */
+    public File getOutputFile();
 }

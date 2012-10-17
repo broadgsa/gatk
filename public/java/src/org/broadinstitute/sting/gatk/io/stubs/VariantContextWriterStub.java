@@ -32,9 +32,9 @@ import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.writer.Options;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
@@ -140,7 +140,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
      * Retrieves the file to (ultimately) be created.
      * @return The file.  Can be null if genotypeStream is not.
      */
-    public File getFile() {
+    public File getOutputFile() {
         return genotypeFile;
     }
 
@@ -148,7 +148,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
      * Retrieves the output stearm to which to (ultimately) write.
      * @return The file.  Can be null if genotypeFile is not.
      */
-    public PrintStream getOutputStream() {
+    public OutputStream getOutputStream() {
         return genotypeStream;
     }
 
@@ -196,7 +196,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
         if ( engine.lenientVCFProcessing() ) options.add(Options.ALLOW_MISSING_FIELDS_IN_HEADER);
         if ( indexOnTheFly && ! isCompressed() ) options.add(Options.INDEX_ON_THE_FLY);
 
-        if ( forceBCF || (getFile() != null && VariantContextWriterFactory.isBCFOutput(getFile())) )
+        if ( forceBCF || (getOutputFile() != null && VariantContextWriterFactory.isBCFOutput(getOutputFile())) )
             options.add(Options.FORCE_BCF);
 
         return options.isEmpty() ? EnumSet.noneOf(Options.class) : EnumSet.copyOf(options);
@@ -269,9 +269,9 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
      * @return
      */
     public boolean alsoWriteBCFForTest() {
-        return engine.getArguments().numberOfThreads == 1 && // only works single threaded
+        return engine.getArguments().numberOfDataThreads == 1 && // only works single threaded
                 ! isCompressed() && // for non-compressed outputs
-                getFile() != null && // that are going to disk
+                getOutputFile() != null && // that are going to disk
                 engine.getArguments().generateShadowBCF; // and we actually want to do it
     }
 

@@ -111,7 +111,13 @@ gsa.read.gatkreportv1 <- function(lines) {
   headerRowCount = -1;
   
   finishTable <- function() {
-    .gsa.assignGATKTableToEnvironment(tableName, tableHeader, tableRows[1:rowCount,], tableEnv);
+    if ( rowCount == 1 )
+      # good I hate R.  Work around to avoid collapsing into an unstructured vector when 
+      # there's only 1 row
+      sub <- t(as.matrix(tableRows[1:rowCount,]))
+    else
+      sub <- tableRows[1:rowCount,]
+    .gsa.assignGATKTableToEnvironment(tableName, tableHeader, sub, tableEnv);
   }
   
   for (line in lines) {

@@ -87,7 +87,8 @@ public class ContextCovariate implements StandardCovariate {
 
         // store the original bases and then write Ns over low quality ones
         final byte[] originalBases = read.getReadBases().clone();
-        final GATKSAMRecord clippedRead = ReadClipper.clipLowQualEnds(read, LOW_QUAL_TAIL, ClippingRepresentation.WRITE_NS);   // Write N's over the low quality tail of the reads to avoid adding them into the context
+        // Write N's over the low quality tail of the reads to avoid adding them into the context
+        final GATKSAMRecord clippedRead = ReadClipper.clipLowQualEnds(read, LOW_QUAL_TAIL, ClippingRepresentation.WRITE_NS);
         
         final boolean negativeStrand = clippedRead.getReadNegativeStrandFlag();
         byte[] bases = clippedRead.getReadBases();
@@ -115,7 +116,7 @@ public class ContextCovariate implements StandardCovariate {
 
     @Override
     public String formatKey(final int key) {
-        if (key == -1)    // this can only happen in test routines because we do not propagate null keys to the csv file
+        if (key == -1) // this can only happen in test routines because we do not propagate null keys to the csv file
             return null;
 
         return contextFromKey(key);
@@ -176,9 +177,9 @@ public class ContextCovariate implements StandardCovariate {
 
         for (int currentIndex = contextSize; currentIndex < readLength; currentIndex++) {
             final int baseIndex = BaseUtils.simpleBaseToBaseIndex(bases[currentIndex]);
-            if (baseIndex == -1) {                    // ignore non-ACGT bases
+            if (baseIndex == -1) { // ignore non-ACGT bases
                 currentNPenalty = contextSize;
-                currentKey = 0;                       // reset the key
+                currentKey = 0; // reset the key
             } else {
                 // push this base's contribution onto the key: shift everything 2 bits, mask out the non-context bits, and add the new base and the length in
                 currentKey = (currentKey >> 2) & mask;
@@ -215,7 +216,7 @@ public class ContextCovariate implements StandardCovariate {
         int bitOffset = LENGTH_BITS;
         for (int i = start; i < end; i++) {
             final int baseIndex = BaseUtils.simpleBaseToBaseIndex(dna[i]);
-            if (baseIndex == -1)                    // ignore non-ACGT bases
+            if (baseIndex == -1) // ignore non-ACGT bases
                 return -1;
             key |= (baseIndex << bitOffset);
             bitOffset += 2;
@@ -233,15 +234,15 @@ public class ContextCovariate implements StandardCovariate {
         if (key < 0)
             throw new ReviewedStingException("dna conversion cannot handle negative numbers. Possible overflow?");
 
-        final int length = key & LENGTH_MASK;               // the first bits represent the length (in bp) of the context
-        int mask = 48;                                      // use the mask to pull out bases
+        final int length = key & LENGTH_MASK; // the first bits represent the length (in bp) of the context
+        int mask = 48; // use the mask to pull out bases
         int offset = LENGTH_BITS;
 
         StringBuilder dna = new StringBuilder();
         for (int i = 0; i < length; i++) {
             final int baseIndex = (key & mask) >> offset;
             dna.append((char)BaseUtils.baseIndexToSimpleBase(baseIndex));
-            mask = mask << 2;                      // move the mask over to the next 2 bits
+            mask = mask << 2; // move the mask over to the next 2 bits
             offset += 2;
         }
 

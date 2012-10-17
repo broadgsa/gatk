@@ -32,8 +32,8 @@ import org.apache.log4j.Logger;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -47,7 +47,6 @@ public class VariantContextUtils {
     public final static String MERGE_REF_IN_ALL = "ReferenceInAll";
     public final static String MERGE_FILTER_PREFIX = "filterIn";
 
-    private static final List<Allele> DIPLOID_NO_CALL = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
     private static Set<String> MISSING_KEYS_WARNED_ABOUT = new HashSet<String>();
 
     final public static JexlEngine engine = new JexlEngine();
@@ -58,31 +57,6 @@ public class VariantContextUtils {
         engine.setSilent(false); // will throw errors now for selects that don't evaluate properly
         engine.setLenient(false);
         engine.setDebug(false);
-    }
-
-    /**
-     * Ensures that VC contains all of the samples in allSamples by adding missing samples to
-     * the resulting VC with default diploid ./. genotypes
-     *
-     * @param vc            the VariantContext
-     * @param allSamples    all of the samples needed
-     * @return a new VariantContext with missing samples added
-     */
-    public static VariantContext addMissingSamples(final VariantContext vc, final Set<String> allSamples) {
-        // TODO -- what's the fastest way to do this calculation?
-        final Set<String> missingSamples = new HashSet<String>(allSamples);
-        missingSamples.removeAll(vc.getSampleNames());
-
-        if ( missingSamples.isEmpty() )
-            return vc;
-        else {
-            //logger.warn("Adding " + missingSamples.size() + " missing samples to called context");
-            final GenotypesContext gc = GenotypesContext.copy(vc.getGenotypes());
-            for ( final String missing : missingSamples ) {
-                gc.add(new GenotypeBuilder(missing).alleles(DIPLOID_NO_CALL).make());
-            }
-            return new VariantContextBuilder(vc).genotypes(gc).make();
-        }
     }
 
     /**
@@ -183,11 +157,8 @@ public class VariantContextUtils {
         builder.attributes(calculateChromosomeCounts(vc, new HashMap<String, Object>(vc.getAttributes()), removeStaleValues, founderIds));
     }
 
-    public static Genotype removePLs(Genotype g) {
-        if ( g.hasLikelihoods() )
-            return new GenotypeBuilder(g).noPL().make();
-        else
-            return g;
+    public static Genotype removePLsAndAD(final Genotype g) {
+        return ( g.hasLikelihoods() || g.hasAD() ) ? new GenotypeBuilder(g).noPL().noAD().make() : g;
     }
 
     public final static VCFCompoundHeaderLine getMetaDataForField(final VCFHeader header, final String field) {
@@ -599,7 +570,7 @@ public class VariantContextUtils {
         }
 
         // if we have more alternate alleles in the merged VC than in one or more of the
-        // original VCs, we need to strip out the GL/PLs (because they are no longer accurate), as well as allele-dependent attributes like AC,AF
+        // original VCs, we need to strip out the GL/PLs (because they are no longer accurate), as well as allele-dependent attributes like AC,AF, and AD
         for ( final VariantContext vc : VCs ) {
             if (vc.alleles.size() == 1)
                 continue;
@@ -607,7 +578,7 @@ public class VariantContextUtils {
                 if ( ! genotypes.isEmpty() )
                     logger.debug(String.format("Stripping PLs at %s due incompatible alleles merged=%s vs. single=%s",
                             genomeLocParser.createGenomeLoc(vc), alleles, vc.alleles));
-                genotypes = stripPLs(genotypes);
+                genotypes = stripPLsAndAD(genotypes);
                 // this will remove stale AC,AF attributed from vc
                 calculateChromosomeCounts(vc, attributes, true);
                 break;
@@ -698,11 +669,11 @@ public class VariantContextUtils {
         return true;
     }
 
-    public static GenotypesContext stripPLs(GenotypesContext genotypes) {
+    public static GenotypesContext stripPLsAndAD(GenotypesContext genotypes) {
         GenotypesContext newGs = GenotypesContext.create(genotypes.size());
 
         for ( final Genotype g : genotypes ) {
-            newGs.add(g.hasLikelihoods() ? removePLs(g) : g);
+            newGs.add(removePLsAndAD(g));
         }
 
         return newGs;
@@ -1369,10 +1340,7 @@ public class VariantContextUtils {
 
     public static VariantContext reverseTrimAlleles( final VariantContext inputVC ) {
 
-        // TODO - this function doesn't work with mixed records or records that started as mixed and then became non-mixed
-
         // see whether we need to trim common reference base from all alleles
-
         final int trimExtent = computeReverseClipping(inputVC.getAlleles(), inputVC.getReference().getDisplayString().getBytes(), 0, false);
         if ( trimExtent <= 0 || inputVC.getAlleles().size() <= 1 )
             return inputVC;

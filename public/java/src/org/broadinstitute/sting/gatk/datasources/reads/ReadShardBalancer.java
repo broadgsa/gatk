@@ -34,6 +34,8 @@ import java.util.NoSuchElementException;
 
 /**
  * Divide up large file pointers containing reads into more manageable subcomponents.
+ *
+ * TODO: delete this class once the experimental downsampling engine fork collapses
  */
 public class ReadShardBalancer extends ShardBalancer {
     /**

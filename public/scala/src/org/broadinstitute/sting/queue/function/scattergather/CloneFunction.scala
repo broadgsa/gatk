@@ -25,11 +25,16 @@
 package org.broadinstitute.sting.queue.function.scattergather
 
 import org.broadinstitute.sting.commandline.ArgumentSource
-import org.broadinstitute.sting.queue.function.{QFunction, CommandLineFunction}
+import org.broadinstitute.sting.queue.function.CommandLineFunction
+import org.broadinstitute.sting.queue.util.ClassFieldCache
 
 /**
  * Shadow clones another command line function.
  */
+object CloneFunction {
+  private lazy val cloneFunctionFields = ClassFieldCache.classFunctionFields(classOf[CloneFunction])
+}
+
 class CloneFunction extends CommandLineFunction {
   var originalFunction: ScatterGatherableFunction = _
   var cloneIndex: Int = _
@@ -41,10 +46,10 @@ class CloneFunction extends CommandLineFunction {
     var originalValues = Map.empty[ArgumentSource, Any]
     withScatterPartCount += 1
     if (withScatterPartCount == 1) {
-      overriddenFields.foreach{
-        case (field, overrideValue) => {
+      originalFunction.functionFields.foreach {
+        case (field) => {
           originalValues += field -> originalFunction.getFieldValue(field)
-          originalFunction.setFieldValue(field, overrideValue)
+          originalFunction.setFieldValue(field, getFieldValue(field))
         }
       }
     }
@@ -52,9 +57,11 @@ class CloneFunction extends CommandLineFunction {
       f()
     } finally {
       if (withScatterPartCount == 1) {
-        originalValues.foreach{
-          case (name, value) =>
-            originalFunction.setFieldValue(name, value)
+        originalFunction.functionFields.foreach {
+          case (field) => {
+            setFieldValue(field, originalFunction.getFieldValue(field))
+            originalFunction.setFieldValue(field, originalValues(field))
+          }
         }
       }
       withScatterPartCount -= 1
@@ -63,28 +70,36 @@ class CloneFunction extends CommandLineFunction {
 
   override def description = withScatterPart(() => originalFunction.description)
   override def shortDescription = withScatterPart(() => originalFunction.shortDescription)
+  override def setupRetry() { withScatterPart(() => originalFunction.setupRetry()) }
+
   override protected def functionFieldClass = originalFunction.getClass
 
   def commandLine = withScatterPart(() => originalFunction.commandLine)
 
   def getFieldValue(field: String): AnyRef = {
-    val source = QFunction.findField(originalFunction.getClass, field)
+    val source = ClassFieldCache.findField(originalFunction.getClass, field)
     getFieldValue(source)
   }
 
   override def getFieldValue(source: ArgumentSource): AnyRef = {
-    overriddenFields.get(source) match {
-      case Some(value) => value.asInstanceOf[AnyRef]
-      case None => {
-        val value = originalFunction.getFieldValue(source)
-        overriddenFields += source -> value
-        value
-      }
+    CloneFunction.cloneFunctionFields.find(_.field.getName == source.field.getName) match {
+      case Some(cloneSource) =>
+        super.getFieldValue(cloneSource)
+      case None =>
+        overriddenFields.get(source) match {
+          case Some(value) =>
+            value.asInstanceOf[AnyRef]
+          case None => {
+            val value = originalFunction.getFieldValue(source)
+            overriddenFields += source -> value
+            value
+          }
+        }
     }
   }
 
   def setFieldValue(field: String, value: Any) {
-    val source = QFunction.findField(originalFunction.getClass, field)
+    val source = ClassFieldCache.findField(originalFunction.getClass, field)
     setFieldValue(source, value)
   }
 

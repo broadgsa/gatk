@@ -50,7 +50,7 @@ class SortSam extends org.broadinstitute.sting.queue.function.JavaCommandLineFun
   override def freezeFieldValues() {
     super.freezeFieldValues()
     if (outputIndex == null && output != null)
-      outputIndex = new File(output.getName.stripSuffix(".bam") + ".bai")
+      outputIndex = new File(output.getAbsolutePath.stripSuffix(".bam") + ".bai")
   }
 
 

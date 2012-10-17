@@ -54,7 +54,7 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
     private final boolean DEBUG = false;
 
     @Override
-    protected String getTraversalType() {
+    public String getTraversalUnits() {
         return "dups";
     }
 
@@ -196,7 +196,8 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
                 sum = walker.reduce(x, sum);
             }
 
-            printProgress(dataProvider.getShard(),site);
+            updateCumulativeMetrics(dataProvider.getShard());
+            printProgress(site);
             done = walker.isDone();
         }
 

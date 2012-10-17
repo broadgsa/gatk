@@ -30,18 +30,18 @@ public class QuantizationInfo {
     }
     
     public QuantizationInfo(final RecalibrationTables recalibrationTables, final int quantizationLevels) {
-        final Long [] qualHistogram = new Long[QualityUtils.MAX_QUAL_SCORE+1];                                          // create a histogram with the empirical quality distribution
+        final Long [] qualHistogram = new Long[QualityUtils.MAX_QUAL_SCORE+1]; // create a histogram with the empirical quality distribution
         for (int i = 0; i < qualHistogram.length; i++)
             qualHistogram[i] = 0L;
 
-        final NestedIntegerArray<RecalDatum> qualTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE); // get the quality score table
+        final NestedIntegerArray<RecalDatum> qualTable = recalibrationTables.getQualityScoreTable(); // get the quality score table
 
         for (final RecalDatum value : qualTable.getAllValues()) {
             final RecalDatum datum = value;
-            final int empiricalQual = MathUtils.fastRound(datum.getEmpiricalQuality());                                 // convert the empirical quality to an integer ( it is already capped by MAX_QUAL )
-            qualHistogram[empiricalQual] += datum.getNumObservations();                                                      // add the number of observations for every key
+            final int empiricalQual = MathUtils.fastRound(datum.getEmpiricalQuality()); // convert the empirical quality to an integer ( it is already capped by MAX_QUAL )
+            qualHistogram[empiricalQual] += (long) datum.getNumObservations(); // add the number of observations for every key
         }
-        empiricalQualCounts = Arrays.asList(qualHistogram);                                                             // histogram with the number of observations of the empirical qualities
+        empiricalQualCounts = Arrays.asList(qualHistogram); // histogram with the number of observations of the empirical qualities
         quantizeQualityScores(quantizationLevels);
 
         this.quantizationLevels = quantizationLevels;
@@ -49,8 +49,8 @@ public class QuantizationInfo {
 
 
     public void quantizeQualityScores(int nLevels) {
-        QualQuantizer quantizer = new QualQuantizer(empiricalQualCounts, nLevels, QualityUtils.MIN_USABLE_Q_SCORE);     // quantize the qualities to the desired number of levels
-        quantizedQuals = quantizer.getOriginalToQuantizedMap();                                                         // map with the original to quantized qual map (using the standard number of levels in the RAC)
+        QualQuantizer quantizer = new QualQuantizer(empiricalQualCounts, nLevels, QualityUtils.MIN_USABLE_Q_SCORE); // quantize the qualities to the desired number of levels
+        quantizedQuals = quantizer.getOriginalToQuantizedMap(); // map with the original to quantized qual map (using the standard number of levels in the RAC)
     }
 
     public void noQuantization() {

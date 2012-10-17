@@ -42,6 +42,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.PrintStream;
+import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -334,12 +335,12 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         return records;
     }
 
-    private static void addFieldValue(Object val, List<List<String>> result) {
+    private static void addFieldValue(final Object val, final List<List<String>> result) {
         final int numResultRecords = result.size();
         
         // if we're trying to create a single output record, add it
         if ( numResultRecords == 1 ) {
-            result.get(0).add(val.toString());
+            result.get(0).add(prettyPrintObject(val));
         }
         // if this field is a list of the proper size, add the appropriate entry to each record
         else if ( (val instanceof List) && ((List)val).size() == numResultRecords ) {
@@ -354,6 +355,26 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                 record.add(valStr);
         }
     }
+
+    private static String prettyPrintObject(final Object val) {
+        if ( val instanceof List )
+            return prettyPrintObject(((List)val).toArray());
+
+        if ( !val.getClass().isArray() )
+            return val.toString();
+
+        final int length = Array.getLength(val);
+        if ( length == 0 )
+            return "";
+
+        final StringBuilder sb = new StringBuilder(prettyPrintObject(Array.get(val, 0)));
+        for ( int i = 1; i < length; i++ ) {
+            sb.append(",");
+            sb.append(prettyPrintObject(Array.get(val, i)));
+        }
+        return sb.toString();
+    }
+
 
     public static List<List<String>> extractFields(VariantContext vc, List<String> fields, boolean allowMissingData) {
         return extractFields(vc, fields, null, null, allowMissingData, false);

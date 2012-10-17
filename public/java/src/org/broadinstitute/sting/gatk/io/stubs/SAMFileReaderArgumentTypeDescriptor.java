@@ -25,15 +25,11 @@
 package org.broadinstitute.sting.gatk.io.stubs;
 
 import net.sf.samtools.SAMFileReader;
-import org.broadinstitute.sting.commandline.ArgumentMatches;
-import org.broadinstitute.sting.commandline.ArgumentSource;
-import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
-import org.broadinstitute.sting.commandline.ParsingEngine;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
 
-import java.io.File;
 import java.lang.reflect.Type;
 
 /**
@@ -47,7 +43,7 @@ public class SAMFileReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor 
 
     /**
      * Create a new SAMFileReader argument, notifying the given engine when that argument has been created.
-     * @param engine
+     * @param engine engine
      */
     public SAMFileReaderArgumentTypeDescriptor( GenomeAnalysisEngine engine ) {
         this.engine = engine;
@@ -62,12 +58,12 @@ public class SAMFileReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches ) {
         SAMFileReaderBuilder builder = new SAMFileReaderBuilder();
 
-        String readerFileName = getArgumentValue( createDefaultArgumentDefinition(source), matches );
+        ArgumentMatchValue readerFileName = getArgumentValue( createDefaultArgumentDefinition(source), matches );
 
         if( readerFileName == null )
             throw new UserException.CommandLineException("SAM file compression was supplied, but no associated writer was supplied with it.");
 
-        builder.setSAMFile(new File(readerFileName));
+        builder.setSAMFile(readerFileName.asFile());
 
         // WARNING: Skipping required side-effect because stub is impossible to generate.
         engine.addInput(source, builder);

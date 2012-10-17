@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 
+import java.io.Serializable;
 import java.util.Comparator;
 import java.util.TreeSet;
 
@@ -29,16 +30,26 @@ public class MannWhitneyU {
     private int sizeSet2;
     private ExactMode exactMode;
 
-    public MannWhitneyU() {
-        observations = new TreeSet<Pair<Number,USet>>(new DitheringComparator());
+    public MannWhitneyU(ExactMode mode, boolean dither) {
+        if ( dither )
+            observations = new TreeSet<Pair<Number,USet>>(new DitheringComparator());
+        else
+            observations = new TreeSet<Pair<Number,USet>>(new NumberedPairComparator());
         sizeSet1 = 0;
         sizeSet2 = 0;
-        exactMode = ExactMode.POINT;
+        exactMode = mode;
+    }
+
+    public MannWhitneyU() {
+        this(ExactMode.POINT,true);
+    }
+
+    public MannWhitneyU(boolean dither) {
+        this(ExactMode.POINT,dither);
     }
 
     public MannWhitneyU(ExactMode mode) {
-        super();
-        exactMode = mode;
+        this(mode,true);
     }
 
     /**
@@ -434,17 +445,35 @@ public class MannWhitneyU {
      * A comparator class which uses dithering on tie-breaking to ensure that the internal treeset drops no values
      * and to ensure that rank ties are broken at random.
      */
-    private class DitheringComparator implements Comparator<Pair<Number,USet>> {
+    private static class DitheringComparator implements Comparator<Pair<Number,USet>>, Serializable {
 
         public DitheringComparator() {}
 
+        @Override
         public boolean equals(Object other) { return false; }
 
+        @Override
         public int compare(Pair<Number,USet> left, Pair<Number,USet> right) {
             double comp = Double.compare(left.first.doubleValue(),right.first.doubleValue());
             if ( comp > 0 ) { return 1; }
             if ( comp < 0 ) { return -1; }
             return GenomeAnalysisEngine.getRandomGenerator().nextBoolean() ? -1 : 1;
+        }
+    }
+
+    /**
+     * A comparator that reaches into the pair and compares numbers without tie-braking.
+     */
+    private static class NumberedPairComparator implements Comparator<Pair<Number,USet>>, Serializable {
+
+        public NumberedPairComparator() {}
+
+        @Override
+        public boolean equals(Object other) { return false; }
+
+        @Override
+        public int compare(Pair<Number,USet> left, Pair<Number,USet> right ) {
+            return Double.compare(left.first.doubleValue(),right.first.doubleValue());
         }
     }
 

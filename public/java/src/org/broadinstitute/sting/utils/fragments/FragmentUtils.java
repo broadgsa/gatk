@@ -128,22 +128,13 @@ public class FragmentUtils {
         return create(reads, reads.size(), SamRecordGetter);
     }
 
-    public final static List<GATKSAMRecord> mergeOverlappingPairedFragments( List<GATKSAMRecord> overlappingPair ) {
+    public final static List<GATKSAMRecord> mergeOverlappingPairedFragments( final List<GATKSAMRecord> overlappingPair ) {
         final byte MIN_QUAL_BAD_OVERLAP = 16;
         if( overlappingPair.size() != 2 ) { throw new ReviewedStingException("Found overlapping pair with " + overlappingPair.size() + " reads, but expecting exactly 2."); }
 
         GATKSAMRecord firstRead = overlappingPair.get(0);
         GATKSAMRecord secondRead = overlappingPair.get(1);
-   /*
-        System.out.println("read 0 unclipped start:"+overlappingPair.get(0).getUnclippedStart());
-        System.out.println("read 0 unclipped end:"+overlappingPair.get(0).getUnclippedEnd());
-        System.out.println("read 1 unclipped start:"+overlappingPair.get(1).getUnclippedStart());
-        System.out.println("read 1 unclipped end:"+overlappingPair.get(1).getUnclippedEnd());
-        System.out.println("read 0 start:"+overlappingPair.get(0).getAlignmentStart());
-        System.out.println("read 0 end:"+overlappingPair.get(0).getAlignmentEnd());
-        System.out.println("read 1 start:"+overlappingPair.get(1).getAlignmentStart());
-        System.out.println("read 1 end:"+overlappingPair.get(1).getAlignmentEnd());
-     */
+
         if( !(secondRead.getSoftStart() <= firstRead.getSoftEnd() && secondRead.getSoftStart() >= firstRead.getSoftStart() && secondRead.getSoftEnd() >= firstRead.getSoftEnd()) ) {
             firstRead = overlappingPair.get(1); // swap them
             secondRead = overlappingPair.get(0);
@@ -155,15 +146,6 @@ public class FragmentUtils {
             return overlappingPair; // fragments contain indels so don't merge them
         }
 
-/*        // check for inconsistent start positions between uncliped/soft alignment starts
-        if (secondRead.getAlignmentStart() >= firstRead.getAlignmentStart() && secondRead.getUnclippedStart() < firstRead.getUnclippedStart())
-            return overlappingPair;
-        if (secondRead.getAlignmentStart() <= firstRead.getAlignmentStart() && secondRead.getUnclippedStart() > firstRead.getUnclippedStart())
-            return overlappingPair;
-
-        if (secondRead.getUnclippedStart() < firstRead.getAlignmentEnd() && secondRead.getAlignmentStart() >= firstRead.getAlignmentEnd())
-            return overlappingPair;
-  */
         final Pair<Integer, Boolean> pair = ReadUtils.getReadCoordinateForReferenceCoordinate(firstRead, secondRead.getSoftStart());
 
         final int firstReadStop = ( pair.getSecond() ? pair.getFirst() + 1 : pair.getFirst() );
@@ -183,7 +165,7 @@ public class FragmentUtils {
         }
         for(int iii = firstReadStop; iii < firstRead.getReadLength(); iii++) {
             if( firstReadQuals[iii] > MIN_QUAL_BAD_OVERLAP && secondReadQuals[iii-firstReadStop] > MIN_QUAL_BAD_OVERLAP && firstReadBases[iii] != secondReadBases[iii-firstReadStop] ) {
-                return overlappingPair;// high qual bases don't match exactly, probably indel in only one of the fragments, so don't merge them
+                return overlappingPair; // high qual bases don't match exactly, probably indel in only one of the fragments, so don't merge them
             }
             if( firstReadQuals[iii] < MIN_QUAL_BAD_OVERLAP && secondReadQuals[iii-firstReadStop] < MIN_QUAL_BAD_OVERLAP ) {
                 return overlappingPair; // both reads have low qual bases in the overlap region so don't merge them because don't know what is going on
@@ -197,7 +179,7 @@ public class FragmentUtils {
         }
 
         final GATKSAMRecord returnRead = new GATKSAMRecord( firstRead.getHeader() );
-        returnRead.setAlignmentStart( firstRead.getUnclippedStart() );
+        returnRead.setAlignmentStart( firstRead.getSoftStart() );
         returnRead.setReadBases( bases );
         returnRead.setBaseQualities( quals );
         returnRead.setReadGroup( firstRead.getReadGroup() );

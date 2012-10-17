@@ -1,6 +1,8 @@
 package org.broadinstitute.sting.utils;
 
+import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Arrays;
 
@@ -197,7 +199,9 @@ public class BaseUtils {
      * @param base [AaCcGgTt]
      * @return 0, 1, 2, 3, or -1 if the base can't be understood
      */
-    static public int simpleBaseToBaseIndex(byte base) {
+    static public int simpleBaseToBaseIndex(final byte base) {
+        if ( base < 0 || base >= 256 )
+            throw new UserException.BadInput("Non-standard bases were encountered in either the input reference or BAM file(s)");
         return baseIndexMap[base];
     }
 
@@ -444,29 +448,8 @@ public class BaseUtils {
      * @param bases   the bases
      * @return the upper cased version
      */
-    static public byte[] convertToUpperCase(final byte[] bases) {
-        for ( int i = 0; i < bases.length; i++ ) {
-            if ( (char)bases[i] >= 'a' )
-                bases[i] = toUpperCaseBase(bases[i]);
-        }
-        return bases;
-    }
-
-    static public byte toUpperCaseBase(final byte base) {
-        switch (base) {
-            case 'a':
-                return 'A';
-            case 'c':
-                return 'C';
-            case 'g':
-                return 'G';
-            case 't':
-                return 'T';
-            case 'n':
-                return 'N';
-            default:
-                return base;
-        }
+    static public void convertToUpperCase(final byte[] bases) {
+        StringUtil.toUpperCase(bases);
     }
 
     /**

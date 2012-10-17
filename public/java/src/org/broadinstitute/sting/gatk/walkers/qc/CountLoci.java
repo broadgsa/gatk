@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.NanoSchedulable;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 
@@ -40,7 +41,7 @@ import java.io.PrintStream;
  *
  */
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
-public class CountLoci extends LocusWalker<Integer, Long> implements TreeReducible<Long> {
+public class CountLoci extends LocusWalker<Integer, Long> implements TreeReducible<Long>, NanoSchedulable {
     @Output(doc="Write count to this file instead of STDOUT")
     PrintStream out;
 

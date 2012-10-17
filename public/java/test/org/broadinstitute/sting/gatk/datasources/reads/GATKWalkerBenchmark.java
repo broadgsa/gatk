@@ -31,7 +31,7 @@ import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -123,7 +123,7 @@ class CountBasesInReadPerformanceWalker extends ReadWalker<Integer,Long> {
     private long Gs;
     private long Ts;
 
-    public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker tracker) {
+    public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {
         for(byte base: read.getReadBases()) {
             switch(base) {
                 case 'A': As++; break;

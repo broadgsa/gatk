@@ -32,17 +32,16 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformersMode;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
-import java.util.Collection;
-import java.util.Random;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * Renders, in SAM/BAM format, all reads from the input data set in the order in which they appear in the input file.
@@ -91,9 +90,10 @@ import java.util.TreeSet;
  *
  */
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
-@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_OUTPUT)
+@ReadTransformersMode(ApplicationTime = ReadTransformer.ApplicationTime.HANDLED_IN_WALKER)
+@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = ReadTransformer.ApplicationTime.HANDLED_IN_WALKER)
 @Requires({DataSource.READS, DataSource.REFERENCE})
-public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> {
+public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> implements NanoSchedulable {
 
     @Output(doc="Write output to this BAM filename instead of STDOUT", required = true)
     SAMFileWriter out;
@@ -138,6 +138,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> {
     public boolean simplifyReads = false;
     
 
+    List<ReadTransformer> readTransformers = Collections.emptyList();
     private TreeSet<String> samplesToChoose = new TreeSet<String>();
     private boolean SAMPLES_SPECIFIED = false;
     
@@ -149,6 +150,9 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> {
     public void initialize() {
         if  ( platform != null )
             platform = platform.toUpperCase();
+
+        if ( getToolkit() != null )
+            readTransformers = getToolkit().getReadTransformers();
 
         Collection<String> samplesFromFile;
         if (!sampleFile.isEmpty())  {
@@ -217,11 +221,19 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> {
      * The reads map function.
      *
      * @param ref  the reference bases that correspond to our read, if a reference was provided
-     * @param read the read itself, as a GATKSAMRecord
+     * @param readIn the read itself, as a GATKSAMRecord
      * @return the read itself
      */
-    public GATKSAMRecord map( ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker metaDataTracker ) {
-        return simplifyReads ? read.simplify() : read;
+    public GATKSAMRecord map( ReferenceContext ref, GATKSAMRecord readIn, RefMetaDataTracker metaDataTracker ) {
+        GATKSAMRecord workingRead = readIn;
+
+        for ( final ReadTransformer transformer : readTransformers ) {
+            workingRead = transformer.apply(workingRead);
+        }
+
+        if ( simplifyReads ) workingRead = workingRead.simplify();
+
+        return workingRead;
     }
 
     /**
@@ -245,5 +257,4 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> {
         output.addAlignment(read);
         return output;
     }
-
 }

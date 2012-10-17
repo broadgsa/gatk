@@ -108,7 +108,7 @@ public class CycleCovariate implements StandardCovariate {
             //   the current sequential model would consider the effects independently instead of jointly.
             final boolean multiplyByNegative1 = read.getReadPairedFlag() && read.getSecondOfPairFlag();
 
-            int cycle = multiplyByNegative1 ? -1 : 1;     // todo -- check if this is the right behavior for mate paired reads in flow cycle platforms.
+            int cycle = multiplyByNegative1 ? -1 : 1; // todo -- check if this is the right behavior for mate paired reads in flow cycle platforms.
 
             // BUGBUG: Consider looking at degradation of base quality scores in homopolymer runs to detect when the cycle incremented even though the nucleotide didn't change
             // For example, AAAAAAA was probably read in two flow cycles but here we count it as one
@@ -201,9 +201,9 @@ public class CycleCovariate implements StandardCovariate {
 
     @Override
     public String formatKey(final int key) {
-        int cycle = key >> 1;  // shift so we can remove the "sign" bit
-        if ( (key & 1) != 0 )   // is the last bit set?
-            cycle *= -1;        // then the cycle is negative
+        int cycle = key >> 1; // shift so we can remove the "sign" bit
+        if ( (key & 1) != 0 ) // is the last bit set?
+            cycle *= -1; // then the cycle is negative
         return String.format("%d", cycle);
     }
 
@@ -222,7 +222,7 @@ public class CycleCovariate implements StandardCovariate {
         int result = Math.abs(cycle);
         result = result << 1; // shift so we can add the "sign" bit
         if ( cycle < 0 )
-            result++;    // negative cycles get the lower-most bit set
+            result++; // negative cycles get the lower-most bit set
         return result;
     }
 }

@@ -52,8 +52,8 @@ class QSettings {
   @Argument(fullName="job_environment_name", shortName="jobEnv", doc="Environment names for the job runner.", required=false)
   var jobEnvironmentNames: Seq[String] = Nil
 
-  @Argument(fullName="memory_limit", shortName="memLimit", doc="Default memory limit for jobs, in gigabytes.", required=false)
-  var memoryLimit: Option[Double] = None
+  @Argument(fullName="memory_limit", shortName="memLimit", doc="Default memory limit for jobs, in gigabytes. If not set defaults to 2GB.", required=false)
+  var memoryLimit: Option[Double] = Some(2)
 
   @Argument(fullName="memory_limit_threshold", shortName="memLimitThresh", doc="After passing this threshold stop increasing memory limit for jobs, in gigabytes.", required=false)
   var memoryLimitThreshold: Option[Double] = None
