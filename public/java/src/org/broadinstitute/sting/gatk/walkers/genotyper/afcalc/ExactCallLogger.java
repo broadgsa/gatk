@@ -24,7 +24,7 @@ public class ExactCallLogger implements Cloneable {
      */
     public ExactCallLogger(final File outputFile) {
         try {
-            callReport = new PrintStream(new FileOutputStream(outputFile));
+            callReport = new PrintStream(new BufferedOutputStream(new FileOutputStream(outputFile), 10000000));
             callReport.println(Utils.join("\t", Arrays.asList("loc", "variable", "key", "value")));
         } catch (FileNotFoundException e) {
             throw new UserException.CouldNotCreateOutputFile(outputFile, e);
