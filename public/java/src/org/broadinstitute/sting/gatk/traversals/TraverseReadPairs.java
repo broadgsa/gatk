@@ -27,7 +27,7 @@ public class TraverseReadPairs<M,T> extends TraversalEngine<M,T, ReadPairWalker<
     protected static final Logger logger = Logger.getLogger(TraverseReadPairs.class);
 
     @Override
-    protected String getTraversalType() {
+    public String getTraversalUnits() {
         return "read pairs";
     }
 
@@ -65,7 +65,8 @@ public class TraverseReadPairs<M,T> extends TraversalEngine<M,T, ReadPairWalker<
                 pairs.clear();
                 pairs.add(read);
 
-                printProgress(dataProvider.getShard(),null);
+                updateCumulativeMetrics(dataProvider.getShard());
+                printProgress(null);
             }
 
             done = walker.isDone();

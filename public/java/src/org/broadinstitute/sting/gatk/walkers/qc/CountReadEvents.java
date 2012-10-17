@@ -4,7 +4,7 @@ import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -47,7 +47,7 @@ public class CountReadEvents extends ReadWalker<Map<CigarOperator, ArrayList<Int
     @Output (doc = "GATKReport table output")
     PrintStream out;
 
-    public Map<CigarOperator, ArrayList<Integer>> map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker tracker) {
+    public Map<CigarOperator, ArrayList<Integer>> map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {
         return ReadUtils.getCigarOperatorForAllBases(read);
     }
 

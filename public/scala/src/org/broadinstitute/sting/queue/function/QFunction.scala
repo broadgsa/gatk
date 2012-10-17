@@ -113,11 +113,13 @@ trait QFunction extends Logging with QJobReport {
   var jobErrorFile: File = _
 
   /** Errors (if any) from the last failed run of jobErrorFiles. */
+  @Argument(doc="Job error lines", required=false)
   var jobErrorLines: Seq[String] = Nil
 
   /**
    * The number of times this function has previously been run.
    */
+  @Argument(doc="Job retries", required=false)
   var retries = 0
 
   /** Change settings for the next run. Retries will be set to the number of times the function was run and jobErrorLines may contain the error text. */
@@ -541,4 +543,11 @@ object QFunction {
         classFields
     }
   }
+
+  /**
+   * Returns the Seq of fields for a QFunction class.
+   * @param clazz Class to retrieve fields for.
+   * @return the fields of the class.
+   */
+  def classFunctionFields(clazz: Class[_]) = classFields(clazz).functionFields
 }

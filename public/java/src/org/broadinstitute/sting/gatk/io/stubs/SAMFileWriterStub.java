@@ -31,12 +31,16 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A stub for routing and management of SAM file reading and writing.
@@ -116,15 +120,15 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      */
     private boolean simplifyBAM = false;
 
+    private List<ReadTransformer> onOutputReadTransformers = null;
+
     /**
      * Create a new stub given the requested SAM file and compression level.
      * @param engine source of header data, maybe other data about input files.
      * @param samFile SAM file to (ultimately) create.
      */
     public SAMFileWriterStub( GenomeAnalysisEngine engine, File samFile ) {
-        this.engine = engine;
-        this.samFile = samFile;
-        this.samOutputStream = null;
+        this(engine, samFile, null);
     }
 
     /**
@@ -133,8 +137,12 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      * @param stream Output stream to which data should be written.
      */
     public SAMFileWriterStub( GenomeAnalysisEngine engine, OutputStream stream ) {
+        this(engine, null, stream);
+    }
+
+    private SAMFileWriterStub(final GenomeAnalysisEngine engine, final File samFile, final OutputStream stream) {
         this.engine = engine;
-        this.samFile = null;
+        this.samFile = samFile;
         this.samOutputStream = stream;
     }
 
@@ -142,7 +150,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      * Retrieves the SAM file to (ultimately) be created.
      * @return The SAM file.  Must not be null.
      */
-    public File getSAMFile() {
+    public File getOutputFile() {
         return samFile;
     }
 
@@ -154,7 +162,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
         simplifyBAM = v;
     }
 
-    public OutputStream getSAMOutputStream() {
+    public OutputStream getOutputStream() {
         return samOutputStream;
     }
 
@@ -212,7 +220,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
 
     /**
      * Gets whether to generate an md5 on-the-fly for this BAM.
-     * @return True generates the md5.  False means skip writing the file.
+     * @param generateMD5   True generates the md5.  False means skip writing the file.
      */
     public void setGenerateMD5(boolean generateMD5) {
         if(writeStarted)
@@ -274,17 +282,29 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
         this.headerOverride = header;
     }
 
+    private void initializeReadTransformers() {
+        this.onOutputReadTransformers = new ArrayList<ReadTransformer>(engine.getReadTransformers().size());
+        for ( final ReadTransformer transformer : engine.getReadTransformers() ) {
+            if ( transformer.getApplicationTime() == ReadTransformer.ApplicationTime.ON_OUTPUT )
+                onOutputReadTransformers.add(transformer);
+        }
+    }
+
     /**
      * @{inheritDoc}
      */
-    public void addAlignment( SAMRecord alignment ) {
-        if ( engine.getArguments().BAQMode != BAQ.CalculationMode.OFF && engine.getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_OUTPUT ) {
-            //System.out.printf("Writing BAQ at OUTPUT TIME%n");
-            baqHMM.baqRead(alignment, engine.getReferenceDataSource().getReference(), engine.getArguments().BAQMode, engine.getWalkerBAQQualityMode());
-        }
+    public void addAlignment( final SAMRecord readIn ) {
+        if ( onOutputReadTransformers == null )
+            initializeReadTransformers();
+
+        GATKSAMRecord workingRead = (GATKSAMRecord)readIn;
+
+        // run on output read transformers
+        for ( final ReadTransformer transform : onOutputReadTransformers )
+            workingRead = transform.apply(workingRead);
 
         writeStarted = true;
-        outputTracker.getStorage(this).addAlignment(alignment);
+        outputTracker.getStorage(this).addAlignment(workingRead);
     }
 
     /**

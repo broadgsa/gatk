@@ -29,10 +29,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -41,7 +38,7 @@ import java.util.*;
  * Date: Mar 10, 2011
  */
 
-public class Tranche implements Comparable<Tranche> {
+public class Tranche {
     private static final int CURRENT_VERSION = 5;
 
     public double ts, minVQSLod, knownTiTv, novelTiTv;
@@ -83,10 +80,14 @@ public class Tranche implements Comparable<Tranche> {
         return accessibleTruthSites > 0 ? callsAtTruthSites / (1.0*accessibleTruthSites) : 0.0;
     }
 
-    public int compareTo(Tranche other) {
-        return Double.compare(this.ts,  other.ts);
+    public static class TrancheTruthSensitivityComparator implements Comparator<Tranche>, Serializable {
+        @Override
+        public int compare(final Tranche tranche1, final Tranche tranche2) {
+            return Double.compare(tranche1.ts, tranche2.ts);
+        }
     }
 
+    @Override
     public String toString() {
         return String.format("Tranche ts=%.2f minVQSLod=%.4f known=(%d @ %.4f) novel=(%d @ %.4f) truthSites(%d accessible, %d called), name=%s]",
                 ts, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, callsAtTruthSites, name);
@@ -102,7 +103,7 @@ public class Tranche implements Comparable<Tranche> {
         final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         final PrintStream stream = new PrintStream(bytes);
 
-        Collections.sort(tranches);
+        Collections.sort( tranches, new TrancheTruthSensitivityComparator() );
 
         stream.println("# Variant quality score tranches file");
         stream.println("# Version number " + CURRENT_VERSION);
@@ -183,7 +184,7 @@ public class Tranche implements Comparable<Tranche> {
                 }
             }
 
-            Collections.sort(tranches);
+            Collections.sort( tranches, new TrancheTruthSensitivityComparator() );
             return tranches;
         } catch( FileNotFoundException e ) {
             throw new UserException.CouldNotReadInputFile(f, e);

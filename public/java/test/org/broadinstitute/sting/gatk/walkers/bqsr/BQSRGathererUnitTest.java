@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
+import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.utils.recalibration.RecalUtils;
@@ -7,49 +8,70 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 /**
- * @author Mauricio Carneiro
- * @since 3/7/12
+ * @author Eric Banks
+ * @since 9/20/12
  */
-public class BQSRGathererUnitTest {
-    RecalibrationArgumentCollection RAC;
+public class BQSRGathererUnitTest extends BaseTest {
 
-    private static File recal = new File("public/testdata/exampleGRP.grp");
+    private static File recal1 = new File(privateTestDir + "HiSeq.1mb.1RG.sg1.table");
+    private static File recal2 = new File(privateTestDir + "HiSeq.1mb.1RG.sg2.table");
+    private static File recal3 = new File(privateTestDir + "HiSeq.1mb.1RG.sg3.table");
+    private static File recal4 = new File(privateTestDir + "HiSeq.1mb.1RG.sg4.table");
+    private static File recal5 = new File(privateTestDir + "HiSeq.1mb.1RG.sg5.table");
 
-    //todo -- this test doesnt work because the primary keys in different tables are not the same. Need to either implement "sort" for testing purposes on GATKReport or have a sophisticated comparison measure
-    @Test(enabled = false)
-    public void testCombineSimilarFiles() {
+    private static File recal_original = new File(privateTestDir + "HiSeq.1mb.1RG.noSG.table");
+
+    @Test(enabled = true)
+    public void testGatherBQSR() {
         BQSRGatherer gatherer = new BQSRGatherer();
         List<File> recalFiles = new LinkedList<File> ();
-        File output = new File("foo.grp");
-        recalFiles.add(recal);
-        recalFiles.add(recal);
+        final File output = BaseTest.createTempFile("BQSRgathererTest", ".table");
+
+        recalFiles.add(recal1);
+        recalFiles.add(recal2);
+        recalFiles.add(recal3);
+        recalFiles.add(recal4);
+        recalFiles.add(recal5);
         gatherer.gather(recalFiles, output);
 
-        GATKReport originalReport = new GATKReport(recal);
-        GATKReport calculatedReport = new GATKReport(output);        
-        for (GATKReportTable originalTable : originalReport.getTables()) {
-            GATKReportTable calculatedTable = calculatedReport.getTable(originalTable.getTableName());
-            List<String> columnsToTest = new LinkedList<String>();
-            columnsToTest.add(RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME);
-            columnsToTest.add(RecalUtils.NUMBER_ERRORS_COLUMN_NAME);
-            if (originalTable.getTableName().equals(RecalUtils.ARGUMENT_REPORT_TABLE_TITLE)) {                    // these tables must be IDENTICAL
-                columnsToTest.add(RecalUtils.ARGUMENT_VALUE_COLUMN_NAME);
-                testTablesWithColumnsAndFactor(originalTable, calculatedTable, columnsToTest, 1);
-            }
-            
-            else if (originalTable.getTableName().equals(RecalUtils.QUANTIZED_REPORT_TABLE_TITLE)) {
-                columnsToTest.add(RecalUtils.QUANTIZED_COUNT_COLUMN_NAME);
-                testTablesWithColumnsAndFactor(originalTable, calculatedTable, columnsToTest, 2);
-            }
-            
-            else if (originalTable.getTableName().startsWith("RecalTable")) {
-                testTablesWithColumnsAndFactor(originalTable, calculatedTable, columnsToTest, 2);
-            }                                              
-        }
+        GATKReport originalReport = new GATKReport(recal_original);
+        GATKReport calculatedReport = new GATKReport(output);
+
+
+        // test the Arguments table
+        List<String> columnsToTest = Arrays.asList(RecalUtils.ARGUMENT_COLUMN_NAME, RecalUtils.ARGUMENT_VALUE_COLUMN_NAME);
+        GATKReportTable originalTable = originalReport.getTable(RecalUtils.ARGUMENT_REPORT_TABLE_TITLE);
+        GATKReportTable calculatedTable = calculatedReport.getTable(RecalUtils.ARGUMENT_REPORT_TABLE_TITLE);
+        testTablesWithColumns(originalTable, calculatedTable, columnsToTest);
+
+        // test the Quantized table
+        columnsToTest = Arrays.asList(RecalUtils.QUALITY_SCORE_COLUMN_NAME, RecalUtils.QUANTIZED_COUNT_COLUMN_NAME, RecalUtils.QUANTIZED_VALUE_COLUMN_NAME);
+        originalTable = originalReport.getTable(RecalUtils.QUANTIZED_REPORT_TABLE_TITLE);
+        calculatedTable = calculatedReport.getTable(RecalUtils.QUANTIZED_REPORT_TABLE_TITLE);
+        testTablesWithColumns(originalTable, calculatedTable, columnsToTest);
+
+        // test the RecalTable0 table
+        columnsToTest = Arrays.asList(RecalUtils.READGROUP_COLUMN_NAME, RecalUtils.EVENT_TYPE_COLUMN_NAME, RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME, RecalUtils.ESTIMATED_Q_REPORTED_COLUMN_NAME, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME, RecalUtils.NUMBER_ERRORS_COLUMN_NAME);
+        originalTable = originalReport.getTable(RecalUtils.READGROUP_REPORT_TABLE_TITLE);
+        calculatedTable = calculatedReport.getTable(RecalUtils.READGROUP_REPORT_TABLE_TITLE);
+        testTablesWithColumns(originalTable, calculatedTable, columnsToTest);
+
+        // test the RecalTable1 table
+        columnsToTest = Arrays.asList(RecalUtils.READGROUP_COLUMN_NAME, RecalUtils.QUALITY_SCORE_COLUMN_NAME, RecalUtils.EVENT_TYPE_COLUMN_NAME, RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME, RecalUtils.NUMBER_ERRORS_COLUMN_NAME);
+        originalTable = originalReport.getTable(RecalUtils.QUALITY_SCORE_REPORT_TABLE_TITLE);
+        calculatedTable = calculatedReport.getTable(RecalUtils.QUALITY_SCORE_REPORT_TABLE_TITLE);
+        testTablesWithColumns(originalTable, calculatedTable, columnsToTest);
+
+        // test the RecalTable2 table
+        columnsToTest = Arrays.asList(RecalUtils.READGROUP_COLUMN_NAME, RecalUtils.QUALITY_SCORE_COLUMN_NAME, RecalUtils.COVARIATE_VALUE_COLUMN_NAME, RecalUtils.COVARIATE_NAME_COLUMN_NAME, RecalUtils.EVENT_TYPE_COLUMN_NAME, RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME, RecalUtils.NUMBER_ERRORS_COLUMN_NAME);
+        originalTable = originalReport.getTable(RecalUtils.ALL_COVARIATES_REPORT_TABLE_TITLE);
+        calculatedTable = calculatedReport.getTable(RecalUtils.ALL_COVARIATES_REPORT_TABLE_TITLE);
+        testTablesWithColumns(originalTable, calculatedTable, columnsToTest);
     }
 
     /**
@@ -58,25 +80,12 @@ public class BQSRGathererUnitTest {
      * @param original the original table
      * @param calculated the calculated table
      * @param columnsToTest list of columns to test. All columns will be tested with the same criteria (equality given factor)
-     * @param factor 1 to test for equality, any other value to multiply the original value and match with the calculated
      */
-    private void testTablesWithColumnsAndFactor(GATKReportTable original, GATKReportTable calculated, List<String> columnsToTest, int factor) {
+    private void testTablesWithColumns(GATKReportTable original, GATKReportTable calculated, List<String> columnsToTest) {
         for (int row = 0; row < original.getNumRows(); row++ ) {
             for (String column : columnsToTest) {
                 Object actual = calculated.get(new Integer(row), column);
                 Object expected = original.get(row, column);
-
-                if (factor != 1) {
-                    if (expected instanceof Double)
-                        expected = (Double) expected * factor;
-                    else if (expected instanceof Long)
-                        expected = (Long) expected * factor;
-                    else if (expected instanceof Integer)
-                        expected = (Integer) expected * factor;
-                    else if (expected instanceof Byte) {
-                        expected = (Byte) expected * factor;
-                    }
-                }
                 Assert.assertEquals(actual, expected, "Row: " + row + " Original Table: " + original.getTableName() + " Calc Table: " + calculated.getTableName());
             }
         }

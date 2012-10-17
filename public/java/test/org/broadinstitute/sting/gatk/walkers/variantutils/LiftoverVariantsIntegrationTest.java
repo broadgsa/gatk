@@ -61,4 +61,13 @@ public class LiftoverVariantsIntegrationTest extends WalkerTest {
                  Arrays.asList("7e7bad0e1890753a01303c09a38ceb8d"));
          executeTest("test hg18 to hg19, unsorted", spec);
     }
+
+    @Test
+    public void testLiftoverFilteringOfIndels() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T FilterLiftedVariants -o %s -R " + b37KGReference + " --variant:vcf " + privateTestDir + "liftover_indel_test.vcf --no_cmdline_in_header",
+                1,
+                Arrays.asList("0909a953291a5e701194668c9b8833ab"));
+        executeTest("test liftover filtering of indels", spec);
+    }
 }

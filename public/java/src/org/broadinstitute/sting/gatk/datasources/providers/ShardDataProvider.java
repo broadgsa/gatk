@@ -95,6 +95,13 @@ public abstract class ShardDataProvider {
     }
 
     /**
+     * @return true if reference ordered data will be provided by this shard
+     */
+    public boolean hasReferenceOrderedData() {
+        return ! getReferenceOrderedData().isEmpty();
+    }
+
+    /**
      * Create a data provider for the shard given the reads and reference.
      * @param shard The chunk of data over which traversals happen.
      * @param reference A getter for a section of the reference.

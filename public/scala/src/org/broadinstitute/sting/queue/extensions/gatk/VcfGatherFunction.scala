@@ -25,13 +25,13 @@
 package org.broadinstitute.sting.queue.extensions.gatk
 
 import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
-import org.broadinstitute.sting.queue.function.QFunction
+import org.broadinstitute.sting.queue.function.{RetryMemoryLimit, QFunction}
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor
 
 /**
  * Merges a vcf text file.
  */
-class VcfGatherFunction extends CombineVariants with GatherFunction {
+class VcfGatherFunction extends CombineVariants with GatherFunction with RetryMemoryLimit {
   this.assumeIdenticalSamples = true
   this.suppressCommandLineHeader = true
 

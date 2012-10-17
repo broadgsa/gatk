@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.recalibration;
 
+import java.util.Arrays;
+
 /**
  * The object temporarily held by a read that describes all of it's covariates.
  *
@@ -19,6 +21,17 @@ public class ReadCovariates {
 
     public void setCovariateIndex(final int index) {
         currentCovariateIndex = index;
+    }
+
+    /**
+     * Necessary due to bug in BaseRecalibration recalibrateRead function.  It is clearly seeing space it's not supposed to
+     * @return
+     */
+    public ReadCovariates clear() {
+        for ( int i = 0; i < keys.length; i++ )
+            for ( int j = 0; j < keys[i].length; j++)
+                Arrays.fill(keys[i][j], 0);
+        return this;
     }
 
     public void addCovariate(final int mismatch, final int insertion, final int deletion, final int readOffset) {

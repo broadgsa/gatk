@@ -228,8 +228,7 @@ public class GATKSAMRecord extends BAMRecord {
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
             Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
-            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
-            setBaseQualities(quals, EventType.BASE_INSERTION);
+                                           // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
         }
         return quals;
     }
@@ -246,7 +245,6 @@ public class GATKSAMRecord extends BAMRecord {
             quals = new byte[getBaseQualities().length];
             Arrays.fill(quals, (byte) 45);  // Some day in the future when base insertion and base deletion quals exist the samtools API will
                                             // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
-            setBaseQualities(quals, EventType.BASE_DELETION);
         }
         return quals;
     }
@@ -262,7 +260,7 @@ public class GATKSAMRecord extends BAMRecord {
     public void setReadGroup( final GATKSAMReadGroupRecord readGroup ) {
         mReadGroup = readGroup;
         retrievedReadGroup = true;
-        setAttribute("RG", mReadGroup.getId());       // todo -- this should be standardized, but we don't have access to SAMTagUtils!
+        setAttribute("RG", mReadGroup.getId()); // todo -- this should be standardized, but we don't have access to SAMTagUtils!
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -367,15 +365,15 @@ public class GATKSAMRecord extends BAMRecord {
      * Clears all attributes except ReadGroup of the read.
      */
     public GATKSAMRecord simplify () {
-        GATKSAMReadGroupRecord rg = getReadGroup();                                                                     // save the read group information
+        GATKSAMReadGroupRecord rg = getReadGroup(); // save the read group information
         byte[] insQuals = (this.getAttribute(BQSR_BASE_INSERTION_QUALITIES) == null) ? null : getBaseInsertionQualities();
         byte[] delQuals = (this.getAttribute(BQSR_BASE_DELETION_QUALITIES)  == null) ? null : getBaseDeletionQualities();
-        this.clearAttributes();                                                                                         // clear all attributes from the read
-        this.setReadGroup(rg);                                                                                          // restore read group
+        this.clearAttributes(); // clear all attributes from the read
+        this.setReadGroup(rg); // restore read group
         if (insQuals != null)
-           this.setBaseQualities(insQuals, EventType.BASE_INSERTION);                                                   // restore base insertion if we had any
+           this.setBaseQualities(insQuals, EventType.BASE_INSERTION); // restore base insertion if we had any
         if (delQuals != null)
-            this.setBaseQualities(delQuals, EventType.BASE_DELETION);                                                   // restore base deletion if we had any
+            this.setBaseQualities(delQuals, EventType.BASE_DELETION); // restore base deletion if we had any
         return this;
     }
 

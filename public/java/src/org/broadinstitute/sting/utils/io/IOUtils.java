@@ -48,14 +48,23 @@ public class IOUtils {
      * @param tempDir Temporary directory.
      */
     public static void checkTempDir(File tempDir) {
+        if (isDefaultTempDir(tempDir))
+            throw new UserException.BadTmpDir("java.io.tmpdir must be explicitly set");
+        if (!tempDir.exists() && !tempDir.mkdirs())
+            throw new UserException.BadTmpDir("Could not create directory: " + tempDir.getAbsolutePath());
+    }
+
+    /**
+     * Returns true if the directory is a default temporary directory.
+     * @param tempDir the directory to check.
+     * @return true if the directory is a default temporary directory.
+     */
+    public static boolean isDefaultTempDir(File tempDir) {
         String tempDirPath = tempDir.getAbsolutePath();
         // Keeps the user from leaving the temp directory as the default, and on Macs from having pluses
         // in the path which can cause problems with the Google Reflections library.
         // see also: http://benjchristensen.com/2009/09/22/mac-osx-10-6-java-java-io-tmpdir/
-        if (tempDirPath.startsWith("/var/folders/") || (tempDirPath.equals("/tmp")) || (tempDirPath.equals("/tmp/")))
-            throw new UserException.BadTmpDir("java.io.tmpdir must be explicitly set");
-        if (!tempDir.exists() && !tempDir.mkdirs())
-            throw new UserException.BadTmpDir("Could not create directory: " + tempDir.getAbsolutePath());
+        return (tempDirPath.startsWith("/var/folders/") || (tempDirPath.equals("/tmp")) || (tempDirPath.equals("/tmp/")));
     }
 
     /**

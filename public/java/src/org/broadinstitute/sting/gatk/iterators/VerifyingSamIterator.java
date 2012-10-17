@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -11,13 +10,11 @@ import java.util.Iterator;
  * Verifies that the incoming stream of reads is correctly sorted
  */
 public class VerifyingSamIterator implements StingSAMIterator {
-    private GenomeLocParser genomeLocParser;
     StingSAMIterator it;
     SAMRecord last = null;
     boolean checkOrderP = true;
 
-    public VerifyingSamIterator(GenomeLocParser genomeLocParser,StingSAMIterator it) {
-        this.genomeLocParser = genomeLocParser;
+    public VerifyingSamIterator(StingSAMIterator it) {
         this.it = it;
     }
 
@@ -48,9 +45,9 @@ public class VerifyingSamIterator implements StingSAMIterator {
             if(cur.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX || cur.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START)
                 throw new UserException.MalformedBAM(last,String.format("read %s has inconsistent mapping information.",cur.format()));
 
-            GenomeLoc lastLoc = genomeLocParser.createGenomeLoc( last );
-            GenomeLoc curLoc = genomeLocParser.createGenomeLoc( cur );
-            return curLoc.compareTo(lastLoc) == -1;
+            return (last.getReferenceIndex() > cur.getReferenceIndex()) ||
+                    (last.getReferenceIndex().equals(cur.getReferenceIndex()) &&
+                            last.getAlignmentStart() > cur.getAlignmentStart());
         }
     }
 

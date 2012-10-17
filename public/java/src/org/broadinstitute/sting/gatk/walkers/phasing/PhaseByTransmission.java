@@ -541,7 +541,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     //Get a Map of genotype likelihoods.
     //In case of null, unavailable or no call, all likelihoods are 1/3.
     private EnumMap<GenotypeType,Double> getLikelihoodsAsMapSafeNull(Genotype genotype){
-        if(genotype == null || !genotype.isCalled()){
+        if(genotype == null || !genotype.isCalled() || genotype.getLikelihoods() == null){
             EnumMap<GenotypeType,Double> likelihoods = new EnumMap<GenotypeType, Double>(GenotypeType.class);
             likelihoods.put(GenotypeType.HOM_REF,1.0/3.0);
             likelihoods.put(GenotypeType.HET,1.0/3.0);

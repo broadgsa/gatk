@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk;
 import net.sf.picard.filter.SamRecordFilter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -122,8 +121,15 @@ public class ReadMetrics implements Cloneable {
     /**
      * Increments the number of 'iterations' (one call of filter/map/reduce sequence) completed.
      */
+    public void incrementNumIterations(final long by) {
+        nRecords += by;
+    }
+
+    /**
+     * Increments the number of 'iterations' (one call of filter/map/reduce sequence) completed.
+     */
     public void incrementNumIterations() {
-        nRecords++;
+        incrementNumIterations(1);
     }
 
     public long getNumReadsSeen() {

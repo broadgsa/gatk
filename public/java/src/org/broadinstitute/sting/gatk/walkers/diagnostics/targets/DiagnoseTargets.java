@@ -246,6 +246,14 @@ public class DiagnoseTargets extends LocusWalker<Long, Long> {
      */
     private void addNewOverlappingIntervals(GenomeLoc refLocus) {
         GenomeLoc interval = intervalListIterator.peek();
+
+        // skip any intervals with no coverage that we have passed
+        while (interval != null && interval.isBefore(refLocus)) {
+            intervalListIterator.next();                                                                                // discard the interval (we've already added it to the map)
+            interval = intervalListIterator.peek();
+        }
+
+        // add any intervals that overlap this one
         while (interval != null && !interval.isPast(refLocus)) {
             intervalMap.put(interval, createIntervalStatistic(interval));
             intervalListIterator.next();                                                                                // discard the interval (we've already added it to the map)

@@ -215,8 +215,8 @@ public abstract class ArgumentTypeDescriptor {
      * @param matches The matches for the given argument.
      * @return The value of the argument if available, or null if not present.
      */
-    protected String getArgumentValue( ArgumentDefinition definition, ArgumentMatches matches ) {
-        Collection<String> argumentValues = getArgumentValues( definition, matches );
+    protected ArgumentMatchValue getArgumentValue( ArgumentDefinition definition, ArgumentMatches matches ) {
+        Collection<ArgumentMatchValue> argumentValues = getArgumentValues( definition, matches );
         if( argumentValues.size() > 1 )
             throw new UserException.CommandLineException("Multiple values associated with given definition, but this argument expects only one: " + definition.fullName);
         return argumentValues.size() > 0 ? argumentValues.iterator().next() : null;
@@ -244,8 +244,8 @@ public abstract class ArgumentTypeDescriptor {
      * @param matches The matches for the given argument.
      * @return The value of the argument if available, or an empty collection if not present.
      */
-    protected Collection<String> getArgumentValues( ArgumentDefinition definition, ArgumentMatches matches ) {
-        Collection<String> values = new ArrayList<String>();
+    protected Collection<ArgumentMatchValue> getArgumentValues( ArgumentDefinition definition, ArgumentMatches matches ) {
+        Collection<ArgumentMatchValue> values = new ArrayList<ArgumentMatchValue>();
         for( ArgumentMatch match: matches ) {
             if( match.definition.equals(definition) )
                 values.addAll(match.values());
@@ -310,7 +310,7 @@ public abstract class ArgumentTypeDescriptor {
      */
     protected Object parseBinding(ArgumentSource source, Type type, ArgumentMatches matches, Tags tags) {
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
-        String value = getArgumentValue(defaultDefinition, matches);
+        ArgumentMatchValue value = getArgumentValue(defaultDefinition, matches);
         @SuppressWarnings("unchecked")
         Class<? extends Feature> parameterType = JVMUtils.getParameterizedTypeClass(type);
         String name = defaultDefinition.fullName;
@@ -328,7 +328,7 @@ public abstract class ArgumentTypeDescriptor {
      * @param fieldName The name of the field that was parsed. Used for error reporting.
      * @return The newly created binding object of type bindingClass.
      */
-    public static Object parseBinding(String value, Class<? extends Feature> parameterType, Type bindingClass,
+    public static Object parseBinding(ArgumentMatchValue value, Class<? extends Feature> parameterType, Type bindingClass,
                                       String bindingName, Tags tags, String fieldName) {
         try {
             String tribbleType = null;
@@ -337,7 +337,7 @@ public abstract class ArgumentTypeDescriptor {
                 throw new UserException.CommandLineException(
                         String.format("Unexpected number of positional tags for argument %s : %s. " +
                                 "Rod bindings only support -X:type and -X:name,type argument styles",
-                                value, fieldName));
+                                value.asString(), fieldName));
             } else if ( tags.getPositionalTags().size() == 2 ) {
                 // -X:name,type style
                 bindingName = tags.getPositionalTags().get(0);
@@ -366,7 +366,7 @@ public abstract class ArgumentTypeDescriptor {
 
                 if ( tribbleType == null ) {
                     // try to determine the file type dynamically
-                    File file = new File(value);
+                    File file = value.asFile();
                     if ( file.canRead() && file.isFile() ) {
                         FeatureManager.FeatureDescriptor featureDescriptor = manager.getByFiletype(file);
                         if ( featureDescriptor != null ) {
@@ -379,7 +379,7 @@ public abstract class ArgumentTypeDescriptor {
                         // IntervalBinding can be created from a normal String
                         Class rawType = (makeRawTypeIfNecessary(bindingClass));
                         try {
-                            return rawType.getConstructor(String.class).newInstance(value);
+                            return rawType.getConstructor(String.class).newInstance(value.asString());
                         } catch (NoSuchMethodException e) {
                             /* ignore */
                         }
@@ -399,14 +399,14 @@ public abstract class ArgumentTypeDescriptor {
             }
 
             Constructor ctor = (makeRawTypeIfNecessary(bindingClass)).getConstructor(Class.class, String.class, String.class, String.class, Tags.class);
-            return ctor.newInstance(parameterType, bindingName, value, tribbleType, tags);
+            return ctor.newInstance(parameterType, bindingName, value.asString(), tribbleType, tags);
         } catch (Exception e) {
             if ( e instanceof UserException )
                 throw ((UserException)e);
             else
                 throw new UserException.CommandLineException(
                         String.format("Failed to parse value %s for argument %s. Message: %s",
-                                value, fieldName, e.getMessage()));
+                                value.asString(), fieldName, e.getMessage()));
         }
     }
 }
@@ -517,7 +517,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             return true;
 
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
-        String value = getArgumentValue( defaultDefinition, matches );
+        ArgumentMatchValue value = getArgumentValue(defaultDefinition, matches);
         Object result;
         Tags tags = getArgumentTags(matches);
 
@@ -527,12 +527,12 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 Method valueOf = primitiveToWrapperMap.get(type).getMethod("valueOf",String.class);
                 if(value == null)
                     throw new MissingArgumentValueException(createDefaultArgumentDefinition(source));
-                result = valueOf.invoke(null,value.trim());
+                result = valueOf.invoke(null,value.asString().trim());
             } else if (type.isEnum()) {
                 Object[] vals = type.getEnumConstants();
                 Object defaultEnumeration = null;  // as we look at options, record the default option if it exists
                 for (Object val : vals) {
-                    if (String.valueOf(val).equalsIgnoreCase(value)) return val;
+                    if (String.valueOf(val).equalsIgnoreCase(value.asString())) return val;
                     try { if (type.getField(val.toString()).isAnnotationPresent(EnumerationArgumentDefault.class)) defaultEnumeration = val; }
                     catch (NoSuchFieldException e) { throw new ReviewedStingException("parsing " + type.toString() + "doesn't contain the field " + val.toString()); }
                 }
@@ -544,10 +544,12 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 else if (value == null)
                     throw new MissingArgumentValueException(createDefaultArgumentDefinition(source));
                 else
-                    throw new UnknownEnumeratedValueException(createDefaultArgumentDefinition(source),value);
+                    throw new UnknownEnumeratedValueException(createDefaultArgumentDefinition(source),value.asString());
+            } else if (type.equals(File.class)) {
+                result = value.asFile();
             } else {
                 Constructor ctor = type.getConstructor(String.class);
-                result = ctor.newInstance(value);
+                result = ctor.newInstance(value.asString());
             }
         } catch (UserException e) {
             throw e;

@@ -86,7 +86,7 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     @Override
     public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches )  {
         ArgumentDefinition definition = createDefaultArgumentDefinition(source);
-        String fileName = getArgumentValue( definition, matches );
+        String fileName = getArgumentValue( definition, matches ).asString();
 
         // This parser has been passed a null filename and the GATK is not responsible for creating a type default for the object;
         // therefore, the user must have failed to specify a type default

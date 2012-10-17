@@ -26,7 +26,9 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 
 import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.GATKBAMFileSpan;
+import net.sf.samtools.GATKChunk;
 import net.sf.samtools.SAMFileSpan;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
@@ -48,18 +50,87 @@ public class FilePointer {
      */
     protected final boolean isRegionUnmapped;
 
-    public FilePointer(final GenomeLoc... locations) {
-        this.locations.addAll(Arrays.asList(locations));
+    /**
+     * Is this FilePointer "monolithic"? That is, does it represent all regions in all files that we will
+     * ever visit during this GATK run? If this is set to true, the engine will expect to see only this
+     * one FilePointer during the entire run, and this FilePointer will be allowed to contain intervals
+     * from more than one contig.
+     */
+    private boolean isMonolithic = false;
+
+    /**
+     * Index of the contig covered by this FilePointer. Only meaningful for non-monolithic, mapped FilePointers
+     */
+    private Integer contigIndex = null;
+
+
+    public FilePointer( List<GenomeLoc> locations ) {
+        this.locations.addAll(locations);
+        this.isRegionUnmapped = checkUnmappedStatus();
+
+        validateAllLocations();
+        if ( locations.size() > 0 ) {
+            contigIndex = locations.get(0).getContigIndex();
+        }
+    }
+
+    public FilePointer( final GenomeLoc... locations ) {
+        this(Arrays.asList(locations));
+    }
+
+    public FilePointer( Map<SAMReaderID,SAMFileSpan> fileSpans, List<GenomeLoc> locations ) {
+        this(locations);
+        this.fileSpans.putAll(fileSpans);
+    }
+
+    private boolean checkUnmappedStatus() {
         boolean foundMapped = false, foundUnmapped = false;
-        for(GenomeLoc location: locations) {
-            if(GenomeLoc.isUnmapped(location))
+
+        for( GenomeLoc location: locations ) {
+            if ( GenomeLoc.isUnmapped(location) )
                 foundUnmapped = true;
             else
                 foundMapped = true;
         }
-        if(foundMapped && foundUnmapped)
+        if ( foundMapped && foundUnmapped )
             throw new ReviewedStingException("BUG: File pointers cannot be mixed mapped/unmapped.");
-        this.isRegionUnmapped = foundUnmapped;
+
+        return foundUnmapped;
+    }
+
+    private void validateAllLocations() {
+        // Unmapped and monolithic FilePointers are exempted from the one-contig-only restriction
+        if ( isRegionUnmapped || isMonolithic ) {
+            return;
+        }
+
+        Integer previousContigIndex = null;
+
+        for ( GenomeLoc location : locations ) {
+            if ( previousContigIndex != null && previousContigIndex != location.getContigIndex() ) {
+                throw new ReviewedStingException("Non-monolithic file pointers must contain intervals from at most one contig");
+            }
+
+            previousContigIndex = location.getContigIndex();
+        }
+    }
+
+    private void validateLocation( GenomeLoc location ) {
+        if ( isRegionUnmapped != GenomeLoc.isUnmapped(location) ) {
+            throw new ReviewedStingException("BUG: File pointers cannot be mixed mapped/unmapped.");
+        }
+        if ( ! isRegionUnmapped && ! isMonolithic && contigIndex != null && contigIndex != location.getContigIndex() ) {
+            throw new ReviewedStingException("Non-monolithic file pointers must contain intervals from at most one contig");
+        }
+    }
+
+    /**
+     * Returns an immutable view of this FilePointer's file spans
+     *
+     * @return an immutable view of this FilePointer's file spans
+     */
+    public Map<SAMReaderID, SAMFileSpan> getFileSpans() {
+        return Collections.unmodifiableMap(fileSpans);
     }
 
     /**
@@ -68,6 +139,39 @@ public class FilePointer {
      */
     public List<GenomeLoc> getLocations() {
         return Collections.unmodifiableList(locations);
+    }
+
+    /**
+     * Returns the index of the contig into which this FilePointer points (a FilePointer can represent
+     * regions in at most one contig).
+     *
+     * @return the index of the contig into which this FilePointer points
+     */
+    public int getContigIndex() {
+        return locations.size() > 0 ? locations.get(0).getContigIndex() : SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX;
+    }
+
+    /**
+     * Is this FilePointer "monolithic"? That is, does it represent all regions in all files that we will
+     * ever visit during this GATK run? If this is set to true, the engine will expect to see only this
+     * one FilePointer during the entire run, and this FilePointer will be allowed to contain intervals
+     * from more than one contig.
+     *
+     * @return true if this FP is a monolithic FP representing all regions in all files, otherwise false
+     */
+    public boolean isMonolithic() {
+        return isMonolithic;
+    }
+
+    /**
+     * Set this FP's "monolithic" status to true or false. An FP is monolithic if it represents all
+     * regions in all files that we will ever visit, and is the only FP we will ever create. A monolithic
+     * FP may contain intervals from more than one contig.
+     *
+     * @param isMonolithic set this FP's monolithic status to this value
+     */
+    public void setIsMonolithic( boolean isMonolithic ) {
+        this.isMonolithic = isMonolithic;
     }
 
     @Override
@@ -98,7 +202,12 @@ public class FilePointer {
     }
 
     public void addLocation(final GenomeLoc location) {
-        locations.add(location);
+        validateLocation(location);
+
+        this.locations.add(location);
+        if ( contigIndex == null ) {
+            contigIndex = location.getContigIndex();
+        }
     }
 
     public void addFileSpans(final SAMReaderID id, final SAMFileSpan fileSpan) {
@@ -214,6 +323,84 @@ public class FilePointer {
         for(int i = 1; i < iterators.length; i++)
             fileSpan = fileSpan.union((GATKBAMFileSpan)iterators[i].next().getValue());
         combined.addFileSpans(initialElement.getKey(),fileSpan);
+    }
+
+    /**
+     * Efficiently generate the union of the n FilePointers passed in. Much more efficient than
+     * combining two FilePointers at a time using the combine() method above.
+     *
+     * IMPORTANT: the FilePointers to be unioned must either all represent regions on the
+     * same contig, or all be unmapped, since we cannot create FilePointers with a mix of
+     * contigs or with mixed mapped/unmapped regions.
+     *
+     * @param filePointers the FilePointers to union
+     * @param parser our GenomeLocParser
+     * @return the union of the FilePointers passed in
+     */
+    public static FilePointer union( List<FilePointer> filePointers, GenomeLocParser parser ) {
+        if ( filePointers == null || filePointers.isEmpty() ) {
+            return new FilePointer();
+        }
+
+        Map<SAMReaderID, List<GATKChunk>> fileChunks = new HashMap<SAMReaderID, List<GATKChunk>>();
+        List<GenomeLoc> locations = new ArrayList<GenomeLoc>();
+
+        // First extract all intervals and file chunks from the FilePointers into unsorted, unmerged collections
+        for ( FilePointer filePointer : filePointers ) {
+            locations.addAll(filePointer.getLocations());
+
+            for ( Map.Entry<SAMReaderID, SAMFileSpan> fileSpanEntry : filePointer.getFileSpans().entrySet() ) {
+                GATKBAMFileSpan fileSpan = (GATKBAMFileSpan)fileSpanEntry.getValue();
+
+                if ( fileChunks.containsKey(fileSpanEntry.getKey()) ) {
+                    fileChunks.get(fileSpanEntry.getKey()).addAll(fileSpan.getGATKChunks());
+                }
+                else {
+                    fileChunks.put(fileSpanEntry.getKey(), fileSpan.getGATKChunks());
+                }
+            }
+        }
+
+        // Now sort and merge the intervals
+        List<GenomeLoc> sortedMergedLocations = new ArrayList<GenomeLoc>();
+        sortedMergedLocations.addAll(IntervalUtils.sortAndMergeIntervals(parser, locations, IntervalMergingRule.ALL));
+
+        // For each BAM file, convert from an unsorted, unmerged list of chunks to a GATKBAMFileSpan containing
+        // the sorted, merged union of the chunks for that file
+        Map<SAMReaderID, SAMFileSpan> mergedFileSpans = new HashMap<SAMReaderID, SAMFileSpan>(fileChunks.size());
+        for ( Map.Entry<SAMReaderID, List<GATKChunk>> fileChunksEntry : fileChunks.entrySet() ) {
+            List<GATKChunk> unmergedChunks = fileChunksEntry.getValue();
+            mergedFileSpans.put(fileChunksEntry.getKey(),
+                                (new GATKBAMFileSpan(unmergedChunks.toArray(new GATKChunk[unmergedChunks.size()]))).union(new GATKBAMFileSpan()));
+        }
+
+        return new FilePointer(mergedFileSpans, sortedMergedLocations);
+    }
+
+    /**
+     * Returns true if any of the file spans in this FilePointer overlap their counterparts in
+     * the other FilePointer. "Overlap" is defined as having an overlapping extent (the region
+     * from the start of the first chunk to the end of the last chunk).
+     *
+     * @param other the FilePointer against which to check overlap with this FilePointer
+     * @return true if any file spans overlap their counterparts in other, otherwise false
+     */
+    public boolean hasFileSpansOverlappingWith( FilePointer other ) {
+        for ( Map.Entry<SAMReaderID, SAMFileSpan> thisFilePointerEntry : fileSpans.entrySet() ) {
+            GATKBAMFileSpan thisFileSpan = new GATKBAMFileSpan(thisFilePointerEntry.getValue());
+
+            SAMFileSpan otherEntry = other.fileSpans.get(thisFilePointerEntry.getKey());
+            if ( otherEntry == null ) {
+                continue;  // no counterpart for this file span in other
+            }
+            GATKBAMFileSpan otherFileSpan = new GATKBAMFileSpan(otherEntry);
+
+            if ( thisFileSpan.getExtent().overlaps(otherFileSpan.getExtent()) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override

@@ -32,7 +32,6 @@ import org.reflections.util.ClasspathHelper;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.net.URL;
 import java.util.*;
@@ -198,7 +197,7 @@ public class JVMUtils {
      * @return the list of class path urls.
      */
     public static Set<URL> getClasspathURLs() {
-        return ClasspathHelper.getUrlsForManifestsCurrentClasspath();
+        return ClasspathHelper.forManifest();
     }
 
     /**
@@ -240,8 +239,8 @@ public class JVMUtils {
     /**
      * Returns a comma-separated list of the names of the interfaces implemented by this class
      *
-     * @param covClass
-     * @return
+     * @param covClass class
+     * @return names of interfaces
      */
     public static String classInterfaces(final Class covClass) {
         final List<String> interfaces = new ArrayList<String>();

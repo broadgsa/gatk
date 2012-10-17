@@ -27,7 +27,9 @@ package org.broadinstitute.sting.queue
 import engine.JobRunInfo
 import org.broadinstitute.sting.queue.function.QFunction
 import annotation.target.field
-import util.{StringFileConversions, PrimitiveOptionConversions, Logging}
+import util._
+import org.broadinstitute.sting.utils.classloader.JVMUtils
+import java.lang.reflect.Field
 
 /**
  * Defines a Queue pipeline as a collection of CommandLineFunctions.
@@ -106,6 +108,33 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
   def addAll(functions: Seq[QFunction]) {
     functions.foreach( f => add(f) )
   }
+
+  def pullInputs() {
+    val inputs = getInputs
+    inputs.filter(_.isInstanceOf[RemoteFile]).map(_.asInstanceOf[RemoteFile]).foreach(_.pullToLocal())
+  }
+
+  def pushOutputs() {
+    val outputs = getOutputs
+    outputs.filter(_.isInstanceOf[RemoteFile]).map(_.asInstanceOf[RemoteFile]).foreach(_.pushToRemote())
+  }
+
+  private def getInputs: Seq[File] = {
+    getFieldValues(classOf[Input])
+  }
+
+  private def getOutputs: Seq[File] = {
+    getFieldValues(classOf[Output])
+  }
+
+  private def getFieldValues(annotation: Class[_ <: java.lang.annotation.Annotation]): Seq[File] = {
+    val filtered: Seq[Field] = fields.filter(field => ReflectionUtils.hasAnnotation(field, annotation))
+    val files = filtered.filter(field => classOf[File].isAssignableFrom(field.getType)).map(field => ReflectionUtils.getValue(this, field).asInstanceOf[File])
+    val seqFiles = filtered.filter(field => classOf[Seq[File]].isAssignableFrom(field.getType)).map(field => ReflectionUtils.getValue(this, field).asInstanceOf[Seq[File]])
+    seqFiles.foldLeft(files)(_ ++ _).filter(_ != null)
+  }
+
+  private lazy val fields = collection.JavaConversions.asScalaBuffer(JVMUtils.getAllFields(this.getClass)).toSeq
 }
 
 object QScript {

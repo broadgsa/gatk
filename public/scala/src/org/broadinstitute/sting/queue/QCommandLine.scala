@@ -28,7 +28,7 @@ import function.QFunction
 import java.io.File
 import org.broadinstitute.sting.commandline._
 import org.broadinstitute.sting.queue.util._
-import org.broadinstitute.sting.queue.engine.{QGraphSettings, QGraph}
+import org.broadinstitute.sting.queue.engine.{QStatusMessenger, QGraphSettings, QGraph}
 import collection.JavaConversions._
 import org.broadinstitute.sting.utils.classloader.PluginManager
 import org.broadinstitute.sting.utils.exceptions.UserException
@@ -64,10 +64,10 @@ object QCommandLine extends Logging {
         Runtime.getRuntime.removeShutdownHook(shutdownHook)
         qCommandLine.shutdown()
       } catch {
-        case _ => /* ignore, example 'java.lang.IllegalStateException: Shutdown in progress' */
+        case e: Exception => /* ignore, example 'java.lang.IllegalStateException: Shutdown in progress' */
       }
       if (CommandLineProgram.result != 0)
-        System.exit(CommandLineProgram.result);
+        System.exit(CommandLineProgram.result)
     } catch {
       case e: Exception => CommandLineProgram.exitSystemWithError(e)
     }
@@ -90,10 +90,14 @@ class QCommandLine extends CommandLineProgram with Logging {
   private var qScriptClasses: File = _
   private var shuttingDown = false
 
-  private lazy val pluginManager = {
+  private lazy val qScriptPluginManager = {
     qScriptClasses = IOUtils.tempDir("Q-Classes-", "", settings.qSettings.tempDirectory)
     qScriptManager.loadScripts(scripts, qScriptClasses)
     new PluginManager[QScript](classOf[QScript], Seq(qScriptClasses.toURI.toURL))
+  }
+
+  private lazy val qStatusMessengerPluginManager = {
+    new PluginManager[QStatusMessenger](classOf[QStatusMessenger])
   }
 
   QFunction.parsingEngine = new ParsingEngine(this)
@@ -103,14 +107,25 @@ class QCommandLine extends CommandLineProgram with Logging {
    * functions, and then builds and runs a QGraph based on the dependencies.
    */
   def execute = {
+    val allStatusMessengers = qStatusMessengerPluginManager.createAllTypes()
+
     if (settings.qSettings.runName == null)
       settings.qSettings.runName = FilenameUtils.removeExtension(scripts.head.getName)
+    if (IOUtils.isDefaultTempDir(settings.qSettings.tempDirectory))
+      settings.qSettings.tempDirectory = IOUtils.absolute(settings.qSettings.runDirectory, ".queue/tmp")
+    qGraph.initializeWithSettings(settings)
 
-    qGraph.settings = settings
+    for (statusMessenger <- allStatusMessengers) {
+      loadArgumentsIntoObject(statusMessenger)
+    }
 
-    val allQScripts = pluginManager.createAllTypes();
+    for (statusMessenger <- allStatusMessengers) {
+      statusMessenger.started()
+    }
+
+    val allQScripts = qScriptPluginManager.createAllTypes()
     for (script <- allQScripts) {
-      logger.info("Scripting " + pluginManager.getName(script.getClass.asSubclass(classOf[QScript])))
+      logger.info("Scripting " + qScriptPluginManager.getName(script.getClass.asSubclass(classOf[QScript])))
       loadArgumentsIntoObject(script)
       script.qSettings = settings.qSettings
       try {
@@ -121,6 +136,10 @@ class QCommandLine extends CommandLineProgram with Logging {
       }
       script.functions.foreach(qGraph.add(_))
       logger.info("Added " + script.functions.size + " functions")
+    }
+
+    if (settings.run) {
+      allQScripts.foreach(_.pullInputs())
     }
 
     // Execute the job graph
@@ -137,32 +156,22 @@ class QCommandLine extends CommandLineProgram with Logging {
 
     logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", functionsAndStatus.size))
 
-    if (!settings.disableJobReport) {
-      val jobStringName = {
-        if (settings.jobReportFile != null)
-          settings.jobReportFile
-        else
-          settings.qSettings.runName + ".jobreport.txt"
-      }
+    // write the final complete job report
+    logger.info("Writing final jobs report...")
+    qGraph.writeJobsReport()
 
-      if (!shuttingDown) {
-        val reportFile = IOUtils.absolute(settings.qSettings.runDirectory, jobStringName)
-        logger.info("Writing JobLogging GATKReport to file " + reportFile)
-        QJobReport.printReport(functionsAndStatus, reportFile)
-
-        if (settings.run) {
-          val pdfFile = IOUtils.absolute(settings.qSettings.runDirectory, FilenameUtils.removeExtension(jobStringName) + ".pdf")
-          logger.info("Plotting JobLogging GATKReport to file " + pdfFile)
-          QJobReport.plotReport(reportFile, pdfFile)
-        }
-      }
-    }
-
-    if (!qGraph.success) {
+    if (!success) {
       logger.info("Done with errors")
       qGraph.logFailed()
+      for (statusMessenger <- allStatusMessengers)
+        statusMessenger.exit("Done with errors")
       1
     } else {
+      if (settings.run) {
+        allQScripts.foreach(_.pushOutputs())
+        for (statusMessenger <- allStatusMessengers)
+          statusMessenger.done()
+      }
       0
     }
   }
@@ -174,19 +183,30 @@ class QCommandLine extends CommandLineProgram with Logging {
   override def canAddArgumentsDynamically = true
 
   /**
-   * Returns the list of QScripts passed in via -S so that their
-   * arguments can be inspected before QScript.script is called.
-   * @return Array of QScripts passed in.
+   * Returns the list of QScripts passed in via -S and other plugins
+   * so that their arguments can be inspected before QScript.script is called.
+   * @return Array of dynamic sources
    */
-  override def getArgumentSources =
-    pluginManager.getPlugins.toIterable.toArray.asInstanceOf[Array[Class[_]]]
+  override def getArgumentSources = {
+    var plugins = Seq.empty[Class[_]]
+    plugins ++= qScriptPluginManager.getPlugins
+    plugins ++= qStatusMessengerPluginManager.getPlugins
+    plugins.toArray
+  }
 
   /**
-   * Returns the name of a QScript
-   * @return The name of a QScript
+   * Returns the name of a script/plugin
+   * @return The name of a script/plugin
    */
-  override def getArgumentSourceName(source: Class[_]) =
-    pluginManager.getName(source.asSubclass(classOf[QScript]))
+  override def getArgumentSourceName(source: Class[_]) = {
+    if (classOf[QScript].isAssignableFrom(source))
+      qScriptPluginManager.getName(source.asSubclass(classOf[QScript]))
+    else if (classOf[QStatusMessenger].isAssignableFrom(source))
+      qStatusMessengerPluginManager.getName(source.asSubclass(classOf[QStatusMessenger]))
+    else
+      null
+
+  }
 
   /**
    * Returns a ScalaCompoundArgumentTypeDescriptor that can parse argument sources into scala collections.
@@ -205,7 +225,7 @@ class QCommandLine extends CommandLineProgram with Logging {
   private def createQueueHeader() : Seq[String] = {
     Seq(String.format("Queue v%s, Compiled %s", getQueueVersion, getBuildTimestamp),
          "Copyright (c) 2012 The Broad Institute",
-         "Fro support and documentation go to http://www.broadinstitute.org/gatk")
+         "For support and documentation go to http://www.broadinstitute.org/gatk")
   }
 
   private def getQueueVersion : String = {

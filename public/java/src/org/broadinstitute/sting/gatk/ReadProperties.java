@@ -1,15 +1,15 @@
 package org.broadinstitute.sting.gatk;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 
 import java.util.Collection;
+import java.util.List;
 /**
  * User: hanna
  * Date: May 14, 2009
@@ -30,16 +30,14 @@ import java.util.Collection;
 public class ReadProperties {
     private final Collection<SAMReaderID> readers;
     private final SAMFileHeader header;
+    private final SAMFileHeader.SortOrder sortOrder;
     private final SAMFileReader.ValidationStringency validationStringency;
     private final DownsamplingMethod downsamplingMethod;
     private final ValidationExclusion exclusionList;
     private final Collection<ReadFilter> supplementalFilters;
+    private final List<ReadTransformer> readTransformers;
     private final boolean includeReadsWithDeletionAtLoci;
     private final boolean useOriginalBaseQualities;
-    private final BAQ.CalculationMode cmode;
-    private final BAQ.QualityMode qmode;
-    private final IndexedFastaSequenceFile refReader; // read for BAQ, if desired
-    private final BaseRecalibration bqsrApplier;
     private final byte defaultBaseQualities;
 
     /**
@@ -65,6 +63,14 @@ public class ReadProperties {
      */
     public SAMFileHeader getHeader() {
         return header;
+    }
+
+    /**
+     * Gets the sort order of the reads
+     * @return the sort order of the reads
+     */
+    public SAMFileHeader.SortOrder getSortOrder() {
+        return sortOrder;
     }
 
     /**
@@ -95,6 +101,11 @@ public class ReadProperties {
         return supplementalFilters;
     }
 
+
+    public List<ReadTransformer> getReadTransformers() {
+        return readTransformers;
+    }
+
     /**
      * Return whether to use original base qualities.
      * @return Whether to use original base qualities.
@@ -102,16 +113,6 @@ public class ReadProperties {
     public boolean useOriginalBaseQualities() {
         return useOriginalBaseQualities;
     }
-
-
-    public BAQ.QualityMode getBAQQualityMode() { return qmode; }
-    public BAQ.CalculationMode getBAQCalculationMode() { return cmode; }
-
-    public IndexedFastaSequenceFile getRefReader() {
-        return refReader;
-    }
-
-    public BaseRecalibration getBQSRApplier() { return bqsrApplier; }
 
     /**
      * @return Default base quality value to fill reads missing base quality information.
@@ -134,36 +135,29 @@ public class ReadProperties {
      * @param includeReadsWithDeletionAtLoci if 'true', the base pileups sent to the walker's map() method
      *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
-     * @param cmode How should we apply the BAQ calculation to the reads?
-     * @param qmode How should we apply the BAQ calculation to the reads?
-     * @param refReader if applyBAQ is true, must be a valid pointer to a indexed fasta file reads so we can get the ref bases for BAQ calculation
      * @param defaultBaseQualities if the reads have incomplete quality scores, set them all to defaultBaseQuality.
      */
     public ReadProperties( Collection<SAMReaderID> samFiles,
            SAMFileHeader header,
+           SAMFileHeader.SortOrder sortOrder,
            boolean useOriginalBaseQualities,
            SAMFileReader.ValidationStringency strictness,
            DownsamplingMethod downsamplingMethod,
            ValidationExclusion exclusionList,
            Collection<ReadFilter> supplementalFilters,
+           List<ReadTransformer> readTransformers,
            boolean includeReadsWithDeletionAtLoci,
-           BAQ.CalculationMode cmode,
-           BAQ.QualityMode qmode,           
-           IndexedFastaSequenceFile refReader,
-           BaseRecalibration bqsrApplier,
            byte defaultBaseQualities) {
         this.readers = samFiles;
         this.header = header;
+        this.sortOrder = sortOrder;
         this.validationStringency = strictness;
         this.downsamplingMethod = downsamplingMethod == null ? DownsamplingMethod.NONE : downsamplingMethod;
         this.exclusionList = exclusionList == null ? new ValidationExclusion() : exclusionList;
         this.supplementalFilters = supplementalFilters;
+        this.readTransformers = readTransformers;
         this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;
         this.useOriginalBaseQualities = useOriginalBaseQualities;
-        this.cmode = cmode;
-        this.qmode = qmode;
-        this.refReader = refReader;
-        this.bqsrApplier = bqsrApplier;
         this.defaultBaseQualities = defaultBaseQualities;
     }
 }

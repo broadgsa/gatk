@@ -146,7 +146,7 @@ public class TrancheManager {
     public static List<Tranche> findTranches( final ArrayList<VariantDatum> data, final double[] trancheThresholds, final SelectionMetric metric, final VariantRecalibratorArgumentCollection.Mode model, final File debugFile ) {
         logger.info(String.format("Finding %d tranches for %d variants", trancheThresholds.length, data.size()));
 
-        Collections.sort(data);
+        Collections.sort( data, new VariantDatum.VariantDatumLODComparator() );
         metric.calculateRunningMetric(data);
 
         if ( debugFile != null) { writeTranchesDebuggingInfo(debugFile, data, metric); }

@@ -27,7 +27,6 @@ package org.broadinstitute.sting.utils.variantcontext.writer;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -251,7 +250,7 @@ class VCFWriter extends IndexingVariantContextWriter {
             mWriter.write("\n");
             mWriter.flush();  // necessary so that writing to an output stream will work
         } catch (IOException e) {
-            throw new RuntimeException("Unable to write the VCF object to " + getStreamName());
+            throw new RuntimeException("Unable to write the VCF object to " + getStreamName(), e);
         }
     }
 
@@ -339,13 +338,13 @@ class VCFWriter extends IndexingVariantContextWriter {
      */
     private void addGenotypeData(VariantContext vc, Map<Allele, String> alleleMap, List<String> genotypeFormatKeys)
     throws IOException {
+        final int ploidy = vc.getMaxPloidy(2);
+
         for ( String sample : mHeader.getGenotypeSamples() ) {
             mWriter.write(VCFConstants.FIELD_SEPARATOR);
 
             Genotype g = vc.getGenotype(sample);
-            if ( g == null ) {
-                missingSampleError(vc, mHeader);
-            }
+            if ( g == null ) g = GenotypeBuilder.createMissing(sample, ploidy);
 
             final List<String> attrs = new ArrayList<String>(genotypeFormatKeys.size());
             for ( String field : genotypeFormatKeys ) {
@@ -426,13 +425,6 @@ class VCFWriter extends IndexingVariantContextWriter {
         }
     }
 
-    public static final void missingSampleError(final VariantContext vc, final VCFHeader header) {
-        final List<String> badSampleNames = new ArrayList<String>();
-        for ( final String x : header.getGenotypeSamples() )
-            if ( ! vc.hasGenotype(x) ) badSampleNames.add(x);
-        throw new ReviewedStingException("BUG: we now require all samples in VCFheader to have genotype objects.  Missing samples are " + Utils.join(",", badSampleNames));
-    }
-
     private boolean isMissingValue(String s) {
         // we need to deal with the case that it's a list of missing values
         return (countOccurrences(VCFConstants.MISSING_VALUE_v4.charAt(0), s) + countOccurrences(',', s) == s.length());
@@ -485,10 +477,10 @@ class VCFWriter extends IndexingVariantContextWriter {
         else if ( val instanceof List ) {
             result = formatVCFField(((List)val).toArray());
         } else if ( val.getClass().isArray() ) {
-            int length = Array.getLength(val);
+            final int length = Array.getLength(val);
             if ( length == 0 )
                 return formatVCFField(null);
-            StringBuffer sb = new StringBuffer(formatVCFField(Array.get(val, 0)));
+            final StringBuilder sb = new StringBuilder(formatVCFField(Array.get(val, 0)));
             for ( int i = 1; i < length; i++) {
                 sb.append(",");
                 sb.append(formatVCFField(Array.get(val, i)));

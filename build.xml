@@ -22,7 +22,9 @@
   ~ OTHER DEALINGS IN THE SOFTWARE.
   -->
 
-<project name="Sting" default="dist" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
+<project name="Sting" default="dist" basedir="."
+         xmlns:artifact="antlib:org.apache.maven.artifact.ant"
+         xmlns:ivy="antlib:org.apache.ivy.ant">
     <description>Compile and distribute the Sting toolkit</description>
 
     <!-- ******************************************************************************** -->
@@ -250,17 +252,29 @@
         <property name="ivy.jar.file" value="ivy-${ivy.install.version}.jar"/>
         <property name="ivy.settings.dir" value="settings"/>
         <property file="${ivy.settings.dir}/ivysettings.properties"/>
+        <property name="maven-ant-tasks.install.version" value="2.1.3"/>
+        <property name="maven-ant-tasks.jar.file" value="maven-ant-tasks-${maven-ant-tasks.install.version}.jar"/>
 
         <mkdir dir="${lib.dir}"/>
         <mkdir dir="${ivy.jar.dir}"/>
 
-        <!-- Comment out the following two lines to build the GATK without a network connection, assuming you have all of the libraries cached already -->
+        <!-- Comment out the following lines to build the GATK without a network connection, assuming you have all of the libraries cached already -->
+
         <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
              dest="${ivy.jar.dir}/${ivy.jar.file}"
              usetimestamp="true"/>
         <taskdef resource="org/apache/ivy/ant/antlib.xml"
                  uri="antlib:org.apache.ivy.ant"
                  classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
+
+        <get src="http://repo1.maven.org/maven2/org/apache/maven/maven-ant-tasks/${maven-ant-tasks.install.version}/${maven-ant-tasks.jar.file}"
+             dest="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"
+             usetimestamp="true"/>
+        <taskdef resource="org/apache/maven/artifact/ant/antlib.xml"
+                 uri="antlib:antlib:org.apache.maven.artifact.ant"
+                 classpath="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"/>
+
+        <!-- End network lines -->
 
         <ivy:settings file="${ivy.settings.dir}/ivysettings.xml"/>
         <property name="init.resolve.done" value="true"/>
@@ -295,7 +309,7 @@
 
     <target name="git.rev-parse" depends="git.describe" unless="git.describe.succeeded">
       <exec executable="git" outputproperty="git.rev-parse.output" resultproperty="git.rev-parse.exit.value" failonerror="false">
-        <arg line="rev-parse HEAD" />
+        <arg line="rev-parse --short HEAD" />
       </exec>
       <condition property="git.rev-parse.succeeded">
         <equals arg1="${git.rev-parse.exit.value}" arg2="0" />
@@ -577,6 +591,7 @@
                  docletpathref="doclet.classpath"
                  classpathref="external.dependencies"
                  classpath="${java.classes}"
+		 maxmemory="2g"
                  additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -out ${basedir}/${resource.path} -quiet">
             <sourcefiles>
                 <union>
@@ -780,6 +795,7 @@
                  docletpathref="doclet.classpath"
                  classpathref="external.dependencies"
                  classpath="${java.classes}"
+		 maxmemory="2g"
                  additionalparam="${gatkdocs.include.hidden.arg} -private -build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -quiet"> <!-- -test to only do DocumentationTest walker -->
             <sourcefiles>
                 <fileset refid="java.source.files"/>
@@ -940,6 +956,28 @@
       </ant>
     </target>
 
+    <!-- Maven install a package consisting of all supporting files. Don't call this target directly. Call one of the specific packaging targets below -->
+    <target name="mvninstall" depends="package" description="maven install a package into .m2/repository">
+        <property name="mvn.build.version" value="0.0.1" />
+        <!--
+        We should use the build version or better yet a git tag version, but tags are currently missing. Alternatively how do we then depend on the LATEST?
+        <property name="mvn.build.version" value="${build.version}" />
+        -->
+        <artifact:pom id="${executable}.pom" groupId="org.broadinstitute.sting" artifactId="${executable}" version="${mvn.build.version}" name="${executable}" />
+        <artifact:writepom pomRefId="${executable}.pom" file="${package.output.dir}/${executable}-${build.version}/${executable}.pom.xml"/>
+        <artifact:install file="${package.output.dir}/${executable}-${build.version}/${executable}.jar">
+            <artifact:pom file="${package.output.dir}/${executable}-${build.version}/${executable}.pom.xml" />
+        </artifact:install>
+    </target>
+
+    <!-- Maven install specific versions of the GATK/Queue. ALWAYS do an ant clean before invoking these! -->
+    <target name="mvninstall.gatk.full" depends="package.gatk.full,mvninstall" />
+
+    <target name="mvninstall.gatk.lite" depends="package.gatk.lite,mvninstall" />
+
+    <target name="mvninstall.queue.full" depends="package.queue.full,mvninstall" />
+
+    <target name="mvninstall.queue.lite" depends="package.queue.lite,mvninstall" />
 
     <!-- ******************************************************************************** -->
     <!-- Clean                                                                            -->
@@ -1177,7 +1215,7 @@
 
 	    <!-- copy the report to our private_html directory for easy viewing in a broswer -->
             <mkdir dir="${iwww.report.dir}/@{testtype}"/>
-            <copy todir="${iwww.report.dir}/@{testtype}" verbose="true">
+            <copy todir="${iwww.report.dir}/@{testtype}" verbose="false">
               <fileset dir="@{outputdir}"/>
             </copy>
 
