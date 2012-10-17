@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.arguments;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcFactory;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
@@ -82,7 +83,6 @@ public class StandardCallerArgumentCollection {
     @Argument(shortName = "logExactCalls", doc="x", required=false)
     public File exactCallsLog = null;
 
-
     public StandardCallerArgumentCollection() { }
 
     // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
@@ -97,5 +97,13 @@ public class StandardCallerArgumentCollection {
         this.STANDARD_CONFIDENCE_FOR_EMITTING = SCAC.STANDARD_CONFIDENCE_FOR_EMITTING;
         this.CONTAMINATION_PERCENTAGE = SCAC.CONTAMINATION_PERCENTAGE;
         this.exactCallsLog = SCAC.exactCallsLog;
+        this.AFmodel = SCAC.AFmodel;
     }
+
+    /**
+     * Controls the model used to calculate the probability that a site is variant plus the various sample genotypes in the data at a given locus.
+     */
+    @Advanced
+    @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ", required = false)
+    public AFCalcFactory.Calculation AFmodel = AFCalcFactory.Calculation.EXACT;
 }

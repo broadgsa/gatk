@@ -27,8 +27,11 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardCallerArgumentCollection;
+<<<<<<< HEAD
 import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcFactory;
 import org.broadinstitute.sting.utils.pairhmm.PairHMM;
+=======
+>>>>>>> 19181ee... Moving pnrm to UnifiedArgumentCollection so it's available with the HaplotypeCaller
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
@@ -37,13 +40,6 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
 
     @Argument(fullName = "genotype_likelihoods_model", shortName = "glm", doc = "Genotype likelihoods calculation model to employ -- SNP is the default option, while INDEL is also available for calling indels and BOTH is available for calling both together", required = false)
     public GenotypeLikelihoodsCalculationModel.Model GLmodel = GenotypeLikelihoodsCalculationModel.Model.SNP;
-
-    /**
-     * Controls the model used to calculate the probability that a site is variant plus the various sample genotypes in the data at a given locus.
-     */
-    @Advanced
-    @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ", required = false)
-    public AFCalcFactory.Calculation AFmodel = AFCalcFactory.Calculation.EXACT;
 
     /**
      * The PCR error rate is independent of the sequencing error rate, which is necessary because we cannot necessarily
@@ -219,7 +215,6 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
         this.EXCLUDE_FILTERED_REFERENCE_SITES = uac.EXCLUDE_FILTERED_REFERENCE_SITES;
         this.IGNORE_LANE_INFO = uac.IGNORE_LANE_INFO;
         this.pairHMM = uac.pairHMM;
-
         // todo- arguments to remove
         this.IGNORE_SNP_ALLELES = uac.IGNORE_SNP_ALLELES;
     }
