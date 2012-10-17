@@ -46,7 +46,8 @@
         <dependency org="org.apache.bcel" name="bcel" rev="5.2"/>
 
         <!-- Dependencies for reflections mvn repository -->
-        <dependency org="org.reflections" name="reflections" rev="0.9.5-RC2"/>
+        <dependency org="org.reflections" name="reflections" rev="0.9.8"/>
+        <dependency org="org.slf4j" name="slf4j-log4j12" rev="1.6.1"/>
 
         <!-- Matrix package from math.nist.gov -->
         <dependency org="gov.nist" name="Jama" rev="1.0.2"/>
@@ -78,8 +79,8 @@
         <dependency org="net.sf.gridscheduler" name="drmaa" rev="latest.integration"/>
 
         <!-- Scala dependancies -->
-        <dependency org="org.scala-lang" name="scala-compiler" rev="2.8.1"/>
-        <dependency org="org.scala-lang" name="scala-library" rev="2.8.1"/>
+        <dependency org="org.scala-lang" name="scala-compiler" rev="2.9.2"/>
+        <dependency org="org.scala-lang" name="scala-library" rev="2.9.2"/>
 
         <!-- testing and evaluation dependencies -->
         <dependency org="org.testng" name="testng" rev="5.14.1" conf="test"/>

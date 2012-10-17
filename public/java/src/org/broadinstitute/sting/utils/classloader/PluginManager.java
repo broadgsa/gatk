@@ -25,8 +25,6 @@
 
 package org.broadinstitute.sting.utils.classloader;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
@@ -35,7 +33,6 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.util.ConfigurationBuilder;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -57,9 +54,8 @@ public class PluginManager<PluginType> {
     private static final Reflections defaultReflections;
 
     static {
-        // turn off logging in the reflections library - they talk too much (to the wrong logger factory as well, logback)
-        Logger logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Reflections.class);
-        logger.setLevel(Level.OFF);
+        // turn off logging in the reflections library - they talk too much
+        Reflections.log = null;
 
         Set<URL> classPathUrls = new LinkedHashSet<URL>();
 
@@ -179,9 +175,9 @@ public class PluginManager<PluginType> {
     /**
      * Sorts, in place, the list of plugins according to getName() on each element
      *
-     * @param unsortedPlugins
+     * @param unsortedPlugins unsorted plugins
      */
-    private final void sortPlugins(final List<Class<? extends PluginType>> unsortedPlugins) {
+    private void sortPlugins(final List<Class<? extends PluginType>> unsortedPlugins) {
         Collections.sort(unsortedPlugins, new ComparePluginsByName());
     }
 
@@ -235,7 +231,7 @@ public class PluginManager<PluginType> {
      * @param plugin Name of the plugin for which to search.
      * @return True if the plugin exists, false otherwise.
      */
-    public boolean exists(Class<?> plugin) {
+    public boolean exists(Class<? extends PluginType> plugin) {
         return pluginsByName.containsValue(plugin);
     }
 

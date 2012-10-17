@@ -28,7 +28,6 @@ import java.io.File
 import java.lang.annotation.Annotation
 import org.broadinstitute.sting.commandline._
 import org.broadinstitute.sting.queue.{QException, QSettings}
-import collection.JavaConversions._
 import java.lang.IllegalStateException
 import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.utils.io.IOUtils
@@ -194,13 +193,13 @@ trait QFunction extends Logging with QJobReport {
   def failOutputs: Seq[File] = statusPrefixes.map(path => new File(path + ".fail"))
 
   /** The complete list of fields on this CommandLineFunction. */
-  def functionFields = QFunction.classFields(this.functionFieldClass).functionFields
+  def functionFields: Seq[ArgumentSource] = ClassFieldCache.classFunctionFields(this.functionFieldClass)
   /** The @Input fields on this CommandLineFunction. */
-  def inputFields = QFunction.classFields(this.functionFieldClass).inputFields
+  def inputFields: Seq[ArgumentSource] = ClassFieldCache.classInputFields(this.functionFieldClass)
   /** The @Output fields on this CommandLineFunction. */
-  def outputFields = QFunction.classFields(this.functionFieldClass).outputFields
+  def outputFields: Seq[ArgumentSource] = ClassFieldCache.classOutputFields(this.functionFieldClass)
   /** The @Argument fields on this CommandLineFunction. */
-  def argumentFields = QFunction.classFields(this.functionFieldClass).argumentFields
+  def argumentFields: Seq[ArgumentSource] = ClassFieldCache.classArgumentFields(this.functionFieldClass)
 
   /**
    * Returns the class that should be used for looking up fields.
@@ -475,79 +474,12 @@ trait QFunction extends Logging with QJobReport {
    * @param source Field to get the value for.
    * @return value of the field.
    */
-  def getFieldValue(source: ArgumentSource) = ReflectionUtils.getValue(invokeObj(source), source.field)
+  def getFieldValue(source: ArgumentSource) = ClassFieldCache.getFieldValue(this, source)
 
   /**
    * Gets the value of a field.
    * @param source Field to set the value for.
    * @return value of the field.
    */
-  def setFieldValue(source: ArgumentSource, value: Any) = ReflectionUtils.setValue(invokeObj(source), source.field, value)
-
-  /**
-   * Walks gets the fields in this object or any collections in that object
-   * recursively to find the object holding the field to be retrieved or set.
-   * @param source Field find the invoke object for.
-   * @return Object to invoke the field on.
-   */
-  private def invokeObj(source: ArgumentSource) = source.parentFields.foldLeft[AnyRef](this)(ReflectionUtils.getValue(_, _))
-}
-
-object QFunction {
-  var parsingEngine: ParsingEngine = _
-
-  /**
-   * The list of fields defined on a class
-   * @param clazz The class to lookup fields.
-   */
-  private class ClassFields(clazz: Class[_]) {
-    /** The complete list of fields on this CommandLineFunction. */
-    val functionFields: Seq[ArgumentSource] = parsingEngine.extractArgumentSources(clazz).toSeq
-    /** The @Input fields on this CommandLineFunction. */
-    val inputFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Input]))
-    /** The @Output fields on this CommandLineFunction. */
-    val outputFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Output]))
-    /** The @Argument fields on this CommandLineFunction. */
-    val argumentFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Argument]))
-  }
-
-  /**
-   * The mapping from class to fields.
-   */
-  private var classFieldsMap = Map.empty[Class[_], ClassFields]
-
-  /**
-   * Returns the field on clazz.
-   * @param clazz Class to search.
-   * @param name Name of the field to return.
-   * @return Argument source for the field.
-   */
-  def findField(clazz: Class[_], name: String) = {
-    classFields(clazz).functionFields.find(_.field.getName == name) match {
-      case Some(source) => source
-      case None => throw new QException("Could not find a field on class %s with name %s".format(clazz, name))
-    }
-  }
-
-  /**
-   * Returns the fields for a class.
-   * @param clazz Class to retrieve fields for.
-   * @return the fields for the class.
-   */
-  private def classFields(clazz: Class[_]) = {
-    classFieldsMap.get(clazz) match {
-      case Some(classFields) => classFields
-      case None =>
-        val classFields = new ClassFields(clazz)
-        classFieldsMap += clazz -> classFields
-        classFields
-    }
-  }
-
-  /**
-   * Returns the Seq of fields for a QFunction class.
-   * @param clazz Class to retrieve fields for.
-   * @return the fields of the class.
-   */
-  def classFunctionFields(clazz: Class[_]) = classFields(clazz).functionFields
+  def setFieldValue(source: ArgumentSource, value: Any) = ClassFieldCache.setFieldValue(this, source, value)
 }
