@@ -174,7 +174,7 @@ public abstract class CommandLineProgram {
             ParsingEngine parser = clp.parser = new ParsingEngine(clp);
             parser.addArgumentSource(clp.getClass());
 
-            Map<ArgumentMatchSource, List<String>> parsedArgs;
+            Map<ArgumentMatchSource, ParsedArgs> parsedArgs;
 
             // process the args
             if (clp.canAddArgumentsDynamically()) {

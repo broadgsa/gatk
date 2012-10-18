@@ -31,10 +31,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Describes the results of the AFCalc
@@ -217,6 +214,14 @@ public class AFCalcResult {
         return log10PriorsOfAC[AF1p];
     }
 
+    @Override
+    public String toString() {
+        final List<String> byAllele = new LinkedList<String>();
+        for ( final Allele a : getAllelesUsedInGenotyping() )
+            if ( a.isNonReference() ) byAllele.add(String.format("%s => MLE %d / posterior %.2f", a, getAlleleCountAtMLE(a), getLog10PosteriorOfAFGt0ForAllele(a)));
+        return String.format("AFCalc%n\t\tlog10PosteriorOfAFGT0=%.2f%n\t\t%s", getLog10LikelihoodOfAFGT0(), Utils.join("\n\t\t", byAllele));
+    }
+
     /**
      * Are we sufficiently confidence in being non-ref that the site is considered polymorphic?
      *
@@ -231,6 +236,19 @@ public class AFCalcResult {
      */
     public boolean isPolymorphic(final Allele allele, final double log10minPNonRef) {
         return getLog10PosteriorOfAFGt0ForAllele(allele) >= log10minPNonRef;
+    }
+
+    /**
+     * Are any of the alleles polymorphic w.r.t. #isPolymorphic?
+     *
+     * @param log10minPNonRef the confidence threshold, in log10 space
+     * @return true if any are poly, false otherwise
+     */
+    public boolean anyPolymorphic(final double log10minPNonRef) {
+        for ( final Allele a : getAllelesUsedInGenotyping() )
+            if ( a.isNonReference() && isPolymorphic(a, log10minPNonRef) )
+                return true;
+        return false;
     }
 
     /**
@@ -266,15 +284,7 @@ public class AFCalcResult {
         final double[] log10UnnormalizedPosteriors = new double[log10LikelihoodsOfAC.length];
         for ( int i = 0; i < log10LikelihoodsOfAC.length; i++ )
             log10UnnormalizedPosteriors[i] = log10LikelihoodsOfAC[i] + log10PriorsOfAC[i];
-
-        // necessary because the posteriors may be so skewed that the log-space normalized value isn't
-        // good, so we have to try both log-space normalization as well as the real-space normalization if the
-        // result isn't good
-        final double[] logNormalized = MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, true);
-        if ( goodLog10ProbVector(logNormalized, logNormalized.length, true) )
-            return logNormalized;
-        else
-            return MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, false);
+        return MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, false);
     }
 
     /**

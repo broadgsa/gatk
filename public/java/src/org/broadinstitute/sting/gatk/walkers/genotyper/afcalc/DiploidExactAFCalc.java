@@ -36,7 +36,9 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
         if ( ploidy != 2 ) throw new IllegalArgumentException("ploidy must be two for DiploidExactAFCalc and subclasses but saw " + ploidy);
     }
 
-    protected abstract StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResultTracker resultTracker);
+    protected StateTracker makeMaxLikelihood(VariantContext vc, AFCalcResultTracker resultTracker) {
+        return new StateTracker();
+    }
 
     @Override
     protected AFCalcResult computeLog10PNonRef(final VariantContext vc,

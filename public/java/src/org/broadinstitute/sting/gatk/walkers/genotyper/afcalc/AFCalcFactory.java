@@ -30,10 +30,6 @@ public class AFCalcFactory {
         /** reference implementation of multi-allelic EXACT model */
         EXACT_REFERENCE(ReferenceDiploidExactAFCalc.class, 2, -1),
 
-        /** expt. implementation */
-        @Deprecated
-        EXACT_CONSTRAINED(ConstrainedDiploidExactAFCalc.class, 2, -1),
-
         /** expt. implementation -- for testing only */
         EXACT_INDEPENDENT(IndependentAllelesDiploidExactAFCalc.class, 2, -1),
 

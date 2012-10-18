@@ -370,8 +370,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         currentInterval = intervals.hasNext() ? intervals.next() : null;
 
-        writerToUse = writer;
-
         if ( N_WAY_OUT != null ) {
             boolean createIndex =  true;
 
@@ -383,9 +381,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         createIndex, generateMD5s,createProgramRecord(),KEEP_ALL_PG_RECORDS);
             }
         }   else {
-
             // set up the output writer
             setupWriter(getToolkit().getSAMFileHeader());
+            writerToUse = writer;
         }
         manager = new ConstrainedMateFixingManager(writerToUse, getToolkit().getGenomeLocParser(), MAX_ISIZE_FOR_MOVEMENT, MAX_POS_MOVE_ALLOWED, MAX_RECORDS_IN_MEMORY);
 

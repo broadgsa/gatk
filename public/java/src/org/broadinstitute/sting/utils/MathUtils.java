@@ -51,8 +51,8 @@ public class MathUtils {
     public static final double[] log10Cache;
     public static final double[] log10FactorialCache;
     private static final double[] jacobianLogTable;
-    private static final double JACOBIAN_LOG_TABLE_STEP = 0.001;
-    private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / 0.001;
+    private static final double JACOBIAN_LOG_TABLE_STEP = 0.0001;
+    private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / JACOBIAN_LOG_TABLE_STEP;
     private static final double MAX_JACOBIAN_TOLERANCE = 8.0;
     private static final int JACOBIAN_LOG_TABLE_SIZE = (int) (MAX_JACOBIAN_TOLERANCE / JACOBIAN_LOG_TABLE_STEP) + 1;
     private static final int MAXN = 50000;
@@ -596,7 +596,6 @@ public class MathUtils {
         if (keepInLogSpace) {
             for (int i = 0; i < array.length; i++) {
                 array[i] -= maxValue;
-                array[i] = Math.max(array[i], LOG10_P_OF_ZERO);
             }
             return array;
         }
@@ -613,8 +612,11 @@ public class MathUtils {
             sum += normalized[i];
         for (int i = 0; i < array.length; i++) {
             double x = normalized[i] / sum;
-            if (takeLog10OfOutput)
-                x = Math.max(Math.log10(x), LOG10_P_OF_ZERO);
+            if (takeLog10OfOutput) {
+                x = Math.log10(x);
+                if ( x < LOG10_P_OF_ZERO || Double.isInfinite(x) )
+                    x = array[i] - maxValue;
+            }
 
             normalized[i] = x;
         }

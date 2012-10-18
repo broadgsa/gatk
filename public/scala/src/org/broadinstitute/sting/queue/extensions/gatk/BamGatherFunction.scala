@@ -28,6 +28,7 @@ import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
 import org.broadinstitute.sting.queue.extensions.picard.PicardBamFunction
 import org.broadinstitute.sting.queue.function.{RetryMemoryLimit, QFunction}
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor
+import org.broadinstitute.sting.queue.util.ClassFieldCache
 
 /**
  * Merges BAM files using net.sf.picard.sam.MergeSamFiles.
@@ -47,13 +48,13 @@ class BamGatherFunction extends GatherFunction with PicardBamFunction with Retry
     // bam_compression and index_output_bam_on_the_fly from SAMFileWriterArgumentTypeDescriptor
     // are added by the GATKExtensionsGenerator to the subclass of CommandLineGATK
 
-    val compression = QFunction.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.COMPRESSION_FULLNAME)
+    val compression = ClassFieldCache.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.COMPRESSION_FULLNAME)
     this.compressionLevel = originalGATK.getFieldValue(compression).asInstanceOf[Option[Int]]
 
-    val disableIndex = QFunction.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.DISABLE_INDEXING_FULLNAME)
+    val disableIndex = ClassFieldCache.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.DISABLE_INDEXING_FULLNAME)
     this.createIndex = Some(!originalGATK.getFieldValue(disableIndex).asInstanceOf[Boolean])
 
-    val enableMD5 = QFunction.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.ENABLE_MD5_FULLNAME)
+    val enableMD5 = ClassFieldCache.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.ENABLE_MD5_FULLNAME)
     this.createMD5 = Some(originalGATK.getFieldValue(enableMD5).asInstanceOf[Boolean])
 
     super.freezeFieldValues()

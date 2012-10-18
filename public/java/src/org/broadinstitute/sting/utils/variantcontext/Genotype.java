@@ -298,12 +298,16 @@ public abstract class Genotype implements Comparable<Genotype> {
      * @return true if all samples PLs are equal and == 0
      */
     public boolean isNonInformative() {
-        for ( final int PL : getPL() ) {
-            if ( PL != 0 )
-                return false;
-        }
+        if ( getPL() == null )
+            return true;
+        else {
+            for ( final int PL : getPL() ) {
+                if ( PL != 0 )
+                    return false;
+            }
 
-        return true;
+            return true;
+        }
     }
 
     /**
