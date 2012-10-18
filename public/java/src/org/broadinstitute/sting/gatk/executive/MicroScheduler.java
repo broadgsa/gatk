@@ -157,18 +157,22 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
 
             if ( ! (walker instanceof TreeReducible) ) {
                 throw badNT("nt", engine, walker);
-            } else {
-                return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, threadAllocation);
             }
+        }
+
+        if ( threadAllocation.getNumCPUThreadsPerDataThread() > 1 && ! (walker instanceof NanoSchedulable) ) {
+            throw badNT("nct", engine, walker);
+        }
+
+        if ( threadAllocation.getNumDataThreads() > 1 ) {
+            return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, threadAllocation);
         } else {
-            if ( threadAllocation.getNumCPUThreadsPerDataThread() > 1 && ! (walker instanceof NanoSchedulable) )
-                throw badNT("nct", engine, walker);
             return new LinearMicroScheduler(engine, walker, reads, reference, rods, threadAllocation);
         }
     }
 
     private static UserException badNT(final String parallelArg, final GenomeAnalysisEngine engine, final Walker walker) {
-        throw new UserException.BadArgumentValue("nt",
+        throw new UserException.BadArgumentValue(parallelArg,
                 String.format("The analysis %s currently does not support parallel execution with %s.  " +
                         "Please run your analysis without the %s option.", engine.getWalkerName(walker.getClass()), parallelArg, parallelArg));
     }
