@@ -303,7 +303,13 @@ import java.util.*;
     /**
      * Take the independent estimates of pNonRef for each alt allele and combine them into a single result
      *
-     * TODO -- add more docs
+     * Given n independent calculations for each of n alternate alleles create a single
+     * combined AFCalcResult with:
+     *
+     * priors for AF == 0 equal to theta^N for the nth least likely allele
+     * posteriors that reflect the combined chance that any alleles are segregating and corresponding
+     * likelihoods
+     * combined MLEs in the order of the alt alleles in vc
      *
      * @param sortedResultsWithThetaNPriors the pNonRef result for each allele independently
      */
@@ -350,8 +356,10 @@ import java.util.*;
         };
 
         return new MyAFCalcResult(alleleCountsOfMLE, nEvaluations, vc.getAlleles(),
-                MathUtils.normalizeFromLog10(log10LikelihoodsOfAC, true),   // necessary to ensure all values < 0
-                MathUtils.normalizeFromLog10(log10PriorsOfAC, true),        // priors incorporate multiple alt alleles, must be normalized
+                // necessary to ensure all values < 0
+                MathUtils.normalizeFromLog10(log10LikelihoodsOfAC, true),
+                // priors incorporate multiple alt alleles, must be normalized
+                MathUtils.normalizeFromLog10(log10PriorsOfAC, true),
                 log10pNonRefByAllele, sortedResultsWithThetaNPriors);
     }
 }

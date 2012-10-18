@@ -129,9 +129,7 @@ final class StateTracker {
     }
 
     /**
-     * Returns the likelihoods summed across all AC values for AC > 0
-     *
-     * @return
+     * @return the likelihoods summed across all AC values for AC > 0
      */
     private double getLog10LikelihoodOfAFNotZero(final boolean capAt0) {
         if ( log10LikelihoodsForAFGt0Sum == null ) {
@@ -144,7 +142,7 @@ final class StateTracker {
     }
 
     /**
-     * @return
+     * @return the log10 likelihood of AF == 0
      */
     private double getLog10LikelihoodOfAFzero() {
         return log10LikelihoodOfAFzero;
@@ -157,9 +155,9 @@ final class StateTracker {
      * For example, that the allelesUsedInGenotyping has been set, that the alleleCountsOfMLE contains meaningful
      * values, etc.
      *
-     * @param log10PriorsByAC
+     * @param log10PriorsByAC the priors by AC
      *
-     * @return
+     * @return an AFCalcResult summarizing the final results of this calculation
      */
     @Requires("allelesUsedInGenotyping != null")
     protected AFCalcResult toAFCalcResult(final double[] log10PriorsByAC) {
@@ -167,8 +165,6 @@ final class StateTracker {
         final double[] log10Likelihoods = new double[]{getLog10LikelihoodOfAFzero(), getLog10LikelihoodOfAFNotZero(true)};
         final double[] log10Priors = MathUtils.normalizeFromLog10(new double[]{log10PriorsByAC[0], MathUtils.log10sumLog10(log10PriorsByAC, 1)}, true);
 
-        // TODO -- replace with more meaningful computation
-        // TODO -- refactor this calculation into the ref calculation
         final Map<Allele, Double> log10pNonRefByAllele = new HashMap<Allele, Double>(allelesUsedInGenotyping.size());
         for ( int i = 0; i < subACOfMLE.length; i++ ) {
             final Allele allele = allelesUsedInGenotyping.get(i+1);

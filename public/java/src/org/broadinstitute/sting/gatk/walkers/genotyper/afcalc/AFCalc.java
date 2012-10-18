@@ -53,6 +53,16 @@ public abstract class AFCalc implements Cloneable {
     private final StateTracker stateTracker;
     private ExactCallLogger exactCallLogger = null;
 
+    /**
+     * Create a new AFCalc object capable of calculating the prob. that alleles are
+     * segregating among nSamples with up to maxAltAlleles for SNPs and maxAltAllelesForIndels
+     * for indels for samples with ploidy
+     *
+     * @param nSamples number of samples, must be > 0
+     * @param maxAltAlleles maxAltAlleles for SNPs
+     * @param maxAltAllelesForIndels for indels
+     * @param ploidy the ploidy, must be > 0
+     */
     protected AFCalc(final int nSamples, final int maxAltAlleles, final int maxAltAllelesForIndels, final int ploidy) {
         if ( nSamples < 0 ) throw new IllegalArgumentException("nSamples must be greater than zero " + nSamples);
         if ( maxAltAlleles < 1 ) throw new IllegalArgumentException("maxAltAlleles must be greater than zero " + maxAltAlleles);
@@ -65,10 +75,20 @@ public abstract class AFCalc implements Cloneable {
         this.stateTracker = new StateTracker(Math.max(maxAltAlleles, maxAltAllelesForIndels));
     }
 
+    /**
+     * Enable exact call logging to file
+     *
+     * @param exactCallsLog the destination file
+     */
     public void enableProcessLog(final File exactCallsLog) {
         exactCallLogger = new ExactCallLogger(exactCallsLog);
     }
 
+    /**
+     * Use this logger instead of the default logger
+     *
+     * @param logger
+     */
     public void setLogger(Logger logger) {
         this.logger = logger;
     }
@@ -109,7 +129,7 @@ public abstract class AFCalc implements Cloneable {
      * @param log10AlleleFrequencyPriors the priors by AC vector
      * @return a AFCalcResult describing the result of this calculation
      */
-    @Requires("stateTracker.getnEvaluations() > 0")
+    @Requires("stateTracker.getnEvaluations() >= 0")
     @Ensures("result != null")
     protected AFCalcResult getResultFromFinalState(final VariantContext vcWorking, final double[] log10AlleleFrequencyPriors) {
         stateTracker.setAllelesUsedInGenotyping(vcWorking.getAlleles());
@@ -144,11 +164,13 @@ public abstract class AFCalc implements Cloneable {
      * @param log10AlleleFrequencyPriors        priors
      * @return a AFCalcResult object describing the results of this calculation
      */
-    // TODO -- add consistent requires among args
+    @Requires({"vc != null", "log10AlleleFrequencyPriors != null"})
     protected abstract AFCalcResult computeLog10PNonRef(final VariantContext vc,
                                                         final double[] log10AlleleFrequencyPriors);
 
     /**
+     * Subset VC to the just allelesToUse, updating genotype likelihoods
+     *
      * Must be overridden by concrete subclasses
      *
      * @param vc                                variant context with alleles and genotype likelihoods
@@ -172,7 +194,7 @@ public abstract class AFCalc implements Cloneable {
         return Math.max(maxAlternateAllelesToGenotype, maxAlternateAllelesForIndels);
     }
 
-    public StateTracker getStateTracker() {
+    protected StateTracker getStateTracker() {
         return stateTracker;
     }
 
