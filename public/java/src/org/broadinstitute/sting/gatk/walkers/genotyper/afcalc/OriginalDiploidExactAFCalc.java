@@ -16,10 +16,6 @@ public class OriginalDiploidExactAFCalc extends DiploidExactAFCalc {
         super(nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy);
     }
 
-    protected StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResultTracker resultTracker) {
-        return new StateTracker();
-    }
-
     @Override
     protected AFCalcResult computeLog10PNonRef(VariantContext vc, double[] log10AlleleFrequencyPriors) {
         final double[] log10AlleleFrequencyLikelihoods = new double[log10AlleleFrequencyPriors.length];
