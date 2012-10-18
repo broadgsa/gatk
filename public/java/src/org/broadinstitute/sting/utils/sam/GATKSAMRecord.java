@@ -31,6 +31,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -406,24 +407,20 @@ public class GATKSAMRecord extends BAMRecord {
      * @return the unclipped end of the read taking soft clips (but not hard clips) into account
      */
     public int getSoftEnd() {
-        if (softEnd < 0) {
-            int stop = this.getUnclippedStart();
+        if ( softEnd < 0 ) {
+            softEnd = getAlignmentEnd();
+            final List<CigarElement> cigs = getCigar().getCigarElements();
+            for (int i=cigs.size() - 1; i>=0; --i) {
+                final CigarElement cig = cigs.get(i);
+                final CigarOperator op = cig.getOperator();
 
-            if (ReadUtils.readIsEntirelyInsertion(this))
-                return stop;
-
-            int shift = 0;
-            CigarOperator lastOperator = null;
-            for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
-                stop += shift;
-                lastOperator = cigarElement.getOperator();
-                if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP || cigarElement.getOperator() == CigarOperator.HARD_CLIP)
-                    shift = cigarElement.getLength();
-                else
-                    shift = 0;
+                if (op == CigarOperator.SOFT_CLIP)
+                    softEnd += cig.getLength();
+                else if (op != CigarOperator.HARD_CLIP)
+                    break;
             }
-            softEnd = (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
         }
+
         return softEnd;
     }
 
