@@ -42,11 +42,11 @@ import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -542,9 +542,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             VariantContext sub = subsetRecord(vc, EXCLUDE_NON_VARIANTS);
 
             if ( REGENOTYPE && sub.isPolymorphicInSamples() && hasPLs(sub) ) {
-                final VariantContextBuilder builder = new VariantContextBuilder(UG_engine.calculateGenotypes(sub)).filters(sub.getFiltersMaybeNull());
-                addAnnotations(builder, sub);
-                sub = builder.make();
+                synchronized (UG_engine) {
+                    final VariantContextBuilder builder = new VariantContextBuilder(UG_engine.calculateGenotypes(sub)).filters(sub.getFiltersMaybeNull());
+                    addAnnotations(builder, sub);
+                    sub = builder.make();
+                }
             }
             
             if ( (!EXCLUDE_NON_VARIANTS || sub.isPolymorphicInSamples()) && (!EXCLUDE_FILTERED || !sub.isFiltered()) ) {
