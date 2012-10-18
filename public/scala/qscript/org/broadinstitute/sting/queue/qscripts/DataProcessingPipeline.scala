@@ -13,6 +13,7 @@ import net.sf.samtools.SAMFileHeader.SortOrder
 import org.broadinstitute.sting.queue.util.QScriptUtils
 import org.broadinstitute.sting.queue.function.ListWriterFunction
 import org.broadinstitute.sting.commandline.Hidden
+import org.broadinstitute.sting.commandline
 
 class DataProcessingPipeline extends QScript {
   qscript =>
@@ -41,34 +42,34 @@ class DataProcessingPipeline extends QScript {
   @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
   var bwaPath: File = _
 
-  @Input(doc="the project name determines the final output (BAM file) base name. Example NA12878 yields NA12878.processed.bam", fullName="project", shortName="p", required=false)
+  @Argument(doc="the project name determines the final output (BAM file) base name. Example NA12878 yields NA12878.processed.bam", fullName="project", shortName="p", required=false)
   var projectName: String = "project"
 
-  @Input(doc="Output path for the processed BAM files.", fullName="output_directory", shortName="outputDir", required=false)
+  @Argument(doc="Output path for the processed BAM files.", fullName="output_directory", shortName="outputDir", required=false)
   var outputDir: String = ""
 
-  @Input(doc="the -L interval string to be used by GATK - output bams at interval only", fullName="gatk_interval_string", shortName="L", required=false)
+  @Argument(doc="the -L interval string to be used by GATK - output bams at interval only", fullName="gatk_interval_string", shortName="L", required=false)
   var intervalString: String = ""
 
   @Input(doc="an intervals file to be used by GATK - output bams at intervals only", fullName="gatk_interval_file", shortName="intervals", required=false)
   var intervals: File = _
 
-  @Input(doc="Cleaning model: KNOWNS_ONLY, USE_READS or USE_SW", fullName="clean_model", shortName="cm", required=false)
+  @Argument(doc="Cleaning model: KNOWNS_ONLY, USE_READS or USE_SW", fullName="clean_model", shortName="cm", required=false)
   var cleaningModel: String = "USE_READS"
 
-  @Input(doc="Decompose input BAM file and fully realign it using BWA and assume Single Ended reads", fullName="use_bwa_single_ended", shortName="bwase", required=false)
+  @Argument(doc="Decompose input BAM file and fully realign it using BWA and assume Single Ended reads", fullName="use_bwa_single_ended", shortName="bwase", required=false)
   var useBWAse: Boolean = false
 
-  @Input(doc="Decompose input BAM file and fully realign it using BWA and assume Pair Ended reads", fullName="use_bwa_pair_ended", shortName="bwape", required=false)
+  @Argument(doc="Decompose input BAM file and fully realign it using BWA and assume Pair Ended reads", fullName="use_bwa_pair_ended", shortName="bwape", required=false)
   var useBWApe: Boolean = false
 
-  @Input(doc="Decompose input BAM file and fully realign it using BWA SW", fullName="use_bwa_sw", shortName="bwasw", required=false)
+  @Argument(doc="Decompose input BAM file and fully realign it using BWA SW", fullName="use_bwa_sw", shortName="bwasw", required=false)
   var useBWAsw: Boolean = false
 
-  @Input(doc="Number of threads BWA should use", fullName="bwa_threads", shortName="bt", required=false)
+  @Argument(doc="Number of threads BWA should use", fullName="bwa_threads", shortName="bt", required=false)
   var bwaThreads: Int = 1
 
-  @Input(doc="Perform validation on the BAM files", fullName="validation", shortName="vs", required=false)
+  @Argument(doc="Perform validation on the BAM files", fullName="validation", shortName="vs", required=false)
   var validation: Boolean = false
 
 
@@ -76,15 +77,15 @@ class DataProcessingPipeline extends QScript {
   * Hidden Parameters
   ****************************************************************************/
   @Hidden
-  @Input(doc="How many ways to scatter/gather", fullName="scatter_gather", shortName="sg", required=false)
+  @Argument(doc="How many ways to scatter/gather", fullName="scatter_gather", shortName="sg", required=false)
   var nContigs: Int = -1
 
   @Hidden
-  @Input(doc="Define the default platform for Count Covariates -- useful for techdev purposes only.", fullName="default_platform", shortName="dp", required=false)
+  @Argument(doc="Define the default platform for Count Covariates -- useful for techdev purposes only.", fullName="default_platform", shortName="dp", required=false)
   var defaultPlatform: String = ""
 
   @Hidden
-  @Input(doc="Run the pipeline in test mode only", fullName = "test_mode", shortName = "test", required=false)
+  @Argument(doc="Run the pipeline in test mode only", fullName = "test_mode", shortName = "test", required=false)
   var testMode: Boolean = false
 
 

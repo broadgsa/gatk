@@ -532,7 +532,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 Object[] vals = type.getEnumConstants();
                 Object defaultEnumeration = null;  // as we look at options, record the default option if it exists
                 for (Object val : vals) {
-                    if (String.valueOf(val).equalsIgnoreCase(value.asString())) return val;
+                    if (String.valueOf(val).equalsIgnoreCase(value == null ? null : value.asString())) return val;
                     try { if (type.getField(val.toString()).isAnnotationPresent(EnumerationArgumentDefault.class)) defaultEnumeration = val; }
                     catch (NoSuchFieldException e) { throw new ReviewedStingException("parsing " + type.toString() + "doesn't contain the field " + val.toString()); }
                 }
@@ -546,10 +546,10 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 else
                     throw new UnknownEnumeratedValueException(createDefaultArgumentDefinition(source),value.asString());
             } else if (type.equals(File.class)) {
-                result = value.asFile();
+                result = value == null ? null : value.asFile();
             } else {
                 Constructor ctor = type.getConstructor(String.class);
-                result = ctor.newInstance(value.asString());
+                result = ctor.newInstance(value == null ? null : value.asString());
             }
         } catch (UserException e) {
             throw e;
