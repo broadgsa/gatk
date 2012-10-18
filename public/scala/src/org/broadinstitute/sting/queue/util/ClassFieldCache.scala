@@ -180,4 +180,15 @@ object ClassFieldCache {
     case unknown => throw new QException("Non-file found.  Try removing the annotation, change the annotation to @Argument, or extend File with FileExtension: %s: %s".format(field.field, unknown))
   }
 
+
+  //
+  // other utilities
+  //
+
+  /**
+   * Retrieves the fullName of the argument
+   * @param field ArgumentSource to check
+   * @return Full name of the argument source
+   */
+  def fullName(field: ArgumentSource) = field.createArgumentDefinitions().get(0).fullName
 }
