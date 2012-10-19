@@ -10,9 +10,9 @@ import java.io.File
  * Time: 10:37 AM
  * To change this template use File | Settings | File Templates.
  */
-class CollectMultipleMetrics extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardBamFunction{
+class CollectMultipleMetrics extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardMetricsFunction{
   analysisName = "CalculateMultipleMetrics"
-  javaMainClass = "net.sf.picard.sam.CalculateMultipleMetrics"
+  javaMainClass = "net.sf.picard.analysis.CalculateMultipleMetrics"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
   var input: Seq[File] = Nil
@@ -24,7 +24,7 @@ class CollectMultipleMetrics extends org.broadinstitute.sting.queue.function.Jav
   var reference: File = _
 
   override def inputBams = input
-  override def outputBam = output
+  override def outputFile = output
   override def commandLine = super.commandLine +
     required("REFERENCE_SEQUENCE=" + reference) +
     required("ASSUME_SORTED=true") +
