@@ -100,7 +100,7 @@ import java.util.*;
     private final static class CompareAFCalcResultsByPNonRef implements Comparator<AFCalcResult> {
         @Override
         public int compare(AFCalcResult o1, AFCalcResult o2) {
-            return Double.compare(o1.getLog10PosteriorOfAFGT0(), o2.getLog10PosteriorOfAFGT0());
+            return -1 * Double.compare(o1.getLog10PosteriorOfAFGT0(), o2.getLog10PosteriorOfAFGT0());
         }
     }
 
@@ -313,6 +313,7 @@ import java.util.*;
      *
      * @param sortedResultsWithThetaNPriors the pNonRef result for each allele independently
      */
+    @Requires("sortedByPosteriorGT(sortedResultsWithThetaNPriors)")
     protected AFCalcResult combineIndependentPNonRefs(final VariantContext vc,
                                                       final List<AFCalcResult> sortedResultsWithThetaNPriors) {
         int nEvaluations = 0;
@@ -321,8 +322,9 @@ import java.util.*;
         final double[] log10PriorsOfAC = new double[2];
         final Map<Allele, Double> log10pNonRefByAllele = new HashMap<Allele, Double>(nAltAlleles);
 
-        // this value is a sum in log space
+        // the sum of the log10 posteriors for AF == 0 and AF > 0 to determine joint probs
         double log10PosteriorOfACEq0Sum = 0.0;
+        double log10PosteriorOfACGt0Sum = 0.0;
 
         for ( final AFCalcResult sortedResultWithThetaNPriors : sortedResultsWithThetaNPriors ) {
             final Allele altAllele = sortedResultWithThetaNPriors.getAllelesUsedInGenotyping().get(1);
@@ -337,6 +339,7 @@ import java.util.*;
             // the AF > 0 case requires us to store the normalized likelihood for later summation
             if ( sortedResultWithThetaNPriors.getLog10PosteriorOfAFGT0() > MIN_LOG10_CONFIDENCE_TO_INCLUDE_ALLELE_IN_POSTERIOR )
                 log10PosteriorOfACEq0Sum += sortedResultWithThetaNPriors.getLog10PosteriorOfAFEq0();
+            log10PosteriorOfACGt0Sum += sortedResultWithThetaNPriors.getLog10PosteriorOfAFGT0();
 
             // bind pNonRef for allele to the posterior value of the AF > 0 with the new adjusted prior
             log10pNonRefByAllele.put(altAllele, sortedResultWithThetaNPriors.getLog10PosteriorOfAFGT0());
@@ -348,7 +351,16 @@ import java.util.*;
         // In principle, if B_p = x and C_p = y are the probabilities of being poly for alleles B and C,
         // the probability of being poly is (1 - B_p) * (1 - C_p) = (1 - x) * (1 - y).  We want to estimate confidently
         // log10((1 - x) * (1 - y)) which is log10(1 - x) + log10(1 - y).  This sum is log10PosteriorOfACEq0
-        final double log10PosteriorOfACGt0 = Math.max(Math.log10(1 - Math.pow(10, log10PosteriorOfACEq0Sum)), MathUtils.LOG10_P_OF_ZERO);
+        //
+        // note we need to handle the case where the posterior of AF == 0 is 0.0, in which case we
+        // use the summed log10PosteriorOfACGt0Sum directly.  This happens in cases where
+        //   AF > 0 : 0.0 and AF == 0 : -16, and if you use the inverse calculation you get 0.0 and MathUtils.LOG10_P_OF_ZERO
+        final double log10PosteriorOfACGt0;
+        if ( log10PosteriorOfACEq0Sum == 0.0 )
+            log10PosteriorOfACGt0 = log10PosteriorOfACGt0Sum;
+        else
+            log10PosteriorOfACGt0 = Math.max(Math.log10(1 - Math.pow(10, log10PosteriorOfACEq0Sum)), MathUtils.LOG10_P_OF_ZERO);
+
         final double[] log10LikelihoodsOfAC = new double[] {
                 // L + prior = posterior => L = poster - prior
                 log10PosteriorOfACEq0Sum - log10PriorsOfAC[0],
@@ -361,5 +373,15 @@ import java.util.*;
                 // priors incorporate multiple alt alleles, must be normalized
                 MathUtils.normalizeFromLog10(log10PriorsOfAC, true),
                 log10pNonRefByAllele, sortedResultsWithThetaNPriors);
+    }
+
+    private static boolean sortedByPosteriorGT(final List<AFCalcResult> sortedVCs) {
+        double lastPosteriorGt0 = sortedVCs.get(0).getLog10PosteriorOfAFGT0();
+        for ( final AFCalcResult vc : sortedVCs ) {
+            if ( vc.getLog10PosteriorOfAFGT0() > lastPosteriorGt0 )
+                return false;
+            lastPosteriorGt0 = vc.getLog10PosteriorOfAFGT0();
+        }
+        return true;
     }
 }

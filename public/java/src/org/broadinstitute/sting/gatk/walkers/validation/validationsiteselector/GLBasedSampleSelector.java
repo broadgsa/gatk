@@ -48,6 +48,9 @@ public class GLBasedSampleSelector extends SampleSelector {
         // first subset to the samples
         VariantContext subContext = vc.subContextFromSamples(samples);
 
+        if ( ! subContext.isPolymorphicInSamples() )
+            return false;
+
         // now check to see (using EXACT model) whether this should be variant
         // do we want to apply a prior? maybe user-spec?
         if ( flatPriors == null ) {
