@@ -387,14 +387,10 @@ public class GATKSAMRecord extends BAMRecord {
      */
     public int getSoftStart() {
         if (softStart < 0) {
-            int start = this.getUnclippedStart();
-            for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
-                if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
-                    start += cigarElement.getLength();
-                else
-                    break;
-            }
-            softStart = start;
+            softStart = getAlignmentStart();
+            final CigarElement firstCig = getCigar().getCigarElement(0);
+            if (firstCig.getOperator() == CigarOperator.HARD_CLIP)
+                softStart -= firstCig.getLength();
         }
         return softStart;
     }
