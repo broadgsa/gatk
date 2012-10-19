@@ -131,14 +131,14 @@ final class StateTracker {
     /**
      * @return the likelihoods summed across all AC values for AC > 0
      */
-    private double getLog10LikelihoodOfAFNotZero(final boolean capAt0) {
+    private double getLog10LikelihoodOfAFNotZero() {
         if ( log10LikelihoodsForAFGt0Sum == null ) {
             if ( log10LikelihoodsForAFGt0CacheIndex == 0 ) // there's nothing to sum up, so make the sum equal to the smallest thing we have
                 log10LikelihoodsForAFGt0Sum = MathUtils.LOG10_P_OF_ZERO;
             else
                 log10LikelihoodsForAFGt0Sum = MathUtils.log10sumLog10(log10LikelihoodsForAFGt0, 0, log10LikelihoodsForAFGt0CacheIndex);
         }
-        return Math.min(log10LikelihoodsForAFGt0Sum, capAt0 ? 0.0 : Double.POSITIVE_INFINITY);
+        return log10LikelihoodsForAFGt0Sum;
     }
 
     /**
@@ -162,7 +162,7 @@ final class StateTracker {
     @Requires("allelesUsedInGenotyping != null")
     protected AFCalcResult toAFCalcResult(final double[] log10PriorsByAC) {
         final int [] subACOfMLE = Arrays.copyOf(alleleCountsOfMLE, allelesUsedInGenotyping.size() - 1);
-        final double[] log10Likelihoods = new double[]{getLog10LikelihoodOfAFzero(), getLog10LikelihoodOfAFNotZero(true)};
+        final double[] log10Likelihoods = MathUtils.normalizeFromLog10(new double[]{getLog10LikelihoodOfAFzero(), getLog10LikelihoodOfAFNotZero()}, true);
         final double[] log10Priors = MathUtils.normalizeFromLog10(new double[]{log10PriorsByAC[0], MathUtils.log10sumLog10(log10PriorsByAC, 1)}, true);
 
         final Map<Allele, Double> log10pNonRefByAllele = new HashMap<Allele, Double>(allelesUsedInGenotyping.size());
@@ -210,7 +210,7 @@ final class StateTracker {
      * @param log10LofK the likelihood of our current configuration state, cannot be the 0 state
      * @param alleleCountsForK the allele counts for this state
      */
-    @Requires({"alleleCountsForK != null", "MathUtils.sum(alleleCountsForK) >= 0", "MathUtils.goodLog10Probability(log10LofK)"})
+    @Requires({"alleleCountsForK != null", "MathUtils.sum(alleleCountsForK) >= 0"})
     @Ensures("log10MLE == Math.max(log10LofK, log10MLE)")
     protected void updateMLEifNeeded(final double log10LofK, final int[] alleleCountsForK) {
         addToLikelihoodsCache(log10LofK);
@@ -227,7 +227,7 @@ final class StateTracker {
      * @param log10PofK the posterior of our current configuration state
      * @param alleleCountsForK the allele counts for this state
      */
-    @Requires({"alleleCountsForK != null", "MathUtils.sum(alleleCountsForK) >= 0", "MathUtils.goodLog10Probability(log10PofK)"})
+    @Requires({"alleleCountsForK != null", "MathUtils.sum(alleleCountsForK) >= 0"})
     @Ensures("log10MAP == Math.max(log10PofK, log10MAP)")
     protected void updateMAPifNeeded(final double log10PofK, final int[] alleleCountsForK) {
         if ( log10PofK > log10MAP ) {
@@ -236,7 +236,6 @@ final class StateTracker {
         }
     }
 
-    @Requires({"MathUtils.goodLog10Probability(log10LofK)"})
     private void addToLikelihoodsCache(final double log10LofK) {
         // add to the cache
         log10LikelihoodsForAFGt0[log10LikelihoodsForAFGt0CacheIndex++] = log10LofK;
@@ -250,7 +249,6 @@ final class StateTracker {
         }
     }
 
-    @Requires({"MathUtils.goodLog10Probability(log10LikelihoodOfAFzero)"})
     protected void setLog10LikelihoodOfAFzero(final double log10LikelihoodOfAFzero) {
         this.log10LikelihoodOfAFzero = log10LikelihoodOfAFzero;
         if ( log10LikelihoodOfAFzero > log10MLE ) {
@@ -259,7 +257,7 @@ final class StateTracker {
         }
     }
 
-    @Requires({"MathUtils.goodLog10Probability(log10LikelihoodOfAFzero)"})
+    @Requires({"MathUtils.goodLog10Probability(log10PosteriorOfAFzero)"})
     protected void setLog10PosteriorOfAFzero(final double log10PosteriorOfAFzero) {
         if ( log10PosteriorOfAFzero > log10MAP ) {
             log10MAP = log10PosteriorOfAFzero;
