@@ -25,13 +25,14 @@
 package org.broadinstitute.sting.queue.function.scattergather
 
 import org.broadinstitute.sting.commandline.ArgumentSource
-import org.broadinstitute.sting.queue.function.{QFunction, CommandLineFunction}
+import org.broadinstitute.sting.queue.function.CommandLineFunction
+import org.broadinstitute.sting.queue.util.ClassFieldCache
 
 /**
  * Shadow clones another command line function.
  */
 object CloneFunction {
-  private lazy val cloneFunctionFields = QFunction.classFunctionFields(classOf[CloneFunction])
+  private lazy val cloneFunctionFields = ClassFieldCache.classFunctionFields(classOf[CloneFunction])
 }
 
 class CloneFunction extends CommandLineFunction {
@@ -76,7 +77,7 @@ class CloneFunction extends CommandLineFunction {
   def commandLine = withScatterPart(() => originalFunction.commandLine)
 
   def getFieldValue(field: String): AnyRef = {
-    val source = QFunction.findField(originalFunction.getClass, field)
+    val source = ClassFieldCache.findField(originalFunction.getClass, field)
     getFieldValue(source)
   }
 
@@ -98,7 +99,7 @@ class CloneFunction extends CommandLineFunction {
   }
 
   def setFieldValue(field: String, value: Any) {
-    val source = QFunction.findField(originalFunction.getClass, field)
+    val source = ClassFieldCache.findField(originalFunction.getClass, field)
     setFieldValue(source, value)
   }
 

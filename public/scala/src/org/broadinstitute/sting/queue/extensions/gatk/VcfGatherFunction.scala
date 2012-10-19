@@ -27,6 +27,7 @@ package org.broadinstitute.sting.queue.extensions.gatk
 import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
 import org.broadinstitute.sting.queue.function.{RetryMemoryLimit, QFunction}
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor
+import org.broadinstitute.sting.queue.util.ClassFieldCache
 
 /**
  * Merges a vcf text file.
@@ -46,10 +47,10 @@ class VcfGatherFunction extends CombineVariants with GatherFunction with RetryMe
     // NO_HEADER and sites_only from VCFWriterArgumentTypeDescriptor
     // are added by the GATKExtensionsGenerator to the subclass of CommandLineGATK
 
-    val noHeader = QFunction.findField(originalFunction.getClass, VCFWriterArgumentTypeDescriptor.NO_HEADER_ARG_NAME)
+    val noHeader = ClassFieldCache.findField(originalFunction.getClass, VCFWriterArgumentTypeDescriptor.NO_HEADER_ARG_NAME)
     this.no_cmdline_in_header = originalGATK.getFieldValue(noHeader).asInstanceOf[Boolean]
 
-    val sitesOnly = QFunction.findField(originalFunction.getClass, VCFWriterArgumentTypeDescriptor.SITES_ONLY_ARG_NAME)
+    val sitesOnly = ClassFieldCache.findField(originalFunction.getClass, VCFWriterArgumentTypeDescriptor.SITES_ONLY_ARG_NAME)
     this.sites_only = originalGATK.getFieldValue(sitesOnly).asInstanceOf[Boolean]
 
     // ensure that the gather function receives the same unsafe parameter as the scattered function
