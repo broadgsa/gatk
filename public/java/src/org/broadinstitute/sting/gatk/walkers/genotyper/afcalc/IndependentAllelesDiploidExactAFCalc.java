@@ -285,10 +285,14 @@ import java.util.*;
         // sort the results, so the most likely allele is first
         Collections.sort(sorted, compareAFCalcResultsByPNonRef);
 
+        double lastPosteriorGt0 = sorted.get(0).getLog10PosteriorOfAFGT0();
         final double log10SingleAllelePriorOfAFGt0 = conditionalPNonRefResults.get(0).getLog10PriorOfAFGT0();
 
         for ( int i = 0; i < sorted.size(); i++ ) {
-            final double log10PriorAFGt0 = (i + 1) * log10SingleAllelePriorOfAFGt0;
+            if ( sorted.get(i).getLog10PosteriorOfAFGT0() > lastPosteriorGt0 )
+                throw new IllegalStateException("pNonRefResults not sorted: lastPosteriorGt0 " + lastPosteriorGt0 + " but current is " + sorted.get(i).getLog10PosteriorOfAFGT0());
+
+                final double log10PriorAFGt0 = (i + 1) * log10SingleAllelePriorOfAFGt0;
             final double log10PriorAFEq0 = Math.log10(1 - Math.pow(10, log10PriorAFGt0));
             final double[] thetaTONPriors = new double[] { log10PriorAFEq0, log10PriorAFGt0 };
 
@@ -313,7 +317,6 @@ import java.util.*;
      *
      * @param sortedResultsWithThetaNPriors the pNonRef result for each allele independently
      */
-    @Requires("sortedByPosteriorGT(sortedResultsWithThetaNPriors)")
     protected AFCalcResult combineIndependentPNonRefs(final VariantContext vc,
                                                       final List<AFCalcResult> sortedResultsWithThetaNPriors) {
         int nEvaluations = 0;
@@ -373,15 +376,5 @@ import java.util.*;
                 // priors incorporate multiple alt alleles, must be normalized
                 MathUtils.normalizeFromLog10(log10PriorsOfAC, true),
                 log10pNonRefByAllele, sortedResultsWithThetaNPriors);
-    }
-
-    private static boolean sortedByPosteriorGT(final List<AFCalcResult> sortedVCs) {
-        double lastPosteriorGt0 = sortedVCs.get(0).getLog10PosteriorOfAFGT0();
-        for ( final AFCalcResult vc : sortedVCs ) {
-            if ( vc.getLog10PosteriorOfAFGT0() > lastPosteriorGt0 )
-                return false;
-            lastPosteriorGt0 = vc.getLog10PosteriorOfAFGT0();
-        }
-        return true;
     }
 }
