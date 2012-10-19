@@ -452,4 +452,22 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 Arrays.asList("bbf16e1873e525ee5975021cfb8988cf"));
         executeTest("test calling on a ReducedRead BAM", spec);
     }
+
+    @Test
+    public void testReducedBamSNPs() {
+        testReducedCalling("SNP", "");
+    }
+
+    @Test
+    public void testReducedBamINDELs() {
+        testReducedCalling("INDEL", "");
+    }
+
+
+    private void testReducedCalling(final String model, final String md5) {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T UnifiedGenotyper -R " + b37KGReference + " -nosl --no_cmdline_in_header -I " + privateTestDir + "NA12878.HiSeq.b37.chr20.10_11mb.reduced.bam -o %s -L 20:10,000,000-11,000,000 -glm " + model, 1,
+                Arrays.asList(md5));
+        executeTest("test calling on a ReducedRead BAM with " + model, spec);
+    }
 }

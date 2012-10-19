@@ -231,7 +231,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         int count = 0;
         for (PileupElement p : pileup) {
             if (p.isDeletion() || p.isInsertionAtBeginningOfRead() || BaseUtils.isRegularBase(p.getBase()))
-                count++;
+                count += p.getRepresentativeCount();
         }
 
         return count;
