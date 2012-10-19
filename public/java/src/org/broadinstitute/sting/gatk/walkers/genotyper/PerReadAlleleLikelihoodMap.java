@@ -113,23 +113,20 @@ public class PerReadAlleleLikelihoodMap {
         return likelihoodReadMap.get(p.getRead());
     }
 
-    public static Allele getMostLikelyAllele(Map<Allele,Double> alleleMap) {
-        double minLike = Double.POSITIVE_INFINITY, maxLike = Double.NEGATIVE_INFINITY;
+    public static Allele getMostLikelyAllele( final Map<Allele,Double> alleleMap ) {
+        double maxLike = Double.NEGATIVE_INFINITY;
+        double prevMaxLike = Double.NEGATIVE_INFINITY;
         Allele mostLikelyAllele = Allele.NO_CALL;
 
-        for (Map.Entry<Allele,Double> el : alleleMap.entrySet()) {
+        for (final Map.Entry<Allele,Double> el : alleleMap.entrySet()) {
             if (el.getValue() > maxLike) {
+                prevMaxLike = maxLike;
                 maxLike = el.getValue();
                 mostLikelyAllele = el.getKey();
+            } else if( el.getValue() > prevMaxLike ) {
+                prevMaxLike = el.getValue();
             }
-
-            if (el.getValue() < minLike)
-                minLike = el.getValue();
-
         }
-        if (maxLike-minLike > INDEL_LIKELIHOOD_THRESH)
-            return mostLikelyAllele;
-        else
-            return Allele.NO_CALL;
+        return (maxLike - prevMaxLike > INDEL_LIKELIHOOD_THRESH ? mostLikelyAllele : Allele.NO_CALL );
     }
  }

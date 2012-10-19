@@ -26,10 +26,7 @@
 package org.broadinstitute.sting.utils.help;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.commandline.ArgumentDefinition;
-import org.broadinstitute.sting.commandline.ArgumentDefinitionGroup;
-import org.broadinstitute.sting.commandline.ArgumentDefinitions;
-import org.broadinstitute.sting.commandline.ArgumentMatchSource;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
@@ -273,9 +270,9 @@ public class HelpFormatter {
      * Generate a standard header for the logger
      *
      * @param applicationDetails details of the application to run.
-     * @param parsedArgs the command line arguments passed in
+     * @param parsedArgs the arguments passed in
      */
-    public static void generateHeaderInformation(ApplicationDetails applicationDetails, Map<ArgumentMatchSource, List<String>> parsedArgs) {
+    public static void generateHeaderInformation(ApplicationDetails applicationDetails, Map<ArgumentMatchSource, ParsedArgs> parsedArgs) {
 
         DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         java.util.Date date = new java.util.Date();
@@ -286,19 +283,16 @@ public class HelpFormatter {
         for (String headerLine : applicationDetails.applicationHeader)
             logger.info(headerLine);
         logger.debug("Current directory: " + System.getProperty("user.dir"));
-        for (Map.Entry<ArgumentMatchSource, List<String>> entry: parsedArgs.entrySet()) {
+        for (Map.Entry<ArgumentMatchSource, ParsedArgs> entry: parsedArgs.entrySet()) {
             ArgumentMatchSource matchSource = entry.getKey();
             final String sourceName;
             switch (matchSource.getType()) {
                 case CommandLine: sourceName = "Program"; break;
-                case File: sourceName = matchSource.getFile().getPath(); break;
+                case Provider: sourceName = matchSource.getDescription(); break;
                 default: throw new RuntimeException("Unexpected argument match source type: " + matchSource.getType());
             }
 
-            String output = sourceName + " Args:";
-            for (String str : entry.getValue()) {
-                output = output + " " + str;
-            }
+            String output = sourceName + " Args: " + entry.getValue().getDescription();
             logger.info(output);
         }
         logger.info("Date/Time: " + dateFormat.format(date));

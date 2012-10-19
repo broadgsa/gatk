@@ -25,8 +25,8 @@
 package org.broadinstitute.sting.commandline;
 
 /**
- * Type of where an argument match originated, via the commandline or a file.
+ * Type of where an argument match originated, via the commandline or a some other provider.
  */
 public enum ArgumentMatchSourceType {
-    CommandLine, File
+    CommandLine, Provider
 }

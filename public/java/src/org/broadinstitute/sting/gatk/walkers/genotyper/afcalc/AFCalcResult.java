@@ -239,6 +239,19 @@ public class AFCalcResult {
     }
 
     /**
+     * Are any of the alleles polymorphic w.r.t. #isPolymorphic?
+     *
+     * @param log10minPNonRef the confidence threshold, in log10 space
+     * @return true if any are poly, false otherwise
+     */
+    public boolean anyPolymorphic(final double log10minPNonRef) {
+        for ( final Allele a : getAllelesUsedInGenotyping() )
+            if ( a.isNonReference() && isPolymorphic(a, log10minPNonRef) )
+                return true;
+        return false;
+    }
+
+    /**
      * Returns the log10 probability that allele is segregating
      *
      * Unlike the sites-level annotation, this calculation is specific to allele, and can be
