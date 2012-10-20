@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardCallerArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcFactory;
+import org.broadinstitute.sting.utils.pairhmm.PairHMM;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
@@ -64,6 +65,12 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
      */
     @Argument(fullName = "annotateNDA", shortName = "nda", doc = "If provided, we will annotate records with the number of alternate alleles that were discovered (but not necessarily genotyped) at a given site", required = false)
     public boolean ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED = false;
+
+    /**
+     * The PairHMM implementation to use for -glm INDEL genotype likelihood calculations. The various implementations balance a tradeoff of accuracy and runtime.
+     */
+    @Argument(fullName = "pair_hmm_implementation", shortName = "pairHMM", doc = "The PairHMM implementation to use for -glm INDEL genotype likelihood calculations", required = false)
+    public PairHMM.HMM_IMPLEMENTATION pairHMM = PairHMM.HMM_IMPLEMENTATION.ORIGINAL;
 
     /**
      * The minimum confidence needed in a given base for it to be used in variant calling.  Note that the base quality of a base
@@ -111,10 +118,6 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
     @Hidden
     @Argument(fullName = "indelHaplotypeSize", shortName = "indelHSize", doc = "Indel haplotype size", required = false)
     public int INDEL_HAPLOTYPE_SIZE = 80;
-
-    @Hidden
-    @Argument(fullName = "noBandedIndel", shortName = "noBandedIndel", doc = "Don't do Banded Indel likelihood computation", required = false)
-    public boolean DONT_DO_BANDED_INDEL_COMPUTATION = false;
 
     @Hidden
     @Argument(fullName = "indelDebug", shortName = "indelDebug", doc = "Output indel debug info", required = false)
@@ -221,10 +224,10 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
         uac.EXCLUDE_FILTERED_REFERENCE_SITES = EXCLUDE_FILTERED_REFERENCE_SITES;
         uac.IGNORE_LANE_INFO = IGNORE_LANE_INFO;
         uac.exactCallsLog = exactCallsLog;
+        uac.pairHMM = pairHMM;
 
         // todo- arguments to remove
         uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
-        uac.DONT_DO_BANDED_INDEL_COMPUTATION = DONT_DO_BANDED_INDEL_COMPUTATION;
         return uac;
     }
 
