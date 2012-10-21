@@ -2,8 +2,6 @@ package org.broadinstitute.sting.utils.codecs.vcf;
 
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
-import org.broad.tribble.util.ParsingUtils;
-import org.broadinstitute.sting.utils.variantcontext.*;
 
 import java.io.IOException;
 import java.util.*;
@@ -119,7 +117,7 @@ public class VCFCodec extends AbstractVCFCodec {
         // empty set for passes filters
         List<String> fFields = new LinkedList<String>();
         // otherwise we have to parse and cache the value
-        if ( filterString.indexOf(VCFConstants.FILTER_CODE_SEPARATOR) == -1 )
+        if ( !filterString.contains(VCFConstants.FILTER_CODE_SEPARATOR) )
             fFields.add(filterString);
         else
             fFields.addAll(Arrays.asList(filterString.split(VCFConstants.FILTER_CODE_SEPARATOR)));

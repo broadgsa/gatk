@@ -30,8 +30,11 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.PairHMM;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.pairhmm.ExactPairHMM;
+import org.broadinstitute.sting.utils.pairhmm.OriginalPairHMM;
+import org.broadinstitute.sting.utils.pairhmm.PairHMM;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -48,7 +51,6 @@ public class PairHMMIndelErrorModel {
     public static final int BASE_QUAL_THRESHOLD = 20;
 
     private boolean DEBUG = false;
-    private boolean bandedLikelihoods = false;
 
     private static final int MAX_CACHED_QUAL = 127;
 
@@ -66,6 +68,8 @@ public class PairHMMIndelErrorModel {
 
     private final byte[] GAP_OPEN_PROB_TABLE;
     private final byte[] GAP_CONT_PROB_TABLE;
+
+    private final PairHMM pairHMM;
 
     /////////////////////////////
     // Private Member Variables
@@ -85,14 +89,25 @@ public class PairHMMIndelErrorModel {
         }
     }
 
-    public PairHMMIndelErrorModel(byte indelGOP, byte indelGCP, boolean deb, boolean bandedLikelihoods) {
+    public PairHMMIndelErrorModel(byte indelGOP, byte indelGCP, boolean deb, final PairHMM.HMM_IMPLEMENTATION hmmType ) {
         this.DEBUG = deb;
-        this.bandedLikelihoods = bandedLikelihoods;
+
+        switch (hmmType) {
+            case EXACT:
+                pairHMM = new ExactPairHMM();
+                break;
+            case ORIGINAL:
+                pairHMM = new OriginalPairHMM();
+                break;
+            case CACHING:
+            case LOGLESS_CACHING:
+            default:
+                throw new UserException.BadArgumentValue("pairHMM", "Specified pairHMM implementation is unrecognized or incompatible with the UnifiedGenotyper. Acceptable options are ORIGINAL and EXACT.");
+        }
 
         // fill gap penalty table, affine naive model:
         this.GAP_CONT_PROB_TABLE = new byte[MAX_HRUN_GAP_IDX];
         this.GAP_OPEN_PROB_TABLE = new byte[MAX_HRUN_GAP_IDX];
-
 
         for (int i = 0; i < START_HRUN_GAP_IDX; i++) {
             GAP_OPEN_PROB_TABLE[i] = indelGOP;
@@ -190,7 +205,6 @@ public class PairHMMIndelErrorModel {
                                                                           final PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap,
                                                                           final int[] readCounts) {
         final double readLikelihoods[][] = new double[pileup.getNumberOfElements()][haplotypeMap.size()];
-        final PairHMM pairHMM = new PairHMM(bandedLikelihoods);
 
         int readIdx=0;
         for (PileupElement p: pileup) {
@@ -303,8 +317,6 @@ public class PairHMMIndelErrorModel {
                     final byte[] readQuals = Arrays.copyOfRange(unclippedReadQuals,numStartSoftClippedBases, unclippedReadBases.length-numEndSoftClippedBases);
                     int j=0;
 
-                    // initialize path metric and traceback memories for likelihood computation
-                    double[][] matchMetricArray = null, XMetricArray = null, YMetricArray = null;
                     byte[] previousHaplotypeSeen = null;
                     final byte[] contextLogGapOpenProbabilities = new byte[readBases.length];
                     final byte[] contextLogGapContinuationProbabilities  = new byte[readBases.length];
@@ -341,14 +353,9 @@ public class PairHMMIndelErrorModel {
                         final int X_METRIC_LENGTH = readBases.length+2;
                         final int Y_METRIC_LENGTH = haplotypeBases.length+2;
 
-                        if (matchMetricArray == null) {
+                        if (previousHaplotypeSeen == null) {
                             //no need to reallocate arrays for each new haplotype, as length won't change
-                            matchMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
-                            XMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
-                            YMetricArray = new double[X_METRIC_LENGTH][Y_METRIC_LENGTH];
-
-
-                            PairHMM.initializeArrays(matchMetricArray, XMetricArray, YMetricArray, X_METRIC_LENGTH);
+                            pairHMM.initialize(X_METRIC_LENGTH, Y_METRIC_LENGTH);
                         }
 
                         int startIndexInHaplotype = 0;
@@ -356,11 +363,10 @@ public class PairHMMIndelErrorModel {
                             startIndexInHaplotype = computeFirstDifferingPosition(haplotypeBases, previousHaplotypeSeen);
                         previousHaplotypeSeen = haplotypeBases.clone();
 
-                        readLikelihood = pairHMM.computeReadLikelihoodGivenHaplotype(haplotypeBases, readBases, readQuals,
+                        readLikelihood = pairHMM.computeReadLikelihoodGivenHaplotypeLog10(haplotypeBases, readBases, readQuals,
                                 (read.hasBaseIndelQualities() ? read.getBaseInsertionQualities() : contextLogGapOpenProbabilities),
                                 (read.hasBaseIndelQualities() ? read.getBaseDeletionQualities() : contextLogGapOpenProbabilities),
-                                contextLogGapContinuationProbabilities,
-                                startIndexInHaplotype, matchMetricArray, XMetricArray, YMetricArray);
+                                contextLogGapContinuationProbabilities, startIndexInHaplotype, false);
 
 
                         if (DEBUG) {

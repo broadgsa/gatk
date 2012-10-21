@@ -41,19 +41,20 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsCalculationModel {
 
     private final boolean useAlleleFromVCF;
 
     private final double[] likelihoodSums = new double[4];
-    
+    private final ArrayList<PileupElement>[] alleleStratifiedElements = new ArrayList[4];
+
     protected SNPGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
         useAlleleFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
+        for ( int i = 0; i < 4; i++ )
+            alleleStratifiedElements[i] = new ArrayList<PileupElement>();
     }
 
     public VariantContext getLikelihoods(final RefMetaDataTracker tracker,
@@ -78,8 +79,10 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         ArrayList<SampleGenotypeData> GLs = new ArrayList<SampleGenotypeData>(contexts.size());
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
             ReadBackedPileup pileup = AlignmentContextUtils.stratify(sample.getValue(), contextType).getBasePileup();
+            if ( UAC.CONTAMINATION_PERCENTAGE > 0.0 )
+                pileup = createDecontaminatedPileup(pileup, UAC.CONTAMINATION_PERCENTAGE);
             if ( useBAQedPileup )
-                pileup = createBAQedPileup( pileup );
+                pileup = createBAQedPileup(pileup);
 
             // create the GenotypeLikelihoods object
             final DiploidSNPGenotypeLikelihoods GL = new DiploidSNPGenotypeLikelihoods(UAC.PCR_error);
@@ -150,8 +153,6 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
         // create the genotypes; no-call everyone for now
         final GenotypesContext genotypes = GenotypesContext.create();
-        final List<Allele> noCall = new ArrayList<Allele>();
-        noCall.add(Allele.NO_CALL);
 
         for ( SampleGenotypeData sampleData : GLs ) {
             final double[] allLikelihoods = sampleData.GL.getLikelihoods();
@@ -202,6 +203,42 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         return allelesToUse;
     }
 
+    public ReadBackedPileup createDecontaminatedPileup(final ReadBackedPileup pileup, final double contaminationPercentage) {
+        // special case removal of all reads
+        if ( contaminationPercentage >= 1.0 )
+            return new ReadBackedPileupImpl(pileup.getLocation(), new ArrayList<PileupElement>());
+
+        // start by stratifying the reads by the alleles they represent at this position
+        for( final PileupElement pe : pileup ) {
+            final int baseIndex = BaseUtils.simpleBaseToBaseIndex(pe.getBase());
+            if ( baseIndex != -1 )
+                alleleStratifiedElements[baseIndex].add(pe);
+        }
+
+        // Down-sample *each* allele by the contamination fraction applied to the entire pileup.
+        // Unfortunately, we need to maintain the original pileup ordering of reads or FragmentUtils will complain later.
+        int numReadsToRemove = (int)Math.ceil((double)pileup.getNumberOfElements() * contaminationPercentage);
+        final TreeSet<PileupElement> elementsToKeep = new TreeSet<PileupElement>(new Comparator<PileupElement>() {
+            @Override
+            public int compare(PileupElement element1, PileupElement element2) {
+                final int difference = element1.getRead().getAlignmentStart() - element2.getRead().getAlignmentStart();
+                return difference != 0 ? difference : element1.getRead().getReadName().compareTo(element2.getRead().getReadName());
+            }
+        });
+
+        for ( int i = 0; i < 4; i++ ) {
+            final ArrayList<PileupElement> alleleList = alleleStratifiedElements[i];
+            if ( alleleList.size() > numReadsToRemove )
+                elementsToKeep.addAll(downsampleElements(alleleList, numReadsToRemove));
+        }
+
+        // clean up pointers so memory can be garbage collected if needed
+        for ( int i = 0; i < 4; i++ )
+            alleleStratifiedElements[i].clear();
+
+        return new ReadBackedPileupImpl(pileup.getLocation(), new ArrayList<PileupElement>(elementsToKeep));
+    }
+
     public ReadBackedPileup createBAQedPileup( final ReadBackedPileup pileup ) {
         final List<PileupElement> BAQedElements = new ArrayList<PileupElement>();
         for( final PileupElement PE : pileup ) {
@@ -218,6 +255,22 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
         @Override
         public byte getQual( final int offset ) { return BAQ.calcBAQFromTag(getRead(), offset, true); }
+    }
+
+    private List<PileupElement> downsampleElements(final ArrayList<PileupElement> elements, final int numElementsToRemove) {
+        final int pileupSize = elements.size();
+        final BitSet itemsToRemove = new BitSet(pileupSize);
+        for ( Integer selectedIndex : MathUtils.sampleIndicesWithoutReplacement(pileupSize, numElementsToRemove) ) {
+            itemsToRemove.set(selectedIndex);
+        }
+
+        ArrayList<PileupElement> elementsToKeep = new ArrayList<PileupElement>(pileupSize - numElementsToRemove);
+        for ( int i = 0; i < pileupSize; i++ ) {
+            if ( !itemsToRemove.get(i) )
+                elementsToKeep.add(elements.get(i));
+        }
+
+        return elementsToKeep;
     }
 
     private static class SampleGenotypeData {
