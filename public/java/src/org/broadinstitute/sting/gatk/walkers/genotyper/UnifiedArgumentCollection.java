@@ -186,63 +186,41 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
     @Argument(shortName="ef", fullName="exclude_filtered_reference_sites", doc="Don't include in the analysis sites where the reference sample VCF is filtered. Default: false.", required=false)
     boolean EXCLUDE_FILTERED_REFERENCE_SITES = false;
 
-    // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
-    public UnifiedArgumentCollection clone() {
-        UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
-
-        uac.GLmodel = GLmodel;
-        uac.AFmodel = AFmodel;
-        uac.heterozygosity = heterozygosity;
-        uac.PCR_error = PCR_error;
-        uac.GenotypingMode = GenotypingMode;
-        uac.OutputMode = OutputMode;
-        uac.NO_SLOD = NO_SLOD;
-        uac.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED = ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED;
-        uac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
-        uac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
-        uac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;
-        uac.MAX_DELETION_FRACTION = MAX_DELETION_FRACTION;
-        uac.MIN_INDEL_COUNT_FOR_GENOTYPING = MIN_INDEL_COUNT_FOR_GENOTYPING;
-        uac.MIN_INDEL_FRACTION_PER_SAMPLE = MIN_INDEL_FRACTION_PER_SAMPLE;
-        uac.INDEL_HETEROZYGOSITY = INDEL_HETEROZYGOSITY;
-        uac.INDEL_GAP_OPEN_PENALTY = INDEL_GAP_OPEN_PENALTY;
-        uac.INDEL_GAP_CONTINUATION_PENALTY = INDEL_GAP_CONTINUATION_PENALTY;
-        uac.OUTPUT_DEBUG_INDEL_INFO = OUTPUT_DEBUG_INDEL_INFO;
-        uac.INDEL_HAPLOTYPE_SIZE = INDEL_HAPLOTYPE_SIZE;
-        uac.alleles = alleles;
-        uac.MAX_ALTERNATE_ALLELES = MAX_ALTERNATE_ALLELES;
-        uac.MAX_ALTERNATE_ALLELES_FOR_INDELS = MAX_ALTERNATE_ALLELES_FOR_INDELS;
-        uac.GLmodel = GLmodel;
-        uac.TREAT_ALL_READS_AS_SINGLE_POOL = TREAT_ALL_READS_AS_SINGLE_POOL;
-        uac.referenceSampleRod = referenceSampleRod;
-        uac.referenceSampleName = referenceSampleName;
-        uac.samplePloidy = samplePloidy;
-        uac.maxQualityScore = minQualityScore;
-        uac.phredScaledPrior = phredScaledPrior;
-        uac.minPower = minPower;
-        uac.minReferenceDepth = minReferenceDepth;
-        uac.EXCLUDE_FILTERED_REFERENCE_SITES = EXCLUDE_FILTERED_REFERENCE_SITES;
-        uac.IGNORE_LANE_INFO = IGNORE_LANE_INFO;
-        uac.exactCallsLog = exactCallsLog;
-        uac.pairHMM = pairHMM;
-
-        // todo- arguments to remove
-        uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
-        return uac;
-    }
-
     public UnifiedArgumentCollection() { }
 
-    public UnifiedArgumentCollection( final StandardCallerArgumentCollection SCAC ) {
-        super();
-        this.alleles = SCAC.alleles;
-        this.GenotypingMode = SCAC.GenotypingMode;
-        this.heterozygosity = SCAC.heterozygosity;
-        this.MAX_ALTERNATE_ALLELES = SCAC.MAX_ALTERNATE_ALLELES;
-        this.MAX_ALTERNATE_ALLELES_FOR_INDELS = SCAC.MAX_ALTERNATE_ALLELES_FOR_INDELS;
-        this.OutputMode = SCAC.OutputMode;
-        this.STANDARD_CONFIDENCE_FOR_CALLING = SCAC.STANDARD_CONFIDENCE_FOR_CALLING;
-        this.STANDARD_CONFIDENCE_FOR_EMITTING = SCAC.STANDARD_CONFIDENCE_FOR_EMITTING;
-        this.exactCallsLog = SCAC.exactCallsLog;
+    public UnifiedArgumentCollection(final StandardCallerArgumentCollection SCAC) {
+        super(SCAC);
+    }
+
+    // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
+    public UnifiedArgumentCollection(final UnifiedArgumentCollection uac) {
+        this.GLmodel = uac.GLmodel;
+        this.AFmodel = uac.AFmodel;
+        this.PCR_error = uac.PCR_error;
+        this.NO_SLOD = uac.NO_SLOD;
+        this.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED = uac.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED;
+        this.MIN_BASE_QUALTY_SCORE = uac.MIN_BASE_QUALTY_SCORE;
+        this.MAX_DELETION_FRACTION = uac.MAX_DELETION_FRACTION;
+        this.MIN_INDEL_COUNT_FOR_GENOTYPING = uac.MIN_INDEL_COUNT_FOR_GENOTYPING;
+        this.MIN_INDEL_FRACTION_PER_SAMPLE = uac.MIN_INDEL_FRACTION_PER_SAMPLE;
+        this.INDEL_HETEROZYGOSITY = uac.INDEL_HETEROZYGOSITY;
+        this.INDEL_GAP_OPEN_PENALTY = uac.INDEL_GAP_OPEN_PENALTY;
+        this.INDEL_GAP_CONTINUATION_PENALTY = uac.INDEL_GAP_CONTINUATION_PENALTY;
+        this.OUTPUT_DEBUG_INDEL_INFO = uac.OUTPUT_DEBUG_INDEL_INFO;
+        this.INDEL_HAPLOTYPE_SIZE = uac.INDEL_HAPLOTYPE_SIZE;
+        this.TREAT_ALL_READS_AS_SINGLE_POOL = uac.TREAT_ALL_READS_AS_SINGLE_POOL;
+        this.referenceSampleRod = uac.referenceSampleRod;
+        this.referenceSampleName = uac.referenceSampleName;
+        this.samplePloidy = uac.samplePloidy;
+        this.maxQualityScore = uac.minQualityScore;
+        this.phredScaledPrior = uac.phredScaledPrior;
+        this.minPower = uac.minPower;
+        this.minReferenceDepth = uac.minReferenceDepth;
+        this.EXCLUDE_FILTERED_REFERENCE_SITES = uac.EXCLUDE_FILTERED_REFERENCE_SITES;
+        this.IGNORE_LANE_INFO = uac.IGNORE_LANE_INFO;
+        this.pairHMM = uac.pairHMM;
+
+        // todo- arguments to remove
+        this.IGNORE_SNP_ALLELES = uac.IGNORE_SNP_ALLELES;
     }
 }
