@@ -27,14 +27,9 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.StandardCallerArgumentCollection;
-<<<<<<< HEAD
-import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcFactory;
 import org.broadinstitute.sting.utils.pairhmm.PairHMM;
-=======
->>>>>>> 19181ee... Moving pnrm to UnifiedArgumentCollection so it's available with the HaplotypeCaller
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
-
 
 public class UnifiedArgumentCollection extends StandardCallerArgumentCollection {
 
@@ -182,14 +177,30 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
     @Argument(shortName="ef", fullName="exclude_filtered_reference_sites", doc="Don't include in the analysis sites where the reference sample VCF is filtered. Default: false.", required=false)
     boolean EXCLUDE_FILTERED_REFERENCE_SITES = false;
 
-    public UnifiedArgumentCollection() { }
-
-    public UnifiedArgumentCollection(final StandardCallerArgumentCollection SCAC) {
-        super(SCAC);
+    /**
+     * Create a new UAC with defaults for all UAC arguments
+     */
+    public UnifiedArgumentCollection() {
+        super();
     }
 
-    // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
+    /**
+     * Create a new UAC based on the information only our in super-class scac and defaults for all UAC arguments
+     * @param scac
+     */
+    public UnifiedArgumentCollection(final StandardCallerArgumentCollection scac) {
+        super(scac);
+    }
+
+    /**
+     * Create a new UAC with all parameters having the values in uac
+     *
+     * @param uac
+     */
     public UnifiedArgumentCollection(final UnifiedArgumentCollection uac) {
+        // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
+        super(uac);
+
         this.GLmodel = uac.GLmodel;
         this.AFmodel = uac.AFmodel;
         this.PCR_error = uac.PCR_error;
@@ -215,6 +226,7 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
         this.EXCLUDE_FILTERED_REFERENCE_SITES = uac.EXCLUDE_FILTERED_REFERENCE_SITES;
         this.IGNORE_LANE_INFO = uac.IGNORE_LANE_INFO;
         this.pairHMM = uac.pairHMM;
+
         // todo- arguments to remove
         this.IGNORE_SNP_ALLELES = uac.IGNORE_SNP_ALLELES;
     }
