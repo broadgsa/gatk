@@ -7,6 +7,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 // ********************************************************************************** //
@@ -18,6 +19,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     private final static String baseCommand = "-T UnifiedGenotyper -R " + b36KGReference + " -nosl --no_cmdline_in_header -glm BOTH -minIndelFrac 0.0 --dbsnp " + b36dbSNP129;
     private final static String baseCommandIndels = "-T UnifiedGenotyper -R " + b36KGReference + " -nosl --no_cmdline_in_header -glm INDEL -mbq 20 -minIndelFrac 0.0 --dbsnp " + b36dbSNP129;
     private final static String baseCommandIndelsb37 = "-T UnifiedGenotyper -R " + b37KGReference + " -nosl --no_cmdline_in_header -glm INDEL -mbq 20 --dbsnp " + b37dbSNP132;
+    private final static String baseCommandNoCmdLineHeaderStdout = "-T UnifiedGenotyper -R " + b37KGReference + " --no_cmdline_in_header -I " + privateTestDir + "bamExample.ReducedRead.ADAnnotation.bam";
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -173,6 +175,14 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                 "-T UnifiedGenotyper -R " + b36KGReference + " --no_cmdline_in_header -glm BOTH -comp:FOO " + b36dbSNP129 + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000", 1,
                 Arrays.asList("8a9b424e00cdbe6b5e73d517335b2186"));
         executeTest("test using comp track", spec);
+    }
+
+    @Test
+    public void testNoCmdLineHeaderStdout() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                baseCommandNoCmdLineHeaderStdout + " -glm INDEL -L 1:67,225,396-67,288,518", 0,
+                Collections.<String>emptyList());
+        executeTest("testNoCmdLineHeaderStdout", spec);
     }
 
     @Test
