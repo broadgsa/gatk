@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.arguments;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcFactory;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
@@ -69,7 +70,40 @@ public class StandardCallerArgumentCollection {
     @Argument(fullName = "max_alternate_alleles_for_indels", shortName = "maxAltAllelesForIndels", doc = "Maximum number of alternate alleles to genotype for indels only", required = false)
     public int MAX_ALTERNATE_ALLELES_FOR_INDELS = 2;
 
+    /**
+     * If this fraction is greater is than zero, the caller will aggressively attempt to remove contamination through biased down-sampling of reads.
+     * Basically, it will ignore the contamination fraction of reads for each alternate allele.  So if the pileup contains N total bases, then we
+     * will try to remove (N * contamination fraction) bases for each alternate allele.
+     */
+    @Hidden
+    @Argument(fullName = "contamination_percentage_to_filter", shortName = "contamination", doc = "Fraction of contamination in sequencing data (for all samples) to aggressively remove", required = false)
+    public double CONTAMINATION_PERCENTAGE = 0.0;
+
     @Hidden
     @Argument(shortName = "logExactCalls", doc="x", required=false)
     public File exactCallsLog = null;
+
+    public StandardCallerArgumentCollection() { }
+
+    // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
+    public StandardCallerArgumentCollection(final StandardCallerArgumentCollection SCAC) {
+        this.alleles = SCAC.alleles;
+        this.GenotypingMode = SCAC.GenotypingMode;
+        this.heterozygosity = SCAC.heterozygosity;
+        this.MAX_ALTERNATE_ALLELES = SCAC.MAX_ALTERNATE_ALLELES;
+        this.MAX_ALTERNATE_ALLELES_FOR_INDELS = SCAC.MAX_ALTERNATE_ALLELES_FOR_INDELS;
+        this.OutputMode = SCAC.OutputMode;
+        this.STANDARD_CONFIDENCE_FOR_CALLING = SCAC.STANDARD_CONFIDENCE_FOR_CALLING;
+        this.STANDARD_CONFIDENCE_FOR_EMITTING = SCAC.STANDARD_CONFIDENCE_FOR_EMITTING;
+        this.CONTAMINATION_PERCENTAGE = SCAC.CONTAMINATION_PERCENTAGE;
+        this.exactCallsLog = SCAC.exactCallsLog;
+        this.AFmodel = SCAC.AFmodel;
+    }
+
+    /**
+     * Controls the model used to calculate the probability that a site is variant plus the various sample genotypes in the data at a given locus.
+     */
+    @Advanced
+    @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ", required = false)
+    public AFCalcFactory.Calculation AFmodel = AFCalcFactory.Calculation.getDefaultModel();
 }

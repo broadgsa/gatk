@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
@@ -11,28 +12,31 @@ import java.util.Map;
 /**
  * Original bi-allelic ~O(N) implementation.  Kept here for posterity and reference
  */
-public class OriginalDiploidExactAFCalc extends DiploidExactAFCalc {
+class OriginalDiploidExactAFCalc extends DiploidExactAFCalc {
     protected OriginalDiploidExactAFCalc(int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, final int ploidy) {
         super(nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy);
-    }
-
-    protected StateTracker makeMaxLikelihood(final VariantContext vc, final AFCalcResultTracker resultTracker) {
-        return new StateTracker();
     }
 
     @Override
     protected AFCalcResult computeLog10PNonRef(VariantContext vc, double[] log10AlleleFrequencyPriors) {
         final double[] log10AlleleFrequencyLikelihoods = new double[log10AlleleFrequencyPriors.length];
         final double[] log10AlleleFrequencyPosteriors  = new double[log10AlleleFrequencyPriors.length];
-        final int lastK = linearExact(vc, log10AlleleFrequencyPriors, log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors);
+        final Pair<Integer, Integer> result = linearExact(vc, log10AlleleFrequencyPriors, log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors);
+        final int lastK = result.getFirst();
+        final int mleK = result.getSecond();
 
-        final double[] log10Likelihoods = new double[]{log10AlleleFrequencyLikelihoods[0], MathUtils.log10sumLog10(log10AlleleFrequencyLikelihoods, 1)};
+        final double log10LikelihoodAFGt0 = lastK == 0 ? MathUtils.LOG10_P_OF_ZERO : MathUtils.log10sumLog10(log10AlleleFrequencyLikelihoods, 1, lastK+1);
+        final double[] log10Likelihoods = new double[]{log10AlleleFrequencyLikelihoods[0], log10LikelihoodAFGt0};
         final double[] log10Priors = new double[]{log10AlleleFrequencyPriors[0], MathUtils.log10sumLog10(log10AlleleFrequencyPriors, 1)};
+        final double[] log10Posteriors = MathUtils.vectorSum(log10Likelihoods, log10Priors);
 
-        final double pNonRef = lastK > 0 ? 0.0 : -1000.0;
-        final Map<Allele, Double> log10pNonRefByAllele = Collections.singletonMap(vc.getAlternateAllele(0), pNonRef);
+        final double log10PNonRef = log10Posteriors[1] > log10Posteriors[0] ? 0.0 : MathUtils.LOG10_P_OF_ZERO;
+        final Map<Allele, Double> log10pNonRefByAllele = Collections.singletonMap(vc.getAlternateAllele(0), log10PNonRef);
 
-        return new AFCalcResult(new int[]{lastK}, 0, vc.getAlleles(), log10Likelihoods, log10Priors, log10pNonRefByAllele);
+        return new AFCalcResult(new int[]{mleK}, 0, vc.getAlleles(),
+                MathUtils.normalizeFromLog10(log10Likelihoods, true),
+                MathUtils.normalizeFromLog10(log10Priors, true),
+                log10pNonRefByAllele);
     }
 
     /**
@@ -72,11 +76,11 @@ public class OriginalDiploidExactAFCalc extends DiploidExactAFCalc {
         }
     }
 
-    public int linearExact(final VariantContext vc,
-                           double[] log10AlleleFrequencyPriors,
-                           double[] log10AlleleFrequencyLikelihoods,
-                           double[] log10AlleleFrequencyPosteriors) {
-        final ArrayList<double[]> genotypeLikelihoods = getGLs(vc.getGenotypes(), false);
+    public Pair<Integer, Integer> linearExact(final VariantContext vc,
+                                              double[] log10AlleleFrequencyPriors,
+                                              double[] log10AlleleFrequencyLikelihoods,
+                                              double[] log10AlleleFrequencyPosteriors) {
+        final ArrayList<double[]> genotypeLikelihoods = getGLs(vc.getGenotypes(), true);
         final int numSamples = genotypeLikelihoods.size()-1;
         final int numChr = 2*numSamples;
 
@@ -85,7 +89,7 @@ public class OriginalDiploidExactAFCalc extends DiploidExactAFCalc {
 
         double maxLog10L = Double.NEGATIVE_INFINITY;
         boolean done = false;
-        int lastK = -1;
+        int lastK = -1, mleK = -1;
 
         for (int k=0; k <= numChr && ! done; k++ ) {
             final double[] kMinus0 = logY.getkMinus0();
@@ -131,7 +135,11 @@ public class OriginalDiploidExactAFCalc extends DiploidExactAFCalc {
 
             // can we abort early?
             lastK = k;
-            maxLog10L = Math.max(maxLog10L, log10LofK);
+            if ( log10LofK > maxLog10L ) {
+                maxLog10L = log10LofK;
+                mleK = k;
+            }
+
             if ( log10LofK < maxLog10L - StateTracker.MAX_LOG10_ERROR_TO_STOP_EARLY ) {
                 //if ( DEBUG ) System.out.printf("  *** breaking early k=%d log10L=%.2f maxLog10L=%.2f%n", k, log10LofK, maxLog10L);
                 done = true;
@@ -140,6 +148,6 @@ public class OriginalDiploidExactAFCalc extends DiploidExactAFCalc {
             logY.rotate();
         }
 
-        return lastK;
+        return new Pair<Integer, Integer>(lastK, mleK);
     }
 }

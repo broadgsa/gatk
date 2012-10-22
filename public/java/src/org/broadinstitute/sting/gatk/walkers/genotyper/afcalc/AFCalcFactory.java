@@ -24,14 +24,11 @@ public class AFCalcFactory {
      * the needs of the request (i.e., considering ploidy).
      */
     public enum Calculation {
-        /** The default implementation */
-        EXACT(ReferenceDiploidExactAFCalc.class, 2, -1),
-
-        /** reference implementation of multi-allelic EXACT model */
-        EXACT_REFERENCE(ReferenceDiploidExactAFCalc.class, 2, -1),
-
         /** expt. implementation -- for testing only */
         EXACT_INDEPENDENT(IndependentAllelesDiploidExactAFCalc.class, 2, -1),
+
+        /** reference implementation of multi-allelic EXACT model.  Extremely slow for many alternate alleles */
+        EXACT_REFERENCE(ReferenceDiploidExactAFCalc.class, 2, -1),
 
         /** original biallelic exact model, for testing only */
         EXACT_ORIGINAL(OriginalDiploidExactAFCalc.class, 2, 2),
@@ -60,6 +57,8 @@ public class AFCalcFactory {
             return (requiredPloidy == -1 || requiredPloidy == requestedPloidy)
                     && (maxAltAlleles == -1 || maxAltAlleles >= requestedMaxAltAlleles);
         }
+
+        public static Calculation getDefaultModel() { return EXACT_INDEPENDENT; }
     }
 
     private static final Map<String, Class<? extends AFCalc>> afClasses;

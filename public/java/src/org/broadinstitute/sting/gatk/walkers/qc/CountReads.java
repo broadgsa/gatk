@@ -33,7 +33,6 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
  *   -T CountReads \
- *   -o output.txt \
  *   -I input.bam \
  *   [-L input.intervals]
  * </pre>
