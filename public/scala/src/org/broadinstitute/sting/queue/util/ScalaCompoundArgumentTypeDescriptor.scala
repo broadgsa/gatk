@@ -28,6 +28,7 @@ import collection.JavaConversions._
 import org.broadinstitute.sting.queue.QException
 import java.lang.Class
 import org.broadinstitute.sting.commandline.{ArgumentMatches, ArgumentSource, ArgumentTypeDescriptor, ParsingEngine}
+import org.broadinstitute.sting.utils.exceptions.UserException
 import java.lang.reflect.Type
 
 /**
@@ -75,6 +76,8 @@ class ScalaCompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
   
   def parse(parsingEngine: ParsingEngine, source: ArgumentSource, classType: Class[_], argumentMatches: ArgumentMatches) = {
     val componentType = ReflectionUtils.getCollectionType(source.field)
+    if (componentType == classOf[java.lang.Object])
+      throw new UserException.CannotExecuteQScript("Please also include a @ClassType(classOf[<primitive type>]) annotation on field: " + source.field + ". Example: @ClassType(classOf[Double]). The scala generic type for the field was subjected to java/scala type erasure and is not available via reflection.")
     val componentArgumentParser = parsingEngine.selectBestTypeDescriptor(componentType)
 
     if (classOf[Seq[_]].isAssignableFrom(classType)) {
