@@ -11,8 +11,8 @@ import java.io.File
  * To change this template use File | Settings | File Templates.
  */
 class CollectMultipleMetrics extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardMetricsFunction{
-  analysisName = "CalculateMultipleMetrics"
-  javaMainClass = "net.sf.picard.analysis.CalculateMultipleMetrics"
+  analysisName = "CollectMultipleMetrics"
+  javaMainClass = "net.sf.picard.analysis.CollectMultipleMetrics"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
   var input: Seq[File] = Nil

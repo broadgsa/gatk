@@ -11,8 +11,8 @@ import java.io.File
  * To change this template use File | Settings | File Templates.
  */
 class CollectGcBiasMetrics extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardMetricsFunction {
-  analysisName = "CalculateGcMetrics"
-  javaMainClass = "net.sf.picard.analysis.GcBiasSummaryMetrics"
+  analysisName = "CollectGcBiasMetrics"
+  javaMainClass = "net.sf.picard.analysis.CollectGcBiasMetrics"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
   var input: Seq[File] = Nil
@@ -26,6 +26,7 @@ class CollectGcBiasMetrics extends org.broadinstitute.sting.queue.function.JavaC
   override def inputBams = input
   override def outputFile = output
   override def commandLine = super.commandLine +
+    required("SUMMARY_OUTPUT=" + output) +
     required("CHART_OUTPUT=" + output+".pdf") +
     required("REFERENCE_SEQUENCE=" + reference) +
     required("ASSUME_SORTED=true")
