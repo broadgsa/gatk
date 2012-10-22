@@ -89,7 +89,7 @@ import java.util.*;
     /**
      * The min. confidence of an allele to be included in the joint posterior.
      */
-    private final static double MIN_LOG10_CONFIDENCE_TO_INCLUDE_ALLELE_IN_POSTERIOR = Math.log10(1e-20);
+    private final static double MIN_LOG10_CONFIDENCE_TO_INCLUDE_ALLELE_IN_POSTERIOR = Math.log10(1e-10);
 
     private final static int[] BIALLELIC_NON_INFORMATIVE_PLS = new int[]{0,0,0};
     private final static List<Allele> BIALLELIC_NOCALL = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
@@ -111,9 +111,9 @@ import java.util.*;
      */
     final AFCalc biAlleleExactModel;
 
-    protected IndependentAllelesDiploidExactAFCalc(int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, final int ploidy) {
-        super(nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy);
-        biAlleleExactModel = new ReferenceDiploidExactAFCalc(nSamples, 1, 1, ploidy);
+    protected IndependentAllelesDiploidExactAFCalc(int nSamples, int maxAltAlleles, final int ploidy) {
+        super(nSamples, maxAltAlleles, ploidy);
+        biAlleleExactModel = new ReferenceDiploidExactAFCalc(nSamples, 1, ploidy);
     }
 
     /**
@@ -336,12 +336,13 @@ import java.util.*;
             // MLE of altI allele is simply the MLE of this allele in altAlleles
             alleleCountsOfMLE[altI] = sortedResultWithThetaNPriors.getAlleleCountAtMLE(altAllele);
 
-            log10PriorsOfAC[0] += sortedResultWithThetaNPriors.getLog10PriorOfAFEq0();
-            log10PriorsOfAC[1] += sortedResultWithThetaNPriors.getLog10PriorOfAFGT0();
-
             // the AF > 0 case requires us to store the normalized likelihood for later summation
-            if ( sortedResultWithThetaNPriors.getLog10PosteriorOfAFGT0() > MIN_LOG10_CONFIDENCE_TO_INCLUDE_ALLELE_IN_POSTERIOR )
+            if ( sortedResultWithThetaNPriors.getLog10PosteriorOfAFGT0() > MIN_LOG10_CONFIDENCE_TO_INCLUDE_ALLELE_IN_POSTERIOR ) {
                 log10PosteriorOfACEq0Sum += sortedResultWithThetaNPriors.getLog10PosteriorOfAFEq0();
+                log10PriorsOfAC[0] += sortedResultWithThetaNPriors.getLog10PriorOfAFEq0();
+                log10PriorsOfAC[1] += sortedResultWithThetaNPriors.getLog10PriorOfAFGT0();
+            }
+
             log10PosteriorOfACGt0Sum += sortedResultWithThetaNPriors.getLog10PosteriorOfAFGT0();
 
             // bind pNonRef for allele to the posterior value of the AF > 0 with the new adjusted prior

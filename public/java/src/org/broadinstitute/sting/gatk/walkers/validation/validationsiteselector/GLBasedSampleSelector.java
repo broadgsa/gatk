@@ -55,7 +55,7 @@ public class GLBasedSampleSelector extends SampleSelector {
         // do we want to apply a prior? maybe user-spec?
         if ( flatPriors == null ) {
             flatPriors = new double[1+2*samples.size()];
-            AFCalculator = AFCalcFactory.createAFCalc(samples.size(), 4, 4, 2);
+            AFCalculator = AFCalcFactory.createAFCalc(samples.size(), 4, 2);
         }
         final AFCalcResult result = AFCalculator.getLog10PNonRef(subContext, flatPriors);
         // do we want to let this qual go up or down?

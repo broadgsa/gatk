@@ -45,7 +45,6 @@ public abstract class AFCalc implements Cloneable {
 
     protected final int nSamples;
     protected final int maxAlternateAllelesToGenotype;
-    protected final int maxAlternateAllelesForIndels;
 
     protected Logger logger = defaultLogger;
 
@@ -60,19 +59,16 @@ public abstract class AFCalc implements Cloneable {
      *
      * @param nSamples number of samples, must be > 0
      * @param maxAltAlleles maxAltAlleles for SNPs
-     * @param maxAltAllelesForIndels for indels
      * @param ploidy the ploidy, must be > 0
      */
-    protected AFCalc(final int nSamples, final int maxAltAlleles, final int maxAltAllelesForIndels, final int ploidy) {
+    protected AFCalc(final int nSamples, final int maxAltAlleles, final int ploidy) {
         if ( nSamples < 0 ) throw new IllegalArgumentException("nSamples must be greater than zero " + nSamples);
         if ( maxAltAlleles < 1 ) throw new IllegalArgumentException("maxAltAlleles must be greater than zero " + maxAltAlleles);
-        if ( maxAltAllelesForIndels < 1 ) throw new IllegalArgumentException("maxAltAllelesForIndels must be greater than zero " + maxAltAllelesForIndels);
         if ( ploidy < 1 ) throw new IllegalArgumentException("ploidy must be > 0 but got " + ploidy);
 
         this.nSamples = nSamples;
         this.maxAlternateAllelesToGenotype = maxAltAlleles;
-        this.maxAlternateAllelesForIndels = maxAltAllelesForIndels;
-        this.stateTracker = new StateTracker(Math.max(maxAltAlleles, maxAltAllelesForIndels));
+        this.stateTracker = new StateTracker(maxAltAlleles);
     }
 
     /**
@@ -191,7 +187,7 @@ public abstract class AFCalc implements Cloneable {
     // ---------------------------------------------------------------------------
 
     public int getMaxAltAlleles() {
-        return Math.max(maxAlternateAllelesToGenotype, maxAlternateAllelesForIndels);
+        return maxAlternateAllelesToGenotype;
     }
 
     protected StateTracker getStateTracker() {

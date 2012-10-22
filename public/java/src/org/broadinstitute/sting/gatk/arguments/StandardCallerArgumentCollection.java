@@ -55,20 +55,25 @@ public class StandardCallerArgumentCollection {
      * then only this many alleles will be used.  Note that genotyping sites with many alternate alleles is both CPU and memory intensive and it
      * scales exponentially based on the number of alternate alleles.  Unless there is a good reason to change the default value, we highly recommend
      * that you not play around with this parameter.
+     *
+     * As of GATK 2.2 the genotyper can handle a very large number of events, so the default maximum has been increased to 6.
      */
     @Advanced
     @Argument(fullName = "max_alternate_alleles", shortName = "maxAltAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
-    public int MAX_ALTERNATE_ALLELES = 3;
+    public int MAX_ALTERNATE_ALLELES = 6;
 
     /**
      * If there are more than this number of alternate alleles presented to the genotyper (either through discovery or GENOTYPE_GIVEN ALLELES),
      * then only this many alleles will be used.  Note that genotyping sites with many alternate alleles is both CPU and memory intensive and it
      * scales exponentially based on the number of alternate alleles.  Unless there is a good reason to change the default value, we highly recommend
      * that you not play around with this parameter.
+     *
+     * This argument has been retired in GATK 2.2.  Please specify just maxAltAlleles from now on
      */
-    @Advanced
-    @Argument(fullName = "max_alternate_alleles_for_indels", shortName = "maxAltAllelesForIndels", doc = "Maximum number of alternate alleles to genotype for indels only", required = false)
-    public int MAX_ALTERNATE_ALLELES_FOR_INDELS = 2;
+    @Deprecated
+    @Hidden
+    @Argument(fullName = "max_alternate_alleles_for_indels", shortName = "maxAltAllelesForIndels", doc = "This argument has been retired in GATK 2.2.  Please specify just maxAltAlleles from now on, which will apply to any variant, regardless of type", required = false)
+    public int MAX_ALTERNATE_ALLELES_FOR_INDELS = -1;
 
     /**
      * If this fraction is greater is than zero, the caller will aggressively attempt to remove contamination through biased down-sampling of reads.

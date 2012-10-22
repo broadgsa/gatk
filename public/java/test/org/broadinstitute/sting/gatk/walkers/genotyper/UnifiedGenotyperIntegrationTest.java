@@ -62,7 +62,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultipleSNPAlleles() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b37KGReference + " -nosl --no_cmdline_in_header -glm BOTH --dbsnp " + b37dbSNP129 + " -I " + privateTestDir + "multiallelic.snps.bam -o %s -L " + privateTestDir + "multiallelic.snps.intervals", 1,
-                Arrays.asList("73c9b926c5e971a113de347a64fdcf20"));
+                Arrays.asList("543f68e42034bf44cfb24da8c9204320"));
         executeTest("test Multiple SNP alleles", spec);
     }
 
@@ -78,7 +78,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testReverseTrim() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b37KGReference + " -nosl --no_cmdline_in_header -glm INDEL -I " + validationDataLocation + "CEUTrio.HiSeq.b37.chr20.10_11mb.bam -o %s -L 20:10289124 -L 20:10090289", 1,
-                Arrays.asList("7f8d13690cb7d4173787afa00c496f12"));
+                Arrays.asList("5ce03dd9ca2d9324c1d4a9d64389beb5"));
         executeTest("test reverse trim", spec);
     }
 

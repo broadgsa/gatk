@@ -13,8 +13,8 @@ import java.util.Map;
  * Original bi-allelic ~O(N) implementation.  Kept here for posterity and reference
  */
 class OriginalDiploidExactAFCalc extends DiploidExactAFCalc {
-    protected OriginalDiploidExactAFCalc(int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, final int ploidy) {
-        super(nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy);
+    protected OriginalDiploidExactAFCalc(int nSamples, int maxAltAlleles, final int ploidy) {
+        super(nSamples, maxAltAlleles, ploidy);
     }
 
     @Override
