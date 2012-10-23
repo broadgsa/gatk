@@ -123,6 +123,8 @@ class QCommandLine extends CommandLineProgram with Logging {
         commandPlugin.statusMessenger.started()
     }
 
+    qGraph.messengers = allCommandPlugins.filter(_.statusMessenger != null).map(_.statusMessenger).toSeq
+
     // TODO: Default command plugin argument?
     val remoteFileConverter = (
       for (commandPlugin <- allCommandPlugins if (commandPlugin.remoteFileConverter != null))
@@ -178,14 +180,17 @@ class QCommandLine extends CommandLineProgram with Logging {
       qGraph.logFailed()
       for (commandPlugin <- allCommandPlugins)
         if (commandPlugin.statusMessenger != null)
-          commandPlugin.statusMessenger.exit("Done with errors")
+          commandPlugin.statusMessenger.exit("Done with errors: %s".format(qGraph.formattedStatusCounts))
       1
     } else {
       if (settings.run) {
         allQScripts.foreach(_.pushOutputs())
         for (commandPlugin <- allCommandPlugins)
-          if (commandPlugin.statusMessenger != null)
-            commandPlugin.statusMessenger.done(allQScripts.map(_.remoteOutputs))
+          if (commandPlugin.statusMessenger != null) {
+            val allInputs = allQScripts.map(_.remoteInputs)
+            val allOutputs = allQScripts.map(_.remoteOutputs)
+            commandPlugin.statusMessenger.done(allInputs, allOutputs)
+          }
       }
       0
     }
