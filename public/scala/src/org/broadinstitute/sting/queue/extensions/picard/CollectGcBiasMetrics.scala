@@ -12,7 +12,6 @@ import java.io.File
  */
 class CollectGcBiasMetrics extends org.broadinstitute.sting.queue.function.JavaCommandLineFunction with PicardMetricsFunction {
   analysisName = "CollectGcBiasMetrics"
-  javaMainClass = "net.sf.picard.analysis.CollectGcBiasMetrics"
 
   @Input(doc="The input SAM or BAM files to analyze.  Must be coordinate sorted.", shortName = "input", fullName = "input_bam_files", required = true)
   var input: Seq[File] = Nil
