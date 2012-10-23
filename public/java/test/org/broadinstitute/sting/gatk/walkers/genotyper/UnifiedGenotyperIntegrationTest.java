@@ -192,12 +192,12 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     @Test
     public void testOutputParameterAllConfident() {
-        testOutputParameters("--output_mode EMIT_ALL_CONFIDENT_SITES", "8800c58715c2bb434b69e1873cb77de6");
+        testOutputParameters("--output_mode EMIT_ALL_CONFIDENT_SITES", "f9ea04d96eeef29e71d37e60518c2579");
     }
 
     @Test
     public void testOutputParameterAllSites() {
-        testOutputParameters("--output_mode EMIT_ALL_SITES", "639df9f4c029792ac2e46069efc82b20");
+        testOutputParameters("--output_mode EMIT_ALL_SITES", "41c046d38ea328421df924e37e017645");
     }
 
     private void testOutputParameters(final String args, final String md5) {

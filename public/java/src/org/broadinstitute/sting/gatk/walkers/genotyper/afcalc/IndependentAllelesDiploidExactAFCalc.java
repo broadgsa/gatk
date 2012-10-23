@@ -329,6 +329,7 @@ import java.util.*;
         double log10PosteriorOfACEq0Sum = 0.0;
         double log10PosteriorOfACGt0Sum = 0.0;
 
+        boolean anyPoly = false;
         for ( final AFCalcResult sortedResultWithThetaNPriors : sortedResultsWithThetaNPriors ) {
             final Allele altAllele = sortedResultWithThetaNPriors.getAllelesUsedInGenotyping().get(1);
             final int altI = vc.getAlleles().indexOf(altAllele) - 1;
@@ -338,6 +339,7 @@ import java.util.*;
 
             // the AF > 0 case requires us to store the normalized likelihood for later summation
             if ( sortedResultWithThetaNPriors.getLog10PosteriorOfAFGT0() > MIN_LOG10_CONFIDENCE_TO_INCLUDE_ALLELE_IN_POSTERIOR ) {
+                anyPoly = true;
                 log10PosteriorOfACEq0Sum += sortedResultWithThetaNPriors.getLog10PosteriorOfAFEq0();
                 log10PriorsOfAC[0] += sortedResultWithThetaNPriors.getLog10PriorOfAFEq0();
                 log10PriorsOfAC[1] += sortedResultWithThetaNPriors.getLog10PriorOfAFGT0();
@@ -350,6 +352,12 @@ import java.util.*;
 
             // trivial -- update the number of evaluations
             nEvaluations += sortedResultWithThetaNPriors.nEvaluations;
+        }
+
+        // If no alleles were polymorphic, make sure we have the proper priors (the defaults) for likelihood calculation
+        if ( ! anyPoly ) {
+            log10PriorsOfAC[0] = sortedResultsWithThetaNPriors.get(0).getLog10PriorOfAFEq0();
+            log10PriorsOfAC[1] = sortedResultsWithThetaNPriors.get(0).getLog10PriorOfAFGT0();
         }
 
         // In principle, if B_p = x and C_p = y are the probabilities of being poly for alleles B and C,
