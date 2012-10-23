@@ -27,28 +27,28 @@ class PacbioProcessingPipeline extends QScript {
   @Input(doc="dbsnp VCF file to use ", shortName="D", required=true)
   var dbSNP: File = _
 
-  @Input(doc="Number of jobs to scatter/gather. Default: 0." , shortName = "sg", required=false)
+  @Argument(doc="Number of jobs to scatter/gather. Default: 0." , shortName = "sg", required=false)
   var threads: Int = 0
 
-  @Input(doc="Sample Name to fill in the Read Group information (only necessary if using fasta/fastq)" , shortName = "sn", required=false)
+  @Argument(doc="Sample Name to fill in the Read Group information (only necessary if using fasta/fastq)" , shortName = "sn", required=false)
   var sample: String = "NA"
 
   @Input(doc="The path to the binary of bwa to align fasta/fastq files", fullName="path_to_bwa", shortName="bwa", required=false)
   var bwaPath: File = _
 
-  @Input(doc="Input is a BLASR generated BAM file", shortName = "blasr", fullName="blasr_bam", required=false)
+  @Argument(doc="Input is a BLASR generated BAM file", shortName = "blasr", fullName="blasr_bam", required=false)
   var BLASR_BAM: Boolean = false
 
   @Hidden
-  @Input(doc="The default base qualities to use before recalibration. Default is Q20 (should be good for every dataset)." , shortName = "dbq", required=false)
+  @Argument(doc="The default base qualities to use before recalibration. Default is Q20 (should be good for every dataset)." , shortName = "dbq", required=false)
   var dbq: Int = 20
 
   @Hidden
-  @Input(shortName="bwastring", required=false)
+  @Argument(shortName="bwastring", required=false)
   var bwastring: String = ""
 
   @Hidden
-  @Input(shortName = "test", fullName = "test_mode", required = false)
+  @Argument(shortName = "test", fullName = "test_mode", required = false)
   var testMode: Boolean = false
 
   val queueLogDir: String = ".qlog/"

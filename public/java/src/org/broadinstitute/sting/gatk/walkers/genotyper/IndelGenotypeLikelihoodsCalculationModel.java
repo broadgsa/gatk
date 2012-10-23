@@ -57,7 +57,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     protected IndelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
         pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY, UAC.INDEL_GAP_CONTINUATION_PENALTY,
-                UAC.OUTPUT_DEBUG_INDEL_INFO, !UAC.DONT_DO_BANDED_INDEL_COMPUTATION);
+                UAC.OUTPUT_DEBUG_INDEL_INFO, UAC.pairHMM);
         DEBUG = UAC.OUTPUT_DEBUG_INDEL_INFO;
         haplotypeMap = new LinkedHashMap<Allele, Haplotype>();
         ignoreSNPAllelesWhenGenotypingIndels = UAC.IGNORE_SNP_ALLELES;
@@ -231,7 +231,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         int count = 0;
         for (PileupElement p : pileup) {
             if (p.isDeletion() || p.isInsertionAtBeginningOfRead() || BaseUtils.isRegularBase(p.getBase()))
-                count++;
+                count += p.getRepresentativeCount();
         }
 
         return count;

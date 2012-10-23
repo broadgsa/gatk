@@ -104,9 +104,10 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
 
                 prevLoc = location;
 
-                updateCumulativeMetrics(dataProvider.getShard());
                 printProgress(locus.getLocation());
             }
+
+            updateCumulativeMetrics(dataProvider.getShard());
 
             // Take the individual isActive calls and integrate them into contiguous active regions and
             // add these blocks of work to the work queue

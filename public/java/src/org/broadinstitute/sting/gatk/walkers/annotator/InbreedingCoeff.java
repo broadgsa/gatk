@@ -48,7 +48,7 @@ public class InbreedingCoeff extends InfoFieldAnnotation implements StandardAnno
 
     private Map<String, Object> calculateIC(final VariantContext vc) {
         final GenotypesContext genotypes = (founderIds == null || founderIds.isEmpty()) ? vc.getGenotypes() : vc.getGenotypes(founderIds);
-        if ( genotypes == null || genotypes.size() < MIN_SAMPLES )
+        if ( genotypes == null || genotypes.size() < MIN_SAMPLES || !vc.isVariant())
             return null;
 
         int idxAA = 0, idxAB = 1, idxBB = 2;
