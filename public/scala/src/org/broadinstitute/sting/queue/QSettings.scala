@@ -25,7 +25,7 @@
 package org.broadinstitute.sting.queue
 
 import java.io.File
-import org.broadinstitute.sting.commandline.Argument
+import org.broadinstitute.sting.commandline.{ClassType, Argument}
 
 /**
  * Default settings settable on the command line and passed to CommandLineFunctions.
@@ -41,6 +41,7 @@ class QSettings {
   var jobQueue: String = _
 
   @Argument(fullName="job_priority", shortName="jobPriority", doc="Default priority for jobs. Min = 0, Max = 100", required=false)
+  @ClassType(classOf[Int])
   var jobPriority: Option[Int] = None
 
   @Argument(fullName="job_native_arg", shortName="jobNative", doc="Native arguments to pass to the job runner.", required=false)
@@ -53,15 +54,19 @@ class QSettings {
   var jobEnvironmentNames: Seq[String] = Nil
 
   @Argument(fullName="memory_limit", shortName="memLimit", doc="Default memory limit for jobs, in gigabytes. If not set defaults to 2GB.", required=false)
+  @ClassType(classOf[Double])
   var memoryLimit: Option[Double] = Some(2)
 
   @Argument(fullName="memory_limit_threshold", shortName="memLimitThresh", doc="After passing this threshold stop increasing memory limit for jobs, in gigabytes.", required=false)
+  @ClassType(classOf[Double])
   var memoryLimitThreshold: Option[Double] = None
 
   @Argument(fullName="resident_memory_limit", shortName="resMemLimit", doc="Default resident memory limit for jobs, in gigabytes.", required=false)
+  @ClassType(classOf[Double])
   var residentLimit: Option[Double] = None
 
   @Argument(fullName="resident_memory_request", shortName="resMemReq", doc="Default resident memory request for jobs, in gigabytes.", required=false)
+  @ClassType(classOf[Double])
   var residentRequest: Option[Double] = None
 
   @Argument(fullName="resident_memory_request_parameter", shortName="resMemReqParam", doc="Parameter for resident memory requests. By default not requested.", required=false)

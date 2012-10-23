@@ -1195,6 +1195,39 @@ public class MathUtils {
     }
 
     /**
+     * Check that the log10 prob vector vector is well formed
+     *
+     * @param vector
+     * @param expectedSize
+     * @param shouldSumToOne
+     *
+     * @return true if vector is well-formed, false otherwise
+     */
+    public static boolean goodLog10ProbVector(final double[] vector, final int expectedSize, final boolean shouldSumToOne) {
+        if ( vector.length != expectedSize ) return false;
+
+        for ( final double pr : vector ) {
+            if ( ! goodLog10Probability(pr) )
+                return false;
+        }
+
+        if ( shouldSumToOne && compareDoubles(sumLog10(vector), 1.0, 1e-4) != 0 )
+            return false;
+
+        return true; // everything is good
+    }
+
+    /**
+     * Checks that the result is a well-formed log10 probability
+     *
+     * @param result a supposedly well-formed log10 probability value
+     * @return true if result is really well formed
+     */
+    public static boolean goodLog10Probability(final double result) {
+        return result <= 0.0 && ! Double.isInfinite(result) && ! Double.isNaN(result);
+    }
+
+    /**
      * A utility class that computes on the fly average and standard deviation for a stream of numbers.
      * The number of observations does not have to be known in advance, and can be also very big (so that
      * it could overflow any naive summation-based scheme or cause loss of precision).

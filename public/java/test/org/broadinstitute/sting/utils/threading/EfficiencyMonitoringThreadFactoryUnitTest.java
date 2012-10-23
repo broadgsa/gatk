@@ -130,7 +130,10 @@ public class EfficiencyMonitoringThreadFactoryUnitTest extends BaseTest {
         return StateTest.getTests(StateTest.class);
     }
 
-    @Test(enabled = true, dataProvider = "StateTest", timeOut = MAX_THREADS * THREAD_TARGET_DURATION_IN_MILLISECOND)
+    // NOTE this test takes an unreasonably long time to run, and so it's been disabled as these monitoring threads
+    // aren't a core GATK feature any longer.  Should be reabled if we come to care about this capability again
+    // in the future, or we can run these in parallel
+    @Test(enabled = false, dataProvider = "StateTest", timeOut = MAX_THREADS * THREAD_TARGET_DURATION_IN_MILLISECOND)
     public void testStateTest(final StateTest test) throws InterruptedException {
         // allows us to test blocking
         final EfficiencyMonitoringThreadFactory factory = new EfficiencyMonitoringThreadFactory(test.getNStates());
