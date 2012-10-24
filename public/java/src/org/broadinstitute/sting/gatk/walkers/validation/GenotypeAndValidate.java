@@ -245,23 +245,20 @@ public class GenotypeAndValidate extends RodWalker<GenotypeAndValidate.CountedDa
     @Argument(fullName="condition_on_depth", shortName="depth", doc="Condition validation on a minimum depth of coverage by the reads", required=false)
     private int minDepth = -1;
 
-    /**
-     * If your VCF or BAM file has more than one sample and you only want to validate one, use this parameter to choose it.
-     */
-    @Hidden
-    @Argument(fullName ="sample", shortName ="sn", doc="Name of the sample to validate (in case your VCF/BAM has more than one sample)", required=false)
-    private String sample = "";
-
-    /**
+   /**
      * Print out discordance sites to standard out.
      */
     @Hidden
     @Argument(fullName ="print_interesting_sites", shortName ="print_interesting", doc="Print out interesting sites to standard out", required=false)
-    private boolean printInterestingSites;
+    private boolean printInterestingSites = false;
 
     private UnifiedGenotyperEngine snpEngine;
     private UnifiedGenotyperEngine indelEngine;
     private Set<String> samples;
+
+    private enum GVstatus {
+        T, F, NONE
+    }
 
     public static class CountedData {
         private long nAltCalledAlt = 0L;
@@ -368,9 +365,10 @@ public class GenotypeAndValidate extends RodWalker<GenotypeAndValidate.CountedDa
         // Do not operate on variants that are not covered to the optional minimum depth
         if (!context.hasReads() || (minDepth > 0 && context.getBasePileup().getBases().length < minDepth)) {
             counter.nUncovered = 1L;
-            if (vcComp.getAttribute("GV").equals("T"))
+            final GVstatus status = getGVstatus(vcComp);
+            if ( status == GVstatus.T )
                 counter.nAltNotCalled = 1L;
-            else if (vcComp.getAttribute("GV").equals("F"))
+            else if ( status == GVstatus.F )
                 counter.nRefNotCalled = 1L;
             else
                 counter.nNoStatusNotCalled = 1L;
@@ -427,10 +425,11 @@ public class GenotypeAndValidate extends RodWalker<GenotypeAndValidate.CountedDa
 //            if (!vcComp.hasExtendedAttribute("GV"))
 //                throw new UserException.BadInput("Variant has no GV annotation in the INFO field. " + vcComp.getChr() + ":" + vcComp.getStart());
 
+            final GVstatus status = getGVstatus(vcComp);
             if (call.isCalledAlt(callConf)) {
-                if (vcComp.getAttribute("GV").equals("T"))
+                if ( status == GVstatus.T )
                     counter.nAltCalledAlt = 1L;
-                else if (vcComp.getAttribute("GV").equals("F")) {
+                else if ( status == GVstatus.F ) {
                     counter.nRefCalledAlt = 1L;
                     if ( printInterestingSites )
                         System.out.println("Truth=REF Call=ALT at " + call.getChr() + ":" + call.getStart());
@@ -439,12 +438,12 @@ public class GenotypeAndValidate extends RodWalker<GenotypeAndValidate.CountedDa
                     counter.nNoStatusCalledAlt = 1L;
             }
             else if (call.isCalledRef(callConf)) {
-                if (vcComp.getAttribute("GV").equals("T")) {
+                if ( status == GVstatus.T ) {
                     counter.nAltCalledRef = 1L;
                     if ( printInterestingSites )
                         System.out.println("Truth=ALT Call=REF at " + call.getChr() + ":" + call.getStart());
                 }
-                else if (vcComp.getAttribute("GV").equals("F"))
+                else if ( status == GVstatus.F )
                     counter.nRefCalledRef = 1L;
 
                 else
@@ -452,9 +451,9 @@ public class GenotypeAndValidate extends RodWalker<GenotypeAndValidate.CountedDa
             }
             else {
                 counter.nNotConfidentCalls = 1L;
-                if (vcComp.getAttribute("GV").equals("T"))
+                if ( status == GVstatus.T )
                     counter.nAltNotCalled = 1L;
-                else if (vcComp.getAttribute("GV").equals("F"))
+                else if ( status == GVstatus.F )
                     counter.nRefNotCalled = 1L;
                 else
                     counter.nNoStatusNotCalled = 1L;
@@ -473,6 +472,10 @@ public class GenotypeAndValidate extends RodWalker<GenotypeAndValidate.CountedDa
                 vcfWriter.add(vcComp);
         }
         return counter;
+    }
+
+    private GVstatus getGVstatus(final VariantContext vc) {
+        return ( !vc.hasAttribute("GV") ) ? GVstatus.NONE : (vc.getAttribute("GV").equals("T") ? GVstatus.T : GVstatus.F);
     }
 
     //---------------------------------------------------------------------------------------------------------------
