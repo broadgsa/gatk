@@ -64,7 +64,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                                          final List<Allele> allAllelesToUse,
                                          final boolean useBAQedPileup,
                                          final GenomeLocParser locParser,
-                                         final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
+                                         final Map<String, org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
 
         perReadAlleleLikelihoodMap.clear(); // not used in SNP model, sanity check to delete any older data
 

@@ -81,7 +81,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                                          final List<Allele> allAllelesToUse,
                                          final boolean useBAQedPileup,
                                          final GenomeLocParser locParser,
-                                         final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
+                                         final Map<String, org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
 
         GenomeLoc loc = ref.getLocus();
 //        if (!ref.getLocus().equals(lastSiteVisited)) {
@@ -118,7 +118,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
             if (!perReadAlleleLikelihoodMap.containsKey(sample.getKey())){
                 // no likelihoods have been computed for this sample at this site
-                perReadAlleleLikelihoodMap.put(sample.getKey(), new PerReadAlleleLikelihoodMap());
+                perReadAlleleLikelihoodMap.put(sample.getKey(), org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap.getBestAvailablePerReadAlleleLikelihoodMap());
             }
             final ReadBackedPileup pileup = context.getBasePileup();
             if (pileup != null) {
