@@ -89,6 +89,20 @@ public class NestedIntegerArray<T> {
         return (T)myData[keys[numNestedDimensions]];
     }
 
+    /**
+     * Insert a value at the position specified by the given keys.
+     *
+     * This method is THREAD-SAFE despite not being synchronized, however the caller MUST
+     * check the return value to see if the put succeeded. This method RETURNS FALSE if
+     * the value could not be inserted because there already was a value present
+     * at the specified location. In this case the caller should do a get() to get
+     * the already-existing value and (potentially) update it.
+     *
+     * @param value value to insert
+     * @param keys keys specifying the location of the value in the tree
+     * @return true if the value was inserted, false if it could not be inserted because there was already
+     *         a value at the specified position
+     */
     public boolean put(final T value, final int... keys) { // WARNING! value comes before the keys!
         if ( keys.length != numDimensions )
             throw new ReviewedStingException("Exactly " + numDimensions + " keys should be passed to this NestedIntegerArray but " + keys.length + " were provided");
