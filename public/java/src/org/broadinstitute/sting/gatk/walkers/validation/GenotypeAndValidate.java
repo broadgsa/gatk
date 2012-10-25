@@ -333,8 +333,9 @@ public class GenotypeAndValidate extends RodWalker<GenotypeAndValidate.CountedDa
         snpEngine = new UnifiedGenotyperEngine(getToolkit(), uac);
 
         // Adding the INDEL calling arguments for UG
-        uac.GLmodel = GenotypeLikelihoodsCalculationModel.Model.INDEL;
-        indelEngine = new UnifiedGenotyperEngine(getToolkit(), uac);
+        UnifiedArgumentCollection uac_indel = new UnifiedArgumentCollection(uac);
+        uac_indel.GLmodel = GenotypeLikelihoodsCalculationModel.Model.INDEL;
+        indelEngine = new UnifiedGenotyperEngine(getToolkit(), uac_indel);
 
         // make sure we have callConf set to the threshold set by the UAC so we can use it later.
         callConf = uac.STANDARD_CONFIDENCE_FOR_CALLING;
