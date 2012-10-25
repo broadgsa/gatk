@@ -153,19 +153,19 @@ public class UnifiedGenotyperEngine {
     }
 
 
-        /**
-        * Compute full calls at a given locus. Entry point for engine calls from the UnifiedGenotyper.
-        *
-        * If allSamples != null, then the output variantCallContext is guarenteed to contain a genotype
-        * for every sample in allSamples.  If it's null there's no such guarentee.  Providing this
-        * argument is critical when the resulting calls will be written to a VCF file.
-        *
-        * @param tracker    the meta data tracker
-        * @param refContext the reference base
-        * @param rawContext contextual information around the locus
-        * @param allSamples set of all sample names that we might call (i.e., those in the VCF header)
-        * @return the VariantCallContext object
-        */
+    /**
+     * Compute full calls at a given locus. Entry point for engine calls from the UnifiedGenotyper.
+     *
+     * If allSamples != null, then the output variantCallContext is guarenteed to contain a genotype
+     * for every sample in allSamples.  If it's null there's no such guarentee.  Providing this
+     * argument is critical when the resulting calls will be written to a VCF file.
+     *
+     * @param tracker    the meta data tracker
+     * @param refContext the reference base
+     * @param rawContext contextual information around the locus
+     * @param allSamples set of all sample names that we might call (i.e., those in the VCF header)
+     * @return the VariantCallContext object
+     */
     public List<VariantCallContext> calculateLikelihoodsAndGenotypes(final RefMetaDataTracker tracker,
                                                                      final ReferenceContext refContext,
                                                                      final AlignmentContext rawContext,
@@ -174,7 +174,7 @@ public class UnifiedGenotyperEngine {
 
         final List<GenotypeLikelihoodsCalculationModel.Model> models = getGLModelsToUse(tracker, refContext, rawContext);
 
-        final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap = new HashMap<String,PerReadAlleleLikelihoodMap>();
+        final Map<String, org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap = new HashMap<String, org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap>();
 
         if ( models.isEmpty() ) {
             results.add(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ? generateEmptyContext(tracker, refContext, null, rawContext) : null);
@@ -209,7 +209,7 @@ public class UnifiedGenotyperEngine {
     public VariantContext calculateLikelihoods(final RefMetaDataTracker tracker,
                                                final ReferenceContext refContext,
                                                final AlignmentContext rawContext,
-                                               final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
+                                               final Map<String, org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
         final List<GenotypeLikelihoodsCalculationModel.Model> models = getGLModelsToUse(tracker, refContext, rawContext);
         if ( models.isEmpty() ) {
             return null;
@@ -275,7 +275,7 @@ public class UnifiedGenotyperEngine {
                                                 final List<Allele> alternateAllelesToUse,
                                                 final boolean useBAQedPileup,
                                                 final GenotypeLikelihoodsCalculationModel.Model model,
-                                                final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
+                                                final Map<String, org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
 
         // initialize the data for this thread if that hasn't been done yet
         if ( glcm.get() == null ) {
@@ -313,7 +313,7 @@ public class UnifiedGenotyperEngine {
         return new VariantCallContext(vc, false);
     }
 
-    public VariantCallContext calculateGenotypes(final VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model, final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
+    public VariantCallContext calculateGenotypes(final VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model, final Map<String, org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
         return calculateGenotypes(null, null, null, null, vc, model, perReadAlleleLikelihoodMap);
     }
 
@@ -327,7 +327,7 @@ public class UnifiedGenotyperEngine {
                                                  final Map<String, AlignmentContext> stratifiedContexts,
                                                  final VariantContext vc,
                                                  final GenotypeLikelihoodsCalculationModel.Model model,
-                                                 final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
+                                                 final Map<String, org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
         return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, false,perReadAlleleLikelihoodMap);
     }
 
@@ -346,7 +346,7 @@ public class UnifiedGenotyperEngine {
                                                  final AlignmentContext rawContext, Map<String, AlignmentContext> stratifiedContexts,
                                                  final VariantContext vc, final GenotypeLikelihoodsCalculationModel.Model model,
                                                  final boolean inheritAttributesFromInputVC,
-                                                 final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
+                                                 final Map<String, org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
 
         boolean limitedContext = tracker == null || refContext == null || rawContext == null || stratifiedContexts == null;
 

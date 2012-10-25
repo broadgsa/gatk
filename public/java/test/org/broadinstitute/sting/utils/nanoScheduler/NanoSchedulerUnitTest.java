@@ -23,6 +23,7 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class NanoSchedulerUnitTest extends BaseTest {
+    private final static boolean DEBUG = false;
     private final static boolean debug = false;
     public static final int NANO_SCHEDULE_MAX_RUNTIME = 30000;
 
@@ -30,19 +31,22 @@ public class NanoSchedulerUnitTest extends BaseTest {
         @Override public Integer apply(Integer input) { return input * 2; }
     }
 
+    private static void maybeDelayMe(final int input) {
+        try {
+            if ( input % 7 == 0 ) {
+                final int milliToSleep = (input % 10);
+                //System.out.printf("Sleeping %d millseconds%n", milliToSleep);
+                Thread.sleep(milliToSleep);
+            }
+        } catch ( InterruptedException ex ) {
+            throw new RuntimeException(ex);
+        }
+    }
+
     private static class Map2xWithDelays extends Map2x {
         @Override public Integer apply(Integer input) {
-            try {
-                if ( input % 7 == 0 ) {
-                    final int milliToSleep = (input % 10);
-                    //System.out.printf("Sleeping %d millseconds%n", milliToSleep);
-                    Thread.sleep(milliToSleep);
-                }
-
-                return input * 2;
-            } catch ( InterruptedException ex ) {
-                throw new RuntimeException(ex);
-            }
+            maybeDelayMe(input);
+            return input * 2;
         }
     }
 
@@ -117,10 +121,12 @@ public class NanoSchedulerUnitTest extends BaseTest {
     }
 
     static NanoSchedulerBasicTest exampleTest = null;
+    static NanoSchedulerBasicTest exampleTestWithDelays = null;
 
     @BeforeSuite
     public void setUp() throws Exception {
         exampleTest = new NanoSchedulerBasicTest(10, 2, 1, 10, false);
+        exampleTestWithDelays = new NanoSchedulerBasicTest(10, 2, 1, 10, true);
     }
 
     @DataProvider(name = "NanoSchedulerBasicTest")
@@ -151,14 +157,14 @@ public class NanoSchedulerUnitTest extends BaseTest {
         return NanoSchedulerBasicTest.getTests(NanoSchedulerBasicTest.class);
     }
 
-    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest", timeOut = NANO_SCHEDULE_MAX_RUNTIME)
+    @Test(enabled = true && ! DEBUG, dataProvider = "NanoSchedulerBasicTest", timeOut = NANO_SCHEDULE_MAX_RUNTIME)
     public void testSingleThreadedNanoScheduler(final NanoSchedulerBasicTest test) throws InterruptedException {
         logger.warn("Running " + test);
         if ( test.nThreads == 1 )
             testNanoScheduler(test);
     }
 
-    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest", timeOut = NANO_SCHEDULE_MAX_RUNTIME, dependsOnMethods = "testSingleThreadedNanoScheduler")
+    @Test(enabled = true && ! DEBUG, dataProvider = "NanoSchedulerBasicTest", timeOut = NANO_SCHEDULE_MAX_RUNTIME, dependsOnMethods = "testSingleThreadedNanoScheduler")
     public void testMultiThreadedNanoScheduler(final NanoSchedulerBasicTest test) throws InterruptedException {
         logger.warn("Running " + test);
         if ( test.nThreads >= 1 )
@@ -195,7 +201,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         }
     }
 
-    @Test(enabled = true, dataProvider = "NanoSchedulerBasicTest", dependsOnMethods = "testMultiThreadedNanoScheduler", timeOut = NANO_SCHEDULE_MAX_RUNTIME)
+    @Test(enabled = true && ! DEBUG, dataProvider = "NanoSchedulerBasicTest", dependsOnMethods = "testMultiThreadedNanoScheduler", timeOut = NANO_SCHEDULE_MAX_RUNTIME)
     public void testNanoSchedulerInLoop(final NanoSchedulerBasicTest test) throws InterruptedException {
         if ( test.bufferSize > 1) {
             logger.warn("Running " + test);
@@ -213,7 +219,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         }
     }
 
-    @Test(timeOut = NANO_SCHEDULE_MAX_RUNTIME)
+    @Test(enabled = true && ! DEBUG, timeOut = NANO_SCHEDULE_MAX_RUNTIME)
     public void testShutdown() throws InterruptedException {
         final NanoScheduler<Integer, Integer, Integer> nanoScheduler = new NanoScheduler<Integer, Integer, Integer>(1, 2);
         Assert.assertFalse(nanoScheduler.isShutdown(), "scheduler should be alive");
@@ -221,38 +227,78 @@ public class NanoSchedulerUnitTest extends BaseTest {
         Assert.assertTrue(nanoScheduler.isShutdown(), "scheduler should be dead");
     }
 
-    @Test(expectedExceptions = IllegalStateException.class, timeOut = NANO_SCHEDULE_MAX_RUNTIME)
+    @Test(enabled = true && ! DEBUG, expectedExceptions = IllegalStateException.class, timeOut = NANO_SCHEDULE_MAX_RUNTIME)
     public void testShutdownExecuteFailure() throws InterruptedException {
         final NanoScheduler<Integer, Integer, Integer> nanoScheduler = new NanoScheduler<Integer, Integer, Integer>(1, 2);
         nanoScheduler.shutdown();
         nanoScheduler.execute(exampleTest.makeReader(), exampleTest.makeMap(), exampleTest.initReduce(), exampleTest.makeReduce());
     }
 
-    @Test(expectedExceptions = NullPointerException.class, timeOut = 10000, invocationCount = 50)
+    @DataProvider(name = "NanoSchedulerInputExceptionTest")
+    public Object[][] createNanoSchedulerInputExceptionTest() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+
+        for ( final int bufSize : Arrays.asList(100) ) {
+            for ( final int nThreads : Arrays.asList(8) ) {
+                for ( final boolean addDelays : Arrays.asList(true, false) ) {
+                    final NanoSchedulerBasicTest test = new NanoSchedulerBasicTest(bufSize, nThreads, 1, 1000000, false);
+                    final int maxN = addDelays ? 10000 : 100000;
+                    for ( int nElementsBeforeError = 0; nElementsBeforeError < maxN; nElementsBeforeError += Math.max(nElementsBeforeError / 10, 1) ) {
+                        tests.add(new Object[]{nElementsBeforeError, test, addDelays});
+                    }
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(enabled = true, expectedExceptions = NullPointerException.class, timeOut = 10000)
     public void testInputErrorIsThrown_NPE() throws InterruptedException {
-        executeTestErrorThrowingInput(new NullPointerException());
+        executeTestErrorThrowingInput(10, new NullPointerException(), exampleTest, false);
     }
 
-    @Test(expectedExceptions = ReviewedStingException.class, timeOut = 10000, invocationCount = 50)
+    @Test(enabled = true, expectedExceptions = ReviewedStingException.class, timeOut = 10000)
     public void testInputErrorIsThrown_RSE() throws InterruptedException {
-        executeTestErrorThrowingInput(new ReviewedStingException("test"));
+        executeTestErrorThrowingInput(10, new ReviewedStingException("test"), exampleTest, false);
     }
 
-    private void executeTestErrorThrowingInput(final RuntimeException ex) {
-        final NanoScheduler<Integer, Integer, Integer> nanoScheduler = new NanoScheduler<Integer, Integer, Integer>(1, 2);
-        nanoScheduler.execute(new ErrorThrowingIterator(ex), exampleTest.makeMap(), exampleTest.initReduce(), exampleTest.makeReduce());
+    @Test(enabled = true, expectedExceptions = NullPointerException.class, dataProvider = "NanoSchedulerInputExceptionTest", timeOut = 10000, invocationCount = 1)
+    public void testInputErrorDoesntDeadlock(final int nElementsBeforeError, final NanoSchedulerBasicTest test, final boolean addDelays ) throws InterruptedException {
+        executeTestErrorThrowingInput(nElementsBeforeError, new NullPointerException(), test, addDelays);
+    }
+
+    private void executeTestErrorThrowingInput(final int nElementsBeforeError, final RuntimeException ex, final NanoSchedulerBasicTest test, final boolean addDelays) {
+        logger.warn("executeTestErrorThrowingInput " + nElementsBeforeError + " ex=" + ex + " test=" + test + " addInputDelays=" + addDelays);
+        final NanoScheduler<Integer, Integer, Integer> nanoScheduler = test.makeScheduler();
+        nanoScheduler.execute(new ErrorThrowingIterator(nElementsBeforeError, ex, addDelays), test.makeMap(), test.initReduce(), test.makeReduce());
     }
 
     private static class ErrorThrowingIterator implements Iterator<Integer> {
+        final int nElementsBeforeError;
+        final boolean addDelays;
+        int i = 0;
         final RuntimeException ex;
 
-        private ErrorThrowingIterator(RuntimeException ex) {
+        private ErrorThrowingIterator(final int nElementsBeforeError, RuntimeException ex, boolean addDelays) {
+            this.nElementsBeforeError = nElementsBeforeError;
             this.ex = ex;
+            this.addDelays = addDelays;
         }
 
-        @Override public boolean hasNext() { throw ex; }
-        @Override public Integer next() { throw ex; }
-        @Override public void remove() { throw ex; }
+        @Override public boolean hasNext() { return true; }
+        @Override public Integer next() {
+            if ( i++ > nElementsBeforeError ) {
+                throw ex;
+            } else if ( addDelays ) {
+                maybeDelayMe(i);
+                return i;
+            } else {
+                return i;
+            }
+        }
+        @Override public void remove() { throw new UnsupportedOperationException("x"); }
     }
 
     public static void main(String [ ] args) {
