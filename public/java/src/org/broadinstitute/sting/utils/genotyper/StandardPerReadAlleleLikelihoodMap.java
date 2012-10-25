@@ -26,10 +26,11 @@ package org.broadinstitute.sting.utils.genotyper;
 
 
 import org.broadinstitute.sting.utils.classloader.PublicPackageSource;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
+import java.io.PrintStream;
 import java.util.*;
 
 public class StandardPerReadAlleleLikelihoodMap extends PerReadAlleleLikelihoodMap implements PublicPackageSource {
@@ -40,5 +41,6 @@ public class StandardPerReadAlleleLikelihoodMap extends PerReadAlleleLikelihoodM
     }
 
     // not implemented in the standard version
-    public PerReadAlleleLikelihoodMap createPerAlleleDownsampledMap(final double downsamplingFraction) { return this; }
- }
+    public void performPerAlleleDownsampling(final double downsamplingFraction, final PrintStream log) {}
+    public ReadBackedPileup createPerAlleleDownsampledBasePileup(final ReadBackedPileup pileup, final double downsamplingFraction, final PrintStream log) { return pileup; }
+}

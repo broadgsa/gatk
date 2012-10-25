@@ -28,9 +28,11 @@ package org.broadinstitute.sting.utils.genotyper;
 import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
+import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.util.*;
 
@@ -40,6 +42,9 @@ public abstract class PerReadAlleleLikelihoodMap {
 
     protected List<Allele> alleles;
     protected Map<GATKSAMRecord,Map<Allele,Double>> likelihoodReadMap;
+
+    public abstract void performPerAlleleDownsampling(final double downsamplingFraction, final PrintStream log);
+    public abstract ReadBackedPileup createPerAlleleDownsampledBasePileup(final ReadBackedPileup pileup, final double downsamplingFraction, final PrintStream log);
 
     public void add(GATKSAMRecord read, Allele a, Double likelihood) {
         Map<Allele,Double> likelihoodMap;
@@ -117,8 +122,6 @@ public abstract class PerReadAlleleLikelihoodMap {
         }
         return (maxLike - prevMaxLike > INDEL_LIKELIHOOD_THRESH ? mostLikelyAllele : Allele.NO_CALL );
     }
-
-    public abstract PerReadAlleleLikelihoodMap createPerAlleleDownsampledMap(final double downsamplingFraction);
 
     public static PerReadAlleleLikelihoodMap getBestAvailablePerReadAlleleLikelihoodMap() {
         final Class PerReadAlleleLikelihoodMapClass = GATKLiteUtils.getProtectedClassIfAvailable(PerReadAlleleLikelihoodMap.class);

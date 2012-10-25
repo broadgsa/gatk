@@ -153,19 +153,19 @@ public class UnifiedGenotyperEngine {
     }
 
 
-        /**
-        * Compute full calls at a given locus. Entry point for engine calls from the UnifiedGenotyper.
-        *
-        * If allSamples != null, then the output variantCallContext is guarenteed to contain a genotype
-        * for every sample in allSamples.  If it's null there's no such guarentee.  Providing this
-        * argument is critical when the resulting calls will be written to a VCF file.
-        *
-        * @param tracker    the meta data tracker
-        * @param refContext the reference base
-        * @param rawContext contextual information around the locus
-        * @param allSamples set of all sample names that we might call (i.e., those in the VCF header)
-        * @return the VariantCallContext object
-        */
+    /**
+     * Compute full calls at a given locus. Entry point for engine calls from the UnifiedGenotyper.
+     *
+     * If allSamples != null, then the output variantCallContext is guarenteed to contain a genotype
+     * for every sample in allSamples.  If it's null there's no such guarentee.  Providing this
+     * argument is critical when the resulting calls will be written to a VCF file.
+     *
+     * @param tracker    the meta data tracker
+     * @param refContext the reference base
+     * @param rawContext contextual information around the locus
+     * @param allSamples set of all sample names that we might call (i.e., those in the VCF header)
+     * @return the VariantCallContext object
+     */
     public List<VariantCallContext> calculateLikelihoodsAndGenotypes(final RefMetaDataTracker tracker,
                                                                      final ReferenceContext refContext,
                                                                      final AlignmentContext rawContext,
