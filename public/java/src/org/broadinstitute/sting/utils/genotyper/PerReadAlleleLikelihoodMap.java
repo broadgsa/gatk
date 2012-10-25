@@ -22,26 +22,29 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.broadinstitute.sting.gatk.walkers.genotyper;
+package org.broadinstitute.sting.utils.genotyper;
 
 
-//import org.broadinstitute.sting.gatk.walkers.Requires;
-import com.google.java.contract.Requires;
+import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
+import java.io.PrintStream;
+import java.lang.reflect.Constructor;
 import java.util.*;
 
-public class PerReadAlleleLikelihoodMap {
+public abstract class PerReadAlleleLikelihoodMap {
+
     public static final double INDEL_LIKELIHOOD_THRESH = 0.1;
 
-    private List<Allele> alleles;
-    private Map<GATKSAMRecord,Map<Allele,Double>> likelihoodReadMap;
-    public PerReadAlleleLikelihoodMap() {
-        likelihoodReadMap = new LinkedHashMap<GATKSAMRecord,Map<Allele,Double>>();
-        alleles = new ArrayList<Allele>();
-    }
+    protected List<Allele> alleles;
+    protected Map<GATKSAMRecord,Map<Allele,Double>> likelihoodReadMap;
+
+    public abstract void performPerAlleleDownsampling(final double downsamplingFraction, final PrintStream log);
+    public abstract ReadBackedPileup createPerAlleleDownsampledBasePileup(final ReadBackedPileup pileup, final double downsamplingFraction, final PrintStream log);
 
     public void add(GATKSAMRecord read, Allele a, Double likelihood) {
         Map<Allele,Double> likelihoodMap;
@@ -95,16 +98,6 @@ public class PerReadAlleleLikelihoodMap {
     public int getNumberOfStoredElements() {
         return likelihoodReadMap.size();
     }
-    /**
-     * Returns list of reads greedily associated with a particular allele.
-     * Needs to loop for each read, and assign to each allele
-     * @param a                          Desired allele
-     * @return
-     */
-    @Requires("a!=null")
-    public List<GATKSAMRecord> getReadsAssociatedWithAllele(Allele a) {
-        return null;
-    }
 
     public Map<Allele,Double> getLikelihoodsAssociatedWithPileupElement(PileupElement p) {
         if (!likelihoodReadMap.containsKey(p.getRead()))
@@ -129,4 +122,16 @@ public class PerReadAlleleLikelihoodMap {
         }
         return (maxLike - prevMaxLike > INDEL_LIKELIHOOD_THRESH ? mostLikelyAllele : Allele.NO_CALL );
     }
- }
+
+    public static PerReadAlleleLikelihoodMap getBestAvailablePerReadAlleleLikelihoodMap() {
+        final Class PerReadAlleleLikelihoodMapClass = GATKLiteUtils.getProtectedClassIfAvailable(PerReadAlleleLikelihoodMap.class);
+        try {
+            Constructor constructor = PerReadAlleleLikelihoodMapClass.getDeclaredConstructor((Class[])null);
+            constructor.setAccessible(true);
+            return (PerReadAlleleLikelihoodMap)constructor.newInstance();
+        }
+        catch (Exception e) {
+            throw new ReviewedStingException("Unable to create RecalibrationEngine class instance " + PerReadAlleleLikelihoodMapClass.getSimpleName());
+        }
+    }
+}

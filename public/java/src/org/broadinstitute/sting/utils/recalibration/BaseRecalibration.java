@@ -116,9 +116,12 @@ public class BaseRecalibration {
         // Compute all covariates for the read
         // TODO -- the need to clear here suggests there's an error in the indexing / assumption code
         // TODO -- for BI and DI. Perhaps due to the indel buffer size on the ends of the reads?
-        // TODO -- the output varies with -nt 1 and -nt 2 if you don't call clear here
-        // TODO -- needs to be fixed.
-        final ReadCovariates readCovariates = readCovariatesCache.get().clear();
+        // TODO -- the output varies depending on whether we clear or not
+        //final ReadCovariates readCovariates = readCovariatesCache.get().clear();
+
+        // the original code -- doesn't do any clearing
+        final ReadCovariates readCovariates = readCovariatesCache.get();
+
         RecalUtils.computeCovariates(read, requestedCovariates, readCovariates);
 
         for (final EventType errorModel : EventType.values()) { // recalibrate all three quality strings
