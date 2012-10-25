@@ -234,36 +234,21 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
             if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY ||
                     UAC.referenceSampleName != null ||
                     UAC.referenceSampleRod.isBound())  {
-                throw new UserException.NotSupportedInGATKLite("Usage of ploidy values different than 2 not supported in this GATK version");
+                throw new UserException.NotSupportedInGATKLite("you cannot enable usage of ploidy values other than 2");
             }
+
+            if ( UAC.CONTAMINATION_FRACTION > 0.0 ) {
+                throw new UserException.NotSupportedInGATKLite("you cannot enable usage of contamination down-sampling");
+            }
+        }
+
+        if ( UAC.TREAT_ALL_READS_AS_SINGLE_POOL ) {
+            samples.add(GenotypeLikelihoodsCalculationModel.DUMMY_SAMPLE_NAME);
+        } else {
             // get all of the unique sample names
             samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
-
-        } else {
-            // in full mode: check for consistency in ploidy/pool calling arguments
-            // check for correct calculation models
-/*            if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
-                // polyploidy requires POOL GL and AF calculation models to be specified right now
-                if (UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLSNP && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLINDEL
-                        && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLBOTH)   {
-                    throw new UserException("Incorrect genotype calculation model chosen. Only [POOLSNP|POOLINDEL|POOLBOTH] supported with this walker if sample ploidy != 2");
-                }
-
-                if (UAC.AFmodel != AFCalc.Model.POOL)
-                    throw new UserException("Incorrect AF Calculation model. Only POOL model supported if sample ploidy != 2");
-
-            }
-  */
-            // get all of the unique sample names
-            if (UAC.TREAT_ALL_READS_AS_SINGLE_POOL) {
-                samples.clear();
-                samples.add(GenotypeLikelihoodsCalculationModel.DUMMY_SAMPLE_NAME);
-            } else {
-                samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
-                if (UAC.referenceSampleName != null )
-                    samples.remove(UAC.referenceSampleName);
-            }
-
+            if ( UAC.referenceSampleName != null )
+                samples.remove(UAC.referenceSampleName);
         }
 
         // check for a bad max alleles value

@@ -79,7 +79,7 @@ public class StandardCallerArgumentCollection {
     public double CONTAMINATION_FRACTION = 0.0;
 
     @Hidden
-    @Argument(shortName = "logRemovedReadsFromContaminationFiltering", doc="contaminationLog", required=false)
+    @Argument(fullName = "logRemovedReadsFromContaminationFiltering", shortName="contaminationLog", required=false)
     public PrintStream contaminationLog = null;
 
     @Hidden
