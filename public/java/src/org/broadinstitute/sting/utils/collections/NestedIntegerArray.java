@@ -50,6 +50,28 @@ public class NestedIntegerArray<T> {
         this.dimensions = dimensions.clone();
 
         data = new Object[dimensions[0]];
+        prepopulateArray(data, 0);
+    }
+
+    /**
+     * Recursively allocate the entire tree of arrays in all its dimensions.
+     *
+     * Doing this upfront uses more memory initially, but saves time over the course of the run
+     * and (crucially) avoids having to make threads wait while traversing the tree to check
+     * whether branches exist or not.
+     *
+     * @param subarray current node in the tree
+     * @param dimension current level in the tree
+     */
+    private void prepopulateArray( Object[] subarray, int dimension ) {
+        if ( dimension >= numDimensions - 1 ) {
+            return;
+        }
+
+        for ( int i = 0; i < subarray.length; i++ ) {
+            subarray[i] = new Object[dimensions[dimension + 1]];
+            prepopulateArray((Object[])subarray[i], dimension + 1);
+        }
     }
 
     public T get(final int... keys) {
@@ -59,14 +81,29 @@ public class NestedIntegerArray<T> {
         for( int i = 0; i < numNestedDimensions; i++ ) {
             if ( keys[i] >= dimensions[i] )
                 return null;
-            myData = (Object[])myData[keys[i]];
-            if ( myData == null )
-                return null;
+
+            myData = (Object[])myData[keys[i]];  // interior nodes in the tree will never be null, so we can safely traverse
+                                                 // down to the leaves
         }
+
         return (T)myData[keys[numNestedDimensions]];
     }
 
-    public synchronized void put(final T value, final int... keys) { // WARNING! value comes before the keys!
+    /**
+     * Insert a value at the position specified by the given keys.
+     *
+     * This method is THREAD-SAFE despite not being synchronized, however the caller MUST
+     * check the return value to see if the put succeeded. This method RETURNS FALSE if
+     * the value could not be inserted because there already was a value present
+     * at the specified location. In this case the caller should do a get() to get
+     * the already-existing value and (potentially) update it.
+     *
+     * @param value value to insert
+     * @param keys keys specifying the location of the value in the tree
+     * @return true if the value was inserted, false if it could not be inserted because there was already
+     *         a value at the specified position
+     */
+    public boolean put(final T value, final int... keys) { // WARNING! value comes before the keys!
         if ( keys.length != numDimensions )
             throw new ReviewedStingException("Exactly " + numDimensions + " keys should be passed to this NestedIntegerArray but " + keys.length + " were provided");
 
@@ -75,15 +112,26 @@ public class NestedIntegerArray<T> {
         for ( int i = 0; i < numNestedDimensions; i++ ) {
             if ( keys[i] >= dimensions[i] )
                 throw new ReviewedStingException("Key " + keys[i] + " is too large for dimension " + i + " (max is " + (dimensions[i]-1) + ")");
-            Object[] temp = (Object[])myData[keys[i]];
-            if ( temp == null ) {
-                temp = new Object[dimensions[i+1]];
-                myData[keys[i]] = temp;
-            }
-            myData = temp;
+
+            myData = (Object[])myData[keys[i]];  // interior nodes in the tree will never be null, so we can safely traverse
+                                                 // down to the leaves
         }
 
-        myData[keys[numNestedDimensions]] = value;
+        synchronized ( myData ) {   // lock the bottom row while we examine and (potentially) update it
+
+            // Insert the new value only if there still isn't any existing value in this position
+            if ( myData[keys[numNestedDimensions]] == null ) {
+                myData[keys[numNestedDimensions]] = value;
+            }
+            else {
+                // Already have a value for this leaf (perhaps another thread came along and inserted one
+                // while we traversed the tree), so return false to notify the caller that we didn't put
+                // the item
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public List<T> getAllValues() {
