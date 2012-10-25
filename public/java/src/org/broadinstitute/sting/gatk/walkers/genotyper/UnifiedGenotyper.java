@@ -290,7 +290,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
             headerInfo.addAll(annotationEngine.getVCFAnnotationDescriptions());
 
         // annotation (INFO) fields from UnifiedGenotyper
-        if ( !UAC.NO_SLOD )
+        if ( UAC.COMPUTE_SLOD )
             VCFStandardHeaderLines.addStandardInfoLines(headerInfo, true, VCFConstants.STRAND_BIAS_KEY);
 
         if ( UAC.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED )
