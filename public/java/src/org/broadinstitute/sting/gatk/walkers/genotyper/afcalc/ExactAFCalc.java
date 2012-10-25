@@ -39,8 +39,8 @@ import java.util.ArrayList;
 abstract class ExactAFCalc extends AFCalc {
     protected static final int HOM_REF_INDEX = 0;  // AA likelihoods are always first
 
-    protected ExactAFCalc(final int nSamples, int maxAltAlleles, int maxAltAllelesForIndels, final int ploidy) {
-        super(nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy);
+    protected ExactAFCalc(final int nSamples, int maxAltAlleles, final int ploidy) {
+        super(nSamples, maxAltAlleles, ploidy);
     }
 
     /**

@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.io.Serializable;
 import java.util.*;
 
 public class Haplotype {
@@ -182,6 +183,21 @@ public class Haplotype {
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, altAllele.getBases()); // the alt allele of the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, haplotypeInsertLocation + refAllele.length(), bases.length)); // bases after the variant
         return new Haplotype(newHaplotypeBases);
+    }
+
+    public static class HaplotypeBaseComparator implements Comparator<Haplotype>, Serializable {
+        @Override
+        public int compare( final Haplotype hap1, final Haplotype hap2 ) {
+            final byte[] arr1 = hap1.getBases();
+            final byte[] arr2 = hap2.getBases();
+            // compares byte arrays using lexical ordering
+            final int len = Math.min(arr1.length, arr2.length);
+            for( int iii = 0; iii < len; iii++ ) {
+                final int cmp = arr1[iii] - arr2[iii];
+                if (cmp != 0) { return cmp; }
+            }
+            return arr2.length - arr1.length;
+        }
     }
 
     public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(final List<Allele> alleleList,

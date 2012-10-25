@@ -74,8 +74,6 @@ import java.util.*;
  *
  */
 public abstract class MicroScheduler implements MicroSchedulerMBean {
-    // TODO -- remove me and retire non nano scheduled versions of traversals
-    private final static boolean USE_NANOSCHEDULER_FOR_EVERYTHING = true;
     protected static final Logger logger = Logger.getLogger(MicroScheduler.class);
 
     /**
@@ -238,15 +236,9 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
     @Ensures("result != null")
     private TraversalEngine createTraversalEngine(final Walker walker, final ThreadAllocation threadAllocation) {
         if (walker instanceof ReadWalker) {
-            if ( USE_NANOSCHEDULER_FOR_EVERYTHING || threadAllocation.getNumCPUThreadsPerDataThread() > 1 )
-                return new TraverseReadsNano(threadAllocation.getNumCPUThreadsPerDataThread());
-            else
-                return new TraverseReads();
+            return new TraverseReadsNano(threadAllocation.getNumCPUThreadsPerDataThread());
         } else if (walker instanceof LocusWalker) {
-            if ( USE_NANOSCHEDULER_FOR_EVERYTHING || threadAllocation.getNumCPUThreadsPerDataThread() > 1 )
-                return new TraverseLociNano(threadAllocation.getNumCPUThreadsPerDataThread());
-            else
-                return new TraverseLociLinear();
+            return new TraverseLociNano(threadAllocation.getNumCPUThreadsPerDataThread());
         } else if (walker instanceof DuplicateWalker) {
             return new TraverseDuplicates();
         } else if (walker instanceof ReadPairWalker) {
