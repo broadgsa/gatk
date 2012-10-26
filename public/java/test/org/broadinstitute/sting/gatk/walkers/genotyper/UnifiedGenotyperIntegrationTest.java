@@ -157,7 +157,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testSLOD() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b36KGReference + " --computeSLOD --no_cmdline_in_header -glm BOTH --dbsnp " + b36dbSNP129 + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000", 1,
-                Arrays.asList("9f95cfe14d53a697c58247833bfd72a6"));
+                Arrays.asList("6ccb9bd88934e4272d0ce362dd35e603"));
         executeTest("test SLOD", spec);
     }
 
@@ -361,7 +361,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommandIndelsb37 + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -out_mode EMIT_ALL_SITES -alleles " + privateTestDir + vcf + " -I " + validationDataLocation +
                         "NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam -o %s -L " + validationDataLocation + vcf, 1,
-                Arrays.asList("d76eacc4021b78ccc0a9026162e814a7"));
+                Arrays.asList("9a7cd58b9e3d5b72608c0d529321deba"));
         executeTest("test GENOTYPE_GIVEN_ALLELES with no evidence in reads", spec);
     }
 
@@ -457,7 +457,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     @Test
     public void testReducedBamSNPs() {
-        testReducedCalling("SNP", "9ba4867cadb366746ee63e7a4afdb95e");
+        testReducedCalling("SNP", "e7fc11baf208a1bca7b462d3148c936e");
     }
 
     @Test
