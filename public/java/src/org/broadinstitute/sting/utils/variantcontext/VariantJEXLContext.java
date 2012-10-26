@@ -193,6 +193,8 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
                 infoMap.put("isHet", g.isHet() ? "1" : "0");
                 infoMap.put("isHomVar", g.isHomVar() ? "1" : "0");
                 infoMap.put(VCFConstants.GENOTYPE_QUALITY_KEY, g.getGQ());
+                if ( g.hasDP() )
+                    infoMap.put(VCFConstants.DEPTH_KEY, g.getDP());
                 for ( Map.Entry<String, Object> e : g.getExtendedAttributes().entrySet() ) {
                     if ( e.getValue() != null && !e.getValue().equals(VCFConstants.MISSING_VALUE_v4) )
                         infoMap.put(e.getKey(), e.getValue());
