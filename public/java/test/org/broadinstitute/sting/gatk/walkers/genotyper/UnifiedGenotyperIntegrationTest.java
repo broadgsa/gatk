@@ -177,7 +177,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         executeTest("test using comp track", spec);
     }
 
-    //@Test
+    @Test
     public void testNoCmdLineHeaderStdout() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommandNoCmdLineHeaderStdout + " -glm INDEL -L 1:67,225,396-67,288,518", 0,
