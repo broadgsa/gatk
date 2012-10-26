@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.progressmeter;
 
+import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.*;
@@ -198,6 +199,14 @@ public class ProgressMeter {
         logger.info("[INITIALIZATION COMPLETE; STARTING PROCESSING]");
         logger.info(String.format("%15s processed.%s  runtime per.1M.%s completed total.runtime remaining",
                 "Location", processingUnitName, processingUnitName));
+    }
+
+    /**
+     * @return the current runtime in nanoseconds
+     */
+    @Ensures("result >= 0")
+    public long getRuntimeInNanoseconds() {
+        return timer.getElapsedTimeNano();
     }
 
     /**
