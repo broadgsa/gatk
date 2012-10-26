@@ -33,30 +33,30 @@ class xhmmCNVpipeline extends QScript {
   @Argument(shortName = "L", doc = "Intervals", required = false)
   var intervals: File = _
 
-  @Input(doc = "level of parallelism for BAM DoC.   By default is set to 0 [no scattering].", shortName = "scatter", required = false)
+  @Argument(doc = "level of parallelism for BAM DoC.   By default is set to 0 [no scattering].", shortName = "scatter", required = false)
   var scatterCountInput = 0
 
-  @Input(doc = "Samples to run together for DoC.   By default is set to 1 [one job per sample].", shortName = "samplesPerJob", required = false)
+  @Argument(doc = "Samples to run together for DoC.   By default is set to 1 [one job per sample].", shortName = "samplesPerJob", required = false)
   var samplesPerJob = 1
 
   @Output(doc = "Base name for files to output", shortName = "o", required = true)
   var outputBase: File = _
 
-  @Input(doc = "Maximum depth (before GATK down-sampling kicks in...)", shortName = "MAX_DEPTH", required = false)
+  @Argument(doc = "Maximum depth (before GATK down-sampling kicks in...)", shortName = "MAX_DEPTH", required = false)
   var MAX_DEPTH = 20000
 
   @Hidden
-  @Input(doc = "Number of read-depth bins", shortName = "NUM_BINS", required = false)
+  @Argument(doc = "Number of read-depth bins", shortName = "NUM_BINS", required = false)
   var NUM_BINS = 200
 
   @Hidden
-  @Input(doc = "Starting value of read-depth bins", shortName = "START_BIN", required = false)
+  @Argument(doc = "Starting value of read-depth bins", shortName = "START_BIN", required = false)
   var START_BIN = 1
 
-  @Input(doc = "Minimum read mapping quality", shortName = "MMQ", required = false)
+  @Argument(doc = "Minimum read mapping quality", shortName = "MMQ", required = false)
   var minMappingQuality = 0
 
-  @Input(doc = "Memory (in GB) required for storing the whole matrix in memory", shortName = "wholeMatrixMemory", required = false)
+  @Argument(doc = "Memory (in GB) required for storing the whole matrix in memory", shortName = "wholeMatrixMemory", required = false)
   var wholeMatrixMemory = -1
 
   @Argument(shortName = "minTargGC", doc = "Exclude all targets with GC content less than this value", required = false)
