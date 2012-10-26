@@ -61,17 +61,6 @@ public class BaseRecalibration {
 //            qualityScoreByFullCovariateKey[i] = new NestedHashMap();
 //    }
 
-    /**
-     * Thread local cache to allow multi-threaded use of this class
-     */
-    private ThreadLocal<ReadCovariates> readCovariatesCache;
-    {
-        readCovariatesCache = new ThreadLocal<ReadCovariates> () {
-            @Override protected ReadCovariates initialValue() {
-                return new ReadCovariates(MAXIMUM_RECALIBRATED_READ_LENGTH, requestedCovariates.length);
-            }
-        };
-    }
 
     /**
      * Constructor using a GATK Report file
@@ -113,13 +102,7 @@ public class BaseRecalibration {
             }
         }
 
-        // Compute all covariates for the read
-        // TODO -- the need to clear here suggests there's an error in the indexing / assumption code
-        // TODO -- for BI and DI. Perhaps due to the indel buffer size on the ends of the reads?
-        // TODO -- the output varies with -nt 1 and -nt 2 if you don't call clear here
-        // TODO -- needs to be fixed.
-        final ReadCovariates readCovariates = readCovariatesCache.get().clear();
-        RecalUtils.computeCovariates(read, requestedCovariates, readCovariates);
+        final ReadCovariates readCovariates = RecalUtils.computeCovariates(read, requestedCovariates);
 
         for (final EventType errorModel : EventType.values()) { // recalibrate all three quality strings
             if (disableIndelQuals && errorModel != EventType.BASE_SUBSTITUTION) {
