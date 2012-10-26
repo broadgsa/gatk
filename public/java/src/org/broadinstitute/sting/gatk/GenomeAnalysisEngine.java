@@ -64,6 +64,7 @@ import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A GenomeAnalysisEngine that runs a specified walker.
@@ -73,6 +74,7 @@ public class GenomeAnalysisEngine {
      * our log, which we want to capture anything from this class
      */
     private static Logger logger = Logger.getLogger(GenomeAnalysisEngine.class);
+    public static final long NO_RUNTIME_LIMIT = -1;
 
     /**
      * The GATK command-line argument parsing code.
@@ -1090,6 +1092,33 @@ public class GenomeAnalysisEngine {
     public String createApproximateCommandLineArgumentString(Object... argumentProviders) {
         return CommandLineUtils.createApproximateCommandLineArgumentString(parsingEngine,argumentProviders);
     }
-    
 
+    /**
+     * Does the current runtime in unit exceed the runtime limit, if one has been provided?
+     *
+     * @param runtime the runtime of this GATK instance in minutes
+     * @param unit the time unit of runtime
+     * @return false if not limit was requested or if runtime <= the limit, true otherwise
+     */
+    public boolean exceedsRuntimeLimit(final long runtime, final TimeUnit unit) {
+        if ( runtime < 0 ) throw new IllegalArgumentException("runtime must be >= 0 but got " + runtime);
+
+        if ( getArguments().maxRuntime == NO_RUNTIME_LIMIT )
+            return false;
+        else {
+            final long actualRuntimeNano = TimeUnit.NANOSECONDS.convert(runtime, unit);
+            final long maxRuntimeNano = getRuntimeLimitInNanoseconds();
+            return actualRuntimeNano > maxRuntimeNano;
+        }
+    }
+
+    /**
+     * @return the runtime limit in nanoseconds, or -1 if no limit was specified
+     */
+    public long getRuntimeLimitInNanoseconds() {
+        if ( getArguments().maxRuntime == NO_RUNTIME_LIMIT )
+            return -1;
+        else
+            return TimeUnit.NANOSECONDS.convert(getArguments().maxRuntime, getArguments().maxRuntimeUnits);
+    }
 }

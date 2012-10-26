@@ -117,24 +117,24 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
         // Note that we need to turn off any randomization for this to work, so no downsampling and no annotations
 
-        String md5 = "3d25ea660275a455ca443a786bff3d32";
+        String md5 = "d408b4661b820ed86272415b8ea08780";
 
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
-                baseCommand + " -dt NONE -G none -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,075,000", 1,
+                baseCommand + " -dt NONE -G none --contamination_fraction_to_filter 0.0 -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,075,000", 1,
                 Arrays.asList(md5));
         executeTest("test parallelization (single thread)", spec1);
 
         GenomeAnalysisEngine.resetRandomGenerator();
 
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
-                baseCommand + " -dt NONE -G none -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,075,000 -nt 2", 1,
+                baseCommand + " -dt NONE -G none --contamination_fraction_to_filter 0.0 -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,075,000 -nt 2", 1,
                 Arrays.asList(md5));
         executeTest("test parallelization (2 threads)", spec2);
 
         GenomeAnalysisEngine.resetRandomGenerator();
 
         WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
-                baseCommand + " -dt NONE -G none -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,075,000 -nt 4", 1,
+                baseCommand + " -dt NONE -G none --contamination_fraction_to_filter 0.0 -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,075,000 -nt 4", 1,
                 Arrays.asList(md5));
         executeTest("test parallelization (4 threads)", spec3);
     }
