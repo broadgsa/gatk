@@ -39,6 +39,7 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.AutoFormattingTime;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -52,6 +53,7 @@ import javax.management.ObjectName;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -267,6 +269,26 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      */
     public void setThreadEfficiencyMonitor(final ThreadEfficiencyMonitor threadEfficiencyMonitor) {
         this.threadEfficiencyMonitor = threadEfficiencyMonitor;
+    }
+
+    /**
+     * Should we stop all execution work and exit gracefully?
+     *
+     * Returns true in the case where some external signal or time limit has been received, indicating
+     * that this GATK shouldn't continue executing.  This isn't a kill signal, it is really a "shutdown
+     * gracefully at the next opportunity" signal.  Concrete implementations of the MicroScheduler
+     * examine this value as often as reasonable and, if it returns true, stop what they are doing
+     * at the next available opportunity, shutdown their resources, call notify done, and return.
+     *
+     * @return true if we should abort execution, or false otherwise
+     */
+    protected boolean abortExecution() {
+        final boolean abort = engine.exceedsRuntimeLimit(progressMeter.getRuntimeInNanoseconds(), TimeUnit.NANOSECONDS);
+        if ( abort ) {
+            final AutoFormattingTime aft = new AutoFormattingTime(TimeUnit.SECONDS.convert(engine.getRuntimeLimitInNanoseconds(), TimeUnit.NANOSECONDS), 1, 4);
+            logger.info("Aborting execution (cleanly) because the runtime has exceeded the requested maximum " + aft);
+        }
+        return abort;
     }
 
     /**

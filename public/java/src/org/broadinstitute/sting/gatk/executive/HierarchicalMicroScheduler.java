@@ -123,7 +123,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         final ReduceTree reduceTree = new ReduceTree(this);
         initializeWalker(walker);
 
-        while (isShardTraversePending() || isTreeReducePending()) {
+        while (! abortExecution() && (isShardTraversePending() || isTreeReducePending())) {
             // Check for errors during execution.
             errorTracker.throwErrorIfPending();
 

@@ -31,6 +31,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.IntervalBinding;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
@@ -44,6 +45,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author aaron
@@ -91,7 +93,7 @@ public class GATKArgumentCollection {
 
     // --------------------------------------------------------------------------------------------------------------
     //
-    // XXX
+    // General features
     //
     // --------------------------------------------------------------------------------------------------------------
 
@@ -142,6 +144,12 @@ public class GATKArgumentCollection {
 
     @Argument(fullName = "disableRandomization",doc="Completely eliminates randomization from nondeterministic methods. To be used mostly in the testing framework where dynamic parallelism can result in differing numbers of calls to the generator.")
     public boolean disableRandomization = false;
+
+    @Argument(fullName = "maxRuntime", shortName = "maxRuntime", doc="If provided, that GATK will stop execution cleanly as soon after maxRuntime has been exceeded, truncating the run but not exiting with a failure.  By default the value is interpreted in minutes, but this can be changed by maxRuntimeUnits", required = false)
+    public long maxRuntime = GenomeAnalysisEngine.NO_RUNTIME_LIMIT;
+
+    @Argument(fullName = "maxRuntimeUnits", shortName = "maxRuntimeUnits", doc="The TimeUnit for maxRuntime", required = false)
+    public TimeUnit maxRuntimeUnits = TimeUnit.MINUTES;
 
     // --------------------------------------------------------------------------------------------------------------
     //
