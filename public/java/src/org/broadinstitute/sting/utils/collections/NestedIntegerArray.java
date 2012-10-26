@@ -25,9 +25,11 @@
 
 package org.broadinstitute.sting.utils.collections;
 
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -38,10 +40,15 @@ import java.util.List;
 
 public class NestedIntegerArray<T> {
 
+    private static Logger logger = Logger.getLogger(NestedIntegerArray.class);
+
     protected final Object[] data;
 
     protected final int numDimensions;
     protected final int[] dimensions;
+
+    // Preallocate the first two dimensions to limit contention during tree traversals in put()
+    private static final int NUM_DIMENSIONS_TO_PREALLOCATE = 2;
 
     public NestedIntegerArray(final int... dimensions) {
         numDimensions = dimensions.length;
@@ -49,28 +56,34 @@ public class NestedIntegerArray<T> {
             throw new ReviewedStingException("There must be at least one dimension to an NestedIntegerArray");
         this.dimensions = dimensions.clone();
 
+        int dimensionsToPreallocate = Math.min(dimensions.length, NUM_DIMENSIONS_TO_PREALLOCATE);
+
+        logger.info(String.format("Creating NestedIntegerArray with dimensions %s", Arrays.toString(dimensions)));
+        logger.info(String.format("Pre-allocating first %d dimensions", dimensionsToPreallocate));
+
         data = new Object[dimensions[0]];
-        prepopulateArray(data, 0);
+        preallocateArray(data, 0, dimensionsToPreallocate);
+
+        logger.info(String.format("Done pre-allocating first %d dimensions", dimensionsToPreallocate));
     }
 
     /**
-     * Recursively allocate the entire tree of arrays in all its dimensions.
+     * Recursively allocate the first dimensionsToPreallocate dimensions of the tree
      *
-     * Doing this upfront uses more memory initially, but saves time over the course of the run
-     * and (crucially) avoids having to make threads wait while traversing the tree to check
-     * whether branches exist or not.
+     * Pre-allocating the first few dimensions helps limit contention during tree traversals in put()
      *
      * @param subarray current node in the tree
      * @param dimension current level in the tree
+     * @param dimensionsToPreallocate preallocate only this many dimensions (starting from the first)
      */
-    private void prepopulateArray( Object[] subarray, int dimension ) {
-        if ( dimension >= numDimensions - 1 ) {
+    private void preallocateArray( Object[] subarray, int dimension, int dimensionsToPreallocate ) {
+        if ( dimension >= dimensionsToPreallocate - 1 ) {
             return;
         }
 
         for ( int i = 0; i < subarray.length; i++ ) {
             subarray[i] = new Object[dimensions[dimension + 1]];
-            prepopulateArray((Object[])subarray[i], dimension + 1);
+            preallocateArray((Object[])subarray[i], dimension + 1, dimensionsToPreallocate);
         }
     }
 
@@ -82,8 +95,9 @@ public class NestedIntegerArray<T> {
             if ( keys[i] >= dimensions[i] )
                 return null;
 
-            myData = (Object[])myData[keys[i]];  // interior nodes in the tree will never be null, so we can safely traverse
-                                                 // down to the leaves
+            myData = (Object[])myData[keys[i]];
+            if ( myData == null )
+                return null;
         }
 
         return (T)myData[keys[numNestedDimensions]];
@@ -92,8 +106,8 @@ public class NestedIntegerArray<T> {
     /**
      * Insert a value at the position specified by the given keys.
      *
-     * This method is THREAD-SAFE despite not being synchronized, however the caller MUST
-     * check the return value to see if the put succeeded. This method RETURNS FALSE if
+     * This method is thread-safe, however the caller MUST check the
+     * return value to see if the put succeeded. This method RETURNS FALSE if
      * the value could not be inserted because there already was a value present
      * at the specified location. In this case the caller should do a get() to get
      * the already-existing value and (potentially) update it.
@@ -113,8 +127,17 @@ public class NestedIntegerArray<T> {
             if ( keys[i] >= dimensions[i] )
                 throw new ReviewedStingException("Key " + keys[i] + " is too large for dimension " + i + " (max is " + (dimensions[i]-1) + ")");
 
-            myData = (Object[])myData[keys[i]];  // interior nodes in the tree will never be null, so we can safely traverse
-                                                 // down to the leaves
+            // If we're at or beyond the last dimension that was pre-allocated, we need to do a synchronized
+            // check to see if the next branch exists, and if it doesn't, create it
+            if ( i >= NUM_DIMENSIONS_TO_PREALLOCATE - 1 ) {
+                synchronized ( myData ) {
+                    if ( myData[keys[i]] == null ) {
+                        myData[keys[i]] = new Object[dimensions[i + 1]];
+                    }
+                }
+            }
+
+            myData = (Object[])myData[keys[i]];
         }
 
         synchronized ( myData ) {   // lock the bottom row while we examine and (potentially) update it

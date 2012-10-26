@@ -136,7 +136,14 @@ class GATKResourcesBundle extends QScript {
 
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/GoldStandardIndel/gold.standard.indel.MillsAnd1000G.b37.vcf",
       "Mills_and_1000G_gold_standard.indels", b37, true, false))
-    
+
+    //
+    // CEU trio (NA12878,NA12891,NA12892) best practices results (including PBT)
+    //
+
+    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/callsets/CEUtrio_BestPractices/current/CEUTrio.HiSeq.WGS.b37.UG.snps_and_indels.recalibrated.filtered.phaseByTransmission.vcf",
+      "CEUTrio.HiSeq.WGS.b37.UG.bestPractices.phaseByTransmission",b37,true,false))
+
     //
     // example call set for wiki tutorial
     //

@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
+import org.broadinstitute.sting.gatk.arguments.StandardCallerArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
@@ -238,7 +239,12 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
             }
 
             if ( UAC.CONTAMINATION_FRACTION > 0.0 ) {
-                throw new UserException.NotSupportedInGATKLite("you cannot enable usage of contamination down-sampling");
+                if ( UAC.CONTAMINATION_FRACTION == StandardCallerArgumentCollection.DEFAULT_CONTAMINATION_FRACTION ) {
+                    UAC.CONTAMINATION_FRACTION = 0.0;
+                    logger.warn("setting contamination down-sampling fraction to 0.0 because it is not enabled in GATK-lite");
+                } else {
+                    throw new UserException.NotSupportedInGATKLite("you cannot enable usage of contamination down-sampling");
+                }
             }
         }
 
@@ -290,7 +296,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
             headerInfo.addAll(annotationEngine.getVCFAnnotationDescriptions());
 
         // annotation (INFO) fields from UnifiedGenotyper
-        if ( !UAC.NO_SLOD )
+        if ( UAC.COMPUTE_SLOD )
             VCFStandardHeaderLines.addStandardInfoLines(headerInfo, true, VCFConstants.STRAND_BIAS_KEY);
 
         if ( UAC.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED )
