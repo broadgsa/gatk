@@ -60,8 +60,9 @@ public class GATKSAMRecord extends BAMRecord {
     private String mReadString = null;
     private GATKSAMReadGroupRecord mReadGroup = null;
     private byte[] reducedReadCounts = null;
-    private int softStart = -1;
-    private int softEnd = -1;
+    private final static int UNINITIALIZED = -1;
+    private int softStart = UNINITIALIZED;
+    private int softEnd = UNINITIALIZED;
 
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedReadGroup = false;
@@ -386,7 +387,7 @@ public class GATKSAMRecord extends BAMRecord {
      * @return the unclipped start of the read taking soft clips (but not hard clips) into account
      */
     public int getSoftStart() {
-        if (softStart < 0) {
+        if ( softStart == UNINITIALIZED ) {
             softStart = getAlignmentStart();
             for (final CigarElement cig : getCigar().getCigarElements()) {
                 final CigarOperator op = cig.getOperator();
@@ -408,17 +409,23 @@ public class GATKSAMRecord extends BAMRecord {
      * @return the unclipped end of the read taking soft clips (but not hard clips) into account
      */
     public int getSoftEnd() {
-        if ( softEnd < 0 ) {
+        if ( softEnd == UNINITIALIZED ) {
+            boolean foundAlignedBase = false;
             softEnd = getAlignmentEnd();
             final List<CigarElement> cigs = getCigar().getCigarElements();
-            for (int i=cigs.size() - 1; i>=0; --i) {
+            for (int i = cigs.size() - 1; i >= 0; --i) {
                 final CigarElement cig = cigs.get(i);
                 final CigarOperator op = cig.getOperator();
 
-                if (op == CigarOperator.SOFT_CLIP)
+                if (op == CigarOperator.SOFT_CLIP) // assumes the soft clip that we found is at the end of the aligned read
                     softEnd += cig.getLength();
-                else if (op != CigarOperator.HARD_CLIP)
+                else if (op != CigarOperator.HARD_CLIP) {
+                    foundAlignedBase = true;
                     break;
+                }
+            }
+            if( !foundAlignedBase ) { // for example 64H14S, the soft end is actually the same as the alignment end
+                softEnd = getAlignmentEnd();
             }
         }
 

@@ -31,8 +31,8 @@ import org.broadinstitute.sting.utils.variantcontext.*;
 import java.util.*;
 
 public abstract class DiploidExactAFCalc extends ExactAFCalc {
-    public DiploidExactAFCalc(final int nSamples, final int maxAltAlleles, final int maxAltAllelesForIndels, final int ploidy) {
-        super(nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy);
+    public DiploidExactAFCalc(final int nSamples, final int maxAltAlleles, final int ploidy) {
+        super(nSamples, maxAltAlleles, ploidy);
         if ( ploidy != 2 ) throw new IllegalArgumentException("ploidy must be two for DiploidExactAFCalc and subclasses but saw " + ploidy);
     }
 
@@ -75,16 +75,14 @@ public abstract class DiploidExactAFCalc extends ExactAFCalc {
 
     @Override
     protected VariantContext reduceScope(final VariantContext vc) {
-        final int myMaxAltAllelesToGenotype = vc.getType().equals(VariantContext.Type.INDEL) ? maxAlternateAllelesForIndels : maxAlternateAllelesToGenotype;
-
         // don't try to genotype too many alternate alleles
-        if ( vc.getAlternateAlleles().size() > myMaxAltAllelesToGenotype ) {
-            logger.warn("this tool is currently set to genotype at most " + myMaxAltAllelesToGenotype + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + (vc.getAlternateAlleles().size()) + " alternate alleles so only the top alleles will be used; see the --max_alternate_alleles argument");
+        if ( vc.getAlternateAlleles().size() > getMaxAltAlleles() ) {
+            logger.warn("this tool is currently set to genotype at most " + getMaxAltAlleles() + " alternate alleles in a given context, but the context at " + vc.getChr() + ":" + vc.getStart() + " has " + (vc.getAlternateAlleles().size()) + " alternate alleles so only the top alleles will be used; see the --max_alternate_alleles argument");
 
             VariantContextBuilder builder = new VariantContextBuilder(vc);
-            List<Allele> alleles = new ArrayList<Allele>(myMaxAltAllelesToGenotype + 1);
+            List<Allele> alleles = new ArrayList<Allele>(getMaxAltAlleles() + 1);
             alleles.add(vc.getReference());
-            alleles.addAll(chooseMostLikelyAlternateAlleles(vc, myMaxAltAllelesToGenotype));
+            alleles.addAll(chooseMostLikelyAlternateAlleles(vc, getMaxAltAlleles()));
             builder.alleles(alleles);
             builder.genotypes(VariantContextUtils.subsetDiploidAlleles(vc, alleles, false));
             return builder.make();

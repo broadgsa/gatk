@@ -91,7 +91,7 @@ public class AFCalcFactory {
     public static AFCalc createAFCalc(final UnifiedArgumentCollection UAC,
                                       final int nSamples,
                                       final Logger logger) {
-        final int maxAltAlleles = Math.max(UAC.MAX_ALTERNATE_ALLELES, UAC.MAX_ALTERNATE_ALLELES_FOR_INDELS);
+        final int maxAltAlleles = UAC.MAX_ALTERNATE_ALLELES;
         if ( ! UAC.AFmodel.usableForParams(UAC.samplePloidy, maxAltAlleles) ) {
             logger.info("Requested ploidy " + UAC.samplePloidy + " maxAltAlleles " + maxAltAlleles + " not supported by requested model " + UAC.AFmodel + " looking for an option");
             final List<Calculation> supportingCalculations = new LinkedList<Calculation>();
@@ -109,7 +109,7 @@ public class AFCalcFactory {
             logger.info("Selecting model " + UAC.AFmodel);
         }
 
-        final AFCalc calc = createAFCalc(UAC.AFmodel, nSamples, UAC.MAX_ALTERNATE_ALLELES, UAC.MAX_ALTERNATE_ALLELES_FOR_INDELS, UAC.samplePloidy);
+        final AFCalc calc = createAFCalc(UAC.AFmodel, nSamples, UAC.MAX_ALTERNATE_ALLELES, UAC.samplePloidy);
 
         if ( logger != null ) calc.setLogger(logger);
         if ( UAC.exactCallsLog != null ) calc.enableProcessLog(UAC.exactCallsLog);
@@ -126,7 +126,7 @@ public class AFCalcFactory {
      * @return an initialized AFCalc
      */
     public static AFCalc createAFCalc(final int nSamples) {
-        return createAFCalc(chooseBestCalculation(nSamples, 2, 1), nSamples, 2, 2, 2);
+        return createAFCalc(chooseBestCalculation(nSamples, 2, 1), nSamples, 2, 2);
     }
 
     /**
@@ -139,7 +139,7 @@ public class AFCalcFactory {
      * @return an initialized AFCalc
      */
     public static AFCalc createAFCalc(final Calculation calc, final int nSamples, final int maxAltAlleles) {
-        return createAFCalc(calc, nSamples, maxAltAlleles, maxAltAlleles, 2);
+        return createAFCalc(calc, nSamples, maxAltAlleles, 2);
     }
 
     /**
@@ -147,14 +147,12 @@ public class AFCalcFactory {
      *
      * @param nSamples the number of samples we'll be using
      * @param maxAltAlleles the max. alt alleles to consider for SNPs
-     * @param maxAltAllelesForIndels the max. alt alleles to consider for non-SNPs
      * @param ploidy the sample ploidy.  Must be consistent with the calc
      *
      * @return an initialized AFCalc
      */
-    public static AFCalc createAFCalc(final int nSamples, final int maxAltAlleles, final int maxAltAllelesForIndels, final int ploidy) {
-        final int maxAlt = Math.max(maxAltAlleles, maxAltAllelesForIndels);
-        return createAFCalc(chooseBestCalculation(nSamples, ploidy, maxAlt), nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy);
+    public static AFCalc createAFCalc(final int nSamples, final int maxAltAlleles, final int ploidy) {
+        return createAFCalc(chooseBestCalculation(nSamples, ploidy, maxAltAlleles), nSamples, maxAltAlleles, ploidy);
     }
 
     /**
@@ -181,20 +179,17 @@ public class AFCalcFactory {
      * @param calc the calculation to use
      * @param nSamples the number of samples we'll be using
      * @param maxAltAlleles the max. alt alleles to consider for SNPs
-     * @param maxAltAllelesForIndels the max. alt alleles to consider for non-SNPs
      * @param ploidy the sample ploidy.  Must be consistent with the calc
      *
      * @return an initialized AFCalc
      */
-    public static AFCalc createAFCalc(final Calculation calc, final int nSamples, final int maxAltAlleles, final int maxAltAllelesForIndels, final int ploidy) {
+    public static AFCalc createAFCalc(final Calculation calc, final int nSamples, final int maxAltAlleles, final int ploidy) {
         if ( calc == null ) throw new IllegalArgumentException("Calculation cannot be null");
         if ( nSamples < 0 ) throw new IllegalArgumentException("nSamples must be greater than zero " + nSamples);
         if ( maxAltAlleles < 1 ) throw new IllegalArgumentException("maxAltAlleles must be greater than zero " + maxAltAlleles);
-        if ( maxAltAllelesForIndels < 1 ) throw new IllegalArgumentException("maxAltAllelesForIndels must be greater than zero " + maxAltAllelesForIndels);
         if ( ploidy < 1 ) throw new IllegalArgumentException("sample ploidy must be greater than zero " + ploidy);
 
-        final int maxAlt = Math.max(maxAltAlleles, maxAltAllelesForIndels);
-        if ( ! calc.usableForParams(ploidy, maxAlt) )
+        if ( ! calc.usableForParams(ploidy, maxAltAlleles) )
             throw new IllegalArgumentException("AFCalc " + calc + " does not support requested ploidy " + ploidy);
 
         final Class<? extends AFCalc> afClass = getClassByName(calc.className);
@@ -202,19 +197,19 @@ public class AFCalcFactory {
             throw new IllegalArgumentException("Unexpected AFCalc " + calc);
 
         try {
-            Object args[] = new Object[]{nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy};
-            Constructor c = afClass.getDeclaredConstructor(int.class, int.class, int.class, int.class);
+            Object args[] = new Object[]{nSamples, maxAltAlleles, ploidy};
+            Constructor c = afClass.getDeclaredConstructor(int.class, int.class, int.class);
             return (AFCalc)c.newInstance(args);
         } catch (Exception e) {
             throw new ReviewedStingException("Could not instantiate AFCalc " + calc, e);
         }
     }
 
-    protected static List<AFCalc> createAFCalcs(final List<Calculation> calcs, final int nSamples, final int maxAltAlleles, final int maxAltAllelesForIndels, final int ploidy) {
+    protected static List<AFCalc> createAFCalcs(final List<Calculation> calcs, final int nSamples, final int maxAltAlleles, final int ploidy) {
         final List<AFCalc> AFCalcs = new LinkedList<AFCalc>();
 
         for ( final Calculation calc : calcs )
-            AFCalcs.add(createAFCalc(calc, nSamples, maxAltAlleles, maxAltAllelesForIndels, ploidy));
+            AFCalcs.add(createAFCalc(calc, nSamples, maxAltAlleles, ploidy));
 
         return AFCalcs;
     }

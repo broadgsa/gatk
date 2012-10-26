@@ -63,7 +63,7 @@ public class LinearMicroScheduler extends MicroScheduler {
 
         final TraversalEngine traversalEngine = borrowTraversalEngine(this);
         for (Shard shard : shardStrategy ) {
-            if ( done || shard == null ) // we ran out of shards that aren't owned
+            if ( abortExecution() || done || shard == null ) // we ran out of shards that aren't owned
                 break;
 
             if(shard.getShardType() == Shard.ShardType.LOCUS) {

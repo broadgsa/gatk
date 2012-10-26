@@ -151,7 +151,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 ? new VariantContextWriterStub(engine, writerFile, argumentSources)
                 : new VariantContextWriterStub(engine, defaultOutputStream, argumentSources);
 
-        stub.setCompressed(isCompressed(writerFileName.asString()));
+        stub.setCompressed(isCompressed(writerFileName == null ? null: writerFileName.asString()));
         stub.setDoNotWriteGenotypes(argumentIsPresent(createSitesOnlyArgumentDefinition(),matches));
         stub.setSkipWritingCommandLineHeader(argumentIsPresent(createNoCommandLineHeaderArgumentDefinition(),matches));
         stub.setForceBCF(argumentIsPresent(createBCFArgumentDefinition(),matches));
