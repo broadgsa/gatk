@@ -75,8 +75,9 @@ public class StandardCallerArgumentCollection {
      * Basically, it will ignore the contamination fraction of reads for each alternate allele.  So if the pileup contains N total bases, then we
      * will try to remove (N * contamination fraction) bases for each alternate allele.
      */
-    @Argument(fullName = "contamination_percentage_to_filter", shortName = "contamination", doc = "Fraction of contamination in sequencing data (for all samples) to aggressively remove", required = false)
-    public double CONTAMINATION_FRACTION = 0.0;
+    @Argument(fullName = "contamination_fraction_to_filter", shortName = "contamination", doc = "Fraction of contamination in sequencing data (for all samples) to aggressively remove", required = false)
+    public double CONTAMINATION_FRACTION = DEFAULT_CONTAMINATION_FRACTION;
+    public static final double DEFAULT_CONTAMINATION_FRACTION = 0.05;
 
     @Hidden
     @Argument(fullName = "logRemovedReadsFromContaminationFiltering", shortName="contaminationLog", required=false)
