@@ -361,7 +361,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommandIndelsb37 + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -out_mode EMIT_ALL_SITES -alleles " + privateTestDir + vcf + " -I " + validationDataLocation +
                         "NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam -o %s -L " + validationDataLocation + vcf, 1,
-                Arrays.asList("9a7cd58b9e3d5b72608c0d529321deba"));
+                Arrays.asList("d76eacc4021b78ccc0a9026162e814a7"));
         executeTest("test GENOTYPE_GIVEN_ALLELES with no evidence in reads", spec);
     }
 
@@ -451,7 +451,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testReducedBam() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b37KGReference + " --no_cmdline_in_header -I " + privateTestDir + "bamExample.ReducedRead.ADAnnotation.bam -o %s -L 1:67,225,396-67,288,518", 1,
-                Arrays.asList("1b711c0966a2f76eb21801e73b76b758"));
+                Arrays.asList("9a7cd58b9e3d5b72608c0d529321deba"));
         executeTest("test calling on a ReducedRead BAM", spec);
     }
 
