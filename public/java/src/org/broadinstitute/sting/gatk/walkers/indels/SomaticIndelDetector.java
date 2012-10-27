@@ -2196,16 +2196,16 @@ class VCFIndelAttributes {
     public static Set<? extends VCFHeaderLine> getAttributeHeaderLines() {
         Set<VCFHeaderLine> lines = new HashSet<VCFHeaderLine>();
 
-        lines.add(new VCFFormatHeaderLine(ALLELIC_DEPTH_KEY, 2, VCFHeaderLineType.Integer, "# of reads supporting consensus indel/reference at the site"));
+        lines.add(new VCFFormatHeaderLine(ALLELIC_DEPTH_KEY, 2, VCFHeaderLineType.Integer, "# of reads supporting consensus reference/indel at the site"));
         lines.add(new VCFFormatHeaderLine(DEPTH_TOTAL_KEY, 1, VCFHeaderLineType.Integer, "Total coverage at the site"));
 
-        lines.add(new VCFFormatHeaderLine(MAPQ_KEY, 2, VCFHeaderLineType.Float, "Average mapping qualities of consensus indel-supporting reads/reference-supporting reads"));
+        lines.add(new VCFFormatHeaderLine(MAPQ_KEY, 2, VCFHeaderLineType.Float, "Average mapping qualities of ref-/consensus indel-supporting reads"));
 
-        lines.add(new VCFFormatHeaderLine(MM_KEY, 2, VCFHeaderLineType.Float, "Average # of mismatches per consensus indel-supporting read/per reference-supporting read"));
+        lines.add(new VCFFormatHeaderLine(MM_KEY, 2, VCFHeaderLineType.Float, "Average # of mismatches per ref-/consensus indel-supporting read"));
 
-        lines.add(new VCFFormatHeaderLine(NQS_MMRATE_KEY, 2, VCFHeaderLineType.Float, "Within NQS window: fraction of mismatching bases in consensus indel-supporting reads/in reference-supporting reads"));
+        lines.add(new VCFFormatHeaderLine(NQS_MMRATE_KEY, 2, VCFHeaderLineType.Float, "Within NQS window: fraction of mismatching bases in ref/consensus indel-supporting reads"));
 
-        lines.add(new VCFFormatHeaderLine(NQS_AVQ_KEY, 2, VCFHeaderLineType.Float, "Within NQS window: average quality of bases from consensus indel-supporting reads/from reference-supporting reads"));
+        lines.add(new VCFFormatHeaderLine(NQS_AVQ_KEY, 2, VCFHeaderLineType.Float, "Within NQS window: average quality of bases in ref-/consensus indel-supporting reads"));
 
         lines.add(new VCFFormatHeaderLine(STRAND_COUNT_KEY, 4, VCFHeaderLineType.Integer, "Strandness: counts of forward-/reverse-aligned reference and indel-supporting reads (FwdRef,RevRef,FwdIndel,RevIndel)"));
 
