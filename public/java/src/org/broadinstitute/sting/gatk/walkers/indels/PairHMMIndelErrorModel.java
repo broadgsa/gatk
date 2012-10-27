@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 
 import com.google.java.contract.Ensures;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.walkers.genotyper.PerReadAlleleLikelihoodMap;
+import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
@@ -41,8 +41,8 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
+import java.io.PrintStream;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -188,11 +188,14 @@ public class PairHMMIndelErrorModel {
                                                                         final LinkedHashMap<Allele, Haplotype> haplotypeMap,
                                                                         final ReferenceContext ref,
                                                                         final int eventLength,
-                                                                        final PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap){
+                                                                        final PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap,
+                                                                        final double downsamplingFraction,
+                                                                        final PrintStream downsamplingLog) {
         final int numHaplotypes = haplotypeMap.size();
 
         final int readCounts[] = new int[pileup.getNumberOfElements()];
         final double[][] readLikelihoods = computeGeneralReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, perReadAlleleLikelihoodMap, readCounts);
+        perReadAlleleLikelihoodMap.performPerAlleleDownsampling(downsamplingFraction, downsamplingLog);
         return getDiploidHaplotypeLikelihoods(numHaplotypes, readCounts, readLikelihoods);
         
     }

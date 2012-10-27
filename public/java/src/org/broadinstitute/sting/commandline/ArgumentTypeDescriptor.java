@@ -406,7 +406,7 @@ public abstract class ArgumentTypeDescriptor {
             else
                 throw new UserException.CommandLineException(
                         String.format("Failed to parse value %s for argument %s. Message: %s",
-                                value.asString(), fieldName, e.getMessage()));
+                                value, fieldName, e.getMessage()));
         }
     }
 }
