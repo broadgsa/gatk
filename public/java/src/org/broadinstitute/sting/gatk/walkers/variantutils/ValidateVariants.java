@@ -172,7 +172,7 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
                 numErrors++;
                 logger.warn("***** " + e.getMessage() + " *****");
             } else {
-                throw new UserException.MalformedFile(file, e.getMessage());
+                throw new UserException.FailsStrictValidation(file, e.getMessage());
             }
         }
     }
