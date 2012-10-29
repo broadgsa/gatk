@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.contexts;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -39,10 +38,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
  * @author hanna
  * @version 0.1
  */
-
 public class ReferenceContext {
-    final public static boolean UPPERCASE_REFERENCE = true;
-
     /**
      * Facilitates creation of new GenomeLocs.
      */
@@ -59,7 +55,8 @@ public class ReferenceContext {
     final private GenomeLoc window;
 
     /**
-     * The bases in the window around the current locus.  If null, then bases haven't been fetched yet
+     * The bases in the window around the current locus.  If null, then bases haven't been fetched yet.
+     * Bases are always upper cased
      */
     private byte[] basesCache = null;
 
@@ -81,7 +78,7 @@ public class ReferenceContext {
          *
          * @return
          */
-        @Ensures("result != null")
+        @Ensures({"result != null", "BaseUtils.isUpperCase(result)"})
         public byte[] getBases();
     }
 
@@ -146,7 +143,6 @@ public class ReferenceContext {
     private void fetchBasesFromProvider() {
         if ( basesCache == null ) {
             basesCache = basesProvider.getBases();
-            if (UPPERCASE_REFERENCE) StringUtil.toUpperCase(basesCache);
         }
     }
 
@@ -176,6 +172,7 @@ public class ReferenceContext {
      * Get the base at the given locus.
      * @return The base at the given locus from the reference.
      */
+    @Ensures("BaseUtils.isUpperCase(result)")
     public byte getBase() {
         return getBases()[(locus.getStart() - window.getStart())];
     }
@@ -185,7 +182,7 @@ public class ReferenceContext {
      * @return All bases available.  If the window is of size [0,0], the array will
      *         contain only the base at the given locus.
      */
-    @Ensures({"result != null", "result.length > 0"})
+    @Ensures({"result != null", "result.length > 0", "BaseUtils.isUpperCase(result)"})
     public byte[] getBases() {
         fetchBasesFromProvider();
         return basesCache;
@@ -194,6 +191,7 @@ public class ReferenceContext {
     /**
      * All the bases in the window from the current base forward to the end of the window.
      */
+    @Ensures({"result != null", "result.length > 0", "BaseUtils.isUpperCase(result)"})
     public byte[] getForwardBases() {
         final byte[] bases = getBases();
         final int mid = locus.getStart() - window.getStart();

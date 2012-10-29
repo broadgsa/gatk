@@ -29,6 +29,7 @@ import net.sf.picard.reference.FastaSequenceIndex;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.util.StringUtil;
 import org.apache.log4j.Priority;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -40,6 +41,8 @@ import java.util.Arrays;
  * A caching version of the IndexedFastaSequenceFile that avoids going to disk as often as the raw indexer.
  *
  * Thread-safe!  Uses a thread-local cache
+ *
+ * Automatically upper-cases the bases coming in, unless they the flag preserveCase is explicitly set
  */
 public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
     protected static final org.apache.log4j.Logger logger = org.apache.log4j.Logger.getLogger(CachingIndexedFastaSequenceFile.class);
@@ -54,10 +57,15 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
     public static final long DEFAULT_CACHE_SIZE = 1000000;
 
     /** The cache size of this CachingIndexedFastaSequenceFile */
-    final long cacheSize;
+    private final long cacheSize;
 
     /** When we have a cache miss at position X, we load sequence from X - cacheMissBackup */
-    final long cacheMissBackup;
+    private final long cacheMissBackup;
+
+    /**
+     * If true, we will preserve the case of the original base in the genome, not
+     */
+    private final boolean preserveCase;
 
     // information about checking efficiency
     long cacheHits = 0;
@@ -84,37 +92,17 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
     /**
      * Same as general constructor but allows one to override the default cacheSize
      *
-     * @param fasta
-     * @param index
-     * @param cacheSize
+     * @param fasta the file we will read our FASTA sequence from.
+     * @param index the index of the fasta file, used for efficient random access
+     * @param cacheSize the size in bp of the cache we will use for this reader
+     * @param preserveCase If true, we will keep the case of the underlying bases in the FASTA, otherwise everything is converted to upper case
      */
-    public CachingIndexedFastaSequenceFile(final File fasta, final FastaSequenceIndex index, final long cacheSize) {
+    public CachingIndexedFastaSequenceFile(final File fasta, final FastaSequenceIndex index, final long cacheSize, final boolean preserveCase) {
         super(fasta, index);
         if ( cacheSize < 0 ) throw new IllegalArgumentException("cacheSize must be > 0");
         this.cacheSize = cacheSize;
         this.cacheMissBackup = Math.max(cacheSize / 1000, 1);
-    }
-
-    /**
-     * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
-     *
-     * @param fasta The file to open.
-     * @param index Pre-built FastaSequenceIndex, for the case in which one does not exist on disk.
-     * @throws java.io.FileNotFoundException If the fasta or any of its supporting files cannot be found.
-     */
-    public CachingIndexedFastaSequenceFile(final File fasta, final FastaSequenceIndex index) {
-        this(fasta, index, DEFAULT_CACHE_SIZE);
-    }
-
-    /**
-     * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
-     *
-     * Looks for a index file for fasta on disk
-     *
-     * @param fasta The file to open.
-     */
-    public CachingIndexedFastaSequenceFile(final File fasta) throws FileNotFoundException {
-        this(fasta, DEFAULT_CACHE_SIZE);
+        this.preserveCase = preserveCase;
     }
 
     /**
@@ -124,12 +112,76 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
      * Uses provided cacheSize instead of the default
      *
      * @param fasta The file to open.
+     * @param cacheSize the size of the cache to use in this CachingIndexedFastaReader, must be >= 0
+     * @param preserveCase If true, we will keep the case of the underlying bases in the FASTA, otherwise everything is converted to upper case
      */
-    public CachingIndexedFastaSequenceFile(final File fasta, final long cacheSize ) throws FileNotFoundException {
+    public CachingIndexedFastaSequenceFile(final File fasta, final long cacheSize, final boolean preserveCase ) throws FileNotFoundException {
         super(fasta);
         if ( cacheSize < 0 ) throw new IllegalArgumentException("cacheSize must be > 0");
         this.cacheSize = cacheSize;
         this.cacheMissBackup = Math.max(cacheSize / 1000, 1);
+        this.preserveCase = preserveCase;
+    }
+
+//    /**
+//     * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
+//     *
+//     * @param fasta The file to open.
+//     * @param index Pre-built FastaSequenceIndex, for the case in which one does not exist on disk.
+//     * @throws java.io.FileNotFoundException If the fasta or any of its supporting files cannot be found.
+//     */
+//    public CachingIndexedFastaSequenceFile(final File fasta, final FastaSequenceIndex index) {
+//        this(fasta, index, DEFAULT_CACHE_SIZE);
+//    }
+
+    /**
+     * Same as general constructor but allows one to override the default cacheSize
+     *
+     * By default, this CachingIndexedFastaReader converts all incoming bases to upper case
+     *
+     * @param fasta the file we will read our FASTA sequence from.
+     * @param index the index of the fasta file, used for efficient random access
+     * @param cacheSize the size in bp of the cache we will use for this reader
+     */
+    public CachingIndexedFastaSequenceFile(final File fasta, final FastaSequenceIndex index, final long cacheSize) {
+        this(fasta, index, cacheSize, false);
+    }
+
+    /**
+     * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
+     *
+     * Looks for a index file for fasta on disk.
+     * This CachingIndexedFastaReader will convert all FASTA bases to upper cases under the hood
+     *
+     * @param fasta The file to open.
+     */
+    public CachingIndexedFastaSequenceFile(final File fasta) throws FileNotFoundException {
+        this(fasta, false);
+    }
+
+    /**
+     * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
+     *
+     * Looks for a index file for fasta on disk
+     *
+     * @param fasta The file to open.
+     * @param preserveCase If true, we will keep the case of the underlying bases in the FASTA, otherwise everything is converted to upper case
+     */
+    public CachingIndexedFastaSequenceFile(final File fasta, final boolean preserveCase) throws FileNotFoundException {
+        this(fasta, DEFAULT_CACHE_SIZE, preserveCase);
+    }
+
+    /**
+     * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
+     *
+     * Looks for a index file for fasta on disk
+     * Uses provided cacheSize instead of the default
+     *
+     * @param fasta The file to open.
+     * @param cacheSize the size of the cache to use in this CachingIndexedFastaReader, must be >= 0
+     */
+    public CachingIndexedFastaSequenceFile(final File fasta, final long cacheSize ) throws FileNotFoundException {
+        this(fasta, cacheSize, false);
     }
 
     /**
@@ -169,6 +221,25 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
     }
 
     /**
+     * Is this CachingIndexedFastaReader keeping the original case of bases in the fasta, or is
+     * everything being made upper case?
+     *
+     * @return true if the bases coming from this reader are in the original case in the fasta, false if they are all upper cased
+     */
+    public boolean isPreservingCase() {
+        return preserveCase;
+    }
+
+    /**
+     * Is uppercasing bases?
+     *
+     * @return true if bases coming from this CachingIndexedFastaSequenceFile are all upper cased, false if this reader are in the original case in the fasta
+     */
+    public boolean isUppercasingBases() {
+        return ! isPreservingCase();
+    }
+
+    /**
      * Gets the subsequence of the contig in the range [start,stop]
      *
      * Uses the sequence cache if possible, or updates the cache to handle the request.  If the range
@@ -177,8 +248,10 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
      * @param contig Contig whose subsequence to retrieve.
      * @param start inclusive, 1-based start of region.
      * @param stop inclusive, 1-based stop of region.
-     * @return The partial reference sequence associated with this range.
+     * @return The partial reference sequence associated with this range.  If preserveCase is false, then
+     *         all of the bases in the ReferenceSequence returned by this method will be upper cased.
      */
+    @Override
     public ReferenceSequence getSubsequenceAt( final String contig, final long start, final long stop ) {
         final ReferenceSequence result;
         final Cache myCache = cache.get();
@@ -186,6 +259,7 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
         if ( (stop - start) >= cacheSize ) {
             cacheMisses++;
             result = super.getSubsequenceAt(contig, start, stop);
+            if ( ! preserveCase ) StringUtil.toUpperCase(result.getBases());
         } else {
             // todo -- potential optimization is to check if contig.name == contig, as this in generally will be true
             SAMSequenceRecord contigInfo = super.getSequenceDictionary().getSequence(contig);
@@ -198,7 +272,9 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
                 myCache.start = Math.max(start - cacheMissBackup, 0);
                 myCache.stop  = Math.min(start + cacheSize + cacheMissBackup, contigInfo.getSequenceLength());
                 myCache.seq   = super.getSubsequenceAt(contig, myCache.start, myCache.stop);
-                //System.out.printf("New cache at %s %d-%d%n", contig, cacheStart, cacheStop);
+
+                // convert all of the bases in the sequence to upper case if we aren't preserving cases
+                if ( ! preserveCase ) StringUtil.toUpperCase(myCache.seq.getBases());
             } else {
                 cacheHits++;
             }
@@ -215,8 +291,10 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
             }
         }
 
+        // for debugging -- print out our efficiency if requested
         if ( PRINT_EFFICIENCY && (getCacheHits() + getCacheMisses()) % PRINT_FREQUENCY == 0 )
             printEfficiency(Priority.INFO);
+
         return result;
     }
 }
