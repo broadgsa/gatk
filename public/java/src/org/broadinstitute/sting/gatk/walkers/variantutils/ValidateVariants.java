@@ -46,16 +46,20 @@ import java.util.Set;
 
 
 /**
- * Strictly validates a variants file.
+ * Validates a VCF file with an extra strict set of criteria.
  *
  * <p>
  * ValidateVariants is a GATK tool that takes a VCF file and validates much of the information inside it.
- * Checks include the correctness of the reference base(s), accuracy of AC & AN values, tests against rsIDs
- * when a dbSNP file is provided, and that all alternate alleles are present in at least one sample.
+ * In addition to standard adherence to the VCF specification, this tool performs extra checks to make ensure
+ * the information contained within the file is correct.  Checks include the correctness of the reference base(s),
+ * accuracy of AC & AN values, tests against rsIDs when a dbSNP file is provided, and that all alternate alleles
+ * are present in at least one sample.
+ *
+ * If you are looking simply to test the adherence to the VCF specification, use --validationType NONE.
  *
  * <h2>Input</h2>
  * <p>
- * A variant set to filter.
+ * A variant set to validate.
  * </p>
  *
  * <h2>Examples</h2>
@@ -79,10 +83,9 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
     protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
 
     public enum ValidationType {
-        ALL, REF, IDS, ALLELES, CHR_COUNTS
+        ALL, REF, IDS, ALLELES, CHR_COUNTS, NONE
     }
 
-    @Hidden
     @Argument(fullName = "validationType", shortName = "type", doc = "which validation type to run", required = false)
     protected ValidationType type = ValidationType.ALL;
 
