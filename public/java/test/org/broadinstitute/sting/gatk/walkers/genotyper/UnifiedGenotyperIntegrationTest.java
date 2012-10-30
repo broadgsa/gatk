@@ -157,7 +157,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testSLOD() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b36KGReference + " --computeSLOD --no_cmdline_in_header -glm BOTH --dbsnp " + b36dbSNP129 + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000", 1,
-                Arrays.asList("9f95cfe14d53a697c58247833bfd72a6"));
+                Arrays.asList("6ccb9bd88934e4272d0ce362dd35e603"));
         executeTest("test SLOD", spec);
     }
 
@@ -451,13 +451,13 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testReducedBam() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T UnifiedGenotyper -R " + b37KGReference + " --no_cmdline_in_header -I " + privateTestDir + "bamExample.ReducedRead.ADAnnotation.bam -o %s -L 1:67,225,396-67,288,518", 1,
-                Arrays.asList("1b711c0966a2f76eb21801e73b76b758"));
+                Arrays.asList("9a7cd58b9e3d5b72608c0d529321deba"));
         executeTest("test calling on a ReducedRead BAM", spec);
     }
 
     @Test
     public void testReducedBamSNPs() {
-        testReducedCalling("SNP", "9ba4867cadb366746ee63e7a4afdb95e");
+        testReducedCalling("SNP", "e7fc11baf208a1bca7b462d3148c936e");
     }
 
     @Test

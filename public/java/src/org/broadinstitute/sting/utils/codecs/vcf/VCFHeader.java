@@ -159,6 +159,7 @@ public class VCFHeader {
      */
     public void addMetaDataLine(VCFHeaderLine headerLine) {
         mMetaData.add(headerLine);
+        loadMetaDataMaps();
     }
 
     /**
@@ -236,7 +237,6 @@ public class VCFHeader {
                     + VCFConstants.GENOTYPE_PL_KEY + " field.  As the GATK now only manages PL fields internally"
                     + " automatically adding a corresponding PL field to your VCF header");
             addMetaDataLine(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_PL_KEY, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
-            loadMetaDataMaps();
         }
     }
 

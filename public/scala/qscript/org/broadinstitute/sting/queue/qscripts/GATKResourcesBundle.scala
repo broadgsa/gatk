@@ -141,8 +141,8 @@ class GATKResourcesBundle extends QScript {
     // CEU trio (NA12878,NA12891,NA12892) best practices results (including PBT)
     //
 
-    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/callsets/CEUtrio_BestPractices/current/CEUTrio.HiSeq.WGS.b37.UG.snps_and_indels.recalibrated.filtered.phaseByTransmission.vcf",
-      "CEUTrio.HiSeq.WGS.b37.UG.bestPractices.phaseByTransmission",b37,true,false))
+    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/callsets/CEUtrio_BestPractices/CEUTrio.HiSeq.WGS.b37.snps_and_indels.recalibrated.filtered.phased.CURRENT.vcf",
+      "CEUTrio.HiSeq.WGS.b37.bestPractices.phased",b37,true,false))
 
     //
     // example call set for wiki tutorial
@@ -317,6 +317,7 @@ class GATKResourcesBundle extends QScript {
   class UG(@Input bam: File, @Input ref: File, @Input outVCF: File) extends UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
     this.input_file = List(bam)
     this.reference_sequence = ref
+    this.intervalsString ++= List("20");
     this.out = outVCF
   }
 

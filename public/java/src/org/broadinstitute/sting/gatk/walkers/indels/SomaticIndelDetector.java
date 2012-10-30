@@ -438,8 +438,6 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
 
 		location = getToolkit().getGenomeLocParser().createGenomeLoc(getToolkit().getSAMFileHeader().getSequence(0).getSequenceName(),1);
 
-        normalSamples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeaders().get(0));
-
         try {
             // we already checked that bedOutput and output_file are not set simultaneously
             if ( bedOutput != null ) bedWriter = new FileWriter(bedOutput);
@@ -1152,8 +1150,9 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
 
         GenotypesContext genotypes = GenotypesContext.create();
         for ( String sample : normalSamples ) {
-            final GenotypeBuilder gb = new GenotypeBuilder(sample);
-            gb.attributes(call.makeStatsAttributes(null));
+            GenotypeBuilder gb = new GenotypeBuilder(sample);
+
+            gb=call.addStatsAttributes(gb);
             gb.alleles(! discard_event
                 ? alleles             // we made a call - put actual het genotype here:
                 : homref_alleles);    // no call: genotype is ref/ref (but alleles still contain the alt if we observed anything at all)
@@ -1200,8 +1199,11 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
         if ( start == 0 )
             return;
 
-        Map<String,Object> attrsNormal = nCall.makeStatsAttributes(null);
-        Map<String,Object> attrsTumor = tCall.makeStatsAttributes(null);
+        GenotypeBuilder nGB = new GenotypeBuilder();
+        GenotypeBuilder tGB = new GenotypeBuilder();
+
+        nCall.addStatsAttributes(nGB);
+        tCall.addStatsAttributes(tGB);
 
         Map<String,Object> attrs = new HashMap();
 
@@ -1242,25 +1244,17 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
         GenotypesContext genotypes = GenotypesContext.create();
 
         for ( String sample : normalSamples ) {
-            genotypes.add(GenotypeBuilder.create(sample, homRefN ? homRefAlleles : alleles, attrsNormal));
+            genotypes.add(nGB.name(sample).alleles(homRefN ? homRefAlleles : alleles).make());
         }
 
         for ( String sample : tumorSamples ) {
-            genotypes.add(GenotypeBuilder.create(sample, homRefT ? homRefAlleles : alleles, attrsTumor));
+            genotypes.add(tGB.name(sample).alleles(homRefT ? homRefAlleles : alleles).make());
         }
 
         Set<String> filters = null;
         if ( tCall.getVariant() != null && discard_event ) {
             filters = new HashSet<String>();
             filters.add("NoCall");
-        }
-        if ( nCall.getCoverage() < minNormalCoverage ) {
-            if ( filters == null ) filters = new HashSet<String>();
-            filters.add("NCov");
-        }
-        if ( tCall.getCoverage() < minCoverage ) {
-            if ( filters == null ) filters = new HashSet<String>();
-            filters.add("TCov");
         }
 
         VariantContext vc = new VariantContextBuilder("IGv2_Indel_call", refName, start, stop, alleles)
@@ -1844,6 +1838,38 @@ public class SomaticIndelDetector extends ReadWalker<Integer,Integer> {
              VCFIndelAttributes.recordStrandCounts(strand_cons.first,strand_cons.second,strand_ref.first,strand_ref.second,attr);
              return attr;
          }
+
+
+    /**
+      * Adds alignment statistics directly into the genotype builder object.
+      *
+      * @param gb
+      * @return
+      */
+     public GenotypeBuilder addStatsAttributes(GenotypeBuilder gb) {
+          if ( gb == null ) gb = new GenotypeBuilder();
+
+          gb = VCFIndelAttributes.recordDepth(getConsensusVariantCount(),getAllVariantCount(),getCoverage(),gb);
+
+          gb = VCFIndelAttributes.recordAvMM(getAvConsensusMismatches(),getAvRefMismatches(),gb);
+
+          gb = VCFIndelAttributes.recordAvMapQ(getAvConsensusMapq(),getAvRefMapq(),gb);
+
+          gb = VCFIndelAttributes.recordNQSMMRate(getNQSConsensusMMRate(),getNQSRefMMRate(),gb);
+
+          gb = VCFIndelAttributes.recordNQSAvQ(getNQSConsensusAvQual(),getNQSRefAvQual(),gb);
+
+          gb = VCFIndelAttributes.recordOffsetFromStart(from_start_median,from_start_mad,gb);
+
+          gb = VCFIndelAttributes.recordOffsetFromEnd(from_end_median,from_end_mad,gb);
+
+          PrimitivePair.Int strand_cons = getConsensusStrandCounts();
+          PrimitivePair.Int strand_ref = getRefStrandCounts();
+
+          gb = VCFIndelAttributes.recordStrandCounts(strand_cons.first,strand_cons.second,strand_ref.first,strand_ref.second,gb);
+          return gb;
+      }
+
     }
 
     interface IndelListener {
@@ -2170,18 +2196,18 @@ class VCFIndelAttributes {
     public static Set<? extends VCFHeaderLine> getAttributeHeaderLines() {
         Set<VCFHeaderLine> lines = new HashSet<VCFHeaderLine>();
 
-        lines.add(new VCFFormatHeaderLine(ALLELIC_DEPTH_KEY, 2, VCFHeaderLineType.Integer, "# of reads supporting consensus indel/reference at the site"));
+        lines.add(new VCFFormatHeaderLine(ALLELIC_DEPTH_KEY, 2, VCFHeaderLineType.Integer, "# of reads supporting consensus reference/indel at the site"));
         lines.add(new VCFFormatHeaderLine(DEPTH_TOTAL_KEY, 1, VCFHeaderLineType.Integer, "Total coverage at the site"));
 
-        lines.add(new VCFFormatHeaderLine(MAPQ_KEY, 2, VCFHeaderLineType.Float, "Average mapping qualities of consensus indel-supporting reads/reference-supporting reads"));
+        lines.add(new VCFFormatHeaderLine(MAPQ_KEY, 2, VCFHeaderLineType.Float, "Average mapping qualities of ref-/consensus indel-supporting reads"));
 
-        lines.add(new VCFFormatHeaderLine(MM_KEY, 2, VCFHeaderLineType.Float, "Average # of mismatches per consensus indel-supporting read/per reference-supporting read"));
+        lines.add(new VCFFormatHeaderLine(MM_KEY, 2, VCFHeaderLineType.Float, "Average # of mismatches per ref-/consensus indel-supporting read"));
 
-        lines.add(new VCFFormatHeaderLine(NQS_MMRATE_KEY, 2, VCFHeaderLineType.Float, "Within NQS window: fraction of mismatching bases in consensus indel-supporting reads/in reference-supporting reads"));
+        lines.add(new VCFFormatHeaderLine(NQS_MMRATE_KEY, 2, VCFHeaderLineType.Float, "Within NQS window: fraction of mismatching bases in ref/consensus indel-supporting reads"));
 
-        lines.add(new VCFFormatHeaderLine(NQS_AVQ_KEY, 2, VCFHeaderLineType.Float, "Within NQS window: average quality of bases from consensus indel-supporting reads/from reference-supporting reads"));
+        lines.add(new VCFFormatHeaderLine(NQS_AVQ_KEY, 2, VCFHeaderLineType.Float, "Within NQS window: average quality of bases in ref-/consensus indel-supporting reads"));
 
-        lines.add(new VCFFormatHeaderLine(STRAND_COUNT_KEY, 4, VCFHeaderLineType.Integer, "Strandness: counts of forward-/reverse-aligned indel-supporting reads / forward-/reverse-aligned reference supporting reads"));
+        lines.add(new VCFFormatHeaderLine(STRAND_COUNT_KEY, 4, VCFHeaderLineType.Integer, "Strandness: counts of forward-/reverse-aligned reference and indel-supporting reads (FwdRef,RevRef,FwdIndel,RevIndel)"));
 
         lines.add(new VCFFormatHeaderLine(RSTART_OFFSET_KEY, 2, VCFHeaderLineType.Integer, "Median/mad of indel offsets from the starts of the reads"));
         lines.add(new VCFFormatHeaderLine(REND_OFFSET_KEY, 2, VCFHeaderLineType.Integer, "Median/mad of indel offsets from the ends of the reads"));
@@ -2194,30 +2220,55 @@ class VCFIndelAttributes {
         return attrs;
     }
 
+    public static GenotypeBuilder recordStrandCounts(int cnt_cons_fwd, int cnt_cons_rev, int cnt_ref_fwd, int cnt_ref_rev,
+                                                     GenotypeBuilder gb) {
+        return gb.attribute(STRAND_COUNT_KEY, new Integer[] {cnt_ref_fwd, cnt_ref_rev,cnt_cons_fwd, cnt_cons_rev } );
+    }
+
     public static Map<String,Object> recordDepth(int cnt_cons, int cnt_indel, int cnt_total, Map<String,Object> attrs) {
-        attrs.put(ALLELIC_DEPTH_KEY, new Integer[] {cnt_cons, cnt_indel} );
+        attrs.put(ALLELIC_DEPTH_KEY, new Integer[] {cnt_total-cnt_indel, cnt_cons} );
         attrs.put(DEPTH_TOTAL_KEY, cnt_total);
         return attrs;
     }
 
+    public static GenotypeBuilder recordDepth(int cnt_cons, int cnt_indel, int cnt_total, GenotypeBuilder gb) {
+        return gb.AD(new int[] {cnt_total-cnt_indel,cnt_cons} ).DP(cnt_total);
+    }
+
     public static Map<String,Object> recordAvMapQ(double cons, double ref, Map<String,Object> attrs) {
-        attrs.put(MAPQ_KEY, new Float[] {(float)cons, (float)ref} );
+        attrs.put(MAPQ_KEY, new Float[] {(float)ref, (float)cons} );
         return attrs;
+    }
+
+    public static GenotypeBuilder recordAvMapQ(double cons, double ref, GenotypeBuilder gb) {
+        return gb.attribute(MAPQ_KEY,new float[] {(float)ref, (float)cons} );
     }
 
     public static Map<String,Object> recordAvMM(double cons, double ref, Map<String,Object> attrs) {
-        attrs.put(MM_KEY, new Float[] {(float)cons, (float)ref} );
+        attrs.put(MM_KEY, new Float[] {(float)ref, (float)cons} );
         return attrs;
+    }
+
+    public static GenotypeBuilder recordAvMM(double cons, double ref, GenotypeBuilder gb) {
+        return gb.attribute(MM_KEY, new float[] {(float)ref, (float)cons} );
     }
 
     public static Map<String,Object> recordNQSMMRate(double cons, double ref, Map<String,Object> attrs) {
-        attrs.put(NQS_MMRATE_KEY, new Float[] {(float)cons, (float)ref} );
+        attrs.put(NQS_MMRATE_KEY, new Float[] {(float)ref, (float)cons} );
         return attrs;
     }
 
+    public static GenotypeBuilder recordNQSMMRate(double cons, double ref, GenotypeBuilder gb) {
+        return gb.attribute(NQS_MMRATE_KEY, new float[] {(float)ref, (float)cons} );
+    }
+
     public static Map<String,Object> recordNQSAvQ(double cons, double ref, Map<String,Object> attrs) {
-        attrs.put(NQS_AVQ_KEY, new Float[] {(float)cons, (float)ref} );
+        attrs.put(NQS_AVQ_KEY, new float[] {(float)ref, (float)cons} );
         return attrs;
+    }
+
+    public static GenotypeBuilder recordNQSAvQ(double cons, double ref, GenotypeBuilder gb) {
+        return gb.attribute(NQS_AVQ_KEY, new float[] {(float)ref, (float)cons} );
     }
 
     public static Map<String,Object> recordOffsetFromStart(int median, int mad, Map<String,Object> attrs) {
@@ -2225,8 +2276,16 @@ class VCFIndelAttributes {
         return attrs;
     }
 
+    public static GenotypeBuilder recordOffsetFromStart(int median, int mad, GenotypeBuilder gb) {
+        return gb.attribute(RSTART_OFFSET_KEY, new int[] {median, mad} );
+    }
+
     public static Map<String,Object> recordOffsetFromEnd(int median, int mad, Map<String,Object> attrs) {
         attrs.put(REND_OFFSET_KEY, new Integer[] {median, mad} );
         return attrs;
+    }
+
+    public static GenotypeBuilder recordOffsetFromEnd(int median, int mad, GenotypeBuilder gb) {
+        return gb.attribute(REND_OFFSET_KEY, new int[] {median, mad} );
     }
 }
