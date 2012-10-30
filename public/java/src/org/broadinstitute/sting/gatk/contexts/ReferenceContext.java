@@ -78,7 +78,7 @@ public class ReferenceContext {
          *
          * @return
          */
-        @Ensures({"result != null", "BaseUtils.isUpperCase(result)"})
+        @Ensures({"result != null"})
         public byte[] getBases();
     }
 
@@ -143,6 +143,9 @@ public class ReferenceContext {
     private void fetchBasesFromProvider() {
         if ( basesCache == null ) {
             basesCache = basesProvider.getBases();
+
+            // must be an assertion that only runs when the bases are fetch to run in a reasonable amount of time
+            assert BaseUtils.isUpperCase(basesCache);
         }
     }
 
@@ -172,7 +175,6 @@ public class ReferenceContext {
      * Get the base at the given locus.
      * @return The base at the given locus from the reference.
      */
-    @Ensures("BaseUtils.isUpperCase(result)")
     public byte getBase() {
         return getBases()[(locus.getStart() - window.getStart())];
     }
@@ -182,7 +184,7 @@ public class ReferenceContext {
      * @return All bases available.  If the window is of size [0,0], the array will
      *         contain only the base at the given locus.
      */
-    @Ensures({"result != null", "result.length > 0", "BaseUtils.isUpperCase(result)"})
+    @Ensures({"result != null", "result.length > 0"})
     public byte[] getBases() {
         fetchBasesFromProvider();
         return basesCache;
@@ -191,7 +193,7 @@ public class ReferenceContext {
     /**
      * All the bases in the window from the current base forward to the end of the window.
      */
-    @Ensures({"result != null", "result.length > 0", "BaseUtils.isUpperCase(result)"})
+    @Ensures({"result != null", "result.length > 0"})
     public byte[] getForwardBases() {
         final byte[] bases = getBases();
         final int mid = locus.getStart() - window.getStart();
