@@ -18,3 +18,8 @@ queueScatterGather
 /bar*
 integrationtests/
 public/testdata/onTheFlyOutputTest.vcf
+build/
+dist/
+dump/
+lib/
+out/

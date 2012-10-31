@@ -7,10 +7,13 @@ import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
+import org.broadinstitute.sting.gatk.io.ThreadGroupOutputTracker;
+import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import java.util.Collection;
@@ -36,14 +39,14 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     /**
      * A thread local output tracker for managing output per-thread.
      */
-    private ThreadLocalOutputTracker outputTracker = new ThreadLocalOutputTracker();
+    private ThreadGroupOutputTracker outputTracker = new ThreadGroupOutputTracker();
 
     private final Queue<TreeReduceTask> reduceTasks = new LinkedList<TreeReduceTask>();
 
     /**
      * An exception that's occurred in this traversal.  If null, no exception has occurred.
      */
-    private RuntimeException error = null;
+    final MultiThreadedErrorTracker errorTracker = new MultiThreadedErrorTracker();
 
     /**
      * Queue of incoming shards.
@@ -75,14 +78,39 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     /**
      * Create a new hierarchical microscheduler to process the given reads and reference.
      *
-     * @param walker        the walker used to process the dataset.
-     * @param reads         Reads file(s) to process.
-     * @param reference     Reference for driving the traversal.
-     * @param nThreadsToUse maximum number of threads to use to do the work
+     * @param walker           the walker used to process the dataset.
+     * @param reads            Reads file(s) to process.
+     * @param reference        Reference for driving the traversal.
+     * @param threadAllocation How should we apply multi-threaded execution?
      */
-    protected HierarchicalMicroScheduler(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse ) {
-        super(engine, walker, reads, reference, rods);
-        this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
+    protected HierarchicalMicroScheduler(final GenomeAnalysisEngine engine,
+                                         final Walker walker,
+                                         final SAMDataSource reads,
+                                         final IndexedFastaSequenceFile reference,
+                                         final Collection<ReferenceOrderedDataSource> rods,
+                                         final ThreadAllocation threadAllocation) {
+        super(engine, walker, reads, reference, rods, threadAllocation);
+
+        final int nThreadsToUse = threadAllocation.getNumDataThreads();
+        if ( threadAllocation.monitorThreadEfficiency() ) {
+            throw new UserException.BadArgumentValue("nt", "Cannot monitor thread efficiency with -nt, sorry");
+        }
+
+        this.threadPool = Executors.newFixedThreadPool(nThreadsToUse, new UniqueThreadGroupThreadFactory());
+    }
+
+    /**
+     * Creates threads for HMS each with a unique thread group.  Critical to
+     * track outputs via the ThreadGroupOutputTracker.
+     */
+    private static class UniqueThreadGroupThreadFactory implements ThreadFactory {
+        int counter = 0;
+
+        @Override
+        public Thread newThread(Runnable r) {
+            final ThreadGroup group = new ThreadGroup("HMS-group-" + counter++);
+            return new Thread(group, r);
+        }
     }
 
     public Object execute( Walker walker, Iterable<Shard> shardStrategy ) {
@@ -92,13 +120,12 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
         this.traversalTasks = shardStrategy.iterator();
 
-        ReduceTree reduceTree = new ReduceTree(this);
+        final ReduceTree reduceTree = new ReduceTree(this);
         initializeWalker(walker);
 
-        while (isShardTraversePending() || isTreeReducePending()) {
+        while (! abortExecution() && (isShardTraversePending() || isTreeReducePending())) {
             // Check for errors during execution.
-            if(hasTraversalErrorOccurred())
-                throw getTraversalError();
+            errorTracker.throwErrorIfPending();
 
             // Too many files sitting around taking up space?  Merge them.
             if (isMergeLimitExceeded())
@@ -115,8 +142,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
                 queueNextShardTraverse(walker, reduceTree);
         }
 
-        if(hasTraversalErrorOccurred())
-            throw getTraversalError();
+        errorTracker.throwErrorIfPending();
 
         threadPool.shutdown();
 
@@ -132,7 +158,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
             throw ex;
         } catch ( ExecutionException ex ) {
             // the thread died and we are failing to get the result, rethrow it as a runtime exception
-            throw toRuntimeException(ex.getCause());
+            throw notifyOfTraversalError(ex.getCause());
         } catch (Exception ex) {
             throw new ReviewedStingException("Unable to retrieve result", ex);
         }
@@ -140,6 +166,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         // do final cleanup operations
         outputTracker.close();
         cleanup();
+        executionIsDone();
 
         return result;
     }
@@ -170,7 +197,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         outputTracker.bypassThreadLocalStorage(true);
         try {
             walker.onTraversalDone(result);
-            printOnTraversalDone(result);
         }
         finally {
             outputTracker.bypassThreadLocalStorage(false);
@@ -239,6 +265,9 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     protected void mergeExistingOutput( boolean wait ) {
         long startTime = System.currentTimeMillis();
 
+//        logger.warn("MergingExistingOutput");
+//        printOutputMergeTasks();
+
         // Create a list of the merge tasks that will be performed in this run of the mergeExistingOutput().
         Queue<ShardTraverser> mergeTasksInSession = new LinkedList<ShardTraverser>();
         while( !outputMergeTasks.isEmpty() ) {
@@ -252,8 +281,12 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
             mergeTasksInSession.add(traverser);
         }
 
+//        logger.warn("Selected things to merge:");
+//        printOutputMergeTasks(mergeTasksInSession);
+
         // Actually run through, merging the tasks in the working queue.
         for( ShardTraverser traverser: mergeTasksInSession ) {
+            //logger.warn("*** Merging " + traverser.getIntervalsString());
             if( !traverser.isComplete() )
                 traverser.waitForComplete();
 
@@ -286,32 +319,41 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         if (!traversalTasks.hasNext())
             throw new IllegalStateException("Cannot traverse; no pending traversals exist.");
 
-        Shard shard = traversalTasks.next();
+        final Shard shard = traversalTasks.next();
 
         // todo -- add ownership claim here
 
-        ShardTraverser traverser = new ShardTraverser(this,
-                traversalEngine,
-                walker,
-                shard,
-                outputTracker);
+        final ShardTraverser traverser = new ShardTraverser(this, walker, shard, outputTracker);
 
-        Future traverseResult = threadPool.submit(traverser);
+        final Future traverseResult = threadPool.submit(traverser);
 
         // Add this traverse result to the reduce tree.  The reduce tree will call a callback to throw its entries on the queue.
         reduceTree.addEntry(traverseResult);
         outputMergeTasks.add(traverser);
+
+//        logger.warn("adding merge task");
+//        printOutputMergeTasks();
 
         // No more data?  Let the reduce tree know so it can finish processing what it's got.
         if (!isShardTraversePending())
             reduceTree.complete();
     }
 
+    private synchronized void printOutputMergeTasks() {
+        printOutputMergeTasks(outputMergeTasks);
+    }
+
+    private synchronized void printOutputMergeTasks(final Queue<ShardTraverser> tasks) {
+        logger.info("Output merge tasks " + tasks.size());
+        for ( final ShardTraverser traverser : tasks )
+            logger.info(String.format("\t%s: complete? %b", traverser.getIntervalsString(), traverser.isComplete()));
+    }
+
     /** Pulls the next reduce from the queue and runs it. */
     protected void queueNextTreeReduce( Walker walker ) {
         if (reduceTasks.size() == 0)
             throw new IllegalStateException("Cannot reduce; no pending reduces exist.");
-        TreeReduceTask reducer = reduceTasks.remove();
+        final TreeReduceTask reducer = reduceTasks.remove();
         reducer.setWalker((TreeReducible) walker);
 
         threadPool.submit(reducer);
@@ -319,7 +361,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
     /** Blocks until a free slot appears in the thread queue. */
     protected void waitForFreeQueueSlot() {
-        ThreadPoolMonitor monitor = new ThreadPoolMonitor();
+        final ThreadPoolMonitor monitor = new ThreadPoolMonitor();
         synchronized (monitor) {
             threadPool.submit(monitor);
             monitor.watch();
@@ -331,47 +373,22 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
      *
      * @return A new, composite future of the result of this reduce.
      */
-    public Future notifyReduce( Future lhs, Future rhs ) {
-        TreeReduceTask reducer = new TreeReduceTask(new TreeReducer(this, lhs, rhs));
+    public Future notifyReduce( final Future lhs, final Future rhs ) {
+        final TreeReduceTask reducer = new TreeReduceTask(new TreeReducer(this, lhs, rhs));
         reduceTasks.add(reducer);
         return reducer;
-    }
-
-    /**
-     * Detects whether an execution error has occurred.
-     * @return True if an error has occurred.  False otherwise.
-     */
-    private synchronized boolean hasTraversalErrorOccurred() {
-        return error != null;
-    }
-
-    private synchronized RuntimeException getTraversalError() {
-        if(!hasTraversalErrorOccurred())
-            throw new ReviewedStingException("User has attempted to retrieve a traversal error when none exists");
-        return error;
     }
 
     /**
      * Allows other threads to notify of an error during traversal.
      */
     protected synchronized RuntimeException notifyOfTraversalError(Throwable error) {
-        // If the error is already a Runtime, pass it along as is.  Otherwise, wrap it.
-        this.error = toRuntimeException(error);
-        return this.error;
+        return errorTracker.notifyOfError(error);
     }
-
-    private final RuntimeException toRuntimeException(final Throwable error) {
-        // If the error is already a Runtime, pass it along as is.  Otherwise, wrap it.
-        if (error instanceof RuntimeException)
-            return (RuntimeException)error;
-        else
-            return new ReviewedStingException("An error occurred during the traversal.  Message=" + error.getMessage(), error);
-    }
-
 
     /** A small wrapper class that provides the TreeReducer interface along with the FutureTask semantics. */
     private class TreeReduceTask extends FutureTask {
-        private TreeReducer treeReducer = null;
+        final private TreeReducer treeReducer;
 
         public TreeReduceTask( TreeReducer treeReducer ) {
             super(treeReducer);

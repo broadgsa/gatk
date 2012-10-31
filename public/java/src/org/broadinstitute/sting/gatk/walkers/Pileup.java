@@ -45,25 +45,14 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Prints the alignment in the pileup format. In the pileup format, each line represents a genomic position,
- * consisting of chromosome name, coordinate, reference base, read bases, read qualities and alignment mapping
- * qualities. Information on match, mismatch, indel, strand, mapping quality and start and end of a read are all
- * encoded at the read base column. At this column, a dot stands for a match to the reference base on the forward strand,
- * a comma for a match on the reverse strand, 'ACGTN' for a mismatch on the forward strand and 'acgtn' for a mismatch on the
- * reverse strand.
- *
- * A pattern '\+[0-9]+[ACGTNacgtn]+' indicates there is an insertion between this reference position and the next
- * reference position. The length of the insertion is given by the integer in the pattern, followed by the inserted sequence.
- * Similarly, a pattern '-[0-9]+[ACGTNacgtn]+' represents a deletion from the reference.
- * Also at the read base column, a symbol '^' marks the start of a read segment which is a contiguous subsequence on the read
- * separated by 'N/S/H' CIGAR operations. The ASCII of the character following '^' minus 33 gives the mapping quality.
- * A symbol '$' marks the end of a read segment.
+ * Prints the alignment in something similar to the samtools pileup format.  Each line represents a genomic position,
+ * consisting of chromosome name, coordinate, reference base, read bases, and read qualities.
  *
  * Associated command:
  * samtools pileup [-f in.ref.fasta] [-t in.ref_list] [-l in.site_list] [-iscg] [-T theta] [-N nHap] [-r pairDiffRate] <in.alignment>
  */
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
-public class Pileup extends LocusWalker<Integer, Integer> implements TreeReducible<Integer> {
+public class Pileup extends LocusWalker<String, Integer> implements TreeReducible<Integer>, NanoSchedulable {
 
     private static final String verboseDelimiter = "@"; // it's ugly to use "@" but it's literally the only usable character not allowed in read names
 
@@ -81,27 +70,32 @@ public class Pileup extends LocusWalker<Integer, Integer> implements TreeReducib
     @Input(fullName="metadata",shortName="metadata",doc="Add these ROD bindings to the output Pileup", required=false)
     public List<RodBinding<Feature>> rods = Collections.emptyList();
 
-    public void initialize() {
-    }
-
-    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-
-        String rods = getReferenceOrderedData( tracker );
+    @Override
+    public String map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        final String rods = getReferenceOrderedData( tracker );
 
         ReadBackedPileup basePileup = context.getBasePileup();
-        out.printf("%s %s", basePileup.getPileupString((char)ref.getBase()), rods);
-        if ( SHOW_VERBOSE )
-            out.printf(" %s", createVerboseOutput(basePileup));
-        out.println();
 
-        return 1;
+        final StringBuilder s = new StringBuilder();
+        s.append(String.format("%s %s", basePileup.getPileupString((char)ref.getBase()), rods));
+        if ( SHOW_VERBOSE )
+            s.append(" ").append(createVerboseOutput(basePileup));
+        s.append("\n");
+
+        return s.toString();
     }
 
     // Given result of map function
+    @Override
     public Integer reduceInit() { return 0; }
-    public Integer reduce(Integer value, Integer sum) {
-        return treeReduce(sum,value);
+
+    @Override
+    public Integer reduce(String value, Integer sum) {
+        out.print(value);
+        return sum + 1;
     }
+
+    @Override
     public Integer treeReduce(Integer lhs, Integer rhs) {
         return lhs + rhs;
     }

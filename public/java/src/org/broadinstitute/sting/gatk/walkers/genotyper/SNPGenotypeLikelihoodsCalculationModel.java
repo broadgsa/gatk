@@ -36,24 +36,26 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.variantcontext.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsCalculationModel {
 
     private final boolean useAlleleFromVCF;
 
     private final double[] likelihoodSums = new double[4];
-    
+
+    private final PerReadAlleleLikelihoodMap perReadAlleleLikelihoodMap;
+
     protected SNPGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
         useAlleleFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
+        perReadAlleleLikelihoodMap = PerReadAlleleLikelihoodMap.getBestAvailablePerReadAlleleLikelihoodMap();
     }
 
     public VariantContext getLikelihoods(final RefMetaDataTracker tracker,
@@ -62,7 +64,10 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                                          final AlignmentContextUtils.ReadOrientation contextType,
                                          final List<Allele> allAllelesToUse,
                                          final boolean useBAQedPileup,
-                                         final GenomeLocParser locParser) {
+                                         final GenomeLocParser locParser,
+                                         final Map<String, PerReadAlleleLikelihoodMap> sampleLikelihoodMap) {
+
+        sampleLikelihoodMap.clear(); // not used in SNP model, sanity check to delete any older data
 
         final byte refBase = ref.getBase();
         final int indexOfRefBase = BaseUtils.simpleBaseToBaseIndex(refBase);
@@ -75,8 +80,10 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         ArrayList<SampleGenotypeData> GLs = new ArrayList<SampleGenotypeData>(contexts.size());
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
             ReadBackedPileup pileup = AlignmentContextUtils.stratify(sample.getValue(), contextType).getBasePileup();
+            if ( UAC.CONTAMINATION_FRACTION > 0.0 )
+                pileup = perReadAlleleLikelihoodMap.createPerAlleleDownsampledBasePileup(pileup, UAC.CONTAMINATION_FRACTION, UAC.contaminationLog);
             if ( useBAQedPileup )
-                pileup = createBAQedPileup( pileup );
+                pileup = createBAQedPileup(pileup);
 
             // create the GenotypeLikelihoods object
             final DiploidSNPGenotypeLikelihoods GL = new DiploidSNPGenotypeLikelihoods(UAC.PCR_error);
@@ -147,8 +154,6 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
         // create the genotypes; no-call everyone for now
         final GenotypesContext genotypes = GenotypesContext.create();
-        final List<Allele> noCall = new ArrayList<Allele>();
-        noCall.add(Allele.NO_CALL);
 
         for ( SampleGenotypeData sampleData : GLs ) {
             final double[] allLikelihoods = sampleData.GL.getLikelihoods();

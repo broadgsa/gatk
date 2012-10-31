@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.RodRequiringAnnotation;
+import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -225,7 +226,12 @@ public class SnpEff extends InfoFieldAnnotation implements RodRequiringAnnotatio
         headerLines.add(new VCFHeaderLine(OUTPUT_VCF_HEADER_COMMAND_LINE_KEY, snpEffCommandLine.getValue()));
     }
 
-    public Map<String, Object> annotate ( RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc ) {
+    public Map<String, Object> annotate(final RefMetaDataTracker tracker,
+                                        final AnnotatorCompatible walker,
+                                        final ReferenceContext ref,
+                                        final Map<String, AlignmentContext> stratifiedContexts,
+                                        final VariantContext vc,
+                                        final Map<String, PerReadAlleleLikelihoodMap> stratifiedPerReadAlleleLikelihoodMap) {
         RodBinding<VariantContext> snpEffRodBinding = walker.getSnpEffRodBinding();
 
         // Get only SnpEff records that start at this locus, not merely span it:

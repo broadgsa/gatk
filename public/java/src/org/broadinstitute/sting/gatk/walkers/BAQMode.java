@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers;
 
+import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
+
 import java.lang.annotation.*;
 
 /**
@@ -25,5 +27,5 @@ import java.lang.annotation.*;
 @Target(ElementType.TYPE)
 public @interface BAQMode {
     public abstract org.broadinstitute.sting.utils.baq.BAQ.QualityMode QualityMode() default org.broadinstitute.sting.utils.baq.BAQ.QualityMode.OVERWRITE_QUALS;
-    public abstract org.broadinstitute.sting.utils.baq.BAQ.ApplicationTime ApplicationTime() default org.broadinstitute.sting.utils.baq.BAQ.ApplicationTime.ON_INPUT;
+    public abstract ReadTransformer.ApplicationTime ApplicationTime() default ReadTransformer.ApplicationTime.ON_INPUT;
 }

@@ -27,12 +27,14 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
+import org.broadinstitute.sting.gatk.arguments.StandardCallerArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
@@ -117,14 +119,14 @@ import java.util.*;
  */
 
 @DocumentedGATKFeature( groupName = "Variant Discovery Tools", extraDocs = {CommandLineGATK.class} )
-@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
+@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = ReadTransformer.ApplicationTime.ON_INPUT)
 @ReadFilters( {BadMateFilter.class, MappingQualityUnavailableFilter.class} )
 @Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.REFERENCE)
 // TODO -- When LocusIteratorByState gets cleaned up, we should enable multiple @By sources:
 // TODO -- @By( {DataSource.READS, DataSource.REFERENCE_ORDERED_DATA} )
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
-public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatible {
+public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics>, AnnotatorCompatible, NanoSchedulable {
 
     @ArgumentCollection
     private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
@@ -233,36 +235,26 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
             if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY ||
                     UAC.referenceSampleName != null ||
                     UAC.referenceSampleRod.isBound())  {
-                throw new UserException.NotSupportedInGATKLite("Usage of ploidy values different than 2 not supported in this GATK version");
+                throw new UserException.NotSupportedInGATKLite("you cannot enable usage of ploidy values other than 2");
             }
+
+            if ( UAC.CONTAMINATION_FRACTION > 0.0 ) {
+                if ( UAC.CONTAMINATION_FRACTION == StandardCallerArgumentCollection.DEFAULT_CONTAMINATION_FRACTION ) {
+                    UAC.CONTAMINATION_FRACTION = 0.0;
+                    logger.warn("setting contamination down-sampling fraction to 0.0 because it is not enabled in GATK-lite");
+                } else {
+                    throw new UserException.NotSupportedInGATKLite("you cannot enable usage of contamination down-sampling");
+                }
+            }
+        }
+
+        if ( UAC.TREAT_ALL_READS_AS_SINGLE_POOL ) {
+            samples.add(GenotypeLikelihoodsCalculationModel.DUMMY_SAMPLE_NAME);
+        } else {
             // get all of the unique sample names
             samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
-
-        } else {
-            // in full mode: check for consistency in ploidy/pool calling arguments
-            // check for correct calculation models
-/*            if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
-                // polyploidy requires POOL GL and AF calculation models to be specified right now
-                if (UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLSNP && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLINDEL
-                        && UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.POOLBOTH)   {
-                    throw new UserException("Incorrect genotype calculation model chosen. Only [POOLSNP|POOLINDEL|POOLBOTH] supported with this walker if sample ploidy != 2");
-                }
-
-                if (UAC.AFmodel != AlleleFrequencyCalculationModel.Model.POOL)
-                    throw new UserException("Incorrect AF Calculation model. Only POOL model supported if sample ploidy != 2");
-
-            }
-  */
-            // get all of the unique sample names
-            if (UAC.TREAT_ALL_READS_AS_SINGLE_POOL) {
-                samples.clear();
-                samples.add(GenotypeLikelihoodsCalculationModel.DUMMY_SAMPLE_NAME);
-            } else {
-                samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
-                if (UAC.referenceSampleName != null )
-                    samples.remove(UAC.referenceSampleName);
-            }
-
+            if ( UAC.referenceSampleName != null )
+                samples.remove(UAC.referenceSampleName);
         }
 
         // check for a bad max alleles value
@@ -304,7 +296,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
             headerInfo.addAll(annotationEngine.getVCFAnnotationDescriptions());
 
         // annotation (INFO) fields from UnifiedGenotyper
-        if ( !UAC.NO_SLOD )
+        if ( UAC.COMPUTE_SLOD )
             VCFStandardHeaderLines.addStandardInfoLines(headerInfo, true, VCFConstants.STRAND_BIAS_KEY);
 
         if ( UAC.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED )

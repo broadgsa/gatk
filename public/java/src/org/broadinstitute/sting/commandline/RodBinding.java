@@ -118,6 +118,15 @@ public final class RodBinding<T extends Feature> {
     }
 
     /**
+     * For testing purposes only.  Creates a RodBinding sufficient for looking up associations to rawName
+     * @param type
+     * @param rawName
+     */
+    public RodBinding(Class<T> type, final String rawName) {
+        this(type, rawName, "missing", type.getSimpleName(), new Tags());
+    }
+
+    /**
      * Make an unbound RodBinding<T>.  Only available for creating the globally unique UNBOUND object
      * @param type class this unbound RodBinding creates
      */

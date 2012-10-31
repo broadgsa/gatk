@@ -40,12 +40,15 @@ public class MWUnitTest extends BaseTest {
         Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu.getObservations(),MannWhitneyU.USet.SET2),11L);
 
         MannWhitneyU mwu2 = new MannWhitneyU();
+        MannWhitneyU mwuNoDither = new MannWhitneyU(false);
         for ( int dp : new int[]{2,4,5,6,8} ) {
             mwu2.add(dp,MannWhitneyU.USet.SET1);
+            mwuNoDither.add(dp,MannWhitneyU.USet.SET1);
         }
 
         for ( int dp : new int[]{1,3,7,9,10,11,12,13} ) {
             mwu2.add(dp,MannWhitneyU.USet.SET2);
+            mwuNoDither.add(dp,MannWhitneyU.USet.SET2);
         }
 
         MannWhitneyU.ExactMode pm = MannWhitneyU.ExactMode.POINT;
@@ -54,6 +57,8 @@ public class MWUnitTest extends BaseTest {
         // tests using the hypothesis that set 2 dominates set 1 (U value = 10)
         Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu2.getObservations(),MannWhitneyU.USet.SET1),10L);
         Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu2.getObservations(),MannWhitneyU.USet.SET2),30L);
+        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwuNoDither.getObservations(),MannWhitneyU.USet.SET1),10L);
+        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwuNoDither.getObservations(),MannWhitneyU.USet.SET2),30L);
 
         Pair<Integer,Integer> sizes = mwu2.getSetSizes();
 

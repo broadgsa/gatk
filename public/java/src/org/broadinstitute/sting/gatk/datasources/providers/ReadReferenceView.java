@@ -59,16 +59,18 @@ public class ReadReferenceView extends ReferenceView {
         }
 
         public byte[] getBases() {
-//            System.out.printf("Getting bases for location %s%n", loc);
-//            throw new StingException("x");
             return getReferenceBases(loc);
         }
     }
 
-    public ReferenceContext getReferenceContext( SAMRecord read ) {
+    /**
+     * Return a reference context appropriate for the span of read
+     *
+     * @param read the mapped read to test
+     * @return
+     */
+    public ReferenceContext getReferenceContext( final SAMRecord read ) {
         GenomeLoc loc = genomeLocParser.createGenomeLoc(read);
-//        byte[] bases = super.getReferenceBases(loc);
-//        return new ReferenceContext( loc, loc, bases );
         return new ReferenceContext( genomeLocParser, loc, loc, getReferenceBasesProvider(loc) );
     }
 

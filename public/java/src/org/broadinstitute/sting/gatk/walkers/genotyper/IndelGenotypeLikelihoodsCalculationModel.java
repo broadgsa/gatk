@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Haplotype;
+import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -48,29 +49,16 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     private boolean ignoreSNPAllelesWhenGenotypingIndels = false;
     private PairHMMIndelErrorModel pairModel;
 
-    private static ThreadLocal<HashMap<PileupElement, LinkedHashMap<Allele, Double>>> indelLikelihoodMap =
-            new ThreadLocal<HashMap<PileupElement, LinkedHashMap<Allele, Double>>>() {
-                protected synchronized HashMap<PileupElement, LinkedHashMap<Allele, Double>> initialValue() {
-                    return new HashMap<PileupElement, LinkedHashMap<Allele, Double>>();
-                }
-            };
 
     private LinkedHashMap<Allele, Haplotype> haplotypeMap;
 
-    // gdebug removeme
-    // todo -cleanup
-    private GenomeLoc lastSiteVisited;
     private List<Allele> alleleList = new ArrayList<Allele>();
-
-    static {
-        indelLikelihoodMap.set(new HashMap<PileupElement, LinkedHashMap<Allele, Double>>());
-    }
 
 
     protected IndelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
         pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY, UAC.INDEL_GAP_CONTINUATION_PENALTY,
-                UAC.OUTPUT_DEBUG_INDEL_INFO, !UAC.DONT_DO_BANDED_INDEL_COMPUTATION);
+                UAC.OUTPUT_DEBUG_INDEL_INFO, UAC.pairHMM);
         DEBUG = UAC.OUTPUT_DEBUG_INDEL_INFO;
         haplotypeMap = new LinkedHashMap<Allele, Haplotype>();
         ignoreSNPAllelesWhenGenotypingIndels = UAC.IGNORE_SNP_ALLELES;
@@ -93,16 +81,15 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                                          final AlignmentContextUtils.ReadOrientation contextType,
                                          final List<Allele> allAllelesToUse,
                                          final boolean useBAQedPileup,
-                                         final GenomeLocParser locParser) {
+                                         final GenomeLocParser locParser,
+                                         final Map<String, PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
 
         GenomeLoc loc = ref.getLocus();
 //        if (!ref.getLocus().equals(lastSiteVisited)) {
         if (contextType == AlignmentContextUtils.ReadOrientation.COMPLETE) {
             // starting a new site: clear allele list
-            lastSiteVisited = ref.getLocus();
-            indelLikelihoodMap.set(new HashMap<PileupElement, LinkedHashMap<Allele, Double>>());
             haplotypeMap.clear();
-
+            perReadAlleleLikelihoodMap.clear(); // clean mapping sample-> per read, per allele likelihoods
             alleleList = getInitialAlleleList(tracker, ref, contexts, contextType, locParser, UAC, ignoreSNPAllelesWhenGenotypingIndels);
             if (alleleList.isEmpty())
                 return null;
@@ -130,10 +117,14 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         for (Map.Entry<String, AlignmentContext> sample : contexts.entrySet()) {
             AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
+            if (!perReadAlleleLikelihoodMap.containsKey(sample.getKey())){
+                // no likelihoods have been computed for this sample at this site
+                perReadAlleleLikelihoodMap.put(sample.getKey(), PerReadAlleleLikelihoodMap.getBestAvailablePerReadAlleleLikelihoodMap());
+            }
             final ReadBackedPileup pileup = context.getBasePileup();
             if (pileup != null) {
                 final GenotypeBuilder b = new GenotypeBuilder(sample.getKey());
-                final double[] genotypeLikelihoods = pairModel.computeDiploidReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
+                final double[] genotypeLikelihoods = pairModel.computeDiploidReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, perReadAlleleLikelihoodMap.get(sample.getKey()), UAC.CONTAMINATION_FRACTION, UAC.contaminationLog);
                 b.PL(genotypeLikelihoods);
                 b.DP(getFilteredDepth(pileup));
                 genotypes.add(b.make());
@@ -148,10 +139,6 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         }
 
         return builder.genotypes(genotypes).make();
-    }
-
-    public static HashMap<PileupElement, LinkedHashMap<Allele, Double>> getIndelLikelihoodMap() {
-        return indelLikelihoodMap.get();
     }
 
     public static void getHaplotypeMapFromAlleles(final List<Allele> alleleList,
@@ -245,7 +232,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         int count = 0;
         for (PileupElement p : pileup) {
             if (p.isDeletion() || p.isInsertionAtBeginningOfRead() || BaseUtils.isRegularBase(p.getBase()))
-                count++;
+                count += p.getRepresentativeCount();
         }
 
         return count;

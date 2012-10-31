@@ -100,8 +100,8 @@ public class RecalDatumUnitTest extends BaseTest {
     }
 
     private static void assertBasicFeaturesOfRecalDatum(final RecalDatum datum, final RecalDatumTestProvider cfg) {
-        Assert.assertEquals(datum.getNumMismatches(), cfg.exError);
-        Assert.assertEquals(datum.getNumObservations(), cfg.exTotal);
+        Assert.assertEquals(datum.getNumMismatches(), cfg.exError, 1E-6);
+        Assert.assertEquals(datum.getNumObservations(), cfg.exTotal, 1E-6);
         if ( cfg.getReportedQual() != -1 )
             Assert.assertEquals(datum.getEstimatedQReportedAsByte(), cfg.getReportedQual());
         BaseTest.assertEqualsDoubleSmart(datum.getEmpiricalQuality(), cfg.getErrorRatePhredScaled());

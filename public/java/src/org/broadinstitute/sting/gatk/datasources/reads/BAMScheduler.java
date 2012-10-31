@@ -124,7 +124,24 @@ public class BAMScheduler implements Iterator<FilePointer> {
      */
     private FilePointer generatePointerOverEntireFileset() {
         FilePointer filePointer = new FilePointer();
-        Map<SAMReaderID,GATKBAMFileSpan> currentPosition = dataSource.getCurrentPosition();
+
+        // This is a "monolithic" FilePointer representing all regions in all files we will ever visit, and is
+        // the only FilePointer we will create. This allows us to have this FilePointer represent regions from
+        // multiple contigs
+        filePointer.setIsMonolithic(true);
+
+        Map<SAMReaderID,GATKBAMFileSpan> currentPosition;
+
+        // Only use the deprecated SAMDataSource.getCurrentPosition() if we're not using experimental downsampling
+        // TODO: clean this up once the experimental downsampling engine fork collapses
+        if ( dataSource.getReadsInfo().getDownsamplingMethod() != null && dataSource.getReadsInfo().getDownsamplingMethod().useExperimentalDownsampling ) {
+            currentPosition = dataSource.getInitialReaderPositions();
+        }
+        else {
+            currentPosition = dataSource.getCurrentPosition();
+
+        }
+
         for(SAMReaderID reader: dataSource.getReaderIDs())
             filePointer.addFileSpans(reader,createSpanToEndOfFile(currentPosition.get(reader).getGATKChunks().get(0).getChunkStart()));
         return filePointer;

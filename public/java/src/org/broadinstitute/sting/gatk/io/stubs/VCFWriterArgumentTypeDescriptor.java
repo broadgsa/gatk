@@ -138,8 +138,8 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Type type, ArgumentMatches matches )  {
         ArgumentDefinition defaultArgumentDefinition = createDefaultArgumentDefinition(source);
         // Get the filename for the genotype file, if it exists.  If not, we'll need to send output to out.
-        String writerFileName = getArgumentValue(defaultArgumentDefinition,matches);
-        File writerFile = writerFileName != null ? new File(writerFileName) : null;
+        ArgumentMatchValue writerFileName = getArgumentValue(defaultArgumentDefinition,matches);
+        File writerFile = writerFileName != null ? writerFileName.asFile() : null;
 
         // This parser has been passed a null filename and the GATK is not responsible for creating a type default for the object;
         // therefore, the user must have failed to specify a type default
@@ -151,7 +151,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 ? new VariantContextWriterStub(engine, writerFile, argumentSources)
                 : new VariantContextWriterStub(engine, defaultOutputStream, argumentSources);
 
-        stub.setCompressed(isCompressed(writerFileName));
+        stub.setCompressed(isCompressed(writerFileName == null ? null: writerFileName.asString()));
         stub.setDoNotWriteGenotypes(argumentIsPresent(createSitesOnlyArgumentDefinition(),matches));
         stub.setSkipWritingCommandLineHeader(argumentIsPresent(createNoCommandLineHeaderArgumentDefinition(),matches));
         stub.setForceBCF(argumentIsPresent(createBCFArgumentDefinition(),matches));

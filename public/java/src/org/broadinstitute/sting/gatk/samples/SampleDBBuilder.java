@@ -135,9 +135,8 @@ public class SampleDBBuilder {
     // --------------------------------------------------------------------------------
 
     protected final void validate() {
-        if ( validationStrictness == PedigreeValidationType.SILENT )
-            return;
-        else {
+        validatePedigreeIDUniqueness();
+        if ( validationStrictness != PedigreeValidationType.SILENT ) {
             // check that samples in data sources are all annotated, if anything is annotated
             if ( ! samplesFromPedigrees.isEmpty() && ! samplesFromDataSources.isEmpty() ) {
                 final Set<String> sampleNamesFromPedigrees = new HashSet<String>();
@@ -149,5 +148,13 @@ public class SampleDBBuilder {
                         throw new UserException("Sample " + dsSample.getID() + " found in data sources but not in pedigree files with STRICT pedigree validation");
             }
         }
+    }
+
+    private void validatePedigreeIDUniqueness() {
+        Set<String> pedigreeIDs = new HashSet<String>();
+        for ( Sample sample : samplesFromPedigrees ) {
+            pedigreeIDs.add(sample.getID());
+        }
+        assert pedigreeIDs.size() == samplesFromPedigrees.size() : "The number of sample IDs extracted from the pedigree does not equal the number of samples in the pedigree. Is a sample associated with multiple families?";
     }
 }

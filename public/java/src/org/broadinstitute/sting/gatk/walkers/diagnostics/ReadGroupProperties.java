@@ -29,7 +29,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -140,7 +140,7 @@ public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
     }
 
     @Override
-    public Integer map(ReferenceContext referenceContext, GATKSAMRecord read, ReadMetaDataTracker readMetaDataTracker) {
+    public Integer map(ReferenceContext referenceContext, GATKSAMRecord read, RefMetaDataTracker RefMetaDataTracker) {
         final String rgID = read.getReadGroup().getId();
         final PerReadGroupInfo info = readGroupInfo.get(rgID);
 

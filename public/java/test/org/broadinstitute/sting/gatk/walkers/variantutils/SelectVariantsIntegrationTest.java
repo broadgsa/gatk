@@ -20,7 +20,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
                         + b37hapmapGenotypes + " -disc " + testFile
                         + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
                 1,
-                Arrays.asList("d88bdae45ae0e74e8d8fd196627e612c")
+                Arrays.asList("954415f84996d27b07d00855e96d33a2")
         );
         spec.disableShadowBCF();
 
@@ -49,7 +49,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
                         + b37hapmapGenotypes + " -disc " + testFile
                         + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
                 1,
-                Arrays.asList("c0b937edb6a8b6392d477511d4f1ebcf")
+                Arrays.asList("ca1b5226eaeaffb78d4abd9d2ee10c43")
         );
         spec.disableShadowBCF();
 
@@ -68,6 +68,20 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         );
         spec.disableShadowBCF();
         executeTest("testComplexSelection--" + testfile, spec);
+    }
+
+    @Test
+    public void testComplexSelectionWithNonExistingSamples() {
+        String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
+        String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString(" --ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES -sn A -se '[CDH]' -sn Z -sn T -sf " + samplesFile + " -env -ef -select 'DP < 250' --variant " + testfile),
+                1,
+                Arrays.asList("4386fbb258dcef4437495a37f5a83c53")
+        );
+        spec.disableShadowBCF();
+        executeTest("testComplexSelectionWithNonExistingSamples--" + testfile, spec);
     }
 
     @Test
@@ -96,6 +110,21 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         spec.disableShadowBCF();
 
         executeTest("testSampleExclusion--" + testfile, spec);
+    }
+
+    @Test
+    public void testSampleInclusionWithNonexistingSamples() {
+        String testfile = validationDataLocation + "test.filtered.maf_annotated.vcf";
+        String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b36KGReference + " -L 1:1-1000000 -o %s --no_cmdline_in_header -sn A -sn Z -sn Q -sf " + samplesFile + " --variant " + testfile,
+                1,
+                UserException.BadInput.class
+        );
+        spec.disableShadowBCF();
+
+        executeTest("testSampleInclusionWithNonexistingSamples--" + testfile, spec);
     }
 
 
@@ -129,6 +158,19 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testIndelLengthSelection() {
+        String testFile = privateTestDir + "complexExample1.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T SelectVariants -R " + b36KGReference + " -selectType INDEL --variant " + testFile + " -o %s --no_cmdline_in_header --maxIndelSize 3",
+                1,
+                Arrays.asList("004589868ca5dc887e2dff876b4cc797")
+        );
+
+        executeTest("testIndelLengthSelection--" + testFile, spec);
+    }
+
+    @Test
     public void testUsingDbsnpName() {
         String testFile = privateTestDir + "combine.3.vcf";
 
@@ -148,7 +190,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -regenotype -sn NA12892 --variant " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("52cb2f150559ca1457e9df7ec153dbb4")
+                Arrays.asList("46ff472fc7ef6734ad01170028d5924a")
         );
 
         executeTest("testRegenotype--" + testFile, spec);
@@ -174,7 +216,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b36KGReference + " -regenotype -sn NA12892 --variant " + testFile + " -o %s --no_cmdline_in_header",
                 1,
-                Arrays.asList("52cb2f150559ca1457e9df7ec153dbb4")
+                Arrays.asList("46ff472fc7ef6734ad01170028d5924a")
         );
 
         executeTest("testRemoveMLEAndRegenotype--" + testFile, spec);
@@ -213,7 +255,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + b37KGReference + " -o %s --no_cmdline_in_header -sf " + samplesFile + " --excludeNonVariants --variant " + testfile,
                 1,
-                Arrays.asList("3ab35d5e81a29fb5db3e2add11c7e823")
+                Arrays.asList("f14d75892b99547d8e9ba3a03bfb04ea")
         );
         executeTest("test select from multi allelic with excludeNonVariants --" + testfile, spec);
     }

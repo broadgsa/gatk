@@ -25,9 +25,14 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.help.GATKDocUtils;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Manage filters and filter options.  Any requests for basic filtering classes
@@ -53,5 +58,40 @@ public class FilterManager extends PluginManager<ReadFilter> {
 
     public Collection<Class<? extends ReadFilter>> getValues() {
         return this.getPlugins();
+    }
+
+    /**
+     * Rather than use the default error message, print out a list of read filters as well.
+     * @param pluginCategory - string, the category of the plugin (e.g. read filter)
+     * @param pluginName - string, what we were trying to match (but failed to)
+     * @return - A wall of text with the default message, followed by a listing of available read filters
+     */
+    @Override
+    protected String formatErrorMessage(String pluginCategory, String pluginName) {
+        List<Class<? extends ReadFilter>> availableFilters = this.getPluginsImplementing(ReadFilter.class);
+
+
+        return String.format("Read filter %s not found. Available read filters:%n%n%s%n%n%s",pluginName,
+                userFriendlyListofReadFilters(availableFilters),
+                "Please consult the GATK Documentation (http://www.broadinstitute.org/gatk/gatkdocs/) for more information.");
+    }
+
+    private String userFriendlyListofReadFilters(List<Class<? extends ReadFilter>> filters) {
+        final String headName = "FilterName", headDoc = "Documentation";
+        int longestNameLength = -1;
+        for ( Class < ? extends ReadFilter> filter : filters ) {
+            longestNameLength = Math.max(longestNameLength,this.getName(filter).length());
+        }
+        String format = "   %"+longestNameLength+"s        %s%n";
+
+        StringBuilder listBuilder = new StringBuilder();
+        listBuilder.append(String.format(format,headName,headDoc));
+        for ( Class<? extends ReadFilter> filter : filters ) {
+            String helpLink = GATKDocUtils.helpLinksToGATKDocs(filter);
+            String filterName = this.getName(filter);
+            listBuilder.append(String.format(format,filterName,helpLink));
+        }
+
+        return listBuilder.toString();
     }
 }

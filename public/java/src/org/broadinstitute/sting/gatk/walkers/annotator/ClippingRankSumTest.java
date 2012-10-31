@@ -1,10 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
-import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -18,74 +16,36 @@ import java.util.*;
  * Date: 6/28/12
  */
 
+/**
+ * The u-based z-approximation from the Mann-Whitney Rank Sum Test for reads with clipped bases (reads with ref bases vs. those with the alternate allele)
+ * Note that the clipping rank sum test can not be calculated for sites without a mixture of reads showing both the reference and alternate alleles.
+ */
 public class ClippingRankSumTest extends RankSumTest {
 
     public List<String> getKeyNames() { return Arrays.asList("ClippingRankSum"); }
 
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("ClippingRankSum", 1, VCFHeaderLineType.Float, "Z-score From Wilcoxon rank sum test of Alt vs. Ref number of hard clipped bases")); }
 
-    protected void fillQualsFromPileup(byte ref, List<Byte> alts, ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
-        return;
-        // This working implementation below needs to be tested for the UG pipeline
-        /*
-        for ( final PileupElement p : pileup ) {
-            if ( isUsableBase(p) ) {
-                if ( p.getBase() == ref ) {
-                    refQuals.add((double)AlignmentUtils.getNumHardClippedBases(p.getRead()));
-                } else if ( alts.contains(p.getBase()) ) {
-                    altQuals.add((double)AlignmentUtils.getNumHardClippedBases(p.getRead()));
-                }
-            }
-        }
-        */
-    }
 
-    protected void fillQualsFromPileup(final Allele ref, final List<Allele> alts, final int refLoc, final Map<Allele, List<GATKSAMRecord>> stratifiedContext, final List<Double> refQuals, final List<Double> altQuals) {
-        for ( final Map.Entry<Allele, List<GATKSAMRecord>> alleleBin : stratifiedContext.entrySet() ) {
-            final boolean matchesRef = ref.equals(alleleBin.getKey());
-            final boolean matchesAlt = alts.contains(alleleBin.getKey());
-            if ( !matchesRef && !matchesAlt )
-                continue;
+    protected void fillQualsFromPileup(final List<Allele> allAlleles,
+                                       final int refLoc,
+                                       final ReadBackedPileup pileup,
+                                       final PerReadAlleleLikelihoodMap likelihoodMap, final List<Double> refQuals, final List<Double> altQuals) {
+        // todo - only support non-pileup case for now, e.g. active-region based version
+        if (pileup != null || likelihoodMap == null)
+            return;
 
-            for ( final GATKSAMRecord read : alleleBin.getValue() ) {
-                if ( matchesRef )
-                    refQuals.add((double)AlignmentUtils.getNumHardClippedBases(read));
-                else
-                    altQuals.add((double)AlignmentUtils.getNumHardClippedBases(read));
-            }
+        for (Map.Entry<GATKSAMRecord,Map<Allele,Double>> el : likelihoodMap.getLikelihoodReadMap().entrySet()) {
+
+            final Allele a = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue());
+            if (a.isNoCall())
+                continue; // read is non-informative
+            if (a.isReference())
+                refQuals.add((double)AlignmentUtils.getNumHardClippedBases(el.getKey()));
+            else if (allAlleles.contains(a))
+                altQuals.add((double)AlignmentUtils.getNumHardClippedBases(el.getKey()));
+
         }
     }
 
-    protected void fillIndelQualsFromPileup(ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals) {
-        return;
-        // This working implementation below needs to be tested for the UG pipeline
-
-        /*
-        // equivalent is whether indel likelihoods for reads corresponding to ref allele are more likely than reads corresponding to alt allele ?
-        HashMap<PileupElement,LinkedHashMap<Allele,Double>> indelLikelihoodMap = IndelGenotypeLikelihoodsCalculationModel.getIndelLikelihoodMap();
-        for (final PileupElement p: pileup) {
-            if (indelLikelihoodMap.containsKey(p) && p.getMappingQual() != 0 && p.getMappingQual() != QualityUtils.MAPPING_QUALITY_UNAVAILABLE) {
-                // retrieve likelihood information corresponding to this read
-                LinkedHashMap<Allele,Double> el = indelLikelihoodMap.get(p);
-                // by design, first element in LinkedHashMap was ref allele
-                double refLikelihood=0.0, altLikelihood=Double.NEGATIVE_INFINITY;
-
-                for (Allele a : el.keySet()) {
-
-                    if (a.isReference())
-                        refLikelihood =el.get(a);
-                    else {
-                        double like = el.get(a);
-                        if (like >= altLikelihood)
-                            altLikelihood = like;
-                    }
-                }
-                if (refLikelihood > altLikelihood + INDEL_LIKELIHOOD_THRESH)
-                    refQuals.add((double)AlignmentUtils.getNumHardClippedBases(p.getRead()));
-                else if (altLikelihood > refLikelihood + INDEL_LIKELIHOOD_THRESH)
-                    altQuals.add((double)AlignmentUtils.getNumHardClippedBases(p.getRead()));
-            }
-        }
-        */
-    }
-}
+ }

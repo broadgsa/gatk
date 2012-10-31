@@ -62,7 +62,7 @@ public @interface Argument {
      * --help argument is specified. 
      * @return Doc string associated with this command-line argument.
      */
-    String doc();
+    String doc() default "Undocumented option";
 
     /**
      * Is this argument required.  If true, the command-line argument system will

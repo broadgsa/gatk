@@ -36,7 +36,7 @@ import java.util.*;
  * <ul>
  *     <li>In parent/child pairs: If an individual genotype is missing at one site, the other one is phased if it is homozygous. No phasing probability is emitted.</li>
  *     <li>In trios: If the child is missing, parents are treated as separate individuals and phased if homozygous. No phasing probability is emitted.</li>
- *     <li>In trios: If one of the parents is missing, it is handled like a parent/child pair. Phasing is done unless both the parent and child are heterozygous and a phasing probabilitt is emitted.</li>
+ *     <li>In trios: If one of the parents is missing, it is handled like a parent/child pair. Phasing is done unless both the parent and child are heterozygous and a phasing probability is emitted.</li>
  *     <li>In trios: If two individuals are missing, the remaining individual is phased if it is homozygous. No phasing probability is emitted.</li>
  * </ul>
  *
@@ -541,7 +541,7 @@ public class PhaseByTransmission extends RodWalker<HashMap<Byte,Integer>, HashMa
     //Get a Map of genotype likelihoods.
     //In case of null, unavailable or no call, all likelihoods are 1/3.
     private EnumMap<GenotypeType,Double> getLikelihoodsAsMapSafeNull(Genotype genotype){
-        if(genotype == null || !genotype.isCalled()){
+        if(genotype == null || !genotype.isCalled() || genotype.getLikelihoods() == null){
             EnumMap<GenotypeType,Double> likelihoods = new EnumMap<GenotypeType, Double>(GenotypeType.class);
             likelihoods.put(GenotypeType.HOM_REF,1.0/3.0);
             likelihoods.put(GenotypeType.HET,1.0/3.0);

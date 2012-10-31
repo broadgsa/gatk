@@ -277,6 +277,30 @@ public class ArtificialSAMUtils {
     }
 
     /**
+     * Create a collection of identical artificial reads based on the parameters.  The cigar string for each
+     * read will be *M, where * is the length of the read.
+     *
+     * Useful for testing things like positional downsampling where you care only about the position and
+     * number of reads, and not the other attributes.
+     *
+     * @param stackSize      number of identical reads to create
+     * @param header         the SAM header to associate each read with
+     * @param name           name associated with each read
+     * @param refIndex       the reference index, i.e. what chromosome to associate them with
+     * @param alignmentStart where to start each alignment
+     * @param length         the length of each read
+     *
+     * @return a collection of stackSize reads all sharing the above properties
+     */
+    public static Collection<GATKSAMRecord> createStackOfIdenticalArtificialReads( int stackSize, SAMFileHeader header, String name, int refIndex, int alignmentStart, int length ) {
+        Collection<GATKSAMRecord> stack = new ArrayList<GATKSAMRecord>(stackSize);
+        for ( int i = 1; i <= stackSize; i++ ) {
+            stack.add(createArtificialRead(header, name, refIndex, alignmentStart, length));
+        }
+        return stack;
+    }
+
+    /**
      * create an iterator containing the specified read piles
      *
      * @param startingChr the chromosome (reference ID) to start from

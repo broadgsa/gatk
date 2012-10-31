@@ -263,14 +263,14 @@ public class RecalDatumNode<T extends RecalDatum> {
             int i = 0;
             for ( final RecalDatumNode<T> subnode : subnodes ) {
                 // use the yates correction to help avoid all zeros => NaN
-                counts[i][0] = subnode.getRecalDatum().getNumMismatches() + 1;
-                counts[i][1] = subnode.getRecalDatum().getNumObservations() + 2;
+                counts[i][0] = Math.round(subnode.getRecalDatum().getNumMismatches()) + 1L;
+                counts[i][1] = Math.round(subnode.getRecalDatum().getNumObservations()) + 2L;
                 i++;
             }
 
             try {
                 final double chi2PValue = new ChiSquareTestImpl().chiSquareTest(counts);
-                final double penalty = -10 * Math.log10(Math.max(chi2PValue, SMALLEST_CHI2_PVALUE));
+                final double penalty = -10.0 * Math.log10(Math.max(chi2PValue, SMALLEST_CHI2_PVALUE));
 
                 // make sure things are reasonable and fail early if not
                 if (Double.isInfinite(penalty) || Double.isNaN(penalty))

@@ -10,9 +10,12 @@ import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
+import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.traversals.TraverseActiveRegions;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import java.util.Collection;
 
@@ -33,8 +36,16 @@ public class LinearMicroScheduler extends MicroScheduler {
      * @param reference Reference for driving the traversal.
      * @param rods      Reference-ordered data.
      */
-    protected LinearMicroScheduler(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods ) {
-        super(engine, walker, reads, reference, rods);
+    protected LinearMicroScheduler(final GenomeAnalysisEngine engine,
+                                   final Walker walker,
+                                   final SAMDataSource reads,
+                                   final IndexedFastaSequenceFile reference,
+                                   final Collection<ReferenceOrderedDataSource> rods,
+                                   final ThreadAllocation threadAllocation) {
+        super(engine, walker, reads, reference, rods, threadAllocation);
+
+        if ( threadAllocation.monitorThreadEfficiency() )
+            setThreadEfficiencyMonitor(new ThreadEfficiencyMonitor());
     }
 
     /**
@@ -49,11 +60,12 @@ public class LinearMicroScheduler extends MicroScheduler {
 
         boolean done = walker.isDone();
         int counter = 0;
+
+        final TraversalEngine traversalEngine = borrowTraversalEngine(this);
         for (Shard shard : shardStrategy ) {
-            if ( done || shard == null ) // we ran out of shards that aren't owned
+            if ( abortExecution() || done || shard == null ) // we ran out of shards that aren't owned
                 break;
 
-            traversalEngine.startTimersIfNecessary();
             if(shard.getShardType() == Shard.ShardType.LOCUS) {
                 WindowMaker windowMaker = new WindowMaker(shard, engine.getGenomeLocParser(),
                         getReadIterator(shard), shard.getGenomeLocs(), SampleUtils.getSAMFileSamples(engine));
@@ -84,10 +96,10 @@ public class LinearMicroScheduler extends MicroScheduler {
                 
         Object result = accumulator.finishTraversal();
 
-        printOnTraversalDone(result);
-
         outputTracker.close();
+        returnTraversalEngine(this, traversalEngine);
         cleanup();
+        executionIsDone();
 
         return accumulator;
     }

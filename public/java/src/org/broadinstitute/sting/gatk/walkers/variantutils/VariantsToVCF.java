@@ -160,7 +160,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
                         Map<String, Allele> alleleMap = new HashMap<String, Allele>(2);
                         alleleMap.put(RawHapMapFeature.DELETION, Allele.create(ref.getBase(), dbsnpVC.isSimpleInsertion()));
-                        alleleMap.put(RawHapMapFeature.INSERTION, Allele.create(ref.getBase() + ((RawHapMapFeature)record).getAlleles()[1], !dbsnpVC.isSimpleInsertion()));
+                        alleleMap.put(RawHapMapFeature.INSERTION, Allele.create((char)ref.getBase() + ((RawHapMapFeature)record).getAlleles()[1], !dbsnpVC.isSimpleInsertion()));
                         hapmap.setActualAlleles(alleleMap);
 
                         // also, use the correct positioning for insertions
@@ -246,7 +246,6 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         }
 
         vc = VariantContextUtils.purgeUnallowedGenotypeAttributes(vc, allowedGenotypeFormatStrings);
-        vc = VariantContextUtils.addMissingSamples(vc, samples);
         vcfwriter.add(vc);
     }
 

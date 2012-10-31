@@ -42,52 +42,33 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
     protected RecalibrationTables recalibrationTables;
 
     public void initialize(final Covariate[] covariates, final RecalibrationTables recalibrationTables) {
-        this.covariates = covariates;
+        this.covariates = covariates.clone();
         this.recalibrationTables = recalibrationTables;
     }
 
-    /**
-     * Loop through the list of requested covariates and pick out the value from the read, offset, and reference
-     * Using the list of covariate values as a key, pick out the RecalDatum and increment,
-     * adding one to the number of observations and potentially one to the number of mismatches for mismatches only.
-     *
-     * @param pileupElement The pileup element to update
-     * @param refBase       The reference base at this locus
-     */
-    public synchronized void updateDataForPileupElement(final PileupElement pileupElement, final byte refBase) {
-        final int offset = pileupElement.getOffset();
-        final ReadCovariates readCovariates = covariateKeySetFrom(pileupElement.getRead());
+    @Override
+    public void updateDataForRead( final GATKSAMRecord read, final boolean[] skip, final double[] snpErrors, final double[] insertionErrors, final double[] deletionErrors ) {
+        for( int offset = 0; offset < read.getReadBases().length; offset++ ) {
+            if( !skip[offset] ) {
+                final ReadCovariates readCovariates = covariateKeySetFrom(read);
 
-        final byte qual = pileupElement.getQual();
-        final boolean isError = !BaseUtils.basesAreEqual(pileupElement.getBase(), refBase);
+                final byte qual = read.getBaseQualities()[offset];
+                final double isError = snpErrors[offset];
 
-        final int[] keys = readCovariates.getKeySet(offset, EventType.BASE_SUBSTITUTION);
-        final int eventIndex = EventType.BASE_SUBSTITUTION.index;
+                final int[] keys = readCovariates.getKeySet(offset, EventType.BASE_SUBSTITUTION);
+                final int eventIndex = EventType.BASE_SUBSTITUTION.index;
 
-        final NestedIntegerArray<RecalDatum> rgRecalTable = recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE);
-        final RecalDatum rgPreviousDatum = rgRecalTable.get(keys[0], eventIndex);
-        final RecalDatum rgThisDatum = createDatumObject(qual, isError);
-        if (rgPreviousDatum == null)                                                                                // key doesn't exist yet in the map so make a new bucket and add it
-            rgRecalTable.put(rgThisDatum, keys[0], eventIndex);
-        else
-            rgPreviousDatum.combine(rgThisDatum);
+                combineDatumOrPutIfNecessary(recalibrationTables.getReadGroupTable(), qual, isError, keys[0], eventIndex);
 
-        final NestedIntegerArray<RecalDatum> qualRecalTable = recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE);
-        final RecalDatum qualPreviousDatum = qualRecalTable.get(keys[0], keys[1], eventIndex);
-        if (qualPreviousDatum == null)
-            qualRecalTable.put(createDatumObject(qual, isError), keys[0], keys[1], eventIndex);
-        else
-            qualPreviousDatum.increment(isError);
+                incrementDatumOrPutIfNecessary(recalibrationTables.getQualityScoreTable(), qual, isError, keys[0], keys[1], eventIndex);
 
-        for (int i = 2; i < covariates.length; i++) {
-            if (keys[i] < 0)
-                continue;
-            final NestedIntegerArray<RecalDatum> covRecalTable = recalibrationTables.getTable(i);
-            final RecalDatum covPreviousDatum = covRecalTable.get(keys[0], keys[1], keys[i], eventIndex);
-            if (covPreviousDatum == null)
-                covRecalTable.put(createDatumObject(qual, isError), keys[0], keys[1], keys[i], eventIndex);
-            else
-                covPreviousDatum.increment(isError);
+                for (int i = 2; i < covariates.length; i++) {
+                    if (keys[i] < 0)
+                        continue;
+
+                    incrementDatumOrPutIfNecessary(recalibrationTables.getTable(i), qual, isError, keys[0], keys[1], keys[i], eventIndex);
+                }
+            }
         }
     }
 
@@ -98,8 +79,8 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
      * @param isError       whether or not the observation is an error
      * @return a new RecalDatum object with the observation and the error
      */
-    protected RecalDatum createDatumObject(final byte reportedQual, final boolean isError) {
-        return new RecalDatum(1, isError ? 1:0, reportedQual);
+    protected RecalDatum createDatumObject(final byte reportedQual, final double isError) {
+        return new RecalDatum(1, isError, reportedQual);
     }
 
     /**
@@ -110,5 +91,64 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
      */
     protected ReadCovariates covariateKeySetFrom(GATKSAMRecord read) {
         return (ReadCovariates) read.getTemporaryAttribute(BaseRecalibrator.COVARS_ATTRIBUTE);
+    }
+
+    /**
+     * Increments the RecalDatum at the specified position in the specified table, or put a new item there
+     * if there isn't already one.
+     *
+     * Does this in a thread-safe way WITHOUT being synchronized: relies on the behavior of NestedIntegerArray.put()
+     * to return false if another thread inserts a new item at our position in the middle of our put operation.
+     *
+     * @param table the table that holds/will hold our item
+     * @param qual qual for this event
+     * @param isError error value for this event
+     * @param keys location in table of our item
+     */
+    protected void incrementDatumOrPutIfNecessary( final NestedIntegerArray<RecalDatum> table, final byte qual, final double isError, final int... keys ) {
+        final RecalDatum existingDatum = table.get(keys);
+
+        if ( existingDatum == null ) {
+            // No existing item, try to put a new one
+            if ( ! table.put(createDatumObject(qual, isError), keys) ) {
+                // Failed to put a new item because another thread came along and put an item here first.
+                // Get the newly-put item and increment it (item is guaranteed to exist at this point)
+                table.get(keys).increment(1.0, isError);
+            }
+        }
+        else {
+            // Easy case: already an item here, so increment it
+            existingDatum.increment(1.0, isError);
+        }
+    }
+
+    /**
+     * Combines the RecalDatum at the specified position in the specified table with a new RecalDatum, or put a
+     * new item there if there isn't already one.
+     *
+     * Does this in a thread-safe way WITHOUT being synchronized: relies on the behavior of NestedIntegerArray.put()
+     * to return false if another thread inserts a new item at our position in the middle of our put operation.
+     *
+     * @param table the table that holds/will hold our item
+     * @param qual qual for this event
+     * @param isError error value for this event
+     * @param keys location in table of our item
+     */
+    protected void combineDatumOrPutIfNecessary( final NestedIntegerArray<RecalDatum> table, final byte qual, final double isError, final int... keys ) {
+        final RecalDatum existingDatum = table.get(keys);
+        final RecalDatum newDatum = createDatumObject(qual, isError);
+
+        if ( existingDatum == null ) {
+            // No existing item, try to put a new one
+            if ( ! table.put(newDatum, keys) ) {
+                // Failed to put a new item because another thread came along and put an item here first.
+                // Get the newly-put item and combine it with our item (item is guaranteed to exist at this point)
+                table.get(keys).combine(newDatum);
+            }
+        }
+        else {
+            // Easy case: already an item here, so combine it with our item
+            existingDatum.combine(newDatum);
+        }
     }
 }

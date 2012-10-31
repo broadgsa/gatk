@@ -236,6 +236,33 @@ public class Utils {
         }
     }
 
+    public static <T> List<T> append(final List<T> left, T ... elts) {
+        final List<T> l = new LinkedList<T>(left);
+        l.addAll(Arrays.asList(elts));
+        return l;
+    }
+
+    /**
+     * Returns a string of the values in joined by separator, such as A,B,C
+     *
+     * @param separator
+     * @param doubles
+     * @return
+     */
+    public static String join(String separator, double[] doubles) {
+        if ( doubles == null || doubles.length == 0)
+            return "";
+        else {
+            StringBuilder ret = new StringBuilder();
+            ret.append(doubles[0]);
+            for (int i = 1; i < doubles.length; ++i) {
+                ret.append(separator);
+                ret.append(doubles[i]);
+            }
+            return ret.toString();
+        }
+    }
+
     /**
      * Returns a string of the form elt1.toString() [sep elt2.toString() ... sep elt.toString()] for a collection of
      * elti objects (note there's no actual space between sep and the elti elements).  Returns
@@ -810,4 +837,25 @@ public class Utils {
         return Collections.unmodifiableMap(map);
     }
 
+    /**
+     * Divides the input list into a list of sublists, which contains group size elements (except potentially the last one)
+     *
+     * list = [A, B, C, D, E]
+     * groupSize = 2
+     * result = [[A, B], [C, D], [E]]
+     *
+     * @param list
+     * @param groupSize
+     * @return
+     */
+    public static <T> List<List<T>> groupList(final List<T> list, final int groupSize) {
+        if ( groupSize < 1 ) throw new IllegalArgumentException("groupSize >= 1");
+
+        final List<List<T>> subLists = new LinkedList<List<T>>();
+        int n = list.size();
+        for ( int i = 0; i < n; i += groupSize ) {
+            subLists.add(list.subList(i, Math.min(i + groupSize, n)));
+        }
+        return subLists;
+    }
 }

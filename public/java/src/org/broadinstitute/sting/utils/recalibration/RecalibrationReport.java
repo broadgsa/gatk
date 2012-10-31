@@ -2,11 +2,12 @@ package org.broadinstitute.sting.utils.recalibration;
 
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
-import org.broadinstitute.sting.gatk.walkers.bqsr.*;
-import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -19,13 +20,13 @@ import java.util.*;
  * @since 3/26/12
  */
 public class RecalibrationReport {
-    private QuantizationInfo quantizationInfo;                                                                          // histogram containing the counts for qual quantization (calculated after recalibration is done)
-    private final RecalibrationTables recalibrationTables;                                                              // quick access reference to the tables
-    private final Covariate[] requestedCovariates;                                                                      // list of all covariates to be used in this calculation
+    private QuantizationInfo quantizationInfo; // histogram containing the counts for qual quantization (calculated after recalibration is done)
+    private final RecalibrationTables recalibrationTables; // quick access reference to the tables
+    private final Covariate[] requestedCovariates; // list of all covariates to be used in this calculation
     private final HashMap<String, Integer> optionalCovariateIndexes;
 
-    private final GATKReportTable argumentTable;                                                                              // keep the argument table untouched just for output purposes
-    private final RecalibrationArgumentCollection RAC;                                                                        // necessary for quantizing qualities with the same parameter
+    private final GATKReportTable argumentTable; // keep the argument table untouched just for output purposes
+    private final RecalibrationArgumentCollection RAC; // necessary for quantizing qualities with the same parameter
 
     private final int[] tempRGarray = new int[2];
     private final int[] tempQUALarray = new int[3];
@@ -40,7 +41,7 @@ public class RecalibrationReport {
         GATKReportTable quantizedTable = report.getTable(RecalUtils.QUANTIZED_REPORT_TABLE_TITLE);
         quantizationInfo = initializeQuantizationTable(quantizedTable);
 
-        Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalUtils.initializeCovariates(RAC);       // initialize the required and optional covariates
+        Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalUtils.initializeCovariates(RAC); // initialize the required and optional covariates
         ArrayList<Covariate> requiredCovariates = covariates.getFirst();
         ArrayList<Covariate> optionalCovariates = covariates.getSecond();
         requestedCovariates = new Covariate[requiredCovariates.size() + optionalCovariates.size()];
@@ -50,19 +51,19 @@ public class RecalibrationReport {
             requestedCovariates[covariateIndex++] = covariate;
         for (final Covariate covariate : optionalCovariates) {
             requestedCovariates[covariateIndex] = covariate;
-            final String covariateName = covariate.getClass().getSimpleName().split("Covariate")[0];                    // get the name of the covariate (without the "covariate" part of it) so we can match with the GATKReport
+            final String covariateName = covariate.getClass().getSimpleName().split("Covariate")[0]; // get the name of the covariate (without the "covariate" part of it) so we can match with the GATKReport
             optionalCovariateIndexes.put(covariateName, covariateIndex-2);
             covariateIndex++;
         }
 
         for (Covariate cov : requestedCovariates)
-            cov.initialize(RAC);                                                                                        // initialize any covariate member variables using the shared argument collection
+            cov.initialize(RAC); // initialize any covariate member variables using the shared argument collection
 
         recalibrationTables = new RecalibrationTables(requestedCovariates, countReadGroups(report.getTable(RecalUtils.READGROUP_REPORT_TABLE_TITLE)));
 
-        parseReadGroupTable(report.getTable(RecalUtils.READGROUP_REPORT_TABLE_TITLE), recalibrationTables.getTable(RecalibrationTables.TableType.READ_GROUP_TABLE));
+        parseReadGroupTable(report.getTable(RecalUtils.READGROUP_REPORT_TABLE_TITLE), recalibrationTables.getReadGroupTable());
 
-        parseQualityScoreTable(report.getTable(RecalUtils.QUALITY_SCORE_REPORT_TABLE_TITLE), recalibrationTables.getTable(RecalibrationTables.TableType.QUALITY_SCORE_TABLE));
+        parseQualityScoreTable(report.getTable(RecalUtils.QUALITY_SCORE_REPORT_TABLE_TITLE), recalibrationTables.getQualityScoreTable());
 
         parseAllCovariatesTable(report.getTable(RecalUtils.ALL_COVARIATES_REPORT_TABLE_TITLE), recalibrationTables);
 
@@ -105,9 +106,9 @@ public class RecalibrationReport {
     */
     public void combine(final RecalibrationReport other) {
 
-        for (RecalibrationTables.TableType type : RecalibrationTables.TableType.values()) {
-            final NestedIntegerArray<RecalDatum> myTable = recalibrationTables.getTable(type);
-            final NestedIntegerArray<RecalDatum> otherTable = other.recalibrationTables.getTable(type);
+        for ( int tableIndex = 0; tableIndex < recalibrationTables.numTables(); tableIndex++ ) {
+            final NestedIntegerArray<RecalDatum> myTable = recalibrationTables.getTable(tableIndex);
+            final NestedIntegerArray<RecalDatum> otherTable = other.recalibrationTables.getTable(tableIndex);
 
             for (final NestedIntegerArray.Leaf row : otherTable.getAllLeaves()) {
                 final RecalDatum myDatum = myTable.get(row.keys);
@@ -193,14 +194,26 @@ public class RecalibrationReport {
         }
     }
 
+    private double asDouble(final Object o) {
+        if ( o instanceof Double )
+            return (Double)o;
+        else if ( o instanceof Integer )
+            return (Integer)o;
+        else if ( o instanceof Long )
+            return (Long)o;
+        else
+            throw new ReviewedStingException("Object " + o + " is expected to be either a double, long or integer but its not either: " + o.getClass());
+    }
+
     private RecalDatum getRecalDatum(final GATKReportTable reportTable, final int row, final boolean hasEstimatedQReportedColumn) {
-        final long nObservations = (Long) reportTable.get(row, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME);
-        final long nErrors = (Long) reportTable.get(row, RecalUtils.NUMBER_ERRORS_COLUMN_NAME);
+        final double nObservations = asDouble(reportTable.get(row, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME));
+        final double nErrors = asDouble(reportTable.get(row, RecalUtils.NUMBER_ERRORS_COLUMN_NAME));
         final double empiricalQuality = (Double) reportTable.get(row, RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME);
 
-        final double estimatedQReported = hasEstimatedQReportedColumn ?                                                 // the estimatedQreported column only exists in the ReadGroup table
-                (Double) reportTable.get(row, RecalUtils.ESTIMATED_Q_REPORTED_COLUMN_NAME) :                      // we get it if we are in the read group table
-                Byte.parseByte((String) reportTable.get(row, RecalUtils.QUALITY_SCORE_COLUMN_NAME));              // or we use the reported quality if we are in any other table
+        // the estimatedQreported column only exists in the ReadGroup table
+        final double estimatedQReported = hasEstimatedQReportedColumn ?
+                (Double) reportTable.get(row, RecalUtils.ESTIMATED_Q_REPORTED_COLUMN_NAME) : // we get it if we are in the read group table
+                Byte.parseByte((String) reportTable.get(row, RecalUtils.QUALITY_SCORE_COLUMN_NAME)); // or we use the reported quality if we are in any other table
 
         final RecalDatum datum = new RecalDatum(nObservations, nErrors, (byte)1);
         datum.setEstimatedQReported(estimatedQReported);
@@ -242,7 +255,7 @@ public class RecalibrationReport {
             final String argument = table.get(i, "Argument").toString();
             Object value = table.get(i, RecalUtils.ARGUMENT_VALUE_COLUMN_NAME);
             if (value.equals("null"))
-                value = null;                                                                                           // generic translation of null values that were printed out as strings | todo -- add this capability to the GATKReport
+                value = null; // generic translation of null values that were printed out as strings | todo -- add this capability to the GATKReport
 
             if (argument.equals("covariate") && value != null)
                 RAC.COVARIATES = value.toString().split(",");
@@ -283,14 +296,11 @@ public class RecalibrationReport {
             else if (argument.equals("quantizing_levels"))
                 RAC.QUANTIZING_LEVELS = Integer.parseInt((String) value);
 
-            else if (argument.equals("keep_intermediate_files"))
-                RAC.KEEP_INTERMEDIATE_FILES = Boolean.parseBoolean((String) value);
-
-            else if (argument.equals("no_plots"))
-                RAC.NO_PLOTS = Boolean.parseBoolean((String) value);
-
             else if (argument.equals("recalibration_report"))
-                RAC.recalibrationReport = (value == null) ? null : new File((String) value);
+                RAC.existingRecalibrationReport = (value == null) ? null : new File((String) value);
+
+            else if (argument.equals("plot_pdf_file"))
+                RAC.RECAL_PDF_FILE = (value == null) ? null : new File((String) value);
 
             else if (argument.equals("binary_tag_name"))
                 RAC.BINARY_TAG_NAME = (value == null) ? null : (String) value;

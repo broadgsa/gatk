@@ -2,8 +2,9 @@ package org.broadinstitute.sting.gatk.walkers.qc;
 
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
+import org.broadinstitute.sting.gatk.walkers.NanoSchedulable;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
@@ -32,7 +33,6 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
  *   -T CountReads \
- *   -o output.txt \
  *   -I input.bam \
  *   [-L input.intervals]
  * </pre>
@@ -40,15 +40,11 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  */
 @DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
-public class CountReads extends ReadWalker<Integer, Integer> {
-    public Integer map(ReferenceContext ref, GATKSAMRecord read, ReadMetaDataTracker tracker) {
-
+public class CountReads extends ReadWalker<Integer, Integer> implements NanoSchedulable {
+    public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {
         return 1;
     }
 
-    public Integer reduceInit() { return 0; }
-
-    public Integer reduce(Integer value, Integer sum) {
-        return value + sum;
-    }
+    @Override public Integer reduceInit() { return 0; }
+    @Override public Integer reduce(Integer value, Integer sum) { return value + sum; }
 }

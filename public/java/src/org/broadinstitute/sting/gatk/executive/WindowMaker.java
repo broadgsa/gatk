@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
+import org.broadinstitute.sting.gatk.iterators.LocusIteratorByStateExperimental;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -81,7 +82,13 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
     public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator iterator, List<GenomeLoc> intervals, Collection<String> sampleNames) {
         this.sourceInfo = shard.getReadProperties();
         this.readIterator = iterator;
-        this.sourceIterator = new PeekableIterator<AlignmentContext>(new LocusIteratorByState(iterator,sourceInfo,genomeLocParser, sampleNames));
+
+        // Temporary: use the experimental version of LocusIteratorByState if experimental downsampling was requested:
+        this.sourceIterator = sourceInfo.getDownsamplingMethod().useExperimentalDownsampling ?
+                              new PeekableIterator<AlignmentContext>(new LocusIteratorByStateExperimental(iterator,sourceInfo,genomeLocParser, sampleNames))
+                              :
+                              new PeekableIterator<AlignmentContext>(new LocusIteratorByState(iterator,sourceInfo,genomeLocParser, sampleNames));
+
         this.intervalIterator = intervals.size()>0 ? new PeekableIterator<GenomeLoc>(intervals.iterator()) : null;
     }
 

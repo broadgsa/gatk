@@ -598,8 +598,8 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
         private RepeatDetectorTest(boolean isTrueRepeat, String ref, String refAlleleString, String ... altAlleleStrings) {
             super(RepeatDetectorTest.class);
-            this.ref = "N" + ref; // add a dummy base for the event here
             this.isTrueRepeat = isTrueRepeat;
+            this.ref = ref;
 
             List<Allele> alleles = new LinkedList<Allele>();
             final Allele refAllele = Allele.create(refAlleleString, true);
@@ -609,7 +609,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
                 alleles.add(alt);
             }
 
-            VariantContextBuilder builder = new VariantContextBuilder("test", "chr1", 1, 1 + refAllele.length(), alleles);
+            VariantContextBuilder builder = new VariantContextBuilder("test", "chr1", 1, refAllele.length(), alleles);
             this.vc = builder.make();
         }
 
@@ -620,31 +620,31 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
     @DataProvider(name = "RepeatDetectorTest")
     public Object[][] makeRepeatDetectorTest() {
-        new RepeatDetectorTest(true,  "AAC", "-", "A");
-        new RepeatDetectorTest(true,  "AAC", "A", "-");
-        new RepeatDetectorTest(false, "AAC", "AA", "-");
-        new RepeatDetectorTest(false, "AAC", "-", "C");
+        new RepeatDetectorTest(true,  "NAAC", "N", "NA");
+        new RepeatDetectorTest(true,  "NAAC", "NA", "N");
+        new RepeatDetectorTest(false, "NAAC", "NAA", "N");
+        new RepeatDetectorTest(false, "NAAC", "N", "NC");
         new RepeatDetectorTest(false, "AAC", "A", "C");
 
         // running out of ref bases => false
-        new RepeatDetectorTest(false, "AAC", "-", "CAGTA");
+        new RepeatDetectorTest(false, "NAAC", "N", "NCAGTA");
 
         // complex repeats
-        new RepeatDetectorTest(true,  "ATATATC", "-", "AT");
-        new RepeatDetectorTest(true,  "ATATATC", "-", "ATA");
-        new RepeatDetectorTest(true,  "ATATATC", "-", "ATAT");
-        new RepeatDetectorTest(true,  "ATATATC", "AT", "-");
-        new RepeatDetectorTest(false, "ATATATC", "ATA", "-");
-        new RepeatDetectorTest(false, "ATATATC", "ATAT", "-");
+        new RepeatDetectorTest(true,  "NATATATC", "N", "NAT");
+        new RepeatDetectorTest(true,  "NATATATC", "N", "NATA");
+        new RepeatDetectorTest(true,  "NATATATC", "N", "NATAT");
+        new RepeatDetectorTest(true,  "NATATATC", "NAT", "N");
+        new RepeatDetectorTest(false, "NATATATC", "NATA", "N");
+        new RepeatDetectorTest(false, "NATATATC", "NATAT", "N");
 
         // multi-allelic
-        new RepeatDetectorTest(true,  "ATATATC", "-", "AT", "ATAT");
-        new RepeatDetectorTest(true,  "ATATATC", "-", "AT", "ATA");
-        new RepeatDetectorTest(true,  "ATATATC", "AT", "-", "ATAT");
-        new RepeatDetectorTest(true,  "ATATATC", "AT", "-", "ATA"); // two As
-        new RepeatDetectorTest(false, "ATATATC", "AT", "-", "ATC"); // false
-        new RepeatDetectorTest(false, "ATATATC", "AT", "-", "CC"); // false
-        new RepeatDetectorTest(false, "ATATATC", "AT", "ATAT", "CC"); // false
+        new RepeatDetectorTest(true,  "NATATATC", "N", "NAT", "NATAT");
+        new RepeatDetectorTest(true,  "NATATATC", "N", "NAT", "NATA");
+        new RepeatDetectorTest(true,  "NATATATC", "NAT", "N", "NATAT");
+        new RepeatDetectorTest(true,  "NATATATC", "NAT", "N", "NATA"); // two As
+        new RepeatDetectorTest(false, "NATATATC", "NAT", "N", "NATC"); // false
+        new RepeatDetectorTest(false, "NATATATC", "NAT", "N", "NCC"); // false
+        new RepeatDetectorTest(false, "NATATATC", "NAT", "NATAT", "NCC"); // false
 
         return RepeatDetectorTest.getTests(RepeatDetectorTest.class);
     }

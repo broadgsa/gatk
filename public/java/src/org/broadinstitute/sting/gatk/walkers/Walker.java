@@ -30,12 +30,14 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.filters.MalformedReadFilter;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.recalibration.BQSRMode;
 
 import java.util.List;
 
@@ -48,7 +50,8 @@ import java.util.List;
  */
 @ReadFilters(MalformedReadFilter.class)
 @PartitionBy(PartitionType.NONE)
-@BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
+@BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = ReadTransformer.ApplicationTime.ON_INPUT)
+@BQSRMode(ApplicationTime = ReadTransformer.ApplicationTime.ON_INPUT)
 @DocumentedGATKFeature(groupName = "Uncategorized", extraDocs = {CommandLineGATK.class})
 public abstract class Walker<MapType, ReduceType> {
     final protected static Logger logger = Logger.getLogger(Walker.class);

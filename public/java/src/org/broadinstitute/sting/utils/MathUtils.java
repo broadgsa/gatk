@@ -51,12 +51,18 @@ public class MathUtils {
     public static final double[] log10Cache;
     public static final double[] log10FactorialCache;
     private static final double[] jacobianLogTable;
-    private static final double JACOBIAN_LOG_TABLE_STEP = 0.001;
-    private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / 0.001;
+    private static final double JACOBIAN_LOG_TABLE_STEP = 0.0001;
+    private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / JACOBIAN_LOG_TABLE_STEP;
     private static final double MAX_JACOBIAN_TOLERANCE = 8.0;
     private static final int JACOBIAN_LOG_TABLE_SIZE = (int) (MAX_JACOBIAN_TOLERANCE / JACOBIAN_LOG_TABLE_STEP) + 1;
     private static final int MAXN = 50000;
     private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
+
+    /**
+     * The smallest log10 value we'll emit from normalizeFromLog10 and other functions
+     * where the real-space value is 0.0.
+     */
+    public final static double LOG10_P_OF_ZERO = -1000000.0;
 
     static {
         log10Cache = new double[LOG10_CACHE_SIZE];
@@ -73,6 +79,17 @@ public class MathUtils {
             jacobianLogTable[k] = Math.log10(1.0 + Math.pow(10.0, -((double) k) * JACOBIAN_LOG_TABLE_STEP));
 
         }
+    }
+
+    /**
+     * Get a random int between min and max (inclusive) using the global GATK random number generator
+     *
+     * @param min lower bound of the range
+     * @param max upper bound of the range
+     * @return a random int >= min and <= max
+     */
+    public static int randomIntegerInRange( int min, int max ) {
+        return GenomeAnalysisEngine.getRandomGenerator().nextInt(max - min + 1) + min;
     }
 
     // A fast implementation of the Math.round() method.  This method does not perform
@@ -561,16 +578,25 @@ public class MathUtils {
         return normalizeFromLog10(array, takeLog10OfOutput, false);
     }
 
+    /**
+     * See #normalizeFromLog10 but with the additional option to use an approximation that keeps the calculation always in log-space
+     *
+     * @param array
+     * @param takeLog10OfOutput
+     * @param keepInLogSpace
+     *
+     * @return
+     */
     public static double[] normalizeFromLog10(double[] array, boolean takeLog10OfOutput, boolean keepInLogSpace) {
-
         // for precision purposes, we need to add (or really subtract, since they're
         // all negative) the largest value; also, we need to convert to normal-space.
         double maxValue = arrayMax(array);
 
         // we may decide to just normalize in log space without converting to linear space
         if (keepInLogSpace) {
-            for (int i = 0; i < array.length; i++)
+            for (int i = 0; i < array.length; i++) {
                 array[i] -= maxValue;
+            }
             return array;
         }
 
@@ -586,8 +612,12 @@ public class MathUtils {
             sum += normalized[i];
         for (int i = 0; i < array.length; i++) {
             double x = normalized[i] / sum;
-            if (takeLog10OfOutput)
+            if (takeLog10OfOutput) {
                 x = Math.log10(x);
+                if ( x < LOG10_P_OF_ZERO || Double.isInfinite(x) )
+                    x = array[i] - maxValue;
+            }
+
             normalized[i] = x;
         }
 
@@ -625,6 +655,10 @@ public class MathUtils {
         return maxElementIndex(array, array.length);
     }
 
+    public static int maxElementIndex(final byte[] array) {
+        return maxElementIndex(array, array.length);
+    }
+
     public static int maxElementIndex(final int[] array, int endIndex) {
         if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
@@ -637,6 +671,24 @@ public class MathUtils {
 
         return maxI;
     }
+
+    public static int maxElementIndex(final byte[] array, int endIndex) {
+        if (array == null || array.length == 0)
+            throw new IllegalArgumentException("Array cannot be null!");
+
+        int maxI = 0;
+        for (int i = 1; i < endIndex; i++) {
+            if (array[i] > array[maxI])
+                maxI = i;
+        }
+
+        return maxI;
+    }
+
+    public static byte arrayMax(final byte[] array) {
+        return array[maxElementIndex(array)];
+    }
+
 
     public static double arrayMax(final double[] array) {
         return array[maxElementIndex(array)];
@@ -1143,6 +1195,39 @@ public class MathUtils {
     }
 
     /**
+     * Check that the log10 prob vector vector is well formed
+     *
+     * @param vector
+     * @param expectedSize
+     * @param shouldSumToOne
+     *
+     * @return true if vector is well-formed, false otherwise
+     */
+    public static boolean goodLog10ProbVector(final double[] vector, final int expectedSize, final boolean shouldSumToOne) {
+        if ( vector.length != expectedSize ) return false;
+
+        for ( final double pr : vector ) {
+            if ( ! goodLog10Probability(pr) )
+                return false;
+        }
+
+        if ( shouldSumToOne && compareDoubles(sumLog10(vector), 1.0, 1e-4) != 0 )
+            return false;
+
+        return true; // everything is good
+    }
+
+    /**
+     * Checks that the result is a well-formed log10 probability
+     *
+     * @param result a supposedly well-formed log10 probability value
+     * @return true if result is really well formed
+     */
+    public static boolean goodLog10Probability(final double result) {
+        return result <= 0.0 && ! Double.isInfinite(result) && ! Double.isNaN(result);
+    }
+
+    /**
      * A utility class that computes on the fly average and standard deviation for a stream of numbers.
      * The number of observations does not have to be known in advance, and can be also very big (so that
      * it could overflow any naive summation-based scheme or cause loss of precision).
@@ -1634,4 +1719,35 @@ public class MathUtils {
 
     }
 
+    /**
+     * Returns a series of integer values between start and stop, inclusive,
+     * expontentially distributed between the two.  That is, if there are
+     * ten values between 0-10 there will be 10 between 10-100.
+     *
+     * WARNING -- BADLY TESTED
+     * @param start
+     * @param stop
+     * @param eps
+     * @return
+     */
+    public static List<Integer> log10LinearRange(final int start, final int stop, final double eps) {
+        final LinkedList<Integer> values = new LinkedList<Integer>();
+        final double log10range = Math.log10(stop - start);
+
+        if ( start == 0 )
+            values.add(0);
+
+        double i = 0.0;
+        while ( i <= log10range ) {
+            final int index = (int)Math.round(Math.pow(10, i)) + start;
+            if ( index < stop && (values.peekLast() == null || values.peekLast() != index ) )
+                values.add(index);
+            i += eps;
+        }
+
+        if ( values.peekLast() == null || values.peekLast() != stop )
+            values.add(stop);
+
+        return values;
+    }
 }

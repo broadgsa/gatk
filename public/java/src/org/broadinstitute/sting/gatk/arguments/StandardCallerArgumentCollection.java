@@ -1,12 +1,13 @@
 package org.broadinstitute.sting.gatk.arguments;
 
-import org.broadinstitute.sting.commandline.Advanced;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcFactory;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+
+import java.io.File;
+import java.io.PrintStream;
 
 /**
  * Created with IntelliJ IDEA.
@@ -55,8 +56,51 @@ public class StandardCallerArgumentCollection {
      * then only this many alleles will be used.  Note that genotyping sites with many alternate alleles is both CPU and memory intensive and it
      * scales exponentially based on the number of alternate alleles.  Unless there is a good reason to change the default value, we highly recommend
      * that you not play around with this parameter.
+     *
+     * As of GATK 2.2 the genotyper can handle a very large number of events, so the default maximum has been increased to 6.
      */
     @Advanced
     @Argument(fullName = "max_alternate_alleles", shortName = "maxAltAlleles", doc = "Maximum number of alternate alleles to genotype", required = false)
-    public int MAX_ALTERNATE_ALLELES = 3;
+    public int MAX_ALTERNATE_ALLELES = 6;
+
+    /**
+     * Controls the model used to calculate the probability that a site is variant plus the various sample genotypes in the data at a given locus.
+     */
+    @Advanced
+    @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ", required = false)
+    public AFCalcFactory.Calculation AFmodel = AFCalcFactory.Calculation.getDefaultModel();
+
+    /**
+     * If this fraction is greater is than zero, the caller will aggressively attempt to remove contamination through biased down-sampling of reads.
+     * Basically, it will ignore the contamination fraction of reads for each alternate allele.  So if the pileup contains N total bases, then we
+     * will try to remove (N * contamination fraction) bases for each alternate allele.
+     */
+    @Argument(fullName = "contamination_fraction_to_filter", shortName = "contamination", doc = "Fraction of contamination in sequencing data (for all samples) to aggressively remove", required = false)
+    public double CONTAMINATION_FRACTION = DEFAULT_CONTAMINATION_FRACTION;
+    public static final double DEFAULT_CONTAMINATION_FRACTION = 0.05;
+
+    @Hidden
+    @Argument(fullName = "logRemovedReadsFromContaminationFiltering", shortName="contaminationLog", required=false)
+    public PrintStream contaminationLog = null;
+
+    @Hidden
+    @Argument(shortName = "logExactCalls", doc="x", required=false)
+    public File exactCallsLog = null;
+
+    public StandardCallerArgumentCollection() { }
+
+    // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
+    public StandardCallerArgumentCollection(final StandardCallerArgumentCollection SCAC) {
+        this.alleles = SCAC.alleles;
+        this.GenotypingMode = SCAC.GenotypingMode;
+        this.heterozygosity = SCAC.heterozygosity;
+        this.MAX_ALTERNATE_ALLELES = SCAC.MAX_ALTERNATE_ALLELES;
+        this.OutputMode = SCAC.OutputMode;
+        this.STANDARD_CONFIDENCE_FOR_CALLING = SCAC.STANDARD_CONFIDENCE_FOR_CALLING;
+        this.STANDARD_CONFIDENCE_FOR_EMITTING = SCAC.STANDARD_CONFIDENCE_FOR_EMITTING;
+        this.CONTAMINATION_FRACTION = SCAC.CONTAMINATION_FRACTION;
+        this.contaminationLog = SCAC.contaminationLog;
+        this.exactCallsLog = SCAC.exactCallsLog;
+        this.AFmodel = SCAC.AFmodel;
+    }
 }

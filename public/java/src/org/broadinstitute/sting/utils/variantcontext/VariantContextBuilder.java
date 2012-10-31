@@ -94,6 +94,7 @@ public class VariantContextBuilder {
         this.start = start;
         this.stop = stop;
         this.alleles = alleles;
+        this.attributes = Collections.emptyMap(); // immutable
         toValidate.add(VariantContext.Validation.ALLELES);
     }
 

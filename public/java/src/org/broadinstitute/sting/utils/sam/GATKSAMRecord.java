@@ -31,6 +31,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -59,8 +60,9 @@ public class GATKSAMRecord extends BAMRecord {
     private String mReadString = null;
     private GATKSAMReadGroupRecord mReadGroup = null;
     private byte[] reducedReadCounts = null;
-    private int softStart = -1;
-    private int softEnd = -1;
+    private final static int UNINITIALIZED = -1;
+    private int softStart = UNINITIALIZED;
+    private int softEnd = UNINITIALIZED;
 
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedReadGroup = false;
@@ -228,8 +230,7 @@ public class GATKSAMRecord extends BAMRecord {
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
             Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
-            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
-            setBaseQualities(quals, EventType.BASE_INSERTION);
+                                           // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
         }
         return quals;
     }
@@ -246,7 +247,6 @@ public class GATKSAMRecord extends BAMRecord {
             quals = new byte[getBaseQualities().length];
             Arrays.fill(quals, (byte) 45);  // Some day in the future when base insertion and base deletion quals exist the samtools API will
                                             // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
-            setBaseQualities(quals, EventType.BASE_DELETION);
         }
         return quals;
     }
@@ -262,7 +262,7 @@ public class GATKSAMRecord extends BAMRecord {
     public void setReadGroup( final GATKSAMReadGroupRecord readGroup ) {
         mReadGroup = readGroup;
         retrievedReadGroup = true;
-        setAttribute("RG", mReadGroup.getId());       // todo -- this should be standardized, but we don't have access to SAMTagUtils!
+        setAttribute("RG", mReadGroup.getId()); // todo -- this should be standardized, but we don't have access to SAMTagUtils!
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -367,15 +367,15 @@ public class GATKSAMRecord extends BAMRecord {
      * Clears all attributes except ReadGroup of the read.
      */
     public GATKSAMRecord simplify () {
-        GATKSAMReadGroupRecord rg = getReadGroup();                                                                     // save the read group information
+        GATKSAMReadGroupRecord rg = getReadGroup(); // save the read group information
         byte[] insQuals = (this.getAttribute(BQSR_BASE_INSERTION_QUALITIES) == null) ? null : getBaseInsertionQualities();
         byte[] delQuals = (this.getAttribute(BQSR_BASE_DELETION_QUALITIES)  == null) ? null : getBaseDeletionQualities();
-        this.clearAttributes();                                                                                         // clear all attributes from the read
-        this.setReadGroup(rg);                                                                                          // restore read group
+        this.clearAttributes(); // clear all attributes from the read
+        this.setReadGroup(rg); // restore read group
         if (insQuals != null)
-           this.setBaseQualities(insQuals, EventType.BASE_INSERTION);                                                   // restore base insertion if we had any
+           this.setBaseQualities(insQuals, EventType.BASE_INSERTION); // restore base insertion if we had any
         if (delQuals != null)
-            this.setBaseQualities(delQuals, EventType.BASE_DELETION);                                                   // restore base deletion if we had any
+            this.setBaseQualities(delQuals, EventType.BASE_DELETION); // restore base deletion if we had any
         return this;
     }
 
@@ -387,15 +387,16 @@ public class GATKSAMRecord extends BAMRecord {
      * @return the unclipped start of the read taking soft clips (but not hard clips) into account
      */
     public int getSoftStart() {
-        if (softStart < 0) {
-            int start = this.getUnclippedStart();
-            for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
-                if (cigarElement.getOperator() == CigarOperator.HARD_CLIP)
-                    start += cigarElement.getLength();
-                else
+        if ( softStart == UNINITIALIZED ) {
+            softStart = getAlignmentStart();
+            for (final CigarElement cig : getCigar().getCigarElements()) {
+                final CigarOperator op = cig.getOperator();
+
+                if (op == CigarOperator.SOFT_CLIP)
+                    softStart -= cig.getLength();
+                else if (op != CigarOperator.HARD_CLIP)
                     break;
             }
-            softStart = start;
         }
         return softStart;
     }
@@ -408,24 +409,26 @@ public class GATKSAMRecord extends BAMRecord {
      * @return the unclipped end of the read taking soft clips (but not hard clips) into account
      */
     public int getSoftEnd() {
-        if (softEnd < 0) {
-            int stop = this.getUnclippedStart();
+        if ( softEnd == UNINITIALIZED ) {
+            boolean foundAlignedBase = false;
+            softEnd = getAlignmentEnd();
+            final List<CigarElement> cigs = getCigar().getCigarElements();
+            for (int i = cigs.size() - 1; i >= 0; --i) {
+                final CigarElement cig = cigs.get(i);
+                final CigarOperator op = cig.getOperator();
 
-            if (ReadUtils.readIsEntirelyInsertion(this))
-                return stop;
-
-            int shift = 0;
-            CigarOperator lastOperator = null;
-            for (CigarElement cigarElement : this.getCigar().getCigarElements()) {
-                stop += shift;
-                lastOperator = cigarElement.getOperator();
-                if (cigarElement.getOperator().consumesReferenceBases() || cigarElement.getOperator() == CigarOperator.SOFT_CLIP || cigarElement.getOperator() == CigarOperator.HARD_CLIP)
-                    shift = cigarElement.getLength();
-                else
-                    shift = 0;
+                if (op == CigarOperator.SOFT_CLIP) // assumes the soft clip that we found is at the end of the aligned read
+                    softEnd += cig.getLength();
+                else if (op != CigarOperator.HARD_CLIP) {
+                    foundAlignedBase = true;
+                    break;
+                }
             }
-            softEnd = (lastOperator == CigarOperator.HARD_CLIP) ? stop-1 : stop+shift-1 ;
+            if( !foundAlignedBase ) { // for example 64H14S, the soft end is actually the same as the alignment end
+                softEnd = getAlignmentEnd();
+            }
         }
+
         return softEnd;
     }
 

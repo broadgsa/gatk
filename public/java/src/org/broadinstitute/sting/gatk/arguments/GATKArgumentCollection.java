@@ -31,8 +31,9 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.IntervalBinding;
-import org.broadinstitute.sting.gatk.DownsampleType;
-import org.broadinstitute.sting.gatk.DownsamplingMethod;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
+import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -41,7 +42,10 @@ import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author aaron
@@ -64,11 +68,34 @@ public class GATKArgumentCollection {
     @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false)
     public Integer readBufferSize = null;
 
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // GATKRunReport options
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
     @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate? STANDARD is the default, can be NO_ET so nothing is posted to the run repository. Please see " + GATKRunReport.PHONE_HOME_DOCS_URL + " for details.", required = false)
     public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.STANDARD;
 
     @Argument(fullName = "gatk_key", shortName = "K", doc="GATK Key file. Required if running with -et NO_ET. Please see " + GATKRunReport.PHONE_HOME_DOCS_URL + " for details.", required = false)
     public File gatkKeyFile = null;
+
+    /**
+     * The GATKRunReport supports (as of GATK 2.2) tagging GATK runs with an arbitrary String tag that can be
+     * used to group together runs during later analysis.  One use of this capability is to tag runs as GATK
+     * performance tests, so that the performance of the GATK over time can be assessed from the logs directly.
+     *
+     * Note that the tags do not conform to any ontology, so you are free to use any tags that you might find
+     * meaningful.
+     */
+    @Argument(fullName = "tag", shortName = "tag", doc="Arbitrary tag string to identify this GATK run as part of a group of runs, for later analysis", required = false)
+    public String tag = "NA";
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // General features
+    //
+    // --------------------------------------------------------------------------------------------------------------
 
     @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually", required = false)
     public List<String> readFilters = new ArrayList<String>();
@@ -115,15 +142,20 @@ public class GATKArgumentCollection {
     @Argument(fullName = "nonDeterministicRandomSeed", shortName = "ndrs", doc = "Makes the GATK behave non deterministically, that is, the random numbers generated will be different in every run", required = false)
     public boolean nonDeterministicRandomSeed = false;
 
-    /**
-     * The override mechanism in the GATK, by default, populates the command-line arguments, then
-     * the defaults from the walker annotations.  Unfortunately, walker annotations should be trumped
-     * by a user explicitly specifying command-line arguments.
-     * TODO: Change the GATK so that walker defaults are loaded first, then command-line arguments.
-     */
-    private static DownsampleType DEFAULT_DOWNSAMPLING_TYPE = DownsampleType.BY_SAMPLE;
-    private static int DEFAULT_DOWNSAMPLING_COVERAGE = 1000;
+    @Argument(fullName = "disableRandomization",doc="Completely eliminates randomization from nondeterministic methods. To be used mostly in the testing framework where dynamic parallelism can result in differing numbers of calls to the generator.")
+    public boolean disableRandomization = false;
 
+    @Argument(fullName = "maxRuntime", shortName = "maxRuntime", doc="If provided, that GATK will stop execution cleanly as soon after maxRuntime has been exceeded, truncating the run but not exiting with a failure.  By default the value is interpreted in minutes, but this can be changed by maxRuntimeUnits", required = false)
+    public long maxRuntime = GenomeAnalysisEngine.NO_RUNTIME_LIMIT;
+
+    @Argument(fullName = "maxRuntimeUnits", shortName = "maxRuntimeUnits", doc="The TimeUnit for maxRuntime", required = false)
+    public TimeUnit maxRuntimeUnits = TimeUnit.MINUTES;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // Downsampling Arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
     @Argument(fullName = "downsampling_type", shortName="dt", doc="Type of reads downsampling to employ at a given locus.  Reads will be selected randomly to be removed from the pile based on the method described here", required = false)
     public DownsampleType downsamplingType = null;
 
@@ -133,17 +165,20 @@ public class GATKArgumentCollection {
     @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to at any given locus; note that downsampled reads are randomly selected from all possible reads at a locus", required = false)
     public Integer downsampleCoverage = null;
 
+    @Argument(fullName = "enable_experimental_downsampling", shortName = "enable_experimental_downsampling", doc = "Enable experimental engine-level downsampling", required = false)
+    @Hidden
+    public boolean enableExperimentalDownsampling = false;
+
     /**
      * Gets the downsampling method explicitly specified by the user.  If the user didn't specify
      * a default downsampling mechanism, return the default.
      * @return The explicitly specified downsampling mechanism, or the default if none exists.
      */
     public DownsamplingMethod getDownsamplingMethod() {
-        if(downsamplingType == null && downsampleFraction == null && downsampleCoverage == null)
+        if ( downsamplingType == null && downsampleFraction == null && downsampleCoverage == null )
             return null;
-        if(downsamplingType == null && downsampleCoverage != null)
-            return new DownsamplingMethod(DEFAULT_DOWNSAMPLING_TYPE,downsampleCoverage,null);
-        return new DownsamplingMethod(downsamplingType,downsampleCoverage,downsampleFraction);
+
+        return new DownsamplingMethod(downsamplingType, downsampleCoverage, downsampleFraction, enableExperimentalDownsampling);
     }
 
     /**
@@ -153,9 +188,11 @@ public class GATKArgumentCollection {
     public void setDownsamplingMethod(DownsamplingMethod method) {
         if (method == null)
             throw new IllegalArgumentException("method is null");
+
         downsamplingType = method.type;
         downsampleCoverage = method.toCoverage;
         downsampleFraction = method.toFraction;
+        enableExperimentalDownsampling = method.useExperimentalDownsampling;
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -174,17 +211,14 @@ public class GATKArgumentCollection {
     // performance log arguments
     //
     // --------------------------------------------------------------------------------------------------------------
-    @Argument(fullName = "performanceLog", shortName="PF", doc="If provided, a GATK runtime performance log will be written to this file", required = false)
-    public File performanceLog = null;
 
     /**
-     * Gets the default downsampling method, returned if the user didn't specify any downsampling
-     * method.
-     * @return The default downsampling mechanism, or null if none exists.
+     * The file name for the GATK performance log output, or null if you don't want to generate the
+     * detailed performance logging table.  This table is suitable for importing into R or any
+     * other analysis software that can read tsv files
      */
-    public static DownsamplingMethod getDefaultDownsamplingMethod() {
-        return new DownsamplingMethod(DEFAULT_DOWNSAMPLING_TYPE,DEFAULT_DOWNSAMPLING_COVERAGE,null);
-    }
+    @Argument(fullName = "performanceLog", shortName="PF", doc="If provided, a GATK runtime performance log will be written to this file", required = false)
+    public File performanceLog = null;
 
     @Argument(fullName="useOriginalQualities", shortName = "OQ", doc = "If set, use the original base quality scores from the OQ tag when present instead of the standard scores", required=false)
     public Boolean useOriginalBaseQualities = false;
@@ -256,20 +290,40 @@ public class GATKArgumentCollection {
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations: nothing will be checked at runtime.  For expert users only who know what they are doing.  We do not support usage of this argument.", required = false)
     public ValidationExclusion.TYPE unsafe;
 
-    /** How many threads should be allocated to this analysis. */
-    @Argument(fullName = "num_threads", shortName = "nt", doc = "How many threads should be allocated to running this analysis.", required = false)
-    public Integer numberOfThreads = 1;
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // Multi-threading arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
 
     /**
-     * The following two arguments (num_cpu_threads, num_io_threads are TEMPORARY since Queue cannot currently support arbitrary tagged data types.
-     * TODO: Kill this when I can do a tagged integer in Queue.
+     * How many data threads should be allocated to this analysis?  Data threads contains N cpu threads per
+     * data thread, and act as completely data parallel processing, increasing the memory usage of GATK
+     * by M data threads.  Data threads generally scale extremely effectively, up to 24 cores
      */
-    @Argument(fullName="num_cpu_threads", shortName = "nct", doc="How many of the given threads should be allocated to the CPU", required = false)
-    @Hidden
-    public Integer numberOfCPUThreads = null;
+    @Argument(fullName = "num_threads", shortName = "nt", doc = "How many data threads should be allocated to running this analysis.", required = false)
+    public Integer numberOfDataThreads = 1;
+
+    /**
+     * How many CPU threads should be allocated per data thread?  Each CPU thread operates the map
+     * cycle independently, but may run into earlier scaling problems with IO than data threads.  Has
+     * the benefit of not requiring X times as much memory per thread as data threads do, but rather
+     * only a constant overhead.
+     */
+    @Argument(fullName="num_cpu_threads_per_data_thread", shortName = "nct", doc="How many CPU threads should be allocated per data thread to running this analysis?", required = false)
+    public int numberOfCPUThreadsPerDataThread = 1;
+
     @Argument(fullName="num_io_threads", shortName = "nit", doc="How many of the given threads should be allocated to IO", required = false)
     @Hidden
-    public Integer numberOfIOThreads = null;
+    public int numberOfIOThreads = 0;
+
+    /**
+     * Enable GATK to monitor its own threading efficiency, at a itsy-bitsy tiny
+     * cost (< 0.1%) in runtime because of turning on the JavaBean.  This is largely for
+     * debugging purposes.
+     */
+    @Argument(fullName = "monitorThreadEfficiency", shortName = "mte", doc = "Enable GATK threading efficiency monitoring", required = false)
+    public Boolean monitorThreadEfficiency = false;
 
     @Argument(fullName = "num_bam_file_handles", shortName = "bfh", doc="The total number of BAM file handles to keep open simultaneously", required=false)
     public Integer numberOfBAMFileHandles = null;

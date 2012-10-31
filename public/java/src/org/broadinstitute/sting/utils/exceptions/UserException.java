@@ -63,6 +63,18 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class MalformedReadFilterException extends CommandLineException {
+        public MalformedReadFilterException(String message) {
+            super(String.format("Malformed read filter: %s",message));
+        }
+    }
+
+    public static class MalformedWalkerArgumentsException extends CommandLineException {
+        public MalformedWalkerArgumentsException(String message) {
+            super(String.format("Malformed walker argument: %s",message));
+        }
+    }
+
     public static class MalformedGenomeLoc extends UserException {
         public MalformedGenomeLoc(String message, GenomeLoc loc) {
             super(String.format("Badly formed genome loc: %s: %s", message, loc));
@@ -117,6 +129,12 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class LocalParallelizationProblem extends UserException {
+        public LocalParallelizationProblem(final File file) {
+            super(String.format("There was a failure because temporary file %s could not be found while running the GATK with more than one thread.  Possible causes for this problem include: your system's open file handle limit is too small, your output or temp directories do not have sufficient space, or just an isolated file system blip", file.getAbsolutePath()));
+        }
+    }
+
     public static class NotEnoughMemory extends UserException {
         public NotEnoughMemory() {
             super(String.format("There was a failure because you did not provide enough memory to run this program.  See the -Xmx JVM argument to adjust the maximum heap size provided to Java"));
@@ -126,6 +144,12 @@ public class UserException extends ReviewedStingException {
     public static class ErrorWritingBamFile extends UserException {
         public ErrorWritingBamFile(String message) {
             super(String.format("An error occurred when trying to write the BAM file.  Usually this happens when there is not enough space in the directory to which the data is being written (generally the temp directory) or when your system's open file handle limit is too small.  To tell Java to use a bigger/better file system use -Djava.io.tmpdir=X on the command line.  The exact error was %s", message));
+        }
+    }
+
+    public static class NoSpaceOnDevice extends UserException {
+        public NoSpaceOnDevice() {
+            super("There is no space left on the device, so writing failed");
         }
     }
 
@@ -140,6 +164,10 @@ public class UserException extends ReviewedStingException {
 
         public CouldNotReadInputFile(File file, String message) {
             super(String.format("Couldn't read file %s because %s", file.getAbsolutePath(), message));
+        }
+
+        public CouldNotReadInputFile(String file, String message) {
+            super(String.format("Couldn't read file %s because %s", file, message));
         }
 
         public CouldNotReadInputFile(File file, String message, Exception e) {
@@ -255,6 +283,12 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class FailsStrictValidation extends UserException {
+        public FailsStrictValidation(File f, String message) {
+            super(String.format("File %s fails strict validation: %s", f.getAbsolutePath(), message));
+        }
+    }
+
     public static class MalformedFile extends UserException {
         public MalformedFile(String message) {
             super(String.format("Unknown file is malformed: %s", message));
@@ -324,6 +358,9 @@ public class UserException extends ReviewedStingException {
     }
 
     public static class CannotExecuteQScript extends UserException {
+        public CannotExecuteQScript(String message) {
+            super(String.format("Unable to execute QScript: " + message));
+        }
         public CannotExecuteQScript(String message, Exception e) {
             super(String.format("Unable to execute QScript: " + message), e);
         }

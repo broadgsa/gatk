@@ -39,11 +39,11 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
+import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
 
 import java.io.File;
 import java.util.*;
@@ -218,7 +218,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> implements T
                 String filterString = null;
 
                 // Annotate the new record with its VQSLOD and the worst performing annotation
-                builder.attribute(VariantRecalibrator.VQS_LOD_KEY, lodString); // use the String representation so that we don't lose precision on output
+                builder.attribute(VariantRecalibrator.VQS_LOD_KEY, lod);
                 builder.attribute(VariantRecalibrator.CULPRIT_KEY, recalDatum.getAttribute(VariantRecalibrator.CULPRIT_KEY));
 
                 for( int i = tranches.size() - 1; i >= 0; i-- ) {

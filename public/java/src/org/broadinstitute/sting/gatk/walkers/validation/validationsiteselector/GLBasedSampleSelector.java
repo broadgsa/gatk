@@ -23,8 +23,9 @@
  */
 package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
 
-import org.broadinstitute.sting.gatk.walkers.genotyper.AlleleFrequencyCalculationResult;
-import org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalc;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcFactory;
+import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcResult;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.TreeSet;
@@ -32,7 +33,9 @@ import java.util.TreeSet;
 
 public class GLBasedSampleSelector extends SampleSelector {
     double[] flatPriors = null;
-    double referenceLikelihood;
+    final double referenceLikelihood;
+    AFCalc AFCalculator;
+
     public GLBasedSampleSelector(TreeSet<String> sm, double refLik) {
         super(sm);
         referenceLikelihood = refLik;
@@ -45,15 +48,18 @@ public class GLBasedSampleSelector extends SampleSelector {
         // first subset to the samples
         VariantContext subContext = vc.subContextFromSamples(samples);
 
+        if ( ! subContext.isPolymorphicInSamples() )
+            return false;
+
         // now check to see (using EXACT model) whether this should be variant
         // do we want to apply a prior? maybe user-spec?
         if ( flatPriors == null ) {
             flatPriors = new double[1+2*samples.size()];
+            AFCalculator = AFCalcFactory.createAFCalc(samples.size(), 4, 2);
         }
-        AlleleFrequencyCalculationResult result = new AlleleFrequencyCalculationResult(vc.getAlternateAlleles().size());
-        ExactAFCalculationModel.linearExactMultiAllelic(subContext.getGenotypes(),vc.getAlternateAlleles().size(),flatPriors,result);
+        final AFCalcResult result = AFCalculator.getLog10PNonRef(subContext, flatPriors);
         // do we want to let this qual go up or down?
-        if ( result.getLog10PosteriorOfAFzero() < referenceLikelihood ) {
+        if ( result.getLog10LikelihoodOfAFEq0() < referenceLikelihood ) {
             return true;
         }
 

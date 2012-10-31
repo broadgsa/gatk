@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.filters;
 import net.sf.samtools.SAMRecord;
 
 /**
- * Filter out reads with low mapping qualities.
+ * Filter out reads whose mate maps to a different contig.
  *
  * @author ebanks
  * @version 0.1

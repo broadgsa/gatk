@@ -7,21 +7,17 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ActiveRegionBa
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
+import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFStandardHeaderLines;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -29,25 +25,48 @@ import java.util.Map;
  */
 public class RMSMappingQuality extends InfoFieldAnnotation implements StandardAnnotation, ActiveRegionBasedAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, AnnotatorCompatible walker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
-        if ( stratifiedContexts.size() == 0 )
-            return null;
+    public Map<String, Object> annotate(final RefMetaDataTracker tracker,
+                                        final AnnotatorCompatible walker,
+                                        final ReferenceContext ref,
+                                        final Map<String, AlignmentContext> stratifiedContexts,
+                                        final VariantContext vc,
+                                        final Map<String, PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap ) {
+        int totalSize = 0, index = 0;
+        int qualities[];
+        if (stratifiedContexts != null) {
+            if ( stratifiedContexts.size() == 0 )
+                return null;
 
-        int totalSize = 0;
-        for ( AlignmentContext context : stratifiedContexts.values() )
-            totalSize += context.size();
+            for ( AlignmentContext context : stratifiedContexts.values() )
+                totalSize += context.size();
 
-        final int[] qualities = new int[totalSize];
-        int index = 0;
+            qualities = new int[totalSize];
 
-        for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
-            AlignmentContext context = sample.getValue();
-            final ReadBackedPileup pileup = context.getBasePileup();
-            for (PileupElement p : pileup ) {
-                if ( p.getMappingQual() != QualityUtils.MAPPING_QUALITY_UNAVAILABLE )
-                    qualities[index++] = p.getMappingQual();
+            for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
+                AlignmentContext context = sample.getValue();
+                for (PileupElement p : context.getBasePileup() )
+                    index = fillMappingQualitiesFromPileupAndUpdateIndex(p.getRead(), index, qualities);
             }
         }
+        else if (perReadAlleleLikelihoodMap != null) {
+            if ( perReadAlleleLikelihoodMap.size() == 0 )
+                return null;
+
+            for ( PerReadAlleleLikelihoodMap perReadLikelihoods : perReadAlleleLikelihoodMap.values() )
+                totalSize += perReadLikelihoods.size();
+
+            qualities = new int[totalSize];
+            for ( PerReadAlleleLikelihoodMap perReadLikelihoods : perReadAlleleLikelihoodMap.values() ) {
+                for (GATKSAMRecord read : perReadLikelihoods.getStoredElements())
+                    index = fillMappingQualitiesFromPileupAndUpdateIndex(read, index, qualities);
+
+
+        }
+        }
+        else
+            return null;
+
+
 
         double rms = MathUtils.rms(qualities);
         Map<String, Object> map = new HashMap<String, Object>();
@@ -55,32 +74,12 @@ public class RMSMappingQuality extends InfoFieldAnnotation implements StandardAn
         return map;
     }
 
-    public Map<String, Object> annotate(Map<String, Map<Allele, List<GATKSAMRecord>>> stratifiedContexts, VariantContext vc) {
-        if ( stratifiedContexts.size() == 0 )
-            return null;
+    private static int fillMappingQualitiesFromPileupAndUpdateIndex(final GATKSAMRecord read, final int inputIdx, final int[] qualities) {
+        int outputIdx = inputIdx;
+        if ( read.getMappingQuality() != QualityUtils.MAPPING_QUALITY_UNAVAILABLE )
+            qualities[outputIdx++] = read.getMappingQuality();
 
-        int depth = 0;
-        for ( final Map<Allele, List<GATKSAMRecord>> alleleBins : stratifiedContexts.values() ) {
-            for ( final Map.Entry<Allele, List<GATKSAMRecord>> alleleBin : alleleBins.entrySet() ) {
-                depth += alleleBin.getValue().size();
-            }
-        }
-
-        final int[] qualities = new int[depth];
-        int index = 0;
-
-        for ( final Map<Allele, List<GATKSAMRecord>> alleleBins : stratifiedContexts.values() ) {
-            for ( final List<GATKSAMRecord> reads : alleleBins.values() ) {
-                for ( final GATKSAMRecord read : reads ) {
-                    if ( read.getMappingQuality() != QualityUtils.MAPPING_QUALITY_UNAVAILABLE )
-                        qualities[index++] = read.getMappingQuality();
-                }
-            }
-        }
-
-        final Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), String.format("%.2f", MathUtils.rms(qualities)));
-        return map;
+        return outputIdx;
     }
 
     public List<String> getKeyNames() { return Arrays.asList(VCFConstants.RMS_MAPPING_QUALITY_KEY); }

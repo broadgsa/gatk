@@ -40,14 +40,41 @@ public class ArtificialSAMFileReader extends SAMFileReader {
      */
     private final List<SAMRecord> reads;
 
+    private SAMFileHeader customHeader = null;
+
     /**
      * Construct an artificial SAM file reader.
+     * @param sequenceDictionary sequence dictionary used to initialize our GenomeLocParser
      * @param reads Reads to use as backing data source.
      */
     public ArtificialSAMFileReader(SAMSequenceDictionary sequenceDictionary,SAMRecord... reads) {
         super( createEmptyInputStream(),true );
         this.genomeLocParser = new GenomeLocParser(sequenceDictionary);
         this.reads = Arrays.asList(reads);
+    }
+
+    /**
+     * Construct an artificial SAM file reader with the given SAM file header
+     *
+     * @param customHeader Header that should be returned by calls to getFileHeader() on this reader
+     * @param reads Reads to use as backing data source.
+     */
+    public ArtificialSAMFileReader( SAMFileHeader customHeader, SAMRecord... reads ) {
+        super(createEmptyInputStream(),true);
+
+        this.customHeader = customHeader;
+        this.genomeLocParser = new GenomeLocParser(customHeader.getSequenceDictionary());
+        this.reads = Arrays.asList(reads);
+    }
+
+
+    @Override
+    public SAMFileHeader getFileHeader() {
+        if ( customHeader != null ) {
+            return customHeader;
+        }
+
+        return super.getFileHeader();
     }
 
     /**

@@ -82,6 +82,11 @@ public class VariantContextWritersUnitTest extends BaseTest {
         VariantContextTestProvider.testReaderWriter(new BCFIOTester(), testData);
     }
 
+    @Test(dataProvider = "VariantContextTest_SingleContexts")
+    public void testBCF2WriterReaderMissingGenotypes(final VariantContextTestProvider.VariantContextTestData testData) throws IOException {
+        VariantContextTestProvider.testReaderWriterWithMissingGenotypes(new BCFIOTester(), testData);
+    }
+
     private class BCFIOTester extends VariantContextTestProvider.VariantContextIOTest {
         @Override
         public String getExtension() {
@@ -108,6 +113,11 @@ public class VariantContextWritersUnitTest extends BaseTest {
     @Test(enabled = true, dataProvider = "VariantContextTest_SingleContexts")
     public void testVCF4WriterReader(final VariantContextTestProvider.VariantContextTestData testData) throws IOException {
         VariantContextTestProvider.testReaderWriter(new VCFIOTester(), testData);
+    }
+
+    @Test(enabled = true, dataProvider = "VariantContextTest_SingleContexts")
+    public void testVCF4WriterReaderMissingGenotypes(final VariantContextTestProvider.VariantContextTestData testData) throws IOException {
+        VariantContextTestProvider.testReaderWriterWithMissingGenotypes(new VCFIOTester(), testData);
     }
 
     private class VCFIOTester extends VariantContextTestProvider.VariantContextIOTest {

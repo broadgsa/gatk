@@ -52,13 +52,6 @@ public class BAQ {
         DONT_MODIFY                 // do the BAQ, but don't modify the quality scores themselves, just return them in the function.
     }
 
-    public enum ApplicationTime {
-        FORBIDDEN,                  // Walker does not tolerate BAQ input
-        ON_INPUT,                   // apply the BAQ calculation to the incoming reads, the default
-        ON_OUTPUT,                  // apply the BAQ calculation to outgoing read streams
-        HANDLED_IN_WALKER           // the walker will deal with the BAQ calculation status itself
-    }
-
     public static final String BAQ_TAG = "BQ";
 
     private static double[] qual2prob = new double[256];
@@ -68,7 +61,7 @@ public class BAQ {
     }
 
     // Phred scaled now (changed 1/10/2011)
-    public static double DEFAULT_GOP = 40;
+    public static final double DEFAULT_GOP = 40;
 
     /*  Takes a Phred Scale quality score and returns the error probability.
      *
@@ -110,9 +103,18 @@ public class BAQ {
      * Use defaults for everything
      */
     public BAQ() {
-        cd = convertFromPhredScale(DEFAULT_GOP);
+        this(DEFAULT_GOP);
+    }
+
+    /**
+     * Use defaults for everything
+     */
+    public BAQ(final double gapOpenPenalty) {
+        cd = convertFromPhredScale(gapOpenPenalty);
         initializeCachedData();
     }
+
+
 
     /**
      * Create a new HmmGlocal object with specified parameters

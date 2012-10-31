@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /*
 * Copyright (c) 2009 The Broad Institute
@@ -32,6 +33,5 @@ public interface RecalibrationEngine {
 
     public void initialize(final Covariate[] covariates, final RecalibrationTables recalibrationTables);
 
-    public void updateDataForPileupElement(final PileupElement pileupElement, final byte refBase);
-
+    public void updateDataForRead(final GATKSAMRecord read, final boolean[] skip, final double[] snpErrors, final double[] insertionErrors, final double[] deletionErrors);
 }

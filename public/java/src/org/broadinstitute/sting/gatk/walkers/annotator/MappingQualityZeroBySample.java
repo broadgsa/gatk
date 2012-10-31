@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
+import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
@@ -46,14 +47,19 @@ import java.util.List;
  * Count for each sample of mapping quality zero reads
  */
 public class MappingQualityZeroBySample extends GenotypeAnnotation {
-    public void annotate(RefMetaDataTracker tracker,
-                         AnnotatorCompatible walker, ReferenceContext ref, AlignmentContext context,
-                         VariantContext vc, Genotype g, GenotypeBuilder gb) {
-        if ( g == null || !g.isCalled() )
+    public void annotate(final RefMetaDataTracker tracker,
+                         final AnnotatorCompatible walker,
+                         final ReferenceContext ref,
+                         final AlignmentContext stratifiedContext,
+                         final VariantContext vc,
+                         final Genotype g,
+                         final GenotypeBuilder gb,
+                         final PerReadAlleleLikelihoodMap alleleLikelihoodMap){
+        if ( g == null || !g.isCalled() || stratifiedContext == null )
             return;
 
         int mq0 = 0;
-        final ReadBackedPileup pileup = context.getBasePileup();
+        final ReadBackedPileup pileup = stratifiedContext.getBasePileup();
         for (PileupElement p : pileup ) {
             if ( p.getMappingQual() == 0 )
                 mq0++;

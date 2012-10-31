@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
+import java.io.Serializable;
 import java.util.*;
 
 public class Haplotype {
@@ -55,22 +56,22 @@ public class Haplotype {
      * @param bases bases
      * @param qual  qual
      */
-    public Haplotype(byte[] bases, int qual) {
-        this.bases = bases;
+    public Haplotype( final byte[] bases, final int qual ) {
+        this.bases = bases.clone();
         quals = new double[bases.length];
         Arrays.fill(quals, (double)qual);
     }
 
-    public Haplotype(byte[] bases, double[] quals) {
-        this.bases = bases;
-        this.quals = quals;
+    public Haplotype( final byte[] bases, final double[] quals ) {
+        this.bases = bases.clone();
+        this.quals = quals.clone();
     }
 
-    public Haplotype(byte[] bases) {
+    public Haplotype( final byte[] bases ) {
         this(bases, 0);
     }
 
-    public Haplotype(byte[] bases, GenomeLoc loc) {
+    public Haplotype( final byte[] bases, final GenomeLoc loc ) {
         this(bases);
         this.genomeLocation = loc;
     }
@@ -140,10 +141,10 @@ public class Haplotype {
     }
 
     public double[] getQuals() {
-        return quals;
+        return quals.clone();
     }
     public byte[] getBases() {
-        return bases;
+        return bases.clone();
     }
 
     public long getStartPosition() {
@@ -182,6 +183,21 @@ public class Haplotype {
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, altAllele.getBases()); // the alt allele of the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, haplotypeInsertLocation + refAllele.length(), bases.length)); // bases after the variant
         return new Haplotype(newHaplotypeBases);
+    }
+
+    public static class HaplotypeBaseComparator implements Comparator<Haplotype>, Serializable {
+        @Override
+        public int compare( final Haplotype hap1, final Haplotype hap2 ) {
+            final byte[] arr1 = hap1.getBases();
+            final byte[] arr2 = hap2.getBases();
+            // compares byte arrays using lexical ordering
+            final int len = Math.min(arr1.length, arr2.length);
+            for( int iii = 0; iii < len; iii++ ) {
+                final int cmp = arr1[iii] - arr2[iii];
+                if (cmp != 0) { return cmp; }
+            }
+            return arr2.length - arr1.length;
+        }
     }
 
     public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(final List<Allele> alleleList,

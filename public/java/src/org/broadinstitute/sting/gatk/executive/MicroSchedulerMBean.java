@@ -31,27 +31,5 @@ package org.broadinstitute.sting.gatk.executive;
  * To change this template use File | Settings | File Templates.
  */
 public interface MicroSchedulerMBean {
-    /**
-     * Gets the filename to which performance data is currently being written.
-     * @return Filename to which performance data is currently being written.
-     */
-    public String getPerformanceLogFileName();
-
-    /**
-     * Set the filename of the log for performance.  If set,
-     * @param fileName filename to use when writing performance data.
-     */
-    public void setPerformanceLogFileName(String fileName);
-
-    /**
-     * Gets the frequency with which performance data is written.
-     * @return Frequency, in seconds, of performance log writes.
-     */
-    public long getPerformanceProgressPrintFrequencySeconds();    
-
-    /**
-     * How often should the performance log message be written?
-     * @param seconds number of seconds between messages indicating performance frequency.
-     */
-    public void setPerformanceProgressPrintFrequencySeconds(long seconds);
+    // has nothing because we don't have anything we currently track
 }

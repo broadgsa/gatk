@@ -25,38 +25,44 @@
 
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMFileHeader;
+import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.Advanced;
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
-import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
+import org.broadinstitute.sting.gatk.filters.*;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
+import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.recalibration.QuantizationInfo;
-import org.broadinstitute.sting.utils.recalibration.RecalUtils;
-import org.broadinstitute.sting.utils.recalibration.RecalibrationReport;
-import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
+import org.broadinstitute.sting.utils.recalibration.*;
+import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
- * First pass of the base quality score recalibration -- Generates recalibration table based on various user-specified covariates (such as reported quality score, cycle, and dinucleotide).
+ * First pass of the base quality score recalibration -- Generates recalibration table based on various user-specified covariates (such as read group, reported quality score, machine cycle, and nucleotide context).
  *
  * <p>
  * This walker is designed to work as the first pass in a two-pass processing step. It does a by-locus traversal operating
@@ -103,32 +109,34 @@ import java.util.ArrayList;
  * </pre>
  */
 
-@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
-@BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
-@By(DataSource.READS)
-@ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class})                                   // only look at covered loci, not every loci of the reference file
-@Requires({DataSource.READS, DataSource.REFERENCE})                                         // filter out all reads with zero or unavailable mapping quality
-@PartitionBy(PartitionType.LOCUS)                                                                                       // this walker requires both -I input.bam and -R reference.fasta
-public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeReducible<Long> {
+@DocumentedGATKFeature(groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class})
+@BAQMode(ApplicationTime = ReadTransformer.ApplicationTime.FORBIDDEN)
+@ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class, UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class, FailsVendorQualityCheckFilter.class})
+@PartitionBy(PartitionType.READ)
+public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSchedulable {
     @ArgumentCollection
-    private final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();                          // all the command line arguments for BQSR and it's covariates
+    private final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection(); // all the command line arguments for BQSR and it's covariates
 
-    private QuantizationInfo quantizationInfo;                                                                          // an object that keeps track of the information necessary for quality score quantization
-    
+    @Advanced
+    @Argument(fullName = "bqsrBAQGapOpenPenalty", shortName="bqsrBAQGOP", doc="BQSR BAQ gap open penalty (Phred Scaled).  Default value is 40.  30 is perhaps better for whole genome call sets", required = false)
+    public double BAQGOP = BAQ.DEFAULT_GOP;
+
+    private QuantizationInfo quantizationInfo; // an object that keeps track of the information necessary for quality score quantization
+
     private RecalibrationTables recalibrationTables;
 
-    private Covariate[] requestedCovariates;                                                                            // list to hold the all the covariate objects that were requested (required + standard + experimental)
+    private Covariate[] requestedCovariates; // list to hold the all the covariate objects that were requested (required + standard + experimental)
 
     private RecalibrationEngine recalibrationEngine;
 
     private int minimumQToUse;
 
-    protected static final String SKIP_RECORD_ATTRIBUTE = "SKIP";                                                       // used to label reads that should be skipped.
-    protected static final String SEEN_ATTRIBUTE = "SEEN";                                                              // used to label reads as processed.
-    protected static final String COVARS_ATTRIBUTE = "COVARS";                                                          // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
+    protected static final String COVARS_ATTRIBUTE = "COVARS"; // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
 
     private static final String NO_DBSNP_EXCEPTION = "This calculation is critically dependent on being able to skip over known variant sites. Please provide a VCF file containing known sites of genetic variation.";
 
+    private BAQ baq; // BAQ the reads on the fly to generate the alignment uncertainty vector
+    private IndexedFastaSequenceFile referenceReader; // fasta reference reader for use with BAQ calculation
 
     /**
      * Parse the -cov arguments and create a list of covariates to be used here
@@ -136,9 +144,7 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
      */
     public void initialize() {
 
-        // TODO -- remove me after the 2.1 release
-        if ( getToolkit().getArguments().numberOfThreads > 1 )
-            throw new UserException("We have temporarily disabled the ability to run BaseRecalibrator multi-threaded for performance reasons.  We hope to have this fixed for the next GATK release (2.2) and apologize for the inconvenience.");
+        baq = new BAQ(BAQGOP); // setup the BAQ object with the provided gap open penalty
 
         // check for unsupported access
         if (getToolkit().isGATKLite() && !getToolkit().getArguments().disableIndelQuals)
@@ -147,16 +153,16 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
         if (RAC.FORCE_PLATFORM != null)
             RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM;
 
-        if (RAC.knownSites.isEmpty() && !RAC.RUN_WITHOUT_DBSNP)                                                         // Warn the user if no dbSNP file or other variant mask was specified
+        if (RAC.knownSites.isEmpty() && !RAC.RUN_WITHOUT_DBSNP) // Warn the user if no dbSNP file or other variant mask was specified
             throw new UserException.CommandLineException(NO_DBSNP_EXCEPTION);
 
         if (RAC.LIST_ONLY) {
             RecalUtils.listAvailableCovariates(logger);
             System.exit(0);
         }
-        RAC.recalibrationReport = getToolkit().getArguments().BQSR_RECAL_FILE;                                          // if we have a recalibration file, record it so it goes on the report table
+        RAC.existingRecalibrationReport = getToolkit().getArguments().BQSR_RECAL_FILE; // if we have a recalibration file, record it so it goes on the report table
 
-        Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalUtils.initializeCovariates(RAC);       // initialize the required and optional covariates
+        Pair<ArrayList<Covariate>, ArrayList<Covariate>> covariates = RecalUtils.initializeCovariates(RAC); // initialize the required and optional covariates
         ArrayList<Covariate> requiredCovariates = covariates.getFirst();
         ArrayList<Covariate> optionalCovariates = covariates.getSecond();
 
@@ -168,27 +174,41 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
             requestedCovariates[covariateIndex++] = covariate;
 
         logger.info("The covariates being used here: ");
-        for (Covariate cov : requestedCovariates) {                                                                     // list all the covariates being used
+        for (Covariate cov : requestedCovariates) { // list all the covariates being used
             logger.info("\t" + cov.getClass().getSimpleName());
-            cov.initialize(RAC);                                                                                        // initialize any covariate member variables using the shared argument collection
+            cov.initialize(RAC); // initialize any covariate member variables using the shared argument collection
+        }
+
+        try {
+            RAC.RECAL_TABLE = new PrintStream(RAC.RECAL_TABLE_FILE);
+        } catch (IOException e) {
+            throw new UserException.CouldNotCreateOutputFile(RAC.RECAL_TABLE_FILE, e);
         }
 
         int numReadGroups = 0;
         for ( final SAMFileHeader header : getToolkit().getSAMFileHeaders() )
             numReadGroups += header.getReadGroups().size();
-        recalibrationTables = new RecalibrationTables(requestedCovariates, numReadGroups);
+        recalibrationTables = new RecalibrationTables(requestedCovariates, numReadGroups, RAC.RECAL_TABLE_UPDATE_LOG);
 
         recalibrationEngine = initializeRecalibrationEngine();
         recalibrationEngine.initialize(requestedCovariates, recalibrationTables);
 
         minimumQToUse = getToolkit().getArguments().PRESERVE_QSCORES_LESS_THAN;
+
+        try {
+            // fasta reference reader for use with BAQ calculation
+            referenceReader = new CachingIndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
+        } catch( FileNotFoundException e ) {
+            throw new UserException.CouldNotReadInputFile(getToolkit().getArguments().referenceFile, e);
+        }
+
     }
 
     private RecalibrationEngine initializeRecalibrationEngine() {
 
         final Class recalibrationEngineClass = GATKLiteUtils.getProtectedClassIfAvailable(RecalibrationEngine.class);
         try {
-            Constructor constructor = recalibrationEngineClass.getDeclaredConstructor((Class[])null);
+            final Constructor constructor = recalibrationEngineClass.getDeclaredConstructor((Class[])null);
             constructor.setAccessible(true);
             return (RecalibrationEngine)constructor.newInstance();
         }
@@ -197,56 +217,207 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
         }
     }
 
-    private boolean readHasBeenSkipped( final GATKSAMRecord read ) {
-        return read.containsTemporaryAttribute(SKIP_RECORD_ATTRIBUTE);
-    }
-
-    private boolean isLowQualityBase( final PileupElement p ) {
-        return p.getQual() < minimumQToUse;
-    }
-
-    private boolean readNotSeen( final GATKSAMRecord read ) {
-        return !read.containsTemporaryAttribute(SEEN_ATTRIBUTE);
+    private boolean isLowQualityBase( final GATKSAMRecord read, final int offset ) {
+        return read.getBaseQualities()[offset] < minimumQToUse;
     }
 
     /**
      * For each read at this locus get the various covariate values and increment that location in the map based on
      * whether or not the base matches the reference at this particular location
-     *
-     * @param tracker the reference metadata tracker
-     * @param ref     the reference context
-     * @param context the alignment context
-     * @return returns 1, but this value isn't used in the reduce step
      */
-    public Long map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        long countedSites = 0L;
-        if (tracker.getValues(RAC.knownSites).size() == 0) {                                                            // Only analyze sites not present in the provided known sites
-            for (final PileupElement p : context.getBasePileup()) {
-                final GATKSAMRecord read = p.getRead();
-                final int offset = p.getOffset();
+    public Long map( final ReferenceContext ref, final GATKSAMRecord originalRead, final RefMetaDataTracker metaDataTracker ) {
 
-                if (readHasBeenSkipped(read) || p.isInsertionAtBeginningOfRead() || isLowQualityBase(p) )                                         // This read has been marked to be skipped or base is low quality (we don't recalibrate low quality bases)
-                    continue;
+        final GATKSAMRecord read = ReadClipper.hardClipAdaptorSequence(originalRead);
+        if( read.isEmpty() ) { return 0L; } // the whole read was inside the adaptor so skip it
 
-                if (readNotSeen(read)) {
-                    read.setTemporaryAttribute(SEEN_ATTRIBUTE, true);
-                    RecalUtils.parsePlatformForRead(read, RAC);
-                    if (!RecalUtils.isColorSpaceConsistent(RAC.SOLID_NOCALL_STRATEGY, read)) {
-                        read.setTemporaryAttribute(SKIP_RECORD_ATTRIBUTE, true);
-                        continue;
+        RecalUtils.parsePlatformForRead(read, RAC);
+        if (!RecalUtils.isColorSpaceConsistent(RAC.SOLID_NOCALL_STRATEGY, read)) { // parse the solid color space and check for color no-calls
+            return 0L; // skip this read completely
+        }
+        read.setTemporaryAttribute(COVARS_ATTRIBUTE, RecalUtils.computeCovariates(read, requestedCovariates));
+
+        final boolean[] skip = calculateSkipArray(read, metaDataTracker); // skip known sites of variation as well as low quality and non-regular bases
+        final int[] isSNP = calculateIsSNP(read, ref, originalRead);
+        final int[] isInsertion = calculateIsIndel(read, EventType.BASE_INSERTION);
+        final int[] isDeletion = calculateIsIndel(read, EventType.BASE_DELETION);
+        final byte[] baqArray = calculateBAQArray(read);
+
+        if( baqArray != null ) { // some reads just can't be BAQ'ed
+            final double[] snpErrors = calculateFractionalErrorArray(isSNP, baqArray);
+            final double[] insertionErrors = calculateFractionalErrorArray(isInsertion, baqArray);
+            final double[] deletionErrors = calculateFractionalErrorArray(isDeletion, baqArray);
+            recalibrationEngine.updateDataForRead(read, skip, snpErrors, insertionErrors, deletionErrors);
+            return 1L;
+        } else {
+            return 0L;
+        }
+    }
+
+    protected boolean[] calculateSkipArray( final GATKSAMRecord read, final RefMetaDataTracker metaDataTracker ) {
+        final byte[] bases = read.getReadBases();
+        final boolean[] skip = new boolean[bases.length];
+        final boolean[] knownSites = calculateKnownSites(read, metaDataTracker.getValues(RAC.knownSites));
+        for( int iii = 0; iii < bases.length; iii++ ) {
+            skip[iii] = !BaseUtils.isRegularBase(bases[iii]) || isLowQualityBase(read, iii) || knownSites[iii] || badSolidOffset(read, iii);
+        }
+        return skip;
+    }
+
+    protected boolean badSolidOffset( final GATKSAMRecord read, final int offset ) {
+        return ReadUtils.isSOLiDRead(read) && RAC.SOLID_RECAL_MODE != RecalUtils.SOLID_RECAL_MODE.DO_NOTHING && !RecalUtils.isColorSpaceConsistent(read, offset);
+    }
+
+    protected boolean[] calculateKnownSites( final GATKSAMRecord read, final List<Feature> features ) {
+        final int BUFFER_SIZE = 0;
+        final int readLength = read.getReadBases().length;
+        final boolean[] knownSites = new boolean[readLength];
+        Arrays.fill(knownSites, false);
+        for( final Feature f : features ) {
+            int featureStartOnRead = ReadUtils.getReadCoordinateForReferenceCoordinate(read.getSoftStart(), read.getCigar(), f.getStart(), ReadUtils.ClippingTail.LEFT_TAIL, true); // BUGBUG: should I use LEFT_TAIL here?
+            if( featureStartOnRead == ReadUtils.CLIPPING_GOAL_NOT_REACHED ) { featureStartOnRead = 0; }
+            int featureEndOnRead = ReadUtils.getReadCoordinateForReferenceCoordinate(read.getSoftStart(), read.getCigar(), f.getEnd(), ReadUtils.ClippingTail.LEFT_TAIL, true);
+            if( featureEndOnRead == ReadUtils.CLIPPING_GOAL_NOT_REACHED ) { featureEndOnRead = readLength; }
+            Arrays.fill(knownSites, Math.max(0, featureStartOnRead - BUFFER_SIZE), Math.min(readLength, featureEndOnRead + 1 + BUFFER_SIZE), true);
+        }
+        return knownSites;
+    }
+
+    // BUGBUG: can be merged with calculateIsIndel
+    protected static int[] calculateIsSNP( final GATKSAMRecord read, final ReferenceContext ref, final GATKSAMRecord originalRead ) {
+        final byte[] readBases = read.getReadBases();
+        final byte[] refBases = Arrays.copyOfRange(ref.getBases(), read.getAlignmentStart() - originalRead.getAlignmentStart(), ref.getBases().length + read.getAlignmentEnd() - originalRead.getAlignmentEnd());
+        final int[] snp = new int[readBases.length];
+        int readPos = 0;
+        int refPos = 0;
+        for ( final CigarElement ce : read.getCigar().getCigarElements() ) {
+            final int elementLength = ce.getLength();
+            switch (ce.getOperator()) {
+                case M:
+                case EQ:
+                case X:
+                    for( int iii = 0; iii < elementLength; iii++ ) {
+                        snp[readPos] = ( BaseUtils.basesAreEqual(readBases[readPos], refBases[refPos]) ? 0 : 1 );
+                        readPos++;
+                        refPos++;
                     }
-                    read.setTemporaryAttribute(COVARS_ATTRIBUTE, RecalUtils.computeCovariates(read, requestedCovariates));
-                }
-
-                if (!ReadUtils.isSOLiDRead(read) ||                                                                     // SOLID bams have inserted the reference base into the read if the color space in inconsistent with the read base so skip it
-                    RAC.SOLID_RECAL_MODE == RecalUtils.SOLID_RECAL_MODE.DO_NOTHING ||
-                        RecalUtils.isColorSpaceConsistent(read, offset))
-                    recalibrationEngine.updateDataForPileupElement(p, ref.getBase());                                                             // This base finally passed all the checks for a good base, so add it to the big data hashmap
+                    break;
+                case D:
+                case N:
+                    refPos += elementLength;
+                    break;
+                case I:
+                case S: // ReferenceContext doesn't have the soft clipped bases!
+                    readPos += elementLength;
+                    break;
+                case H:
+                case P:
+                    break;
+                default:
+                    throw new ReviewedStingException("Unsupported cigar operator: " + ce.getOperator());
             }
-            countedSites++;
+        }
+        return snp;
+    }
+
+    protected static int[] calculateIsIndel( final GATKSAMRecord read, final EventType mode ) {
+        final byte[] readBases = read.getReadBases();
+        final int[] indel = new int[readBases.length];
+        Arrays.fill(indel, 0);
+        int readPos = 0;
+        for ( final CigarElement ce : read.getCigar().getCigarElements() ) {
+            final int elementLength = ce.getLength();
+            switch (ce.getOperator()) {
+                case M:
+                case EQ:
+                case X:
+                case S:
+                {
+                    readPos += elementLength;
+                    break;
+                }
+                case D:
+                {
+                    final int index = ( read.getReadNegativeStrandFlag() ? readPos : ( readPos > 0 ? readPos - 1 : readPos ) );
+                    indel[index] = ( mode.equals(EventType.BASE_DELETION) ? 1 : 0 );
+                    break;
+                }
+                case I:
+                {
+                    final boolean forwardStrandRead = !read.getReadNegativeStrandFlag();
+                    if( forwardStrandRead ) {
+                        indel[(readPos > 0 ? readPos - 1 : readPos)] = ( mode.equals(EventType.BASE_INSERTION) ? 1 : 0 );
+                    }
+                    for (int iii = 0; iii < elementLength; iii++) {
+                        readPos++;
+                    }
+                    if( !forwardStrandRead ) {
+                        indel[(readPos < indel.length ? readPos : readPos - 1)] = ( mode.equals(EventType.BASE_INSERTION) ? 1 : 0 );
+                    }
+                    break;
+                }
+                case N:
+                case H:
+                case P:
+                    break;
+                default:
+                    throw new ReviewedStingException("Unsupported cigar operator: " + ce.getOperator());
+            }
+        }
+        return indel;
+    }
+
+    protected static double[] calculateFractionalErrorArray( final int[] errorArray, final byte[] baqArray ) {
+        if(errorArray.length != baqArray.length ) {
+            throw new ReviewedStingException("Array length mismatch detected. Malformed read?");
         }
 
-        return countedSites;
+        final byte NO_BAQ_UNCERTAINTY = (byte)'@';
+        final int BLOCK_START_UNSET = -1;
+
+        final double[] fractionalErrors = new double[baqArray.length];
+        Arrays.fill(fractionalErrors, 0.0);
+        boolean inBlock = false;
+        int blockStartIndex = BLOCK_START_UNSET;
+        int iii;
+        for( iii = 0; iii < fractionalErrors.length; iii++ ) {
+            if( baqArray[iii] == NO_BAQ_UNCERTAINTY ) {
+                if( !inBlock ) {
+                    fractionalErrors[iii] = (double) errorArray[iii];
+                } else {
+                    calculateAndStoreErrorsInBlock(iii, blockStartIndex, errorArray, fractionalErrors);
+                    inBlock = false; // reset state variables
+                    blockStartIndex = BLOCK_START_UNSET; // reset state variables
+                }
+            } else {
+                inBlock = true;
+                if( blockStartIndex == BLOCK_START_UNSET ) { blockStartIndex = iii; }
+            }
+        }
+        if( inBlock ) {
+            calculateAndStoreErrorsInBlock(iii-1, blockStartIndex, errorArray, fractionalErrors);
+        }
+        if( fractionalErrors.length != errorArray.length ) {
+            throw new ReviewedStingException("Output array length mismatch detected. Malformed read?");
+        }
+        return fractionalErrors;
+    }
+
+    private static void calculateAndStoreErrorsInBlock( final int iii,
+                                                        final int blockStartIndex,
+                                                        final int[] errorArray,
+                                                        final double[] fractionalErrors ) {
+        int totalErrors = 0;
+        for( int jjj = Math.max(0,blockStartIndex-1); jjj <= iii; jjj++ ) {
+            totalErrors += errorArray[jjj];
+        }
+        for( int jjj = Math.max(0, blockStartIndex-1); jjj <= iii; jjj++ ) {
+            fractionalErrors[jjj] = ((double) totalErrors) / ((double)(iii - Math.max(0,blockStartIndex-1) + 1));
+        }
+    }
+
+    private byte[] calculateBAQArray( final GATKSAMRecord read ) {
+        baq.baqRead(read, referenceReader, BAQ.CalculationMode.RECALCULATE, BAQ.QualityMode.ADD_TAG);
+        return BAQ.getBAQTag(read);
     }
 
     /**
@@ -270,11 +441,6 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
         return sum;
     }
 
-    public Long treeReduce(Long sum1, Long sum2) {
-        sum1 += sum2;
-        return sum1;
-    }
-
     @Override
     public void onTraversalDone(Long result) {
         logger.info("Calculating quantized quality scores...");
@@ -284,24 +450,23 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
         generateReport();
         logger.info("...done!");
 
-        if (!RAC.NO_PLOTS) {
+        if ( RAC.RECAL_PDF_FILE != null ) {
             logger.info("Generating recalibration plots...");
             generatePlots();
         }
 
-        logger.info("Processed: " + result + " sites");
+        logger.info("Processed: " + result + " reads");
     }
 
     private void generatePlots() {
         File recalFile = getToolkit().getArguments().BQSR_RECAL_FILE;
         if (recalFile != null) {
             RecalibrationReport report = new RecalibrationReport(recalFile);
-            RecalUtils.generateRecalibrationPlot(RAC.RECAL_FILE, report.getRecalibrationTables(), recalibrationTables, requestedCovariates, RAC.KEEP_INTERMEDIATE_FILES);
+            RecalUtils.generateRecalibrationPlot(RAC, report.getRecalibrationTables(), recalibrationTables, requestedCovariates);
         }
         else
-            RecalUtils.generateRecalibrationPlot(RAC.RECAL_FILE, recalibrationTables, requestedCovariates, RAC.KEEP_INTERMEDIATE_FILES);
+            RecalUtils.generateRecalibrationPlot(RAC, recalibrationTables, requestedCovariates);
     }
-
 
     /**
      * go through the quality score table and use the # observations and the empirical quality score
@@ -313,14 +478,6 @@ public class BaseRecalibrator extends LocusWalker<Long, Long> implements TreeRed
     }
 
     private void generateReport() {
-        PrintStream output;
-        try {
-            output = new PrintStream(RAC.RECAL_FILE);
-        } catch (FileNotFoundException e) {
-            throw new UserException.CouldNotCreateOutputFile(RAC.RECAL_FILE, "could not be created");
-        }
-
-        RecalUtils.outputRecalibrationReport(RAC, quantizationInfo, recalibrationTables, requestedCovariates, output);
+        RecalUtils.outputRecalibrationReport(RAC, quantizationInfo, recalibrationTables, requestedCovariates);
     }
 }
-

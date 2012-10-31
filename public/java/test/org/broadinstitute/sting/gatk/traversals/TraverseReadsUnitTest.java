@@ -6,13 +6,12 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.reads.ReadShardBalancer;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
-import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.qc.CountReads;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -62,9 +61,9 @@ public class TraverseReadsUnitTest extends BaseTest {
     private SAMReaderID bam = new SAMReaderID(new File(validationDataLocation + "index_test.bam"),new Tags()); // TCGA-06-0188.aligned.duplicates_marked.bam");
     private File refFile = new File(validationDataLocation + "Homo_sapiens_assembly17.fasta");
     private List<SAMReaderID> bamList;
-    private Walker countReadWalker;
+    private ReadWalker countReadWalker;
     private File output;
-    private TraverseReads traversalEngine = null;
+    private TraverseReadsNano traversalEngine = null;
 
     private IndexedFastaSequenceFile ref = null;
     private GenomeLocParser genomeLocParser = null;
@@ -107,7 +106,7 @@ public class TraverseReadsUnitTest extends BaseTest {
         bamList.add(bam);
         countReadWalker = new CountReads();
         
-        traversalEngine = new TraverseReads();
+        traversalEngine = new TraverseReadsNano(1);
         traversalEngine.initialize(engine);
     }
 
@@ -121,13 +120,11 @@ public class TraverseReadsUnitTest extends BaseTest {
         Object accumulator = countReadWalker.reduceInit();
 
         for(Shard shard: shardStrategy) {
-            traversalEngine.startTimersIfNecessary();
-
             if (shard == null) {
                 fail("Shard == null");
             }
 
-            ShardDataProvider dataProvider = new ReadShardDataProvider(shard,genomeLocParser,dataSource.seek(shard),null,null);
+            ReadShardDataProvider dataProvider = new ReadShardDataProvider(shard,genomeLocParser,dataSource.seek(shard),null,null);
             accumulator = traversalEngine.traverse(countReadWalker, dataProvider, accumulator);
             dataProvider.close();
         }
