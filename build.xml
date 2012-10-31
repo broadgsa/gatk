@@ -1174,14 +1174,16 @@
             <echo message="" />
             <echo message="Sting: Running @{testtype} test cases!"/>
 
+	    <!-- no test is allowed to run for more than 10 hours -->
             <taskdef resource="testngtasks" classpath="${testng.jar}"/>
             <testng outputDir="@{outputdir}"
                     classpathref="${testng.classpath}"
                     haltOnFailure="false" failureProperty="test.failure"
                     verbose="2"
+		            timeout="36000000"
                     workingDir="${basedir}"
                     useDefaultListeners="false"
-                    listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.StingTextReporter,org.uncommons.reportng.HTMLReporter">
+                    listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.TestNGTestTransformer,org.broadinstitute.sting.StingTextReporter,org.uncommons.reportng.HTMLReporter">
                 <jvmarg value="-Xmx${test.maxmemory}" />
                 <jvmarg value="-ea" />
                 <jvmarg value="-Djava.awt.headless=true" />
