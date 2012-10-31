@@ -317,6 +317,7 @@ class GATKResourcesBundle extends QScript {
   class UG(@Input bam: File, @Input ref: File, @Input outVCF: File) extends UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
     this.input_file = List(bam)
     this.reference_sequence = ref
+    this.intervalsString ++= List("20");
     this.out = outVCF
   }
 

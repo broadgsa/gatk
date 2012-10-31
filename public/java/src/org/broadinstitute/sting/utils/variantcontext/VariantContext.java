@@ -1071,6 +1071,8 @@ public class VariantContext implements Feature { // to enable tribble integratio
             if ( g.isCalled() )
                 observedAlleles.addAll(g.getAlleles());
         }
+        if ( observedAlleles.contains(Allele.NO_CALL) )
+            observedAlleles.remove(Allele.NO_CALL);
 
         if ( reportedAlleles.size() != observedAlleles.size() )
             throw new TribbleException.InternalCodecException(String.format("one or more of the ALT allele(s) for the record at position %s:%d are not observed at all in the sample genotypes", getChr(), getStart()));
