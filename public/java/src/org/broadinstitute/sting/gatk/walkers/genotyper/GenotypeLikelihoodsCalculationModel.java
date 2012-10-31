@@ -104,7 +104,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
                                                    final List<Allele> allAllelesToUse,
                                                    final boolean useBAQedPileup,
                                                    final GenomeLocParser locParser,
-                                                   final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap);
+                                                   final Map<String, org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap);
 
 
     protected int getFilteredDepth(ReadBackedPileup pileup) {

@@ -459,7 +459,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             UAC.GLmodel = GenotypeLikelihoodsCalculationModel.Model.BOTH;
             UAC.OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES;
             UAC.GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
-            UAC.NO_SLOD = true;
             UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, null, null, samples, VariantContextUtils.DEFAULT_PLOIDY);
             headerLines.addAll(UnifiedGenotyper.getHeaderInfo(UAC, null, null));
         }

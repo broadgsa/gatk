@@ -283,6 +283,12 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class FailsStrictValidation extends UserException {
+        public FailsStrictValidation(File f, String message) {
+            super(String.format("File %s fails strict validation: %s", f.getAbsolutePath(), message));
+        }
+    }
+
     public static class MalformedFile extends UserException {
         public MalformedFile(String message) {
             super(String.format("Unknown file is malformed: %s", message));
