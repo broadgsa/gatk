@@ -190,8 +190,8 @@ public class UnifiedGenotyperEngine {
                     final VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model, perReadAlleleLikelihoodMap);
                     if ( vc != null )
                         results.add(calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, true, perReadAlleleLikelihoodMap));
-                    else if (UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES)
-                        results.add(generateEmptyContext(tracker, refContext, null, rawContext));
+ //                   else if (UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES)
+   //                     results.add(generateEmptyContext(tracker, refContext, null, rawContext));
 
                 }
             }        
@@ -454,7 +454,7 @@ public class UnifiedGenotyperEngine {
             attributes.put(VCFConstants.MLE_ALLELE_FREQUENCY_KEY, MLEfrequencies);
         }
 
-        if ( !UAC.NO_SLOD && !limitedContext && !bestGuessIsRef ) {
+        if ( UAC.COMPUTE_SLOD && !limitedContext && !bestGuessIsRef ) {
             //final boolean DEBUG_SLOD = false;
 
             // the overall lod

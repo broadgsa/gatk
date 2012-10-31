@@ -55,8 +55,8 @@ public class AssessReducedQuals extends LocusWalker<GenomeLoc, GenomeLoc> implem
     @Argument(fullName = "qual_epsilon", shortName = "epsilon", doc = "when |Quals_reduced_bam - Quals_original_bam| > epsilon*Quals_original_bam we output this interval", required = false)
     public int qual_epsilon = 0;
 
-    @Argument(fullName = "debugLevel", shortName = "debug", doc = "debug mode on")
-    public int debugLevel = 0;
+    @Argument(fullName = "debugLevel", shortName = "debug", doc = "debug mode on")   // TODO -- best to make this optional
+    public int debugLevel = 0;   // TODO -- best to make this an enum or boolean
 
     @Output
     protected PrintStream out;
@@ -114,7 +114,11 @@ public class AssessReducedQuals extends LocusWalker<GenomeLoc, GenomeLoc> implem
         return quals;
     }
 
+    // TODO -- arguments/variables should be final, not method declaration
     private final boolean isGoodRead(PileupElement p, List<String> tags){
+        // TODO -- this isn't quite right.  You don't need the tags here.  Instead, you want to check whether the read itself (which
+        // TODO --  you can get from the PileupElement) is a reduced read (not all reads from the reduced bam are reduced) and only
+        // TODO --  for them do you want to ignore that min mapping quality cutoff (but you *do* still want the min base cutoff).
         return !p.isDeletion() && (tags.contains(reduced) || (tags.contains(original) && (int)p.getQual() >= 20 && p.getMappingQual() >= 20));
     }
 

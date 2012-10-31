@@ -4,12 +4,21 @@ package org.broadinstitute.sting.utils;
  * Simple utility class that makes it convenient to print unit adjusted times
  */
 public class AutoFormattingTime {
-    double timeInSeconds;           // in Seconds
-    int precision;      // for format
+    private final int width; // for format
+    private final int precision;      // for format
 
-    public AutoFormattingTime(double timeInSeconds, int precision) {
+    double timeInSeconds;           // in Seconds
+    private final String formatString;
+
+    public AutoFormattingTime(double timeInSeconds, final int width, int precision) {
+        this.width = width;
         this.timeInSeconds = timeInSeconds;
         this.precision = precision;
+        this.formatString = "%" + width + "." + precision + "f %s";
+    }
+
+    public AutoFormattingTime(double timeInSeconds, int precision) {
+        this(timeInSeconds, 6, precision);
     }
 
     public AutoFormattingTime(double timeInSeconds) {
@@ -18,6 +27,20 @@ public class AutoFormattingTime {
 
     public double getTimeInSeconds() {
         return timeInSeconds;
+    }
+
+    /**
+     * @return the precision (a la format's %WIDTH.PERCISIONf)
+     */
+    public int getWidth() {
+        return width;
+    }
+
+    /**
+     * @return the precision (a la format's %WIDTH.PERCISIONf)
+     */
+    public int getPrecision() {
+        return precision;
     }
 
     /**
@@ -48,6 +71,6 @@ public class AutoFormattingTime {
             }
         }
 
-        return String.format("%6."+precision+"f %s", unitTime, unit);
+        return String.format(formatString, unitTime, unit);
     }
 }

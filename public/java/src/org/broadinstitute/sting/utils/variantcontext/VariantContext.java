@@ -1073,13 +1073,13 @@ public class VariantContext implements Feature { // to enable tribble integratio
         }
 
         if ( reportedAlleles.size() != observedAlleles.size() )
-            throw new TribbleException.InternalCodecException(String.format("the ALT allele(s) for the record at position %s:%d do not match what is observed in the per-sample genotypes", getChr(), getStart()));
+            throw new TribbleException.InternalCodecException(String.format("one or more of the ALT allele(s) for the record at position %s:%d are not observed at all in the sample genotypes", getChr(), getStart()));
 
         int originalSize = reportedAlleles.size();
         // take the intersection and see if things change
         observedAlleles.retainAll(reportedAlleles);
         if ( observedAlleles.size() != originalSize )
-            throw new TribbleException.InternalCodecException(String.format("the ALT allele(s) for the record at position %s:%d do not match what is observed in the per-sample genotypes", getChr(), getStart()));
+            throw new TribbleException.InternalCodecException(String.format("one or more of the ALT allele(s) for the record at position %s:%d are not observed at all in the sample genotypes", getChr(), getStart()));
     }
 
     public void validateChromosomeCounts() {

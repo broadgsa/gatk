@@ -33,6 +33,8 @@ import java.util.Arrays;
 
 public class ValidateVariantsIntegrationTest extends WalkerTest {
 
+    protected static final String emptyMd5 = "d41d8cd98f00b204e9800998ecf8427e";
+
     public static String baseTestString(String file, String type) {
         return "-T ValidateVariants -R " + b36KGReference + " -L 1:10001292-10001303 --variant:vcf " + privateTestDir + file + " --validationType " + type;
     }
@@ -42,7 +44,7 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString("validationExampleGood.vcf", "ALL"),
                 0,
-                Arrays.asList("d41d8cd98f00b204e9800998ecf8427e")
+                Arrays.asList(emptyMd5)
         );
 
         executeTest("test good file", spec);
@@ -53,7 +55,7 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString("validationExampleBad.vcf", "REF"),
                 0,
-                UserException.MalformedFile.class
+                UserException.FailsStrictValidation.class
         );
 
         executeTest("test bad ref base #1", spec);
@@ -64,7 +66,7 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString("validationExampleBad2.vcf", "REF"),
                 0,
-                UserException.MalformedFile.class
+                UserException.FailsStrictValidation.class
         );
 
         executeTest("test bad ref base #2", spec);
@@ -75,7 +77,7 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString("validationExampleBad.vcf", "CHR_COUNTS"),
                 0,
-                UserException.MalformedFile.class
+                UserException.FailsStrictValidation.class
         );
 
         executeTest("test bad chr counts #1", spec);
@@ -86,7 +88,7 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString("validationExampleBad2.vcf", "CHR_COUNTS"),
                 0,
-                UserException.MalformedFile.class
+                UserException.FailsStrictValidation.class
         );
 
         executeTest("test bad chr counts #2", spec);
@@ -97,7 +99,7 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString("validationExampleBad.vcf", "IDS") + " --dbsnp " + b36dbSNP129,
                 0,
-                UserException.MalformedFile.class
+                UserException.FailsStrictValidation.class
         );
 
         executeTest("test bad RS ID", spec);
@@ -108,7 +110,7 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
             baseTestString("validationExampleBad.vcf", "ALLELES"),
             0,
-            UserException.MalformedFile.class
+            UserException.FailsStrictValidation.class
         );
 
         executeTest("test bad alt allele", spec);
@@ -119,10 +121,21 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
             baseTestString("validationExampleBad3.vcf", "REF"),
             0,
-            UserException.MalformedFile.class
+            UserException.FailsStrictValidation.class
         );
 
         executeTest("test bad ref allele in deletion", spec);
+    }
+
+    @Test
+    public void testNoValidation() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString("validationExampleBad.vcf", "NONE"),
+                0,
+                Arrays.asList(emptyMd5)
+        );
+
+        executeTest("test no validation", spec);
     }
 
     @Test
@@ -130,7 +143,7 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString("complexEvents.vcf", "ALL"),
                 0,
-                Arrays.asList("d41d8cd98f00b204e9800998ecf8427e")
+                Arrays.asList(emptyMd5)
         );
 
         executeTest("test validating complex events", spec);
