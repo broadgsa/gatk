@@ -236,6 +236,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
      * then extensions (".bam" or ".sam") will be stripped from the input file names and the provided string value will be pasted on instead; 2) if the
      * value ends with a '.map' (e.g. input_output.map), then the two-column tab-separated file with the specified name must exist and list unique output
      * file name (2nd column) for each input file name (1st column).
+     *
+     * Note that some GATK arguments do NOT work in conjunction with nWayOut (e.g. --disable_bam_indexing).
      */
     @Argument(fullName="nWayOut", shortName="nWayOut", required=false, doc="Generate one output file for each input (-I) bam file")
     protected String N_WAY_OUT = null;
