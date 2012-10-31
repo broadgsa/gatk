@@ -47,8 +47,8 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
     /**
      * Note that calculating the SLOD increases the runtime by an appreciable amount.
      */
-    @Argument(fullName = "noSLOD", shortName = "nosl", doc = "If provided, we will not calculate the SLOD", required = false)
-    public boolean NO_SLOD = false;
+    @Argument(fullName = "computeSLOD", shortName = "slod", doc = "If provided, we will calculate the SLOD (SB annotation)", required = false)
+    public boolean COMPUTE_SLOD = false;
 
     /**
      * Depending on the value of the --max_alternate_alleles argument, we may genotype only a fraction of the alleles being sent on for genotyping.
@@ -204,7 +204,7 @@ public class UnifiedArgumentCollection extends StandardCallerArgumentCollection 
         this.GLmodel = uac.GLmodel;
         this.AFmodel = uac.AFmodel;
         this.PCR_error = uac.PCR_error;
-        this.NO_SLOD = uac.NO_SLOD;
+        this.COMPUTE_SLOD = uac.COMPUTE_SLOD;
         this.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED = uac.ANNOTATE_NUMBER_OF_ALLELES_DISCOVERED;
         this.MIN_BASE_QUALTY_SCORE = uac.MIN_BASE_QUALTY_SCORE;
         this.MAX_DELETION_FRACTION = uac.MAX_DELETION_FRACTION;

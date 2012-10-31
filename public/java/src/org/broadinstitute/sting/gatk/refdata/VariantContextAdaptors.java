@@ -364,7 +364,7 @@ public class VariantContextAdaptors {
 
             long end = hapmap.getEnd();
             if ( deletionLength > 0 )
-                end += deletionLength;
+                end += (deletionLength - 1);
             VariantContext vc = new VariantContextBuilder(name, hapmap.getChr(), hapmap.getStart(), end, alleles).id(hapmap.getName()).genotypes(genotypes).make();
             return vc;
        }

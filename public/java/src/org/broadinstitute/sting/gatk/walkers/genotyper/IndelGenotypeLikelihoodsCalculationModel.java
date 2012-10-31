@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Haplotype;
+import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.*;
@@ -81,7 +82,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                                          final List<Allele> allAllelesToUse,
                                          final boolean useBAQedPileup,
                                          final GenomeLocParser locParser,
-                                         final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
+                                         final Map<String, PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
 
         GenomeLoc loc = ref.getLocus();
 //        if (!ref.getLocus().equals(lastSiteVisited)) {
@@ -118,12 +119,12 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
             if (!perReadAlleleLikelihoodMap.containsKey(sample.getKey())){
                 // no likelihoods have been computed for this sample at this site
-                perReadAlleleLikelihoodMap.put(sample.getKey(), new PerReadAlleleLikelihoodMap());
+                perReadAlleleLikelihoodMap.put(sample.getKey(), PerReadAlleleLikelihoodMap.getBestAvailablePerReadAlleleLikelihoodMap());
             }
             final ReadBackedPileup pileup = context.getBasePileup();
             if (pileup != null) {
                 final GenotypeBuilder b = new GenotypeBuilder(sample.getKey());
-                final double[] genotypeLikelihoods = pairModel.computeDiploidReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, perReadAlleleLikelihoodMap.get(sample.getKey()));
+                final double[] genotypeLikelihoods = pairModel.computeDiploidReadHaplotypeLikelihoods(pileup, haplotypeMap, ref, eventLength, perReadAlleleLikelihoodMap.get(sample.getKey()), UAC.CONTAMINATION_FRACTION, UAC.contaminationLog);
                 b.PL(genotypeLikelihoods);
                 b.DP(getFilteredDepth(pileup));
                 genotypes.add(b.make());

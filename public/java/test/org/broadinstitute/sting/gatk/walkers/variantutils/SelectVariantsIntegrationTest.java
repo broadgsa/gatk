@@ -20,7 +20,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
                         + b37hapmapGenotypes + " -disc " + testFile
                         + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
                 1,
-                Arrays.asList("d88bdae45ae0e74e8d8fd196627e612c")
+                Arrays.asList("954415f84996d27b07d00855e96d33a2")
         );
         spec.disableShadowBCF();
 
@@ -49,7 +49,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
                         + b37hapmapGenotypes + " -disc " + testFile
                         + " -o %s --no_cmdline_in_header -U LENIENT_VCF_PROCESSING",
                 1,
-                Arrays.asList("c0b937edb6a8b6392d477511d4f1ebcf")
+                Arrays.asList("ca1b5226eaeaffb78d4abd9d2ee10c43")
         );
         spec.disableShadowBCF();
 

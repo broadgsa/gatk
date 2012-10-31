@@ -108,4 +108,22 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
                 Arrays.asList("8ed32a2272bab8043a255362335395ef"));
         executeTest("testUnfilteredBecomesFilteredAndPass", spec);
     }
+
+    @Test
+    public void testFilteringDPfromINFO() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T VariantFiltration -o %s --no_cmdline_in_header -R " + b37KGReference
+                        + " --filterExpression 'DP < 8' --filterName lowDP -V " + privateTestDir + "filteringDepthInFormat.vcf", 1,
+                Arrays.asList("a01f7cce53ea556c9741aa60b6124c41"));
+        executeTest("testFilteringDPfromINFO", spec);
+    }
+
+    @Test
+    public void testFilteringDPfromFORMAT() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T VariantFiltration -o %s --no_cmdline_in_header -R " + b37KGReference
+                        + " --genotypeFilterExpression 'DP < 8' --genotypeFilterName lowDP -V " + privateTestDir + "filteringDepthInFormat.vcf", 1,
+                Arrays.asList("e10485c7c33d9211d0c1294fd7858476"));
+        executeTest("testFilteringDPfromFORMAT", spec);
+    }
 }
