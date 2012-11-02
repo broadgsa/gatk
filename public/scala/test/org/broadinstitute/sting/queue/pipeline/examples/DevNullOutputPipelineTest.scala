@@ -53,7 +53,7 @@ import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
 import org.broadinstitute.sting.BaseTest
 
 class DevNullOutputPipelineTest {
-  @Test
+  @Test(timeOut=36000000)
   def testDevNullOutput() {
     val spec = new PipelineTestSpec
     spec.name = "devnulloutput"

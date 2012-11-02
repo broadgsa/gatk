@@ -28,7 +28,7 @@ import org.testng.annotations.Test
 import org.broadinstitute.sting.BaseTest
 
 class PacbioProcessingPipelineTest {
-  @Test
+  @Test(timeOut=36000000)
   def testPacbioProcessingPipeline {
     val testOut = "exampleBAM.recal.bam"
     val spec = new PipelineTestSpec
