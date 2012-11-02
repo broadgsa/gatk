@@ -10,4 +10,5 @@ trait RemoteFile extends File with FileExtension {
   def pullToLocal()
   def pushToRemote()
   def deleteRemote()
+  def remoteDescription: String
 }

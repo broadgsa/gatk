@@ -352,6 +352,9 @@ public class UserException extends ReviewedStingException {
     }
 
     public static class CannotExecuteQScript extends UserException {
+        public CannotExecuteQScript(String message) {
+            super(String.format("Unable to execute QScript: " + message));
+        }
         public CannotExecuteQScript(String message, Exception e) {
             super(String.format("Unable to execute QScript: " + message), e);
         }

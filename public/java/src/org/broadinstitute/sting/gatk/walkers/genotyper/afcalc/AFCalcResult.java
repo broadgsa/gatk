@@ -31,10 +31,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Describes the results of the AFCalc
@@ -86,8 +83,8 @@ public class AFCalcResult {
         if ( log10pNonRefByAllele == null ) throw new IllegalArgumentException("log10pNonRefByAllele cannot be null");
         if ( log10pNonRefByAllele.size() != allelesUsedInGenotyping.size() - 1 ) throw new IllegalArgumentException("log10pNonRefByAllele has the wrong number of elements: log10pNonRefByAllele " + log10pNonRefByAllele + " but allelesUsedInGenotyping " + allelesUsedInGenotyping);
         if ( ! allelesUsedInGenotyping.containsAll(log10pNonRefByAllele.keySet()) ) throw new IllegalArgumentException("log10pNonRefByAllele doesn't contain all of the alleles used in genotyping: log10pNonRefByAllele " + log10pNonRefByAllele + " but allelesUsedInGenotyping " + allelesUsedInGenotyping);
-        if ( ! goodLog10ProbVector(log10LikelihoodsOfAC, LOG_10_ARRAY_SIZES, false) ) throw new IllegalArgumentException("log10LikelihoodsOfAC are bad " + Utils.join(",", log10LikelihoodsOfAC));
-        if ( ! goodLog10ProbVector(log10PriorsOfAC, LOG_10_ARRAY_SIZES, true) ) throw new IllegalArgumentException("log10priors are bad " + Utils.join(",", log10PriorsOfAC));
+        if ( ! MathUtils.goodLog10ProbVector(log10LikelihoodsOfAC, LOG_10_ARRAY_SIZES, false) ) throw new IllegalArgumentException("log10LikelihoodsOfAC are bad " + Utils.join(",", log10LikelihoodsOfAC));
+        if ( ! MathUtils.goodLog10ProbVector(log10PriorsOfAC, LOG_10_ARRAY_SIZES, true) ) throw new IllegalArgumentException("log10priors are bad " + Utils.join(",", log10PriorsOfAC));
 
         this.alleleCountsOfMLE = alleleCountsOfMLE;
         this.nEvaluations = nEvaluations;
@@ -150,7 +147,7 @@ public class AFCalcResult {
      * Due to computational / implementation constraints this may be smaller than
      * the actual list of alleles requested
      *
-     * @return a non-empty list of alleles used during genotyping
+     * @return a non-empty list of alleles used during genotyping, the first of which is the reference allele
      */
     @Ensures({"result != null", "! result.isEmpty()"})
     public List<Allele> getAllelesUsedInGenotyping() {
@@ -162,7 +159,7 @@ public class AFCalcResult {
      *
      * @return
      */
-    @Ensures({"goodLog10Probability(result)"})
+    @Ensures({"MathUtils.goodLog10Probability(result)"})
     public double getLog10PosteriorOfAFEq0() {
         return log10PosteriorsOfAC[AF0];
     }
@@ -172,7 +169,7 @@ public class AFCalcResult {
      *
      * @return
      */
-    @Ensures({"goodLog10Probability(result)"})
+    @Ensures({"MathUtils.goodLog10Probability(result)"})
     public double getLog10PosteriorOfAFGT0() {
         return log10PosteriorsOfAC[AF1p];
     }
@@ -182,7 +179,7 @@ public class AFCalcResult {
      *
      * @return
      */
-    @Ensures({"goodLog10Probability(result)"})
+    @Ensures({"MathUtils.goodLog10Probability(result)"})
     public double getLog10LikelihoodOfAFEq0() {
         return log10LikelihoodsOfAC[AF0];
     }
@@ -192,7 +189,7 @@ public class AFCalcResult {
      *
      * @return
      */
-    @Ensures({"goodLog10Probability(result)"})
+    @Ensures({"MathUtils.goodLog10Probability(result)"})
     public double getLog10LikelihoodOfAFGT0() {
         return log10LikelihoodsOfAC[AF1p];
     }
@@ -202,7 +199,7 @@ public class AFCalcResult {
      *
      * @return
      */
-    @Ensures({"goodLog10Probability(result)"})
+    @Ensures({"MathUtils.goodLog10Probability(result)"})
     public double getLog10PriorOfAFEq0() {
         return log10PriorsOfAC[AF0];
     }
@@ -212,9 +209,17 @@ public class AFCalcResult {
      *
      * @return
      */
-    @Ensures({"goodLog10Probability(result)"})
+    @Ensures({"MathUtils.goodLog10Probability(result)"})
     public double getLog10PriorOfAFGT0() {
         return log10PriorsOfAC[AF1p];
+    }
+
+    @Override
+    public String toString() {
+        final List<String> byAllele = new LinkedList<String>();
+        for ( final Allele a : getAllelesUsedInGenotyping() )
+            if ( a.isNonReference() ) byAllele.add(String.format("%s => MLE %d / posterior %.2f", a, getAlleleCountAtMLE(a), getLog10PosteriorOfAFGt0ForAllele(a)));
+        return String.format("AFCalc%n\t\tlog10PosteriorOfAFGT0=%.2f%n\t\t%s", getLog10LikelihoodOfAFGT0(), Utils.join("\n\t\t", byAllele));
     }
 
     /**
@@ -234,6 +239,19 @@ public class AFCalcResult {
     }
 
     /**
+     * Are any of the alleles polymorphic w.r.t. #isPolymorphic?
+     *
+     * @param log10minPNonRef the confidence threshold, in log10 space
+     * @return true if any are poly, false otherwise
+     */
+    public boolean anyPolymorphic(final double log10minPNonRef) {
+        for ( final Allele a : getAllelesUsedInGenotyping() )
+            if ( a.isNonReference() && isPolymorphic(a, log10minPNonRef) )
+                return true;
+        return false;
+    }
+
+    /**
      * Returns the log10 probability that allele is segregating
      *
      * Unlike the sites-level annotation, this calculation is specific to allele, and can be
@@ -245,7 +263,7 @@ public class AFCalcResult {
      * @param allele the allele we're interested in, must be in getAllelesUsedInGenotyping
      * @return the log10 probability that allele is segregating at this site
      */
-    @Ensures("goodLog10Probability(result)")
+    @Ensures("MathUtils.goodLog10Probability(result)")
     public double getLog10PosteriorOfAFGt0ForAllele(final Allele allele) {
         final Double log10pNonRef = log10pNonRefByAllele.get(allele);
         if ( log10pNonRef == null ) throw new IllegalArgumentException("Unknown allele " + allele);
@@ -261,43 +279,12 @@ public class AFCalcResult {
      * @return freshly allocated log10 normalized posteriors vector
      */
     @Requires("log10LikelihoodsOfAC.length == log10PriorsOfAC.length")
-    @Ensures("goodLog10ProbVector(result, LOG_10_ARRAY_SIZES, true)")
+    @Ensures("MathUtils.goodLog10ProbVector(result, LOG_10_ARRAY_SIZES, true)")
     private static double[] computePosteriors(final double[] log10LikelihoodsOfAC, final double[] log10PriorsOfAC) {
         final double[] log10UnnormalizedPosteriors = new double[log10LikelihoodsOfAC.length];
         for ( int i = 0; i < log10LikelihoodsOfAC.length; i++ )
             log10UnnormalizedPosteriors[i] = log10LikelihoodsOfAC[i] + log10PriorsOfAC[i];
-
-        // necessary because the posteriors may be so skewed that the log-space normalized value isn't
-        // good, so we have to try both log-space normalization as well as the real-space normalization if the
-        // result isn't good
-        final double[] logNormalized = MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, true);
-        if ( goodLog10ProbVector(logNormalized, logNormalized.length, true) )
-            return logNormalized;
-        else
-            return MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, false);
-    }
-
-    /**
-     * Check that the log10 prob vector vector is well formed
-     *
-     * @param vector
-     * @param expectedSize
-     * @param shouldSumToOne
-     *
-     * @return true if vector is well-formed, false otherwise
-     */
-    private static boolean goodLog10ProbVector(final double[] vector, final int expectedSize, final boolean shouldSumToOne) {
-        if ( vector.length != expectedSize ) return false;
-
-        for ( final double pr : vector ) {
-            if ( ! goodLog10Probability(pr) )
-                return false;
-        }
-
-        if ( shouldSumToOne && MathUtils.compareDoubles(MathUtils.sumLog10(vector), 1.0, 1e-4) != 0 )
-            return false;
-
-        return true; // everything is good
+        return MathUtils.normalizeFromLog10(log10UnnormalizedPosteriors, true, false);
     }
 
     /**
@@ -320,15 +307,5 @@ public class AFCalcResult {
             throw new IllegalArgumentException("could not find allele " + allele + " in " + allelesUsedInGenotyping);
         else
             return index - 1;
-    }
-
-    /**
-     * Checks that the result is a well-formed log10 probability
-     *
-     * @param result a supposedly well-formed log10 probability value
-     * @return true if result is really well formed
-     */
-    private static boolean goodLog10Probability(final double result) {
-        return result <= 0.0 && ! Double.isInfinite(result) && ! Double.isNaN(result);
     }
 }

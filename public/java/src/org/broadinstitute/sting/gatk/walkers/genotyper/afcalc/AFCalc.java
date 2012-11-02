@@ -29,54 +29,62 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.SimpleTimer;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.List;
 
 
 /**
  * Generic interface for calculating the probability of alleles segregating given priors and genotype likelihoods
- *
  */
 public abstract class AFCalc implements Cloneable {
     private final static Logger defaultLogger = Logger.getLogger(AFCalc.class);
 
     protected final int nSamples;
     protected final int maxAlternateAllelesToGenotype;
-    protected final int maxAlternateAllelesForIndels;
 
     protected Logger logger = defaultLogger;
 
     private SimpleTimer callTimer = new SimpleTimer();
-    private PrintStream callReport = null;
-    private final AFCalcResultTracker resultTracker;
+    private final StateTracker stateTracker;
+    private ExactCallLogger exactCallLogger = null;
 
-    protected AFCalc(final int nSamples, final int maxAltAlleles, final int maxAltAllelesForIndels, final int ploidy) {
+    /**
+     * Create a new AFCalc object capable of calculating the prob. that alleles are
+     * segregating among nSamples with up to maxAltAlleles for SNPs and maxAltAllelesForIndels
+     * for indels for samples with ploidy
+     *
+     * @param nSamples number of samples, must be > 0
+     * @param maxAltAlleles maxAltAlleles for SNPs
+     * @param ploidy the ploidy, must be > 0
+     */
+    protected AFCalc(final int nSamples, final int maxAltAlleles, final int ploidy) {
         if ( nSamples < 0 ) throw new IllegalArgumentException("nSamples must be greater than zero " + nSamples);
         if ( maxAltAlleles < 1 ) throw new IllegalArgumentException("maxAltAlleles must be greater than zero " + maxAltAlleles);
-        if ( maxAltAllelesForIndels < 1 ) throw new IllegalArgumentException("maxAltAllelesForIndels must be greater than zero " + maxAltAllelesForIndels);
         if ( ploidy < 1 ) throw new IllegalArgumentException("ploidy must be > 0 but got " + ploidy);
 
         this.nSamples = nSamples;
         this.maxAlternateAllelesToGenotype = maxAltAlleles;
-        this.maxAlternateAllelesForIndels = maxAltAllelesForIndels;
-        this.resultTracker = new AFCalcResultTracker(Math.max(maxAltAlleles, maxAltAllelesForIndels));
+        this.stateTracker = new StateTracker(maxAltAlleles);
     }
 
+    /**
+     * Enable exact call logging to file
+     *
+     * @param exactCallsLog the destination file
+     */
     public void enableProcessLog(final File exactCallsLog) {
-        initializeOutputFile(exactCallsLog);
+        exactCallLogger = new ExactCallLogger(exactCallsLog);
     }
 
+    /**
+     * Use this logger instead of the default logger
+     *
+     * @param logger
+     */
     public void setLogger(Logger logger) {
         this.logger = logger;
     }
@@ -91,10 +99,10 @@ public abstract class AFCalc implements Cloneable {
     public AFCalcResult getLog10PNonRef(final VariantContext vc, final double[] log10AlleleFrequencyPriors) {
         if ( vc == null ) throw new IllegalArgumentException("VariantContext cannot be null");
         if ( log10AlleleFrequencyPriors == null ) throw new IllegalArgumentException("priors vector cannot be null");
-        if ( resultTracker == null ) throw new IllegalArgumentException("Results object cannot be null");
+        if ( stateTracker == null ) throw new IllegalArgumentException("Results object cannot be null");
 
         // reset the result, so we can store our new result there
-        resultTracker.reset();
+        stateTracker.reset();
 
         final VariantContext vcWorking = reduceScope(vc);
 
@@ -102,16 +110,26 @@ public abstract class AFCalc implements Cloneable {
         final AFCalcResult result = computeLog10PNonRef(vcWorking, log10AlleleFrequencyPriors);
         final long nanoTime = callTimer.getElapsedTimeNano();
 
-        if ( callReport != null )
-            printCallInfo(vcWorking, log10AlleleFrequencyPriors, nanoTime, resultTracker.getLog10PosteriorOfAFzero());
+        if ( exactCallLogger != null )
+            exactCallLogger.printCallInfo(vcWorking, log10AlleleFrequencyPriors, nanoTime, result);
 
         return result;
     }
 
-    @Deprecated
-    protected AFCalcResult resultFromTracker(final VariantContext vcWorking, final double[] log10AlleleFrequencyPriors) {
-        resultTracker.setAllelesUsedInGenotyping(vcWorking.getAlleles());
-        return resultTracker.toAFCalcResult(log10AlleleFrequencyPriors);
+    /**
+     * Convert the final state of the state tracker into our result as an AFCalcResult
+     *
+     * Assumes that stateTracker has been updated accordingly
+     *
+     * @param vcWorking the VariantContext we actually used as input to the calc model (after reduction)
+     * @param log10AlleleFrequencyPriors the priors by AC vector
+     * @return a AFCalcResult describing the result of this calculation
+     */
+    @Requires("stateTracker.getnEvaluations() >= 0")
+    @Ensures("result != null")
+    protected AFCalcResult getResultFromFinalState(final VariantContext vcWorking, final double[] log10AlleleFrequencyPriors) {
+        stateTracker.setAllelesUsedInGenotyping(vcWorking.getAlleles());
+        return stateTracker.toAFCalcResult(log10AlleleFrequencyPriors);
     }
 
     // ---------------------------------------------------------------------------
@@ -142,11 +160,13 @@ public abstract class AFCalc implements Cloneable {
      * @param log10AlleleFrequencyPriors        priors
      * @return a AFCalcResult object describing the results of this calculation
      */
-    // TODO -- add consistent requires among args
+    @Requires({"vc != null", "log10AlleleFrequencyPriors != null"})
     protected abstract AFCalcResult computeLog10PNonRef(final VariantContext vc,
                                                         final double[] log10AlleleFrequencyPriors);
 
     /**
+     * Subset VC to the just allelesToUse, updating genotype likelihoods
+     *
      * Must be overridden by concrete subclasses
      *
      * @param vc                                variant context with alleles and genotype likelihoods
@@ -167,58 +187,11 @@ public abstract class AFCalc implements Cloneable {
     // ---------------------------------------------------------------------------
 
     public int getMaxAltAlleles() {
-        return Math.max(maxAlternateAllelesToGenotype, maxAlternateAllelesForIndels);
+        return maxAlternateAllelesToGenotype;
     }
 
-
-    // ---------------------------------------------------------------------------
-    //
-    // Print information about the call to the calls log
-    //
-    // ---------------------------------------------------------------------------
-
-    private void initializeOutputFile(final File outputFile) {
-        try {
-            if (outputFile != null) {
-                callReport = new PrintStream( new FileOutputStream(outputFile) );
-                callReport.println(Utils.join("\t", Arrays.asList("loc", "variable", "key", "value")));
-            }
-        } catch ( FileNotFoundException e ) {
-            throw new UserException.CouldNotCreateOutputFile(outputFile, e);
-        }
+    protected StateTracker getStateTracker() {
+        return stateTracker;
     }
 
-    private void printCallInfo(final VariantContext vc,
-                               final double[] log10AlleleFrequencyPriors,
-                               final long runtimeNano,
-                               final double log10PosteriorOfAFzero) {
-        printCallElement(vc, "type", "ignore", vc.getType());
-
-        int allelei = 0;
-        for ( final Allele a : vc.getAlleles() )
-            printCallElement(vc, "allele", allelei++, a.getDisplayString());
-
-        for ( final Genotype g : vc.getGenotypes() )
-            printCallElement(vc, "PL", g.getSampleName(), g.getLikelihoodsString());
-
-        for ( int priorI = 0; priorI < log10AlleleFrequencyPriors.length; priorI++ )
-            printCallElement(vc, "priorI", priorI, log10AlleleFrequencyPriors[priorI]);
-
-        printCallElement(vc, "runtime.nano", "ignore", runtimeNano);
-        printCallElement(vc, "log10PosteriorOfAFzero", "ignore", log10PosteriorOfAFzero);
-
-        callReport.flush();
-    }
-
-    private void printCallElement(final VariantContext vc,
-                                  final Object variable,
-                                  final Object key,
-                                  final Object value) {
-        final String loc = String.format("%s:%d", vc.getChr(), vc.getStart());
-        callReport.println(Utils.join("\t", Arrays.asList(loc, variable, key, value)));
-    }
-
-    public AFCalcResultTracker getResultTracker() {
-        return resultTracker;
-    }
 }

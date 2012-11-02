@@ -25,8 +25,11 @@
 package org.broadinstitute.sting.utils.codecs.hapmap;
 
 import org.broad.tribble.AsciiFeatureCodec;
+import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.annotation.Strand;
+import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.LineReader;
+import org.broad.tribble.readers.PositionalBufferedStream;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -115,5 +118,11 @@ public class RawHapMapCodec extends AsciiFeatureCodec<RawHapMapFeature> {
             throw new IllegalArgumentException("Unable to read a line from the line reader");
         }
         return headerLine;
+    }
+
+    @Override
+    public FeatureCodecHeader readHeader(final PositionalBufferedStream stream) throws IOException {
+        final AsciiLineReader br = new AsciiLineReader(stream);
+        return new FeatureCodecHeader(readHeader(br), br.getPosition());
     }
 }

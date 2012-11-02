@@ -596,7 +596,6 @@ public class MathUtils {
         if (keepInLogSpace) {
             for (int i = 0; i < array.length; i++) {
                 array[i] -= maxValue;
-                array[i] = Math.max(array[i], LOG10_P_OF_ZERO);
             }
             return array;
         }
@@ -613,8 +612,11 @@ public class MathUtils {
             sum += normalized[i];
         for (int i = 0; i < array.length; i++) {
             double x = normalized[i] / sum;
-            if (takeLog10OfOutput)
-                x = Math.max(Math.log10(x), LOG10_P_OF_ZERO);
+            if (takeLog10OfOutput) {
+                x = Math.log10(x);
+                if ( x < LOG10_P_OF_ZERO || Double.isInfinite(x) )
+                    x = array[i] - maxValue;
+            }
 
             normalized[i] = x;
         }
@@ -1190,6 +1192,39 @@ public class MathUtils {
 
     public static byte getQScoreMedian(List<SAMRecord> reads, List<Integer> offsets) {
         return getQScoreOrderStatistic(reads, offsets, (int) Math.floor(reads.size() / 2.));
+    }
+
+    /**
+     * Check that the log10 prob vector vector is well formed
+     *
+     * @param vector
+     * @param expectedSize
+     * @param shouldSumToOne
+     *
+     * @return true if vector is well-formed, false otherwise
+     */
+    public static boolean goodLog10ProbVector(final double[] vector, final int expectedSize, final boolean shouldSumToOne) {
+        if ( vector.length != expectedSize ) return false;
+
+        for ( final double pr : vector ) {
+            if ( ! goodLog10Probability(pr) )
+                return false;
+        }
+
+        if ( shouldSumToOne && compareDoubles(sumLog10(vector), 1.0, 1e-4) != 0 )
+            return false;
+
+        return true; // everything is good
+    }
+
+    /**
+     * Checks that the result is a well-formed log10 probability
+     *
+     * @param result a supposedly well-formed log10 probability value
+     * @return true if result is really well formed
+     */
+    public static boolean goodLog10Probability(final double result) {
+        return result <= 0.0 && ! Double.isInfinite(result) && ! Double.isNaN(result);
     }
 
     /**
