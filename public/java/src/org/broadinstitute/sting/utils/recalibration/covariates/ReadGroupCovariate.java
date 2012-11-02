@@ -66,7 +66,9 @@ public class ReadGroupCovariate implements RequiredCovariate {
     }
 
     @Override
-    public String formatKey(final int key) {
+    public synchronized String formatKey(final int key) {
+        // This method is synchronized so that we don't attempt to do a get()
+        // from the reverse lookup table while that table is being updated
         return readGroupReverseLookupTable.get(key);
     }
 
@@ -76,17 +78,32 @@ public class ReadGroupCovariate implements RequiredCovariate {
     }
 
     private int keyForReadGroup(final String readGroupId) {
-        if (!readGroupLookupTable.containsKey(readGroupId)) {
-            readGroupLookupTable.put(readGroupId, nextId);
-            readGroupReverseLookupTable.put(nextId, readGroupId);
-            nextId++;
+        // Rather than synchronize this entire method (which would be VERY expensive for walkers like the BQSR),
+        // synchronize only the table updates.
+
+        // Before entering the synchronized block, check to see if this read group is not in our tables.
+        // If it's not, either we will have to insert it, OR another thread will insert it first.
+        // This preliminary check avoids doing any synchronization most of the time.
+        if ( ! readGroupLookupTable.containsKey(readGroupId) ) {
+
+            synchronized ( this ) {
+
+                // Now we need to make sure the key is STILL not there, since another thread may have come along
+                // and inserted it while we were waiting to enter this synchronized block!
+                if ( ! readGroupLookupTable.containsKey(readGroupId) ) {
+                    readGroupLookupTable.put(readGroupId, nextId);
+                    readGroupReverseLookupTable.put(nextId, readGroupId);
+                    nextId++;
+                }
+            }
         }
 
         return readGroupLookupTable.get(readGroupId);
     }
 
     @Override
-    public int maximumKeyValue() {
+    public synchronized int maximumKeyValue() {
+        // Synchronized so that we don't query table size while the tables are being updated
         return readGroupLookupTable.size() - 1;
     }
 

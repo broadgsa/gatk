@@ -33,7 +33,5 @@ public interface RecalibrationEngine {
 
     public void initialize(final Covariate[] covariates, final RecalibrationTables recalibrationTables);
 
-    public void updateDataForPileupElement(final PileupElement pileupElement, final byte refBase);
-
     public void updateDataForRead(final GATKSAMRecord read, final boolean[] skip, final double[] snpErrors, final double[] insertionErrors, final double[] deletionErrors);
 }

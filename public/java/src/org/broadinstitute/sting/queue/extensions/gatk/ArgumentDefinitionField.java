@@ -346,7 +346,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
 
         @Override
         protected String getFreezeFields() {
-            return String.format("if (num_threads.isDefined) nCoresRequest = num_threads%n");
+            return String.format("if (num_threads.isDefined) nCoresRequest = num_threads%nif (num_cpu_threads_per_data_thread.isDefined) nCoresRequest = Some(nCoresRequest.getOrElse(1) * num_cpu_threads_per_data_thread.getOrElse(1))%n");
         }
     }
 

@@ -99,9 +99,7 @@ public class LoggingNestedIntegerArray<T> extends NestedIntegerArray<T> {
     }
 
     @Override
-    public void put( final T value, final int... keys ) {
-        super.put(value, keys);
-
+    public boolean put( final T value, final int... keys ) {
         StringBuilder logEntry = new StringBuilder();
 
         logEntry.append(logEntryLabel);
@@ -116,5 +114,7 @@ public class LoggingNestedIntegerArray<T> extends NestedIntegerArray<T> {
 
         // PrintStream methods all use synchronized blocks internally, so our logging is thread-safe
         log.println(logEntry.toString());
+
+        return super.put(value, keys);
     }
 }
