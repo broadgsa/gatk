@@ -30,12 +30,17 @@ import net.sf.samtools.SAMSequenceRecord;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
+import org.broad.tribble.FeatureCodecHeader;
+import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -316,5 +321,34 @@ public class VCFUtils {
         else if (refPath.contains("hg19"))
             assembly = "hg19";
         return assembly;
+    }
+
+    /**
+     * Read all of the VCF records from source into memory, returning the header and the VariantContexts
+     *
+     * @param source the file to read, must be in VCF4 format
+     * @return
+     * @throws IOException
+     */
+    public static Pair<VCFHeader, List<VariantContext>> readVCF(final File source) throws IOException {
+        // read in the features
+        final List<VariantContext> vcs = new ArrayList<VariantContext>();
+        final VCFCodec codec = new VCFCodec();
+        PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(source));
+        FeatureCodecHeader header = codec.readHeader(pbs);
+        pbs.close();
+
+        pbs = new PositionalBufferedStream(new FileInputStream(source));
+        pbs.skip(header.getHeaderEnd());
+
+        final VCFHeader vcfHeader = (VCFHeader)header.getHeaderValue();
+
+        while ( ! pbs.isDone() ) {
+            final VariantContext vc = codec.decode(pbs);
+            if ( vc != null )
+                vcs.add(vc);
+        }
+
+        return new Pair<VCFHeader, List<VariantContext>>(vcfHeader, vcs);
     }
 }

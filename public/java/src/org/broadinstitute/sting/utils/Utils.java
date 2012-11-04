@@ -293,6 +293,10 @@ public class Utils {
         }
     }
 
+    public static <T> String join(final String separator, final T ... objects) {
+        return join(separator, Arrays.asList(objects));
+    }
+
     public static String dupString(char c, int nCopies) {
         char[] chars = new char[nCopies];
         Arrays.fill(chars, c);
