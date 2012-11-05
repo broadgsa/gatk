@@ -92,11 +92,17 @@ class QCommandLine extends CommandLineProgram with Logging {
   private lazy val qScriptPluginManager = {
     qScriptClasses = IOUtils.tempDir("Q-Classes-", "", settings.qSettings.tempDirectory)
     qScriptManager.loadScripts(scripts, qScriptClasses)
-    new PluginManager[QScript](classOf[QScript], Seq(qScriptClasses.toURI.toURL))
+    new PluginManager[QScript](qPluginType, Seq(qScriptClasses.toURI.toURL))
   }
 
   private lazy val qCommandPlugin = {
     new PluginManager[QCommandPlugin](classOf[QCommandPlugin])
+  }
+
+  private lazy val allCommandPlugins = qCommandPlugin.createAllTypes()
+
+  private lazy val qPluginType: Class[_ <: QScript] = {
+    allCommandPlugins.map(_.qScriptClass).headOption.getOrElse(classOf[QScript])
   }
 
   /**
@@ -105,8 +111,6 @@ class QCommandLine extends CommandLineProgram with Logging {
    */
   def execute = {
     ClassFieldCache.parsingEngine = this.parser
-
-    val allCommandPlugins = qCommandPlugin.createAllTypes()
 
     if (settings.qSettings.runName == null)
       settings.qSettings.runName = FilenameUtils.removeExtension(scripts.head.getName)
@@ -138,6 +142,7 @@ class QCommandLine extends CommandLineProgram with Logging {
     for (script <- allQScripts) {
       logger.info("Scripting " + qScriptPluginManager.getName(script.getClass.asSubclass(classOf[QScript])))
       loadArgumentsIntoObject(script)
+      allCommandPlugins.foreach(_.initScript(script))
       // TODO: Pulling inputs can be time/io expensive! Some scripts are using the files to generate functions-- even for dry runs-- so pull it all down for now.
       //if (settings.run)
       script.pullInputs()
