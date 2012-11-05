@@ -149,13 +149,17 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
    * List out the remote outputs
    * @return the RemoteFile outputs by argument source
    */
-  def remoteInputs: Map[ArgumentSource, Seq[RemoteFile]] = remoteFieldMap(inputFields)
+  def remoteInputs: Map[String, Seq[RemoteFile]] = tagMap(remoteFieldMap(inputFields))
 
   /**
    * List out the remote outputs
    * @return the RemoteFile outputs by argument source
    */
-  def remoteOutputs: Map[ArgumentSource, Seq[RemoteFile]] = remoteFieldMap(outputFields)
+  def remoteOutputs: Map[String, Seq[RemoteFile]] = tagMap(remoteFieldMap(outputFields))
+
+  private def tagMap(remoteFieldMap: Map[ArgumentSource, Seq[RemoteFile]]): Map[String, Seq[RemoteFile]] = {
+    remoteFieldMap.collect{ case (k, v) => ClassFieldCache.fullName(k) -> v }.toMap
+  }
 
   private def remoteFieldMap(fields: Seq[ArgumentSource]): Map[ArgumentSource, Seq[RemoteFile]] = {
     fields.map(field => (field -> filterRemoteFiles(ClassFieldCache.getFieldFiles(this, field)))).filter(tuple => !tuple._2.isEmpty).toMap
