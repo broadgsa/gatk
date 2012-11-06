@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.utils.activeregion;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.util.StringUtil;
+import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.ArrayList;
@@ -54,27 +54,31 @@ public class ActiveRegion implements HasGenomeLocation {
 
     public ArrayList<GATKSAMRecord> getReads() { return reads; }
 
-    public byte[] getActiveRegionReference( final IndexedFastaSequenceFile referenceReader ) {
+    @Requires("referenceReader.isUppercasingBases()")
+    public byte[] getActiveRegionReference( final CachingIndexedFastaSequenceFile referenceReader ) {
         return getActiveRegionReference(referenceReader, 0);
     }
 
-    public byte[] getActiveRegionReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
+    @Requires("referenceReader.isUppercasingBases()")
+    public byte[] getActiveRegionReference( final CachingIndexedFastaSequenceFile referenceReader, final int padding ) {
         return getReference( referenceReader, padding, extendedLoc );
     }
 
-    public byte[] getFullReference( final IndexedFastaSequenceFile referenceReader ) {
+    @Requires("referenceReader.isUppercasingBases()")
+    public byte[] getFullReference( final CachingIndexedFastaSequenceFile referenceReader ) {
         return getFullReference(referenceReader, 0);
     }
 
-    public byte[] getFullReference( final IndexedFastaSequenceFile referenceReader, final int padding ) {
+    @Requires("referenceReader.isUppercasingBases()")
+    public byte[] getFullReference( final CachingIndexedFastaSequenceFile referenceReader, final int padding ) {
         return getReference( referenceReader, padding, fullExtentReferenceLoc );
     }
 
-    private byte[] getReference( final IndexedFastaSequenceFile referenceReader, final int padding, final GenomeLoc genomeLoc ) {
+    @Requires("referenceReader.isUppercasingBases()")
+    private byte[] getReference( final CachingIndexedFastaSequenceFile referenceReader, final int padding, final GenomeLoc genomeLoc ) {
         final byte[] reference =  referenceReader.getSubsequenceAt( genomeLoc.getContig(),
                 Math.max(1, genomeLoc.getStart() - padding),
                 Math.min(referenceReader.getSequenceDictionary().getSequence(genomeLoc.getContig()).getSequenceLength(), genomeLoc.getStop() + padding) ).getBases();
-        StringUtil.toUpperCase(reference);
         return reference;
     }
 

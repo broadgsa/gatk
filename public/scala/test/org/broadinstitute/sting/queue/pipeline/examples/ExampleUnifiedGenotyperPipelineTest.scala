@@ -29,7 +29,7 @@ import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
 import org.broadinstitute.sting.BaseTest
 
 class ExampleUnifiedGenotyperPipelineTest {
-  @Test
+  @Test(timeOut=36000000)
   def testUnifiedGenotyper() {
     val spec = new PipelineTestSpec
     spec.name = "unifiedgenotyper"
@@ -51,7 +51,7 @@ class ExampleUnifiedGenotyperPipelineTest {
       Array("vcf_intervals", BaseTest.validationDataLocation + "intervalTest.1.vcf")
     ).asInstanceOf[Array[Array[Object]]]
 
-  @Test(dataProvider = "ugIntervals")
+  @Test(dataProvider = "ugIntervals", timeOut=36000000)
   def testUnifiedGenotyperWithIntervals(intervalsName: String, intervalsPath: String) {
     val spec = new PipelineTestSpec
     spec.name = "unifiedgenotyper_with_" + intervalsName
@@ -64,7 +64,7 @@ class ExampleUnifiedGenotyperPipelineTest {
     PipelineTest.executeTest(spec)
   }
 
-  @Test
+  @Test(timeOut=36000000)
   def testUnifiedGenotyperNoGCOpt() {
     val spec = new PipelineTestSpec
     spec.name = "unifiedgenotyper_no_gc_opt"
@@ -80,7 +80,7 @@ class ExampleUnifiedGenotyperPipelineTest {
   @DataProvider(name="resMemReqParams")
   def getResMemReqParam = Array(Array("mem_free"), Array("virtual_free")).asInstanceOf[Array[Array[Object]]]
 
-  @Test(dataProvider = "resMemReqParams")
+  @Test(dataProvider = "resMemReqParams", timeOut=36000000)
   def testUnifiedGenotyperResMemReqParam(reqParam: String) {
     val spec = new PipelineTestSpec
     spec.name = "unifiedgenotyper_" + reqParam
