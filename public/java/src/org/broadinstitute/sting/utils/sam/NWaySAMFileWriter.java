@@ -28,10 +28,8 @@ package org.broadinstitute.sting.utils.sam;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.io.File;
 import java.util.*;
@@ -173,7 +171,11 @@ public class NWaySAMFileWriter implements SAMFileWriter {
             String rg_orig = toolkit.getReadsDataSource().getOriginalReadGroupId(rg);
             samRecord.setAttribute("RG",rg_orig);
         }
-        writerMap.get(id).addAlignment(samRecord);
+        addAlignment(samRecord, id);
+    }
+
+    public void addAlignment(SAMRecord samRecord, SAMReaderID readerID) {
+        writerMap.get(readerID).addAlignment(samRecord);
     }
 
     public SAMFileHeader getFileHeader() {
