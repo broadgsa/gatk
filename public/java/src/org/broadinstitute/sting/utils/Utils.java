@@ -687,23 +687,69 @@ public class Utils {
             array[i] = value;
     }
 
-    public static void setupWriter(StingSAMFileWriter writer, GenomeAnalysisEngine toolkit, boolean preSorted, boolean KEEP_ALL_PG_RECORDS, Object walker, String PROGRAM_RECORD_NAME) {
-        final SAMProgramRecord programRecord = createProgramRecord(toolkit, walker, PROGRAM_RECORD_NAME);
-
-        SAMFileHeader header = toolkit.getSAMFileHeader();
+    /**
+     * Creates a program record for the program, adds it to the list of program records (@PG tags) in the bam file and sets
+     * up the writer with the header and presorted status.
+     *
+     * @param toolkit             the engine
+     * @param originalHeader      original header
+     * @param KEEP_ALL_PG_RECORDS whether or not to keep all the other program records already existing in this BAM file
+     * @param programRecord       the program record for this program
+     */
+    public static SAMFileHeader setupWriter(GenomeAnalysisEngine toolkit, SAMFileHeader originalHeader, boolean KEEP_ALL_PG_RECORDS, SAMProgramRecord programRecord) {
+        SAMFileHeader header = originalHeader.clone();
         List<SAMProgramRecord> oldRecords = header.getProgramRecords();
         List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
         for ( SAMProgramRecord record : oldRecords )
-            if ( !record.getId().startsWith(PROGRAM_RECORD_NAME) || KEEP_ALL_PG_RECORDS )
+            if ( !record.getId().startsWith(programRecord.getId()) || KEEP_ALL_PG_RECORDS )
                 newRecords.add(record);
 
         newRecords.add(programRecord);
         header.setProgramRecords(newRecords);
+        return header;
+    }
 
+    /**
+    * Creates a program record for the program, adds it to the list of program records (@PG tags) in the bam file and returns
+    * the new header to be added to the BAM writer.
+    *
+    * @param toolkit             the engine
+    * @param KEEP_ALL_PG_RECORDS whether or not to keep all the other program records already existing in this BAM file
+    * @param walker              the walker object (so we can extract the command line)
+    * @param PROGRAM_RECORD_NAME the name for the PG tag
+    * @return a pre-filled header for the bam writer
+    */
+    public static SAMFileHeader setupWriter(GenomeAnalysisEngine toolkit, SAMFileHeader originalHeader, boolean KEEP_ALL_PG_RECORDS, Object walker, String PROGRAM_RECORD_NAME) {
+        final SAMProgramRecord programRecord = createProgramRecord(toolkit, walker, PROGRAM_RECORD_NAME);
+        return setupWriter(toolkit, originalHeader, KEEP_ALL_PG_RECORDS, programRecord);
+    }
+
+    /**
+     * Creates a program record for the program, adds it to the list of program records (@PG tags) in the bam file and sets
+     * up the writer with the header and presorted status.
+     *
+     * @param writer              BAM file writer
+     * @param toolkit             the engine
+     * @param preSorted           whether or not the writer can assume reads are going to be added are already sorted
+     * @param KEEP_ALL_PG_RECORDS whether or not to keep all the other program records already existing in this BAM file
+     * @param walker              the walker object (so we can extract the command line)
+     * @param PROGRAM_RECORD_NAME the name for the PG tag
+     */
+    public static void setupWriter(StingSAMFileWriter writer, GenomeAnalysisEngine toolkit, SAMFileHeader originalHeader, boolean preSorted, boolean KEEP_ALL_PG_RECORDS, Object walker, String PROGRAM_RECORD_NAME) {
+        SAMFileHeader header = setupWriter(toolkit, originalHeader, KEEP_ALL_PG_RECORDS, walker, PROGRAM_RECORD_NAME);
         writer.writeHeader(header);
         writer.setPresorted(preSorted);
     }
-    
+
+
+    /**
+     * Creates a program record (@PG) tag
+     *
+     * @param toolkit             the engine
+     * @param walker              the walker object (so we can extract the command line)
+     * @param PROGRAM_RECORD_NAME the name for the PG tag
+     * @return a program record for the tool
+     */
     public static SAMProgramRecord createProgramRecord(GenomeAnalysisEngine toolkit, Object walker, String PROGRAM_RECORD_NAME) {
         final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
         final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
@@ -858,4 +904,5 @@ public class Utils {
         }
         return subLists;
     }
+
 }
