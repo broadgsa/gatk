@@ -29,7 +29,7 @@ import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
 import org.broadinstitute.sting.BaseTest
 
 class ExampleCountReadsPipelineTest {
-  @Test
+  @Test(timeOut=36000000)
   def testCountReads() {
     val spec = new PipelineTestSpec
     spec.name = "countreads"

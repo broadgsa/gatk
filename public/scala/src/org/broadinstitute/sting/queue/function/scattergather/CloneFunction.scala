@@ -38,6 +38,7 @@ object CloneFunction {
 class CloneFunction extends CommandLineFunction {
   var originalFunction: ScatterGatherableFunction = _
   var cloneIndex: Int = _
+  var cloneCount: Int = _
 
   private var overriddenFields = Map.empty[ArgumentSource, Any]
   private var withScatterPartCount = 0

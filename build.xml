@@ -327,12 +327,16 @@
 
 
     <!-- INIT OVERRIDES: call these targets BEFORE init to override build defaults -->
-    <target name="init.publiconly">
+    <target name="init.build.publiconly">
         <property name="build.target" value="public" />
     </target>
 
-    <target name="init.publicprotectedonly">
+    <target name="init.build.publicprotectedonly">
         <property name="build.target" value="protected" />
+    </target>
+
+    <target name="init.build.all">
+        <property name="build.target" value="all" />
     </target>
 
     <target name="init.javaonly">
@@ -842,19 +846,23 @@
     <!-- Release-related tasks                                                            -->
     <!-- ******************************************************************************** -->
 
-    <target name="init.buildgatkfull" depends="init.publicprotectedonly, init.javaonly">
+    <target name="init.executable.gatkfull" depends="init.build.publicprotectedonly, init.javaonly">
         <property name="executable" value="GenomeAnalysisTK" />
     </target>
 
-    <target name="init.buildgatklite" depends="init.publiconly, init.javaonly">
+    <target name="init.executable.gatklite" depends="init.build.publiconly, init.javaonly">
         <property name="executable" value="GenomeAnalysisTKLite" />
     </target>
 
-    <target name="init.buildqueuefull" depends="init.publicprotectedonly, init.javaandscala">
+    <target name="init.executable.queueall" depends="init.build.all, init.javaandscala">
         <property name="executable" value="Queue" />
     </target>
 
-    <target name="init.buildqueuelite" depends="init.publiconly, init.javaandscala">
+    <target name="init.executable.queuefull" depends="init.build.publicprotectedonly, init.javaandscala">
+        <property name="executable" value="Queue" />
+    </target>
+
+    <target name="init.executable.queuelite" depends="init.build.publiconly, init.javaandscala">
         <property name="executable" value="QueueLite" />
     </target>
 
@@ -891,7 +899,7 @@
 
 
     <!-- Build a package consisting of all supporting files. Don't call this target directly. Call one of the specific packaging targets below -->
-    <target name="package" depends="dist,stage,require.executable" description="bundle up an executable for distribution">
+    <target name="package" depends="require.clean,dist,stage,require.executable" description="bundle up an executable for distribution">
       <mkdir dir="${package.output.dir}" />
       <xslt destdir="${package.output.dir}" style="${package.xml.dir}/CreatePackager.xsl" useImplicitFileset="false">
           <flattenmapper/>
@@ -906,13 +914,15 @@
     </target>
 
     <!-- Package specific versions of the GATK/Queue. ALWAYS do an ant clean before invoking these! -->
-    <target name="package.gatk.full" depends="init.buildgatkfull,package" />
+    <target name="package.gatk.full" depends="init.executable.gatkfull,package" />
 
-    <target name="package.gatk.lite" depends="init.buildgatklite,package" />
+    <target name="package.gatk.lite" depends="init.executable.gatklite,package" />
 
-    <target name="package.queue.full" depends="init.buildqueuefull,package" />
+    <target name="package.queue.all" depends="init.executable.queueall,package" />
 
-    <target name="package.queue.lite" depends="init.buildqueuelite,package" />
+    <target name="package.queue.full" depends="init.executable.queuefull,package" />
+
+    <target name="package.queue.lite" depends="init.executable.queuelite,package" />
 
 
     <!-- Release a build. Don't call this target directly. Call one of the specific release targets below -->
@@ -975,6 +985,8 @@
 
     <target name="mvninstall.gatk.lite" depends="package.gatk.lite,mvninstall" />
 
+    <target name="mvninstall.queue.all" depends="package.queue.all,mvninstall" />
+
     <target name="mvninstall.queue.full" depends="package.queue.full,mvninstall" />
 
     <target name="mvninstall.queue.lite" depends="package.queue.lite,mvninstall" />
@@ -1009,6 +1021,24 @@
         <delete dir="${staging.dir}"/>
         <delete dir="${dist.dir}"/>
         <delete dir="${pipelinetest.dir}"/>
+    </target>
+
+    <!-- Depend on this target if your target requires a clean working directory but you don't want to depend on clean directly -->
+    <target name="require.clean">
+        <condition property="not.clean">
+            <or>
+                <available file="${build.dir}" />
+                <available file="${lib.dir}" />
+                <available file="${contract.dump.dir}" />
+                <available file="${staging.dir}" />
+                <available file="${dist.dir}" />
+                <available file="${pipelinetest.dir}" />
+                <available file="${javadoc.dir}" />
+                <available file="${scaladoc.dir}" />
+                <available file="${gatkdocs.dir}" />
+            </or>
+        </condition>
+        <fail message="Selected build target requires a clean working directory. Run ant clean and then try again." if="not.clean" />
     </target>
 
 
@@ -1174,14 +1204,16 @@
             <echo message="" />
             <echo message="Sting: Running @{testtype} test cases!"/>
 
+	    <!-- no test is allowed to run for more than 10 hours -->
             <taskdef resource="testngtasks" classpath="${testng.jar}"/>
             <testng outputDir="@{outputdir}"
                     classpathref="${testng.classpath}"
                     haltOnFailure="false" failureProperty="test.failure"
                     verbose="2"
+		            timeout="36000000"
                     workingDir="${basedir}"
                     useDefaultListeners="false"
-                    listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.StingTextReporter,org.uncommons.reportng.HTMLReporter">
+                    listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.TestNGTestTransformer,org.broadinstitute.sting.StingTextReporter,org.uncommons.reportng.HTMLReporter">
                 <jvmarg value="-Xmx${test.maxmemory}" />
                 <jvmarg value="-ea" />
                 <jvmarg value="-Djava.awt.headless=true" />

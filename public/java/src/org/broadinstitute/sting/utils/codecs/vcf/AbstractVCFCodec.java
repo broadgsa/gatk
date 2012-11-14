@@ -587,7 +587,7 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
 
         int nParts = ParsingUtils.split(str, genotypeParts, VCFConstants.FIELD_SEPARATOR_CHAR);
         if ( nParts != genotypeParts.length )
-            generateException("there are " + (nParts-1) + " genotypes while the header requires that " + (genotypeParts.length-1) + " genotypes be present for all records", lineNo);
+            generateException("there are " + (nParts-1) + " genotypes while the header requires that " + (genotypeParts.length-1) + " genotypes be present for all records at " + chr + ":" + pos, lineNo);
 
         ArrayList<Genotype> genotypes = new ArrayList<Genotype>(nParts);
 

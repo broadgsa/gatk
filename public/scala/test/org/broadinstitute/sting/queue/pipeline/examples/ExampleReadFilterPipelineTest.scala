@@ -77,7 +77,7 @@ import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
 import org.broadinstitute.sting.BaseTest
 
 class ExampleReadFilterPipelineTest {
-  @Test
+  @Test(timeOut=36000000)
   def testExampleReadFilter() {
     val spec = new PipelineTestSpec
     spec.name = "examplereadfilter"

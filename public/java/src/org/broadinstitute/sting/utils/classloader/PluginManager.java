@@ -101,7 +101,7 @@ public class PluginManager<PluginType> {
      * Create a new plugin manager.
      * @param pluginType Core type for a plugin.
      */
-    public PluginManager(Class<PluginType> pluginType) {
+    public PluginManager(Class pluginType) {
         this(pluginType, pluginType.getSimpleName().toLowerCase(), pluginType.getSimpleName(), null);
     }
 
@@ -110,7 +110,7 @@ public class PluginManager<PluginType> {
      * @param pluginType Core type for a plugin.
      * @param classpath Custom class path to search for classes.
      */
-    public PluginManager(Class<PluginType> pluginType, List<URL> classpath) {
+    public PluginManager(Class pluginType, List<URL> classpath) {
         this(pluginType, pluginType.getSimpleName().toLowerCase(), pluginType.getSimpleName(), classpath);
     }
 
@@ -120,7 +120,7 @@ public class PluginManager<PluginType> {
      * @param pluginCategory Provides a category name to the plugin.  Must not be null.
      * @param pluginSuffix Provides a suffix that will be trimmed off when converting to a plugin name.  Can be null.
      */
-    public PluginManager(Class<PluginType> pluginType, String pluginCategory, String pluginSuffix) {
+    public PluginManager(Class pluginType, String pluginCategory, String pluginSuffix) {
         this(pluginType, pluginCategory, pluginSuffix, null);
     }
 
@@ -131,7 +131,7 @@ public class PluginManager<PluginType> {
      * @param pluginSuffix Provides a suffix that will be trimmed off when converting to a plugin name.  Can be null.
      * @param classpath Custom class path to search for classes.
      */
-    public PluginManager(Class<PluginType> pluginType, String pluginCategory, String pluginSuffix, List<URL> classpath) {
+    public PluginManager(Class pluginType, String pluginCategory, String pluginSuffix, List<URL> classpath) {
         this.pluginCategory = pluginCategory;
         this.pluginSuffix = pluginSuffix;
 
@@ -149,6 +149,7 @@ public class PluginManager<PluginType> {
         }
 
         // Load all classes types filtering them by concrete.
+        @SuppressWarnings("unchecked")
         Set<Class<? extends PluginType>> allTypes = reflections.getSubTypesOf(pluginType);
         for( Class<? extends PluginType> type: allTypes ) {
             // The plugin manager does not support anonymous classes; to be a plugin, a class must have a name.
@@ -325,7 +326,7 @@ public class PluginManager<PluginType> {
      * @param pluginType The type of plugin.
      * @return A name for this type of plugin.
      */
-    public String getName(Class<? extends PluginType> pluginType) {
+    public String getName(Class pluginType) {
         String pluginName = "";
 
         if (pluginName.length() == 0) {

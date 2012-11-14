@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.indels;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
+import com.google.java.contract.Requires;
 import net.sf.samtools.*;
 import net.sf.samtools.util.RuntimeIOException;
 import net.sf.samtools.util.SequenceUtil;
@@ -276,7 +276,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     protected String OUT_SNPS = null;
 
     // fasta reference reader to supplement the edges of the reference sequence
-    private IndexedFastaSequenceFile referenceReader;
+    private CachingIndexedFastaSequenceFile referenceReader;
 
     // the intervals input by the user
     private Iterator<GenomeLoc> intervals = null;
@@ -1603,7 +1603,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         public List<GATKSAMRecord> getReads() { return reads; }
 
-        public byte[] getReference(IndexedFastaSequenceFile referenceReader) {
+        @Requires("referenceReader.isUppercasingBases()")
+        public byte[] getReference(CachingIndexedFastaSequenceFile referenceReader) {
             // set up the reference if we haven't done so yet
             if ( reference == null ) {
                 // first, pad the reference to handle deletions in narrow windows (e.g. those with only 1 read)
@@ -1611,7 +1612,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 int padRight = Math.min(loc.getStop()+REFERENCE_PADDING, referenceReader.getSequenceDictionary().getSequence(loc.getContig()).getSequenceLength());
                 loc = getToolkit().getGenomeLocParser().createGenomeLoc(loc.getContig(), padLeft, padRight);
                 reference = referenceReader.getSubsequenceAt(loc.getContig(), loc.getStart(), loc.getStop()).getBases();
-                StringUtil.toUpperCase(reference);
             }
 
             return reference;
