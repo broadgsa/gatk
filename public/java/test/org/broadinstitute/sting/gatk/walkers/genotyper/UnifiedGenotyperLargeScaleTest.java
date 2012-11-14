@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 public class UnifiedGenotyperLargeScaleTest extends WalkerTest {
 
-    @Test
+    @Test( timeOut = 18000000 )
     public void testUnifiedGenotyperWholeGenome() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-R " + hg18Reference +
@@ -22,7 +22,7 @@ public class UnifiedGenotyperLargeScaleTest extends WalkerTest {
         executeTest("testUnifiedGenotyperWholeGenome", spec);
     }
 
-    @Test
+    @Test( timeOut = 18000000 )
     public void testUnifiedGenotyperWholeExome() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-R " + hg18Reference +
@@ -37,7 +37,7 @@ public class UnifiedGenotyperLargeScaleTest extends WalkerTest {
         executeTest("testUnifiedGenotyperWholeExome", spec);
     }
 
-    @Test
+    @Test( timeOut = 18000000 )
     public void testUnifiedGenotyperWGParallel() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-R " + hg18Reference +

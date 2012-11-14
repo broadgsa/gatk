@@ -899,7 +899,7 @@
 
 
     <!-- Build a package consisting of all supporting files. Don't call this target directly. Call one of the specific packaging targets below -->
-    <target name="package" depends="dist,stage,require.executable" description="bundle up an executable for distribution">
+    <target name="package" depends="require.clean,dist,stage,require.executable" description="bundle up an executable for distribution">
       <mkdir dir="${package.output.dir}" />
       <xslt destdir="${package.output.dir}" style="${package.xml.dir}/CreatePackager.xsl" useImplicitFileset="false">
           <flattenmapper/>
@@ -1021,6 +1021,24 @@
         <delete dir="${staging.dir}"/>
         <delete dir="${dist.dir}"/>
         <delete dir="${pipelinetest.dir}"/>
+    </target>
+
+    <!-- Depend on this target if your target requires a clean working directory but you don't want to depend on clean directly -->
+    <target name="require.clean">
+        <condition property="not.clean">
+            <or>
+                <available file="${build.dir}" />
+                <available file="${lib.dir}" />
+                <available file="${contract.dump.dir}" />
+                <available file="${staging.dir}" />
+                <available file="${dist.dir}" />
+                <available file="${pipelinetest.dir}" />
+                <available file="${javadoc.dir}" />
+                <available file="${scaladoc.dir}" />
+                <available file="${gatkdocs.dir}" />
+            </or>
+        </condition>
+        <fail message="Selected build target requires a clean working directory. Run ant clean and then try again." if="not.clean" />
     </target>
 
 
@@ -1186,14 +1204,16 @@
             <echo message="" />
             <echo message="Sting: Running @{testtype} test cases!"/>
 
+	    <!-- no test is allowed to run for more than 10 hours -->
             <taskdef resource="testngtasks" classpath="${testng.jar}"/>
             <testng outputDir="@{outputdir}"
                     classpathref="${testng.classpath}"
                     haltOnFailure="false" failureProperty="test.failure"
                     verbose="2"
+		            timeout="36000000"
                     workingDir="${basedir}"
                     useDefaultListeners="false"
-                    listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.StingTextReporter,org.uncommons.reportng.HTMLReporter">
+                    listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.TestNGTestTransformer,org.broadinstitute.sting.StingTextReporter,org.uncommons.reportng.HTMLReporter">
                 <jvmarg value="-Xmx${test.maxmemory}" />
                 <jvmarg value="-ea" />
                 <jvmarg value="-Djava.awt.headless=true" />

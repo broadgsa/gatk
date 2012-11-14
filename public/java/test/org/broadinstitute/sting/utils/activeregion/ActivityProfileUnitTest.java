@@ -123,7 +123,7 @@ public class ActivityProfileUnitTest extends BaseTest {
         for ( int i = 0; i < cfg.probs.size(); i++ ) {
             double p = cfg.probs.get(i);
             GenomeLoc loc = genomeLocParser.createGenomeLoc(cfg.regionStart.getContig(), cfg.regionStart.getStart() + i, cfg.regionStart.getStart() + i);
-            profile.add(loc, new ActivityProfileResult(p));
+            profile.add(new ActivityProfileResult(loc, p));
         }
         Assert.assertEquals(profile.regionStartLoc, genomeLocParser.createGenomeLoc(cfg.regionStart.getContig(), cfg.regionStart.getStart(), cfg.regionStart.getStart() ));
 
