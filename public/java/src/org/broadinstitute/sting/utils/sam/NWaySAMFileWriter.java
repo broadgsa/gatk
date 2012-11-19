@@ -28,13 +28,14 @@ package org.broadinstitute.sting.utils.sam;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.io.File;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by IntelliJ IDEA.
@@ -140,21 +141,7 @@ public class NWaySAMFileWriter implements SAMFileWriter {
     private void addWriter(SAMReaderID id , String outName, SAMFileHeader.SortOrder order, boolean presorted,
                            boolean indexOnTheFly, boolean generateMD5, SAMProgramRecord programRecord) {
         File f = new File(outName);
-        SAMFileHeader header = toolkit.getSAMFileHeader(id).clone();
-        header.setSortOrder(order);
-
-        if ( programRecord != null )  {
-            // --->> add program record
-            List<SAMProgramRecord> oldRecords = header.getProgramRecords();
-            List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
-            for ( SAMProgramRecord record : oldRecords ) {
-                if ( !record.getId().startsWith(programRecord.getId()) || KEEP_ALL_PG_RECORDS )
-                    newRecords.add(record);
-            }
-            newRecords.add(programRecord);
-            header.setProgramRecords(newRecords);
-            // <-- add program record ends here
-        }
+        SAMFileHeader header = Utils.setupWriter(toolkit, toolkit.getSAMFileHeader(id), KEEP_ALL_PG_RECORDS, programRecord);
         SAMFileWriterFactory factory = new SAMFileWriterFactory();
         factory.setCreateIndex(indexOnTheFly);
         factory.setCreateMd5File(generateMD5);
@@ -173,7 +160,11 @@ public class NWaySAMFileWriter implements SAMFileWriter {
             String rg_orig = toolkit.getReadsDataSource().getOriginalReadGroupId(rg);
             samRecord.setAttribute("RG",rg_orig);
         }
-        writerMap.get(id).addAlignment(samRecord);
+        addAlignment(samRecord, id);
+    }
+
+    public void addAlignment(SAMRecord samRecord, SAMReaderID readerID) {
+        writerMap.get(readerID).addAlignment(samRecord);
     }
 
     public SAMFileHeader getFileHeader() {

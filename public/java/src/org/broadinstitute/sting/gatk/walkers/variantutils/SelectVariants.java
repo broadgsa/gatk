@@ -659,7 +659,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         return (g !=null && !g.isHomRef() && (g.isCalled() || (g.isFiltered() && !EXCLUDE_FILTERED)));
     }
 
-    private boolean haveSameGenotypes(Genotype g1, Genotype g2) {
+    private boolean haveSameGenotypes(final Genotype g1, final Genotype g2) {
+        if ( g1 == null || g2 == null )
+            return false;
+
         if ((g1.isCalled() && g2.isFiltered()) ||
                 (g2.isCalled() && g1.isFiltered()) ||
                 (g1.isFiltered() && g2.isFiltered() && EXCLUDE_FILTERED))

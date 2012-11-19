@@ -39,7 +39,6 @@ class VcfGatherFunction extends CombineVariants with GatherFunction with RetryMe
   private lazy val originalGATK = this.originalFunction.asInstanceOf[CommandLineGATK]
 
   override def freezeFieldValues() {
-    this.jarFile = this.originalGATK.jarFile
     this.variant = this.gatherParts.zipWithIndex map { case (input, index) => new TaggedFile(input, "input"+index) }
     this.out = this.originalOutput
     GATKIntervals.copyIntervalArguments(this.originalGATK, this)

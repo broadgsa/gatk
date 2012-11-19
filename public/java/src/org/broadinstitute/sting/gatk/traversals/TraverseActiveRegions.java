@@ -34,6 +34,9 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
     private final LinkedList<ActiveRegion> workQueue = new LinkedList<ActiveRegion>();
     private final LinkedHashSet<GATKSAMRecord> myReads = new LinkedHashSet<GATKSAMRecord>();
 
+    // package access for unit testing
+    ActivityProfile profile;
+
     @Override
     public String getTraversalUnits() {
         return "active regions";
@@ -53,7 +56,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
 
         int minStart = Integer.MAX_VALUE;
         final List<ActiveRegion> activeRegions = new LinkedList<ActiveRegion>();
-        ActivityProfile profile = new ActivityProfile(engine.getGenomeLocParser(), walker.hasPresetActiveRegions() );
+        profile = new ActivityProfile(engine.getGenomeLocParser(), walker.hasPresetActiveRegions() );
 
         ReferenceOrderedView referenceOrderedDataView = getReferenceOrderedView(walker, dataProvider, locusView);
 

@@ -176,6 +176,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       cloneFunction.originalFunction = this
       cloneFunction.analysisName = this.analysisName
       cloneFunction.cloneIndex = i
+      cloneFunction.cloneCount = numClones
       cloneFunction.commandDirectory = this.scatterGatherTempDir(dirFormat.format(i))
       cloneFunction.jobOutputFile = if (IOUtils.isSpecialFile(this.jobOutputFile)) this.jobOutputFile else new File(this.jobOutputFile.getName)
       if (this.jobErrorFile != null)

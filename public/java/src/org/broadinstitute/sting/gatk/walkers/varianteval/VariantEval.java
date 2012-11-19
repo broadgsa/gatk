@@ -183,6 +183,10 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
     @Argument(fullName="keepAC0", shortName="keepAC0", doc="If provided, modules that track polymorphic sites will not require that a site have AC > 0 when the input eval has genotypes", required=false)
     private boolean keepSitesWithAC0 = false;
 
+    @Hidden
+    @Argument(fullName="numSamples", shortName="numSamples", doc="If provided, modules that track polymorphic sites will not require that a site have AC > 0 when the input eval has genotypes", required=false)
+    private int numSamplesFromArgument = 0;
+
     /**
      * If true, VariantEval will treat -eval 1 -eval 2 as separate tracks from the same underlying
      * variant set, and evaluate the union of the results.  Useful when you want to do -eval chr1.vcf -eval chr2.vcf etc.
@@ -589,6 +593,14 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
     public boolean isSubsettingToSpecificSamples() { return isSubsettingSamples; }
     public Set<String> getSampleNamesForEvaluation() { return sampleNamesForEvaluation; }
 
+    public int getNumberOfSamplesForEvaluation() {
+        if (sampleNamesForEvaluation!= null &&  !sampleNamesForEvaluation.isEmpty())
+            return sampleNamesForEvaluation.size();
+        else {
+            return numSamplesFromArgument;
+        }
+
+    }
     public Set<String> getSampleNamesForStratification() { return sampleNamesForStratification; }
 
     public List<RodBinding<VariantContext>> getComps() { return comps; }
