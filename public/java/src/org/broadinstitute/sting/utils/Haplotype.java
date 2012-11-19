@@ -49,6 +49,7 @@ public class Haplotype {
     private int alignmentStartHapwrtRef;
     public int leftBreakPoint = 0;
     public int rightBreakPoint = 0;
+    private Allele artificialAllele = null;
  
     /**
      * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
@@ -69,6 +70,11 @@ public class Haplotype {
 
     public Haplotype( final byte[] bases ) {
         this(bases, 0);
+    }
+
+    public Haplotype( final byte[] bases, final Allele artificialAllele ) {
+        this(bases, 0);
+        this.artificialAllele = artificialAllele;
     }
 
     public Haplotype( final byte[] bases, final GenomeLoc loc ) {
@@ -171,6 +177,14 @@ public class Haplotype {
         this.cigar = cigar;
     }
 
+    public boolean isArtificialHaplotype() {
+        return artificialAllele != null;
+    }
+
+    public Allele getArtificialAllele() {
+        return artificialAllele;
+    }
+
     @Requires({"refInsertLocation >= 0"})
     public Haplotype insertAllele( final Allele refAllele, final Allele altAllele, final int refInsertLocation ) {
         // refInsertLocation is in ref haplotype offset coordinates NOT genomic coordinates
@@ -182,7 +196,7 @@ public class Haplotype {
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, 0, haplotypeInsertLocation)); // bases before the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, altAllele.getBases()); // the alt allele of the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, haplotypeInsertLocation + refAllele.length(), bases.length)); // bases after the variant
-        return new Haplotype(newHaplotypeBases);
+        return new Haplotype(newHaplotypeBases, altAllele);
     }
 
     public static class HaplotypeBaseComparator implements Comparator<Haplotype>, Serializable {
