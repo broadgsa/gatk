@@ -185,6 +185,10 @@ public class Haplotype {
         return artificialAllele;
     }
 
+    public void setArtificialAllele(final Allele artificialAllele) {
+        this.artificialAllele = artificialAllele;
+    }
+
     @Requires({"refInsertLocation >= 0"})
     public Haplotype insertAllele( final Allele refAllele, final Allele altAllele, final int refInsertLocation ) {
         // refInsertLocation is in ref haplotype offset coordinates NOT genomic coordinates
