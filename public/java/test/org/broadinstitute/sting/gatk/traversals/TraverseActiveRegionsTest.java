@@ -83,49 +83,74 @@ public class TraverseActiveRegionsTest extends BaseTest {
     }
 
     @Test
-    public void testAllIntervalsSeen() throws Exception {
+    public void testAllBasesSeenSuite() {
         List<GenomeLoc> intervals = new ArrayList<GenomeLoc>();
         List<GenomeLoc> activeIntervals = new ArrayList<GenomeLoc>();
 
         GenomeLoc interval = genomeLocParser.createGenomeLoc("1", 1, 1);
         intervals.add(interval);
+        testAllBasesSeen(intervals);
 
-        LocusShardDataProvider dataProvider = createDataProvider(intervals);
+        interval = genomeLocParser.createGenomeLoc("1", 10, 20);
+        intervals.add(interval);
+        testAllBasesSeen(intervals);
+    }
 
-        t.traverse(walker, dataProvider, 0);
-        activeIntervals.addAll(walker.isActiveCalls);
+    public void testAllBasesSeen(List<GenomeLoc> intervals) {
+        List<GenomeLoc> activeIntervals = new ArrayList<GenomeLoc>();
+        for (LocusShardDataProvider dataProvider : createDataProviders(intervals)) {
+            t.traverse(walker, dataProvider, 0);
+            activeIntervals.addAll(walker.isActiveCalls);
+        }
 
-        boolean allGenomeLocsSeen = true;
-        for (GenomeLoc loc : intervals) {
-            boolean thisGenomeLocSeen = false;
+        boolean allBasesSeen = true;
+        for (GenomeLoc base : toBases(intervals)) {
+            boolean thisBaseSeen = false;
             for (GenomeLoc activeLoc : activeIntervals) {
-                if (loc.equals(activeLoc)) {
-                    thisGenomeLocSeen = true;
+                if (base.equals(activeLoc)) {
+                    thisBaseSeen = true;
                     break;
                 }
             }
-            if (!thisGenomeLocSeen) {
-                allGenomeLocsSeen = false;
+            if (!thisBaseSeen) {
+                allBasesSeen = false;
                 break;
             }
         }
 
-        Assert.assertTrue(allGenomeLocsSeen, "Some intervals missing from activity profile");
+        Assert.assertTrue(allBasesSeen, "Some intervals missing from activity profile");
     }
 
-    private LocusShardDataProvider createDataProvider(List<GenomeLoc> intervals) {
+    private List<GenomeLoc> toBases(List<GenomeLoc> intervals) {
+        List<GenomeLoc> bases = new ArrayList<GenomeLoc>();
+        for (GenomeLoc interval : intervals) {
+            if (interval.size() == 1)
+                bases.add(interval);
+            else {
+                for (int location = interval.getStart(); location <= interval.getStop(); location++) {
+                    bases.add(genomeLocParser.createGenomeLoc(interval.getContig(), location, location));
+                }
+            }
+        }
+        return bases;
+    }
+
+    private List<LocusShardDataProvider> createDataProviders(List<GenomeLoc> intervals) {
         walker = new DummyActiveRegionWalker();
 
-        StingSAMIterator iterator = ArtificialSAMUtils.createReadIterator(new ArrayList<SAMRecord>());
-        Shard shard = new MockLocusShard(genomeLocParser, intervals);
-        WindowMaker windowMaker = new WindowMaker(shard, genomeLocParser,iterator,shard.getGenomeLocs());
-        WindowMaker.WindowMakerIterator window = windowMaker.next();
-
         GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
-        //engine.setReferenceDataSource(reference);
         engine.setGenomeLocParser(genomeLocParser);
         t.initialize(engine);
 
-        return new LocusShardDataProvider(shard, null, genomeLocParser, window.getLocus(), window, reference, new ArrayList<ReferenceOrderedDataSource>());
+        StingSAMIterator iterator = ArtificialSAMUtils.createReadIterator(new ArrayList<SAMRecord>());
+        Shard shard = new MockLocusShard(genomeLocParser, intervals);
+
+        List<LocusShardDataProvider> providers = new ArrayList<LocusShardDataProvider>();
+        WindowMaker windowMaker = new WindowMaker(shard,genomeLocParser,iterator,shard.getGenomeLocs());
+        for (WindowMaker.WindowMakerIterator window : windowMaker) {
+            providers.add(new LocusShardDataProvider(shard, null, genomeLocParser, window.getLocus(), window, reference, new ArrayList<ReferenceOrderedDataSource>()));
+        }
+
+        return providers;
     }
 }
