@@ -41,6 +41,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
 
     private class DummyActiveRegionWalker extends ActiveRegionWalker<Integer, Integer> {
         private final double prob;
+        public List<GenomeLoc> isActiveCalls = new ArrayList<GenomeLoc>();
 
         public DummyActiveRegionWalker() {
             this.prob = 1.0;
@@ -48,6 +49,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
 
         @Override
         public ActivityProfileResult isActive(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+            isActiveCalls.add(ref.getLocus());
             return new ActivityProfileResult(ref.getLocus(), prob);
         }
 
@@ -71,7 +73,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
 
     private IndexedFastaSequenceFile reference;
     private GenomeLocParser genomeLocParser;
-    private ActiveRegionWalker<Integer, Integer> walker;
+    private DummyActiveRegionWalker walker;
 
     @BeforeClass
     private void init() throws FileNotFoundException {
@@ -83,18 +85,21 @@ public class TraverseActiveRegionsTest extends BaseTest {
     @Test
     public void testAllIntervalsSeen() throws Exception {
         List<GenomeLoc> intervals = new ArrayList<GenomeLoc>();
+        List<GenomeLoc> activeIntervals = new ArrayList<GenomeLoc>();
+
         GenomeLoc interval = genomeLocParser.createGenomeLoc("1", 1, 1);
         intervals.add(interval);
 
         LocusShardDataProvider dataProvider = createDataProvider(intervals);
 
         t.traverse(walker, dataProvider, 0);
+        activeIntervals.addAll(walker.isActiveCalls);
 
         boolean allGenomeLocsSeen = true;
         for (GenomeLoc loc : intervals) {
             boolean thisGenomeLocSeen = false;
-            for (ActivityProfileResult active : t.profile.getActiveList()) {
-                if (loc.equals(active.getLoc())) {
+            for (GenomeLoc activeLoc : activeIntervals) {
+                if (loc.equals(activeLoc)) {
                     thisGenomeLocSeen = true;
                     break;
                 }

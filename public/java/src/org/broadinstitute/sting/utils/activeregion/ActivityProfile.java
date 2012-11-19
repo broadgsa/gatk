@@ -103,11 +103,6 @@ public class ActivityProfile {
         isActiveList.add(result);
     }
 
-    // for unit testing
-    public List<ActivityProfileResult> getActiveList() {
-        return isActiveList;
-    }
-
     public int size() {
         return isActiveList.size();
     }
