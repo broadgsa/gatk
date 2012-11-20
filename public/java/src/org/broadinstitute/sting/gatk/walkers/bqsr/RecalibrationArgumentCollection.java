@@ -75,8 +75,9 @@ public class RecalibrationArgumentCollection {
 
     /**
      * If not provided, then a temporary file is created and then deleted upon completion.
+     * For advanced users only.
      */
-    @Hidden
+    @Advanced
     @Argument(fullName = "intermediate_csv_file", shortName = "intermediate", doc = "The intermediate csv file to create", required = false)
     public File RECAL_CSV_FILE = null;
 

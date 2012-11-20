@@ -350,11 +350,11 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return A name for this type of walker.
      */
     @Override
-    public String getName(Class<? extends Walker> walkerType) {
+    public String getName(Class walkerType) {
         String walkerName = "";
 
         if (walkerType.getAnnotation(WalkerName.class) != null)
-            walkerName = walkerType.getAnnotation(WalkerName.class).value().trim();
+            walkerName = ((WalkerName)walkerType.getAnnotation(WalkerName.class)).value().trim();
         else
             walkerName = super.getName(walkerType);
 
