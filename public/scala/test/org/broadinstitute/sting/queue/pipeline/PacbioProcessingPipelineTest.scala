@@ -28,7 +28,7 @@ import org.testng.annotations.Test
 import org.broadinstitute.sting.BaseTest
 
 class PacbioProcessingPipelineTest {
-  @Test
+  @Test(timeOut=36000000)
   def testPacbioProcessingPipeline {
     val testOut = "exampleBAM.recal.bam"
     val spec = new PipelineTestSpec
@@ -40,7 +40,7 @@ class PacbioProcessingPipelineTest {
       " -blasr ",
       " -test ",
       " -D " + BaseTest.publicTestDir + "exampleDBSNP.vcf").mkString
-    spec.fileMD5s += testOut -> "61b06e8b78a93e6644657e6d38851084"
+    spec.fileMD5s += testOut -> "b84f9c45e045685067ded681d5e6224c"
     PipelineTest.executeTest(spec)
   }
 }

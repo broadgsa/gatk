@@ -199,7 +199,7 @@ public class RecalDatum {
 
     @Override
     public String toString() {
-        return String.format("%.2f,%,2f,%.2f", getNumObservations(), getNumMismatches(), getEmpiricalQuality());
+        return String.format("%.2f,%.2f,%.2f", getNumObservations(), getNumMismatches(), getEmpiricalQuality());
     }
 
     public String stringForCSV() {

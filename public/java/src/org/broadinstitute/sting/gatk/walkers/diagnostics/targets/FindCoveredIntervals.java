@@ -57,7 +57,7 @@ public class FindCoveredIntervals extends ActiveRegionWalker<GenomeLoc, Long> {
         int depth = ThresHolder.DEFAULTS.getFilteredCoverage(context.getBasePileup());
 
         // note the linear probability scale
-        return new ActivityProfileResult(Math.min(depth / coverageThreshold, 1));
+        return new ActivityProfileResult(ref.getLocus(), Math.min(depth / coverageThreshold, 1));
 
     }
 

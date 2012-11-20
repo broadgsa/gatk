@@ -46,41 +46,30 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
         this.recalibrationTables = recalibrationTables;
     }
 
-    /**
-     * Loop through the list of requested covariates and pick out the value from the read, offset, and reference
-     * Using the list of covariate values as a key, pick out the RecalDatum and increment,
-     * adding one to the number of observations and potentially one to the number of mismatches for mismatches only.
-     *
-     * @param pileupElement The pileup element to update
-     * @param refBase       The reference base at this locus
-     */
-    @Override
-    public void updateDataForPileupElement(final PileupElement pileupElement, final byte refBase) {
-        final int offset = pileupElement.getOffset();
-        final ReadCovariates readCovariates = covariateKeySetFrom(pileupElement.getRead());
-
-        final byte qual = pileupElement.getQual();
-        final boolean isError = !BaseUtils.basesAreEqual(pileupElement.getBase(), refBase);
-
-        final int[] keys = readCovariates.getKeySet(offset, EventType.BASE_SUBSTITUTION);
-        final int eventIndex = EventType.BASE_SUBSTITUTION.index;
-
-        // TODO: should this really be combine rather than increment?
-        combineDatumOrPutIfNecessary(recalibrationTables.getReadGroupTable(), qual, isError, keys[0], eventIndex);
-
-        incrementDatumOrPutIfNecessary(recalibrationTables.getQualityScoreTable(), qual, isError, keys[0], keys[1], eventIndex);
-
-        for (int i = 2; i < covariates.length; i++) {
-            if (keys[i] < 0)
-                continue;
-
-            incrementDatumOrPutIfNecessary(recalibrationTables.getTable(i), qual, isError, keys[0], keys[1], keys[i], eventIndex);
-        }
-    }
-
     @Override
     public void updateDataForRead( final GATKSAMRecord read, final boolean[] skip, final double[] snpErrors, final double[] insertionErrors, final double[] deletionErrors ) {
-        throw new UnsupportedOperationException("Delocalized BQSR is not available in the GATK-lite version");
+        for( int offset = 0; offset < read.getReadBases().length; offset++ ) {
+            if( !skip[offset] ) {
+                final ReadCovariates readCovariates = covariateKeySetFrom(read);
+
+                final byte qual = read.getBaseQualities()[offset];
+                final double isError = snpErrors[offset];
+
+                final int[] keys = readCovariates.getKeySet(offset, EventType.BASE_SUBSTITUTION);
+                final int eventIndex = EventType.BASE_SUBSTITUTION.index;
+
+                combineDatumOrPutIfNecessary(recalibrationTables.getReadGroupTable(), qual, isError, keys[0], eventIndex);
+
+                incrementDatumOrPutIfNecessary(recalibrationTables.getQualityScoreTable(), qual, isError, keys[0], keys[1], eventIndex);
+
+                for (int i = 2; i < covariates.length; i++) {
+                    if (keys[i] < 0)
+                        continue;
+
+                    incrementDatumOrPutIfNecessary(recalibrationTables.getTable(i), qual, isError, keys[0], keys[1], keys[i], eventIndex);
+                }
+            }
+        }
     }
 
     /**
@@ -90,10 +79,6 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
      * @param isError       whether or not the observation is an error
      * @return a new RecalDatum object with the observation and the error
      */
-    protected RecalDatum createDatumObject(final byte reportedQual, final boolean isError) {
-        return new RecalDatum(1, isError ? 1:0, reportedQual);
-    }
-
     protected RecalDatum createDatumObject(final byte reportedQual, final double isError) {
         return new RecalDatum(1, isError, reportedQual);
     }
@@ -106,46 +91,6 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
      */
     protected ReadCovariates covariateKeySetFrom(GATKSAMRecord read) {
         return (ReadCovariates) read.getTemporaryAttribute(BaseRecalibrator.COVARS_ATTRIBUTE);
-    }
-
-    /**
-     * Increments the RecalDatum at the specified position in the specified table, or put a new item there
-     * if there isn't already one.
-     *
-     * Does this in a thread-safe way WITHOUT being synchronized: relies on the behavior of NestedIntegerArray.put()
-     * to return false if another thread inserts a new item at our position in the middle of our put operation.
-     *
-     * @param table the table that holds/will hold our item
-     * @param qual qual for this event
-     * @param isError error status for this event
-     * @param keys location in table of our item
-     */
-    protected void incrementDatumOrPutIfNecessary( final NestedIntegerArray<RecalDatum> table, final byte qual, final boolean isError, final int... keys ) {
-        final RecalDatum existingDatum = table.get(keys);
-
-        // There are three cases here:
-        //
-        // 1. The original get succeeded (existingDatum != null) because there already was an item in this position.
-        //    In this case we can just increment the existing item.
-        //
-        // 2. The original get failed (existingDatum == null), and we successfully put a new item in this position
-        //    and are done.
-        //
-        // 3. The original get failed (existingDatum == null), AND the put fails because another thread comes along
-        //    in the interim and puts an item in this position. In this case we need to do another get after the
-        //    failed put to get the item the other thread put here and increment it.
-        if ( existingDatum == null ) {
-            // No existing item, try to put a new one
-            if ( ! table.put(createDatumObject(qual, isError), keys) ) {
-                // Failed to put a new item because another thread came along and put an item here first.
-                // Get the newly-put item and increment it (item is guaranteed to exist at this point)
-                table.get(keys).increment(isError);
-            }
-        }
-        else {
-            // Easy case: already an item here, so increment it
-            existingDatum.increment(isError);
-        }
     }
 
     /**
@@ -174,36 +119,6 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
         else {
             // Easy case: already an item here, so increment it
             existingDatum.increment(1.0, isError);
-        }
-    }
-
-    /**
-     * Combines the RecalDatum at the specified position in the specified table with a new RecalDatum, or put a
-     * new item there if there isn't already one.
-     *
-     * Does this in a thread-safe way WITHOUT being synchronized: relies on the behavior of NestedIntegerArray.put()
-     * to return false if another thread inserts a new item at our position in the middle of our put operation.
-     *
-     * @param table the table that holds/will hold our item
-     * @param qual qual for this event
-     * @param isError error status for this event
-     * @param keys location in table of our item
-     */
-    protected void combineDatumOrPutIfNecessary( final NestedIntegerArray<RecalDatum> table, final byte qual, final boolean isError, final int... keys ) {
-        final RecalDatum existingDatum = table.get(keys);
-        final RecalDatum newDatum = createDatumObject(qual, isError);
-
-        if ( existingDatum == null ) {
-            // No existing item, try to put a new one
-            if ( ! table.put(newDatum, keys) ) {
-                // Failed to put a new item because another thread came along and put an item here first.
-                // Get the newly-put item and combine it with our item (item is guaranteed to exist at this point)
-                table.get(keys).combine(newDatum);
-            }
-        }
-        else {
-            // Easy case: already an item here, so combine it with our item
-            existingDatum.combine(newDatum);
         }
     }
 

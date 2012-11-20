@@ -191,7 +191,7 @@ public class CallableLoci extends LocusWalker<CallableLoci.CallableBaseState, Ca
      */
     @Advanced
     @Argument(fullName = "format", shortName = "format", doc = "Output format", required = false)
-    OutputFormat outputFormat;
+    OutputFormat outputFormat = OutputFormat.BED;
 
     public enum OutputFormat {
         /**
@@ -297,7 +297,7 @@ public class CallableLoci extends LocusWalker<CallableLoci.CallableBaseState, Ca
         }
 
         public String toString() {
-            return String.format("%s %d %d %s", loc.getContig(), loc.getStart(), loc.getStop(), state);
+            return String.format("%s\t%d\t%d\t%s", loc.getContig(), loc.getStart()-1, loc.getStop(), state);
         }
     }
 

@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 
 public class RealignerTargetCreatorLargeScaleTest extends WalkerTest {
-    @Test
+    @Test( timeOut = 18000000 )
     public void testRealignerTargetCreator() {
 
         WalkerTestSpec spec1 = new WalkerTestSpec(
