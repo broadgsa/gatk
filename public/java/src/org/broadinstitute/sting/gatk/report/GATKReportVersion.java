@@ -80,6 +80,9 @@ public enum GATKReportVersion {
      * @return The version as an enum.
      */
     public static GATKReportVersion fromHeader(String header) {
+        if ( header == null )
+            throw new UserException.BadInput("The GATK report has no version specified in the header");
+
         if (header.startsWith("##:GATKReport.v0.1 "))
             return GATKReportVersion.V0_1;
 

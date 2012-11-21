@@ -49,7 +49,7 @@ import java.util.EnumSet;
 
 public class CycleCovariate implements StandardCovariate {
 
-    private static final int MAXIMUM_CYCLE_VALUE = 1000;
+    private int MAXIMUM_CYCLE_VALUE;
     private static final int CUSHION_FOR_INDELS = 4;
     private String default_platform = null;
 
@@ -59,6 +59,8 @@ public class CycleCovariate implements StandardCovariate {
     // Initialize any member variables using the command-line arguments passed to the walkers
     @Override
     public void initialize(final RecalibrationArgumentCollection RAC) {
+        this.MAXIMUM_CYCLE_VALUE = RAC.MAXIMUM_CYCLE_VALUE;
+
         if (RAC.DEFAULT_PLATFORM != null && !NGSPlatform.isKnown(RAC.DEFAULT_PLATFORM))
             throw new UserException.CommandLineException("The requested default platform (" + RAC.DEFAULT_PLATFORM + ") is not a recognized platform.");
 
@@ -88,6 +90,9 @@ public class CycleCovariate implements StandardCovariate {
 
             final int MAX_CYCLE_FOR_INDELS = readLength - CUSHION_FOR_INDELS - 1;
             for (int i = 0; i < readLength; i++) {
+                if ( cycle > MAXIMUM_CYCLE_VALUE )
+                    throw new UserException("The maximum allowed value for the cycle is " + MAXIMUM_CYCLE_VALUE + ", but a larger cycle was detected in read " + read.getReadName() + ".  Please use the --maximum_cycle_value argument to increase this value (at the expense of requiring more memory to run)");
+
                 final int substitutionKey = keyFromCycle(cycle);
                 final int indelKey = (i < CUSHION_FOR_INDELS || i > MAX_CYCLE_FOR_INDELS) ? -1 : substitutionKey;
                 values.addCovariate(substitutionKey, indelKey, indelKey, i);

@@ -316,6 +316,20 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     }
 
     /**
+     * Tests whether this genome loc starts at the same position as that.
+     *
+     * i.e., do this and that have the same contig and the same start position
+     *
+     * @param that genome loc to compare to
+     * @return true if this and that have the same contig and the same start position
+     */
+    @Requires("that != null")
+    public final boolean startsAt( GenomeLoc that ) {
+        int comparison = this.compareContigs(that);
+        return comparison == 0 && this.getStart() == that.getStart();
+    }
+
+    /**
      * Tests whether any portion of this contig is before that contig.
      * @param that Other contig to test.
      * @return True if the start of this contig is before the start of the that contig.
