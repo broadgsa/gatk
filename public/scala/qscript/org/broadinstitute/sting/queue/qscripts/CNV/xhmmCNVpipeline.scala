@@ -45,12 +45,7 @@ class xhmmCNVpipeline extends QScript {
 
   @Hidden
   @Argument(doc = "How should overlapping reads from the same fragment be handled?", shortName = "countType", required = false)
-  // TODO: change this to be the default once reads can be ordered properly for FragmentUtils.create():
-  //
-  // Don't want to double-count (but also don't mind counting base-inconsistencies in overlap):
-  //var countType = CoverageUtils.CountPileupType.COUNT_FRAGMENTS
-  //
-  var countType = CoverageUtils.CountPileupType.COUNT_READS
+  var countType = CoverageUtils.CountPileupType.COUNT_FRAGMENTS
 
   @Argument(doc = "Maximum depth (before GATK down-sampling kicks in...)", shortName = "MAX_DEPTH", required = false)
   var MAX_DEPTH = 20000
