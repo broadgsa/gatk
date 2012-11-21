@@ -271,7 +271,18 @@ public class GATKReport {
      * @return a simplified GATK report
      */
     public static GATKReport newSimpleReport(final String tableName, final String... columns) {
-        GATKReportTable table = new GATKReportTable(tableName, "A simplified GATK table report", columns.length);
+        return newSimpleReportWithDescription(tableName, "A simplified GATK table report", columns);
+    }
+
+    /**
+     * @see #newSimpleReport(String, String...) but with a customized description
+     * @param tableName
+     * @param desc
+     * @param columns
+     * @return
+     */
+    public static GATKReport newSimpleReportWithDescription(final String tableName, final String desc, final String... columns) {
+        GATKReportTable table = new GATKReportTable(tableName, desc, columns.length);
 
         for (String column : columns) {
             table.addColumn(column, "");
