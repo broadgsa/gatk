@@ -840,8 +840,11 @@ public class VariantContextUtils {
         if ( mergeOption == GenotypeMergeType.PRIORITIZE && priorityListOfVCs == null )
             throw new IllegalArgumentException("Cannot merge calls by priority with a null priority list");
 
-        if ( priorityListOfVCs == null || mergeOption == GenotypeMergeType.UNSORTED )
+        if ( mergeOption == GenotypeMergeType.UNSORTED ){
+            if (priorityListOfVCs != null )
+                logger.info("Priority string was provided but is not used since GenotypeMergeType is UNSORTED");
             return new ArrayList<VariantContext>(unsortedVCs);
+        }
         else {
             ArrayList<VariantContext> sorted = new ArrayList<VariantContext>(unsortedVCs);
             Collections.sort(sorted, new CompareByPriority(priorityListOfVCs));
