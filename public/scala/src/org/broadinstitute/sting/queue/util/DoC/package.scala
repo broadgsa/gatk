@@ -6,9 +6,10 @@ import org.broadinstitute.sting.queue.function.scattergather.ScatterGatherableFu
 import org.broadinstitute.sting.gatk.downsampling.DownsampleType
 import org.broadinstitute.sting.commandline.{Input, Gather, Output}
 import org.broadinstitute.sting.queue.function.CommandLineFunction
+import org.broadinstitute.sting.gatk.walkers.coverage.CoverageUtils
 
 package object DoC {
-  class DoC(val bams: List[File], val DoC_output: File, val MAX_DEPTH: Int, val minMappingQuality: Int, val scatterCountInput: Int, val START_BIN: Int, val NUM_BINS: Int, val minCoverageCalcs: Seq[Int]) extends CommandLineGATK with ScatterGatherableFunction {
+  class DoC(val bams: List[File], val DoC_output: File, val countType: CoverageUtils.CountPileupType, val MAX_DEPTH: Int, val minMappingQuality: Int, val minBaseQuality: Int, val scatterCountInput: Int, val START_BIN: Int, val NUM_BINS: Int, val minCoverageCalcs: Seq[Int]) extends CommandLineGATK with ScatterGatherableFunction {
     val DOC_OUTPUT_SUFFIX: String = ".sample_interval_summary"
 
     // So that the output files of this DoC run get deleted once they're used further downstream:
@@ -32,8 +33,9 @@ package object DoC {
     override def commandLine = super.commandLine +
       " --omitDepthOutputAtEachBase" +
       " --omitLocusTable" +
-      " --minBaseQuality 0" +
       " --minMappingQuality " + minMappingQuality +
+      " --minBaseQuality " + minBaseQuality +
+      optional("--countType", countType, spaceSeparated=true, escape=true, format="%s") +
       " --start " + START_BIN + " --stop " + MAX_DEPTH + " --nBins " + NUM_BINS +
       (if (!minCoverageCalcs.isEmpty) minCoverageCalcs.map(cov => " --summaryCoverageThreshold " + cov).reduceLeft(_ + "" + _) else "") +
       " --includeRefNSites" +
@@ -42,7 +44,7 @@ package object DoC {
     override def shortDescription = "DoC: " + DoC_output
   }
 
-  class DoCwithDepthOutputAtEachBase(bams: List[File], DoC_output: File, MAX_DEPTH: Int, minMappingQuality: Int, scatterCountInput: Int, START_BIN: Int, NUM_BINS: Int, minCoverageCalcs: Seq[Int]) extends DoC(bams, DoC_output, MAX_DEPTH: Int, minMappingQuality, scatterCountInput, START_BIN, NUM_BINS, minCoverageCalcs) {
+  class DoCwithDepthOutputAtEachBase(bams: List[File], DoC_output: File, countType: CoverageUtils.CountPileupType, MAX_DEPTH: Int, minMappingQuality: Int, minBaseQuality: Int, scatterCountInput: Int, START_BIN: Int, NUM_BINS: Int, minCoverageCalcs: Seq[Int]) extends DoC(bams, DoC_output, countType: CoverageUtils.CountPileupType, MAX_DEPTH: Int, minMappingQuality, minBaseQuality, scatterCountInput, START_BIN, NUM_BINS, minCoverageCalcs) {
     // HACK for DoC to work properly within Queue:
     @Output
     @Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])
@@ -52,15 +54,21 @@ package object DoC {
   }
 
   def buildDoCgroups(samples: List[String], sampleToBams: scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]], samplesPerJob: Int, outputBase: File): List[Group] = {
+    var l: List[Group] = Nil
 
-    def buildDoCgroupsHelper(samples: List[String], count: Int): List[Group] = (samples splitAt samplesPerJob) match {
-      case (Nil, y) =>
-        return Nil
-      case (subsamples, remaining) =>
-        return new Group("group" + count, outputBase, subsamples, VCF_BAM_utilities.findBAMsForSamples(subsamples, sampleToBams)) :: buildDoCgroupsHelper(remaining, count + 1)
+    var remaining = samples
+    var subsamples: List[String] = Nil
+    var count = 1
+
+    while (!remaining.isEmpty) {
+      val splitRes = (remaining splitAt samplesPerJob)
+      subsamples = splitRes._1
+      remaining = splitRes._2
+      l ::= new Group("group" + count, outputBase, subsamples, VCF_BAM_utilities.findBAMsForSamples(subsamples, sampleToBams))
+      count = count + 1
     }
 
-    return buildDoCgroupsHelper(samples, 0)
+    return l
   }
 
   // A group has a list of samples and bam files to use for DoC

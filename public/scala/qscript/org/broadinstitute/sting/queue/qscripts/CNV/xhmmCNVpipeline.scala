@@ -8,6 +8,7 @@ import org.broadinstitute.sting.commandline.Hidden
 import java.io.{PrintStream, PrintWriter}
 import org.broadinstitute.sting.utils.text.XReadLines
 import collection.JavaConversions._
+import org.broadinstitute.sting.gatk.walkers.coverage.CoverageUtils
 
 class xhmmCNVpipeline extends QScript {
   qscript =>
@@ -15,22 +16,22 @@ class xhmmCNVpipeline extends QScript {
   @Input(doc = "bam input, as .bam or as a list of files", shortName = "I", required = true)
   var bams: File = _
 
-  @Argument(doc = "gatk jar file", shortName = "J", required = true)
+  @Input(doc = "gatk jar file", shortName = "J", required = true)
   var gatkJarFile: File = _
 
-  @Argument(doc = "xhmm executable file", shortName = "xhmmExec", required = true)
+  @Input(doc = "xhmm executable file", shortName = "xhmmExec", required = true)
   var xhmmExec: File = _
 
-  @Argument(doc = "Plink/Seq executable file", shortName = "pseqExec", required = true)
+  @Input(doc = "Plink/Seq executable file", shortName = "pseqExec", required = true)
   var pseqExec: File = _
 
   @Argument(doc = "Plink/Seq SEQDB file (Reference genome sequence)", shortName = "SEQDB", required = true)
   var pseqSeqDB: String = _
 
-  @Argument(shortName = "R", doc = "ref", required = true)
+  @Input(shortName = "R", doc = "ref", required = true)
   var referenceFile: File = _
 
-  @Argument(shortName = "L", doc = "Intervals", required = false)
+  @Input(shortName = "L", doc = "Intervals", required = false)
   var intervals: File = _
 
   @Argument(doc = "level of parallelism for BAM DoC.   By default is set to 0 [no scattering].", shortName = "scatter", required = false)
@@ -41,6 +42,15 @@ class xhmmCNVpipeline extends QScript {
 
   @Output(doc = "Base name for files to output", shortName = "o", required = true)
   var outputBase: File = _
+
+  @Hidden
+  @Argument(doc = "How should overlapping reads from the same fragment be handled?", shortName = "countType", required = false)
+  // TODO: change this to be the default once reads can be ordered properly for FragmentUtils.create():
+  //
+  // Don't want to double-count (but also don't mind counting base-inconsistencies in overlap):
+  //var countType = CoverageUtils.CountPileupType.COUNT_FRAGMENTS
+  //
+  var countType = CoverageUtils.CountPileupType.COUNT_READS
 
   @Argument(doc = "Maximum depth (before GATK down-sampling kicks in...)", shortName = "MAX_DEPTH", required = false)
   var MAX_DEPTH = 20000
@@ -55,6 +65,9 @@ class xhmmCNVpipeline extends QScript {
 
   @Argument(doc = "Minimum read mapping quality", shortName = "MMQ", required = false)
   var minMappingQuality = 0
+
+  @Argument(doc = "Minimum base quality to be counted in depth", shortName = "MBQ", required = false)
+  var minBaseQuality = 0
 
   @Argument(doc = "Memory (in GB) required for storing the whole matrix in memory", shortName = "wholeMatrixMemory", required = false)
   var wholeMatrixMemory = -1
@@ -159,7 +172,7 @@ class xhmmCNVpipeline extends QScript {
     var docs: List[DoC] = List[DoC]()
     for (group <- groups) {
       Console.out.printf("Group is %s%n", group)
-      docs ::= new DoC(group.bams, group.DoC_output, MAX_DEPTH, minMappingQuality, scatterCountInput, START_BIN, NUM_BINS, Nil) with CommandLineGATKArgs
+      docs ::= new DoC(group.bams, group.DoC_output, countType, MAX_DEPTH, minMappingQuality, minBaseQuality, scatterCountInput, START_BIN, NUM_BINS, Nil) with CommandLineGATKArgs
     }
     addAll(docs)
 
