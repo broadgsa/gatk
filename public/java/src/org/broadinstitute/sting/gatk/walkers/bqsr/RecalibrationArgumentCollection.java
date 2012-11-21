@@ -102,13 +102,10 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "no_standard_covs", shortName = "noStandard", doc = "Do not use the standard set of covariates, but rather just the ones listed using the -cov argument", required = false)
     public boolean DO_NOT_USE_STANDARD_COVARIATES = false;
 
-    /////////////////////////////
-    // Debugging-only Arguments
-    /////////////////////////////
     /**
      * This calculation is critically dependent on being able to skip over known polymorphic sites. Please be sure that you know what you are doing if you use this option.
      */
-    @Hidden
+    @Advanced
     @Argument(fullName = "run_without_dbsnp_potentially_ruining_quality", shortName = "run_without_dbsnp_potentially_ruining_quality", required = false, doc = "If specified, allows the recalibrator to be used without a dbsnp rod. Very unsafe and for expert users only.")
     public boolean RUN_WITHOUT_DBSNP = false;
 
@@ -138,6 +135,13 @@ public class RecalibrationArgumentCollection {
      */
     @Argument(fullName = "indels_context_size", shortName = "ics", doc = "size of the k-mer context to be used for base insertions and deletions", required = false)
     public int INDELS_CONTEXT_SIZE = 3;
+
+    /**
+     * The cycle covariate will generate an error if it encounters a cycle greater than this value.
+     * This argument is ignored if the Cycle covariate is not used.
+     */
+    @Argument(fullName = "maximum_cycle_value", shortName = "maxCycle", doc = "the maximum cycle value permitted for the Cycle covariate", required = false)
+    public int MAXIMUM_CYCLE_VALUE = 500;
 
     /**
      * A default base qualities to use as a prior (reported quality) in the mismatch covariate model. This value will replace all base qualities in the read for this default value. Negative value turns it off (default is off)
@@ -176,9 +180,15 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "binary_tag_name", shortName = "bintag", required = false, doc = "the binary tag covariate name if using it")
     public String BINARY_TAG_NAME = null;
 
+
+    /////////////////////////////
+    // Debugging-only Arguments
+    /////////////////////////////
+
     @Hidden
     @Argument(fullName = "default_platform", shortName = "dP", required = false, doc = "If a read has no platform then default to the provided String. Valid options are illumina, 454, and solid.")
     public String DEFAULT_PLATFORM = null;
+
     @Hidden
     @Argument(fullName = "force_platform", shortName = "fP", required = false, doc = "If provided, the platform of EVERY read will be forced to be the provided String. Valid options are illumina, 454, and solid.")
     public String FORCE_PLATFORM = null;
