@@ -1022,7 +1022,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
      * @return
      */
     @Override
-    public ReadBackedPileup getStartSortedPileup() {
+    public RBP getStartSortedPileup() {
 
         final TreeSet<PE> sortedElements = new TreeSet<PE>(new Comparator<PE>() {
             @Override
@@ -1031,15 +1031,27 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
                 return difference != 0 ? difference : element1.getRead().getReadName().compareTo(element2.getRead().getReadName());
             }
         });
-        UnifiedPileupElementTracker<PE> tracker = (UnifiedPileupElementTracker<PE>) pileupElementTracker;
-        for (PE pile : tracker)
-            sortedElements.add(pile);
+
+        if (pileupElementTracker instanceof PerSamplePileupElementTracker) {
+            PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>) pileupElementTracker;
+
+            for (final String sample : tracker.getSamples()) {
+                PileupElementTracker<PE> perSampleElements = tracker.getElements(sample);
+                for (PE pile : perSampleElements)
+                    sortedElements.add(pile);
+            }
+        }
+        else {
+            UnifiedPileupElementTracker<PE> tracker = (UnifiedPileupElementTracker<PE>) pileupElementTracker;
+            for (PE pile : tracker)
+                sortedElements.add(pile);
+        }
 
         UnifiedPileupElementTracker<PE> sortedTracker = new UnifiedPileupElementTracker<PE>();
         for (PE pile : sortedElements)
             sortedTracker.add(pile);
 
-        return (RBP) createNewPileup(this.getLocation(), sortedTracker);
+        return (RBP) createNewPileup(loc, sortedTracker);
     }
 
     @Override
