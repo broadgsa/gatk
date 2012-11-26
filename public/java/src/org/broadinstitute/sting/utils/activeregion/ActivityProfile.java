@@ -24,11 +24,11 @@
 
 package org.broadinstitute.sting.utils.activeregion;
 
+import com.google.java.contract.Requires;
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,6 +45,7 @@ public class ActivityProfile {
     final GenomeLocParser parser;
     final boolean presetRegions;
     GenomeLoc regionStartLoc = null;
+    GenomeLoc regionStopLoc = null;
     final List<ActivityProfileResult> isActiveList;
     private static final int FILTER_SIZE = 80;
     private static final double[] GaussianKernel;
@@ -71,17 +72,47 @@ public class ActivityProfile {
         this.regionStartLoc = regionStartLoc;
     }
 
-    public void add(final GenomeLoc loc, final ActivityProfileResult result) {
-        if ( loc.size() != 1 )
-            throw new ReviewedStingException("Bad add call to ActivityProfile: loc " + loc + " size != 1" );
-        isActiveList.add(result);
-        if( regionStartLoc == null ) {
+    @Override
+    public String toString() {
+        return "ActivityProfile{" +
+                "start=" + regionStartLoc +
+                ", stop=" + regionStopLoc +
+                '}';
+    }
+
+    /**
+     * Add the next ActivityProfileResult to this profile.
+     *
+     * Must be contiguous with the previously added result, or an IllegalArgumentException will be thrown
+     *
+     * @param result a well-formed ActivityProfileResult result to incorporate into this profile
+     */
+    @Requires("result != null")
+    public void add(final ActivityProfileResult result) {
+        final GenomeLoc loc = result.getLoc();
+
+        if ( regionStartLoc == null ) {
             regionStartLoc = loc;
+            regionStopLoc = loc;
+        } else {
+            if ( regionStopLoc.getStart() != loc.getStart() - 1 )
+                throw new IllegalArgumentException("Bad add call to ActivityProfile: loc " + loc + " not immediate after last loc " + regionStopLoc );
+            regionStopLoc = loc;
         }
+
+        isActiveList.add(result);
     }
 
     public int size() {
         return isActiveList.size();
+    }
+
+    public boolean isEmpty() {
+        return isActiveList.isEmpty();
+    }
+
+    public boolean hasPresetRegions() {
+        return presetRegions;
     }
 
     /**
@@ -104,14 +135,21 @@ public class ActivityProfile {
             }
             iii++;
         }
-        final double[] filteredProbArray = new double[activeProbArray.length];
+
+        final double[] filteredProbArray;
         if( !presetRegions ) {
+            // if we aren't using preset regions, actually apply the band pass filter for activeProbArray into filteredProbArray
+            filteredProbArray = new double[activeProbArray.length];
             for( iii = 0; iii < activeProbArray.length; iii++ ) {
                 final double[] kernel = ArrayUtils.subarray(GaussianKernel, Math.max(FILTER_SIZE-iii, 0), Math.min(GaussianKernel.length,FILTER_SIZE + activeProbArray.length - iii));
                 final double[] activeProbSubArray = ArrayUtils.subarray(activeProbArray, Math.max(0,iii - FILTER_SIZE), Math.min(activeProbArray.length,iii + FILTER_SIZE + 1));
                 filteredProbArray[iii] = MathUtils.dotProduct(activeProbSubArray, kernel);
             }
+        } else {
+            // otherwise we simply use the activeProbArray directly
+            filteredProbArray = activeProbArray;
         }
+
         iii = 0;
         for( final double prob : filteredProbArray ) {
             final ActivityProfileResult result = isActiveList.get(iii++);
@@ -119,6 +157,7 @@ public class ActivityProfile {
             result.resultState = ActivityProfileResult.ActivityProfileResultState.NONE;
             result.resultValue = null;
         }
+
         return new ActivityProfile(parser, presetRegions, isActiveList, regionStartLoc);
     }
 
@@ -166,6 +205,7 @@ public class ActivityProfile {
     private final List<ActiveRegion> createActiveRegion(final boolean isActive, final int curStart, final int curEnd, final int activeRegionExtension, final int maxRegionSize) {
         return createActiveRegion(isActive, curStart, curEnd, activeRegionExtension, maxRegionSize, new ArrayList<ActiveRegion>());
     }
+
     private final List<ActiveRegion> createActiveRegion(final boolean isActive, final int curStart, final int curEnd, final int activeRegionExtension, final int maxRegionSize, final List<ActiveRegion> returnList) {
         if( !isActive || curEnd - curStart < maxRegionSize ) {
             final GenomeLoc loc = parser.createGenomeLoc(regionStartLoc.getContig(), regionStartLoc.getStart() + curStart, regionStartLoc.getStart() + curEnd);
