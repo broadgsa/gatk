@@ -305,11 +305,23 @@ public class WalkerManager extends PluginManager<Walker> {
      * Gets the type of downsampling method requested by the walker.  If an alternative
      * downsampling method is specified on the command-line, the command-line version will
      * be used instead.
-     * @param walkerClass The class of the walker to interrogate.
-     * @param useExperimentalDownsampling If true, use the experimental downsampling implementation
+     * @param walker The walker to interrogate.
+     * @param useLegacyDownsampler If true, use the legacy downsampling implementation
      * @return The downsampling method, as specified by the walker.  Null if none exists.
      */
-    public static DownsamplingMethod getDownsamplingMethod(Class<? extends Walker> walkerClass, boolean useExperimentalDownsampling) {
+    public static DownsamplingMethod getDownsamplingMethod(Walker walker, boolean useLegacyDownsampler) {
+        return getDownsamplingMethod(walker.getClass(), useLegacyDownsampler);
+    }
+
+    /**
+     * Gets the type of downsampling method requested by the walker.  If an alternative
+     * downsampling method is specified on the command-line, the command-line version will
+     * be used instead.
+     * @param walkerClass The class of the walker to interrogate.
+     * @param useLegacyDownsampler If true, use the legacy downsampling implementation
+     * @return The downsampling method, as specified by the walker.  Null if none exists.
+     */
+    public static DownsamplingMethod getDownsamplingMethod(Class<? extends Walker> walkerClass, boolean useLegacyDownsampler) {
         DownsamplingMethod downsamplingMethod = null;
 
         if( walkerClass.isAnnotationPresent(Downsample.class) ) {
@@ -317,7 +329,7 @@ public class WalkerManager extends PluginManager<Walker> {
             DownsampleType type = downsampleParameters.by();
             Integer toCoverage = downsampleParameters.toCoverage() >= 0 ? downsampleParameters.toCoverage() : null;
             Double toFraction = downsampleParameters.toFraction() >= 0.0d ? downsampleParameters.toFraction() : null;
-            downsamplingMethod = new DownsamplingMethod(type,toCoverage,toFraction,useExperimentalDownsampling);
+            downsamplingMethod = new DownsamplingMethod(type,toCoverage,toFraction,useLegacyDownsampler);
         }
 
         return downsamplingMethod;
@@ -330,18 +342,6 @@ public class WalkerManager extends PluginManager<Walker> {
     public static ReadTransformer.ApplicationTime getBAQApplicationTime(Walker walker) {
         return walker.getClass().getAnnotation(BAQMode.class).ApplicationTime();
     }    
-
-    /**
-     * Gets the type of downsampling method requested by the walker.  If an alternative
-     * downsampling method is specified on the command-line, the command-line version will
-     * be used instead.
-     * @param walker The walker to interrogate.
-     * @param useExperimentalDownsampling If true, use the experimental downsampling implementation
-     * @return The downsampling method, as specified by the walker.  Null if none exists.
-     */
-    public static DownsamplingMethod getDownsamplingMethod(Walker walker, boolean useExperimentalDownsampling) {
-        return getDownsamplingMethod(walker.getClass(), useExperimentalDownsampling);
-    }
 
     /**
      * Create a name for this type of walker.
