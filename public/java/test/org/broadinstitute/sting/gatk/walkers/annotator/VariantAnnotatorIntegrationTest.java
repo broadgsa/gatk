@@ -151,7 +151,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     }
 
     @Test
-    public void testTabixAnnotations() {
+    public void testTabixAnnotationsAndParallelism() {
         final String MD5 = "99938d1e197b8f10c408cac490a00a62";
         for ( String file : Arrays.asList("CEU.exon.2010_03.sites.vcf", "CEU.exon.2010_03.sites.vcf.gz")) {
             WalkerTestSpec spec = new WalkerTestSpec(
@@ -159,6 +159,12 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
                     Arrays.asList(MD5));
             executeTest("Testing lookup vcf tabix vs. vcf tribble", spec);
         }
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " -A HomopolymerRun -nt 2 --variant:vcf " + validationDataLocation + "CEU.exon.2010_03.sites.vcf -L " + validationDataLocation + "CEU.exon.2010_03.sites.vcf --no_cmdline_in_header", 1,
+                Arrays.asList(MD5));
+
+        executeTest("Testing lookup vcf tabix vs. vcf tribble plus parallelism", spec);
     }
 
     @Test
