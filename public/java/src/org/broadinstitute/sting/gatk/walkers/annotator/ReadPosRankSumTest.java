@@ -39,7 +39,7 @@ public class ReadPosRankSumTest extends RankSumTest implements StandardAnnotatio
                                        final List<Double> refQuals, final List<Double> altQuals) {
 
         if (alleleLikelihoodMap == null) {
-            // use fast SNP-based version if we don't have per-read allele likelihoods
+            // use old UG SNP-based version if we don't have per-read allele likelihoods
             for ( final PileupElement p : pileup ) {
                 if ( isUsableBase(p) ) {
                     int readPos = AlignmentUtils.calcAlignmentByteArrayOffset(p.getRead().getCigar(), p, 0, 0);
