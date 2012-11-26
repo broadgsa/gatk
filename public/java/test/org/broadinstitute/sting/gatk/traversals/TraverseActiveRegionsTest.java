@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.traversals;
 
+import com.google.java.contract.PreconditionError;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -50,6 +51,10 @@ public class TraverseActiveRegionsTest extends BaseTest {
 
         public DummyActiveRegionWalker() {
             this.prob = 1.0;
+        }
+
+        public DummyActiveRegionWalker(double constProb) {
+            this.prob = constProb;
         }
 
         @Override
@@ -130,6 +135,18 @@ public class TraverseActiveRegionsTest extends BaseTest {
         }
 
         return activeIntervals;
+    }
+
+    @Test (expectedExceptions = PreconditionError.class)
+    public void testIsActiveRangeLow () {
+        DummyActiveRegionWalker walker = new DummyActiveRegionWalker(-0.1);
+        getActiveRegions(walker, intervals).values();
+    }
+
+    @Test (expectedExceptions = PreconditionError.class)
+    public void testIsActiveRangeHigh () {
+        DummyActiveRegionWalker walker = new DummyActiveRegionWalker(1.1);
+        getActiveRegions(walker, intervals).values();
     }
 
     @Test
