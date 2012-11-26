@@ -227,7 +227,7 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
      */
     public Long map( final ReferenceContext ref, final GATKSAMRecord originalRead, final RefMetaDataTracker metaDataTracker ) {
 
-        final GATKSAMRecord read = ReadClipper.hardClipAdaptorSequence(originalRead);
+        final GATKSAMRecord read = ReadClipper.hardClipSoftClippedBases( ReadClipper.hardClipAdaptorSequence(originalRead) );
         if( read.isEmpty() ) { return 0L; } // the whole read was inside the adaptor so skip it
 
         RecalUtils.parsePlatformForRead(read, RAC);
