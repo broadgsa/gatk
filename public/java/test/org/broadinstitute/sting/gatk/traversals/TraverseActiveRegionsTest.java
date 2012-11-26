@@ -109,7 +109,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         reads.add(buildSAMRecord("overlap_equal", "1", 10, 20));
         reads.add(buildSAMRecord("overlap_unequal", "1", 10, 21));
         reads.add(buildSAMRecord("boundary_equal", "1", 1990, 2009));
-        reads.add(buildSAMRecord("boundary_unequal", "1", 1995, 2050));
+        reads.add(buildSAMRecord("boundary_unequal", "1", 1990, 2008));
         reads.add(buildSAMRecord("extended_only", "1", 3000, 3100));
         reads.add(buildSAMRecord("extended_and_np", "1", 990, 1990));
         reads.add(buildSAMRecord("outside_intervals", "1", 5000, 6000));
@@ -214,8 +214,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // simple: Primary in 1:1-999
         // overlap_equal: Primary in 1:1-999
         // overlap_unequal: Primary in 1:1-999
-        // boundary_equal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
-        // boundary_unequal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
+        // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
+        // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
         // extended_only: Extended in 1:2000-2999
         // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
@@ -241,8 +241,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "simple");
         verifyReadNotPlaced(region, "overlap_equal");
         verifyReadNotPlaced(region, "overlap_unequal");
-        // TODO: fail verifyReadPrimary(region, "boundary_equal");
-        // TODO: fail verifyReadNonPrimary(region, "boundary_unequal");
+        // TODO: fail verifyReadNonPrimary(region, "boundary_equal");
+        verifyReadPrimary(region, "boundary_unequal");
         verifyReadNotPlaced(region, "extended_only");
         // TODO: fail verifyReadPrimary(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
@@ -253,8 +253,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "simple");
         verifyReadNotPlaced(region, "overlap_equal");
         verifyReadNotPlaced(region, "overlap_unequal");
-        // TODO: fail verifyReadNonPrimary(region, "boundary_equal");
-        verifyReadPrimary(region, "boundary_unequal");
+        verifyReadPrimary(region, "boundary_equal");
+        // TODO: fail verifyReadNonPrimary(region, "boundary_unequal");
         // TODO: fail verifyReadExtended(region, "extended_only");
         // TODO: fail verifyReadExtended(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
