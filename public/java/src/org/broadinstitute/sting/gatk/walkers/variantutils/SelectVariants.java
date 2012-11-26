@@ -151,14 +151,6 @@ import java.util.*;
  *   -mvq 50 \
  *   -o violations.vcf
  *
- * Creating a sample of exactly 1000 variants randomly chosen with equal probability from the variant VCF:
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
- *   -T SelectVariants \
- *   --variant input.vcf \
- *   -o output.vcf \
- *   -number 1000
- *
  * Creating a set with 50% of the total number of variants in the variant VCF:
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \

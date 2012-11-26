@@ -26,36 +26,31 @@ object VCF_BAM_utilities {
     case _ => throw new RuntimeException("Unexpected BAM input type: " + bamsIn + "; only permitted extensions are .bam and .list")
   }
 
-  def getMapOfBAMsForSample(bams: List[File]): scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]] = bams match {
-    case Nil => return scala.collection.mutable.Map.empty[String, scala.collection.mutable.Set[File]]
+  def getMapOfBAMsForSample(bams: List[File]): scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]] = {
+    var m = scala.collection.mutable.Map.empty[String, scala.collection.mutable.Set[File]]
 
-    case x :: y =>
-      val m: scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]] = getMapOfBAMsForSample(y)
-      val bamSamples: List[String] = getSamplesInBAM(x)
-
+    for (bam <- bams) {
+      val bamSamples: List[String] = getSamplesInBAM(bam)
       for (s <- bamSamples) {
         if (!m.contains(s))
           m += s -> scala.collection.mutable.Set.empty[File]
 
-        m(s) = m(s) + x
+        m(s) += bam
       }
+    }
 
       return m
   }
 
   def findBAMsForSamples(samples: List[String], sampleToBams: scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]]): List[File] = {
+    var s = scala.collection.mutable.Set.empty[File]
 
-    def findBAMsForSamplesHelper(samples: List[String]): scala.collection.mutable.Set[File] = samples match {
-      case Nil => scala.collection.mutable.Set.empty[File]
-
-      case x :: y =>
-        var bamsForSampleX: scala.collection.mutable.Set[File] = scala.collection.mutable.Set.empty[File]
-        if (sampleToBams.contains(x))
-          bamsForSampleX = sampleToBams(x)
-        return bamsForSampleX ++ findBAMsForSamplesHelper(y)
+    for (sample <- samples) {
+      if (sampleToBams.contains(sample))
+        s ++= sampleToBams(sample)
     }
 
     val l: List[File] = Nil
-    return l ++ findBAMsForSamplesHelper(samples)
+    return l ++ s
   }
 }
