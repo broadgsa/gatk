@@ -96,8 +96,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         intervals.add(genomeLocParser.createGenomeLoc("1", 1000, 1999));
         intervals.add(genomeLocParser.createGenomeLoc("1", 2000, 2999));
         intervals.add(genomeLocParser.createGenomeLoc("1", 10000, 20000));
-        // TODO: this fails!
-        //intervals.add(genomeLocParser.createGenomeLoc("20", 10000, 20000));
+        intervals.add(genomeLocParser.createGenomeLoc("20", 10000, 10100));
         intervals = IntervalUtils.sortAndMergeIntervals(genomeLocParser, intervals, IntervalMergingRule.OVERLAPPING_ONLY).toList();
 
         reads = new ArrayList<SAMRecord>();
@@ -109,8 +108,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         reads.add(buildSAMRecord("extended_only", "1", 3000, 3100));
         reads.add(buildSAMRecord("extended_and_np", "1", 990, 1990));
         reads.add(buildSAMRecord("outside_intervals", "1", 5000, 6000));
-        // TODO
-        //reads.add(buildSAMRecord("simple20", "20", 10100, 10150));
+        reads.add(buildSAMRecord("simple20", "20", 10025, 10075));
     }
 
     @Test
@@ -204,9 +202,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // extended_only: Extended in 1:2000-2999
         // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
-
-        // TODO
-        // simple20: Primary in 20:10000-20000
+        // simple20: Primary in 20:10000-10100
 
         Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(walker, intervals);
         ActiveRegion region;
@@ -221,6 +217,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "extended_only");
         // TODO: fail verifyReadNonPrimary(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
+        verifyReadNotPlaced(region, "simple20");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1000, 1999));
 
@@ -232,6 +229,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "extended_only");
         // TODO: fail verifyReadPrimary(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
+        verifyReadNotPlaced(region, "simple20");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
 
@@ -243,6 +241,19 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // TODO: fail verifyReadExtended(region, "extended_only");
         // TODO: fail verifyReadExtended(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
+        verifyReadNotPlaced(region, "simple20");
+
+        region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
+
+        verifyReadNotPlaced(region, "simple");
+        verifyReadNotPlaced(region, "overlap_equal");
+        verifyReadNotPlaced(region, "overlap_unequal");
+        verifyReadNotPlaced(region, "boundary_equal");
+        verifyReadNotPlaced(region, "boundary_unequal");
+        verifyReadNotPlaced(region, "extended_only");
+        verifyReadNotPlaced(region, "extended_and_np");
+        verifyReadNotPlaced(region, "outside_intervals");
+        verifyReadPrimary(region, "simple20");
 
         // TODO: more tests and edge cases
     }
@@ -281,6 +292,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
     private Map<GenomeLoc, ActiveRegion> getActiveRegions(DummyActiveRegionWalker walker, List<GenomeLoc> intervals) {
         for (LocusShardDataProvider dataProvider : createDataProviders(intervals))
             t.traverse(walker, dataProvider, 0);
+
+        t.endTraversal(walker, 0);
 
         return walker.mappedActiveRegions;
     }
