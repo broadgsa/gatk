@@ -49,7 +49,7 @@ public abstract class RankSumTest extends InfoFieldAnnotation implements ActiveR
             ReadBackedPileup pileup = null;
 
 
-            if (stratifiedContexts != null) {
+            if (stratifiedContexts != null) { // the old UG SNP-only path through the annotations
                 final AlignmentContext context = stratifiedContexts.get(genotype.getSampleName());
                 if ( context != null )
                     pileup = context.getBasePileup();

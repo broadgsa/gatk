@@ -227,7 +227,7 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
      */
     public Long map( final ReferenceContext ref, final GATKSAMRecord originalRead, final RefMetaDataTracker metaDataTracker ) {
 
-        final GATKSAMRecord read = ReadClipper.hardClipAdaptorSequence(originalRead);
+        final GATKSAMRecord read = ReadClipper.hardClipSoftClippedBases( ReadClipper.hardClipAdaptorSequence(originalRead) );
         if( read.isEmpty() ) { return 0L; } // the whole read was inside the adaptor so skip it
 
         RecalUtils.parsePlatformForRead(read, RAC);
@@ -268,16 +268,25 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
     }
 
     protected boolean[] calculateKnownSites( final GATKSAMRecord read, final List<Feature> features ) {
-        final int BUFFER_SIZE = 0;
         final int readLength = read.getReadBases().length;
         final boolean[] knownSites = new boolean[readLength];
         Arrays.fill(knownSites, false);
         for( final Feature f : features ) {
             int featureStartOnRead = ReadUtils.getReadCoordinateForReferenceCoordinate(read.getSoftStart(), read.getCigar(), f.getStart(), ReadUtils.ClippingTail.LEFT_TAIL, true); // BUGBUG: should I use LEFT_TAIL here?
-            if( featureStartOnRead == ReadUtils.CLIPPING_GOAL_NOT_REACHED ) { featureStartOnRead = 0; }
+            if( featureStartOnRead == ReadUtils.CLIPPING_GOAL_NOT_REACHED ) {
+                featureStartOnRead = 0;
+            }
+
             int featureEndOnRead = ReadUtils.getReadCoordinateForReferenceCoordinate(read.getSoftStart(), read.getCigar(), f.getEnd(), ReadUtils.ClippingTail.LEFT_TAIL, true);
-            if( featureEndOnRead == ReadUtils.CLIPPING_GOAL_NOT_REACHED ) { featureEndOnRead = readLength; }
-            Arrays.fill(knownSites, Math.max(0, featureStartOnRead - BUFFER_SIZE), Math.min(readLength, featureEndOnRead + 1 + BUFFER_SIZE), true);
+            if( featureEndOnRead == ReadUtils.CLIPPING_GOAL_NOT_REACHED ) {
+                featureEndOnRead = readLength;
+            }
+
+            if( featureStartOnRead > readLength ) {
+                featureStartOnRead = featureEndOnRead = readLength;
+            }
+
+            Arrays.fill(knownSites, Math.max(0, featureStartOnRead), Math.min(readLength, featureEndOnRead + 1), true);
         }
         return knownSites;
     }

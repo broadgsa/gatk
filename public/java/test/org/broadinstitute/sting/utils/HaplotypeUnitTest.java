@@ -159,7 +159,7 @@ public class HaplotypeUnitTest extends BaseTest {
         final VariantContext vc = new VariantContextBuilder().alleles(alleles).loc("1", loc, loc + h1refAllele.getBases().length - 1).make();
         h.setAlignmentStartHapwrtRef(0);
         h.setCigar(cigar);
-        final Haplotype h1 = h.insertAllele(vc.getReference(), vc.getAlternateAllele(0), loc);
+        final Haplotype h1 = h.insertAllele(vc.getReference(), vc.getAlternateAllele(0), loc, vc.getStart());
         final Haplotype h1expected = new Haplotype(newHap.getBytes());
         Assert.assertEquals(h1, h1expected);
     }

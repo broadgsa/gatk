@@ -147,13 +147,13 @@ class GATKResourcesBundle extends QScript {
     //
     // example call set for wiki tutorial
     //
-    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/exampleCalls/NA12878.HiSeq.WGS.bwa.cleaned.raw.hg19.subset.vcf",
+    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/exampleCalls/NA12878.HiSeq.WGS.bwa.cleaned.raw.b37.subset.vcf",
       "NA12878.HiSeq.WGS.bwa.cleaned.raw.subset", b37, true, true))
 
     //
     // Test BAM file, specific to each reference
     //
-    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam",
+    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.b37.20.bam",
       "IGNORE", b37, false, false))
 
     //

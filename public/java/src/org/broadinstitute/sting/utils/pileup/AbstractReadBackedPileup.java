@@ -254,19 +254,32 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
      * Returns a new ReadBackedPileup where only one read from an overlapping read
      * pair is retained.  If the two reads in question disagree to their basecall,
      * neither read is retained.  If they agree on the base, the read with the higher
-     * quality observation is retained
+     * base quality observation is retained
      *
      * @return the newly filtered pileup
      */
     @Override
-    public RBP getOverlappingFragmentFilteredPileup() {
+    public ReadBackedPileup getOverlappingFragmentFilteredPileup() {
+        return getOverlappingFragmentFilteredPileup(true, true);
+    }
+
+    /**
+     * Returns a new ReadBackedPileup where only one read from an overlapping read
+     * pair is retained.  If discardDiscordant and the two reads in question disagree to their basecall,
+     * neither read is retained.  Otherwise, the read with the higher
+     * quality (base or mapping, depending on baseQualNotMapQual) observation is retained
+     *
+     * @return the newly filtered pileup
+     */
+    @Override
+    public RBP getOverlappingFragmentFilteredPileup(boolean discardDiscordant, boolean baseQualNotMapQual) {
         if (pileupElementTracker instanceof PerSamplePileupElementTracker) {
             PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>) pileupElementTracker;
             PerSamplePileupElementTracker<PE> filteredTracker = new PerSamplePileupElementTracker<PE>();
 
             for (final String sample : tracker.getSamples()) {
                 PileupElementTracker<PE> perSampleElements = tracker.getElements(sample);
-                AbstractReadBackedPileup<RBP, PE> pileup = createNewPileup(loc, perSampleElements).getOverlappingFragmentFilteredPileup();
+                AbstractReadBackedPileup<RBP, PE> pileup = createNewPileup(loc, perSampleElements).getOverlappingFragmentFilteredPileup(discardDiscordant, baseQualNotMapQual);
                 filteredTracker.addElements(sample, pileup.pileupElementTracker);
             }
             return (RBP) createNewPileup(loc, filteredTracker);
@@ -284,11 +297,16 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
 
                     // if the reads disagree at this position, throw them both out.  Otherwise
                     // keep the element with the higher quality score
-                    if (existing.getBase() != p.getBase()) {
+                    if (discardDiscordant && existing.getBase() != p.getBase()) {
                         filteredPileup.remove(readName);
                     } else {
-                        if (existing.getQual() < p.getQual()) {
-                            filteredPileup.put(readName, p);
+                        if (baseQualNotMapQual) {
+                            if (existing.getQual() < p.getQual())
+                                filteredPileup.put(readName, p);
+                        }
+                        else {
+                            if (existing.getMappingQual() < p.getMappingQual())
+                                filteredPileup.put(readName, p);
                         }
                     }
                 }
@@ -996,6 +1014,44 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
 
     private String getQualsString() {
         return quals2String(getQuals());
+    }
+
+    /**
+     * Returns a new ReadBackedPileup that is sorted by start coordinate of the reads.
+     *
+     * @return
+     */
+    @Override
+    public RBP getStartSortedPileup() {
+
+        final TreeSet<PE> sortedElements = new TreeSet<PE>(new Comparator<PE>() {
+            @Override
+            public int compare(PE element1, PE element2) {
+                final int difference = element1.getRead().getAlignmentStart() - element2.getRead().getAlignmentStart();
+                return difference != 0 ? difference : element1.getRead().getReadName().compareTo(element2.getRead().getReadName());
+            }
+        });
+
+        if (pileupElementTracker instanceof PerSamplePileupElementTracker) {
+            PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>) pileupElementTracker;
+
+            for (final String sample : tracker.getSamples()) {
+                PileupElementTracker<PE> perSampleElements = tracker.getElements(sample);
+                for (PE pile : perSampleElements)
+                    sortedElements.add(pile);
+            }
+        }
+        else {
+            UnifiedPileupElementTracker<PE> tracker = (UnifiedPileupElementTracker<PE>) pileupElementTracker;
+            for (PE pile : tracker)
+                sortedElements.add(pile);
+        }
+
+        UnifiedPileupElementTracker<PE> sortedTracker = new UnifiedPileupElementTracker<PE>();
+        for (PE pile : sortedElements)
+            sortedTracker.add(pile);
+
+        return (RBP) createNewPileup(loc, sortedTracker);
     }
 
     @Override

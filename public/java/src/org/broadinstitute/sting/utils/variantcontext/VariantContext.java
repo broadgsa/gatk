@@ -184,9 +184,6 @@ public class VariantContext implements Feature { // to enable tribble integratio
     protected CommonInfo commonInfo = null;
     public final static double NO_LOG10_PERROR = CommonInfo.NO_LOG10_PERROR;
 
-    @Deprecated // ID is no longer stored in the attributes map
-    private final static String ID_KEY = "ID";
-
     public final static Set<String> PASSES_FILTERS = Collections.unmodifiableSet(new LinkedHashSet<String>());
 
     /** The location of this VariantContext */
@@ -286,10 +283,6 @@ public class VariantContext implements Feature { // to enable tribble integratio
         this.ID = ID.equals(VCFConstants.EMPTY_ID_FIELD) ? VCFConstants.EMPTY_ID_FIELD : ID;
 
         this.commonInfo = new CommonInfo(source, log10PError, filters, attributes);
-
-        // todo -- remove me when this check is no longer necessary
-        if ( this.commonInfo.hasAttribute(ID_KEY) )
-            throw new IllegalArgumentException("Trying to create a VariantContext with a ID key.  Please use provided constructor argument ID");
 
         if ( alleles == null ) { throw new IllegalArgumentException("Alleles cannot be null"); }
 
