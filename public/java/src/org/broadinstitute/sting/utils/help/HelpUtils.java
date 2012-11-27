@@ -32,6 +32,15 @@ import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import java.lang.reflect.Field;
 
 public class HelpUtils {
+
+    public final static String BASE_GATK_URL = "http://www.broadinstitute.org/gatk";
+    public final static String GATK_DOCS_URL = BASE_GATK_URL + "/gatkdocs/";
+    public final static String GATK_FORUM_URL = "http://gatkforums.broadinstitute.org/";
+    public final static String GATK_FORUM_API_URL = "https://gatkforums.broadinstitute.org/api/v1/";
+
+
+
+
     protected static boolean assignableToClass(ProgramElementDoc classDoc, Class lhsClass, boolean requireConcrete) {
         try {
             Class type = getClassForDoc(classDoc);

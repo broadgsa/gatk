@@ -25,11 +25,9 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.help.GATKDocUtils;
+import org.broadinstitute.sting.utils.help.HelpUtils;
 
 import java.util.Collection;
 import java.util.List;
@@ -73,7 +71,7 @@ public class FilterManager extends PluginManager<ReadFilter> {
 
         return String.format("Read filter %s not found. Available read filters:%n%n%s%n%n%s",pluginName,
                 userFriendlyListofReadFilters(availableFilters),
-                "Please consult the GATK Documentation (http://www.broadinstitute.org/gatk/gatkdocs/) for more information.");
+                "Please consult the GATK Documentation (" + HelpUtils.GATK_DOCS_URL + ") for more information.");
     }
 
     private String userFriendlyListofReadFilters(List<Class<? extends ReadFilter>> filters) {
