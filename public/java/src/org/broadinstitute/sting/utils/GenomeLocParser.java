@@ -374,7 +374,7 @@ public final class GenomeLocParser {
         int start = 1;
         int stop = -1;
 
-        final int colonIndex = str.indexOf(":");
+        final int colonIndex = str.lastIndexOf(":");
         if(colonIndex == -1) {
             contig = str.substring(0, str.length());  // chr1
             stop = Integer.MAX_VALUE;

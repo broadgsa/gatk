@@ -2,6 +2,8 @@ package org.broadinstitute.sting.utils;
 
 
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -75,13 +77,30 @@ public class GenomeLocParserUnitTest extends BaseTest {
     }
 
     @Test
+    public void testContigHasColon() {
+        SAMFileHeader header = new SAMFileHeader();
+        header.setSortOrder(net.sf.samtools.SAMFileHeader.SortOrder.coordinate);
+        SAMSequenceDictionary dict = new SAMSequenceDictionary();
+        SAMSequenceRecord rec = new SAMSequenceRecord("c:h:r1", 10);
+        rec.setSequenceLength(10);
+        dict.addSequence(rec);
+        header.setSequenceDictionary(dict);
+
+        final GenomeLocParser myGenomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
+        GenomeLoc loc = myGenomeLocParser.parseGenomeLoc("c:h:r1:4-5");
+        assertEquals(0, loc.getContigIndex());
+        assertEquals(loc.getStart(), 4);
+        assertEquals(loc.getStop(), 5);
+    }
+
+    @Test
     public void testParseGoodString() {
         GenomeLoc loc = genomeLocParser.parseGenomeLoc("chr1:1-10");
         assertEquals(0, loc.getContigIndex());
         assertEquals(loc.getStop(), 10);
         assertEquals(loc.getStart(), 1);
     }
-    
+
     @Test
     public void testCreateGenomeLoc1() {
         GenomeLoc loc = genomeLocParser.createGenomeLoc("chr1", 1, 100);
