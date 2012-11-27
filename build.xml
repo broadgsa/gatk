@@ -681,6 +681,9 @@
               <include name="**/gatk/**/*.class" />
               <include name="**/alignment/**/*.class"/>
             </fileset>
+            <fileset dir="${java.private.source.dir}">
+                <include name="**/gatk/**/resources/*.*" />
+            </fileset>
             <fileset dir="${R.script.staging.dir}">
                 <include name="**/gatk/**/*.R"/>
                 <include name="**/alignment/**/*.R"/>
