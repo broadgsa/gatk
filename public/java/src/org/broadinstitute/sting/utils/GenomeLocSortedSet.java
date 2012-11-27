@@ -149,7 +149,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         previousOverlapSearchIndex = Collections.binarySearch(mArray, loc);
 
         // if it matches an interval exactly, we are done
-        if ( previousOverlapSearchIndex > 0 )
+        if ( previousOverlapSearchIndex >= 0 )
             return true;
 
         // check whether it overlaps the interval before or after the insertion point
