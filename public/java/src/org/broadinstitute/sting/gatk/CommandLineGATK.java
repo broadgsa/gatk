@@ -39,6 +39,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.help.GATKDocUtils;
+import org.broadinstitute.sting.utils.help.HelpUtils;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.util.*;
@@ -118,17 +119,24 @@ public class CommandLineGATK extends CommandLineExecutable {
     public static final String DISK_QUOTA_EXCEEDED_ERROR = "Disk quota exceeded";
 
     private static void checkForMaskedUserErrors(final Throwable t) {
+        // masked out of memory error
+        if ( t instanceof OutOfMemoryError )
+            exitSystemWithUserError(new UserException.NotEnoughMemory());
+        // masked user error
+        if ( t instanceof UserException || t instanceof TribbleException )
+            exitSystemWithUserError(new UserException(t.getMessage()));
+
+        // no message means no masked error
         final String message = t.getMessage();
         if ( message == null )
             return;
 
-        // we know what to do about the common "Too many open files" error
+        // too many open files error
         if ( message.contains("Too many open files") )
             exitSystemWithUserError(new UserException.TooManyOpenFiles());
 
         // malformed BAM looks like a SAM file
-        if ( message.contains(PICARD_TEXT_SAM_FILE_ERROR_1) ||
-                message.contains(PICARD_TEXT_SAM_FILE_ERROR_2) )
+        if ( message.contains(PICARD_TEXT_SAM_FILE_ERROR_1) || message.contains(PICARD_TEXT_SAM_FILE_ERROR_2) )
             exitSystemWithSamError(t);
 
         // can't close tribble index when writing
@@ -138,12 +146,10 @@ public class CommandLineGATK extends CommandLineExecutable {
         // disk is full
         if ( message.contains(NO_SPACE_LEFT_ON_DEVICE_ERROR) || message.contains(DISK_QUOTA_EXCEEDED_ERROR) )
             exitSystemWithUserError(new UserException.NoSpaceOnDevice());
-        if ( t.getCause() != null && (t.getCause().getMessage().contains(NO_SPACE_LEFT_ON_DEVICE_ERROR) || t.getCause().getMessage().contains(DISK_QUOTA_EXCEEDED_ERROR)) )
-            exitSystemWithUserError(new UserException.NoSpaceOnDevice());
 
-        // masked out of memory error
-        if ( t.getCause() != null && t.getCause() instanceof OutOfMemoryError )
-            exitSystemWithUserError(new UserException.NotEnoughMemory());
+        // masked error wrapped in another one
+        if ( t.getCause() != null )
+            checkForMaskedUserErrors(t.getCause());
     }
 
     /**
@@ -155,7 +161,7 @@ public class CommandLineGATK extends CommandLineExecutable {
         List<String> header = new ArrayList<String>();
         header.add(String.format("The Genome Analysis Toolkit (GATK) v%s, Compiled %s",getVersionNumber(), getBuildTime()));
         header.add("Copyright (c) 2010 The Broad Institute");
-        header.add("For support and documentation go to http://www.broadinstitute.org/gatk");
+        header.add("For support and documentation go to " + HelpUtils.BASE_GATK_URL);
         return header;
     }
 
