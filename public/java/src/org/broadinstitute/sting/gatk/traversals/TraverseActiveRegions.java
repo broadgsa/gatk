@@ -80,7 +80,6 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             }
 
             // skip this location -- it's not part of our engine intervals
-            // TODO -- this is dangerously slow with current overlaps implementation : GSA-649 / GenomeLocSortedSet.overlaps is crazy slow
             if ( outsideEngineIntervals(location) )
                 continue;
 
