@@ -793,7 +793,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
         int sampleI = 0;
         for ( final List<Allele> alleles : Utils.makePermutations(vc.getAlleles(), 2, true) ) {
-            genotypes.add(GenotypeBuilder.create("sample" + sampleI, alleles));
+            genotypes.add(GenotypeBuilder.create("sample" + sampleI++, alleles));
         }
         genotypes.add(GenotypeBuilder.createMissing("missing", 2));
 
