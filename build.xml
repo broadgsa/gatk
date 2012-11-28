@@ -226,10 +226,17 @@
     <!-- the path for resources that need to go into the GATK jar;
          any additional resources should go into this set. -->
     <path id="gatk.resources">
-        <fileset dir="${basedir}">
-            <include name="${java.public.source.dir}/**/templates/*" />
-            <include name="${java.private.source.dir}/**/templates/*" if="include.private" />
-            <include name="${java.protected.source.dir}/**/templates/*" if="include.protected" />
+        <fileset dir="${java.public.source.dir}">
+            <include name="**/resources/*" />
+            <include name="**/templates/*" />
+        </fileset>
+        <fileset dir="${java.private.source.dir}" erroronmissingdir="false">
+            <include name="**/resources/*" if="include.private" />
+            <include name="**/templates/*" if="include.private" />
+        </fileset>
+        <fileset dir="${java.protected.source.dir}" erroronmissingdir="false">
+            <include name="**/resources/*" if="include.protected" />
+            <include name="**/templates/*" if="include.protected" />
         </fileset>
     </path>
 
