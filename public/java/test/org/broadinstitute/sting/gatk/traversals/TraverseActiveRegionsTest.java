@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.traversals;
 
+import com.google.java.contract.PreconditionError;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -52,6 +53,10 @@ public class TraverseActiveRegionsTest extends BaseTest {
             this.prob = 1.0;
         }
 
+        public DummyActiveRegionWalker(double constProb) {
+            this.prob = constProb;
+        }
+
         @Override
         public ActivityProfileResult isActive(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
             isActiveCalls.add(ref.getLocus());
@@ -96,8 +101,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         intervals.add(genomeLocParser.createGenomeLoc("1", 1000, 1999));
         intervals.add(genomeLocParser.createGenomeLoc("1", 2000, 2999));
         intervals.add(genomeLocParser.createGenomeLoc("1", 10000, 20000));
-        // TODO: this fails!
-        //intervals.add(genomeLocParser.createGenomeLoc("20", 10000, 20000));
+        intervals.add(genomeLocParser.createGenomeLoc("20", 10000, 10100));
         intervals = IntervalUtils.sortAndMergeIntervals(genomeLocParser, intervals, IntervalMergingRule.OVERLAPPING_ONLY).toList();
 
         reads = new ArrayList<SAMRecord>();
@@ -105,12 +109,11 @@ public class TraverseActiveRegionsTest extends BaseTest {
         reads.add(buildSAMRecord("overlap_equal", "1", 10, 20));
         reads.add(buildSAMRecord("overlap_unequal", "1", 10, 21));
         reads.add(buildSAMRecord("boundary_equal", "1", 1990, 2009));
-        reads.add(buildSAMRecord("boundary_unequal", "1", 1995, 2050));
+        reads.add(buildSAMRecord("boundary_unequal", "1", 1990, 2008));
         reads.add(buildSAMRecord("extended_only", "1", 3000, 3100));
         reads.add(buildSAMRecord("extended_and_np", "1", 990, 1990));
         reads.add(buildSAMRecord("outside_intervals", "1", 5000, 6000));
-        // TODO
-        //reads.add(buildSAMRecord("simple20", "20", 10100, 10150));
+        reads.add(buildSAMRecord("simple20", "20", 10025, 10075));
     }
 
     @Test
@@ -132,6 +135,18 @@ public class TraverseActiveRegionsTest extends BaseTest {
         }
 
         return activeIntervals;
+    }
+
+    @Test (expectedExceptions = PreconditionError.class)
+    public void testIsActiveRangeLow () {
+        DummyActiveRegionWalker walker = new DummyActiveRegionWalker(-0.1);
+        getActiveRegions(walker, intervals).values();
+    }
+
+    @Test (expectedExceptions = PreconditionError.class)
+    public void testIsActiveRangeHigh () {
+        DummyActiveRegionWalker walker = new DummyActiveRegionWalker(1.1);
+        getActiveRegions(walker, intervals).values();
     }
 
     @Test
@@ -199,14 +214,12 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // simple: Primary in 1:1-999
         // overlap_equal: Primary in 1:1-999
         // overlap_unequal: Primary in 1:1-999
-        // boundary_equal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
-        // boundary_unequal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
+        // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
+        // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
         // extended_only: Extended in 1:2000-2999
         // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
-
-        // TODO
-        // simple20: Primary in 20:10000-20000
+        // simple20: Primary in 20:10000-10100
 
         Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(walker, intervals);
         ActiveRegion region;
@@ -221,28 +234,43 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "extended_only");
         // TODO: fail verifyReadNonPrimary(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
+        verifyReadNotPlaced(region, "simple20");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1000, 1999));
 
         verifyReadNotPlaced(region, "simple");
         verifyReadNotPlaced(region, "overlap_equal");
         verifyReadNotPlaced(region, "overlap_unequal");
-        // TODO: fail verifyReadPrimary(region, "boundary_equal");
-        // TODO: fail verifyReadNonPrimary(region, "boundary_unequal");
+        // TODO: fail verifyReadNonPrimary(region, "boundary_equal");
+        verifyReadPrimary(region, "boundary_unequal");
         verifyReadNotPlaced(region, "extended_only");
         // TODO: fail verifyReadPrimary(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
+        verifyReadNotPlaced(region, "simple20");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
 
         verifyReadNotPlaced(region, "simple");
         verifyReadNotPlaced(region, "overlap_equal");
         verifyReadNotPlaced(region, "overlap_unequal");
-        // TODO: fail verifyReadNonPrimary(region, "boundary_equal");
-        verifyReadPrimary(region, "boundary_unequal");
+        verifyReadPrimary(region, "boundary_equal");
+        // TODO: fail verifyReadNonPrimary(region, "boundary_unequal");
         // TODO: fail verifyReadExtended(region, "extended_only");
         // TODO: fail verifyReadExtended(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
+        verifyReadNotPlaced(region, "simple20");
+
+        region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
+
+        verifyReadNotPlaced(region, "simple");
+        verifyReadNotPlaced(region, "overlap_equal");
+        verifyReadNotPlaced(region, "overlap_unequal");
+        verifyReadNotPlaced(region, "boundary_equal");
+        verifyReadNotPlaced(region, "boundary_unequal");
+        verifyReadNotPlaced(region, "extended_only");
+        verifyReadNotPlaced(region, "extended_and_np");
+        verifyReadNotPlaced(region, "outside_intervals");
+        verifyReadPrimary(region, "simple20");
 
         // TODO: more tests and edge cases
     }
@@ -281,6 +309,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
     private Map<GenomeLoc, ActiveRegion> getActiveRegions(DummyActiveRegionWalker walker, List<GenomeLoc> intervals) {
         for (LocusShardDataProvider dataProvider : createDataProviders(intervals))
             t.traverse(walker, dataProvider, 0);
+
+        t.endTraversal(walker, 0);
 
         return walker.mappedActiveRegions;
     }

@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers;
 
+import com.google.java.contract.Ensures;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Input;
@@ -75,6 +76,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     }
 
     // Determine probability of active status over the AlignmentContext
+    @Ensures({"result.isActiveProb >= 0.0", "result.isActiveProb <= 1.0"})
     public abstract ActivityProfileResult isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
 
     // Map over the ActiveRegion
