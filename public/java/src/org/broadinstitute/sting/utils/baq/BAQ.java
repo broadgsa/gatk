@@ -406,10 +406,15 @@ public class BAQ {
         // so BQi = Qi - BAQi + 64
         byte[] bqTag = new byte[baq.length];
         for ( int i = 0; i < bqTag.length; i++) {
-            int bq = (int)read.getBaseQualities()[i] + 64;
-            int baq_i = (int)baq[i];
-            int tag = bq - baq_i;
-            if ( tag < 0 ) throw new ReviewedStingException("BAQ tag calculation error.  BAQ value above base quality at " + read);
+            final int bq = (int)read.getBaseQualities()[i] + 64;
+            final int baq_i = (int)baq[i];
+            final int tag = bq - baq_i;
+            // problem with the calculation of the correction factor; this is our problem
+            if ( tag < 0 )
+                throw new ReviewedStingException("BAQ tag calculation error.  BAQ value above base quality at " + read);
+            // the original quality is too high, almost certainly due to using the wrong encoding in the BAM file
+            if ( tag > Byte.MAX_VALUE )
+                throw new UserException.MalformedBAM(read, "we encountered an extremely high quality score (" + (bq - 64) + ") with BAQ correction factor of " + baq_i + "; the BAM file appears to be using the wrong encoding for quality scores");
             bqTag[i] = (byte)tag;
         }
         return new String(bqTag);
