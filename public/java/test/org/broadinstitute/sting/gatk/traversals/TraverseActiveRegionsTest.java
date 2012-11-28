@@ -25,6 +25,7 @@ import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 import org.broadinstitute.sting.utils.activeregion.ActivityProfileResult;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -100,7 +101,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
     private GenomeLocParser genomeLocParser;
 
     private List<GenomeLoc> intervals;
-    private List<SAMRecord> reads;
+    private List<GATKSAMRecord> reads;
 
     @BeforeClass
     private void init() throws FileNotFoundException {
@@ -117,16 +118,18 @@ public class TraverseActiveRegionsTest extends BaseTest {
         intervals.add(genomeLocParser.createGenomeLoc("20", 10000, 10100));
         intervals = IntervalUtils.sortAndMergeIntervals(genomeLocParser, intervals, IntervalMergingRule.OVERLAPPING_ONLY).toList();
 
-        reads = new ArrayList<SAMRecord>();
+        reads = new ArrayList<GATKSAMRecord>();
         reads.add(buildSAMRecord("simple", "1", 100, 200));
         reads.add(buildSAMRecord("overlap_equal", "1", 10, 20));
         reads.add(buildSAMRecord("overlap_unequal", "1", 10, 21));
         reads.add(buildSAMRecord("boundary_equal", "1", 1990, 2009));
         reads.add(buildSAMRecord("boundary_unequal", "1", 1990, 2008));
-        reads.add(buildSAMRecord("extended_only", "1", 3000, 3100));
         reads.add(buildSAMRecord("extended_and_np", "1", 990, 1990));
         reads.add(buildSAMRecord("outside_intervals", "1", 5000, 6000));
         reads.add(buildSAMRecord("simple20", "20", 10025, 10075));
+
+        // required by LocusIteratorByState, and I prefer to list them in test case order above
+        ReadUtils.sortReadsByCoordinate(reads);
     }
 
     @Test
@@ -226,7 +229,6 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // overlap_unequal: Primary in 1:1-999
         // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
-        // extended_only: Extended in 1:2000-2999
         // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
         // simple20: Primary in 20:10000-10100
@@ -241,7 +243,6 @@ public class TraverseActiveRegionsTest extends BaseTest {
         getRead(region, "overlap_unequal");
         verifyReadNotPlaced(region, "boundary_equal");
         verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_only");
         verifyReadNotPlaced(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         verifyReadNotPlaced(region, "simple20");
@@ -253,8 +254,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "overlap_unequal");
         verifyReadNotPlaced(region, "boundary_equal");
         getRead(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_only");
-        // TODO: fail getRead(region, "extended_and_np");
+        getRead(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         verifyReadNotPlaced(region, "simple20");
 
@@ -265,7 +265,6 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "overlap_unequal");
         getRead(region, "boundary_equal");
         verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_only");
         verifyReadNotPlaced(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         verifyReadNotPlaced(region, "simple20");
@@ -277,7 +276,6 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "overlap_unequal");
         verifyReadNotPlaced(region, "boundary_equal");
         verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_only");
         verifyReadNotPlaced(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         getRead(region, "simple20");
@@ -300,7 +298,6 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // overlap_unequal: Primary in 1:1-999
         // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
-        // extended_only: Extended in 1:2000-2999
         // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
         // simple20: Primary in 20:10000-10100
@@ -315,8 +312,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         getRead(region, "overlap_unequal");
         verifyReadNotPlaced(region, "boundary_equal");
         verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_only");
-        // TODO: fail getRead(region, "extended_and_np");
+        getRead(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         verifyReadNotPlaced(region, "simple20");
 
@@ -327,8 +323,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "overlap_unequal");
         getRead(region, "boundary_equal");
         getRead(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_only");
-        // TODO: fail getRead(region, "extended_and_np");
+        getRead(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         verifyReadNotPlaced(region, "simple20");
 
@@ -339,7 +334,6 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "overlap_unequal");
         getRead(region, "boundary_equal");
         getRead(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_only");
         verifyReadNotPlaced(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         verifyReadNotPlaced(region, "simple20");
@@ -351,7 +345,6 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "overlap_unequal");
         verifyReadNotPlaced(region, "boundary_equal");
         verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_only");
         verifyReadNotPlaced(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         getRead(region, "simple20");
@@ -375,7 +368,6 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // overlap_unequal: Primary in 1:1-999
         // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
-        // extended_only: Extended in 1:2000-2999
         // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
         // simple20: Primary in 20:10000-10100
@@ -390,8 +382,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         getRead(region, "overlap_unequal");
         verifyReadNotPlaced(region, "boundary_equal");
         verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_only");
-        // TODO: fail getRead(region, "extended_and_np");
+        getRead(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         verifyReadNotPlaced(region, "simple20");
 
@@ -402,8 +393,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "overlap_unequal");
         getRead(region, "boundary_equal");
         getRead(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_only");
-        // TODO: fail getRead(region, "extended_and_np");
+        getRead(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         verifyReadNotPlaced(region, "simple20");
 
@@ -414,8 +404,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "overlap_unequal");
         getRead(region, "boundary_equal");
         getRead(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_only");
-        verifyReadNotPlaced(region, "extended_and_np");
+        getRead(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         verifyReadNotPlaced(region, "simple20");
 
@@ -426,8 +415,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "overlap_unequal");
         verifyReadNotPlaced(region, "boundary_equal");
         verifyReadNotPlaced(region, "boundary_unequal");
-        // TODO: fail getRead(region, "extended_only");
-        // TODO: fail getRead(region, "extended_and_np");
+        verifyReadNotPlaced(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         getRead(region, "simple20");
 
@@ -438,7 +426,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         for (SAMRecord read : region.getReads()) {
             if (read.getReadName().equals(readName))
                 Assert.fail("Read " + readName + " found in active region " + region);
-         }
+        }
     }
 
     private SAMRecord getRead(ActiveRegion region, String readName) {
@@ -520,7 +508,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         engine.setGenomeLocParser(genomeLocParser);
         t.initialize(engine);
 
-        StingSAMIterator iterator = ArtificialSAMUtils.createReadIterator(reads);
+        StingSAMIterator iterator = ArtificialSAMUtils.createReadIterator(new ArrayList<SAMRecord>(reads));
         Shard shard = new MockLocusShard(genomeLocParser, intervals);
 
         List<LocusShardDataProvider> providers = new ArrayList<LocusShardDataProvider>();
