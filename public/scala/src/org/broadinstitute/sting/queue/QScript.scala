@@ -124,49 +124,26 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
   }
 
   /**
-   * Pull all remote files to the local disk.
+   * Pull all remote files to the local disk
    */
   def pullInputs() {
-    val inputs = ClassFieldCache.getFieldFiles(this, inputFields)
-    for (remoteFile <- filterRemoteFiles(inputs)) {
-      logger.info("Pulling %s from %s".format(remoteFile.getAbsolutePath, remoteFile.remoteDescription))
-      remoteFile.pullToLocal()
-    }
   }
 
   /**
-   * Push all remote files from the local disk.
+   * Push all remote files from the local disk
    */
   def pushOutputs() {
-    val outputs = ClassFieldCache.getFieldFiles(this, outputFields)
-    for (remoteFile <- filterRemoteFiles(outputs)) {
-      logger.info("Pushing %s to %s".format(remoteFile.getAbsolutePath, remoteFile.remoteDescription))
-      remoteFile.pushToRemote()
-    }
   }
 
   /**
-   * List out the remote outputs
-   * @return the RemoteFile outputs by argument source
+   * @return the inputs or null if there are no inputs
    */
-  def remoteInputs: Map[String, Seq[RemoteFile]] = tagMap(remoteFieldMap(inputFields))
+  def remoteInputs: AnyRef = null
 
   /**
-   * List out the remote outputs
-   * @return the RemoteFile outputs by argument source
+   * @return the outputs or null if there are no outputs
    */
-  def remoteOutputs: Map[String, Seq[RemoteFile]] = tagMap(remoteFieldMap(outputFields))
-
-  private def tagMap(remoteFieldMap: Map[ArgumentSource, Seq[RemoteFile]]): Map[String, Seq[RemoteFile]] = {
-    remoteFieldMap.collect{ case (k, v) => ClassFieldCache.fullName(k) -> v }.toMap
-  }
-
-  private def remoteFieldMap(fields: Seq[ArgumentSource]): Map[ArgumentSource, Seq[RemoteFile]] = {
-    fields.map(field => (field -> filterRemoteFiles(ClassFieldCache.getFieldFiles(this, field)))).filter(tuple => !tuple._2.isEmpty).toMap
-  }
-
-  private def filterRemoteFiles(fields: Seq[File]): Seq[RemoteFile] =
-    fields.filter(field => field != null && field.isInstanceOf[RemoteFile]).map(_.asInstanceOf[RemoteFile])
+  def remoteOutputs: AnyRef = null
 
   /** The complete list of fields. */
   def functionFields: Seq[ArgumentSource] = ClassFieldCache.classFunctionFields(this.getClass)
