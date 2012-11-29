@@ -679,6 +679,24 @@
         </jar>
     </target>
 
+    <target name="na12878kb.jar" depends="gatk.compile,init.jar">
+        <jar jarfile="${dist.dir}/na12878kb.jar">
+            <fileset dir="${java.classes}">
+              <include name="org/broadinstitute/sting/utils/GenomeLocParser*.class"/>
+              <include name="org/broadinstitute/sting/utils/GenomeLoc.class"/>
+              <include name="org/broadinstitute/sting/utils/HasGenomeLocation.class"/>
+              <include name="org/broadinstitute/sting/utils/BaseUtils.class"/>
+              <include name="org/broadinstitute/sting/utils/Utils.class"/>
+              <include name="org/broadinstitute/sting/utils/exceptions/**/*.class"/>
+              <include name="org/broadinstitute/sting/gatk/walkers/na12878kb/core/**/*.class"/>
+              <include name="net/sf/picard/reference/FastaSequenceFile.class"/>
+            </fileset>
+	    <fileset dir="${java.private.source.dir}">
+              <include name="org/broadinstitute/sting/gatk/walkers/na12878kb/core/resources/**/*"/>
+	    </fileset>
+        </jar>
+    </target>
+
     <target name="gatk.jar" depends="gatk.compile, init.jar, R.script.stage" description="generate the GATK distribution">
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar">
             <path refid="gatk.resources"/>
