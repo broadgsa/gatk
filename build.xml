@@ -185,10 +185,7 @@
         <include name="**/*.class"/>
     </fileset>
 
-    <patternset id="dependency.mask" includes="*.jar">
-        <exclude name="testng*.jar" />
-        <exclude name="bcel*.jar" />
-    </patternset>
+    <patternset id="dependency.mask" includes="*.jar" />
 
     <path id="external.dependencies">
         <fileset dir="${lib.dir}" erroronmissingdir="false">
@@ -203,6 +200,16 @@
         <pathelement location="${resource.path}" />
         <!-- Add any previously compiled scala classes to the path. -->
         <pathelement location="${scala.classes}" />
+    </path>
+
+    <path id="build.results">
+        <!-- Ensure that GenomeAnalysisTK.jar comes first in the path, as it contains overrides for certain classes in our dependencies -->
+        <pathelement location="${dist.dir}/GenomeAnalysisTK.jar" />
+        <!-- After GenomeAnalysisTK.jar we include all of the other jars in the dist directory -->
+        <fileset dir="${dist.dir}" erroronmissingdir="false">
+            <patternset refid="dependency.mask" />
+            <exclude name="GenomeAnalysisTK.jar" />
+        </fileset>
     </path>
 
     <fileset id="external.source.files" dir="${external.dir}" erroronmissingdir="false">
@@ -239,13 +246,6 @@
             <include name="**/templates/*" if="include.protected" />
         </fileset>
     </path>
-
-    <path id="build.results">
-        <fileset dir="${dist.dir}">
-            <patternset refid="dependency.mask" />
-         </fileset>
-    </path>
-
 
     <!-- ******************************************************************************** -->
     <!-- Ivy Retrieve                                                                     -->
@@ -1110,15 +1110,10 @@
     </path>
 
     <path id="testng.default.classpath">
-        <pathelement location="${java.classes}" />
-        <pathelement location="${scala.classes}" />
+        <path refid="build.results" />
         <pathelement location="${java.contracts.dir}" />
         <pathelement location="${java.test.classes}" />
         <pathelement location="${scala.test.classes}" />
-        <pathelement location="${R.tar.dir}" />
-        <path refid="R.script.source.path" />
-        <pathelement location="${key.dir}" />
-        <path refid="external.dependencies" />
     </path>
 
     <!-- Test targets -->
@@ -1126,9 +1121,6 @@
     <target name="test.init.compile">
         <mkdir dir="${java.test.classes}"/>
         <mkdir dir="${scala.test.classes}"/>
-        <antcall target="resolve">
-          <param name="ivy.conf" value="test"/>
-        </antcall>
     </target>
 
    <target name="test.java.internal.compile" depends="dist,test.init.compile">
@@ -1136,10 +1128,8 @@
         <javac fork="true" memoryMaximumSize="512m" destdir="${java.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}">
             <src refid="java.test.source.path" />
             <classpath>
-                <path refid="external.dependencies" />
-                <pathelement location="${java.classes}"/>
+                <path refid="build.results" />
                 <pathelement location="${java.contracts.dir}"/>
-                <pathelement location="${testng.jar}"/>
             </classpath>
             <compilerarg value="-proc:none"/>
         </javac>
@@ -1150,11 +1140,9 @@
         <javac fork="true" memoryMaximumSize="512m" destdir="${java.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}" srcdir="${external.dir}">
             <include name="*/test/**/*.java"/>
             <classpath>
-                <path refid="external.dependencies" />
+                <path refid="build.results" />
                 <pathelement location="${java.test.classes}"/>
-                <pathelement location="${java.classes}"/>
                 <pathelement location="${java.contracts.dir}"/>
-                <pathelement location="${testng.jar}"/>
             </classpath>
             <compilerarg value="-proc:none"/>
         </javac>
@@ -1167,9 +1155,8 @@
         <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.test.classes}" deprecation="yes" unchecked="yes">
 	        <src refid="scala.test.source.path" />
             <classpath>
-                <path refid="scala.dependencies"/>
+                <path refid="build.results"/>
                 <pathelement location="${java.test.classes}"/>
-                <pathelement location="${testng.jar}"/>
             </classpath>
         </scalac>
     </target>
@@ -1376,14 +1363,13 @@
 
     <!-- Fast test target that cuts major corners for speed. Requires that a full build has been done first. Java-only, single test class only -->
     <!-- Usage: ant fasttest -Dsingle=TestClass -->
-    <target name="fasttest" depends="init.javaonly,init,test.init">
+    <target name="fasttest" depends="init.javaonly,init">
         <condition property="not.clean">
             <and>
                 <available file="${build.dir}" />
                 <available file="${lib.dir}" />
                 <available file="${dist.dir}" />
                 <available file="${java.test.classes}" />
-                <available file="${testng.jar}" />
             </and>
         </condition>
         <fail message="fasttest requires a NON-CLEAN working directory (INCLUDING test classes). Do a full test build using ant test.compile first." unless="not.clean" />
@@ -1401,12 +1387,26 @@
         <javac fork="true" memoryMaximumSize="512m" destdir="${java.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}">
             <src refid="java.test.source.path" />
             <classpath>
-                <path refid="external.dependencies" />
                 <pathelement location="${java.classes}"/>
-                <pathelement location="${testng.jar}"/>
+                <path refid="external.dependencies" />
             </classpath>
             <compilerarg value="-proc:none"/>
         </javac>
+
+        <!-- fasttest uses the unpackaged class files in its test classpath to avoid having to rebuild the jars in dist/ -->
+        <path id="testng.fasttest.classpath">
+            <pathelement location="${java.classes}" />
+            <pathelement location="${scala.classes}" />
+            <pathelement location="${java.contracts.dir}" />
+            <pathelement location="${java.test.classes}" />
+            <pathelement location="${scala.test.classes}" />
+            <pathelement location="${R.tar.dir}" />
+            <path refid="R.script.source.path" />
+            <pathelement location="${key.dir}" />
+            <path refid="external.dependencies" />
+            <path refid="java.source.path" />  <!-- Terrible hack to allow fasttest to see resource files stored in the source tree -->
+        </path>
+        <property name="testng.classpath" value="testng.fasttest.classpath" />
 
         <run-test testtype="${single}" outputdir="${report}/${single}" runfailed="false"/>
     </target>
