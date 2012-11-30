@@ -29,7 +29,7 @@ import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
 import org.broadinstitute.sting.BaseTest
 
 class ExampleCountLociPipelineTest {
-  @Test
+  @Test(timeOut=36000000)
   def testCountLoci() {
     val testOut = "count.out"
     val spec = new PipelineTestSpec

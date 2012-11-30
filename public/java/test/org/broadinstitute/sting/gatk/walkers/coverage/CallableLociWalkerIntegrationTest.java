@@ -38,7 +38,7 @@ public class CallableLociWalkerIntegrationTest extends WalkerTest {
     public void testCallableLociWalkerBed() {
         String gatk_args = commonArgs + " -format BED -L 1:10,000,000-11,000,000 -summary %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
-                Arrays.asList("9e4ec9c23f21a8162d27a39ab057398c", SUMMARY_MD5));
+                Arrays.asList("42e86c06c167246a28bffdacaca75ffb", SUMMARY_MD5));
         executeTest("formatBed", spec);
     }
 
@@ -46,7 +46,7 @@ public class CallableLociWalkerIntegrationTest extends WalkerTest {
     public void testCallableLociWalkerPerBase() {
         String gatk_args = commonArgs + " -format STATE_PER_BASE -L 1:10,000,000-11,000,000 -summary %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
-                Arrays.asList("e6044b4495ef24f542403e6a94437068", SUMMARY_MD5));
+                Arrays.asList("d66c525d9c70f62df8156261d3e535ad", SUMMARY_MD5));
         executeTest("format_state_per_base", spec);
     }
     
@@ -54,7 +54,7 @@ public class CallableLociWalkerIntegrationTest extends WalkerTest {
     public void testCallableLociWalker2() {
         String gatk_args = commonArgs + " -format BED -L 1:10,000,000-10,000,100 -L 1:10,000,110-10,000,120 -summary %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
-                Arrays.asList("c671f65712d9575b8b3e1f1dbedc146e", "d287510eac04acf5a56f5cde2cba0e4a"));
+                Arrays.asList("330f476085533db92a9dbdb3a127c041", "d287510eac04acf5a56f5cde2cba0e4a"));
         executeTest("formatBed by interval", spec);
     }
 
@@ -62,7 +62,7 @@ public class CallableLociWalkerIntegrationTest extends WalkerTest {
     public void testCallableLociWalker3() {
         String gatk_args = commonArgs + " -format BED -L 1:10,000,000-11,000,000 -minDepth 10 -maxDepth 100 --minBaseQuality 10 --minMappingQuality 20 -summary %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
-                Arrays.asList("b7d26a470ef906590249f2fa45fd6bdd", "da431d393f7c2b2b3e27556b86c1dbc7"));
+                Arrays.asList("46a53379aaaf9803276a0a34b234f6ab", "da431d393f7c2b2b3e27556b86c1dbc7"));
         executeTest("formatBed lots of arguments", spec);
     }
 }

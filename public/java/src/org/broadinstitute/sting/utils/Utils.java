@@ -293,6 +293,10 @@ public class Utils {
         }
     }
 
+    public static <T> String join(final String separator, final T ... objects) {
+        return join(separator, Arrays.asList(objects));
+    }
+
     public static String dupString(char c, int nCopies) {
         char[] chars = new char[nCopies];
         Arrays.fill(chars, c);
@@ -701,11 +705,13 @@ public class Utils {
         List<SAMProgramRecord> oldRecords = header.getProgramRecords();
         List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
         for ( SAMProgramRecord record : oldRecords )
-            if ( !record.getId().startsWith(programRecord.getId()) || KEEP_ALL_PG_RECORDS )
+            if ( (programRecord != null && !record.getId().startsWith(programRecord.getId())) || KEEP_ALL_PG_RECORDS )
                 newRecords.add(record);
 
-        newRecords.add(programRecord);
-        header.setProgramRecords(newRecords);
+        if (programRecord != null) {
+            newRecords.add(programRecord);
+            header.setProgramRecords(newRecords);
+        }
         return header;
     }
 

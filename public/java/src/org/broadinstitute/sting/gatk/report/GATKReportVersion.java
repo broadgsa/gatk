@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.report;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 public enum GATKReportVersion {
     /**
@@ -79,6 +80,9 @@ public enum GATKReportVersion {
      * @return The version as an enum.
      */
     public static GATKReportVersion fromHeader(String header) {
+        if ( header == null )
+            throw new UserException.BadInput("The GATK report has no version specified in the header");
+
         if (header.startsWith("##:GATKReport.v0.1 "))
             return GATKReportVersion.V0_1;
 
@@ -91,6 +95,6 @@ public enum GATKReportVersion {
         if (header.startsWith("#:GATKReport.v1.1"))
             return GATKReportVersion.V1_1;
 
-        throw new ReviewedStingException("Unknown GATK report version in header: " + header);
+        throw new UserException.BadInput("The GATK report has an unknown/unsupported version in the header: " + header);
     }
 }

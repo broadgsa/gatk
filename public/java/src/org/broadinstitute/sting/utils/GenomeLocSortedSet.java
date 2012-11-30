@@ -43,6 +43,9 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     // our private storage for the GenomeLoc's
     private List<GenomeLoc> mArray = new ArrayList<GenomeLoc>();
 
+    // cache this to make overlap checking much more efficient
+    private int previousOverlapSearchIndex = -1;
+
     /** default constructor */
     public GenomeLocSortedSet(GenomeLocParser parser) {
         this.genomeLocParser = parser;
@@ -101,7 +104,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      * Return the number of bps before loc in the sorted set
      *
      * @param loc the location before which we are counting bases
-     * @return
+     * @return the number of base pairs over all previous intervals
      */
     public long sizeBeforeLoc(GenomeLoc loc) {
         long s = 0;
@@ -110,7 +113,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
             if ( e.isBefore(loc) )
                 s += e.size();
             else if ( e.isPast(loc) )
-                ; // don't do anything
+                break; // we are done
             else // loc is inside of s
                 s += loc.getStart() - e.getStart();
         }
@@ -131,15 +134,43 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      * Determine if the given loc overlaps any loc in the sorted set
      *
      * @param loc the location to test
-     * @return
+     * @return trip if the location overlaps any loc
      */
     public boolean overlaps(final GenomeLoc loc) {
-        for(final GenomeLoc e : mArray) {
-            if(e.overlapsP(loc)) {
-                return true;
-            }
+        // edge condition
+        if ( mArray.isEmpty() )
+            return false;
+
+        // use the cached version first
+        if ( previousOverlapSearchIndex != -1 && overlapsAtOrImmediatelyAfterCachedIndex(loc, true) )
+            return true;
+
+        // update the cached index
+        previousOverlapSearchIndex = Collections.binarySearch(mArray, loc);
+
+        // if it matches an interval exactly, we are done
+        if ( previousOverlapSearchIndex >= 0 )
+            return true;
+
+        // check whether it overlaps the interval before or after the insertion point
+        previousOverlapSearchIndex = Math.max(0, -1 * previousOverlapSearchIndex - 2);
+        return overlapsAtOrImmediatelyAfterCachedIndex(loc, false);
+    }
+
+    private boolean overlapsAtOrImmediatelyAfterCachedIndex(final GenomeLoc loc, final boolean updateCachedIndex) {
+        // check the cached entry
+        if ( mArray.get(previousOverlapSearchIndex).overlapsP(loc) )
+            return true;
+
+        // check the entry after the cached entry since we may have moved to it
+        boolean returnValue = false;
+        if ( previousOverlapSearchIndex < mArray.size() - 1 ) {
+            returnValue = mArray.get(previousOverlapSearchIndex + 1).overlapsP(loc);
+            if ( updateCachedIndex )
+                previousOverlapSearchIndex++;
         }
-        return false;
+
+        return returnValue;
     }
 
     /**
@@ -155,7 +186,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
             mArray.add(e);
             return true;
         } else {
-            int loc = Collections.binarySearch(mArray,e);
+            final int loc = Collections.binarySearch(mArray,e);
             if (loc >= 0) {
                 throw new ReviewedStingException("Genome Loc Sorted Set already contains the GenomicLoc " + e.toString());
             } else {

@@ -29,7 +29,7 @@ public class MappingQualityRankSumTest extends RankSumTest implements StandardAn
                                        final List<Double> refQuals, final List<Double> altQuals) {
 
         if (pileup != null && likelihoodMap == null) {
-            // no per-read likelihoods available:
+            // old UG snp-only path through the annotations
             for ( final PileupElement p : pileup ) {
                 if ( isUsableBase(p) ) {
                     if ( allAlleles.get(0).equals(Allele.create(p.getBase(), true)) ) {
@@ -43,14 +43,13 @@ public class MappingQualityRankSumTest extends RankSumTest implements StandardAn
         }
         for (Map.Entry<GATKSAMRecord,Map<Allele,Double>> el : likelihoodMap.getLikelihoodReadMap().entrySet()) {
             final Allele a = PerReadAlleleLikelihoodMap.getMostLikelyAllele(el.getValue());
+            // BUGBUG: There needs to be a comparable isUsableBase check here
             if (a.isNoCall())
                 continue; // read is non-informative
             if (a.isReference())
                 refQuals.add((double)el.getKey().getMappingQuality());
             else if (allAlleles.contains(a))
                 altQuals.add((double)el.getKey().getMappingQuality());
-
-
         }
     }
 

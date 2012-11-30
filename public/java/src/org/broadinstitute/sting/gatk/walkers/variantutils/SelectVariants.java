@@ -151,14 +151,6 @@ import java.util.*;
  *   -mvq 50 \
  *   -o violations.vcf
  *
- * Creating a sample of exactly 1000 variants randomly chosen with equal probability from the variant VCF:
- * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
- *   -T SelectVariants \
- *   --variant input.vcf \
- *   -o output.vcf \
- *   -number 1000
- *
  * Creating a set with 50% of the total number of variants in the variant VCF:
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
@@ -659,7 +651,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         return (g !=null && !g.isHomRef() && (g.isCalled() || (g.isFiltered() && !EXCLUDE_FILTERED)));
     }
 
-    private boolean haveSameGenotypes(Genotype g1, Genotype g2) {
+    private boolean haveSameGenotypes(final Genotype g1, final Genotype g2) {
+        if ( g1 == null || g2 == null )
+            return false;
+
         if ((g1.isCalled() && g2.isFiltered()) ||
                 (g2.isCalled() && g1.isFiltered()) ||
                 (g1.isFiltered() && g2.isFiltered() && EXCLUDE_FILTERED))

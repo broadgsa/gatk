@@ -190,6 +190,10 @@ public class UnifiedGenotyperEngine {
                     final VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model, perReadAlleleLikelihoodMap);
                     if ( vc != null )
                         results.add(calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model, true, perReadAlleleLikelihoodMap));
+// todo - uncomment if we want to also emit a null ref call (with no QUAL) if there's no evidence for REF and if EMIT_ALL_SITES is set
+//                    else if (UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES)
+//                        results.add(generateEmptyContext(tracker, refContext, null, rawContext));
+
                 }
             }        
         }

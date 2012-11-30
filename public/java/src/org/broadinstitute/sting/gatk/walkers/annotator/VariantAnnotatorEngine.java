@@ -277,8 +277,12 @@ public class VariantAnnotatorEngine {
             if ( expression.fieldName.equals("ID") ) {
                 if ( vc.hasID() )
                     infoAnnotations.put(expression.fullName, vc.getID());
+            } else if (expression.fieldName.equals("ALT")) {
+                infoAnnotations.put(expression.fullName, vc.getAlternateAllele(0).getDisplayString());
+
             } else if ( vc.hasAttribute(expression.fieldName) ) {
-                infoAnnotations.put(expression.fullName, vc.getAttribute(expression.fieldName));
+                    infoAnnotations.put(expression.fullName, vc.getAttribute(expression.fieldName));
+
             }
         }
     }
