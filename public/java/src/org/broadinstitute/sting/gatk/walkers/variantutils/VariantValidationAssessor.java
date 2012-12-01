@@ -51,8 +51,7 @@ import java.util.*;
  * The Variant Validation Assessor is a tool for vetting/assessing validation data (containing genotypes).
  * The tool produces a VCF that is annotated with information pertaining to plate quality control and by
  * default is soft-filtered by high no-call rate or low Hardy-Weinberg probability.
- * If you have .ped files, please first convert them to VCF format
- * (see http://www.broadinstitute.org/gsa/wiki/index.php/Converting_ped_to_vcf).
+ * If you have .ped files, please first convert them to VCF format.
  *
  * <h2>Input</h2>
  * <p>

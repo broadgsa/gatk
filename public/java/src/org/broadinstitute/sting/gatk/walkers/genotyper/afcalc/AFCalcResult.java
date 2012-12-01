@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 
@@ -234,8 +235,18 @@ public class AFCalcResult {
      *
      * @return true if there's enough confidence (relative to log10minPNonRef) to reject AF == 0
      */
+    @Requires("MathUtils.goodLog10Probability(log10minPNonRef)")
     public boolean isPolymorphic(final Allele allele, final double log10minPNonRef) {
         return getLog10PosteriorOfAFGt0ForAllele(allele) >= log10minPNonRef;
+    }
+
+    /**
+     * Same as #isPolymorphic but takes a phred-scaled quality score as input
+     */
+    public boolean isPolymorphicPhredScaledQual(final Allele allele, final double minPNonRefPhredScaledQual) {
+        if ( minPNonRefPhredScaledQual < 0 ) throw new IllegalArgumentException("phredScaledQual " + minPNonRefPhredScaledQual + " < 0 ");
+        final double log10Threshold = Math.log10(QualityUtils.qualToProb(minPNonRefPhredScaledQual));
+        return isPolymorphic(allele, log10Threshold);
     }
 
     /**

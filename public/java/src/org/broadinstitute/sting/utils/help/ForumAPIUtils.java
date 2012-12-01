@@ -44,14 +44,13 @@ public class ForumAPIUtils {
     /**
      * How we post to the forum
      */
-    private final static String API_URL = "https://gatkforums.broadinstitute.org/api/v1/";
     final private static String ACCESS_TOKEN = "access_token=";
 
     public static List<String> getPostedTools(String forumKey) {
         Gson gson = new Gson();
         List<String> output = new ArrayList<String>();
 
-        String text = httpGet(API_URL + "categories.json?CategoryIdentifier=tool-bulletin&page=1-100000&" + ACCESS_TOKEN + forumKey);
+        String text = httpGet(HelpUtils.GATK_FORUM_API_URL + "categories.json?CategoryIdentifier=tool-bulletin&page=1-100000&" + ACCESS_TOKEN + forumKey);
 
         APIQuery details = gson.fromJson(text, APIQuery.class);
         ForumDiscussion[] discussions = details.Discussions;
@@ -159,7 +158,7 @@ public class ForumAPIUtils {
         Gson gson = new Gson();
 
         String data = gson.toJson(post.getPostData());
-        httpPost(data, API_URL + "post/discussion.json?" + ACCESS_TOKEN + forumKey);
+        httpPost(data, HelpUtils.GATK_FORUM_API_URL + "post/discussion.json?" + ACCESS_TOKEN + forumKey);
 
 
     }
@@ -167,8 +166,7 @@ public class ForumAPIUtils {
     class APIQuery {
         ForumDiscussion[] Discussions;
 
-        public APIQuery() {
-        }
+        public APIQuery() {}
     }
 
 }

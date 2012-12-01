@@ -34,9 +34,6 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
     private final LinkedList<ActiveRegion> workQueue = new LinkedList<ActiveRegion>();
     private final LinkedHashSet<GATKSAMRecord> myReads = new LinkedHashSet<GATKSAMRecord>();
 
-    // package access for unit testing
-    ActivityProfile profile;
-
     @Override
     public String getTraversalUnits() {
         return "active regions";
@@ -56,7 +53,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
 
         int minStart = Integer.MAX_VALUE;
         final List<ActiveRegion> activeRegions = new LinkedList<ActiveRegion>();
-        profile = new ActivityProfile(engine.getGenomeLocParser(), walker.hasPresetActiveRegions() );
+        ActivityProfile profile = new ActivityProfile(engine.getGenomeLocParser(), walker.hasPresetActiveRegions() );
 
         ReferenceOrderedView referenceOrderedDataView = getReferenceOrderedView(walker, dataProvider, locusView);
 
@@ -83,7 +80,6 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             }
 
             // skip this location -- it's not part of our engine intervals
-            // TODO -- this is dangerously slow with current overlaps implementation : GSA-649 / GenomeLocSortedSet.overlaps is crazy slow
             if ( outsideEngineIntervals(location) )
                 continue;
 
@@ -262,13 +258,23 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                         activeRegion.add( read );
                     }
                     for( final ActiveRegion otherRegionToTest : workQueue ) {
-                        if( !bestRegion.equals(otherRegionToTest) && otherRegionToTest.getExtendedLoc().overlapsP( readLoc ) ) {
-                            otherRegionToTest.add( read );
+                        if( !bestRegion.equals(otherRegionToTest) ) {
+                            // check for non-primary vs. extended
+                            if ( otherRegionToTest.getLocation().overlapsP( readLoc ) ) {
+                                otherRegionToTest.add( read );
+                            } else if ( walker.wantsExtendedReads() && otherRegionToTest.getExtendedLoc().overlapsP( readLoc ) ) {
+                                otherRegionToTest.add( read );
+                            }
                         }
                     }
                 }
                 placedReads.add( read );
-            } else if( activeRegion.getExtendedLoc().overlapsP( readLoc ) && walker.wantsNonPrimaryReads() ) {
+                // check for non-primary vs. extended
+            } else if( activeRegion.getLocation().overlapsP( readLoc ) ) {
+                if ( walker.wantsNonPrimaryReads() ) {
+                    activeRegion.add( read );
+                }
+            } else if( walker.wantsExtendedReads() && activeRegion.getExtendedLoc().overlapsP( readLoc )) {
                 activeRegion.add( read );
             }
         }

@@ -210,13 +210,23 @@ public class JnaSession implements Session {
     }
 
     public static void setAttribute(Pointer jt, String name, String value) throws DrmaaException {
-        checkError(LibDrmaa.drmaa_set_attribute(jt, name, value, getError(), LibDrmaa.DRMAA_ERROR_STRING_BUFFER_LEN));
+        if (getAttrNames().contains(name)) {
+            checkError(LibDrmaa.drmaa_set_attribute(jt, name, value, getError(), LibDrmaa.DRMAA_ERROR_STRING_BUFFER_LEN));
+        }
+        else {
+            throw new InvalidAttributeValueException("Attribute " + name + " is not supported by this implementation of DRMAA");
+        }
     }
 
     public static String getAttribute(Pointer jt, String name) throws DrmaaException {
-        Memory attrBuffer = new Memory(LibDrmaa.DRMAA_ATTR_BUFFER);
-        checkError(LibDrmaa.drmaa_get_attribute(jt, name, attrBuffer, LibDrmaa.DRMAA_ATTR_BUFFER_LEN, getError(), LibDrmaa.DRMAA_ERROR_STRING_BUFFER_LEN));
-        return attrBuffer.getString(0);
+        if (getAttrNames().contains(name)) {
+            Memory attrBuffer = new Memory(LibDrmaa.DRMAA_ATTR_BUFFER);
+            checkError(LibDrmaa.drmaa_get_attribute(jt, name, attrBuffer, LibDrmaa.DRMAA_ATTR_BUFFER_LEN, getError(), LibDrmaa.DRMAA_ERROR_STRING_BUFFER_LEN));
+            return attrBuffer.getString(0);
+        }
+        else {
+            throw new InvalidAttributeValueException("Attribute " + name + " is not supported by this implementation of DRMAA");
+        }
     }
 
     public static void setVectorAttribute(Pointer jt, String name, Collection<String> values) throws DrmaaException {

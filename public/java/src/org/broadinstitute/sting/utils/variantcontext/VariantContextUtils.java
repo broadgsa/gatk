@@ -983,6 +983,40 @@ public class VariantContextUtils {
     public static final double SUM_GL_THRESH_NOCALL = -0.1; // if sum(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
 
     /**
+     * Split variant context into its biallelic components if there are more than 2 alleles
+     *
+     * For VC has A/B/C alleles, returns A/B and A/C contexts.
+     * Genotypes are all no-calls now (it's not possible to fix them easily)
+     * Alleles are right trimmed to satisfy VCF conventions
+     *
+     * If vc is biallelic or non-variant it is just returned
+     *
+     * Chromosome counts are updated (but they are by definition 0)
+     *
+     * @param vc a potentially multi-allelic variant context
+     * @return a list of bi-allelic (or monomorphic) variant context
+     */
+    public static List<VariantContext> splitVariantContextToBiallelics(final VariantContext vc) {
+        if ( ! vc.isVariant() || vc.isBiallelic() )
+            // non variant or biallelics already satisfy the contract
+            return Collections.singletonList(vc);
+        else {
+            final List<VariantContext> biallelics = new LinkedList<VariantContext>();
+
+            for ( final Allele alt : vc.getAlternateAlleles() ) {
+                VariantContextBuilder builder = new VariantContextBuilder(vc);
+                final List<Allele> alleles = Arrays.asList(vc.getReference(), alt);
+                builder.alleles(alleles);
+                builder.genotypes(VariantContextUtils.subsetDiploidAlleles(vc, alleles, false));
+                calculateChromosomeCounts(builder, true);
+                biallelics.add(reverseTrimAlleles(builder.make()));
+            }
+
+            return biallelics;
+        }
+    }
+
+    /**
      * subset the Variant Context to the specific set of alleles passed in (pruning the PLs appropriately)
      *
      * @param vc                 variant context with genotype likelihoods
@@ -1236,7 +1270,7 @@ public class VariantContextUtils {
      * @param testString             String to test
      * @return                       Number of repetitions (0 if testString is not a concatenation of n repeatUnit's
      */
-    protected static int findNumberofRepetitions(byte[] repeatUnit, byte[] testString) {
+    public static int findNumberofRepetitions(byte[] repeatUnit, byte[] testString) {
         int numRepeats = 0;
         for (int start = 0; start < testString.length; start += repeatUnit.length) {
             int end = start + repeatUnit.length;

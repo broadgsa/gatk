@@ -47,6 +47,12 @@ import java.util.List;
  * <p>
  * Given variant tracks, it replaces the reference bases at variation sites with the bases supplied by the ROD(s).
  * Additionally, allows for one or more "snpmask" VCFs to set overlapping bases to 'N'.
+ *
+ * The output format can be partially controlled using the provided command-line arguments.
+ * Specify intervals with the usual -L argument to output only the reference bases within your intervals.
+ * Overlapping intervals are automatically merged; reference bases for each disjoint interval will be output as a
+ * separate fasta sequence (named numerically in order).
+ *
  * Several important notes:
  * 1) if there are multiple variants that start at a site, it chooses one of them randomly.
  * 2) when there are overlapping indels (but with different start positions) only the first will be chosen.

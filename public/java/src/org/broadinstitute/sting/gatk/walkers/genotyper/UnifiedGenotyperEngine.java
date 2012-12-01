@@ -382,11 +382,9 @@ public class UnifiedGenotyperEngine {
             if ( alternateAllele.isReference() )
                 continue;
 
-            // we are non-ref if the probability of being non-ref > the emit confidence.
-            // the emit confidence is phred-scaled, say 30 => 10^-3.
-            // the posterior AF > 0 is log10: -5 => 10^-5
-            // we are non-ref if 10^-5 < 10^-3 => -5 < -3
-            final boolean isNonRef = AFresult.isPolymorphic(alternateAllele, UAC.STANDARD_CONFIDENCE_FOR_EMITTING / -10.0);
+            // Compute if the site is considered polymorphic with sufficient confidence relative to our
+            // phred-scaled emission QUAL
+            final boolean isNonRef = AFresult.isPolymorphicPhredScaledQual(alternateAllele, UAC.STANDARD_CONFIDENCE_FOR_EMITTING);
 
             // if the most likely AC is not 0, then this is a good alternate allele to use
             if ( isNonRef ) {
