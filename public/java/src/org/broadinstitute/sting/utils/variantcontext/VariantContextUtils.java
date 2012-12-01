@@ -451,7 +451,7 @@ public class VariantContextUtils {
         if ( unsortedVCs == null || unsortedVCs.size() == 0 )
             return null;
 
-        if ( annotateOrigin && priorityListOfVCs == null )
+        if ( annotateOrigin && priorityListOfVCs == null && genotypeMergeOptions == GenotypeMergeType.PRIORITIZE)
             throw new IllegalArgumentException("Cannot merge calls and annotate their origins without a complete priority list of VariantContexts");
 
         if ( genotypeMergeOptions == GenotypeMergeType.REQUIRE_UNIQUE )
@@ -597,7 +597,7 @@ public class VariantContextUtils {
 
         if ( annotateOrigin ) { // we care about where the call came from
             String setValue;
-            if ( nFiltered == 0 && variantSources.size() == priorityListOfVCs.size() ) // nothing was unfiltered
+            if ( nFiltered == 0 && variantSources.size() == preFilteredVCs.size() ) // nothing was unfiltered
                 setValue = MERGE_INTERSECTION;
             else if ( nFiltered == VCs.size() )     // everything was filtered out
                 setValue = MERGE_FILTER_IN_ALL;
@@ -840,9 +840,9 @@ public class VariantContextUtils {
         if ( mergeOption == GenotypeMergeType.PRIORITIZE && priorityListOfVCs == null )
             throw new IllegalArgumentException("Cannot merge calls by priority with a null priority list");
 
-        if ( mergeOption == GenotypeMergeType.UNSORTED ){
+        if ( mergeOption != GenotypeMergeType.PRIORITIZE ){
             if (priorityListOfVCs != null )
-                logger.info("Priority string was provided but is not used since GenotypeMergeType is UNSORTED");
+                logger.info("Priority string was provided but is not used since GenotypeMergeType is not PRIORITIZE");
             return new ArrayList<VariantContext>(unsortedVCs);
         }
         else {

@@ -45,7 +45,6 @@ import java.util.List;
 public class AssessReducedQuals extends LocusWalker<GenomeLoc, GenomeLoc> implements TreeReducible<GenomeLoc> {
 
     private static final String reduced = "reduced";
-    private static final String original = "original";
     private static final int originalQualsIndex = 0;
     private static final int reducedQualsIndex = 1;
 
@@ -55,14 +54,14 @@ public class AssessReducedQuals extends LocusWalker<GenomeLoc, GenomeLoc> implem
     @Argument(fullName = "qual_epsilon", shortName = "epsilon", doc = "when |Quals_reduced_bam - Quals_original_bam| > epsilon*Quals_original_bam we output this interval", required = false)
     public int qual_epsilon = 0;
 
-    @Argument(fullName = "debugLevel", shortName = "debug", doc = "debug mode on")   // TODO -- best to make this optional
-    public int debugLevel = 0;   // TODO -- best to make this an enum or boolean
+    @Argument(fullName = "debugLevel", shortName = "debug", doc = "debug level: NO_DEBUG, PRINT_LOCI,PRINT_PILEUPS", required = false)
+    public DebugLevel debugLevel = DebugLevel.NO_DEBUG;
 
     @Output
     protected PrintStream out;
 
     public void initialize() {
-        if (debugLevel != 0)
+        if (debugLevel != DebugLevel.NO_DEBUG)
             out.println("  Debug mode" +
                         "Debug:\tsufficientQualSum: "+sufficientQualSum+ "\n " +
                         "Debug:\tqual_epsilon: "+qual_epsilon);
@@ -78,20 +77,20 @@ public class AssessReducedQuals extends LocusWalker<GenomeLoc, GenomeLoc> implem
 
         boolean reportLocus;
         final int[] quals = getPileupQuals(context.getBasePileup());
-        if (debugLevel != 0)
+        if (debugLevel != DebugLevel.NO_DEBUG)
             out.println("Debug:\tLocus Quals\t"+ref.getLocus()+"\toriginal\t"+quals[originalQualsIndex]+"\treduced\t"+quals[reducedQualsIndex]);
         final int epsilon = MathUtils.fastRound(quals[originalQualsIndex]*qual_epsilon);
         final int calcOriginalQuals = Math.min(quals[originalQualsIndex],sufficientQualSum);
         final int calcReducedQuals = Math.min(quals[reducedQualsIndex],sufficientQualSum);
         final int OriginalReducedQualDiff = calcOriginalQuals - calcReducedQuals;
         reportLocus = OriginalReducedQualDiff > epsilon || OriginalReducedQualDiff < -1*epsilon;
-        if(debugLevel != 0 && reportLocus)
+        if(debugLevel != DebugLevel.NO_DEBUG && reportLocus)
             out.println("Debug:\tEmited Locus\t"+ref.getLocus()+"\toriginal\t"+quals[originalQualsIndex]+"\treduced\t"+quals[reducedQualsIndex]+"\tepsilon\t"+epsilon+"\tdiff\t"+OriginalReducedQualDiff);
 
         return reportLocus ? ref.getLocus() : null;
     }
 
-    private final int[] getPileupQuals(final ReadBackedPileup readPileup) {
+    private int[] getPileupQuals(final ReadBackedPileup readPileup) {
 
         final int[] quals = new int[2];
         String[] printPileup = {"Debug 2:\toriginal pileup:\t"+readPileup.getLocation()+"\nDebug 2:----------------------------------\n",
@@ -99,30 +98,29 @@ public class AssessReducedQuals extends LocusWalker<GenomeLoc, GenomeLoc> implem
 
         for( PileupElement p : readPileup ){
             final List<String> tags = getToolkit().getReaderIDForRead(p.getRead()).getTags().getPositionalTags();
-            if ( isGoodRead(p,tags) ){
+            if ( isGoodRead(p) ){
                 final int tempQual = (int)(p.getQual()) * p.getRepresentativeCount();
                 final int tagIndex = getTagIndex(tags);
                 quals[tagIndex] += tempQual;
-                if(debugLevel == 2)
+                if(debugLevel == DebugLevel.PRINT_PILEUPS)
                     printPileup[tagIndex] += "\tDebug 2: ("+p+")\tMQ="+p.getMappingQual()+":QU="+p.getQual()+":RC="+p.getRepresentativeCount()+":OS="+p.getOffset()+"\n";
             }
         }
-        if(debugLevel == 2){
+        if(debugLevel == DebugLevel.PRINT_PILEUPS){
             out.println(printPileup[originalQualsIndex]);
             out.println(printPileup[reducedQualsIndex]);
         }
         return quals;
     }
 
-    // TODO -- arguments/variables should be final, not method declaration
-    private final boolean isGoodRead(PileupElement p, List<String> tags){
-        // TODO -- this isn't quite right.  You don't need the tags here.  Instead, you want to check whether the read itself (which
-        // TODO --  you can get from the PileupElement) is a reduced read (not all reads from the reduced bam are reduced) and only
-        // TODO --  for them do you want to ignore that min mapping quality cutoff (but you *do* still want the min base cutoff).
-        return !p.isDeletion() && (tags.contains(reduced) || (tags.contains(original) && (int)p.getQual() >= 20 && p.getMappingQual() >= 20));
+
+    private boolean isGoodRead(PileupElement p){
+        // TODO -- You want to check whether the read itself is a reduced read and only
+        // TODO --  for them you want to ignore that min mapping quality cutoff (but you *do* still want the min base cutoff).
+        return !p.isDeletion() && ((p.getRead().isReducedRead()) || (!p.getRead().isReducedRead() && (int)p.getQual() >= 20 && p.getMappingQual() >= 20));
     }
 
-    private final int getTagIndex(List<String> tags){
+    private int getTagIndex(List<String> tags){
         return tags.contains(reduced) ? 1 : 0;
     }
 
@@ -169,5 +167,17 @@ public class AssessReducedQuals extends LocusWalker<GenomeLoc, GenomeLoc> implem
         // otherwise, print the sum and start over with the value
         out.println(sum);
         return value;
+    }
+
+    public enum DebugLevel {
+        NO_DEBUG,
+        /**
+         * Print locus level information (such as locus quals) and loci with unmatch quals
+         */
+        PRINT_LOCI,
+        /**
+         * Print the pileup infomarion of the reduced bam files and the original bam files
+         */
+        PRINT_PILEUPS
     }
 }
