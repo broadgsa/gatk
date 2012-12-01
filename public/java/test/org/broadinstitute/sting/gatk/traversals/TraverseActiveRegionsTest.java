@@ -2,6 +2,10 @@ package org.broadinstitute.sting.gatk.traversals;
 
 import com.google.java.contract.PreconditionError;
 import net.sf.samtools.*;
+import org.broadinstitute.sting.commandline.Tags;
+import org.broadinstitute.sting.gatk.datasources.reads.*;
+import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegionReadState;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -12,11 +16,8 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.reads.MockLocusShard;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.executive.WindowMaker;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -101,7 +102,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
     private GenomeLocParser genomeLocParser;
 
     private List<GenomeLoc> intervals;
-    private List<GATKSAMRecord> reads;
+
+    private static final String testBAM = "TraverseActiveRegionsTest.bam";
 
     @BeforeClass
     private void init() throws FileNotFoundException {
@@ -122,7 +124,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         intervals.add(genomeLocParser.createGenomeLoc("20", 10000, 10100));
         intervals = IntervalUtils.sortAndMergeIntervals(genomeLocParser, intervals, IntervalMergingRule.OVERLAPPING_ONLY).toList();
 
-        reads = new ArrayList<GATKSAMRecord>();
+        List<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
         reads.add(buildSAMRecord("simple", "1", 100, 200));
         reads.add(buildSAMRecord("overlap_equal", "1", 10, 20));
         reads.add(buildSAMRecord("overlap_unequal", "1", 10, 21));
@@ -133,8 +135,18 @@ public class TraverseActiveRegionsTest extends BaseTest {
         reads.add(buildSAMRecord("end_of_chr1", "1", 249250600, 249250700));
         reads.add(buildSAMRecord("simple20", "20", 10025, 10075));
 
-        // required by LocusIteratorByState, and I prefer to list them in test case order above
-        ReadUtils.sortReadsByCoordinate(reads);
+        createBAM(reads);
+    }
+
+    private void createBAM(List<GATKSAMRecord> reads) {
+        File outFile = new File(testBAM);
+        outFile.deleteOnExit();
+
+        SAMFileWriter out = new SAMFileWriterFactory().makeBAMWriter(reads.get(0).getHeader(), true, outFile);
+        for (GATKSAMRecord read : ReadUtils.sortReadsByCoordinate(reads)) {
+            out.addAlignment(read);
+        }
+        out.close();
     }
 
     @Test
@@ -148,7 +160,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
 
     private List<GenomeLoc> getIsActiveIntervals(DummyActiveRegionWalker walker, List<GenomeLoc> intervals) {
         List<GenomeLoc> activeIntervals = new ArrayList<GenomeLoc>();
-        for (LocusShardDataProvider dataProvider : createDataProviders(intervals)) {
+        for (LocusShardDataProvider dataProvider : createDataProviders(intervals, testBAM)) {
             t.traverse(walker, dataProvider, 0);
             activeIntervals.addAll(walker.isActiveCalls);
         }
@@ -350,7 +362,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
     }
 
     private Map<GenomeLoc, ActiveRegion> getActiveRegions(DummyActiveRegionWalker walker, List<GenomeLoc> intervals) {
-        for (LocusShardDataProvider dataProvider : createDataProviders(intervals))
+        for (LocusShardDataProvider dataProvider : createDataProviders(intervals, testBAM))
             t.traverse(walker, dataProvider, 0);
 
         t.endTraversal(walker, 0);
@@ -395,7 +407,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
 
     // copied from LocusViewTemplate
     protected GATKSAMRecord buildSAMRecord(String readName, String contig, int alignmentStart, int alignmentEnd) {
-        SAMFileHeader header = new SAMFileHeader();
+        SAMFileHeader header = ArtificialSAMUtils.createDefaultReadGroup(new SAMFileHeader(), "test", "test");
         header.setSequenceDictionary(dictionary);
         GATKSAMRecord record = new GATKSAMRecord(header);
 
@@ -407,23 +419,28 @@ public class TraverseActiveRegionsTest extends BaseTest {
         int len = alignmentEnd - alignmentStart + 1;
         cigar.add(new CigarElement(len, CigarOperator.M));
         record.setCigar(cigar);
-        record.setReadBases(new byte[len]);
+        record.setReadString(new String(new char[len]).replace("\0", "A"));
         record.setBaseQualities(new byte[len]);
 
         return record;
     }
 
-    private List<LocusShardDataProvider> createDataProviders(List<GenomeLoc> intervals) {
+    private List<LocusShardDataProvider> createDataProviders(List<GenomeLoc> intervals, String bamFile) {
         GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
         engine.setGenomeLocParser(genomeLocParser);
         t.initialize(engine);
 
-        StingSAMIterator iterator = ArtificialSAMUtils.createReadIterator(new ArrayList<SAMRecord>(reads));
-        Shard shard = new MockLocusShard(genomeLocParser, intervals);
+        Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();
+        SAMReaderID readerID = new SAMReaderID(new File(bamFile), new Tags());
+        samFiles.add(readerID);
+
+        SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser);
 
         List<LocusShardDataProvider> providers = new ArrayList<LocusShardDataProvider>();
-        for (WindowMaker.WindowMakerIterator window : new WindowMaker(shard, genomeLocParser, iterator, shard.getGenomeLocs())) {
-            providers.add(new LocusShardDataProvider(shard, shard.getReadProperties(), genomeLocParser, window.getLocus(), window, reference, new ArrayList<ReferenceOrderedDataSource>()));
+        for (Shard shard : dataSource.createShardIteratorOverIntervals(new GenomeLocSortedSet(genomeLocParser, intervals), new LocusShardBalancer())) {
+            for (WindowMaker.WindowMakerIterator window : new WindowMaker(shard, genomeLocParser, dataSource.seek(shard), shard.getGenomeLocs())) {
+                providers.add(new LocusShardDataProvider(shard, shard.getReadProperties(), genomeLocParser, window.getLocus(), window, reference, new ArrayList<ReferenceOrderedDataSource>()));
+            }
         }
 
         return providers;
