@@ -329,7 +329,6 @@ public class PairHMMIndelErrorModel {
                     getContextHomopolymerLength(readBases,hrunProfile);
                     fillGapProbabilities(hrunProfile, contextLogGapOpenProbabilities, contextLogGapContinuationProbabilities);
 
-
                     for (Allele a: haplotypeMap.keySet()) {
 
                         Haplotype haplotype = haplotypeMap.get(a);
