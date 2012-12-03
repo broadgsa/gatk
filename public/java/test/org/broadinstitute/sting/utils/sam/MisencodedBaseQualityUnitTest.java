@@ -17,9 +17,9 @@ import java.util.List;
 public class MisencodedBaseQualityUnitTest extends BaseTest {
 
     private static final String readBases = "AAAAAAAAAA";
-    private static final byte[] badQuals = { 'Z', '[', 'c', 'd', 'e', 'a', 'b', 'Z', 'Y', 'X' };
-    private static final byte[] goodQuals = { '[', '[', '[', '[', '[', '[', '[', '[', '[', '[' };
-    private static final byte[] fixedQuals = { ';', '<', 'D', 'E', 'F', 'B', 'C', ';', ':', '9' };
+    private static final byte[] badQuals = { 59, 60, 62, 63, 64, 61, 62, 58, 57, 56 };
+    private static final byte[] goodQuals = { 60, 60, 60, 60, 60, 60, 60, 60, 60, 60 };
+    private static final byte[] fixedQuals = { 28, 29, 31, 32, 33, 30, 31, 27, 26, 25 };
     private SAMFileHeader header;
 
     @BeforeMethod

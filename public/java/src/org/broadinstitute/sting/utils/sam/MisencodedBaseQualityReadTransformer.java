@@ -16,7 +16,6 @@ public class MisencodedBaseQualityReadTransformer extends ReadTransformer {
 
     private static final int samplingFrequency = 1000;  // sample 1 read for every 1000 encountered
     private static final int encodingFixValue = 31;  // Illumina_64 - PHRED_33
-    private static final byte maxAllowedQualByte = QualityUtils.MAX_REASONABLE_Q_SCORE + 33;
 
     private boolean disabled;
     private boolean fixQuals;
@@ -60,8 +59,8 @@ public class MisencodedBaseQualityReadTransformer extends ReadTransformer {
 
             final byte[] quals = read.getBaseQualities();
             for ( final byte qual : quals ) {
-                if ( qual > maxAllowedQualByte )
-                    throw new UserException.MisencodedBAM(read, "we encountered an extremely high quality score of " + ((int)qual - 33));
+                if ( qual > QualityUtils.MAX_REASONABLE_Q_SCORE )
+                    throw new UserException.MisencodedBAM(read, "we encountered an extremely high quality score of " + (int)qual);
             }
         }
     }
