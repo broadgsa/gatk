@@ -240,6 +240,16 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class MisencodedBAM extends UserException {
+        public MisencodedBAM(SAMRecord read, String message) {
+            this(read.getFileSource() != null ? read.getFileSource().getReader().toString() : "(none)", message);
+        }
+
+        public MisencodedBAM(String source, String message) {
+            super(String.format("SAM/BAM file %s appears to be using the wrong encoding for quality scores: %s; please see the GATK --help documentation for options related to this error", source, message));
+        }
+    }
+
     public static class MalformedVCF extends UserException {
         public MalformedVCF(String message, String line) {
             super(String.format("The provided VCF file is malformed at line %s: %s", line, message));

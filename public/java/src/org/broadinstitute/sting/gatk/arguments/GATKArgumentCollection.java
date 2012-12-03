@@ -208,6 +208,22 @@ public class GATKArgumentCollection {
 
     // --------------------------------------------------------------------------------------------------------------
     //
+    // quality encoding checking arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Q0 == ASCII 33 according to the SAM specification, whereas Illumina encoding starts at Q64.  The idea here is
+     * simple: we just iterate over all reads and subtract 31 from every quality score.
+     */
+    @Argument(fullName = "fix_misencoded_quality_scores", shortName="fixMisencodedQuals", doc="Fix mis-encoded base quality scores", required = false)
+    public boolean FIX_MISENCODED_QUALS = false;
+
+    @Argument(fullName = "allow_potentially_misencoded_quality_scores", shortName="allowPotentiallyMisencodedQuals", doc="Do not fail when encountered base qualities that are too high and seemingly indicate a problem with the base quality encoding of the BAM file", required = false)
+    public boolean ALLOW_POTENTIALLY_MISENCODED_QUALS = false;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
     // performance log arguments
     //
     // --------------------------------------------------------------------------------------------------------------
