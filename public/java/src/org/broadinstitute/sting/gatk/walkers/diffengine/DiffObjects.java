@@ -138,7 +138,8 @@ public class DiffObjects extends RodWalker<Integer, Integer> {
     /**
      * Writes out a file of the DiffEngine format:
      *
-     *      http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine
+     *     TODO for Geraldine -- link needs to be updated below (and also in SelectVariants and RefSeqCodec GATK docs)
+     *     http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine
      */
     @Output(doc="File to which results should be written",required=true)
     protected PrintStream out;

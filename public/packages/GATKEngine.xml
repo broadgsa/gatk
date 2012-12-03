@@ -36,6 +36,9 @@
       <dir name="org/broadinstitute/sting/utils/R" includes="**/*.tar.gz" />
       <!-- All R scripts in org.broadinstitute.sting -->
       <dir name="org/broadinstitute/sting" includes="**/*.R" />
+      <!-- Resources in org.broadinstitute.sting -->
+      <dir name="org/broadinstitute/sting" includes="**/resources/*" />
+      <dir name="org/broadinstitute/sting" includes="**/templates/*" />
       <!-- The GATK public key -->
       <file path="GATK_public.key" />
     </dependencies>

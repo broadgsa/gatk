@@ -1267,7 +1267,7 @@ public class VariantContextUtils {
      * @param testString             String to test
      * @return                       Number of repetitions (0 if testString is not a concatenation of n repeatUnit's
      */
-    protected static int findNumberofRepetitions(byte[] repeatUnit, byte[] testString) {
+    public static int findNumberofRepetitions(byte[] repeatUnit, byte[] testString) {
         int numRepeats = 0;
         for (int start = 0; start < testString.length; start += repeatUnit.length) {
             int end = start + repeatUnit.length;

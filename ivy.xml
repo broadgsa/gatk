@@ -24,11 +24,8 @@
 
 <ivy-module version="1.0">
     <info organisation="org.broadinstitute" module="Sting"/>
-    <configurations defaultconfmapping="test->default">
+    <configurations>
         <conf name="default" description="the core dependencies for the GATK"/>
-        <conf name="test" extends="default" description="external dependencies used for testing and metrics"/>
-        <conf name="scala" extends="default" description="the dependencies for scala"/>
-        <conf name="queue" extends="scala" description="the dependencies for Queue"/>
     </configurations>
     <dependencies defaultconf="default">
         <dependency org="net.sf" name="sam" rev="latest.integration"/>
@@ -83,9 +80,9 @@
         <dependency org="org.scala-lang" name="scala-library" rev="2.9.2"/>
 
         <!-- testing and evaluation dependencies -->
-        <dependency org="org.testng" name="testng" rev="5.14.1" conf="test"/>
-        <dependency org="org.uncommons" name="reportng" rev="1.1.2" conf="test"/>
-        <dependency org="com.google.code.caliper" name="caliper" rev="1.0-SNAPSHOT" conf="test"/>
+        <dependency org="org.testng" name="testng" rev="5.14.1"/>
+        <dependency org="org.uncommons" name="reportng" rev="1.1.2"/>
+        <dependency org="com.google.code.caliper" name="caliper" rev="1.0-SNAPSHOT"/>
 
         <!-- Contracts for Java and dependencies -->
         <dependency org="com.google.code.cofoja" name="cofoja" rev="1.0-r139"/>
