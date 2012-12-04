@@ -127,14 +127,26 @@ trait QScript extends Logging with PrimitiveOptionConversions with StringFileCon
    * Pull all remote files to the local disk
    */
   def pullInputs() {
+    val inputs = ClassFieldCache.getFieldFiles(this, inputFields)
+    for (remoteFile <- filterRemoteFiles(inputs)) {
+      logger.info("Pulling %s from %s".format(remoteFile.getAbsolutePath, remoteFile.remoteDescription))
+      remoteFile.pullToLocal()
+    }
   }
 
   /**
    * Push all remote files from the local disk
    */
   def pushOutputs() {
+    val outputs = ClassFieldCache.getFieldFiles(this, outputFields)
+    for (remoteFile <- filterRemoteFiles(outputs)) {
+      logger.info("Pushing %s to %s".format(remoteFile.getAbsolutePath, remoteFile.remoteDescription))
+      remoteFile.pushToRemote()
+    }
   }
 
+  private def filterRemoteFiles(fields: Seq[File]): Seq[RemoteFile] =
+    fields.filter(field => field != null && field.isInstanceOf[RemoteFile]).map(_.asInstanceOf[RemoteFile])
   /**
    * @return the inputs or null if there are no inputs
    */
