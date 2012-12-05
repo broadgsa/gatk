@@ -188,17 +188,6 @@ public class NanoSchedulerUnitTest extends BaseTest {
 
         Assert.assertTrue(callback.callBacks >= test.nExpectedCallbacks(), "Not enough callbacks detected.  Expected at least " + test.nExpectedCallbacks() + " but saw only " + callback.callBacks);
         nanoScheduler.shutdown();
-
-        // TODO -- need to enable only in the case where there's serious time spend in
-        // TODO -- read /map / reduce, otherwise the "outside" timer doesn't add up
-        final double myTimeEstimate = timer.getElapsedTime();
-        final double tolerance = 0.1;
-        if ( false && myTimeEstimate > 0.1 ) {
-            Assert.assertTrue(nanoScheduler.getTotalRuntime() > myTimeEstimate * tolerance,
-                    "NanoScheduler said that the total runtime was " + nanoScheduler.getTotalRuntime()
-                            + " but the overall test time was " + myTimeEstimate + ", beyond our tolerance factor of "
-                            + tolerance);
-        }
     }
 
     @Test(enabled = true && ! DEBUG, dataProvider = "NanoSchedulerBasicTest", dependsOnMethods = "testMultiThreadedNanoScheduler", timeOut = NANO_SCHEDULE_MAX_RUNTIME)
