@@ -320,6 +320,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         while ( true ) {
             // check that no errors occurred while we were waiting
             handleErrors();
+//            checkForDeadlocks();
 
             try {
                 final ReduceType result = reduceResult.get(100, TimeUnit.MILLISECONDS);
@@ -340,6 +341,26 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
             }
         }
     }
+
+//    private void checkForDeadlocks() {
+//        if ( deadLockCheckCounter++ % 100 == 0 ) {
+//            logger.info("Checking for deadlocks...");
+//            final ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+//            final long[] threadIds = bean.findDeadlockedThreads(); // Returns null if no threads are deadlocked.
+//
+//            if (threadIds != null) {
+//                final ThreadInfo[] infos = bean.getThreadInfo(threadIds);
+//
+//                logger.error("!!! Deadlock detected !!!!");
+//                for (final ThreadInfo info : infos) {
+//                    logger.error("Thread " + info);
+//                    for ( final StackTraceElement elt : info.getStackTrace() ) {
+//                        logger.error("\t" + elt.toString());
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     private void handleErrors() {
         if ( errorTracker.hasAnErrorOccurred() ) {
@@ -408,7 +429,8 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
 
                 // wait for all of the input and map threads to finish
                 return waitForCompletion(inputProducer, reducer);
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
+//                logger.warn("Reduce job got exception " + ex);
                 errorTracker.notifyOfError(ex);
                 return initialValue;
             }
@@ -495,7 +517,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                     // enqueue the result into the mapResultQueue
                     result = new MapResult<MapType>(mapValue, jobID);
 
-                    if ( jobID % bufferSize == 0 && progressFunction != null )
+                    if ( progressFunction != null )
                         progressFunction.progress(input);
                 } else {
                     // push back the EOF marker so other waiting threads can read it
@@ -508,7 +530,8 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                 mapResultQueue.put(result);
 
                 final int nReduced = reducer.reduceAsMuchAsPossible(mapResultQueue);
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
+//                logger.warn("Map job got exception " + ex);
                 errorTracker.notifyOfError(ex);
             } finally {
                 // we finished a map job, release the job queue semaphore

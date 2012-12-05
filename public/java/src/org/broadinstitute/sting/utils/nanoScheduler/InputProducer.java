@@ -103,6 +103,8 @@ class InputProducer<InputType> implements Runnable {
         } else {
             // get the next value, and return it
             final InputType input = inputReader.next();
+            if ( input == null )
+                throw new IllegalStateException("inputReader.next() returned a null value, breaking our contract");
             inputTimer.stop();
             nRead++;
             return input;
@@ -121,6 +123,9 @@ class InputProducer<InputType> implements Runnable {
                 final InputType value = readNextItem();
 
                 if ( value == null ) {
+                    if ( ! readLastValue )
+                        throw new IllegalStateException("value == null but readLastValue is false!");
+
                     // add the EOF object so our consumer knows we are done in all inputs
                     // note that we do not increase inputID here, so that variable indicates the ID
                     // of the last real value read from the queue
@@ -133,8 +138,10 @@ class InputProducer<InputType> implements Runnable {
             }
 
             latch.countDown();
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             errorTracker.notifyOfError(ex);
+        } finally {
+//            logger.info("Exiting input thread readLastValue = " + readLastValue);
         }
     }
 
