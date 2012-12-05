@@ -30,12 +30,10 @@ import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.downsampling.*;
-import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
-import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
+import org.broadinstitute.sting.gatk.downsampling.*;
 import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.iterators.*;
@@ -567,7 +565,7 @@ public class SAMDataSource {
      *
      * @return the start positions of the first chunk of reads for all BAM files
      */
-    public Map<SAMReaderID, GATKBAMFileSpan> getInitialReaderPositions() {
+    protected Map<SAMReaderID, GATKBAMFileSpan> getInitialReaderPositions() {
         Map<SAMReaderID, GATKBAMFileSpan> initialPositions = new HashMap<SAMReaderID, GATKBAMFileSpan>();
         SAMReaders readers = resourcePool.getAvailableReaders();
 
@@ -585,7 +583,7 @@ public class SAMDataSource {
      * @param shard The shard specifying the data limits.
      * @return An iterator over the selected data.
      */
-    public StingSAMIterator getIterator( Shard shard ) {
+    protected StingSAMIterator getIterator( Shard shard ) {
         return getIterator(resourcePool.getAvailableReaders(), shard, shard instanceof ReadShard);
     }
 

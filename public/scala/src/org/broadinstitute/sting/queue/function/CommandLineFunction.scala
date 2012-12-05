@@ -33,6 +33,9 @@ import org.broadinstitute.sting.commandline.Argument
 trait CommandLineFunction extends QFunction with Logging {
   def commandLine: String
 
+  /** Setting the wall time request for DRMAA / run limit for LSF */
+  var wallTime: Option[Long] = None
+  
   /** Upper memory limit */
   @Argument(doc="Memory limit", required=false)
   var memoryLimit: Option[Double] = None
@@ -67,6 +70,9 @@ trait CommandLineFunction extends QFunction with Logging {
     super.copySettingsTo(function)
     function match {
       case commandLineFunction: CommandLineFunction =>
+        if(commandLineFunction.wallTime.isEmpty)
+          commandLineFunction.wallTime = this.wallTime
+        
         if (commandLineFunction.memoryLimit.isEmpty)
           commandLineFunction.memoryLimit = this.memoryLimit
 
@@ -110,6 +116,10 @@ trait CommandLineFunction extends QFunction with Logging {
    * Sets all field values.
    */
   override def freezeFieldValues() {
+   
+    if(wallTime.isEmpty)
+      wallTime = qSettings.jobWalltime
+    
     if (jobQueue == null)
       jobQueue = qSettings.jobQueue
 

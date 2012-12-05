@@ -283,4 +283,12 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * @return
      */
     public FragmentCollection<PileupElement> toFragments();
+
+    /**
+     * Creates a full copy (not shallow) of the ReadBacked Pileup
+     *
+     * @return
+     */
+    public ReadBackedPileup copy();
+
 }

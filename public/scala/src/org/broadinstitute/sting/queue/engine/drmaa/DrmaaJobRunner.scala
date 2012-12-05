@@ -65,6 +65,9 @@ class DrmaaJobRunner(val session: Session, val function: CommandLineFunction) ex
         drmaaJob.setJoinFiles(true)
       }
 
+      if(!function.wallTime.isEmpty)
+    	  drmaaJob.setHardWallclockTimeLimit(function.wallTime.get)      
+      
       drmaaJob.setNativeSpecification(functionNativeSpec)
 
       // Instead of running the function.commandLine, run "sh <jobScript>"

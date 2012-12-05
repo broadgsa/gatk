@@ -126,4 +126,15 @@ class HelloWorldPipelineTest {
     spec.jobRunners = Seq("GridEngine")
     PipelineTest.executeTest(spec)
   }
+
+  // disabled because our DRMAA implementation doesn't support wallTime
+  @Test(enabled=false, timeOut=36000000)
+  def testHelloWorldWithWalltime() {
+    val spec = new PipelineTestSpec
+    spec.name = "HelloWorldWithWalltime"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+      " -wallTime 100"
+    spec.jobRunners = PipelineTest.allJobRunners
+    PipelineTest.executeTest(spec)
+  }
 }
