@@ -343,7 +343,7 @@ public class GATKReport {
 
         GATKReportTable table = tables.firstEntry().getValue();
         if ( table.getNumColumns() != values.length )
-            throw new ReviewedStingException("The number of arguments in writeRow() must match the number of columns in the table");
+            throw new ReviewedStingException("The number of arguments in writeRow() " + values.length + " must match the number of columns in the table" + table.getNumColumns());
 
         final int rowIndex = table.getNumRows();
         for ( int i = 0; i < values.length; i++ )
