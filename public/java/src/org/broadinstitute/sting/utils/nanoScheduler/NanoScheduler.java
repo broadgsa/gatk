@@ -58,16 +58,6 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
     private NSProgressFunction<InputType> progressFunction = null;
 
     /**
-     * Tracks the combined runtime profiles across all created nano schedulers
-     */
-    final static private NSRuntimeProfile combinedNSRuntimeProfiler = new NSRuntimeProfile();
-
-    /**
-     * The profile specific to this nano scheduler
-     */
-    final private NSRuntimeProfile myNSRuntimeProfile = new NSRuntimeProfile();
-
-    /**
      * Create a new nanoscheduler with the desire characteristics requested by the argument
      *
      * @param nThreads the number of threads to use to get work done, in addition to the
@@ -94,9 +84,6 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
             this.inputExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NS-input-thread-%d"));
             this.masterExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NS-master-thread-%d"));
         }
-
-        // start timing the time spent outside of the nanoScheduler
-        myNSRuntimeProfile.outsideSchedulerTimer.start();
     }
 
     /**
@@ -123,11 +110,6 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      * After this call, execute cannot be invoked without throwing an error
      */
     public void shutdown() {
-        myNSRuntimeProfile.outsideSchedulerTimer.stop();
-
-        // add my timing information to the combined NS runtime profile
-        combinedNSRuntimeProfiler.combine(myNSRuntimeProfile);
-
         if ( nThreads > 1 ) {
             shutdownExecutor("inputExecutor", inputExecutor);
             shutdownExecutor("mapExecutor", mapExecutor);
@@ -135,19 +117,6 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         }
 
         shutdown = true;
-    }
-
-    public void printRuntimeProfile() {
-        myNSRuntimeProfile.log(logger);
-    }
-
-    public static void printCombinedRuntimeProfile() {
-        if ( combinedNSRuntimeProfiler.totalRuntimeInSeconds() > 0.1 )
-            combinedNSRuntimeProfiler.log(logger);
-    }
-
-    protected double getTotalRuntime() {
-        return myNSRuntimeProfile.totalRuntimeInSeconds();
     }
 
     /**
@@ -245,8 +214,6 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         if ( map == null ) throw new IllegalArgumentException("map function cannot be null");
         if ( reduce == null ) throw new IllegalArgumentException("reduce function cannot be null");
 
-        myNSRuntimeProfile.outsideSchedulerTimer.stop();
-
         ReduceType result;
         if ( ALLOW_SINGLE_THREAD_FASTPATH && getnThreads() == 1 ) {
             result = executeSingleThreaded(inputReader, map, initialValue, reduce);
@@ -254,7 +221,6 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
             result = executeMultiThreaded(inputReader, map, initialValue, reduce);
         }
 
-        myNSRuntimeProfile.outsideSchedulerTimer.restart();
         return result;
     }
 
@@ -273,28 +239,19 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
 
         while ( true ) {
             // start timer to ensure that both hasNext and next are caught by the timer
-            myNSRuntimeProfile.inputTimer.restart();
             if ( ! inputReader.hasNext() ) {
-                myNSRuntimeProfile.inputTimer.stop();
                 break;
             } else {
                 final InputType input = inputReader.next();
-                myNSRuntimeProfile.inputTimer.stop();
 
                 // map
-                myNSRuntimeProfile.mapTimer.restart();
-                final long preMapTime = LOG_MAP_TIMES ? 0 : myNSRuntimeProfile.mapTimer.currentTimeNano();
                 final MapType mapValue = map.apply(input);
-                if ( LOG_MAP_TIMES ) logger.info("MAP TIME " + (myNSRuntimeProfile.mapTimer.currentTimeNano() - preMapTime));
-                myNSRuntimeProfile.mapTimer.stop();
 
-                if ( i++ % this.bufferSize == 0 && progressFunction != null )
+                if ( progressFunction != null )
                     progressFunction.progress(input);
 
                 // reduce
-                myNSRuntimeProfile.reduceTimer.restart();
                 sum = reduce.apply(mapValue, sum);
-                myNSRuntimeProfile.reduceTimer.stop();
             }
         }
 
@@ -320,6 +277,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         while ( true ) {
             // check that no errors occurred while we were waiting
             handleErrors();
+//            checkForDeadlocks();
 
             try {
                 final ReduceType result = reduceResult.get(100, TimeUnit.MILLISECONDS);
@@ -340,6 +298,26 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
             }
         }
     }
+
+//    private void checkForDeadlocks() {
+//        if ( deadLockCheckCounter++ % 100 == 0 ) {
+//            logger.info("Checking for deadlocks...");
+//            final ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+//            final long[] threadIds = bean.findDeadlockedThreads(); // Returns null if no threads are deadlocked.
+//
+//            if (threadIds != null) {
+//                final ThreadInfo[] infos = bean.getThreadInfo(threadIds);
+//
+//                logger.error("!!! Deadlock detected !!!!");
+//                for (final ThreadInfo info : infos) {
+//                    logger.error("Thread " + info);
+//                    for ( final StackTraceElement elt : info.getStackTrace() ) {
+//                        logger.error("\t" + elt.toString());
+//                    }
+//                }
+//            }
+//        }
+//    }
 
     private void handleErrors() {
         if ( errorTracker.hasAnErrorOccurred() ) {
@@ -380,7 +358,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
 
             // Create the input producer and start it running
             final InputProducer<InputType> inputProducer =
-                    new InputProducer<InputType>(inputReader, errorTracker, myNSRuntimeProfile.inputTimer, inputQueue);
+                    new InputProducer<InputType>(inputReader, errorTracker, inputQueue);
             inputExecutor.submit(inputProducer);
 
             // a priority queue that stores up to bufferSize elements
@@ -389,7 +367,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                     new PriorityBlockingQueue<MapResult<MapType>>();
 
             final Reducer<MapType, ReduceType> reducer
-                    = new Reducer<MapType, ReduceType>(reduce, errorTracker, myNSRuntimeProfile.reduceTimer, initialValue);
+                    = new Reducer<MapType, ReduceType>(reduce, errorTracker, initialValue);
 
             try {
                 int nSubmittedJobs = 0;
@@ -408,7 +386,8 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
 
                 // wait for all of the input and map threads to finish
                 return waitForCompletion(inputProducer, reducer);
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
+//                logger.warn("Reduce job got exception " + ex);
                 errorTracker.notifyOfError(ex);
                 return initialValue;
             }
@@ -486,16 +465,12 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                     final InputType input = inputWrapper.getValue();
 
                     // map
-                    myNSRuntimeProfile.mapTimer.restart();
-                    final long preMapTime = LOG_MAP_TIMES ? 0 : myNSRuntimeProfile.mapTimer.currentTimeNano();
                     final MapType mapValue = map.apply(input);
-                    if ( LOG_MAP_TIMES ) logger.info("MAP TIME " + (myNSRuntimeProfile.mapTimer.currentTimeNano() - preMapTime));
-                    myNSRuntimeProfile.mapTimer.stop();
 
                     // enqueue the result into the mapResultQueue
                     result = new MapResult<MapType>(mapValue, jobID);
 
-                    if ( jobID % bufferSize == 0 && progressFunction != null )
+                    if ( progressFunction != null )
                         progressFunction.progress(input);
                 } else {
                     // push back the EOF marker so other waiting threads can read it
@@ -508,7 +483,8 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                 mapResultQueue.put(result);
 
                 final int nReduced = reducer.reduceAsMuchAsPossible(mapResultQueue);
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
+//                logger.warn("Map job got exception " + ex);
                 errorTracker.notifyOfError(ex);
             } finally {
                 // we finished a map job, release the job queue semaphore
