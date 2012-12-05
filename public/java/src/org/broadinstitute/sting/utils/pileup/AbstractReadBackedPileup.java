@@ -1054,6 +1054,11 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
     public FragmentCollection<PileupElement> toFragments() {
         return FragmentUtils.create(this);
     }
+
+    @Override
+    public ReadBackedPileup copy() {
+        return new ReadBackedPileupImpl(loc, (PileupElementTracker<PileupElement>) pileupElementTracker.copy());
+    }
 }
 
 
