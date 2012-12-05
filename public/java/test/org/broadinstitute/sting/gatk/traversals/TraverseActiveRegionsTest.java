@@ -109,6 +109,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
         dictionary = reference.getSequenceDictionary();
         genomeLocParser = new GenomeLocParser(dictionary);
 
+        // TODO: test shard boundaries
+
         intervals = new ArrayList<GenomeLoc>();
         intervals.add(genomeLocParser.createGenomeLoc("1", 10, 20));
         intervals.add(genomeLocParser.createGenomeLoc("1", 1, 999));
@@ -139,8 +141,6 @@ public class TraverseActiveRegionsTest extends BaseTest {
         List<GenomeLoc> activeIntervals = getIsActiveIntervals(walker, intervals);
         // Contract: Every genome position in the analysis interval(s) is processed by the walker's isActive() call
         verifyEqualIntervals(intervals, activeIntervals);
-
-        // TODO: more tests and edge cases
     }
 
     private List<GenomeLoc> getIsActiveIntervals(DummyActiveRegionWalker walker, List<GenomeLoc> intervals) {
@@ -171,8 +171,6 @@ public class TraverseActiveRegionsTest extends BaseTest {
 
         Collection<ActiveRegion> activeRegions = getActiveRegions(walker, intervals).values();
         verifyActiveRegionCoverage(intervals, activeRegions);
-
-        // TODO: more tests and edge cases
     }
 
     private void verifyActiveRegionCoverage(List<GenomeLoc> intervals, Collection<ActiveRegion> activeRegions) {
@@ -279,8 +277,6 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         getRead(region, "simple20");
-
-        // TODO: more tests and edge cases
     }
 
     @Test
@@ -348,8 +344,6 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         getRead(region, "simple20");
-
-        // TODO: more tests and edge cases
     }
 
     @Test
@@ -418,8 +412,11 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadNotPlaced(region, "extended_and_np");
         verifyReadNotPlaced(region, "outside_intervals");
         getRead(region, "simple20");
+    }
 
-        // TODO: more tests and edge cases
+    @Test
+    public void testUnmappedReads() {
+        // TODO
     }
 
     private void verifyReadNotPlaced(ActiveRegion region, String readName) {
