@@ -276,6 +276,12 @@ public class FisherStrand extends InfoFieldAnnotation implements StandardAnnotat
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
             for (PileupElement p : sample.getValue().getBasePileup()) {
+
+                // ignore reduced reads because they are always on the forward strand!
+                // TODO -- when het compression is enabled in RR, we somehow need to allow those reads through into the Fisher test
+                if ( p.getRead().isReducedRead() )
+                    continue;
+
                 if ( ! RankSumTest.isUsableBase(p, false) ) // ignore deletions
                     continue;
 
