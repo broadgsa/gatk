@@ -151,8 +151,11 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
           throw new QException("setOption_() returned -1 while setting esub");
       }
 
-      // LSF specific: get the max runtime for the jobQueue and pass it for this job
-      request.rLimits(LibLsf.LSF_RLIMIT_RUN) = Lsf706JobRunner.getRlimitRun(function.jobQueue)
+      if(!function.wallTime.isEmpty)
+        request.rLimits(LibLsf.LSF_RLIMIT_RUN) = function.wallTime.get.toInt
+      else
+        // LSF specific: get the max runtime for the jobQueue and pass it for this job
+        request.rLimits(LibLsf.LSF_RLIMIT_RUN) = Lsf706JobRunner.getRlimitRun(function.jobQueue)
 
       // Run the command as sh <jobScript>
       request.command = "sh " + jobScript

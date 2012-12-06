@@ -28,7 +28,6 @@ public class VCFIntegrationTest extends WalkerTest {
     }
 
     @Test(enabled = true)
-    // See https://getsatisfaction.com/gsa/topics/support_vcf_4_1_structural_variation_breakend_alleles?utm_content=topic_link&utm_medium=email&utm_source=new_topic
     public void testReadingAndWritingBreakpointAlleles() {
         String testVCF = privateTestDir + "breakpoint-example.vcf";
 

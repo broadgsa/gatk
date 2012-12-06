@@ -71,7 +71,6 @@ abstract class SortingVariantContextWriterBase implements VariantContextWriter {
         this.takeOwnershipOfInner = takeOwnershipOfInner;
 
         // has to be PriorityBlockingQueue to be thread-safe
-        // see http://getsatisfaction.com/gsa/topics/missing_loci_output_in_multi_thread_mode_when_implement_sortingvcfwriterbase?utm_content=topic_link&utm_medium=email&utm_source=new_topic
         this.queue = new PriorityBlockingQueue<VCFRecord>(50, new VariantContextComparator());
 
         this.mostUpstreamWritableLoc = BEFORE_MOST_UPSTREAM_LOC;

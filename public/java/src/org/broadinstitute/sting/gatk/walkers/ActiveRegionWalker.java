@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers;
 
+import com.google.java.contract.Ensures;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.Input;
@@ -13,14 +14,14 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
+import org.broadinstitute.sting.utils.activeregion.ActiveRegionReadState;
 import org.broadinstitute.sting.utils.activeregion.ActivityProfileResult;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Base class for all the Active Region Walkers.
@@ -70,11 +71,24 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
         return true;    // We are keeping all the reads
     }
 
-    public boolean wantsNonPrimaryReads() {
-        return false;
+    public EnumSet<ActiveRegionReadState> desiredReadStates() {
+        return EnumSet.of(ActiveRegionReadState.PRIMARY);
+    }
+
+    public final boolean wantsNonPrimaryReads() {
+        return desiredReadStates().contains(ActiveRegionReadState.NONPRIMARY);
+    }
+
+    public boolean wantsExtendedReads() {
+        return desiredReadStates().contains(ActiveRegionReadState.EXTENDED);
+    }
+
+    public boolean wantsUnmappedReads() {
+        return desiredReadStates().contains(ActiveRegionReadState.UNMAPPED);
     }
 
     // Determine probability of active status over the AlignmentContext
+    @Ensures({"result.isActiveProb >= 0.0", "result.isActiveProb <= 1.0"})
     public abstract ActivityProfileResult isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
 
     // Map over the ActiveRegion

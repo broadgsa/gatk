@@ -652,23 +652,19 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
             PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>) pileupElementTracker;
             PerSamplePileupElementTracker<PE> filteredTracker = new PerSamplePileupElementTracker<PE>();
 
-            int current = 0;
 
             for (final String sample : tracker.getSamples()) {
                 PileupElementTracker<PE> perSampleElements = tracker.getElements(sample);
 
-                List<PileupElement> filteredPileup = new ArrayList<PileupElement>();
-                for (PileupElement p : perSampleElements) {
+                int current = 0;
+                UnifiedPileupElementTracker<PE> filteredPileup = new UnifiedPileupElementTracker<PE>();
+                for (PE p : perSampleElements) {
                     if (positions.contains(current))
                         filteredPileup.add(p);
-                }
+                    current++;
 
-                if (!filteredPileup.isEmpty()) {
-                    AbstractReadBackedPileup<RBP, PE> pileup = createNewPileup(loc, perSampleElements);
-                    filteredTracker.addElements(sample, pileup.pileupElementTracker);
                 }
-
-                current++;
+                filteredTracker.addElements(sample, filteredPileup);
             }
 
             return (RBP) createNewPileup(loc, filteredTracker);
@@ -1057,6 +1053,11 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
     @Override
     public FragmentCollection<PileupElement> toFragments() {
         return FragmentUtils.create(this);
+    }
+
+    @Override
+    public ReadBackedPileup copy() {
+        return new ReadBackedPileupImpl(loc, (PileupElementTracker<PileupElement>) pileupElementTracker.copy());
     }
 }
 

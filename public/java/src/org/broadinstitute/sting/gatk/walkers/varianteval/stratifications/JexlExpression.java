@@ -13,7 +13,7 @@ import java.util.Set;
 /**
  * Stratifies the eval RODs by user-supplied JEXL expressions
  *
- * See http://www.broadinstitute.org/gsa/wiki/index.php/Using_JEXL_expressions for more details
+ * See http://gatkforums.broadinstitute.org/discussion/1255/what-are-jexl-expressions-and-how-can-i-use-them-with-the-gatk for more details
  */
 public class JexlExpression extends VariantStratifier implements StandardStratification {
     // needs to know the jexl expressions

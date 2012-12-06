@@ -38,10 +38,10 @@ import java.util.*;
 
 public abstract class PerReadAlleleLikelihoodMap {
 
-    public static final double INDEL_LIKELIHOOD_THRESH = 0.1;
+    public static final double INFORMATIVE_LIKELIHOOD_THRESHOLD = 0.1;
 
     protected List<Allele> alleles;
-    protected Map<GATKSAMRecord,Map<Allele,Double>> likelihoodReadMap;
+    protected Map<GATKSAMRecord, Map<Allele, Double>> likelihoodReadMap;
 
     public abstract void performPerAlleleDownsampling(final double downsamplingFraction, final PrintStream log);
     public abstract ReadBackedPileup createPerAlleleDownsampledBasePileup(final ReadBackedPileup pileup, final double downsamplingFraction, final PrintStream log);
@@ -68,7 +68,7 @@ public abstract class PerReadAlleleLikelihoodMap {
     }
 
     public void add(PileupElement p, Allele a, Double likelihood) {
-        add(p.getRead(),a,likelihood);
+        add(p.getRead(), a, likelihood);
     }
 
     public boolean containsPileupElement(PileupElement p) {
@@ -120,7 +120,7 @@ public abstract class PerReadAlleleLikelihoodMap {
                 prevMaxLike = el.getValue();
             }
         }
-        return (maxLike - prevMaxLike > INDEL_LIKELIHOOD_THRESH ? mostLikelyAllele : Allele.NO_CALL );
+        return (maxLike - prevMaxLike > INFORMATIVE_LIKELIHOOD_THRESHOLD ? mostLikelyAllele : Allele.NO_CALL );
     }
 
     public static PerReadAlleleLikelihoodMap getBestAvailablePerReadAlleleLikelihoodMap() {

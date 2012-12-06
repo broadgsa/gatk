@@ -495,4 +495,14 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     public long sizeOfOverlap( final GenomeLoc that ) {
         return ( this.overlapsP(that) ? Math.min( getStop(), that.getStop() ) - Math.max( getStart(), that.getStart() ) + 1L : 0L );
     }
+
+    /**
+     * Returns the maximum GenomeLoc of this and other
+     * @param other another non-null genome loc
+     * @return the max of this and other
+     */
+    public GenomeLoc max(final GenomeLoc other) {
+        final int cmp = this.compareTo(other);
+        return cmp == -1 ? other : this;
+    }
 }

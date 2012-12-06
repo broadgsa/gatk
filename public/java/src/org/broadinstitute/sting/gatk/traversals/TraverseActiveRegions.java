@@ -258,13 +258,23 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                         activeRegion.add( read );
                     }
                     for( final ActiveRegion otherRegionToTest : workQueue ) {
-                        if( !bestRegion.equals(otherRegionToTest) && otherRegionToTest.getExtendedLoc().overlapsP( readLoc ) ) {
-                            otherRegionToTest.add( read );
+                        if( !bestRegion.equals(otherRegionToTest) ) {
+                            // check for non-primary vs. extended
+                            if ( otherRegionToTest.getLocation().overlapsP( readLoc ) ) {
+                                otherRegionToTest.add( read );
+                            } else if ( walker.wantsExtendedReads() && otherRegionToTest.getExtendedLoc().overlapsP( readLoc ) ) {
+                                otherRegionToTest.add( read );
+                            }
                         }
                     }
                 }
                 placedReads.add( read );
-            } else if( activeRegion.getExtendedLoc().overlapsP( readLoc ) && walker.wantsNonPrimaryReads() ) {
+                // check for non-primary vs. extended
+            } else if( activeRegion.getLocation().overlapsP( readLoc ) ) {
+                if ( walker.wantsNonPrimaryReads() ) {
+                    activeRegion.add( read );
+                }
+            } else if( walker.wantsExtendedReads() && activeRegion.getExtendedLoc().overlapsP( readLoc )) {
                 activeRegion.add( read );
             }
         }

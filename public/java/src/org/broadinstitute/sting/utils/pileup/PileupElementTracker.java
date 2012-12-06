@@ -34,10 +34,19 @@ import java.util.*;
  */
 abstract class PileupElementTracker<PE extends PileupElement> implements Iterable<PE> {
     public abstract int size();
+    public abstract PileupElementTracker<PE> copy();
 }
 
 class UnifiedPileupElementTracker<PE extends PileupElement> extends PileupElementTracker<PE> {
     private final List<PE> pileup;
+
+    @Override
+    public UnifiedPileupElementTracker<PE> copy() {
+        UnifiedPileupElementTracker<PE> result = new UnifiedPileupElementTracker<PE>();
+        for(PE element : pileup)
+            result.add(element);
+        return result;
+    }
 
     public UnifiedPileupElementTracker() { pileup = new LinkedList<PE>(); }
     public UnifiedPileupElementTracker(List<PE> pileup) { this.pileup = pileup; }
@@ -63,6 +72,14 @@ class PerSamplePileupElementTracker<PE extends PileupElement> extends PileupElem
 
     public PerSamplePileupElementTracker() {
         pileup = new HashMap<String,PileupElementTracker<PE>>();
+    }
+
+    public PerSamplePileupElementTracker<PE> copy() {
+        PerSamplePileupElementTracker<PE> result = new PerSamplePileupElementTracker<PE>();
+        for (Map.Entry<String, PileupElementTracker<PE>> entry : pileup.entrySet())
+            result.addElements(entry.getKey(), entry.getValue());
+
+        return result;
     }
 
     /**
