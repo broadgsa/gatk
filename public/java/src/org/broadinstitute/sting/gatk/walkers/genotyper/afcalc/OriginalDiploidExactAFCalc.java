@@ -30,13 +30,13 @@ class OriginalDiploidExactAFCalc extends DiploidExactAFCalc {
         final double[] log10Priors = new double[]{log10AlleleFrequencyPriors[0], MathUtils.log10sumLog10(log10AlleleFrequencyPriors, 1)};
         final double[] log10Posteriors = MathUtils.vectorSum(log10Likelihoods, log10Priors);
 
-        final double log10PNonRef = log10Posteriors[1] > log10Posteriors[0] ? 0.0 : MathUtils.LOG10_P_OF_ZERO;
-        final Map<Allele, Double> log10pNonRefByAllele = Collections.singletonMap(vc.getAlternateAllele(0), log10PNonRef);
+        final double log10PRef = log10Posteriors[1] > log10Posteriors[0] ? MathUtils.LOG10_P_OF_ZERO : 0.0;
+        final Map<Allele, Double> log10pRefByAllele = Collections.singletonMap(vc.getAlternateAllele(0), log10PRef);
 
         return new AFCalcResult(new int[]{mleK}, 0, vc.getAlleles(),
                 MathUtils.normalizeFromLog10(log10Likelihoods, true),
                 MathUtils.normalizeFromLog10(log10Priors, true),
-                log10pNonRefByAllele);
+                log10pRefByAllele);
     }
 
     /**
