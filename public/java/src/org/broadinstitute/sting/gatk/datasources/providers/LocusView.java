@@ -136,11 +136,12 @@ public abstract class LocusView extends LocusIterator implements View {
         // Cache the current and apply filtering.
         AlignmentContext current = nextLocus;
 
-        // The old ALL_READS downsampling implementation -- only use if we're not using the new experimental downsampling:
-        if( ! sourceInfo.getDownsamplingMethod().useExperimentalDownsampling &&
-            sourceInfo.getDownsamplingMethod().type == DownsampleType.ALL_READS && sourceInfo.getDownsamplingMethod().toCoverage != null ) {
+        // The old ALL_READS downsampling implementation -- use only if legacy downsampling was requested:
+        if ( sourceInfo.getDownsamplingMethod().useLegacyDownsampler &&
+             sourceInfo.getDownsamplingMethod().type == DownsampleType.ALL_READS &&
+             sourceInfo.getDownsamplingMethod().toCoverage != null ) {
 
-            current.downsampleToCoverage( sourceInfo.getDownsamplingMethod().toCoverage );
+            current.downsampleToCoverage(sourceInfo.getDownsamplingMethod().toCoverage);
         }
 
         // Indicate that the next operation will need to advance.
