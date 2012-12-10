@@ -23,14 +23,14 @@ public class LegacyReservoirDownsamplerUnitTest {
 
     @Test
     public void testEmptyIterator() {
-        ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(1);
+        LegacyReservoirDownsampler<SAMRecord> downsampler = new LegacyReservoirDownsampler<SAMRecord>(1);
         Assert.assertTrue(downsampler.isEmpty(),"Downsampler is not empty but should be.");
     }
 
     @Test
     public void testOneElementWithPoolSizeOne() {
         List<GATKSAMRecord> reads = Collections.singletonList(ArtificialSAMUtils.createArtificialRead(header,"read1",0,1,76));
-        ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(1);
+        LegacyReservoirDownsampler<SAMRecord> downsampler = new LegacyReservoirDownsampler<SAMRecord>(1);
         downsampler.addAll(reads);
 
         Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");
@@ -42,7 +42,7 @@ public class LegacyReservoirDownsamplerUnitTest {
     @Test
     public void testOneElementWithPoolSizeGreaterThanOne() {
         List<GATKSAMRecord> reads = Collections.singletonList(ArtificialSAMUtils.createArtificialRead(header,"read1",0,1,76));
-        ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(5);
+        LegacyReservoirDownsampler<SAMRecord> downsampler = new LegacyReservoirDownsampler<SAMRecord>(5);
         downsampler.addAll(reads);
 
         Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");
@@ -58,7 +58,7 @@ public class LegacyReservoirDownsamplerUnitTest {
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read1",0,1,76));
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read2",0,1,76));
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read3",0,1,76));
-        ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(5);
+        LegacyReservoirDownsampler<SAMRecord> downsampler = new LegacyReservoirDownsampler<SAMRecord>(5);
         downsampler.addAll(reads);
 
         Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");
@@ -78,7 +78,7 @@ public class LegacyReservoirDownsamplerUnitTest {
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read3",0,1,76));
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read4",0,1,76));
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read5",0,1,76));
-        ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(5);
+        LegacyReservoirDownsampler<SAMRecord> downsampler = new LegacyReservoirDownsampler<SAMRecord>(5);
         downsampler.addAll(reads);
 
         Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");
@@ -99,7 +99,7 @@ public class LegacyReservoirDownsamplerUnitTest {
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read1",0,1,76));
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read2",0,1,76));
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read3",0,1,76));
-        ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(0);
+        LegacyReservoirDownsampler<SAMRecord> downsampler = new LegacyReservoirDownsampler<SAMRecord>(0);
         downsampler.addAll(reads);
 
         Assert.assertTrue(downsampler.isEmpty(),"Downsampler isn't empty but should be");
@@ -115,7 +115,7 @@ public class LegacyReservoirDownsamplerUnitTest {
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read3",0,1,76));
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read4",0,1,76));
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read5",0,1,76));
-        ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(1);
+        LegacyReservoirDownsampler<SAMRecord> downsampler = new LegacyReservoirDownsampler<SAMRecord>(1);
         downsampler.addAll(reads);
 
         Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");
@@ -128,7 +128,7 @@ public class LegacyReservoirDownsamplerUnitTest {
     public void testFillingAcrossLoci() {
         List<SAMRecord> reads = new ArrayList<SAMRecord>();
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read1",0,1,76));
-        ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(5);
+        LegacyReservoirDownsampler<SAMRecord> downsampler = new LegacyReservoirDownsampler<SAMRecord>(5);
         downsampler.addAll(reads);
 
         Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");

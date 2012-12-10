@@ -50,9 +50,9 @@ public class DownsamplingMethod {
     public final Double toFraction;
 
     /**
-     * Use the new experimental downsampling?
+     * Use the legacy downsampling implementation instead of the newer implementation?
      */
-    public final boolean useExperimentalDownsampling;
+    public final boolean useLegacyDownsampler;
 
     /**
      * Expresses no downsampling applied at all.
@@ -69,11 +69,11 @@ public class DownsamplingMethod {
      */
     public static int DEFAULT_LOCUS_BASED_TRAVERSAL_DOWNSAMPLING_COVERAGE = 1000;
 
-    public DownsamplingMethod( DownsampleType type, Integer toCoverage, Double toFraction, boolean useExperimentalDownsampling ) {
+    public DownsamplingMethod( DownsampleType type, Integer toCoverage, Double toFraction, boolean useLegacyDownsampler ) {
         this.type = type != null ? type : DEFAULT_DOWNSAMPLING_TYPE;
         this.toCoverage = toCoverage;
         this.toFraction = toFraction;
-        this.useExperimentalDownsampling = useExperimentalDownsampling;
+        this.useLegacyDownsampler = useLegacyDownsampler;
 
         if ( type == DownsampleType.NONE ) {
             toCoverage = null;
@@ -101,19 +101,19 @@ public class DownsamplingMethod {
         if ( toFraction != null && (toFraction < 0.0 || toFraction > 1.0) ) {
             throw new UserException.CommandLineException("toFraction must be >= 0.0 and <= 1.0 when downsampling to a fraction of reads");
         }
+    }
 
-        // Some restrictions only exist for the old downsampling implementation:
-        if ( ! useExperimentalDownsampling ) {
-            // By sample downsampling does not work with a fraction of reads in the old downsampling implementation
-            if( type == DownsampleType.BY_SAMPLE && toFraction != null )
-                throw new UserException.CommandLineException("Cannot downsample to fraction with the BY_SAMPLE method");
+    public void checkCompatibilityWithWalker( Walker walker ) {
+        boolean isLocusTraversal = walker instanceof LocusWalker || walker instanceof ActiveRegionWalker;
+
+        if ( ! isLocusTraversal && useLegacyDownsampler && toCoverage != null ) {
+            throw new UserException.CommandLineException("Downsampling to coverage for read-based traversals (eg., ReadWalkers) is not supported in the legacy downsampling implementation. " +
+                                                         "The newer downsampling implementation does not have this limitation.");
         }
 
-        // Some restrictions only exist for the new downsampling implementation:
-        if ( useExperimentalDownsampling ) {
-            if ( type == DownsampleType.ALL_READS && toCoverage != null ) {
-                throw new UserException.CommandLineException("Cannot downsample to coverage with the ALL_READS method in the experimental downsampling implementation");
-            }
+        if ( isLocusTraversal && ! useLegacyDownsampler && type == DownsampleType.ALL_READS && toCoverage != null ) {
+            throw new UserException.CommandLineException("Downsampling to coverage with the ALL_READS method for locus-based traversals (eg., LocusWalkers) is not yet supported in the new downsampling implementation (though it is supported for ReadWalkers). " +
+                                                         "You can run with --use_legacy_downsampler for a broken and poorly-maintained implementation of ALL_READS to-coverage downsampling, but this is not recommended.");
         }
     }
 
@@ -124,30 +124,34 @@ public class DownsamplingMethod {
             builder.append("No downsampling");
         }
         else {
-            builder.append(String.format("Method: %s ", type));
+            builder.append(String.format("Method: %s, ", type));
 
             if ( toCoverage != null ) {
-                builder.append(String.format("Target Coverage: %d ", toCoverage));
+                builder.append(String.format("Target Coverage: %d, ", toCoverage));
             }
             else {
-                builder.append(String.format("Target Fraction: %.2f ", toFraction));
+                builder.append(String.format("Target Fraction: %.2f, ", toFraction));
             }
 
-            if ( useExperimentalDownsampling ) {
-                builder.append("Using Experimental Downsampling");
+            if ( useLegacyDownsampler ) {
+                builder.append("Using the legacy downsampling implementation");
+            }
+            else {
+                builder.append("Using the new downsampling implementation");
             }
         }
 
         return builder.toString();
     }
 
-    public static DownsamplingMethod getDefaultDownsamplingMethod( Walker walker, boolean useExperimentalDownsampling ) {
+    public static DownsamplingMethod getDefaultDownsamplingMethod( Walker walker, boolean useLegacyDownsampler ) {
         if ( walker instanceof LocusWalker || walker instanceof ActiveRegionWalker ) {
             return new DownsamplingMethod(DEFAULT_DOWNSAMPLING_TYPE, DEFAULT_LOCUS_BASED_TRAVERSAL_DOWNSAMPLING_COVERAGE,
-                                          null, useExperimentalDownsampling);
+                                          null, useLegacyDownsampler);
         }
         else {
-            return new DownsamplingMethod(DownsampleType.NONE, null, null, useExperimentalDownsampling);
+            // Downsampling is off by default for non-locus-based traversals
+            return new DownsamplingMethod(DownsampleType.NONE, null, null, useLegacyDownsampler);
         }
     }
 }

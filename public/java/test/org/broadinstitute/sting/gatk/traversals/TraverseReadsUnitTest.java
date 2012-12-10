@@ -6,7 +6,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.reads.ReadShardBalancer;
+import org.broadinstitute.sting.gatk.datasources.reads.LegacyReadShardBalancer;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
@@ -114,7 +114,7 @@ public class TraverseReadsUnitTest extends BaseTest {
     @Test
     public void testUnmappedReadCount() {
         SAMDataSource dataSource = new SAMDataSource(bamList,new ThreadAllocation(),null,genomeLocParser);
-        Iterable<Shard> shardStrategy = dataSource.createShardIteratorOverAllReads(new ReadShardBalancer());
+        Iterable<Shard> shardStrategy = dataSource.createShardIteratorOverAllReads(new LegacyReadShardBalancer());
 
         countReadWalker.initialize();
         Object accumulator = countReadWalker.reduceInit();

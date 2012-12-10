@@ -32,11 +32,10 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.ReadProperties;
-import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
-import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
+import org.broadinstitute.sting.gatk.iterators.LegacyLocusIteratorByState;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.walkers.qc.CountLoci;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -85,7 +84,7 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
             GenomeLocParser genomeLocParser = new GenomeLocParser(reader.getFileHeader().getSequenceDictionary());
             // Filter unmapped reads.  TODO: is this always strictly necessary?  Who in the GATK normally filters these out?
             Iterator<SAMRecord> readIterator = new FilteringIterator(reader.iterator(),new UnmappedReadFilter());
-            LocusIteratorByState locusIteratorByState = new LocusIteratorByState(readIterator,readProperties,genomeLocParser, LocusIteratorByState.sampleListForSAMWithoutReadGroups());
+            LegacyLocusIteratorByState locusIteratorByState = new LegacyLocusIteratorByState(readIterator,readProperties,genomeLocParser, LegacyLocusIteratorByState.sampleListForSAMWithoutReadGroups());
             while(locusIteratorByState.hasNext()) {
                 locusIteratorByState.next().getLocation();
             }

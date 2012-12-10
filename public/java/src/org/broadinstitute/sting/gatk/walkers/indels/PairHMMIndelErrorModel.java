@@ -287,6 +287,9 @@ public class PairHMMIndelErrorModel {
                 if (startLocationInRefForHaplotypes < ref.getWindow().getStart()) {
                     startLocationInRefForHaplotypes = ref.getWindow().getStart();                                       // read starts before haplotype: read will have to be cut numStartSoftClippedBases += ref.getWindow().getStart() - startLocationInRefForHaplotypes;
                 }
+                else if (startLocationInRefForHaplotypes > ref.getWindow().getStop()) {
+                    startLocationInRefForHaplotypes = ref.getWindow().getStop();                                        // read starts after haplotype: read will have to be clipped completely;
+                }
 
                 if (stopLocationInRefForHaplotypes > ref.getWindow().getStop()) {
                     stopLocationInRefForHaplotypes = ref.getWindow().getStop();                                         // check also if end of read will go beyond reference context
@@ -338,6 +341,8 @@ public class PairHMMIndelErrorModel {
 
                         if (startLocationInRefForHaplotypes < haplotype.getStartPosition())
                             startLocationInRefForHaplotypes = haplotype.getStartPosition();
+                        else if (startLocationInRefForHaplotypes > haplotype.getStopPosition())
+                            startLocationInRefForHaplotypes = haplotype.getStopPosition();
 
                         final long indStart = startLocationInRefForHaplotypes - haplotype.getStartPosition();
                         final long indStop =  stopLocationInRefForHaplotypes - haplotype.getStartPosition();
@@ -346,8 +351,6 @@ public class PairHMMIndelErrorModel {
                         if (DEBUG)
                             System.out.format("indStart: %d indStop: %d WinStart:%d WinStop:%d start: %d stop: %d readLength: %d C:%s\n",
                                     indStart, indStop, ref.getWindow().getStart(), ref.getWindow().getStop(), startLocationInRefForHaplotypes, stopLocationInRefForHaplotypes, read.getReadLength(), read.getCigar().toString());
-
-
 
                         final byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBases(),
                                 (int)indStart, (int)indStop);

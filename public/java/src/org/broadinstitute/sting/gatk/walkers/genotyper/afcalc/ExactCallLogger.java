@@ -77,7 +77,7 @@ public class ExactCallLogger implements Cloneable {
         for ( final Allele allele : result.getAllelesUsedInGenotyping() ) {
             if ( allele.isNonReference() ) {
                 printCallElement(vc, "MLE", allele, result.getAlleleCountAtMLE(allele));
-                printCallElement(vc, "pNonRefByAllele", allele, result.getLog10PosteriorOfAFGt0ForAllele(allele));
+                printCallElement(vc, "pRefByAllele", allele, result.getLog10PosteriorOfAFEq0ForAllele(allele));
             }
         }
 
@@ -123,7 +123,7 @@ public class ExactCallLogger implements Cloneable {
             final double[] posteriors = new double[2];
             final double[] priors = MathUtils.normalizeFromLog10(new double[]{0.5, 0.5}, true);
             final List<Integer> mle = new ArrayList<Integer>();
-            final Map<Allele, Double> log10pNonRefByAllele = new HashMap<Allele, Double>();
+            final Map<Allele, Double> log10pRefByAllele = new HashMap<Allele, Double>();
             long runtimeNano = -1;
 
             GenomeLoc currentLoc = null;
@@ -148,7 +148,7 @@ public class ExactCallLogger implements Cloneable {
                         builder.chr(currentLoc.getContig()).start(currentLoc.getStart()).stop(stop);
                         builder.genotypes(genotypes);
                         final int[] mleInts = ArrayUtils.toPrimitive(mle.toArray(new Integer[]{}));
-                        final AFCalcResult result = new AFCalcResult(mleInts, 1, alleles, posteriors, priors, log10pNonRefByAllele);
+                        final AFCalcResult result = new AFCalcResult(mleInts, 1, alleles, posteriors, priors, log10pRefByAllele);
                         calls.add(new ExactCall(builder.make(), runtimeNano, result));
                     }
                     break;
@@ -165,9 +165,9 @@ public class ExactCallLogger implements Cloneable {
                     posteriors[1] = Double.valueOf(value);
                 } else if (variable.equals("MLE")) {
                     mle.add(Integer.valueOf(value));
-                } else if (variable.equals("pNonRefByAllele")) {
+                } else if (variable.equals("pRefByAllele")) {
                     final Allele a = Allele.create(key);
-                    log10pNonRefByAllele.put(a, Double.valueOf(value));
+                    log10pRefByAllele.put(a, Double.valueOf(value));
                 } else if (variable.equals("runtime.nano")) {
                     runtimeNano = Long.valueOf(value);
                 } else {

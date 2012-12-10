@@ -466,7 +466,7 @@ public class SAMDataSource {
     /**
      * Legacy method to fill the given buffering shard with reads.
      *
-     * Shard.fill() is used instead of this method when experimental downsampling is enabled
+     * Shard.fill() is used instead of this method unless legacy downsampling is enabled
      *
      * TODO: delete this method once the experimental downsampling engine fork collapses
      *
@@ -638,7 +638,8 @@ public class SAMDataSource {
                 readProperties.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                 readProperties.getSupplementalFilters(),
                 readProperties.getReadTransformers(),
-                readProperties.defaultBaseQualities());
+                readProperties.defaultBaseQualities(),
+                shard instanceof LocusShard);
     }
 
     private class BAMCodecIterator implements CloseableIterator<SAMRecord> {
@@ -695,6 +696,7 @@ public class SAMDataSource {
      * @param noValidationOfReadOrder Another trigger for the verifying iterator?  TODO: look into this.
      * @param supplementalFilters additional filters to apply to the reads.
      * @param defaultBaseQualities if the reads have incomplete quality scores, set them all to defaultBaseQuality.
+     * @param isLocusBasedTraversal true if we're dealing with a read stream from a LocusShard
      * @return An iterator wrapped with filters reflecting the passed-in parameters.  Will not be null.
      */
     protected StingSAMIterator applyDecoratingIterators(ReadMetrics readMetrics,
@@ -705,7 +707,8 @@ public class SAMDataSource {
                                                         Boolean noValidationOfReadOrder,
                                                         Collection<ReadFilter> supplementalFilters,
                                                         List<ReadTransformer> readTransformers,
-                                                        byte defaultBaseQualities) {
+                                                        byte defaultBaseQualities,
+                                                        boolean isLocusBasedTraversal ) {
 
         // ************************************************************************************************ //
         // *  NOTE: ALL FILTERING/DOWNSAMPLING SHOULD BE DONE BEFORE ANY ITERATORS THAT MODIFY THE READS! * //
@@ -714,12 +717,26 @@ public class SAMDataSource {
 
         wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
 
-        if ( readProperties.getDownsamplingMethod().useExperimentalDownsampling ) {
-            wrappedIterator = applyDownsamplingIterator(wrappedIterator);
+        // If we're using the new downsampling implementation, apply downsampling iterators at this
+        // point in the read stream for most (but not all) cases
+        if ( ! readProperties.getDownsamplingMethod().useLegacyDownsampler ) {
+
+            // For locus traversals where we're downsampling to coverage by sample, assume that the downsamplers
+            // will be invoked downstream from us in LocusIteratorByState. This improves performance by avoiding
+            // splitting/re-assembly of the read stream at this stage, and also allows for partial downsampling
+            // of individual reads.
+            boolean assumeDownstreamLIBSDownsampling = isLocusBasedTraversal &&
+                                                       readProperties.getDownsamplingMethod().type == DownsampleType.BY_SAMPLE &&
+                                                       readProperties.getDownsamplingMethod().toCoverage != null;
+
+            if ( ! assumeDownstreamLIBSDownsampling ) {
+                wrappedIterator = applyDownsamplingIterator(wrappedIterator);
+            }
         }
 
-        // Use the old fractional downsampler only if we're not using experimental downsampling:
-        if ( ! readProperties.getDownsamplingMethod().useExperimentalDownsampling && downsamplingFraction != null )
+        // Use the old fractional downsampler only if we're using legacy downsampling:
+        // TODO: remove this statement (and associated classes) once the downsampling engine fork collapses
+        if ( readProperties.getDownsamplingMethod().useLegacyDownsampler && downsamplingFraction != null )
             wrappedIterator = new LegacyDownsampleIterator(wrappedIterator, downsamplingFraction);
 
         // unless they've said not to validate read ordering (!noValidationOfReadOrder) and we've enabled verification,
@@ -741,19 +758,37 @@ public class SAMDataSource {
     }
 
     protected StingSAMIterator applyDownsamplingIterator( StingSAMIterator wrappedIterator ) {
-        if ( readProperties.getDownsamplingMethod().type == DownsampleType.BY_SAMPLE ) {
-            ReadsDownsamplerFactory<SAMRecord> downsamplerFactory = readProperties.getDownsamplingMethod().toCoverage != null ?
-                                                                    new SimplePositionalDownsamplerFactory<SAMRecord>(readProperties.getDownsamplingMethod().toCoverage) :
-                                                                    new FractionalDownsamplerFactory<SAMRecord>(readProperties.getDownsamplingMethod().toFraction);
-
-            return new PerSampleDownsamplingReadsIterator(wrappedIterator, downsamplerFactory);
+        if ( readProperties.getDownsamplingMethod() == null ||
+             readProperties.getDownsamplingMethod().type == DownsampleType.NONE ) {
+            return wrappedIterator;
         }
-        else if ( readProperties.getDownsamplingMethod().type == DownsampleType.ALL_READS ) {
-            ReadsDownsampler<SAMRecord> downsampler = readProperties.getDownsamplingMethod().toCoverage != null ?
-                                                      new SimplePositionalDownsampler<SAMRecord>(readProperties.getDownsamplingMethod().toCoverage) :
-                                                      new FractionalDownsampler<SAMRecord>(readProperties.getDownsamplingMethod().toFraction);
 
-            return new DownsamplingReadsIterator(wrappedIterator, downsampler);
+        if ( readProperties.getDownsamplingMethod().toFraction != null ) {
+
+            // If we're downsampling to a fraction of reads, there's no point in paying the cost of
+            // splitting/re-assembling the read stream by sample to run the FractionalDownsampler on
+            // reads from each sample separately, since the result would be the same as running the
+            // FractionalDownsampler on the entire stream. So, ALWAYS use the DownsamplingReadsIterator
+            // rather than the PerSampleDownsamplingReadsIterator, even if BY_SAMPLE downsampling
+            // was requested.
+
+            return new DownsamplingReadsIterator(wrappedIterator,
+                                                 new FractionalDownsampler<SAMRecord>(readProperties.getDownsamplingMethod().toFraction));
+        }
+        else if ( readProperties.getDownsamplingMethod().toCoverage != null ) {
+
+            // If we're downsampling to coverage, we DO need to pay the cost of splitting/re-assembling
+            // the read stream to run the downsampler on the reads for each individual sample separately if
+            // BY_SAMPLE downsampling was requested.
+
+            if ( readProperties.getDownsamplingMethod().type == DownsampleType.BY_SAMPLE ) {
+                return new PerSampleDownsamplingReadsIterator(wrappedIterator,
+                                                              new SimplePositionalDownsamplerFactory<SAMRecord>(readProperties.getDownsamplingMethod().toCoverage));
+            }
+            else if ( readProperties.getDownsamplingMethod().type == DownsampleType.ALL_READS ) {
+                return new DownsamplingReadsIterator(wrappedIterator,
+                                                     new SimplePositionalDownsampler<SAMRecord>(readProperties.getDownsamplingMethod().toCoverage));
+            }
         }
 
         return wrappedIterator;

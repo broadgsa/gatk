@@ -7,10 +7,8 @@ import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -21,14 +19,17 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 /**
- * testing of the experimental version of LocusIteratorByState
+ * testing of the LEGACY version of LocusIteratorByState
  */
-public class LocusIteratorByStateExperimentalUnitTest extends BaseTest {
+public class LegacyLocusIteratorByStateUnitTest extends BaseTest {
     private static SAMFileHeader header;
-    private LocusIteratorByStateExperimental li;
+    private LegacyLocusIteratorByState li;
     private GenomeLocParser genomeLocParser;
 
     @BeforeClass
@@ -37,8 +38,8 @@ public class LocusIteratorByStateExperimentalUnitTest extends BaseTest {
         genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
     }
 
-    private LocusIteratorByStateExperimental makeLTBS(List<SAMRecord> reads, ReadProperties readAttributes) {
-        return new LocusIteratorByStateExperimental(new FakeCloseableIterator<SAMRecord>(reads.iterator()), readAttributes, genomeLocParser, LocusIteratorByStateExperimental.sampleListForSAMWithoutReadGroups());
+    private LegacyLocusIteratorByState makeLTBS(List<SAMRecord> reads, ReadProperties readAttributes) {
+        return new LegacyLocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()), readAttributes, genomeLocParser, LegacyLocusIteratorByState.sampleListForSAMWithoutReadGroups());
     }
 
     @Test
@@ -328,184 +329,14 @@ public class LocusIteratorByStateExperimentalUnitTest extends BaseTest {
     // End comprehensive LIBS/PileupElement tests //
     ////////////////////////////////////////////////
 
-
-    ///////////////////////////////////////
-    // Read State Manager Tests          //
-    ///////////////////////////////////////
-
-    private class PerSampleReadStateManagerTest extends TestDataProvider {
-        private List<Integer> readCountsPerAlignmentStart;
-        private List<SAMRecord> reads;
-        private List<ArrayList<LocusIteratorByStateExperimental.SAMRecordState>> recordStatesByAlignmentStart;
-        private int removalInterval;
-
-        public PerSampleReadStateManagerTest( List<Integer> readCountsPerAlignmentStart, int removalInterval ) {
-            super(PerSampleReadStateManagerTest.class);
-
-            this.readCountsPerAlignmentStart = readCountsPerAlignmentStart;
-            this.removalInterval = removalInterval;
-
-            reads = new ArrayList<SAMRecord>();
-            recordStatesByAlignmentStart = new ArrayList<ArrayList<LocusIteratorByStateExperimental.SAMRecordState>>();
-
-            setName(String.format("%s: readCountsPerAlignmentStart: %s  removalInterval: %d",
-                                  getClass().getSimpleName(), readCountsPerAlignmentStart, removalInterval));
-        }
-
-        public void run() {
-            LocusIteratorByStateExperimental libs = makeLTBS(new ArrayList<SAMRecord>(), createTestReadProperties());
-            LocusIteratorByStateExperimental.ReadStateManager readStateManager =
-                    libs.new ReadStateManager(new ArrayList<SAMRecord>().iterator());
-            LocusIteratorByStateExperimental.ReadStateManager.PerSampleReadStateManager perSampleReadStateManager =
-                    readStateManager.new PerSampleReadStateManager();
-
-            makeReads();
-
-            for ( ArrayList<LocusIteratorByStateExperimental.SAMRecordState> stackRecordStates : recordStatesByAlignmentStart ) {
-                perSampleReadStateManager.addStatesAtNextAlignmentStart(stackRecordStates);
-            }
-
-            // read state manager should have the right number of reads
-            Assert.assertEquals(reads.size(), perSampleReadStateManager.size());
-
-            Iterator<SAMRecord> originalReadsIterator = reads.iterator();
-            Iterator<LocusIteratorByStateExperimental.SAMRecordState> recordStateIterator = perSampleReadStateManager.iterator();
-            int recordStateCount = 0;
-            int numReadStatesRemoved = 0;
-
-            // Do a first-pass validation of the record state iteration by making sure we get back everything we
-            // put in, in the same order, doing any requested removals of read states along the way
-            while ( recordStateIterator.hasNext() ) {
-                LocusIteratorByStateExperimental.SAMRecordState readState = recordStateIterator.next();
-                recordStateCount++;
-                SAMRecord readFromPerSampleReadStateManager = readState.getRead();
-
-                Assert.assertTrue(originalReadsIterator.hasNext());
-                SAMRecord originalRead = originalReadsIterator.next();
-
-                // The read we get back should be literally the same read in memory as we put in
-                Assert.assertTrue(originalRead == readFromPerSampleReadStateManager);
-
-                // If requested, remove a read state every removalInterval states
-                if ( removalInterval > 0 && recordStateCount % removalInterval == 0 ) {
-                    recordStateIterator.remove();
-                    numReadStatesRemoved++;
-                }
-            }
-
-            Assert.assertFalse(originalReadsIterator.hasNext());
-
-            // If we removed any read states, do a second pass through the read states to make sure the right
-            // states were removed
-            if ( numReadStatesRemoved > 0 ) {
-                Assert.assertEquals(perSampleReadStateManager.size(), reads.size() - numReadStatesRemoved);
-
-                originalReadsIterator = reads.iterator();
-                recordStateIterator = perSampleReadStateManager.iterator();
-                int readCount = 0;
-                int readStateCount = 0;
-
-                // Match record states with the reads that should remain after removal
-                while ( recordStateIterator.hasNext() ) {
-                    LocusIteratorByStateExperimental.SAMRecordState readState = recordStateIterator.next();
-                    readStateCount++;
-                    SAMRecord readFromPerSampleReadStateManager = readState.getRead();
-
-                    Assert.assertTrue(originalReadsIterator.hasNext());
-
-                    SAMRecord originalRead = originalReadsIterator.next();
-                    readCount++;
-
-                    if ( readCount % removalInterval == 0 ) {
-                        originalRead = originalReadsIterator.next(); // advance to next read, since the previous one should have been discarded
-                        readCount++;
-                    }
-
-                    // The read we get back should be literally the same read in memory as we put in (after accounting for removals)
-                    Assert.assertTrue(originalRead == readFromPerSampleReadStateManager);
-                }
-
-                Assert.assertEquals(readStateCount, reads.size() - numReadStatesRemoved);
-            }
-
-            // Allow memory used by this test to be reclaimed
-            readCountsPerAlignmentStart = null;
-            reads = null;
-            recordStatesByAlignmentStart = null;
-        }
-
-        private void makeReads() {
-            int alignmentStart = 1;
-
-            for ( int readsThisStack : readCountsPerAlignmentStart ) {
-                ArrayList<SAMRecord> stackReads = new ArrayList<SAMRecord>(ArtificialSAMUtils.createStackOfIdenticalArtificialReads(readsThisStack, header, "foo", 0, alignmentStart, MathUtils.randomIntegerInRange(50, 100)));
-                ArrayList<LocusIteratorByStateExperimental.SAMRecordState> stackRecordStates = new ArrayList<LocusIteratorByStateExperimental.SAMRecordState>();
-
-                for ( SAMRecord read : stackReads ) {
-                    stackRecordStates.add(new LocusIteratorByStateExperimental.SAMRecordState(read));
-                }
-
-                reads.addAll(stackReads);
-                recordStatesByAlignmentStart.add(stackRecordStates);
-            }
-        }
-    }
-
-    @DataProvider(name = "PerSampleReadStateManagerTestDataProvider")
-    public Object[][] createPerSampleReadStateManagerTests() {
-        for ( List<Integer> thisTestReadStateCounts : Arrays.asList( Arrays.asList(1),
-                                                                     Arrays.asList(2),
-                                                                     Arrays.asList(10),
-                                                                     Arrays.asList(1, 1),
-                                                                     Arrays.asList(2, 2),
-                                                                     Arrays.asList(10, 10),
-                                                                     Arrays.asList(1, 10),
-                                                                     Arrays.asList(10, 1),
-                                                                     Arrays.asList(1, 1, 1),
-                                                                     Arrays.asList(2, 2, 2),
-                                                                     Arrays.asList(10, 10, 10),
-                                                                     Arrays.asList(1, 1, 1, 1, 1, 1),
-                                                                     Arrays.asList(10, 10, 10, 10, 10, 10),
-                                                                     Arrays.asList(1, 2, 10, 1, 2, 10)
-                                                                   ) ) {
-
-            for ( int removalInterval : Arrays.asList(0, 2, 3) ) {
-                new PerSampleReadStateManagerTest(thisTestReadStateCounts, removalInterval);
-            }
-        }
-
-        return PerSampleReadStateManagerTest.getTests(PerSampleReadStateManagerTest.class);
-    }
-
-    @Test(dataProvider = "PerSampleReadStateManagerTestDataProvider")
-    public void runPerSampleReadStateManagerTest( PerSampleReadStateManagerTest test ) {
-        logger.warn("Running test: " + test);
-
-        test.run();
-    }
-
-    ///////////////////////////////////////
-    // End Read State Manager Tests      //
-    ///////////////////////////////////////
-
-
-
-    ///////////////////////////////////////
-    // Helper methods / classes          //
-    ///////////////////////////////////////
-
     private static ReadProperties createTestReadProperties() {
-        return createTestReadProperties(null);
-    }
-
-    private static ReadProperties createTestReadProperties( DownsamplingMethod downsamplingMethod ) {
         return new ReadProperties(
                 Collections.<SAMReaderID>emptyList(),
                 new SAMFileHeader(),
                 SAMFileHeader.SortOrder.coordinate,
                 false,
                 SAMFileReader.ValidationStringency.STRICT,
-                downsamplingMethod,
+                null,
                 new ValidationExclusion(),
                 Collections.<ReadFilter>emptyList(),
                 Collections.<ReadTransformer>emptyList(),
@@ -513,136 +344,137 @@ public class LocusIteratorByStateExperimentalUnitTest extends BaseTest {
                 (byte) -1
         );
     }
+}
 
-    private static class FakeCloseableIterator<T> implements CloseableIterator<T> {
-        Iterator<T> iterator;
+class FakeCloseableIterator<T> implements CloseableIterator<T> {
+    Iterator<T> iterator;
 
-        public FakeCloseableIterator(Iterator<T> it) {
-            iterator = it;
-        }
-
-        @Override
-        public void close() {}
-
-        @Override
-        public boolean hasNext() {
-            return iterator.hasNext();
-        }
-
-        @Override
-        public T next() {
-            return iterator.next();
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException("Don't remove!");
-        }
+    public FakeCloseableIterator(Iterator<T> it) {
+        iterator = it;
     }
 
-    private static final class LIBS_position {
+    @Override
+    public void close() {}
 
-        SAMRecord read;
+    @Override
+    public boolean hasNext() {
+        return iterator.hasNext();
+    }
 
-        final int numOperators;
-        int currentOperatorIndex = 0;
-        int currentPositionOnOperator = 0;
-        int currentReadOffset = 0;
+    @Override
+    public T next() {
+        return iterator.next();
+    }
 
-        boolean isBeforeDeletionStart = false;
-        boolean isBeforeDeletedBase = false;
-        boolean isAfterDeletionEnd = false;
-        boolean isAfterDeletedBase = false;
-        boolean isBeforeInsertion = false;
-        boolean isAfterInsertion = false;
-        boolean isNextToSoftClip = false;
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException("Don't remove!");
+    }
+}
 
-        boolean sawMop = false;
 
-        public LIBS_position(final SAMRecord read) {
-            this.read = read;
-            numOperators = read.getCigar().numCigarElements();
-        }
+final class LIBS_position {
 
-        public int getCurrentReadOffset() {
-            return Math.max(0, currentReadOffset - 1);
-        }
+    SAMRecord read;
 
-        /**
-         * Steps forward on the genome.  Returns false when done reading the read, true otherwise.
-         */
-        public boolean stepForwardOnGenome() {
-            if ( currentOperatorIndex == numOperators )
+    final int numOperators;
+    int currentOperatorIndex = 0;
+    int currentPositionOnOperator = 0;
+    int currentReadOffset = 0;
+
+    boolean isBeforeDeletionStart = false;
+    boolean isBeforeDeletedBase = false;
+    boolean isAfterDeletionEnd = false;
+    boolean isAfterDeletedBase = false;
+    boolean isBeforeInsertion = false;
+    boolean isAfterInsertion = false;
+    boolean isNextToSoftClip = false;
+
+    boolean sawMop = false;
+
+    public LIBS_position(final SAMRecord read) {
+        this.read = read;
+        numOperators = read.getCigar().numCigarElements();
+    }
+
+    public int getCurrentReadOffset() {
+        return Math.max(0, currentReadOffset - 1);
+    }
+
+    /**
+     * Steps forward on the genome.  Returns false when done reading the read, true otherwise.
+     */
+    public boolean stepForwardOnGenome() {
+        if ( currentOperatorIndex == numOperators )
+            return false;
+
+        CigarElement curElement = read.getCigar().getCigarElement(currentOperatorIndex);
+        if ( currentPositionOnOperator >= curElement.getLength() ) {
+            if ( ++currentOperatorIndex == numOperators )
                 return false;
 
-            CigarElement curElement = read.getCigar().getCigarElement(currentOperatorIndex);
-            if ( currentPositionOnOperator >= curElement.getLength() ) {
-                if ( ++currentOperatorIndex == numOperators )
-                    return false;
+            curElement = read.getCigar().getCigarElement(currentOperatorIndex);
+            currentPositionOnOperator = 0;
+        }
 
-                curElement = read.getCigar().getCigarElement(currentOperatorIndex);
-                currentPositionOnOperator = 0;
-            }
-
-            switch ( curElement.getOperator() ) {
-                case I: // insertion w.r.t. the reference
-                    if ( !sawMop )
-                        break;
-                case S: // soft clip
-                    currentReadOffset += curElement.getLength();
-                case H: // hard clip
-                case P: // padding
-                    currentOperatorIndex++;
-                    return stepForwardOnGenome();
-
-                case D: // deletion w.r.t. the reference
-                case N: // reference skip (looks and gets processed just like a "deletion", just different logical meaning)
-                    currentPositionOnOperator++;
+        switch ( curElement.getOperator() ) {
+            case I: // insertion w.r.t. the reference
+                if ( !sawMop )
                     break;
+            case S: // soft clip
+                currentReadOffset += curElement.getLength();
+            case H: // hard clip
+            case P: // padding
+                currentOperatorIndex++;
+                return stepForwardOnGenome();
 
-                case M:
-                case EQ:
-                case X:
-                    sawMop = true;
-                    currentReadOffset++;
-                    currentPositionOnOperator++;
-                    break;
-                default:
-                    throw new IllegalStateException("No support for cigar op: " + curElement.getOperator());
-            }
+            case D: // deletion w.r.t. the reference
+            case N: // reference skip (looks and gets processed just like a "deletion", just different logical meaning)
+                currentPositionOnOperator++;
+                break;
 
-            final boolean isFirstOp = currentOperatorIndex == 0;
-            final boolean isLastOp = currentOperatorIndex == numOperators - 1;
-            final boolean isFirstBaseOfOp = currentPositionOnOperator == 1;
-            final boolean isLastBaseOfOp = currentPositionOnOperator == curElement.getLength();
-
-            isBeforeDeletionStart = isBeforeOp(read.getCigar(), currentOperatorIndex, CigarOperator.D, isLastOp, isLastBaseOfOp);
-            isBeforeDeletedBase = isBeforeDeletionStart || (!isLastBaseOfOp && curElement.getOperator() == CigarOperator.D);
-            isAfterDeletionEnd = isAfterOp(read.getCigar(), currentOperatorIndex, CigarOperator.D, isFirstOp, isFirstBaseOfOp);
-            isAfterDeletedBase  = isAfterDeletionEnd || (!isFirstBaseOfOp && curElement.getOperator() == CigarOperator.D);
-            isBeforeInsertion = isBeforeOp(read.getCigar(), currentOperatorIndex, CigarOperator.I, isLastOp, isLastBaseOfOp)
-                    || (!sawMop && curElement.getOperator() == CigarOperator.I);
-            isAfterInsertion = isAfterOp(read.getCigar(), currentOperatorIndex, CigarOperator.I, isFirstOp, isFirstBaseOfOp);
-            isNextToSoftClip = isBeforeOp(read.getCigar(), currentOperatorIndex, CigarOperator.S, isLastOp, isLastBaseOfOp)
-                    || isAfterOp(read.getCigar(), currentOperatorIndex, CigarOperator.S, isFirstOp, isFirstBaseOfOp);
-
-            return true;
+            case M:
+            case EQ:
+            case X:
+                sawMop = true;
+                currentReadOffset++;
+                currentPositionOnOperator++;
+                break;
+            default:
+                throw new IllegalStateException("No support for cigar op: " + curElement.getOperator());
         }
 
-        private static boolean isBeforeOp(final Cigar cigar,
-                                          final int currentOperatorIndex,
-                                          final CigarOperator op,
-                                          final boolean isLastOp,
-                                          final boolean isLastBaseOfOp) {
-            return  !isLastOp && isLastBaseOfOp && cigar.getCigarElement(currentOperatorIndex+1).getOperator() == op;
-        }
+        final boolean isFirstOp = currentOperatorIndex == 0;
+        final boolean isLastOp = currentOperatorIndex == numOperators - 1;
+        final boolean isFirstBaseOfOp = currentPositionOnOperator == 1;
+        final boolean isLastBaseOfOp = currentPositionOnOperator == curElement.getLength();
 
-        private static boolean isAfterOp(final Cigar cigar,
-                                         final int currentOperatorIndex,
-                                         final CigarOperator op,
-                                         final boolean isFirstOp,
-                                         final boolean isFirstBaseOfOp) {
-            return  !isFirstOp && isFirstBaseOfOp && cigar.getCigarElement(currentOperatorIndex-1).getOperator() == op;
-        }
+        isBeforeDeletionStart = isBeforeOp(read.getCigar(), currentOperatorIndex, CigarOperator.D, isLastOp, isLastBaseOfOp);
+        isBeforeDeletedBase = isBeforeDeletionStart || (!isLastBaseOfOp && curElement.getOperator() == CigarOperator.D);
+        isAfterDeletionEnd = isAfterOp(read.getCigar(), currentOperatorIndex, CigarOperator.D, isFirstOp, isFirstBaseOfOp);
+        isAfterDeletedBase  = isAfterDeletionEnd || (!isFirstBaseOfOp && curElement.getOperator() == CigarOperator.D);
+        isBeforeInsertion = isBeforeOp(read.getCigar(), currentOperatorIndex, CigarOperator.I, isLastOp, isLastBaseOfOp)
+                || (!sawMop && curElement.getOperator() == CigarOperator.I);
+        isAfterInsertion = isAfterOp(read.getCigar(), currentOperatorIndex, CigarOperator.I, isFirstOp, isFirstBaseOfOp);
+        isNextToSoftClip = isBeforeOp(read.getCigar(), currentOperatorIndex, CigarOperator.S, isLastOp, isLastBaseOfOp)
+                || isAfterOp(read.getCigar(), currentOperatorIndex, CigarOperator.S, isFirstOp, isFirstBaseOfOp);
+
+        return true;
+    }
+
+    private static boolean isBeforeOp(final Cigar cigar,
+                                      final int currentOperatorIndex,
+                                      final CigarOperator op,
+                                      final boolean isLastOp,
+                                      final boolean isLastBaseOfOp) {
+        return  !isLastOp && isLastBaseOfOp && cigar.getCigarElement(currentOperatorIndex+1).getOperator() == op;
+    }
+
+    private static boolean isAfterOp(final Cigar cigar,
+                                     final int currentOperatorIndex,
+                                     final CigarOperator op,
+                                     final boolean isFirstOp,
+                                     final boolean isFirstBaseOfOp) {
+        return  !isFirstOp && isFirstBaseOfOp && cigar.getCigarElement(currentOperatorIndex-1).getOperator() == op;
     }
 }
