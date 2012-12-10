@@ -228,7 +228,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         if ( genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE && PRIORITY_STRING == null )
             throw new UserException.MissingArgument("rod_priority_list", "Priority string must be provided if you want to prioritize genotypes");
 
-        if ( genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE ){
+        if ( PRIORITY_STRING != null || genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE ){
             priority = new ArrayList<String>(Arrays.asList(PRIORITY_STRING.split(",")));
             if ( rodNames.size() != priority.size() )
                 throw new UserException.BadArgumentValue("rod_priority_list", "The priority list must contain exactly one rod binding per ROD provided to the GATK: rodNames=" + rodNames + " priority=" + priority);
