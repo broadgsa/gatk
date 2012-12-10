@@ -165,14 +165,14 @@ final class StateTracker {
         final double[] log10Likelihoods = MathUtils.normalizeFromLog10(new double[]{getLog10LikelihoodOfAFzero(), getLog10LikelihoodOfAFNotZero()}, true);
         final double[] log10Priors = MathUtils.normalizeFromLog10(new double[]{log10PriorsByAC[0], MathUtils.log10sumLog10(log10PriorsByAC, 1)}, true);
 
-        final Map<Allele, Double> log10pNonRefByAllele = new HashMap<Allele, Double>(allelesUsedInGenotyping.size());
+        final Map<Allele, Double> log10pRefByAllele = new HashMap<Allele, Double>(allelesUsedInGenotyping.size());
         for ( int i = 0; i < subACOfMLE.length; i++ ) {
             final Allele allele = allelesUsedInGenotyping.get(i+1);
-            final double log10PNonRef = alleleCountsOfMAP[i] > 0 ? 0 : -10000; // TODO -- a total hack but in effect what the old behavior was
-            log10pNonRefByAllele.put(allele, log10PNonRef);
+            final double log10PRef = alleleCountsOfMAP[i] > 0 ? -10000 : 0; // TODO -- a total hack but in effect what the old behavior was
+            log10pRefByAllele.put(allele, log10PRef);
         }
 
-        return new AFCalcResult(subACOfMLE, nEvaluations, allelesUsedInGenotyping, log10Likelihoods, log10Priors, log10pNonRefByAllele);
+        return new AFCalcResult(subACOfMLE, nEvaluations, allelesUsedInGenotyping, log10Likelihoods, log10Priors, log10pRefByAllele);
     }
 
     // --------------------------------------------------------------------------------

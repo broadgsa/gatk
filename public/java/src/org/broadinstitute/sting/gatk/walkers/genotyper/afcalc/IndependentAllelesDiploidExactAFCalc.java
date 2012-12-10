@@ -125,8 +125,8 @@ import java.util.*;
          */
         final List<AFCalcResult> supporting;
 
-        private MyAFCalcResult(int[] alleleCountsOfMLE, int nEvaluations, List<Allele> allelesUsedInGenotyping, double[] log10LikelihoodsOfAC, double[] log10PriorsOfAC, Map<Allele, Double> log10pNonRefByAllele, List<AFCalcResult> supporting) {
-            super(alleleCountsOfMLE, nEvaluations, allelesUsedInGenotyping, log10LikelihoodsOfAC, log10PriorsOfAC, log10pNonRefByAllele);
+        private MyAFCalcResult(int[] alleleCountsOfMLE, int nEvaluations, List<Allele> allelesUsedInGenotyping, double[] log10LikelihoodsOfAC, double[] log10PriorsOfAC, Map<Allele, Double> log10pRefByAllele, List<AFCalcResult> supporting) {
+            super(alleleCountsOfMLE, nEvaluations, allelesUsedInGenotyping, log10LikelihoodsOfAC, log10PriorsOfAC, log10pRefByAllele);
             this.supporting = supporting;
         }
     }
@@ -323,7 +323,7 @@ import java.util.*;
         final int nAltAlleles = sortedResultsWithThetaNPriors.size();
         final int[] alleleCountsOfMLE = new int[nAltAlleles];
         final double[] log10PriorsOfAC = new double[2];
-        final Map<Allele, Double> log10pNonRefByAllele = new HashMap<Allele, Double>(nAltAlleles);
+        final Map<Allele, Double> log10pRefByAllele = new HashMap<Allele, Double>(nAltAlleles);
 
         // the sum of the log10 posteriors for AF == 0 and AF > 0 to determine joint probs
         double log10PosteriorOfACEq0Sum = 0.0;
@@ -348,7 +348,7 @@ import java.util.*;
             log10PosteriorOfACGt0Sum += sortedResultWithThetaNPriors.getLog10PosteriorOfAFGT0();
 
             // bind pNonRef for allele to the posterior value of the AF > 0 with the new adjusted prior
-            log10pNonRefByAllele.put(altAllele, sortedResultWithThetaNPriors.getLog10PosteriorOfAFGT0());
+            log10pRefByAllele.put(altAllele, sortedResultWithThetaNPriors.getLog10PosteriorOfAFEq0());
 
             // trivial -- update the number of evaluations
             nEvaluations += sortedResultWithThetaNPriors.nEvaluations;
@@ -384,6 +384,6 @@ import java.util.*;
                 MathUtils.normalizeFromLog10(log10LikelihoodsOfAC, true),
                 // priors incorporate multiple alt alleles, must be normalized
                 MathUtils.normalizeFromLog10(log10PriorsOfAC, true),
-                log10pNonRefByAllele, sortedResultsWithThetaNPriors);
+                log10pRefByAllele, sortedResultsWithThetaNPriors);
     }
 }
