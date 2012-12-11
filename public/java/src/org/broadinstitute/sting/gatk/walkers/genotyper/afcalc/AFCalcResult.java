@@ -230,6 +230,9 @@ public class AFCalcResult {
      * And that log10minPNonRef is -3.
      * We are considered polymorphic since 10^-5 < 10^-3 => -5 < -3
      *
+     * Note that log10minPNonRef is really the minimum confidence, scaled as an error rate, so
+     * if you want to be 99% confidence, then log10PNonRef should be log10(0.01) = -2.
+     *
      * @param log10minPNonRef the log10 scaled min pr of being non-ref to be considered polymorphic
      *
      * @return true if there's enough confidence (relative to log10minPNonRef) to reject AF == 0
