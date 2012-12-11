@@ -228,7 +228,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         if ( genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE && PRIORITY_STRING == null )
             throw new UserException.MissingArgument("rod_priority_list", "Priority string must be provided if you want to prioritize genotypes");
 
-        if ( PRIORITY_STRING != null || genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE ){
+        if ( PRIORITY_STRING != null){
             priority = new ArrayList<String>(Arrays.asList(PRIORITY_STRING.split(",")));
             if ( rodNames.size() != priority.size() )
                 throw new UserException.BadArgumentValue("rod_priority_list", "The priority list must contain exactly one rod binding per ROD provided to the GATK: rodNames=" + rodNames + " priority=" + priority);
@@ -243,6 +243,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         if ( tracker == null ) // RodWalkers can make funky map calls
             return 0;
 
+        Set<String> rodNames = SampleUtils.getRodNamesWithVCFHeader(getToolkit(), null);
         // get all of the vcf rods at this locus
         // Need to provide reference bases to simpleMerge starting at current locus
         Collection<VariantContext> vcs = tracker.getValues(variants, context.getLocation());
@@ -289,13 +290,13 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             for (VariantContext.Type type : VariantContext.Type.values()) {
                 if (VCsByType.containsKey(type))
                     mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
-                            priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                            priority, rodNames.size() , filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
                             SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
             }
         }
         else if (multipleAllelesMergeType == VariantContextUtils.MultipleAllelesMergeType.MIX_TYPES) {
             mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), vcs,
-                    priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                    priority, rodNames.size(), filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
                     SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
         }
         else {
