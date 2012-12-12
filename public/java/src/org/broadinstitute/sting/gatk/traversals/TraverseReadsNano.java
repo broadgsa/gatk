@@ -78,7 +78,8 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
     public T traverse(ReadWalker<M,T> walker,
                       ReadShardDataProvider dataProvider,
                       T sum) {
-        logger.debug(String.format("TraverseReadsNano.traverse Covered dataset is %s", dataProvider));
+        if ( logger.isDebugEnabled() )
+            logger.debug(String.format("TraverseReadsNano.traverse Covered dataset is %s", dataProvider));
 
         if( !dataProvider.hasReads() )
             throw new IllegalArgumentException("Unable to traverse reads; no read data is available.");
