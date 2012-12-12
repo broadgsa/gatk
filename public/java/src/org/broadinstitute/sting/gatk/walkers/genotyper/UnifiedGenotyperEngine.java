@@ -52,7 +52,7 @@ import java.util.*;
 
 public class UnifiedGenotyperEngine {
     public static final String LOW_QUAL_FILTER_NAME = "LowQual";
-    private static final String GPSTRING = "GeneralPloidy";
+    private static final String GPSTRING = "GENERALPLOIDY";
 
     public static final String NUMBER_OF_DISCOVERED_ALLELES_KEY = "NDA";
 
@@ -79,6 +79,7 @@ public class UnifiedGenotyperEngine {
 
     // the model used for calculating genotypes
     private ThreadLocal<Map<String, GenotypeLikelihoodsCalculationModel>> glcm = new ThreadLocal<Map<String, GenotypeLikelihoodsCalculationModel>>();
+    private final List<GenotypeLikelihoodsCalculationModel.Model> modelsToUse = new ArrayList<GenotypeLikelihoodsCalculationModel.Model>(2);
 
     // the model used for calculating p(non-ref)
     private ThreadLocal<AFCalc> afcm = new ThreadLocal<AFCalc>();
@@ -134,6 +135,8 @@ public class UnifiedGenotyperEngine {
         computeAlleleFrequencyPriors(N, log10AlleleFrequencyPriorsIndels, UAC.INDEL_HETEROZYGOSITY);
 
         filter.add(LOW_QUAL_FILTER_NAME);
+
+        determineGLModelsToUse();
     }
 
     /**
@@ -286,7 +289,7 @@ public class UnifiedGenotyperEngine {
             glcm.set(getGenotypeLikelihoodsCalculationObject(logger, UAC));
         }
 
-        return glcm.get().get(model.name().toUpperCase()).getLikelihoods(tracker, refContext, stratifiedContexts, type, alternateAllelesToUse, useBAQedPileup && BAQEnabledOnCMDLine, genomeLocParser, perReadAlleleLikelihoodMap);
+        return glcm.get().get(model.name()).getLikelihoods(tracker, refContext, stratifiedContexts, type, alternateAllelesToUse, useBAQedPileup && BAQEnabledOnCMDLine, genomeLocParser, perReadAlleleLikelihoodMap);
     }
 
     private VariantCallContext generateEmptyContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, AlignmentContext rawContext) {
@@ -634,48 +637,51 @@ public class UnifiedGenotyperEngine {
                 (UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES && QualityUtils.phredScaleErrorRate(PofF) >= UAC.STANDARD_CONFIDENCE_FOR_CALLING);
     }
 
+    private void determineGLModelsToUse() {
+
+        String modelPrefix = "";
+        if ( !UAC.GLmodel.name().contains(GPSTRING) && UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY )
+            modelPrefix = GPSTRING;
+
+        if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") ) {
+            modelPrefix += UAC.GLmodel.name().toUpperCase().replaceAll("BOTH","");
+            modelsToUse.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"SNP"));
+            modelsToUse.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"INDEL"));
+        }
+        else {
+            modelsToUse.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+UAC.GLmodel.name().toUpperCase()));
+        }
+    }
+
     // decide whether we are currently processing SNPs, indels, neither, or both
     private List<GenotypeLikelihoodsCalculationModel.Model> getGLModelsToUse(final RefMetaDataTracker tracker,
                                                                              final ReferenceContext refContext,
                                                                              final AlignmentContext rawContext) {
 
-        final List<GenotypeLikelihoodsCalculationModel.Model> models = new ArrayList<GenotypeLikelihoodsCalculationModel.Model>(2);
-        String modelPrefix = "";
-        if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") )
-            modelPrefix = UAC.GLmodel.name().toUpperCase().replaceAll("BOTH","");
+        if ( UAC.GenotypingMode != GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES )
+            return modelsToUse;
 
-        if (!UAC.GLmodel.name().contains(GPSTRING) && UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY)
-            modelPrefix = GPSTRING + modelPrefix;
+        // if we're genotyping given alleles then we need to choose the model corresponding to the variant type requested
+        final List<GenotypeLikelihoodsCalculationModel.Model> GGAmodel = new ArrayList<GenotypeLikelihoodsCalculationModel.Model>(1);
+        final VariantContext vcInput = getVCFromAllelesRod(tracker, refContext, rawContext.getLocation(), false, logger, UAC.alleles);
+        if ( vcInput == null )
+            return GGAmodel; // no work to be done
 
-        // if we're genotyping given alleles and we have a requested SNP at this position, do SNP
-        if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
-            final VariantContext vcInput = getVCFromAllelesRod(tracker, refContext, rawContext.getLocation(), false, logger, UAC.alleles);
-            if ( vcInput == null )
-                return models;
-
-            if ( vcInput.isSNP() )  {
-                // ignore SNPs if the user chose INDEL mode only
-                if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") || UAC.GLmodel.name().toUpperCase().contains("SNP") )
-                    models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"SNP"));
-            }
-            else if ( vcInput.isIndel() || vcInput.isMixed() ) {
-                // ignore INDELs if the user chose SNP mode only
-                if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") || UAC.GLmodel.name().toUpperCase().contains("INDEL") )
-                    models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"INDEL"));
-            }
-            // No support for other types yet
+        if ( vcInput.isSNP() )  {
+            // use the SNP model unless the user chose INDEL mode only
+            if ( modelsToUse.size() == 2 || modelsToUse.get(0).name().endsWith("SNP") )
+                GGAmodel.add(modelsToUse.get(0));
         }
-        else {
-            if ( UAC.GLmodel.name().toUpperCase().contains("BOTH") ) {
-                models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"SNP"));
-                models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+"INDEL"));
-            }
-            else {
-                models.add(GenotypeLikelihoodsCalculationModel.Model.valueOf(modelPrefix+UAC.GLmodel.name().toUpperCase()));
-            }
+        else if ( vcInput.isIndel() || vcInput.isMixed() ) {
+            // use the INDEL model unless the user chose SNP mode only
+            if ( modelsToUse.size() == 2 )
+                GGAmodel.add(modelsToUse.get(1));
+            else if ( modelsToUse.get(0).name().endsWith("INDEL") )
+                GGAmodel.add(modelsToUse.get(0));
         }
+        // No support for other types yet
 
-        return models;
+        return GGAmodel;
     }
 
     public static void computeAlleleFrequencyPriors(final int N, final double[] priors, final double theta) {
