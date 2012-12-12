@@ -54,14 +54,6 @@ public class BaseRecalibration {
     private final int preserveQLessThan;
     private final boolean emitOriginalQuals;
 
-    // TODO -- was this supposed to be used somewhere?
-//    private static final NestedHashMap[] qualityScoreByFullCovariateKey = new NestedHashMap[EventType.values().length]; // Caches the result of performSequentialQualityCalculation(..) for all sets of covariate values.
-//    static {
-//        for (int i = 0; i < EventType.values().length; i++)
-//            qualityScoreByFullCovariateKey[i] = new NestedHashMap();
-//    }
-
-
     /**
      * Constructor using a GATK Report file
      * 
