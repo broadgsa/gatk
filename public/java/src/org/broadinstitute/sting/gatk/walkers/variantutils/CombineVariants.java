@@ -134,7 +134,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
     protected VariantContextWriter vcfWriter = null;
 
     @Argument(shortName="genotypeMergeOptions", doc="Determines how we should merge genotype records for samples shared across the ROD files", required=false)
-    public VariantContextUtils.GenotypeMergeType genotypeMergeOption = VariantContextUtils.GenotypeMergeType.PRIORITIZE;
+    public VariantContextUtils.GenotypeMergeType genotypeMergeOption = null;
 
     @Argument(shortName="filteredRecordsMergeType", doc="Determines how we should handle records seen at the same site in the VCF, but with different FILTER fields", required=false)
     public VariantContextUtils.FilteredRecordMergeType filteredRecordsMergeType = VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED;
@@ -200,13 +200,13 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         } else
             logger.warn("VCF output file not an instance of VCFWriterStub; cannot enable sites only output option");
 
-        if ( PRIORITY_STRING == null ) {
+        validateAnnotateUnionArguments();
+        if ( PRIORITY_STRING == null && genotypeMergeOption == null) {
             genotypeMergeOption = VariantContextUtils.GenotypeMergeType.UNSORTED;
             //PRIORITY_STRING = Utils.join(",", vcfRods.keySet());  Deleted by Ami (7/10/12)
-            logger.info("Priority string not provided, using arbitrary genotyping order: " + PRIORITY_STRING);
+            logger.info("Priority string not provided, using arbitrary genotyping order: "+priority);
         }
 
-        validateAnnotateUnionArguments();
         samples = sitesOnlyVCF ? Collections.<String>emptySet() : SampleUtils.getSampleList(vcfRods, genotypeMergeOption);
 
         if ( SET_KEY.toLowerCase().equals("null") )
@@ -228,22 +228,22 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         if ( genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE && PRIORITY_STRING == null )
             throw new UserException.MissingArgument("rod_priority_list", "Priority string must be provided if you want to prioritize genotypes");
 
-        if ( genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE )
+        if ( PRIORITY_STRING != null){
             priority = new ArrayList<String>(Arrays.asList(PRIORITY_STRING.split(",")));
-        else
-            priority = new ArrayList<String>(rodNames);
+            if ( rodNames.size() != priority.size() )
+                throw new UserException.BadArgumentValue("rod_priority_list", "The priority list must contain exactly one rod binding per ROD provided to the GATK: rodNames=" + rodNames + " priority=" + priority);
 
-        if ( rodNames.size() != priority.size() )
-            throw new UserException.BadArgumentValue("rod_priority_list", "The priority list must contain exactly one rod binding per ROD provided to the GATK: rodNames=" + rodNames + " priority=" + priority);
+            if ( ! rodNames.containsAll(priority) )
+                throw new UserException.BadArgumentValue("rod_priority_list", "Not all priority elements provided as input RODs: " + PRIORITY_STRING);
+        }
 
-        if ( ! rodNames.containsAll(priority) )
-            throw new UserException.BadArgumentValue("rod_priority_list", "Not all priority elements provided as input RODs: " + PRIORITY_STRING);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null ) // RodWalkers can make funky map calls
             return 0;
 
+        Set<String> rodNames = SampleUtils.getRodNamesWithVCFHeader(getToolkit(), null);
         // get all of the vcf rods at this locus
         // Need to provide reference bases to simpleMerge starting at current locus
         Collection<VariantContext> vcs = tracker.getValues(variants, context.getLocation());
@@ -290,13 +290,13 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             for (VariantContext.Type type : VariantContext.Type.values()) {
                 if (VCsByType.containsKey(type))
                     mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
-                            priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                            priority, rodNames.size() , filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
                             SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
             }
         }
         else if (multipleAllelesMergeType == VariantContextUtils.MultipleAllelesMergeType.MIX_TYPES) {
             mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), vcs,
-                    priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                    priority, rodNames.size(), filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
                     SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
         }
         else {

@@ -135,6 +135,9 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
     @Argument(fullName = "permitNoSampleOverlap", shortName = "permitNoSampleOverlap", doc = "Don't exit (just WARN) when the VCF and BAMs do not overlap in samples", required = false)
     private boolean permitNoSampleOverlap = false;
 
+    /**
+     * Important note: do not use this argument if your input data set is not already phased or it will cause the tool to skip over all heterozygous sites.
+     */
     @Argument(fullName = "respectPhaseInInput", shortName = "respectPhaseInInput", doc = "Will only phase genotypes in cases where the resulting output will necessarily be consistent with any existing phase (for example, from trios)", required = false)
     private boolean respectPhaseInInput = false;
 

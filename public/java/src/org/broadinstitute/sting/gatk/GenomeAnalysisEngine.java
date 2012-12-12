@@ -445,13 +445,17 @@ public class GenomeAnalysisEngine {
 
     protected DownsamplingMethod getDownsamplingMethod() {
         GATKArgumentCollection argCollection = this.getArguments();
-        boolean useExperimentalDownsampling = argCollection.enableExperimentalDownsampling;
+
+        // Legacy downsampler can only be selected via the command line, not via walker annotations
+        boolean useLegacyDownsampler = argCollection.useLegacyDownsampler;
 
         DownsamplingMethod commandLineMethod = argCollection.getDownsamplingMethod();
-        DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker, useExperimentalDownsampling);
-        DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker, useExperimentalDownsampling);
+        DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker, useLegacyDownsampler);
+        DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker, useLegacyDownsampler);
 
-        return commandLineMethod != null ? commandLineMethod : (walkerMethod != null ? walkerMethod : defaultMethod);
+        DownsamplingMethod method = commandLineMethod != null ? commandLineMethod : (walkerMethod != null ? walkerMethod : defaultMethod);
+        method.checkCompatibilityWithWalker(walker);
+        return method;
     }
 
     protected void setDownsamplingMethod(DownsamplingMethod method) {
@@ -580,9 +584,9 @@ public class GenomeAnalysisEngine {
                         throw new UserException.CommandLineException("Pairs traversal cannot be used in conjunction with intervals.");
                 }
 
-                // Use the experimental ReadShardBalancer if experimental downsampling is enabled
-                ShardBalancer readShardBalancer = downsamplingMethod != null && downsamplingMethod.useExperimentalDownsampling ?
-                                                  new ExperimentalReadShardBalancer() :
+                // Use the legacy ReadShardBalancer if legacy downsampling is enabled
+                ShardBalancer readShardBalancer = downsamplingMethod != null && downsamplingMethod.useLegacyDownsampler ?
+                                                  new LegacyReadShardBalancer() :
                                                   new ReadShardBalancer();
 
                 if(intervals == null)

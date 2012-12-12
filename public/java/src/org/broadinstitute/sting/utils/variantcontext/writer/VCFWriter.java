@@ -248,7 +248,8 @@ class VCFWriter extends IndexingVariantContextWriter {
             }
             
             mWriter.write("\n");
-            mWriter.flush();  // necessary so that writing to an output stream will work
+            // note that we cannot call flush here if we want block gzipping to work properly
+            // calling flush results in all gzipped blocks for each variant
         } catch (IOException e) {
             throw new RuntimeException("Unable to write the VCF object to " + getStreamName(), e);
         }

@@ -45,10 +45,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ExperimentalReadShardBalancerUnitTest extends BaseTest {
+public class ReadShardBalancerUnitTest extends BaseTest {
 
     /**
-     * Tests to ensure that ExperimentalReadShardBalancer works as expected and does not place shard boundaries
+     * Tests to ensure that ReadShardBalancer works as expected and does not place shard boundaries
      * at inappropriate places, such as within an alignment start position
      */
     private static class ExperimentalReadShardBalancerTest extends TestDataProvider {
@@ -74,7 +74,7 @@ public class ExperimentalReadShardBalancerUnitTest extends BaseTest {
             this.stackSize = stackSize;
             this.numUnmappedReads = numUnmappedReads;
 
-            this.downsamplingMethod = new DownsamplingMethod(DownsampleType.BY_SAMPLE, downsamplingTargetCoverage, null, true);
+            this.downsamplingMethod = new DownsamplingMethod(DownsampleType.BY_SAMPLE, downsamplingTargetCoverage, null, false);
             this.expectedReadCount = Math.min(stackSize, downsamplingTargetCoverage) * numStacksPerContig * numContigs + numUnmappedReads;
 
             setName(String.format("%s: numContigs=%d numStacksPerContig=%d stackSize=%d numUnmappedReads=%d downsamplingTargetCoverage=%d",
@@ -96,7 +96,7 @@ public class ExperimentalReadShardBalancerUnitTest extends BaseTest {
                                                          new ArrayList<ReadFilter>(),
                                                          false);
 
-            Iterable<Shard> shardIterator = dataSource.createShardIteratorOverAllReads(new ExperimentalReadShardBalancer());
+            Iterable<Shard> shardIterator = dataSource.createShardIteratorOverAllReads(new ReadShardBalancer());
 
             SAMRecord readAtEndOfLastShard = null;
             int totalReadsSeen = 0;

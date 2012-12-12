@@ -448,11 +448,47 @@ public class VariantContextUtils {
                                              final String setKey,
                                              final boolean filteredAreUncalled,
                                              final boolean mergeInfoWithMaxAC ) {
+        int originalNumOfVCs = priorityListOfVCs == null ? 0 : priorityListOfVCs.size();
+        return simpleMerge(genomeLocParser,unsortedVCs,priorityListOfVCs,originalNumOfVCs,filteredRecordMergeType,genotypeMergeOptions,annotateOrigin,printMessages,setKey,filteredAreUncalled,mergeInfoWithMaxAC);
+    }
+
+    /**
+     * Merges VariantContexts into a single hybrid.  Takes genotypes for common samples in priority order, if provided.
+     * If uniquifySamples is true, the priority order is ignored and names are created by concatenating the VC name with
+     * the sample name
+     *
+     * @param genomeLocParser           loc parser
+     * @param unsortedVCs               collection of unsorted VCs
+     * @param priorityListOfVCs         priority list detailing the order in which we should grab the VCs
+     * @param filteredRecordMergeType   merge type for filtered records
+     * @param genotypeMergeOptions      merge option for genotypes
+     * @param annotateOrigin            should we annotate the set it came from?
+     * @param printMessages             should we print messages?
+     * @param setKey                    the key name of the set
+     * @param filteredAreUncalled       are filtered records uncalled?
+     * @param mergeInfoWithMaxAC        should we merge in info from the VC with maximum allele count?
+     * @return new VariantContext       representing the merge of unsortedVCs
+     */
+    public static VariantContext simpleMerge(final GenomeLocParser genomeLocParser,
+                                             final Collection<VariantContext> unsortedVCs,
+                                             final List<String> priorityListOfVCs,
+                                             final int originalNumOfVCs,
+                                             final FilteredRecordMergeType filteredRecordMergeType,
+                                             final GenotypeMergeType genotypeMergeOptions,
+                                             final boolean annotateOrigin,
+                                             final boolean printMessages,
+                                             final String setKey,
+                                             final boolean filteredAreUncalled,
+                                             final boolean mergeInfoWithMaxAC ) {
+
         if ( unsortedVCs == null || unsortedVCs.size() == 0 )
             return null;
 
-        if ( annotateOrigin && priorityListOfVCs == null )
-            throw new IllegalArgumentException("Cannot merge calls and annotate their origins without a complete priority list of VariantContexts");
+        if (priorityListOfVCs != null && originalNumOfVCs != priorityListOfVCs.size())
+            throw new IllegalArgumentException("the number of the original VariantContexts must be the same as the number of VariantContexts in the priority list");
+
+        if ( annotateOrigin && priorityListOfVCs == null && originalNumOfVCs == 0)
+            throw new IllegalArgumentException("Cannot merge calls and annotate their origins without a complete priority list of VariantContexts or the number of original VariantContexts");
 
         if ( genotypeMergeOptions == GenotypeMergeType.REQUIRE_UNIQUE )
             verifyUniqueSampleNames(unsortedVCs);
@@ -597,7 +633,7 @@ public class VariantContextUtils {
 
         if ( annotateOrigin ) { // we care about where the call came from
             String setValue;
-            if ( nFiltered == 0 && variantSources.size() == priorityListOfVCs.size() ) // nothing was unfiltered
+            if ( nFiltered == 0 && variantSources.size() == originalNumOfVCs ) // nothing was unfiltered
                 setValue = MERGE_INTERSECTION;
             else if ( nFiltered == VCs.size() )     // everything was filtered out
                 setValue = MERGE_FILTER_IN_ALL;

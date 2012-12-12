@@ -2,7 +2,6 @@ package org.broadinstitute.sting.utils.nanoScheduler;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
-import org.broadinstitute.sting.utils.SimpleTimer;
 import org.broadinstitute.sting.utils.Utils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -93,7 +92,7 @@ public class ReducerUnitTest extends BaseTest {
 
         final List<List<MapResult<Integer>>> jobGroups = Utils.groupList(allJobs, groupSize);
         final ReduceSumTest reduce = new ReduceSumTest();
-        final Reducer<Integer, Integer> reducer = new Reducer<Integer, Integer>(reduce, new MultiThreadedErrorTracker(), new SimpleTimer(), 0);
+        final Reducer<Integer, Integer> reducer = new Reducer<Integer, Integer>(reduce, new MultiThreadedErrorTracker(), 0);
 
         final TestWaitingForFinalReduce waitingThread = new TestWaitingForFinalReduce(reducer, expectedSum(allJobs));
         final ExecutorService es = Executors.newSingleThreadExecutor();
@@ -155,7 +154,7 @@ public class ReducerUnitTest extends BaseTest {
     private void runSettingJobIDTwice() throws Exception {
         final PriorityBlockingQueue<MapResult<Integer>> mapResultsQueue = new PriorityBlockingQueue<MapResult<Integer>>();
 
-        final Reducer<Integer, Integer> reducer = new Reducer<Integer, Integer>(new ReduceSumTest(), new MultiThreadedErrorTracker(), new SimpleTimer(), 0);
+        final Reducer<Integer, Integer> reducer = new Reducer<Integer, Integer>(new ReduceSumTest(), new MultiThreadedErrorTracker(), 0);
 
         reducer.setTotalJobCount(10);
         reducer.setTotalJobCount(15);

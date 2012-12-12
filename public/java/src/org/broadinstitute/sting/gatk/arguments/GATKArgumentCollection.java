@@ -162,12 +162,11 @@ public class GATKArgumentCollection {
     @Argument(fullName = "downsample_to_fraction", shortName = "dfrac", doc = "Fraction [0.0-1.0] of reads to downsample to", required = false)
     public Double downsampleFraction = null;
 
-    @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to at any given locus; note that downsampled reads are randomly selected from all possible reads at a locus", required = false)
+    @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to at any given locus; note that downsampled reads are randomly selected from all possible reads at a locus. For non-locus-based traversals (eg., ReadWalkers), this sets the maximum number of reads at each alignment start position.", required = false)
     public Integer downsampleCoverage = null;
 
-    @Argument(fullName = "enable_experimental_downsampling", shortName = "enable_experimental_downsampling", doc = "Enable experimental engine-level downsampling", required = false)
-    @Hidden
-    public boolean enableExperimentalDownsampling = false;
+    @Argument(fullName = "use_legacy_downsampler", shortName = "use_legacy_downsampler", doc = "Use the legacy downsampling implementation instead of the newer, less-tested implementation", required = false)
+    public boolean useLegacyDownsampler = false;
 
     /**
      * Gets the downsampling method explicitly specified by the user.  If the user didn't specify
@@ -178,7 +177,7 @@ public class GATKArgumentCollection {
         if ( downsamplingType == null && downsampleFraction == null && downsampleCoverage == null )
             return null;
 
-        return new DownsamplingMethod(downsamplingType, downsampleCoverage, downsampleFraction, enableExperimentalDownsampling);
+        return new DownsamplingMethod(downsamplingType, downsampleCoverage, downsampleFraction, useLegacyDownsampler);
     }
 
     /**
@@ -192,7 +191,7 @@ public class GATKArgumentCollection {
         downsamplingType = method.type;
         downsampleCoverage = method.toCoverage;
         downsampleFraction = method.toFraction;
-        enableExperimentalDownsampling = method.useExperimentalDownsampling;
+        useLegacyDownsampler = method.useLegacyDownsampler;
     }
 
     // --------------------------------------------------------------------------------------------------------------
