@@ -282,7 +282,7 @@ public class GATKBAMIndex {
             final int nBins = readInteger();
             // System.out.println("# nBins: " + nBins);
             for (int j = 0; j < nBins; j++) {
-                final int bin = readInteger();
+                skipInteger();
                 final int nChunks = readInteger();
                 // System.out.println("# bin[" + j + "] = " + bin + ", nChunks = " + nChunks);
                 skipBytes(16 * nChunks);
@@ -333,6 +333,10 @@ public class GATKBAMIndex {
         buffer.flip();
         return buffer.getInt();
     }
+
+    private void skipInteger() {
+        skipBytes(INT_SIZE_IN_BYTES);
+     }
 
     /**
      * Reads an array of <count> longs from the file channel, returning the results as an array.
