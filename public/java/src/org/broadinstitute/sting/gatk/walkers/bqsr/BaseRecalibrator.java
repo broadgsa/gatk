@@ -452,6 +452,8 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
 
     @Override
     public void onTraversalDone(Long result) {
+        recalibrationEngine.finalizeData();
+
         logger.info("Calculating quantized quality scores...");
         quantizeQualityScores();
 

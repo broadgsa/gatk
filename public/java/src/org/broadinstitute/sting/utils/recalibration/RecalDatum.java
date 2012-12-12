@@ -191,9 +191,9 @@ public class RecalDatum {
         return (byte)(Math.round(getEmpiricalQuality()));
     }
 
-        //---------------------------------------------------------------------------------------------------------------
+    //---------------------------------------------------------------------------------------------------------------
     //
-    // increment methods
+    // toString methods
     //
     //---------------------------------------------------------------------------------------------------------------
 
@@ -205,22 +205,6 @@ public class RecalDatum {
     public String stringForCSV() {
         return String.format("%s,%.2f,%.2f", toString(), getEstimatedQReported(), getEmpiricalQuality() - getEstimatedQReported());
     }
-
-//    /**
-//     * We don't compare the estimated quality reported because it may be different when read from
-//     * report tables.
-//     *
-//     * @param o the other recal datum
-//     * @return true if the two recal datums have the same number of observations, errors and empirical quality.
-//     */
-//    @Override
-//    public boolean equals(Object o) {
-//        if (!(o instanceof RecalDatum))
-//            return false;
-//        RecalDatum other = (RecalDatum) o;
-//        return super.equals(o) &&
-//               MathUtils.compareDoubles(this.empiricalQuality, other.empiricalQuality, 0.001) == 0;
-//    }
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -270,9 +254,7 @@ public class RecalDatum {
 
     @Ensures({"numObservations == old(numObservations) + 1", "numMismatches >= old(numMismatches)"})
     public synchronized void increment(final boolean isError) {
-        incrementNumObservations(1);
-        if ( isError )
-            incrementNumMismatches(1);
+        increment(1, isError ? 1 : 0.0);
     }
 
     // -------------------------------------------------------------------------------------
@@ -286,7 +268,7 @@ public class RecalDatum {
      */
     @Requires("empiricalQuality == UNINITIALIZED")
     @Ensures("empiricalQuality != UNINITIALIZED")
-    private synchronized final void calcEmpiricalQuality() {
+    private synchronized void calcEmpiricalQuality() {
         final double empiricalQual = -10 * Math.log10(getEmpiricalErrorRate());
         empiricalQuality = Math.min(empiricalQual, (double) QualityUtils.MAX_RECALIBRATED_Q_SCORE);
     }

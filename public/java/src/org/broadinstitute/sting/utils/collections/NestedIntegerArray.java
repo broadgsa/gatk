@@ -174,23 +174,23 @@ public class NestedIntegerArray<T> {
         }
     }
 
-    public static class Leaf {
+    public static class Leaf<T> {
         public final int[] keys;
-        public final Object value;
+        public final T value;
 
-        public Leaf(final int[] keys, final Object value) {
+        public Leaf(final int[] keys, final T value) {
             this.keys = keys;
             this.value = value;
         }
     }
 
-    public List<Leaf> getAllLeaves() {
-        final List<Leaf> result = new ArrayList<Leaf>();
+    public List<Leaf<T>> getAllLeaves() {
+        final List<Leaf<T>> result = new ArrayList<Leaf<T>>();
         fillAllLeaves(data, new int[0], result);
         return result;
     }
 
-    private void fillAllLeaves(final Object[] array, final int[] path, final List<Leaf> result) {
+    private void fillAllLeaves(final Object[] array, final int[] path, final List<Leaf<T>> result) {
         for ( int key = 0; key < array.length; key++ ) {
             final Object value = array[key];
             if ( value == null )
@@ -199,7 +199,7 @@ public class NestedIntegerArray<T> {
             if ( value instanceof Object[] ) {
                 fillAllLeaves((Object[]) value, newPath, result);
             } else {
-                result.add(new Leaf(newPath, value));
+                result.add(new Leaf<T>(newPath, (T)value));
             }
         }
     }
