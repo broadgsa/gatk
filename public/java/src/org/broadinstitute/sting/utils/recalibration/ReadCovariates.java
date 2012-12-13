@@ -47,7 +47,7 @@ public class ReadCovariates {
         final int[][][] cachedKeys = cache.get(readLength);
         if ( cachedKeys == null ) {
             // There's no cached value for read length so we need to create a new int[][][] array
-            logger.info("Keys cache miss for length " + readLength + " cache size " + cache.size());
+            if ( logger.isDebugEnabled() ) logger.debug("Keys cache miss for length " + readLength + " cache size " + cache.size());
             keys = new int[EventType.values().length][readLength][numberOfCovariates];
             cache.put(readLength, keys);
         } else {

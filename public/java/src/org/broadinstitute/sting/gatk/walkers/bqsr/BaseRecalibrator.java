@@ -416,6 +416,7 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
     }
 
     private byte[] calculateBAQArray( final GATKSAMRecord read ) {
+        // todo -- it would be good to directly use the BAQ qualities rather than encoding and decoding the result and using the special @ value
         baq.baqRead(read, referenceReader, BAQ.CalculationMode.RECALCULATE, BAQ.QualityMode.ADD_TAG);
         return BAQ.getBAQTag(read);
     }

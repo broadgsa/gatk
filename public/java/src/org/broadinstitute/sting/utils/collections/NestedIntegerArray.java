@@ -58,13 +58,20 @@ public class NestedIntegerArray<T> {
 
         int dimensionsToPreallocate = Math.min(dimensions.length, NUM_DIMENSIONS_TO_PREALLOCATE);
 
-        logger.info(String.format("Creating NestedIntegerArray with dimensions %s", Arrays.toString(dimensions)));
-        logger.info(String.format("Pre-allocating first %d dimensions", dimensionsToPreallocate));
+        if ( logger.isDebugEnabled() ) logger.debug(String.format("Creating NestedIntegerArray with dimensions %s", Arrays.toString(dimensions)));
+        if ( logger.isDebugEnabled() ) logger.debug(String.format("Pre-allocating first %d dimensions", dimensionsToPreallocate));
 
         data = new Object[dimensions[0]];
         preallocateArray(data, 0, dimensionsToPreallocate);
 
-        logger.info(String.format("Done pre-allocating first %d dimensions", dimensionsToPreallocate));
+        if ( logger.isDebugEnabled() ) logger.debug(String.format("Done pre-allocating first %d dimensions", dimensionsToPreallocate));
+    }
+
+    /**
+     * @return the dimensions of this nested integer array.  DO NOT MODIFY
+     */
+    public int[] getDimensions() {
+        return dimensions;
     }
 
     /**
