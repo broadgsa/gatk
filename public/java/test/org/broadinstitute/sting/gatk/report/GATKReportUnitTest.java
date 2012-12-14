@@ -168,7 +168,7 @@ public class GATKReportUnitTest extends BaseTest {
         table.set("RZ", "SomeFloat", 535646345.657453464576);
         table.set("RZ", "TrueFalse", true);
 
-        report1.addTable("Table3", "blah", 1, true);
+        report1.addTable("Table3", "blah", 1, true, false);
         report1.getTable("Table3").addColumn("a");
         report1.getTable("Table3").addRowIDMapping("q", 2);
         report1.getTable("Table3").addRowIDMapping("5", 3);

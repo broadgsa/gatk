@@ -481,6 +481,6 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
     }
 
     private void generateReport() {
-        RecalUtils.outputRecalibrationReport(RAC, quantizationInfo, recalibrationTables, requestedCovariates);
+        RecalUtils.outputRecalibrationReport(RAC, quantizationInfo, recalibrationTables, requestedCovariates, RAC.SORT_BY_ALL_COLUMNS);
     }
 }
