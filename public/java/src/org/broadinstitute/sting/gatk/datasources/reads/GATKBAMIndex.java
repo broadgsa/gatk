@@ -24,13 +24,10 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
@@ -80,6 +77,7 @@ public class GATKBAMIndex {
 
     private FileInputStream fileStream;
     private FileChannel fileChannel;
+    private BufferedInputStream bufferedStream;
 
     public GATKBAMIndex(final File file) {
         mFile = file;
@@ -277,12 +275,11 @@ public class GATKBAMIndex {
 
         for (int i = sequenceIndex; i < referenceSequence; i++) {
             sequenceStartCache[i] = position();
-
             // System.out.println("# Sequence TID: " + i);
             final int nBins = readInteger();
             // System.out.println("# nBins: " + nBins);
             for (int j = 0; j < nBins; j++) {
-                skipInteger();
+                final int bin = readInteger();
                 final int nChunks = readInteger();
                 // System.out.println("# bin[" + j + "] = " + bin + ", nChunks = " + nChunks);
                 skipBytes(16 * nChunks);
@@ -290,15 +287,19 @@ public class GATKBAMIndex {
             final int nLinearBins = readInteger();
             // System.out.println("# nLinearBins: " + nLinearBins);
             skipBytes(8 * nLinearBins);
+
         }
 
         sequenceStartCache[referenceSequence] = position();
     }
 
+
+
     private void openIndexFile() {
         try {
             fileStream = new FileInputStream(mFile);
             fileChannel = fileStream.getChannel();
+            bufferedStream = new BufferedInputStream(fileStream);
         }
         catch (IOException exc) {
             throw new ReviewedStingException("Unable to open index file (" + exc.getMessage() +")" + mFile, exc);
@@ -308,6 +309,7 @@ public class GATKBAMIndex {
     private void closeIndexFile() {
         try {
             fileChannel.close();
+            bufferedStream.close();
             fileStream.close();
         }
         catch (IOException exc) {
@@ -334,10 +336,6 @@ public class GATKBAMIndex {
         return buffer.getInt();
     }
 
-    private void skipInteger() {
-        skipBytes(INT_SIZE_IN_BYTES);
-     }
-
     /**
      * Reads an array of <count> longs from the file channel, returning the results as an array.
      * @param count Number of longs to read.
@@ -356,7 +354,9 @@ public class GATKBAMIndex {
     private void read(final ByteBuffer buffer) {
         try {
             int bytesExpected = buffer.limit();
-            int bytesRead = fileChannel.read(buffer);
+            //BufferedInputStream cannot read directly into a byte buffer, so we read into an array
+            //and put the result into the bytebuffer after the if statement.
+            int bytesRead = bufferedStream.read(byteArray,0,bytesExpected);
 
             // We have a rigid expectation here to read in exactly the number of bytes we've limited
             // our buffer to -- if we read in fewer bytes than this, or encounter EOF (-1), the index
@@ -367,6 +367,7 @@ public class GATKBAMIndex {
                                                                            "Please try re-indexing the corresponding BAM file.",
                                                                            mFile));
             }
+            buffer.put(byteArray,0,bytesRead);
         }
         catch(IOException ex) {
             throw new ReviewedStingException("Index: unable to read bytes from index file " + mFile);
@@ -380,10 +381,13 @@ public class GATKBAMIndex {
      */
     private ByteBuffer buffer = null;
 
+    //BufferedStream don't read into ByteBuffers, so we need this temporary array
+    private byte[] byteArray=null;
     private ByteBuffer getBuffer(final int size) {
         if(buffer == null || buffer.capacity() < size) {
             // Allocate a new byte buffer.  For now, make it indirect to make sure it winds up on the heap for easier debugging.
             buffer = ByteBuffer.allocate(size);
+            byteArray = new byte[size];
             buffer.order(ByteOrder.LITTLE_ENDIAN);
         }
         buffer.clear();
@@ -393,7 +397,13 @@ public class GATKBAMIndex {
 
     private void skipBytes(final int count) {
         try {
-            fileChannel.position(fileChannel.position() + count);
+
+            //try to skip forward the requested amount.
+            long remainingCount = count - bufferedStream.skip(count);
+
+            if( remainingCount > 0 ) { //if not enough data in buffer, reset buffer
+                seek(position() + remainingCount);
+            }
         }
         catch(IOException ex) {
             throw new ReviewedStingException("Index: unable to reposition file channel of index file " + mFile);
@@ -402,7 +412,9 @@ public class GATKBAMIndex {
 
     private void seek(final long position) {
         try {
+            //to seek a new position, move the fileChannel, and reposition the bufferedStream
             fileChannel.position(position);
+            bufferedStream = new BufferedInputStream(fileStream);
         }
         catch(IOException ex) {
             throw new ReviewedStingException("Index: unable to reposition of file channel of index file " + mFile);
@@ -415,7 +427,10 @@ public class GATKBAMIndex {
      */
     private long position() {
         try {
-            return fileChannel.position();
+            // It's a little complicated to figure out the position from a bufferedStream because it could be
+            // connected to a stream for which it makes no sense. Since we are on a file, this is OK.
+            final int bufferRemaining = bufferedStream.available() - fileStream.available();
+            return fileChannel.position() - bufferRemaining;
         }
         catch (IOException exc) {
             throw new ReviewedStingException("Unable to read position from index file " + mFile, exc);
