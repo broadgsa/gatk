@@ -397,9 +397,6 @@ public class GATKSAMRecord extends BAMRecord {
                 else if (op != CigarOperator.HARD_CLIP)
                     break;
             }
-
-            if ( softStart < 1 )
-                softStart = 1;
         }
         return softStart;
     }

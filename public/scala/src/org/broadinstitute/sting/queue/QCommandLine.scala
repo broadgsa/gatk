@@ -110,95 +110,103 @@ class QCommandLine extends CommandLineProgram with Logging {
    * functions, and then builds and runs a QGraph based on the dependencies.
    */
   def execute = {
-    ClassFieldCache.parsingEngine = this.parser
+    var success = false
+    var result = 1
+    try {
+      ClassFieldCache.parsingEngine = this.parser
 
-    if (settings.qSettings.runName == null)
-      settings.qSettings.runName = FilenameUtils.removeExtension(scripts.head.getName)
-    if (IOUtils.isDefaultTempDir(settings.qSettings.tempDirectory))
-      settings.qSettings.tempDirectory = IOUtils.absolute(settings.qSettings.runDirectory, ".queue/tmp")
-    qGraph.initializeWithSettings(settings)
+      if (settings.qSettings.runName == null)
+        settings.qSettings.runName = FilenameUtils.removeExtension(scripts.head.getName)
+      if (IOUtils.isDefaultTempDir(settings.qSettings.tempDirectory))
+        settings.qSettings.tempDirectory = IOUtils.absolute(settings.qSettings.runDirectory, ".queue/tmp")
+      qGraph.initializeWithSettings(settings)
 
-    for (commandPlugin <- allCommandPlugins) {
-      loadArgumentsIntoObject(commandPlugin)
-    }
-
-    for (commandPlugin <- allCommandPlugins) {
-      if (commandPlugin.statusMessenger != null)
-        commandPlugin.statusMessenger.started()
-    }
-
-    qGraph.messengers = allCommandPlugins.filter(_.statusMessenger != null).map(_.statusMessenger).toSeq
-
-    // TODO: Default command plugin argument?
-    val remoteFileConverter = (
-      for (commandPlugin <- allCommandPlugins if (commandPlugin.remoteFileConverter != null))
-        yield commandPlugin.remoteFileConverter
-      ).headOption.getOrElse(null)
-
-    if (remoteFileConverter != null)
-      loadArgumentsIntoObject(remoteFileConverter)
-
-    val allQScripts = qScriptPluginManager.createAllTypes()
-    for (script <- allQScripts) {
-      logger.info("Scripting " + qScriptPluginManager.getName(script.getClass.asSubclass(classOf[QScript])))
-      loadArgumentsIntoObject(script)
-      allCommandPlugins.foreach(_.initScript(script))
-      // TODO: Pulling inputs can be time/io expensive! Some scripts are using the files to generate functions-- even for dry runs-- so pull it all down for now.
-      //if (settings.run)
-      script.pullInputs()
-      script.qSettings = settings.qSettings
-      try {
-        script.script()
-      } catch {
-        case e: Exception =>
-          throw new UserException.CannotExecuteQScript(script.getClass.getSimpleName + ".script() threw the following exception: " + e, e)
+      for (commandPlugin <- allCommandPlugins) {
+        loadArgumentsIntoObject(commandPlugin)
       }
 
-      if (remoteFileConverter != null) {
-        if (remoteFileConverter.convertToRemoteEnabled)
-          script.mkRemoteOutputs(remoteFileConverter)
-      }
-
-      script.functions.foreach(qGraph.add(_))
-      logger.info("Added " + script.functions.size + " functions")
-    }
-    // Execute the job graph
-    qGraph.run()
-
-    val functionsAndStatus = qGraph.getFunctionsAndStatus
-    val success = qGraph.success
-
-    // walk over each script, calling onExecutionDone
-    for (script <- allQScripts) {
-      val scriptFunctions = functionsAndStatus.filterKeys(f => script.functions.contains(f))
-      script.onExecutionDone(scriptFunctions, success)
-    }
-
-    logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", functionsAndStatus.size))
-
-    // write the final complete job report
-    logger.info("Writing final jobs report...")
-    qGraph.writeJobsReport()
-
-    if (!success) {
-      logger.info("Done with errors")
-      qGraph.logFailed()
-      for (commandPlugin <- allCommandPlugins)
+      for (commandPlugin <- allCommandPlugins) {
         if (commandPlugin.statusMessenger != null)
-          commandPlugin.statusMessenger.exit("Done with errors: %s".format(qGraph.formattedStatusCounts))
-      1
-    } else {
-      if (settings.run) {
-        allQScripts.foreach(_.pushOutputs())
-        for (commandPlugin <- allCommandPlugins)
-          if (commandPlugin.statusMessenger != null) {
-            val allInputs = allQScripts.map(_.remoteInputs)
-            val allOutputs = allQScripts.map(_.remoteOutputs)
-            commandPlugin.statusMessenger.done(allInputs, allOutputs)
-          }
+          commandPlugin.statusMessenger.started()
       }
-      0
+
+      qGraph.messengers = allCommandPlugins.filter(_.statusMessenger != null).map(_.statusMessenger).toSeq
+
+      // TODO: Default command plugin argument?
+      val remoteFileConverter = (
+        for (commandPlugin <- allCommandPlugins if (commandPlugin.remoteFileConverter != null))
+        yield commandPlugin.remoteFileConverter
+        ).headOption.getOrElse(null)
+
+      if (remoteFileConverter != null)
+        loadArgumentsIntoObject(remoteFileConverter)
+
+      val allQScripts = qScriptPluginManager.createAllTypes()
+      for (script <- allQScripts) {
+        logger.info("Scripting " + qScriptPluginManager.getName(script.getClass.asSubclass(classOf[QScript])))
+        loadArgumentsIntoObject(script)
+        allCommandPlugins.foreach(_.initScript(script))
+        // TODO: Pulling inputs can be time/io expensive! Some scripts are using the files to generate functions-- even for dry runs-- so pull it all down for now.
+        //if (settings.run)
+        script.pullInputs()
+        script.qSettings = settings.qSettings
+        try {
+          script.script()
+        } catch {
+          case e: Exception =>
+            throw new UserException.CannotExecuteQScript(script.getClass.getSimpleName + ".script() threw the following exception: " + e, e)
+        }
+
+        if (remoteFileConverter != null) {
+          if (remoteFileConverter.convertToRemoteEnabled)
+            script.mkRemoteOutputs(remoteFileConverter)
+        }
+
+        script.functions.foreach(qGraph.add(_))
+        logger.info("Added " + script.functions.size + " functions")
+      }
+      // Execute the job graph
+      qGraph.run()
+
+      val functionsAndStatus = qGraph.getFunctionsAndStatus
+
+      // walk over each script, calling onExecutionDone
+      for (script <- allQScripts) {
+        val scriptFunctions = functionsAndStatus.filterKeys(f => script.functions.contains(f))
+        script.onExecutionDone(scriptFunctions, success)
+      }
+
+      logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", functionsAndStatus.size))
+
+      // write the final complete job report
+      logger.info("Writing final jobs report...")
+      qGraph.writeJobsReport()
+
+      if (qGraph.success) {
+        if (settings.run) {
+          allQScripts.foreach(_.pushOutputs())
+          for (commandPlugin <- allCommandPlugins)
+            if (commandPlugin.statusMessenger != null) {
+              val allInputs = allQScripts.map(_.remoteInputs)
+              val allOutputs = allQScripts.map(_.remoteOutputs)
+              commandPlugin.statusMessenger.done(allInputs, allOutputs)
+            }
+        }
+        success = true
+        result = 0
+      }
+    } finally {
+      if (!success) {
+        logger.info("Done with errors")
+        qGraph.logFailed()
+        if (settings.run) {
+          for (commandPlugin <- allCommandPlugins)
+            if (commandPlugin.statusMessenger != null)
+              commandPlugin.statusMessenger.exit("Done with errors: %s".format(qGraph.formattedStatusCounts))
+        }
+      }
     }
+    result
   }
 
   /**
