@@ -69,7 +69,7 @@ public class GATKBAMIndex {
     private final File mFile;
 
     //TODO: figure out a good value for this buffer size
-    private final int BUFFERED_STREAM_BUFFER_SIZE=1024;
+    private final int BUFFERED_STREAM_BUFFER_SIZE=8192;
 
     /**
      * Number of sequences stored in this index.
@@ -303,7 +303,7 @@ public class GATKBAMIndex {
     private void openIndexFile() {
         try {
             fileStream = new SeekableFileStream(mFile);
-            bufferedStream = new SeekableBufferedStream(fileStream);
+            bufferedStream = new SeekableBufferedStream(fileStream,BUFFERED_STREAM_BUFFER_SIZE);
         }
         catch (IOException exc) {
             throw new ReviewedStingException("Unable to open index file (" + exc.getMessage() +")" + mFile, exc);
