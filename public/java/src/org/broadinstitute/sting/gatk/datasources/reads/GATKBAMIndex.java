@@ -23,14 +23,17 @@
  */
 package org.broadinstitute.sting.gatk.datasources.reads;
 
+import org.broad.tribble.util.SeekableBufferedStream;
+import org.broad.tribble.util.SeekableFileStream;
+
 import net.sf.samtools.*;
+
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -65,6 +68,9 @@ public class GATKBAMIndex {
 
     private final File mFile;
 
+    //TODO: figure out a good value for this buffer size
+    private final int BUFFERED_STREAM_BUFFER_SIZE=1024;
+
     /**
      * Number of sequences stored in this index.
      */
@@ -75,9 +81,8 @@ public class GATKBAMIndex {
      */
     private final long[] sequenceStartCache;
 
-    private FileInputStream fileStream;
-    private FileChannel fileChannel;
-    private BufferedInputStream bufferedStream;
+    private SeekableFileStream fileStream;
+    private SeekableBufferedStream bufferedStream;
 
     public GATKBAMIndex(final File file) {
         mFile = file;
@@ -297,9 +302,8 @@ public class GATKBAMIndex {
 
     private void openIndexFile() {
         try {
-            fileStream = new FileInputStream(mFile);
-            fileChannel = fileStream.getChannel();
-            bufferedStream = new BufferedInputStream(fileStream);
+            fileStream = new SeekableFileStream(mFile);
+            bufferedStream = new SeekableBufferedStream(fileStream);
         }
         catch (IOException exc) {
             throw new ReviewedStingException("Unable to open index file (" + exc.getMessage() +")" + mFile, exc);
@@ -308,7 +312,6 @@ public class GATKBAMIndex {
 
     private void closeIndexFile() {
         try {
-            fileChannel.close();
             bufferedStream.close();
             fileStream.close();
         }
@@ -399,10 +402,10 @@ public class GATKBAMIndex {
         try {
 
             //try to skip forward the requested amount.
-            long remainingCount = count - bufferedStream.skip(count);
+            long skipped =  bufferedStream.skip(count);
 
-            if( remainingCount > 0 ) { //if not enough data in buffer, reset buffer
-                seek(position() + remainingCount);
+            if( skipped != count ) { //if not managed to skip the requested amount 
+		throw new ReviewedStingException("Index: unable to reposition file channel of index file " + mFile);
             }
         }
         catch(IOException ex) {
@@ -413,8 +416,7 @@ public class GATKBAMIndex {
     private void seek(final long position) {
         try {
             //to seek a new position, move the fileChannel, and reposition the bufferedStream
-            fileChannel.position(position);
-            bufferedStream = new BufferedInputStream(fileStream);
+            bufferedStream.seek(position);
         }
         catch(IOException ex) {
             throw new ReviewedStingException("Index: unable to reposition of file channel of index file " + mFile);
@@ -427,10 +429,7 @@ public class GATKBAMIndex {
      */
     private long position() {
         try {
-            // It's a little complicated to figure out the position from a bufferedStream because it could be
-            // connected to a stream for which it makes no sense. Since we are on a file, this is OK.
-            final int bufferRemaining = bufferedStream.available() - fileStream.available();
-            return fileChannel.position() - bufferRemaining;
+            return bufferedStream.position();
         }
         catch (IOException exc) {
             throw new ReviewedStingException("Unable to read position from index file " + mFile, exc);
