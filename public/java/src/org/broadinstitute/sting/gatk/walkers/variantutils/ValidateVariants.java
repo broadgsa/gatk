@@ -34,12 +34,14 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -149,7 +151,7 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
         if ( tracker.hasValues(dbsnp.dbsnp) ) {
             rsIDs = new HashSet<String>();
             for ( VariantContext rsID : tracker.getValues(dbsnp.dbsnp, ref.getLocus()) )
-                rsIDs.add(rsID.getID());
+                rsIDs.addAll(Arrays.asList(rsID.getID().split(VCFConstants.ID_FIELD_SEPARATOR)));
         }
 
         try {
