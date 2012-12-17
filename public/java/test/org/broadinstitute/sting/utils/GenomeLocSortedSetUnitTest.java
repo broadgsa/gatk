@@ -6,6 +6,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 import org.testng.annotations.BeforeClass;
@@ -115,6 +116,41 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
         assertTrue(loc.getStart() == 0);
         assertTrue(loc.getStop() == 100);
         assertTrue(loc.getContigIndex() == 1);
+    }
+
+    @Test
+    public void overlap() {
+        for ( int i = 1; i < 6; i++ ) {
+            final int start = i * 10;
+            mSortedSet.add(genomeLocParser.createGenomeLoc(contigOneName, start, start + 1));
+        }
+
+        // test matches in and around interval
+        assertFalse(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 9, 9)));
+        assertTrue(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 10, 10)));
+        assertTrue(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 11, 11)));
+        assertFalse(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 12, 12)));
+
+        // test matches spanning intervals
+        assertTrue(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 14, 20)));
+        assertTrue(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 11, 15)));
+        assertTrue(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 30, 40)));
+        assertTrue(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 51, 53)));
+
+        // test miss
+        assertFalse(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 12, 19)));
+
+        // test exact match after miss
+        assertTrue(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 40, 41)));
+
+        // test matches at beginning of intervals
+        assertFalse(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 5, 6)));
+        assertTrue(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 0, 10)));
+
+        // test matches at end of intervals
+        assertFalse(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 52, 53)));
+        assertTrue(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 51, 53)));
+        assertFalse(mSortedSet.overlaps(genomeLocParser.createGenomeLoc(contigOneName, 52, 53)));
     }
 
     @Test

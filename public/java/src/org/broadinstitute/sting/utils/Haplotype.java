@@ -41,15 +41,15 @@ public class Haplotype {
     protected final byte[] bases;
     protected final double[] quals;
     private GenomeLoc genomeLocation = null;
-    private HashMap<String, double[]> readLikelihoodsPerSample = null;
-    private HashMap<String, int[]> readCountsPerSample = null;
     private HashMap<Integer, VariantContext> eventMap = null;
     private boolean isRef = false;
     private Cigar cigar;
     private int alignmentStartHapwrtRef;
     public int leftBreakPoint = 0;
     public int rightBreakPoint = 0;
- 
+    private Allele artificialAllele = null;
+    private int artificialAllelePosition = -1;
+
     /**
      * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
      *
@@ -71,6 +71,12 @@ public class Haplotype {
         this(bases, 0);
     }
 
+    protected Haplotype( final byte[] bases, final Allele artificialAllele, final int artificialAllelePosition ) {
+        this(bases, 0);
+        this.artificialAllele = artificialAllele;
+        this.artificialAllelePosition = artificialAllelePosition;
+    }
+
     public Haplotype( final byte[] bases, final GenomeLoc loc ) {
         this(bases);
         this.genomeLocation = loc;
@@ -84,31 +90,6 @@ public class Haplotype {
     @Override
     public int hashCode() {
         return Arrays.hashCode(bases);
-    }
-
-    public void addReadLikelihoods( final String sample, final double[] readLikelihoods, final int[] readCounts ) {
-        if( readLikelihoodsPerSample == null ) {
-            readLikelihoodsPerSample = new HashMap<String, double[]>();
-        }
-        readLikelihoodsPerSample.put(sample, readLikelihoods);
-        if( readCountsPerSample == null ) {
-            readCountsPerSample = new HashMap<String, int[]>();
-        }
-        readCountsPerSample.put(sample, readCounts);
-    }
-
-    @Ensures({"result != null"})
-    public double[] getReadLikelihoods( final String sample ) {
-        return readLikelihoodsPerSample.get(sample);
-    }
-
-    @Ensures({"result != null"})
-    public int[] getReadCounts( final String sample ) {
-        return readCountsPerSample.get(sample);
-    }
-
-    public Set<String> getSampleKeySet() {
-        return readLikelihoodsPerSample.keySet();
     }
 
     public HashMap<Integer, VariantContext> getEventMap() {
@@ -171,8 +152,25 @@ public class Haplotype {
         this.cigar = cigar;
     }
 
+    public boolean isArtificialHaplotype() {
+        return artificialAllele != null;
+    }
+
+    public Allele getArtificialAllele() {
+        return artificialAllele;
+    }
+
+    public int getArtificialAllelePosition() {
+        return artificialAllelePosition;
+    }
+
+    public void setArtificialAllele(final Allele artificialAllele, final int artificialAllelePosition) {
+        this.artificialAllele = artificialAllele;
+        this.artificialAllelePosition = artificialAllelePosition;
+    }
+
     @Requires({"refInsertLocation >= 0"})
-    public Haplotype insertAllele( final Allele refAllele, final Allele altAllele, final int refInsertLocation ) {
+    public Haplotype insertAllele( final Allele refAllele, final Allele altAllele, final int refInsertLocation, final int genomicInsertLocation ) {
         // refInsertLocation is in ref haplotype offset coordinates NOT genomic coordinates
         final int haplotypeInsertLocation = ReadUtils.getReadCoordinateForReferenceCoordinate(alignmentStartHapwrtRef, cigar, refInsertLocation, ReadUtils.ClippingTail.RIGHT_TAIL, true);
         if( haplotypeInsertLocation == -1 || haplotypeInsertLocation + refAllele.length() >= bases.length ) { // desired change falls inside deletion so don't bother creating a new haplotype
@@ -182,7 +180,7 @@ public class Haplotype {
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, 0, haplotypeInsertLocation)); // bases before the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, altAllele.getBases()); // the alt allele of the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, haplotypeInsertLocation + refAllele.length(), bases.length)); // bases after the variant
-        return new Haplotype(newHaplotypeBases);
+        return new Haplotype(newHaplotypeBases, altAllele, genomicInsertLocation);
     }
 
     public static class HaplotypeBaseComparator implements Comparator<Haplotype>, Serializable {

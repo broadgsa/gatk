@@ -61,6 +61,16 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
     public ReadBackedPileup getOverlappingFragmentFilteredPileup();
 
     /**
+     * Returns a new ReadBackedPileup where only one read from an overlapping read
+     * pair is retained.  If discardDiscordant and the two reads in question disagree to their basecall,
+     * neither read is retained.  Otherwise, the read with the higher
+     * quality (base or mapping, depending on baseQualNotMapQual) observation is retained
+     *
+     * @return the newly filtered pileup
+     */
+    public ReadBackedPileup getOverlappingFragmentFilteredPileup(boolean discardDiscordant, boolean baseQualNotMapQual);
+
+    /**
      * Returns a new ReadBackedPileup that is free of mapping quality zero reads in this pileup.  Note that this
      * does not copy the data, so both ReadBackedPileups should not be changed.  Doesn't make an unnecessary copy
      * of the pileup (just returns this) if there are no MQ0 reads in the pileup.
@@ -262,8 +272,23 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
     public byte[] getMappingQuals();
 
     /**
+     * Returns a new ReadBackedPileup that is sorted by start coordinate of the reads.
+     *
+     * @return
+     */
+    public ReadBackedPileup getStartSortedPileup();
+
+    /**
      * Converts this pileup into a FragmentCollection (see FragmentUtils for documentation)
      * @return
      */
     public FragmentCollection<PileupElement> toFragments();
+
+    /**
+     * Creates a full copy (not shallow) of the ReadBacked Pileup
+     *
+     * @return
+     */
+    public ReadBackedPileup copy();
+
 }

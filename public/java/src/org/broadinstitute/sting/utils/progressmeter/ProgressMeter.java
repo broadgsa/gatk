@@ -26,6 +26,7 @@ package org.broadinstitute.sting.utils.progressmeter;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
+import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -143,6 +144,12 @@ public class ProgressMeter {
     /** We use the SimpleTimer to time our run */
     private final SimpleTimer timer = new SimpleTimer();
 
+    private GenomeLoc maxGenomeLoc = null;
+    private String positionMessage = "starting";
+    private long nTotalRecordsProcessed = 0;
+
+    final ProgressMeterDaemon progressMeterDaemon;
+
     /**
      * Create a new ProgressMeter
      *
@@ -177,21 +184,15 @@ public class ProgressMeter {
         targetSizeInBP = processingIntervals.coveredSize();
 
         // start up the timer
+        progressMeterDaemon = new ProgressMeterDaemon(this);
         start();
     }
 
     /**
-     * Forward request to notifyOfProgress
-     *
-     * Assumes that one cycle has been completed
-     *
-     * @param loc  our current location.  Null means "in unmapped reads"
-     * @param nTotalRecordsProcessed the total number of records we've processed
+     * Start up the progress meter, printing initialization message and starting up the
+     * daemon thread for periodic printing.
      */
-    public void notifyOfProgress(final GenomeLoc loc, final long nTotalRecordsProcessed) {
-        notifyOfProgress(loc, false, nTotalRecordsProcessed);
-    }
-
+    @Requires("progressMeterDaemon != null")
     private synchronized void start() {
         timer.start();
         lastProgressPrintTime = timer.currentTime();
@@ -199,6 +200,8 @@ public class ProgressMeter {
         logger.info("[INITIALIZATION COMPLETE; STARTING PROCESSING]");
         logger.info(String.format("%15s processed.%s  runtime per.1M.%s completed total.runtime remaining",
                 "Location", processingUnitName, processingUnitName));
+
+        progressMeterDaemon.start();
     }
 
     /**
@@ -216,19 +219,41 @@ public class ProgressMeter {
      * Synchronized to ensure that even with multiple threads calling notifyOfProgress we still
      * get one clean stream of meter logs.
      *
+     * Note this thread doesn't actually print progress, unless must print is true, but just registers
+     * the progress itself.  A separate printing daemon periodically polls the meter to print out
+     * progress
+     *
      * @param loc       Current location, can be null if you are at the end of the processing unit
-     * @param mustPrint If true, will print out info, regardless of time interval
      * @param nTotalRecordsProcessed the total number of records we've processed
      */
-    private synchronized void notifyOfProgress(final GenomeLoc loc, boolean mustPrint, final long nTotalRecordsProcessed) {
+    public synchronized void notifyOfProgress(final GenomeLoc loc, final long nTotalRecordsProcessed) {
         if ( nTotalRecordsProcessed < 0 ) throw new IllegalArgumentException("nTotalRecordsProcessed must be >= 0");
 
+        // weird comparison to ensure that loc == null (in unmapped reads) is keep before maxGenomeLoc == null (on startup)
+        this.maxGenomeLoc = loc == null ? loc : (maxGenomeLoc == null ? loc : loc.max(maxGenomeLoc));
+        this.nTotalRecordsProcessed = Math.max(this.nTotalRecordsProcessed, nTotalRecordsProcessed);
+
+        // a pretty name for our position
+        this.positionMessage = maxGenomeLoc == null
+                ? "unmapped reads"
+                : String.format("%s:%d", maxGenomeLoc.getContig(), maxGenomeLoc.getStart());
+    }
+
+    /**
+     * Actually try to print out progress
+     *
+     * This function may print out if the progress print is due, but if not enough time has elapsed
+     * since the last print we will not print out information.
+     *
+     * @param mustPrint if true, progress will be printed regardless of the last time we printed progress
+     */
+    protected synchronized void printProgress(final boolean mustPrint) {
         final long curTime = timer.currentTime();
         final boolean printProgress = mustPrint || maxElapsedIntervalForPrinting(curTime, lastProgressPrintTime, progressPrintFrequency);
         final boolean printLog = performanceLog != null && maxElapsedIntervalForPrinting(curTime, lastPerformanceLogPrintTime, PERFORMANCE_LOG_PRINT_FREQUENCY);
 
         if ( printProgress || printLog ) {
-            final ProgressMeterData progressData = takeProgressSnapshot(loc, nTotalRecordsProcessed);
+            final ProgressMeterData progressData = takeProgressSnapshot(maxGenomeLoc, nTotalRecordsProcessed);
 
             final AutoFormattingTime elapsed = new AutoFormattingTime(progressData.getElapsedSeconds());
             final AutoFormattingTime bpRate = new AutoFormattingTime(progressData.secondsPerMillionBP());
@@ -241,13 +266,8 @@ public class ProgressMeter {
                 lastProgressPrintTime = curTime;
                 updateLoggerPrintFrequency(estTotalRuntime.getTimeInSeconds());
 
-                // a pretty name for our position
-                final String posName = loc == null
-                        ? (mustPrint ? "done" : "unmapped reads")
-                        : String.format("%s:%d", loc.getContig(), loc.getStart());
-
                 logger.info(String.format("%15s        %5.2e %s     %s    %5.1f%%      %s  %s",
-                        posName, progressData.getUnitsProcessed()*1.0, elapsed, unitRate,
+                        positionMessage, progressData.getUnitsProcessed()*1.0, elapsed, unitRate,
                         100*fractionGenomeTargetCompleted, estTotalRuntime, timeToCompletion));
 
             }
@@ -296,13 +316,18 @@ public class ProgressMeter {
      */
     public void notifyDone(final long nTotalRecordsProcessed) {
         // print out the progress meter
-        notifyOfProgress(null, true, nTotalRecordsProcessed);
+        this.nTotalRecordsProcessed = nTotalRecordsProcessed;
+        this.positionMessage = "done";
+        printProgress(true);
 
         logger.info(String.format("Total runtime %.2f secs, %.2f min, %.2f hours",
                 timer.getElapsedTime(), timer.getElapsedTime() / 60, timer.getElapsedTime() / 3600));
 
         if ( performanceLog != null )
             performanceLog.close();
+
+        // shutdown our daemon thread
+        progressMeterDaemon.done();
     }
 
     /**

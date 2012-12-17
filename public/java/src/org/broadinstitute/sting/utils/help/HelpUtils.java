@@ -38,8 +38,9 @@ public class HelpUtils {
     public final static String GATK_FORUM_URL = "http://gatkforums.broadinstitute.org/";
     public final static String GATK_FORUM_API_URL = "https://gatkforums.broadinstitute.org/api/v1/";
 
-
-
+    public static String forumPost(String post) {
+    	return GATK_FORUM_URL + post;
+    }
 
     protected static boolean assignableToClass(ProgramElementDoc classDoc, Class lhsClass, boolean requireConcrete) {
         try {

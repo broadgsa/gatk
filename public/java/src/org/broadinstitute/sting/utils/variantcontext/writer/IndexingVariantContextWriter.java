@@ -93,16 +93,19 @@ abstract class IndexingVariantContextWriter implements VariantContextWriter {
      * attempt to close the VCF file
      */
     public void close() {
-        // try to close the index stream (keep it separate to help debugging efforts)
-        if ( indexer != null ) {
-            try {
+        try {
+            // try to close the index stream (keep it separate to help debugging efforts)
+            if ( indexer != null ) {
                 Index index = indexer.finalizeIndex(positionalOutputStream.getPosition());
                 IndexDictionaryUtils.setIndexSequenceDictionary(index, refDict);
                 index.write(idxStream);
                 idxStream.close();
-            } catch (IOException e) {
-                throw new ReviewedStingException("Unable to close index for " + getStreamName(), e);
             }
+
+            // close the underlying output stream as well
+            outputStream.close();
+        } catch (IOException e) {
+            throw new ReviewedStingException("Unable to close index for " + getStreamName(), e);
         }
     }
 

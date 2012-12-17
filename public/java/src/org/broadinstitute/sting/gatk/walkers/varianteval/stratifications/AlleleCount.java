@@ -29,7 +29,7 @@ public class AlleleCount extends VariantStratifier {
 
         // There are ploidy x n sample chromosomes
         // TODO -- generalize to handle multiple ploidy
-        nchrom = getVariantEvalWalker().getSampleNamesForEvaluation().size() * getVariantEvalWalker().getSamplePloidy();
+        nchrom = getVariantEvalWalker().getNumberOfSamplesForEvaluation() * getVariantEvalWalker().getSamplePloidy();
         if ( nchrom < 2 )
             throw new UserException.BadArgumentValue("AlleleCount", "AlleleCount stratification requires an eval vcf with at least one sample");
 

@@ -414,7 +414,7 @@ public class BAQ {
                 throw new ReviewedStingException("BAQ tag calculation error.  BAQ value above base quality at " + read);
             // the original quality is too high, almost certainly due to using the wrong encoding in the BAM file
             if ( tag > Byte.MAX_VALUE )
-                throw new UserException.MalformedBAM(read, "we encountered an extremely high quality score (" + (bq - 64) + ") with BAQ correction factor of " + baq_i + "; the BAM file appears to be using the wrong encoding for quality scores");
+                throw new UserException.MisencodedBAM(read, "we encountered an extremely high quality score (" + (int)read.getBaseQualities()[i] + ") with BAQ correction factor of " + baq_i);
             bqTag[i] = (byte)tag;
         }
         return new String(bqTag);

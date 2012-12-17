@@ -4,7 +4,6 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
-import org.broadinstitute.sting.utils.SimpleTimer;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -34,7 +33,6 @@ class Reducer<MapType, ReduceType> {
 
     final CountDownLatch countDownLatch = new CountDownLatch(1);
     final NSReduceFunction<MapType, ReduceType> reduce;
-    final SimpleTimer reduceTimer;
     final MultiThreadedErrorTracker errorTracker;
 
     /**
@@ -61,20 +59,16 @@ class Reducer<MapType, ReduceType> {
      * reduceTimer
      *
      * @param reduce the reduce function to apply
-     * @param reduceTimer the timer to time the reduce function call
      * @param initialSum the initial reduce sum
      */
     public Reducer(final NSReduceFunction<MapType, ReduceType> reduce,
                    final MultiThreadedErrorTracker errorTracker,
-                   final SimpleTimer reduceTimer,
                    final ReduceType initialSum) {
         if ( errorTracker == null ) throw new IllegalArgumentException("Error tracker cannot be null");
         if ( reduce == null ) throw new IllegalArgumentException("Reduce function cannot be null");
-        if ( reduceTimer == null ) throw new IllegalArgumentException("reduceTimer cannot be null");
 
         this.errorTracker = errorTracker;
         this.reduce = reduce;
-        this.reduceTimer = reduceTimer;
         this.sum = initialSum;
     }
 
@@ -125,10 +119,7 @@ class Reducer<MapType, ReduceType> {
                     nReducesNow++;
 
                     // apply reduce, keeping track of sum
-                    reduceTimer.restart();
                     sum = reduce.apply(result.getValue(), sum);
-                    reduceTimer.stop();
-
                 }
 
                 numJobsReduced++;

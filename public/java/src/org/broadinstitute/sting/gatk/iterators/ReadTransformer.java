@@ -41,7 +41,7 @@ abstract public class ReadTransformer {
     protected ReadTransformer() {}
 
     /**
-     * Master initialization routine.  Called to setup a ReadTransform, using it's overloaded initialialSub routine.
+     * Master initialization routine.  Called to setup a ReadTransform, using it's overloaded initializeSub routine.
      *
      * @param overrideTime if not null, we will run this ReadTransform at the time provided, regardless of the timing of this read transformer itself
      * @param engine the engine, for initializing values
@@ -59,7 +59,7 @@ abstract public class ReadTransformer {
     }
 
     /**
-     * Subclasses must override this to initialize themeselves
+     * Subclasses must override this to initialize themselves
      *
      * @param engine the engine, for initializing values
      * @param walker the walker we intend to run

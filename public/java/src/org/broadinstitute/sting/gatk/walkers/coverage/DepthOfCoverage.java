@@ -129,10 +129,14 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
     int minMappingQuality = -1;
     @Argument(fullName = "maxMappingQuality", doc = "Maximum mapping quality of reads to count towards depth. Defaults to 2^31-1 (Integer.MAX_VALUE).", required = false)
     int maxMappingQuality = Integer.MAX_VALUE;
+
     @Argument(fullName = "minBaseQuality", shortName = "mbq", doc = "Minimum quality of bases to count towards depth. Defaults to -1.", required = false)
     byte minBaseQuality = -1;
     @Argument(fullName = "maxBaseQuality", doc = "Maximum quality of bases to count towards depth. Defaults to 127 (Byte.MAX_VALUE).", required = false)
     byte maxBaseQuality = Byte.MAX_VALUE;
+
+    @Argument(fullName = "countType", doc = "How should overlapping reads from the same fragment be handled?", required = false)
+    CoverageUtils.CountPileupType countType = CoverageUtils.CountPileupType.COUNT_READS;
 
     /**
      * Instead of reporting depth, report the base pileup at each locus
@@ -373,7 +377,7 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
                 //System.out.printf("\t[log]\t%s",ref.getLocus());
             }
 
-            return CoverageUtils.getBaseCountsByPartition(context,minMappingQuality,maxMappingQuality,minBaseQuality,maxBaseQuality,partitionTypes);
+            return CoverageUtils.getBaseCountsByPartition(context,minMappingQuality,maxMappingQuality,minBaseQuality,maxBaseQuality,countType,partitionTypes);
         } else {
             return null;
         }

@@ -24,33 +24,6 @@ public class BaseUtils {
     public final static byte[] BASES = {'A', 'C', 'G', 'T'};
     public final static byte[] EXTENDED_BASES = {'A', 'C', 'G', 'T', 'N', 'D'};
 
-    public enum Base {
-        A('A', 0),
-        C('C', 1),
-        G('G', 2),
-        T('T', 3);
-
-        byte b;
-        int index;
-
-        private Base(char base, int index) {
-            this.b = (byte) base;
-            this.index = index;
-        }
-
-        public byte getBase() { return b; }
-
-        public char getBaseAsChar() { return (char) b; }
-
-        public int getIndex() { return index; }
-
-        public boolean sameBase(byte o) { return b == o; }
-
-        public boolean sameBase(char o) { return b == (byte) o; }
-
-        public boolean sameBase(int i) { return index == i; }
-    }
-
     static private final int[] baseIndexMap = new int[256];
     static {
         Arrays.fill(baseIndexMap, -1);
@@ -128,6 +101,17 @@ public class BaseUtils {
                 return true;
         }
         return false;
+    }
+
+    public static boolean isUpperCase(final byte[] bases) {
+        for ( byte base : bases )
+            if ( ! isUpperCase(base) )
+                return false;
+        return true;
+    }
+
+    public static boolean isUpperCase(final byte base) {
+        return base >= 'A' && base <= 'Z';
     }
 
     /**
@@ -272,59 +256,6 @@ public class BaseUtils {
     }
 
     /**
-     * Converts a base index to a base index representing its cross-talk partner
-     *
-     * @param baseIndex 0, 1, 2, 3
-     * @return 1, 0, 3, 2, or -1 if the index can't be understood
-     */
-    static public int crossTalkPartnerIndex(int baseIndex) {
-        switch (baseIndex) {
-            case 0:
-                return 1; // A -> C
-            case 1:
-                return 0; // C -> A
-            case 2:
-                return 3; // G -> T
-            case 3:
-                return 2; // T -> G
-            default:
-                return -1;
-        }
-    }
-
-    /**
-     * Converts a base to the base representing its cross-talk partner
-     *
-     * @param base [AaCcGgTt]
-     * @return C, A, T, G, or '.' if the base can't be understood
-     */
-    @Deprecated
-    static public char crossTalkPartnerBase(char base) {
-        return (char) baseIndexToSimpleBase(crossTalkPartnerIndex(simpleBaseToBaseIndex(base)));
-    }
-
-    /**
-     * Return the complement of a base index.
-     *
-     * @param baseIndex the base index (0:A, 1:C, 2:G, 3:T)
-     * @return the complementary base index
-     */
-    static public byte complementIndex(int baseIndex) {
-        switch (baseIndex) {
-            case 0:
-                return 3; // a -> t
-            case 1:
-                return 2; // c -> g
-            case 2:
-                return 1; // g -> c
-            case 3:
-                return 0; // t -> a
-            default:
-                return -1; // wtf?
-        }
-    }
-
-    /**
      * Return the complement (A <-> T or C <-> G) of a base, or the specified base if it can't be complemented (i.e. an ambiguous base).
      *
      * @param base the base [AaCcGgTt]
@@ -350,7 +281,7 @@ public class BaseUtils {
     }
 
     @Deprecated
-    static public char simpleComplement(char base) {
+    static private char simpleComplement(char base) {
         return (char) simpleComplement((byte) base);
     }
 
@@ -365,22 +296,6 @@ public class BaseUtils {
 
         for (int i = 0; i < bases.length; i++) {
             rcbases[i] = simpleComplement(bases[bases.length - 1 - i]);
-        }
-
-        return rcbases;
-    }
-
-    /**
-     * Complement a byte array of bases (that is, chars casted to bytes, *not* base indices in byte form)
-     *
-     * @param bases the byte array of bases
-     * @return the complement of the base byte array
-     */
-    static public byte[] simpleComplement(byte[] bases) {
-        byte[] rcbases = new byte[bases.length];
-
-        for (int i = 0; i < bases.length; i++) {
-            rcbases[i] = simpleComplement(bases[i]);
         }
 
         return rcbases;
@@ -404,23 +319,6 @@ public class BaseUtils {
     }
 
     /**
-     * Complement a char array of bases
-     *
-     * @param bases the char array of bases
-     * @return the complement of the base char array
-     */
-    @Deprecated
-    static public char[] simpleComplement(char[] bases) {
-        char[] rcbases = new char[bases.length];
-
-        for (int i = 0; i < bases.length; i++) {
-            rcbases[i] = simpleComplement(bases[i]);
-        }
-
-        return rcbases;
-    }
-
-    /**
      * Reverse complement a String of bases.  Preserves ambiguous bases.
      *
      * @param bases the String of bases
@@ -429,17 +327,6 @@ public class BaseUtils {
     @Deprecated
     static public String simpleReverseComplement(String bases) {
         return new String(simpleReverseComplement(bases.getBytes()));
-    }
-
-    /**
-     * Complement a String of bases.  Preserves ambiguous bases.
-     *
-     * @param bases the String of bases
-     * @return the complement of the String
-     */
-    @Deprecated
-    static public String simpleComplement(String bases) {
-        return new String(simpleComplement(bases.getBytes()));
     }
 
     /**
@@ -543,82 +430,4 @@ public class BaseUtils {
 
         return randomBaseIndex;
     }
-
-    /**
-     * Return a random base (A, C, G, T).
-     *
-     * @return a random base (A, C, G, T)
-     */
-    @Deprecated
-    static public byte getRandomBase() {
-        return getRandomBase('.');
-    }
-
-    /**
-     * Return a random base, excluding some base.
-     *
-     * @param excludeBase the base to exclude
-     * @return a random base, excluding the one specified (A, C, G, T)
-     */
-    @Deprecated
-    static public byte getRandomBase(char excludeBase) {
-        return BaseUtils.baseIndexToSimpleBase(getRandomBaseIndex(BaseUtils.simpleBaseToBaseIndex(excludeBase)));
-    }
-
-    /**
-     * Computes the smallest period >= minPeriod for the specified string. The period is defined as such p,
-     * that for all  i = 0... seq.length-1,  seq[ i % p ] = seq[i] (or equivalently seq[i] = seq[i+p] for i=0...seq.length-1-p).
-     * The sequence does <i>not</i> have to contain whole number of periods. For instance, "ACACACAC" has a period
-     * of 2 (it has a period of 4 as well), and so does
-     * "ACACA"; similarly, smallest periods of "CTCCTC", "CTCCT", and "CTCC" are all equal to 3. The "trivial" period is
-     * the length of the string itself, and it will always be returned if no smaller period can be found in the specified period range
-     * or if specified minPeriod is greater than the sequence length.
-     *
-     * @param seq
-     * @return
-     */
-    public static int sequencePeriod(byte[] seq, int minPeriod) {
-        int period = (minPeriod > seq.length ? seq.length : minPeriod);
-        // we assume that bases [0,period-1] repeat themselves and check this assumption
-        // until we find correct period
-
-        for (int pos = period; pos < seq.length; pos++) {
-
-            int offset = pos % period; // we are currenlty 'offset' bases into the putative repeat of period 'period'
-            // if our current hypothesis holds, base[pos] must be the same as base[offset]
-
-            if (Character.toUpperCase(seq[pos]) != Character.toUpperCase(seq[offset])) {
-
-                // period we have been trying so far does not work.
-                // two possibilities:
-                // A) offset = 0, i.e. current position pos must be start of the next repeat, but it is not;
-                //      in this case only bases from start up to the current one, inclusive, may form a repeat, if at all;
-                //       so period is at least pos+1 (remember, pos is 0-based), then on the next loop re-entrance
-                //      pos will be autoincremented and we will be checking next base
-                // B) offset != 0, i.e. the current base breaks the repeat, but maybe it starts a new one?
-                //     hence we should first check if it matches the first base of the sequence, and to do that
-                //     we set period to pos  (thus trying the hypothesis that bases from start up to the current one,
-                //     non-inclusive are repeated hereafter), and decrement pos (this will re-test current base against the first base
-                // on the next loop re-entrance after pos is autoincremented)
-                if (offset == 0)
-                    period = pos + 1;
-                else
-                    period = pos--;
-
-            }
-        }
-        return period;
-    }
 }
-
-/* code snippet for testing sequencePeriod():
- * 
- *     	String str = "CCTTG";
-    	int p = 0;
-    	System.out.print("Periods of " + str +" are:");
-    	while ( p < str.length() ) {
-    		p = sequencePeriod(str, p+1);
-        	System.out.print(" "+p);
-    	}
-    	System.out.println(); System.exit(1);
-*/

@@ -1,8 +1,4 @@
-// our package
 package org.broadinstitute.sting.utils.baq;
-
-
-// the imports for unit testing.
 
 
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -24,7 +20,7 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.*;
 
 /**
- * Basic unit test for GenomeLoc
+ * Basic unit test for BAQ calculation
  */
 public class BAQUnitTest extends BaseTest {
     private SAMFileHeader header;

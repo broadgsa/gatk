@@ -448,11 +448,47 @@ public class VariantContextUtils {
                                              final String setKey,
                                              final boolean filteredAreUncalled,
                                              final boolean mergeInfoWithMaxAC ) {
+        int originalNumOfVCs = priorityListOfVCs == null ? 0 : priorityListOfVCs.size();
+        return simpleMerge(genomeLocParser,unsortedVCs,priorityListOfVCs,originalNumOfVCs,filteredRecordMergeType,genotypeMergeOptions,annotateOrigin,printMessages,setKey,filteredAreUncalled,mergeInfoWithMaxAC);
+    }
+
+    /**
+     * Merges VariantContexts into a single hybrid.  Takes genotypes for common samples in priority order, if provided.
+     * If uniquifySamples is true, the priority order is ignored and names are created by concatenating the VC name with
+     * the sample name
+     *
+     * @param genomeLocParser           loc parser
+     * @param unsortedVCs               collection of unsorted VCs
+     * @param priorityListOfVCs         priority list detailing the order in which we should grab the VCs
+     * @param filteredRecordMergeType   merge type for filtered records
+     * @param genotypeMergeOptions      merge option for genotypes
+     * @param annotateOrigin            should we annotate the set it came from?
+     * @param printMessages             should we print messages?
+     * @param setKey                    the key name of the set
+     * @param filteredAreUncalled       are filtered records uncalled?
+     * @param mergeInfoWithMaxAC        should we merge in info from the VC with maximum allele count?
+     * @return new VariantContext       representing the merge of unsortedVCs
+     */
+    public static VariantContext simpleMerge(final GenomeLocParser genomeLocParser,
+                                             final Collection<VariantContext> unsortedVCs,
+                                             final List<String> priorityListOfVCs,
+                                             final int originalNumOfVCs,
+                                             final FilteredRecordMergeType filteredRecordMergeType,
+                                             final GenotypeMergeType genotypeMergeOptions,
+                                             final boolean annotateOrigin,
+                                             final boolean printMessages,
+                                             final String setKey,
+                                             final boolean filteredAreUncalled,
+                                             final boolean mergeInfoWithMaxAC ) {
+
         if ( unsortedVCs == null || unsortedVCs.size() == 0 )
             return null;
 
-        if ( annotateOrigin && priorityListOfVCs == null )
-            throw new IllegalArgumentException("Cannot merge calls and annotate their origins without a complete priority list of VariantContexts");
+        if (priorityListOfVCs != null && originalNumOfVCs != priorityListOfVCs.size())
+            throw new IllegalArgumentException("the number of the original VariantContexts must be the same as the number of VariantContexts in the priority list");
+
+        if ( annotateOrigin && priorityListOfVCs == null && originalNumOfVCs == 0)
+            throw new IllegalArgumentException("Cannot merge calls and annotate their origins without a complete priority list of VariantContexts or the number of original VariantContexts");
 
         if ( genotypeMergeOptions == GenotypeMergeType.REQUIRE_UNIQUE )
             verifyUniqueSampleNames(unsortedVCs);
@@ -597,7 +633,7 @@ public class VariantContextUtils {
 
         if ( annotateOrigin ) { // we care about where the call came from
             String setValue;
-            if ( nFiltered == 0 && variantSources.size() == priorityListOfVCs.size() ) // nothing was unfiltered
+            if ( nFiltered == 0 && variantSources.size() == originalNumOfVCs ) // nothing was unfiltered
                 setValue = MERGE_INTERSECTION;
             else if ( nFiltered == VCs.size() )     // everything was filtered out
                 setValue = MERGE_FILTER_IN_ALL;
@@ -980,6 +1016,40 @@ public class VariantContextUtils {
     public static final double SUM_GL_THRESH_NOCALL = -0.1; // if sum(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
 
     /**
+     * Split variant context into its biallelic components if there are more than 2 alleles
+     *
+     * For VC has A/B/C alleles, returns A/B and A/C contexts.
+     * Genotypes are all no-calls now (it's not possible to fix them easily)
+     * Alleles are right trimmed to satisfy VCF conventions
+     *
+     * If vc is biallelic or non-variant it is just returned
+     *
+     * Chromosome counts are updated (but they are by definition 0)
+     *
+     * @param vc a potentially multi-allelic variant context
+     * @return a list of bi-allelic (or monomorphic) variant context
+     */
+    public static List<VariantContext> splitVariantContextToBiallelics(final VariantContext vc) {
+        if ( ! vc.isVariant() || vc.isBiallelic() )
+            // non variant or biallelics already satisfy the contract
+            return Collections.singletonList(vc);
+        else {
+            final List<VariantContext> biallelics = new LinkedList<VariantContext>();
+
+            for ( final Allele alt : vc.getAlternateAlleles() ) {
+                VariantContextBuilder builder = new VariantContextBuilder(vc);
+                final List<Allele> alleles = Arrays.asList(vc.getReference(), alt);
+                builder.alleles(alleles);
+                builder.genotypes(VariantContextUtils.subsetDiploidAlleles(vc, alleles, false));
+                calculateChromosomeCounts(builder, true);
+                biallelics.add(reverseTrimAlleles(builder.make()));
+            }
+
+            return biallelics;
+        }
+    }
+
+    /**
      * subset the Variant Context to the specific set of alleles passed in (pruning the PLs appropriately)
      *
      * @param vc                 variant context with genotype likelihoods
@@ -1233,7 +1303,7 @@ public class VariantContextUtils {
      * @param testString             String to test
      * @return                       Number of repetitions (0 if testString is not a concatenation of n repeatUnit's
      */
-    protected static int findNumberofRepetitions(byte[] repeatUnit, byte[] testString) {
+    public static int findNumberofRepetitions(byte[] repeatUnit, byte[] testString) {
         int numRepeats = 0;
         for (int start = 0; start < testString.length; start += repeatUnit.length) {
             int end = start + repeatUnit.length;

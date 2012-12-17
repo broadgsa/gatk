@@ -2,7 +2,6 @@ package org.broadinstitute.sting.utils.nanoScheduler;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
-import org.broadinstitute.sting.utils.SimpleTimer;
 
 import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
@@ -18,11 +17,6 @@ class InputProducer<InputType> implements Runnable {
      * The iterator we are using to get data from
      */
     final Iterator<InputType> inputReader;
-
-    /**
-     * Our timer (may be null) that we use to track our input costs
-     */
-    final SimpleTimer inputTimer;
 
     /**
      * Where we put our input values for consumption
@@ -51,16 +45,13 @@ class InputProducer<InputType> implements Runnable {
 
     public InputProducer(final Iterator<InputType> inputReader,
                          final MultiThreadedErrorTracker errorTracker,
-                         final SimpleTimer inputTimer,
                          final BlockingQueue<InputValue> outputQueue) {
         if ( inputReader == null ) throw new IllegalArgumentException("inputReader cannot be null");
         if ( errorTracker == null ) throw new IllegalArgumentException("errorTracker cannot be null");
-        if ( inputTimer == null ) throw new IllegalArgumentException("inputTimer cannot be null");
         if ( outputQueue == null ) throw new IllegalArgumentException("OutputQueue cannot be null");
 
         this.inputReader = inputReader;
         this.errorTracker = errorTracker;
-        this.inputTimer = inputTimer;
         this.outputQueue = outputQueue;
     }
 
@@ -94,16 +85,15 @@ class InputProducer<InputType> implements Runnable {
      * @throws InterruptedException
      */
     private synchronized InputType readNextItem() throws InterruptedException {
-        inputTimer.restart();
         if ( ! inputReader.hasNext() ) {
             // we are done, mark ourselves as such and return null
             readLastValue = true;
-            inputTimer.stop();
             return null;
         } else {
             // get the next value, and return it
             final InputType input = inputReader.next();
-            inputTimer.stop();
+            if ( input == null )
+                throw new IllegalStateException("inputReader.next() returned a null value, breaking our contract");
             nRead++;
             return input;
         }
@@ -121,6 +111,9 @@ class InputProducer<InputType> implements Runnable {
                 final InputType value = readNextItem();
 
                 if ( value == null ) {
+                    if ( ! readLastValue )
+                        throw new IllegalStateException("value == null but readLastValue is false!");
+
                     // add the EOF object so our consumer knows we are done in all inputs
                     // note that we do not increase inputID here, so that variable indicates the ID
                     // of the last real value read from the queue
@@ -133,8 +126,10 @@ class InputProducer<InputType> implements Runnable {
             }
 
             latch.countDown();
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             errorTracker.notifyOfError(ex);
+        } finally {
+//            logger.info("Exiting input thread readLastValue = " + readLastValue);
         }
     }
 

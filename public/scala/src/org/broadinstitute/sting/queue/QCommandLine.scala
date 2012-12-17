@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.queue
 
-import function.QFunction
 import java.io.File
 import org.broadinstitute.sting.commandline._
 import org.broadinstitute.sting.queue.util._
@@ -93,86 +92,121 @@ class QCommandLine extends CommandLineProgram with Logging {
   private lazy val qScriptPluginManager = {
     qScriptClasses = IOUtils.tempDir("Q-Classes-", "", settings.qSettings.tempDirectory)
     qScriptManager.loadScripts(scripts, qScriptClasses)
-    new PluginManager[QScript](classOf[QScript], Seq(qScriptClasses.toURI.toURL))
+    new PluginManager[QScript](qPluginType, Seq(qScriptClasses.toURI.toURL))
   }
 
-  private lazy val qStatusMessengerPluginManager = {
-    new PluginManager[QStatusMessenger](classOf[QStatusMessenger])
+  private lazy val qCommandPlugin = {
+    new PluginManager[QCommandPlugin](classOf[QCommandPlugin])
   }
 
-  ClassFieldCache.parsingEngine = new ParsingEngine(this)
+  private lazy val allCommandPlugins = qCommandPlugin.createAllTypes()
+
+  private lazy val qPluginType: Class[_ <: QScript] = {
+    allCommandPlugins.map(_.qScriptClass).headOption.getOrElse(classOf[QScript])
+  }
 
   /**
    * Takes the QScripts passed in, runs their script() methods, retrieves their generated
    * functions, and then builds and runs a QGraph based on the dependencies.
    */
   def execute = {
-    val allStatusMessengers = qStatusMessengerPluginManager.createAllTypes()
+    var success = false
+    var result = 1
+    try {
+      ClassFieldCache.parsingEngine = this.parser
 
-    if (settings.qSettings.runName == null)
-      settings.qSettings.runName = FilenameUtils.removeExtension(scripts.head.getName)
-    if (IOUtils.isDefaultTempDir(settings.qSettings.tempDirectory))
-      settings.qSettings.tempDirectory = IOUtils.absolute(settings.qSettings.runDirectory, ".queue/tmp")
-    qGraph.initializeWithSettings(settings)
+      if (settings.qSettings.runName == null)
+        settings.qSettings.runName = FilenameUtils.removeExtension(scripts.head.getName)
+      if (IOUtils.isDefaultTempDir(settings.qSettings.tempDirectory))
+        settings.qSettings.tempDirectory = IOUtils.absolute(settings.qSettings.runDirectory, ".queue/tmp")
+      qGraph.initializeWithSettings(settings)
 
-    for (statusMessenger <- allStatusMessengers) {
-      loadArgumentsIntoObject(statusMessenger)
-    }
-
-    for (statusMessenger <- allStatusMessengers) {
-      statusMessenger.started()
-    }
-
-    val allQScripts = qScriptPluginManager.createAllTypes()
-    for (script <- allQScripts) {
-      logger.info("Scripting " + qScriptPluginManager.getName(script.getClass.asSubclass(classOf[QScript])))
-      loadArgumentsIntoObject(script)
-      // TODO: Pulling inputs can be time/io expensive! Some scripts are using the files to generate functions-- even for dry runs-- so pull it all down for now.
-      //if (settings.run)
-      script.pullInputs()
-      script.qSettings = settings.qSettings
-      try {
-        script.script()
-      } catch {
-        case e: Exception =>
-          throw new UserException.CannotExecuteQScript(script.getClass.getSimpleName + ".script() threw the following exception: " + e, e)
+      for (commandPlugin <- allCommandPlugins) {
+        loadArgumentsIntoObject(commandPlugin)
       }
-      script.functions.foreach(qGraph.add(_))
-      logger.info("Added " + script.functions.size + " functions")
-    }
 
-    // Execute the job graph
-    qGraph.run()
-
-    val functionsAndStatus = qGraph.getFunctionsAndStatus
-    val success = qGraph.success
-
-    // walk over each script, calling onExecutionDone
-    for (script <- allQScripts) {
-      val scriptFunctions = functionsAndStatus.filterKeys(f => script.functions.contains(f))
-      script.onExecutionDone(scriptFunctions, success)
-    }
-
-    logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", functionsAndStatus.size))
-
-    // write the final complete job report
-    logger.info("Writing final jobs report...")
-    qGraph.writeJobsReport()
-
-    if (!success) {
-      logger.info("Done with errors")
-      qGraph.logFailed()
-      for (statusMessenger <- allStatusMessengers)
-        statusMessenger.exit("Done with errors")
-      1
-    } else {
-      if (settings.run) {
-        allQScripts.foreach(_.pushOutputs())
-        for (statusMessenger <- allStatusMessengers)
-          statusMessenger.done(allQScripts.map(_.remoteOutputs))
+      for (commandPlugin <- allCommandPlugins) {
+        if (commandPlugin.statusMessenger != null)
+          commandPlugin.statusMessenger.started()
       }
-      0
+
+      qGraph.messengers = allCommandPlugins.filter(_.statusMessenger != null).map(_.statusMessenger).toSeq
+
+      // TODO: Default command plugin argument?
+      val remoteFileConverter = (
+        for (commandPlugin <- allCommandPlugins if (commandPlugin.remoteFileConverter != null))
+        yield commandPlugin.remoteFileConverter
+        ).headOption.getOrElse(null)
+
+      if (remoteFileConverter != null)
+        loadArgumentsIntoObject(remoteFileConverter)
+
+      val allQScripts = qScriptPluginManager.createAllTypes()
+      for (script <- allQScripts) {
+        logger.info("Scripting " + qScriptPluginManager.getName(script.getClass.asSubclass(classOf[QScript])))
+        loadArgumentsIntoObject(script)
+        allCommandPlugins.foreach(_.initScript(script))
+        // TODO: Pulling inputs can be time/io expensive! Some scripts are using the files to generate functions-- even for dry runs-- so pull it all down for now.
+        //if (settings.run)
+        script.pullInputs()
+        script.qSettings = settings.qSettings
+        try {
+          script.script()
+        } catch {
+          case e: Exception =>
+            throw new UserException.CannotExecuteQScript(script.getClass.getSimpleName + ".script() threw the following exception: " + e, e)
+        }
+
+        if (remoteFileConverter != null) {
+          if (remoteFileConverter.convertToRemoteEnabled)
+            script.mkRemoteOutputs(remoteFileConverter)
+        }
+
+        script.functions.foreach(qGraph.add(_))
+        logger.info("Added " + script.functions.size + " functions")
+      }
+      // Execute the job graph
+      qGraph.run()
+
+      val functionsAndStatus = qGraph.getFunctionsAndStatus
+
+      // walk over each script, calling onExecutionDone
+      for (script <- allQScripts) {
+        val scriptFunctions = functionsAndStatus.filterKeys(f => script.functions.contains(f))
+        script.onExecutionDone(scriptFunctions, success)
+      }
+
+      logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", functionsAndStatus.size))
+
+      // write the final complete job report
+      logger.info("Writing final jobs report...")
+      qGraph.writeJobsReport()
+
+      if (qGraph.success) {
+        if (settings.run) {
+          allQScripts.foreach(_.pushOutputs())
+          for (commandPlugin <- allCommandPlugins)
+            if (commandPlugin.statusMessenger != null) {
+              val allInputs = allQScripts.map(_.remoteInputs)
+              val allOutputs = allQScripts.map(_.remoteOutputs)
+              commandPlugin.statusMessenger.done(allInputs, allOutputs)
+            }
+        }
+        success = true
+        result = 0
+      }
+    } finally {
+      if (!success) {
+        logger.info("Done with errors")
+        qGraph.logFailed()
+        if (settings.run) {
+          for (commandPlugin <- allCommandPlugins)
+            if (commandPlugin.statusMessenger != null)
+              commandPlugin.statusMessenger.exit("Done with errors: %s".format(qGraph.formattedStatusCounts))
+        }
+      }
     }
+    result
   }
 
   /**
@@ -189,7 +223,7 @@ class QCommandLine extends CommandLineProgram with Logging {
   override def getArgumentSources = {
     var plugins = Seq.empty[Class[_]]
     plugins ++= qScriptPluginManager.getPlugins
-    plugins ++= qStatusMessengerPluginManager.getPlugins
+    plugins ++= qCommandPlugin.getPlugins
     plugins.toArray
   }
 
@@ -200,11 +234,10 @@ class QCommandLine extends CommandLineProgram with Logging {
   override def getArgumentSourceName(source: Class[_]) = {
     if (classOf[QScript].isAssignableFrom(source))
       qScriptPluginManager.getName(source.asSubclass(classOf[QScript]))
-    else if (classOf[QStatusMessenger].isAssignableFrom(source))
-      qStatusMessengerPluginManager.getName(source.asSubclass(classOf[QStatusMessenger]))
+    else if (classOf[QCommandPlugin].isAssignableFrom(source))
+      qCommandPlugin.getName(source.asSubclass(classOf[QCommandPlugin]))
     else
       null
-
   }
 
   /**

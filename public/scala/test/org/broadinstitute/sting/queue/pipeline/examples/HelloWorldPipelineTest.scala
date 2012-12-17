@@ -28,7 +28,7 @@ import org.testng.annotations.Test
 import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
 
 class HelloWorldPipelineTest {
-  @Test
+  @Test(timeOut=36000000)
   def testHelloWorld() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorld"
@@ -37,7 +37,7 @@ class HelloWorldPipelineTest {
     PipelineTest.executeTest(spec)
   }
 
-  @Test
+  @Test(timeOut=36000000)
   def testHelloWorldWithRunName() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithRunName"
@@ -47,7 +47,7 @@ class HelloWorldPipelineTest {
     PipelineTest.executeTest(spec)
   }
 
-  @Test
+  @Test(timeOut=36000000)
   def testHelloWorldWithMemoryLimit() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldMemoryLimit"
@@ -57,7 +57,7 @@ class HelloWorldPipelineTest {
     PipelineTest.executeTest(spec)
   }
 
-  @Test
+  @Test(timeOut=36000000)
   def testHelloWorldWithPriority() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithPriority"
@@ -67,7 +67,7 @@ class HelloWorldPipelineTest {
     PipelineTest.executeTest(spec)
   }
 
-  @Test
+  @Test(timeOut=36000000)
   def testHelloWorldWithLsfResource() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithLsfResource"
@@ -77,7 +77,7 @@ class HelloWorldPipelineTest {
     PipelineTest.executeTest(spec)
   }
 
-  @Test
+  @Test(timeOut=36000000)
   def testHelloWorldWithLsfResourceAndMemoryLimit() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithLsfResourceAndMemoryLimit"
@@ -87,7 +87,7 @@ class HelloWorldPipelineTest {
     PipelineTest.executeTest(spec)
   }
 
-  @Test
+  @Test(timeOut=36000000)
   def testHelloWorldWithLsfEnvironment() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithLsfEnvironment"
@@ -97,7 +97,7 @@ class HelloWorldPipelineTest {
     PipelineTest.executeTest(spec)
   }
 
-  @Test
+  @Test(timeOut=36000000)
   def testHelloWorldWithGridEngineResource() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithGridEngineResource"
@@ -107,7 +107,7 @@ class HelloWorldPipelineTest {
     PipelineTest.executeTest(spec)
   }
 
-  @Test
+  @Test(timeOut=36000000)
   def testHelloWorldWithGridEngineResourceAndMemoryLimit() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithGridEngineResourceAndMemoryLimit"
@@ -117,13 +117,24 @@ class HelloWorldPipelineTest {
     PipelineTest.executeTest(spec)
   }
 
-  @Test
+  @Test(timeOut=36000000)
   def testHelloWorldWithGridEngineEnvironment() {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithGridEngineEnvironment"
     spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
       " -jobEnv \"make 1\""
     spec.jobRunners = Seq("GridEngine")
+    PipelineTest.executeTest(spec)
+  }
+
+  // disabled because our DRMAA implementation doesn't support wallTime
+  @Test(enabled=false, timeOut=36000000)
+  def testHelloWorldWithWalltime() {
+    val spec = new PipelineTestSpec
+    spec.name = "HelloWorldWithWalltime"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala" +
+      " -wallTime 100"
+    spec.jobRunners = PipelineTest.allJobRunners
     PipelineTest.executeTest(spec)
   }
 }

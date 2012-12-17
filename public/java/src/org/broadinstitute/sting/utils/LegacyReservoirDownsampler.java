@@ -8,6 +8,8 @@ import java.util.Collection;
 import java.util.Iterator;
 
 /**
+ * THIS IMPLEMENTATION IS BROKEN AND WILL BE REMOVED ONCE THE DOWNSAMPLING ENGINE FORK COLLAPSES
+ *
  * Randomly downsample from a stream of elements.  This algorithm is a direct,
  * naive implementation of reservoir downsampling as described in "Random Downsampling
  * with a Reservoir" (Vitter 1985).  At time of writing, this paper is located here:
@@ -16,7 +18,7 @@ import java.util.Iterator;
  * @author mhanna
  * @version 0.1
  */
-public class ReservoirDownsampler<T> {
+public class LegacyReservoirDownsampler<T> {
     /**
      * The reservoir of elements tracked by this downsampler.
      */
@@ -31,7 +33,7 @@ public class ReservoirDownsampler<T> {
      * Create a new downsampler with the given source iterator and given comparator.
      * @param maxElements What is the maximum number of reads that can be returned in any call of this
      */
-    public ReservoirDownsampler(final int maxElements) {
+    public LegacyReservoirDownsampler(final int maxElements) {
         if(maxElements < 0)
             throw new ReviewedStingException("Unable to work with an negative size collection of elements");
         this.reservoir = new ArrayList<T>(maxElements);

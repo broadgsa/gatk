@@ -47,6 +47,7 @@ import java.io.{OutputStreamWriter, File}
  */
 class QGraph extends Logging {
   var settings: QGraphSettings = _
+  var messengers: Seq[QStatusMessenger] = Nil
 
   private def dryRun = !settings.run
   private var numMissingValues = 0
@@ -95,7 +96,7 @@ class QGraph extends Logging {
    * The settings aren't necessarily available until after this QGraph object has been constructed, so
    * this function must be called once the QGraphSettings have been filled in.
    *
-   * @param settings
+   * @param settings QGraphSettings
    */
   def initializeWithSettings(settings: QGraphSettings) {
     this.settings = settings
@@ -430,6 +431,7 @@ class QGraph extends Logging {
           val edge = readyJobs.head
           edge.runner = newRunner(edge.function)
           edge.start()
+          messengers.foreach(_.started(jobShortName(edge.function)))
           startedJobs += edge
           readyJobs -= edge
           logNextStatusCounts = true
@@ -465,8 +467,14 @@ class QGraph extends Logging {
         updateStatus()
 
         runningJobs.foreach(edge => edge.status match {
-          case RunnerStatus.DONE => doneJobs += edge
-          case RunnerStatus.FAILED => failedJobs += edge
+          case RunnerStatus.DONE => {
+            doneJobs += edge
+            messengers.foreach(_.done(jobShortName(edge.function)))
+          }
+          case RunnerStatus.FAILED => {
+            failedJobs += edge
+            messengers.foreach(_.exit(jobShortName(edge.function), edge.function.jobErrorLines.mkString("%n".format())))
+          }
           case RunnerStatus.RUNNING => /* do nothing while still running */
         })
 
@@ -493,7 +501,7 @@ class QGraph extends Logging {
         // incremental
         if ( logNextStatusCounts && INCREMENTAL_JOBS_REPORT ) {
           logger.info("Writing incremental jobs reports...")
-          writeJobsReport(false)
+          writeJobsReport(plot = false)
         }
 
         readyJobs ++= getReadyJobs
@@ -516,9 +524,13 @@ class QGraph extends Logging {
   private def nextRunningCheck(lastRunningCheck: Long) =
     ((30 * 1000L) - (System.currentTimeMillis - lastRunningCheck))
 
+  def formattedStatusCounts: String = {
+    "%d Pend, %d Run, %d Fail, %d Done".format(
+      statusCounts.pending, statusCounts.running, statusCounts.failed, statusCounts.done)
+  }
+
   private def logStatusCounts() {
-    logger.info("%d Pend, %d Run, %d Fail, %d Done".format(
-      statusCounts.pending, statusCounts.running, statusCounts.failed, statusCounts.done))
+    logger.info(formattedStatusCounts)
   }
 
   /**
@@ -531,6 +543,16 @@ class QGraph extends Logging {
     else
       traverseFunctions(edge => checkDone(edge, cleanOutputs))
     traverseFunctions(edge => recheckDone(edge))
+  }
+
+  // TODO: Yet another field to add (with overloads) to QFunction?
+  private def jobShortName(function: QFunction): String = {
+    var name = function.analysisName
+    if (function.isInstanceOf[CloneFunction]) {
+      val cloneFunction = function.asInstanceOf[CloneFunction]
+      name += " %d of %d".format(cloneFunction.cloneIndex, cloneFunction.cloneCount)
+    }
+    name
   }
 
   /**

@@ -81,7 +81,7 @@ public class VariantDataManager {
             final double theSTD = standardDeviation(theMean, iii);
             logger.info( annotationKeys.get(iii) + String.format(": \t mean = %.2f\t standard deviation = %.2f", theMean, theSTD) );
             if( Double.isNaN(theMean) ) {
-                throw new UserException.BadInput("Values for " + annotationKeys.get(iii) + " annotation not detected for ANY training variant in the input callset. VariantAnnotator may be used to add these annotations. See " + HelpUtils.GATK_FORUM_URL + "discussion/49/using-variant-annotator");
+                throw new UserException.BadInput("Values for " + annotationKeys.get(iii) + " annotation not detected for ANY training variant in the input callset. VariantAnnotator may be used to add these annotations. See " + HelpUtils.forumPost("discussion/49/using-variant-annotator"));
             }
 
             foundZeroVarianceAnnotation = foundZeroVarianceAnnotation || (theSTD < 1E-6);
