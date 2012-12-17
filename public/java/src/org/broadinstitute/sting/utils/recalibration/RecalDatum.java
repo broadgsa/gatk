@@ -248,8 +248,9 @@ public class RecalDatum {
     @Requires({"incObservations >= 0", "incMismatches >= 0"})
     @Ensures({"numObservations == old(numObservations) + incObservations", "numMismatches == old(numMismatches) + incMismatches"})
     public synchronized void increment(final double incObservations, final double incMismatches) {
-        incrementNumObservations(incObservations);
-        incrementNumMismatches(incMismatches);
+        numObservations += incObservations;
+        numMismatches += incMismatches;
+        empiricalQuality = UNINITIALIZED;
     }
 
     @Ensures({"numObservations == old(numObservations) + 1", "numMismatches >= old(numMismatches)"})
