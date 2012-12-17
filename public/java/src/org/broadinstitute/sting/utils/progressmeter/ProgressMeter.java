@@ -145,7 +145,7 @@ public class ProgressMeter {
     private final SimpleTimer timer = new SimpleTimer();
 
     private GenomeLoc maxGenomeLoc = null;
-    private String positionMessage = "starting";
+    private Position position = new Position(PositionStatus.STARTING);
     private long nTotalRecordsProcessed = 0;
 
     final ProgressMeterDaemon progressMeterDaemon;
@@ -234,9 +234,65 @@ public class ProgressMeter {
         this.nTotalRecordsProcessed = Math.max(this.nTotalRecordsProcessed, nTotalRecordsProcessed);
 
         // a pretty name for our position
-        this.positionMessage = maxGenomeLoc == null
-                ? "unmapped reads"
-                : String.format("%s:%d", maxGenomeLoc.getContig(), maxGenomeLoc.getStart());
+        this.position = maxGenomeLoc == null ? new Position(PositionStatus.IN_UNMAPPED_READS) : new Position(maxGenomeLoc);
+    }
+
+    /**
+     * Describes the status of this position marker, such as starting up, done, in the unmapped reads,
+     * or somewhere on the genome
+     */
+    private enum PositionStatus {
+        STARTING("Starting"),
+        DONE("done"),
+        IN_UNMAPPED_READS("unmapped reads"),
+        ON_GENOME(null);
+
+        public final String message;
+
+        private PositionStatus(String message) {
+            this.message = message;
+        }
+    }
+
+    /**
+     * A pair of position status and the genome loc, if necessary.  Used to get a
+     * status update message as needed, without the computational cost of formatting
+     * the genome loc string every time a progress notification happens (which is almost
+     * always not printed)
+     */
+    private class Position {
+        final PositionStatus type;
+        final GenomeLoc maybeLoc;
+
+        /**
+         * Create a position object of any type != ON_GENOME
+         * @param type
+         */
+        @Requires({"type != null", "type != PositionStatus.ON_GENOME"})
+        private Position(PositionStatus type) {
+            this.type = type;
+            this.maybeLoc = null;
+        }
+
+        /**
+         * Create a position object of type ON_GENOME at genomeloc loc
+         * @param loc
+         */
+        @Requires("loc != null")
+        private Position(GenomeLoc loc) {
+            this.type = PositionStatus.ON_GENOME;
+            this.maybeLoc = loc;
+        }
+
+        /**
+         * @return a human-readable representation of this position
+         */
+        private String getMessage() {
+            if ( type == PositionStatus.ON_GENOME )
+                return maxGenomeLoc.getContig() + ":" + maxGenomeLoc.getStart();
+            else
+                return type.message;
+        }
     }
 
     /**
@@ -267,7 +323,7 @@ public class ProgressMeter {
                 updateLoggerPrintFrequency(estTotalRuntime.getTimeInSeconds());
 
                 logger.info(String.format("%15s        %5.2e %s     %s    %5.1f%%      %s  %s",
-                        positionMessage, progressData.getUnitsProcessed()*1.0, elapsed, unitRate,
+                        position.getMessage(), progressData.getUnitsProcessed()*1.0, elapsed, unitRate,
                         100*fractionGenomeTargetCompleted, estTotalRuntime, timeToCompletion));
 
             }
@@ -317,7 +373,7 @@ public class ProgressMeter {
     public void notifyDone(final long nTotalRecordsProcessed) {
         // print out the progress meter
         this.nTotalRecordsProcessed = nTotalRecordsProcessed;
-        this.positionMessage = "done";
+        this.position = new Position(PositionStatus.DONE);
         printProgress(true);
 
         logger.info(String.format("Total runtime %.2f secs, %.2f min, %.2f hours",
