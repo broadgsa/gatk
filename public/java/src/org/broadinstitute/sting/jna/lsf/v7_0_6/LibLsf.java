@@ -1399,7 +1399,10 @@ public class LibLsf {
 
     public static native int ls_isPartialLicensingEnabled();
 
-    public static native lsfLicUsage.ByReference ls_getLicenseUsage();
+    /* NOTE: ls_getLicenseUsage() is not supported by LSF v8.x
+    *  Wei Xing, ICR
+    */
+//    public static native lsfLicUsage.ByReference ls_getLicenseUsage();
 
     public static native lsInfo.ByReference ls_info();
 
