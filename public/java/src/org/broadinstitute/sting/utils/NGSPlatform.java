@@ -24,8 +24,7 @@
 
 package org.broadinstitute.sting.utils;
 
-import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
  * A canonical, master list of the standard NGS platforms.  These values
@@ -64,25 +63,15 @@ public enum NGSPlatform {
     }
 
     /**
-     * Convenience constructor -- calculates the NGSPlatfrom from a SAMRecord.
-     * Note you should not use this function if you have a GATKSAMRecord -- use the
-     * accessor method instead.
+     * Convenience get -- get the NGSPlatfrom from a SAMRecord.
      *
-     * @param read
+     * Just gets the platform from the GATKReadGroupRecord associated with this read.
+     *
+     * @param read a GATKSAMRecord
      * @return an NGSPlatform object matching the PL field of the header, of UNKNOWN if there was no match
      */
-    public static final NGSPlatform fromRead(SAMRecord read) {
-        return fromReadGroup(read.getReadGroup());
-    }
-
-    /**
-     * Returns the NGSPlatform corresponding to the PL tag in the read group
-     * @param rg
-     * @return an NGSPlatform object matching the PL field of the header, of UNKNOWN if there was no match
-     */
-    public static final NGSPlatform fromReadGroup(SAMReadGroupRecord rg) {
-        if ( rg == null ) return UNKNOWN;
-        return fromReadGroupPL(rg.getPlatform());
+    public static NGSPlatform fromRead(GATKSAMRecord read) {
+        return read.getReadGroup().getNGSPlatform();
     }
 
     /**
@@ -90,7 +79,7 @@ public enum NGSPlatform {
      * @param plFromRG -- the PL field (or equivalent) in a ReadGroup object
      * @return an NGSPlatform object matching the PL field of the header, or UNKNOWN if there was no match
      */
-    public static final NGSPlatform fromReadGroupPL(final String plFromRG) {
+    public static NGSPlatform fromReadGroupPL(final String plFromRG) {
         if ( plFromRG == null ) return UNKNOWN;
 
         // todo -- algorithm could be implemented more efficiently, as the list of all
@@ -113,7 +102,7 @@ public enum NGSPlatform {
      * @param platform the read group string that describes the platform used
      * @return true if the platform is known (i.e. it's in the list and is not UNKNOWN)
      */
-    public static final boolean isKnown (final String platform) {
+    public static final boolean isKnown(final String platform) {
         return fromReadGroupPL(platform) != UNKNOWN;
     }
 }

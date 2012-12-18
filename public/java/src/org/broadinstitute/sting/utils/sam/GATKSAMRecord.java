@@ -25,9 +25,9 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.recalibration.EventType;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -141,15 +141,25 @@ public class GATKSAMRecord extends BAMRecord {
         mReadString = s;
     }
 
+    /**
+     * Get the GATKSAMReadGroupRecord of this read
+     * @return a non-null GATKSAMReadGroupRecord
+     */
     @Override
     public GATKSAMReadGroupRecord getReadGroup() {
-        if ( !retrievedReadGroup ) {
-            SAMReadGroupRecord tempReadGroup = super.getReadGroup();
-            mReadGroup = (tempReadGroup == null ? null : new GATKSAMReadGroupRecord(tempReadGroup));
+        if ( ! retrievedReadGroup ) {
+            mReadGroup = (GATKSAMReadGroupRecord)super.getReadGroup();
             retrievedReadGroup = true;
         }
         return mReadGroup;
     }
+
+    public void setReadGroup( final GATKSAMReadGroupRecord readGroup ) {
+        mReadGroup = readGroup;
+        retrievedReadGroup = true;
+        setAttribute("RG", mReadGroup.getId()); // todo -- this should be standardized, but we don't have access to SAMTagUtils!
+    }
+
 
     @Override
     public int hashCode() {
@@ -257,12 +267,6 @@ public class GATKSAMRecord extends BAMRecord {
      */
     public NGSPlatform getNGSPlatform() {
         return getReadGroup().getNGSPlatform();
-    }
-
-    public void setReadGroup( final GATKSAMReadGroupRecord readGroup ) {
-        mReadGroup = readGroup;
-        retrievedReadGroup = true;
-        setAttribute("RG", mReadGroup.getId()); // todo -- this should be standardized, but we don't have access to SAMTagUtils!
     }
 
     ///////////////////////////////////////////////////////////////////////////////

@@ -226,7 +226,7 @@ public class ReadUtils {
      * @param read the read to test
      * @return checks the read group tag PL for the default 454 tag
      */
-    public static boolean is454Read(SAMRecord read) {
+    public static boolean is454Read(GATKSAMRecord read) {
         return NGSPlatform.fromRead(read) == NGSPlatform.LS454;
     }
 
@@ -236,7 +236,7 @@ public class ReadUtils {
      * @param read the read to test
      * @return checks the read group tag PL for the default ion tag
      */
-    public static boolean isIonRead(SAMRecord read) {
+    public static boolean isIonRead(GATKSAMRecord read) {
         return NGSPlatform.fromRead(read) == NGSPlatform.ION_TORRENT;
     }
 
@@ -246,7 +246,7 @@ public class ReadUtils {
      * @param read the read to test
      * @return checks the read group tag PL for the default SOLiD tag
      */
-    public static boolean isSOLiDRead(SAMRecord read) {
+    public static boolean isSOLiDRead(GATKSAMRecord read) {
         return NGSPlatform.fromRead(read) == NGSPlatform.SOLID;
     }
 
@@ -256,7 +256,7 @@ public class ReadUtils {
      * @param read the read to test
      * @return checks the read group tag PL for the default SLX tag
      */
-    public static boolean isIlluminaRead(SAMRecord read) {
+    public static boolean isIlluminaRead(GATKSAMRecord read) {
         return NGSPlatform.fromRead(read) == NGSPlatform.ILLUMINA;
     }
 
@@ -268,7 +268,7 @@ public class ReadUtils {
      * @param name the upper-cased platform name to test
      * @return whether or not name == PL tag in the read group of read
      */
-    public static boolean isPlatformRead(SAMRecord read, String name) {
+    public static boolean isPlatformRead(GATKSAMRecord read, String name) {
 
         SAMReadGroupRecord readGroup = read.getReadGroup();
         if (readGroup != null) {

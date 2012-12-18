@@ -44,6 +44,7 @@ import org.broadinstitute.sting.utils.SimpleTimer;
 import org.broadinstitute.sting.utils.baq.ReadTransformingIterator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
 
 import java.io.File;
@@ -894,9 +895,11 @@ public class SAMDataSource {
             long lastTick = timer.currentTime();
             for(final SAMReaderID readerID: readerIDs) {
                 final ReaderInitializer init = new ReaderInitializer(readerID).call();
+
                 if (removeProgramRecords) {
                     init.reader.getFileHeader().setProgramRecords(new ArrayList<SAMProgramRecord>());
                 }
+
                 if (threadAllocation.getNumIOThreads() > 0) {
                     inputStreams.put(init.readerID, init.blockInputStream); // get from initializer
                 }
@@ -916,6 +919,13 @@ public class SAMDataSource {
             for(SAMFileReader reader: readers.values())
                 headers.add(reader.getFileHeader());
             headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,headers,true);
+
+            // update all read groups to GATKSAMRecordReadGroups
+            final List<SAMReadGroupRecord> gatkReadGroups = new LinkedList<SAMReadGroupRecord>();
+            for ( final SAMReadGroupRecord rg : headerMerger.getMergedHeader().getReadGroups() ) {
+                gatkReadGroups.add(new GATKSAMReadGroupRecord(rg));
+            }
+            headerMerger.getMergedHeader().setReadGroups(gatkReadGroups);
         }
 
         final private void printReaderPerformance(final int nExecutedTotal,
