@@ -129,6 +129,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
         reads.add(buildSAMRecord("overlap_unequal", "1", 10, 21));
         reads.add(buildSAMRecord("boundary_equal", "1", 1990, 2009));
         reads.add(buildSAMRecord("boundary_unequal", "1", 1990, 2008));
+        reads.add(buildSAMRecord("boundary_1_pre", "1", 1950, 2000));
+        reads.add(buildSAMRecord("boundary_1_post", "1", 1999, 2050));
         reads.add(buildSAMRecord("extended_and_np", "1", 990, 1990));
         reads.add(buildSAMRecord("outside_intervals", "1", 5000, 6000));
         reads.add(buildSAMRecord("simple20", "20", 10025, 10075));
@@ -240,6 +242,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // overlap_unequal: Primary in 1:1-999
         // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // boundary_1_pre: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // boundary_1_post: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
         // simple20: Primary in 20:10000-10100
@@ -251,10 +255,10 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadMapping(region, "simple", "overlap_equal", "overlap_unequal");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1000, 1999));
-        verifyReadMapping(region, "boundary_unequal", "extended_and_np");
+        verifyReadMapping(region, "boundary_unequal", "extended_and_np", "boundary_1_pre");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
-        verifyReadMapping(region, "boundary_equal");
+        verifyReadMapping(region, "boundary_equal", "boundary_1_post");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
         verifyReadMapping(region, "simple20");
@@ -275,6 +279,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // overlap_unequal: Primary in 1:1-999
         // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // boundary_1_pre: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // boundary_1_post: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
         // simple20: Primary in 20:10000-10100
@@ -286,10 +292,10 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadMapping(region, "simple", "overlap_equal", "overlap_unequal", "extended_and_np");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1000, 1999));
-        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "extended_and_np");
+        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "extended_and_np", "boundary_1_pre", "boundary_1_post");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
-        verifyReadMapping(region, "boundary_equal", "boundary_unequal");
+        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "boundary_1_pre", "boundary_1_post");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
         verifyReadMapping(region, "simple20");
@@ -311,6 +317,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // overlap_unequal: Primary in 1:1-999
         // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // boundary_1_pre: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // boundary_1_post: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
         // simple20: Primary in 20:10000-10100
@@ -322,10 +330,10 @@ public class TraverseActiveRegionsTest extends BaseTest {
         verifyReadMapping(region, "simple", "overlap_equal", "overlap_unequal", "extended_and_np");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1000, 1999));
-        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "extended_and_np");
+        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "extended_and_np", "boundary_1_pre", "boundary_1_post");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
-        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "extended_and_np");
+        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "extended_and_np", "boundary_1_pre", "boundary_1_post");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
         verifyReadMapping(region, "simple20");
