@@ -112,6 +112,13 @@ public class TraverseActiveRegionsTest extends BaseTest {
         genomeLocParser = new GenomeLocParser(dictionary);
 
         // TODO: test shard boundaries
+        // TODO: reads with indels
+        // TODO: reads which span many regions
+        // TODO: reads which are partially between intervals (in/outside extension)
+        // TODO: duplicate reads
+
+        // TODO: should we assign reads which are completely outside intervals but within extension?
+
 
         intervals = new ArrayList<GenomeLoc>();
         intervals.add(genomeLocParser.createGenomeLoc("1", 10, 20));
