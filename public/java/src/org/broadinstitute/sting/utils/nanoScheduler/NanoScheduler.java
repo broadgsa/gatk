@@ -47,7 +47,6 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
 
     final int bufferSize;
     final int nThreads;
-    final ExecutorService inputExecutor;
     final ExecutorService masterExecutor;
     final ExecutorService mapExecutor;
     final Semaphore runningMapJobSlots;
@@ -75,14 +74,12 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         this.nThreads = nThreads;
 
         if ( nThreads == 1 ) {
-            this.mapExecutor = this.inputExecutor = this.masterExecutor = null;
+            this.mapExecutor = this.masterExecutor = null;
             runningMapJobSlots = null;
         } else {
-            this.mapExecutor = Executors.newFixedThreadPool(nThreads - 1, new NamedThreadFactory("NS-map-thread-%d"));
-            runningMapJobSlots = new Semaphore(this.bufferSize);
-
-            this.inputExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NS-input-thread-%d"));
             this.masterExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory("NS-master-thread-%d"));
+            this.mapExecutor = Executors.newFixedThreadPool(nThreads, new NamedThreadFactory("NS-map-thread-%d"));
+            runningMapJobSlots = new Semaphore(this.bufferSize);
         }
     }
 
@@ -111,7 +108,6 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
      */
     public void shutdown() {
         if ( nThreads > 1 ) {
-            shutdownExecutor("inputExecutor", inputExecutor);
             shutdownExecutor("mapExecutor", mapExecutor);
             shutdownExecutor("masterExecutor", masterExecutor);
         }
@@ -323,7 +319,6 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         if ( errorTracker.hasAnErrorOccurred() ) {
             masterExecutor.shutdownNow();
             mapExecutor.shutdownNow();
-            inputExecutor.shutdownNow();
             errorTracker.throwErrorIfPending();
         }
     }
@@ -351,15 +346,8 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
 
         @Override
         public ReduceType call() {
-            // a blocking queue that limits the number of input datum to the requested buffer size
-            // note we need +1 because we continue to enqueue the lastObject
-            final BlockingQueue<InputProducer<InputType>.InputValue> inputQueue
-                    = new LinkedBlockingDeque<InputProducer<InputType>.InputValue>(bufferSize+1);
-
             // Create the input producer and start it running
-            final InputProducer<InputType> inputProducer =
-                    new InputProducer<InputType>(inputReader, errorTracker, inputQueue);
-            inputExecutor.submit(inputProducer);
+            final InputProducer<InputType> inputProducer = new InputProducer<InputType>(inputReader);
 
             // a priority queue that stores up to bufferSize elements
             // produced by completed map jobs.
@@ -376,7 +364,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                     // acquire a slot to run a map job.  Blocks if too many jobs are enqueued
                     runningMapJobSlots.acquire();
 
-                    mapExecutor.submit(new MapReduceJob(inputQueue, mapResultQueue, map, reducer));
+                    mapExecutor.submit(new ReadMapReduceJob(inputProducer, mapResultQueue, map, reducer));
                     nSubmittedJobs++;
                 }
 
@@ -401,10 +389,6 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
             // wait until we have a final reduce result
 //        logger.warn("waiting for final reduce");
             final ReduceType finalSum = reducer.waitForFinalReduce();
-
-            // now wait for the input provider thread to terminate
-//        logger.warn("waiting on inputProducer");
-            inputProducer.waitForDone();
 
             // wait for all the map threads to finish by acquiring and then releasing all map job semaphores
 //        logger.warn("waiting on map");
@@ -434,17 +418,17 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         }
     }
 
-    private class MapReduceJob implements Runnable {
-        final BlockingQueue<InputProducer<InputType>.InputValue> inputQueue;
+    private class ReadMapReduceJob implements Runnable {
+        final InputProducer<InputType> inputProducer;
         final PriorityBlockingQueue<MapResult<MapType>> mapResultQueue;
         final NSMapFunction<InputType, MapType> map;
         final Reducer<MapType, ReduceType> reducer;
 
-        private MapReduceJob(BlockingQueue<InputProducer<InputType>.InputValue> inputQueue,
-                             final PriorityBlockingQueue<MapResult<MapType>> mapResultQueue,
-                             final NSMapFunction<InputType, MapType> map,
-                             final Reducer<MapType, ReduceType> reducer) {
-            this.inputQueue = inputQueue;
+        private ReadMapReduceJob(final InputProducer<InputType> inputProducer,
+                                 final PriorityBlockingQueue<MapResult<MapType>> mapResultQueue,
+                                 final NSMapFunction<InputType, MapType> map,
+                                 final Reducer<MapType, ReduceType> reducer) {
+            this.inputProducer = inputProducer;
             this.mapResultQueue = mapResultQueue;
             this.map = map;
             this.reducer = reducer;
@@ -453,10 +437,10 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         @Override
         public void run() {
             try {
-                //debugPrint("Running MapReduceJob " + jobID);
-                final InputProducer<InputType>.InputValue inputWrapper = inputQueue.take();
-                final int jobID = inputWrapper.getId();
+                // get the next item from the input producer
+                final InputProducer<InputType>.InputValue inputWrapper = inputProducer.next();
 
+                // depending on inputWrapper, actually do some work or not, putting result input result object
                 final MapResult<MapType> result;
                 if ( ! inputWrapper.isEOFMarker() ) {
                     // just skip doing anything if we don't have work to do, which is possible
@@ -468,23 +452,19 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                     final MapType mapValue = map.apply(input);
 
                     // enqueue the result into the mapResultQueue
-                    result = new MapResult<MapType>(mapValue, jobID);
+                    result = new MapResult<MapType>(mapValue, inputWrapper.getId());
 
                     if ( progressFunction != null )
                         progressFunction.progress(input);
                 } else {
-                    // push back the EOF marker so other waiting threads can read it
-                    inputQueue.put(inputWrapper.nextEOF());
-
                     // if there's no input we push empty MapResults with jobIDs for synchronization with Reducer
-                    result = new MapResult<MapType>(jobID);
+                    result = new MapResult<MapType>(inputWrapper.getId());
                 }
 
                 mapResultQueue.put(result);
 
                 final int nReduced = reducer.reduceAsMuchAsPossible(mapResultQueue);
             } catch (Throwable ex) {
-//                logger.warn("Map job got exception " + ex);
                 errorTracker.notifyOfError(ex);
             } finally {
                 // we finished a map job, release the job queue semaphore

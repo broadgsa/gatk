@@ -84,7 +84,7 @@ class Reducer<MapType, ReduceType> {
         if ( nextMapResult == null ) {
             return false;
         } else if ( nextMapResult.getJobID() < prevJobID + 1 ) {
-            throw new IllegalStateException("Next job ID " + nextMapResult.getJobID() + " is < previous job id " + prevJobID);
+            throw new IllegalStateException("Next job ID " + nextMapResult.getJobID() + " is not < previous job id " + prevJobID);
         } else if ( nextMapResult.getJobID() == prevJobID + 1 ) {
             return true;
         } else {
