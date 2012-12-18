@@ -70,7 +70,7 @@ public class GATKSAMReadGroupRecord extends SAMReadGroupRecord {
         super.setPlatform(s);
         mPlatform = s;
         retrievedPlatform = true;
-        retrievedNGSPlatform = false;  // recalculate the NGSPlatform
+        retrievedNGSPlatform = false; // recalculate the NGSPlatform
     }
 
     public NGSPlatform getNGSPlatform() {
