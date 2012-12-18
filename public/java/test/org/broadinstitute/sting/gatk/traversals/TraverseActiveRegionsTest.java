@@ -239,19 +239,19 @@ public class TraverseActiveRegionsTest extends BaseTest {
         ActiveRegion region;
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1, 999));
-        verifyReadMapping(region, new String[]{"simple", "overlap_equal", "overlap_unequal"});
+        verifyReadMapping(region, "simple", "overlap_equal", "overlap_unequal");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1000, 1999));
-        verifyReadMapping(region, new String[]{"boundary_unequal", "extended_and_np"});
+        verifyReadMapping(region, "boundary_unequal", "extended_and_np");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
-        verifyReadMapping(region, new String[]{"boundary_equal"});
+        verifyReadMapping(region, "boundary_equal");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 249250600, 249250621));
-        verifyReadMapping(region, new String[]{"end_of_chr1"});
+        verifyReadMapping(region, "end_of_chr1");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
-        verifyReadMapping(region, new String[]{"simple20"});
+        verifyReadMapping(region, "simple20");
     }
 
     @Test
@@ -278,19 +278,19 @@ public class TraverseActiveRegionsTest extends BaseTest {
         ActiveRegion region;
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1, 999));
-        verifyReadMapping(region, new String[]{"simple", "overlap_equal", "overlap_unequal", "extended_and_np"});
+        verifyReadMapping(region, "simple", "overlap_equal", "overlap_unequal", "extended_and_np");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1000, 1999));
-        verifyReadMapping(region, new String[]{"boundary_equal", "boundary_unequal", "extended_and_np"});
+        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "extended_and_np");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
-        verifyReadMapping(region, new String[]{"boundary_equal", "boundary_unequal"});
+        verifyReadMapping(region, "boundary_equal", "boundary_unequal");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 249250600, 249250621));
-        verifyReadMapping(region, new String[]{"end_of_chr1"});
+        verifyReadMapping(region, "end_of_chr1");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
-        verifyReadMapping(region, new String[]{"simple20"});
+        verifyReadMapping(region, "simple20");
     }
 
     @Test
@@ -317,21 +317,20 @@ public class TraverseActiveRegionsTest extends BaseTest {
         Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(walker, intervals);
         ActiveRegion region;
 
-
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1, 999));
-        verifyReadMapping(region, new String[]{"simple", "overlap_equal", "overlap_unequal", "extended_and_np"});
+        verifyReadMapping(region, "simple", "overlap_equal", "overlap_unequal", "extended_and_np");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1000, 1999));
-        verifyReadMapping(region, new String[]{"boundary_equal", "boundary_unequal", "extended_and_np"});
+        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "extended_and_np");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
-        verifyReadMapping(region, new String[]{"boundary_equal", "boundary_unequal", "extended_and_np"});
+        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "extended_and_np");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 249250600, 249250621));
-        verifyReadMapping(region, new String[]{"end_of_chr1"});
+        verifyReadMapping(region, "end_of_chr1");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
-        verifyReadMapping(region, new String[]{"simple20"});
+        verifyReadMapping(region, "simple20");
     }
 
     @Test
@@ -339,7 +338,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // TODO
     }
 
-    private void verifyReadMapping(ActiveRegion region, String[] reads) {
+    private void verifyReadMapping(ActiveRegion region, String... reads) {
         Collection<String> wantReads = new ArrayList<String>(Arrays.asList(reads));
         for (SAMRecord read : region.getReads()) {
             String regionReadName = read.getReadName();
