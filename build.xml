@@ -644,12 +644,8 @@
 
     <target name="sting-utils.jar" depends="gatk.compile, init.jar, R.public.tar, R.script.stage">
         <jar jarfile="${dist.dir}/StingUtils.jar">
-            <fileset dir="${java.classes}">
-              <include name="**/utils/**/*.class"/>
-              <exclude name="**/utils/codecs/vcf/**/*.class"/>
-              <exclude name="**/utils/variantcontext/**/*.class"/>
-            </fileset>
-            <fileset dir="${java.classes}" includes="**/commandline/**/*.class"/>
+            <fileset dir="${java.classes}" includes="**/sting/utils/**/*.class"/>
+            <fileset dir="${java.classes}" includes="**/sting/commandline/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/pipeline/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/tools/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/jna/**/*.class"/>
@@ -659,7 +655,7 @@
                 <include name="**/${R.package.path}/**/*.tar.gz"/>
             </fileset>
             <fileset dir="${R.script.staging.dir}">
-                <include name="**/utils/**/*.R"/>
+                <include name="**/sting/utils/**/*.R"/>
             </fileset>
             <manifest>
                 <attribute name="Premain-Class" value="org.broadinstitute.sting.utils.instrumentation.Sizeof" />
@@ -667,14 +663,10 @@
         </jar>
     </target>
 
-    <target name="vcf.jar" depends="gatk.compile,init.jar">
-        <jar jarfile="${dist.dir}/vcf.jar">
+    <target name="variant.jar" depends="gatk.compile,init.jar">
+        <jar jarfile="${dist.dir}/variant.jar">
             <fileset dir="${java.classes}">
-              <include name="org/broadinstitute/sting/utils/codecs/vcf/**/*.class"/>
-              <include name="org/broadinstitute/sting/utils/codecs/bcf2/**/*.class"/>
-              <include name="org/broadinstitute/sting/utils/variantcontext/**/*.class"/>
-              <include name="org/broadinstitute/sting/utils/exceptions/**"/>
-	          <include name="org/broadinstitute/sting/utils/help/DocumentedGATKFeature.class"/>
+              <include name="org/broadinstitute/variant/**/*.class"/>
             </fileset>
         </jar>
     </target>
@@ -685,7 +677,7 @@
               <include name="org/broadinstitute/sting/utils/GenomeLocParser*.class"/>
               <include name="org/broadinstitute/sting/utils/GenomeLoc.class"/>
               <include name="org/broadinstitute/sting/utils/HasGenomeLocation.class"/>
-              <include name="org/broadinstitute/sting/utils/BaseUtils.class"/>
+              <include name="org/broadinstitute/variant/utils/BaseUtils.class"/>
               <include name="org/broadinstitute/sting/utils/Utils.class"/>
               <include name="org/broadinstitute/sting/utils/exceptions/**/*.class"/>
               <include name="org/broadinstitute/sting/gatk/walkers/na12878kb/core/**/*.class"/>
@@ -703,12 +695,12 @@
             <fileset dir="${java.contracts.dir}" />
             <fileset dir="${java.classes}">
 	          <include name="${resource.file}" />
-              <include name="**/gatk/**/*.class" />
-              <include name="**/alignment/**/*.class"/>
+              <include name="**/sting/gatk/**/*.class" />
+              <include name="**/sting/alignment/**/*.class"/>
             </fileset>
             <fileset dir="${R.script.staging.dir}">
-                <include name="**/gatk/**/*.R"/>
-                <include name="**/alignment/**/*.R"/>
+                <include name="**/sting/gatk/**/*.R"/>
+                <include name="**/sting/alignment/**/*.R"/>
             </fileset>
             <fileset dir="${key.dir}">
                 <include name="**/*.key"/>
@@ -719,7 +711,7 @@
         </jar>
 
         <jar jarfile="${dist.dir}/Aligner.jar">
-            <fileset dir="${java.classes}" includes="**/alignment/**/*.class" />
+            <fileset dir="${java.classes}" includes="**/sting/alignment/**/*.class" />
         </jar>
 
         <subant target="dist" genericantfile="build.xml">
@@ -755,7 +747,7 @@
         </jar>
     </target>
 
-    <target name="sting.jar" depends="sting-utils.jar, vcf.jar, gatk.jar, queue.jar" />
+    <target name="sting.jar" depends="sting-utils.jar, variant.jar, gatk.jar, queue.jar" />
 
     <target name="init.manifests" depends="sting.jar">
         <pathconvert property="jar.classpath" pathsep=" ">

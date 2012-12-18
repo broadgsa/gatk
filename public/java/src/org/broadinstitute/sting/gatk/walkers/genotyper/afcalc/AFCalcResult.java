@@ -29,7 +29,7 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.Allele;
 
 import java.util.*;
 

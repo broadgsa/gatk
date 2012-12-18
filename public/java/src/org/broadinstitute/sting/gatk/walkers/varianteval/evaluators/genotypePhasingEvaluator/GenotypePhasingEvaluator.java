@@ -13,9 +13,9 @@
 //import org.broadinstitute.sting.gatk.walkers.varianteval.util.EvaluationContext;
 //import org.broadinstitute.sting.utils.GenomeLoc;
 //import org.broadinstitute.sting.utils.MathUtils;
-//import org.broadinstitute.sting.utils.variantcontext.Genotype;
-//import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-//import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+//import org.broadinstitute.variant.variantcontext.Genotype;
+//import org.broadinstitute.variant.variantcontext.GenotypesContext;
+//import org.broadinstitute.variant.variantcontext.VariantContext;
 //
 //import java.util.HashMap;
 //import java.util.HashSet;

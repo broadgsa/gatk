@@ -2,7 +2,7 @@ package org.broadinstitute.sting.utils.recalibration.covariates;
 
 import org.broadinstitute.sting.utils.recalibration.ReadCovariates;
 import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.variant.utils.BaseUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;

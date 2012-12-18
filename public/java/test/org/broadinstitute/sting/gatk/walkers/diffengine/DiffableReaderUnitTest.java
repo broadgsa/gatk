@@ -30,8 +30,8 @@ package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.variant.vcf.VCFConstants;
+import org.broadinstitute.variant.variantcontext.Allele;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;

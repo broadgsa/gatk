@@ -41,12 +41,14 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.utils.variantcontext.*;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.*;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -349,7 +351,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         // Get list of samples to include in the output
         List<String> rodNames = Arrays.asList(variantCollection.variants.getName());
 
-        vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
+        vcfRods = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
 
         Collection<String> samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFiles);
@@ -451,7 +453,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             UAC.GLmodel = GenotypeLikelihoodsCalculationModel.Model.BOTH;
             UAC.OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES;
             UAC.GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
-            UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, null, null, samples, VariantContextUtils.DEFAULT_PLOIDY);
+            UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, null, null, samples, GATKVariantContextUtils.DEFAULT_PLOIDY);
             headerLines.addAll(UnifiedGenotyper.getHeaderInfo(UAC, null, null));
         }
 

@@ -262,7 +262,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
     @Test()
     public void testFileWithoutInfoLineInHeader() {
-        testFileWithoutInfoLineInHeader("testFileWithoutInfoLineInHeader", UserException.class);
+        testFileWithoutInfoLineInHeader("testFileWithoutInfoLineInHeader", IllegalStateException.class);
     }
 
     @Test()

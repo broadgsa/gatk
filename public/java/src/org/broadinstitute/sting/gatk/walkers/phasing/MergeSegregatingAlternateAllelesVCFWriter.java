@@ -28,12 +28,13 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.variant.vcf.VCFHeader;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.variant.variantcontext.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -124,7 +125,7 @@ class MergeSegregatingAlternateAllelesVCFWriter implements VariantContextWriter 
                 return;
         }
 
-        logger.debug("Next VC input = " + VariantContextUtils.getLocation(genomeLocParser, vc));
+        logger.debug("Next VC input = " + GATKVariantContextUtils.getLocation(genomeLocParser, vc));
         boolean curVcIsNotFiltered = vc.isNotFiltered();
 
         if (vcfrWaitingToMerge == null) {
@@ -134,20 +135,20 @@ class MergeSegregatingAlternateAllelesVCFWriter implements VariantContextWriter 
                 throw new ReviewedStingException("filteredVcfrList should be empty if not waiting to merge a vc!");
 
             if (curVcIsNotFiltered) { // still need to wait before can release vc
-                logger.debug("Waiting for new variant " + VariantContextUtils.getLocation(genomeLocParser, vc));
+                logger.debug("Waiting for new variant " + GATKVariantContextUtils.getLocation(genomeLocParser, vc));
                 vcfrWaitingToMerge = new VCFRecord(vc, false);
             }
             else if (!emitOnlyMergedRecords) { // filtered records are never merged
-                logger.debug("DIRECTLY output " + VariantContextUtils.getLocation(genomeLocParser, vc));
+                logger.debug("DIRECTLY output " + GATKVariantContextUtils.getLocation(genomeLocParser, vc));
                 innerWriter.add(vc);
             }
         }
         else { // waiting to merge vcfrWaitingToMerge
-            logger.debug("Waiting to merge " + VariantContextUtils.getLocation(genomeLocParser, vcfrWaitingToMerge.vc));
+            logger.debug("Waiting to merge " + GATKVariantContextUtils.getLocation(genomeLocParser, vcfrWaitingToMerge.vc));
 
             if (!curVcIsNotFiltered) {
                 if (!emitOnlyMergedRecords) { // filtered records are never merged
-                    logger.debug("Caching unprocessed output " + VariantContextUtils.getLocation(genomeLocParser, vc));
+                    logger.debug("Caching unprocessed output " + GATKVariantContextUtils.getLocation(genomeLocParser, vc));
                     filteredVcfrList.add(new VCFRecord(vc, false));
                 }
             }
@@ -345,10 +346,10 @@ class MergeSegregatingAlternateAllelesVCFWriter implements VariantContextWriter 
 
                         if (!PhasingUtils.alleleSegregationIsKnown(gt1, gt2)) {
                             aas.segregationUnknown++;
-                            logger.debug("Unknown segregation of alleles [not phased] for " + samp + " at " + VariantContextUtils.getLocation(genomeLocParser, vc1) + ", " + VariantContextUtils.getLocation(genomeLocParser, vc2));
+                            logger.debug("Unknown segregation of alleles [not phased] for " + samp + " at " + GATKVariantContextUtils.getLocation(genomeLocParser, vc1) + ", " + GATKVariantContextUtils.getLocation(genomeLocParser, vc2));
                         }
                         else if (gt1.isHomRef() || gt2.isHomRef()) {
-                            logger.debug("gt1.isHomRef() || gt2.isHomRef() for " + samp + " at " + VariantContextUtils.getLocation(genomeLocParser, vc1) + ", " + VariantContextUtils.getLocation(genomeLocParser, vc2));
+                            logger.debug("gt1.isHomRef() || gt2.isHomRef() for " + samp + " at " + GATKVariantContextUtils.getLocation(genomeLocParser, vc1) + ", " + GATKVariantContextUtils.getLocation(genomeLocParser, vc2));
                             aas.eitherNotVariant++;
                         }
                         else { // BOTH gt1 and gt2 have at least one variant allele (so either hets, or homozygous variant):
@@ -377,7 +378,7 @@ class MergeSegregatingAlternateAllelesVCFWriter implements VariantContextWriter 
 
                             // Check MNPs vs. CHets:
                             if (containsRefAllele(site1Alleles) && containsRefAllele(site2Alleles)) {
-                                logger.debug("HET-HET for " + samp + " at " + VariantContextUtils.getLocation(genomeLocParser, vc1) + ", " + VariantContextUtils.getLocation(genomeLocParser, vc2));
+                                logger.debug("HET-HET for " + samp + " at " + GATKVariantContextUtils.getLocation(genomeLocParser, vc1) + ", " + GATKVariantContextUtils.getLocation(genomeLocParser, vc2));
                                 if (logger.isDebugEnabled() && !(gt1.isHet() && gt2.isHet()))
                                     throw new ReviewedStingException("Since !gt1.isHomRef() && !gt2.isHomRef(), yet both have ref alleles, they BOTH must be hets!");
 
@@ -463,7 +464,7 @@ class DistanceMergeRule extends VariantContextMergeRule {
     }
 
     public int minDistance(VariantContext vc1, VariantContext vc2) {
-        return VariantContextUtils.getLocation(genomeLocParser, vc1).minDistance(VariantContextUtils.getLocation(genomeLocParser, vc2));
+        return GATKVariantContextUtils.getLocation(genomeLocParser, vc1).minDistance(GATKVariantContextUtils.getLocation(genomeLocParser, vc2));
     }
 }
 

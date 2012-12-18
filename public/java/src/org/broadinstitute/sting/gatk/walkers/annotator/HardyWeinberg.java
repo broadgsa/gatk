@@ -9,11 +9,11 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnot
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.WorkInProgressAnnotation;
 import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.variant.vcf.VCFHeaderLineType;
+import org.broadinstitute.variant.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.variant.variantcontext.Genotype;
+import org.broadinstitute.variant.variantcontext.GenotypesContext;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.util.Arrays;
 import java.util.HashMap;

@@ -29,13 +29,13 @@ import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.writer.Options;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.variant.vcf.VCFHeader;
+import org.broadinstitute.variant.vcf.VCFHeaderLine;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.writer.Options;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -232,7 +232,7 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
             }
 
             if ( UPDATE_CONTIG_HEADERS )
-                vcfHeader = VCFUtils.withUpdatedContigs(vcfHeader, engine);
+                vcfHeader = GATKVCFUtils.withUpdatedContigs(vcfHeader, engine);
         }
 
         outputTracker.getStorage(this).writeHeader(vcfHeader);

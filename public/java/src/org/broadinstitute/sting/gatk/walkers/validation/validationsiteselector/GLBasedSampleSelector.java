@@ -26,7 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
 import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalc;
 import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcFactory;
 import org.broadinstitute.sting.gatk.walkers.genotyper.afcalc.AFCalcResult;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.util.TreeSet;
 

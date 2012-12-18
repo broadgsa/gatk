@@ -4,10 +4,10 @@ import java.io.File
 import org.apache.commons.io.FilenameUtils
 import scala.io.Source._
 import net.sf.samtools.SAMFileReader
-import org.broadinstitute.sting.utils.codecs.vcf.{VCFHeader, VCFCodec}
+import org.broadinstitute.variant.vcf.{VCFHeader, VCFCodec}
 import scala.collection.JavaConversions._
 import org.broad.tribble.{FeatureCodec, AbstractFeatureReader}
-import org.broadinstitute.sting.utils.variantcontext.VariantContext
+import org.broadinstitute.variant.variantcontext.VariantContext
 
 object VCF_BAM_utilities {
 

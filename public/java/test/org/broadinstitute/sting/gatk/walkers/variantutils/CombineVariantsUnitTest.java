@@ -2,12 +2,8 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
+import org.broadinstitute.variant.vcf.*;
 import org.testng.Assert;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderUnitTest;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 
 import org.testng.annotations.Test;
 

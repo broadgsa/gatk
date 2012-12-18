@@ -26,7 +26,7 @@ package org.broadinstitute.sting.utils.codecs.hapmap;
 
 import org.broad.tribble.Feature;
 import org.broad.tribble.annotation.Strand;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.Allele;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -24,12 +24,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
 
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Set;
 import java.util.TreeSet;
 
 

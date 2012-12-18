@@ -23,7 +23,7 @@
  */
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.variant.utils.BaseUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 

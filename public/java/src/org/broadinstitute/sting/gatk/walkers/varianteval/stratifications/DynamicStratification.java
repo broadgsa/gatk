@@ -24,11 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 /**
  * Tag this stratification as dynamically determining the final strat based on the input data
