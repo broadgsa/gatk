@@ -45,7 +45,6 @@ import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.recalibration.*;
 import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
@@ -53,7 +52,6 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Constructor;
@@ -194,14 +192,7 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
         recalibrationEngine.initialize(requestedCovariates, recalibrationTables);
 
         minimumQToUse = getToolkit().getArguments().PRESERVE_QSCORES_LESS_THAN;
-
-        try {
-            // fasta reference reader for use with BAQ calculation
-            referenceReader = new CachingIndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
-        } catch( FileNotFoundException e ) {
-            throw new UserException.CouldNotReadInputFile(getToolkit().getArguments().referenceFile, e);
-        }
-
+        referenceReader = getToolkit().getReferenceDataSource().getReference();
     }
 
     private RecalibrationEngine initializeRecalibrationEngine() {
@@ -425,6 +416,7 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
     }
 
     private byte[] calculateBAQArray( final GATKSAMRecord read ) {
+        // todo -- it would be good to directly use the BAQ qualities rather than encoding and decoding the result and using the special @ value
         baq.baqRead(read, referenceReader, BAQ.CalculationMode.RECALCULATE, BAQ.QualityMode.ADD_TAG);
         return BAQ.getBAQTag(read);
     }
@@ -452,6 +444,8 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
 
     @Override
     public void onTraversalDone(Long result) {
+        recalibrationEngine.finalizeData();
+
         logger.info("Calculating quantized quality scores...");
         quantizeQualityScores();
 

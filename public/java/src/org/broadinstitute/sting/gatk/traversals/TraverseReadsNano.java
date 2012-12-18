@@ -33,14 +33,13 @@ import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.nanoScheduler.NSMapFunction;
+import org.broadinstitute.sting.utils.nanoScheduler.NSProgressFunction;
 import org.broadinstitute.sting.utils.nanoScheduler.NSReduceFunction;
 import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Iterator;
 
 /**
  * A nano-scheduling version of TraverseReads.
@@ -60,6 +59,13 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
 
     public TraverseReadsNano(int nThreads) {
         nanoScheduler = new NanoScheduler<MapData, MapResult, T>(nThreads);
+        nanoScheduler.setProgressFunction(new NSProgressFunction<MapData>() {
+            @Override
+            public void progress(MapData lastProcessedMap) {
+                if ( lastProcessedMap.refContext != null )
+                    printProgress(lastProcessedMap.refContext.getLocus());
+            }
+        });
     }
 
     @Override
@@ -78,7 +84,8 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
     public T traverse(ReadWalker<M,T> walker,
                       ReadShardDataProvider dataProvider,
                       T sum) {
-        logger.debug(String.format("TraverseReadsNano.traverse Covered dataset is %s", dataProvider));
+        if ( logger.isDebugEnabled() )
+            logger.debug(String.format("TraverseReadsNano.traverse Covered dataset is %s", dataProvider));
 
         if( !dataProvider.hasReads() )
             throw new IllegalArgumentException("Unable to traverse reads; no read data is available.");
@@ -87,14 +94,10 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
         final TraverseReadsMap myMap = new TraverseReadsMap(walker);
         final TraverseReadsReduce myReduce = new TraverseReadsReduce(walker);
 
-        final List<MapData> aggregatedInputs = aggregateMapData(dataProvider);
-        final T result = nanoScheduler.execute(aggregatedInputs.iterator(), myMap, sum, myReduce);
-
-        final GATKSAMRecord lastRead = aggregatedInputs.get(aggregatedInputs.size() - 1).read;
-        final GenomeLoc locus = engine.getGenomeLocParser().createGenomeLoc(lastRead);
+        final Iterator<MapData> aggregatedInputs = aggregateMapData(dataProvider);
+        final T result = nanoScheduler.execute(aggregatedInputs, myMap, sum, myReduce);
 
         updateCumulativeMetrics(dataProvider.getShard());
-        printProgress(locus);
 
         return result;
     }
@@ -107,29 +110,37 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
      * @return a linked list of MapData objects holding the read, ref, and ROD info for every map/reduce
      *          should execute
      */
-    private List<MapData> aggregateMapData(final ReadShardDataProvider dataProvider) {
-        final ReadView reads = new ReadView(dataProvider);
-        final ReadReferenceView reference = new ReadReferenceView(dataProvider);
-        final ReadBasedReferenceOrderedView rodView = new ReadBasedReferenceOrderedView(dataProvider);
+    private Iterator<MapData> aggregateMapData(final ReadShardDataProvider dataProvider) {
+        return new Iterator<MapData>() {
+            final ReadView reads = new ReadView(dataProvider);
+            final ReadReferenceView reference = new ReadReferenceView(dataProvider);
+            final ReadBasedReferenceOrderedView rodView = new ReadBasedReferenceOrderedView(dataProvider);
+            final Iterator<SAMRecord> readIterator = reads.iterator();
 
-        final List<MapData> mapData = new LinkedList<MapData>();
-        for ( final SAMRecord read : reads ) {
-            final ReferenceContext refContext = ! read.getReadUnmappedFlag()
-                    ? reference.getReferenceContext(read)
-                    : null;
+            @Override public boolean hasNext() { return readIterator.hasNext(); }
 
-            // if the read is mapped, create a metadata tracker
-            final RefMetaDataTracker tracker = read.getReferenceIndex() >= 0
-                    ? rodView.getReferenceOrderedDataForRead(read)
-                    : null;
+            @Override
+            public MapData next() {
+                final SAMRecord read = readIterator.next();
+                final ReferenceContext refContext = ! read.getReadUnmappedFlag()
+                        ? reference.getReferenceContext(read)
+                        : null;
 
-            // update the number of reads we've seen
-            dataProvider.getShard().getReadMetrics().incrementNumIterations();
+                // if the read is mapped, create a metadata tracker
+                final RefMetaDataTracker tracker = read.getReferenceIndex() >= 0
+                        ? rodView.getReferenceOrderedDataForRead(read)
+                        : null;
 
-            mapData.add(new MapData((GATKSAMRecord)read, refContext, tracker));
-        }
+                // update the number of reads we've seen
+                dataProvider.getShard().getReadMetrics().incrementNumIterations();
 
-        return mapData;
+                return new MapData((GATKSAMRecord)read, refContext, tracker);
+            }
+
+            @Override public void remove() {
+                throw new UnsupportedOperationException("Remove not supported");
+            }
+        };
     }
 
     @Override
