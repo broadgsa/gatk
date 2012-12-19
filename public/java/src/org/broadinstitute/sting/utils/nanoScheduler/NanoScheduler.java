@@ -351,8 +351,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
 
             // a priority queue that stores up to bufferSize elements
             // produced by completed map jobs.
-            final PriorityBlockingQueue<MapResult<MapType>> mapResultQueue =
-                    new PriorityBlockingQueue<MapResult<MapType>>();
+            final MapResultsQueue<MapType> mapResultQueue = new MapResultsQueue<MapType>();
 
             final Reducer<MapType, ReduceType> reducer
                     = new Reducer<MapType, ReduceType>(reduce, errorTracker, initialValue);
@@ -420,12 +419,12 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
 
     private class ReadMapReduceJob implements Runnable {
         final InputProducer<InputType> inputProducer;
-        final PriorityBlockingQueue<MapResult<MapType>> mapResultQueue;
+        final MapResultsQueue<MapType> mapResultQueue;
         final NSMapFunction<InputType, MapType> map;
         final Reducer<MapType, ReduceType> reducer;
 
         private ReadMapReduceJob(final InputProducer<InputType> inputProducer,
-                                 final PriorityBlockingQueue<MapResult<MapType>> mapResultQueue,
+                                 final MapResultsQueue<MapType> mapResultQueue,
                                  final NSMapFunction<InputType, MapType> map,
                                  final Reducer<MapType, ReduceType> reducer) {
             this.inputProducer = inputProducer;

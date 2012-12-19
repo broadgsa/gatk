@@ -37,12 +37,6 @@ class InputProducer<InputType> {
     int nRead = 0;
     int inputID = -1;
 
-    /**
-     * A latch used to block threads that want to start up only when all of the values
-     * in inputReader have been read by the thread executing run()
-     */
-    final CountDownLatch latch = new CountDownLatch(1);
-
     public InputProducer(final Iterator<InputType> inputReader) {
         if ( inputReader == null ) throw new IllegalArgumentException("inputReader cannot be null");
         this.inputReader = inputReader;

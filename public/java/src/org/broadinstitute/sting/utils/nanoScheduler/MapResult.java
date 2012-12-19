@@ -26,14 +26,6 @@ class MapResult<MapType> extends EOFMarkedValue<MapType> implements Comparable<M
     }
 
     /**
-     * Create the EOF marker version of MapResult
-     */
-    MapResult() {
-        super();
-        this.jobID = Integer.MAX_VALUE;
-    }
-
-    /**
      * @return the job ID of the map job that produced this MapResult
      */
     public int getJobID() {

@@ -44,11 +44,6 @@ class Reducer<MapType, ReduceType> {
     int numSubmittedJobs = UNSET_NUM_SUBMITTED_JOBS; // not yet set
 
     /**
-     * The jobID of the last job we've seen
-     */
-    int prevJobID = -1; // no jobs observed
-
-    /**
      * A counter keeping track of the number of jobs we're reduced
      */
     int numJobsReduced = 0;
@@ -73,26 +68,6 @@ class Reducer<MapType, ReduceType> {
     }
 
     /**
-     * Should we reduce the next value in the mapResultQueue?
-     *
-     * @param mapResultQueue the queue of map results
-     * @return true if we should reduce
-     */
-    @Requires("mapResultQueue != null")
-    private synchronized boolean reduceNextValueInQueue(final PriorityBlockingQueue<MapResult<MapType>> mapResultQueue) {
-        final MapResult<MapType> nextMapResult = mapResultQueue.peek();
-        if ( nextMapResult == null ) {
-            return false;
-        } else if ( nextMapResult.getJobID() < prevJobID + 1 ) {
-            throw new IllegalStateException("Next job ID " + nextMapResult.getJobID() + " is not < previous job id " + prevJobID);
-        } else if ( nextMapResult.getJobID() == prevJobID + 1 ) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
      * Reduce as much data as possible in mapResultQueue, returning the number of reduce calls completed
      *
      * As much as possible is defined as all of the MapResults in the queue are in order starting from the
@@ -104,16 +79,20 @@ class Reducer<MapType, ReduceType> {
      * @throws InterruptedException
      */
     @Ensures("result >= 0")
-    public synchronized int reduceAsMuchAsPossible(final PriorityBlockingQueue<MapResult<MapType>> mapResultQueue) {
+    public synchronized int reduceAsMuchAsPossible(final MapResultsQueue<MapType> mapResultQueue) {
+        // TODO -- have conditional lock acquistion.  If the lock can be acquired, actually do some useful
+        // TODO -- work, but if it cannot just continue on your way.  No sense in having all our map
+        // TODO -- threads block here just to fall through.  The only question is if, with that locking scheme,
+        // TODO -- it's possible to leave some values in the map queue, as the thread owning the lock is
+        // TODO -- exiting and the only remaining thread to actually complete the reduce falls through.
+        // TODO -- all we really need to do is add a final call to reduceAsMuchAsPossible when exiting the nano scheduler
+        // TODO -- to make sure we've cleaned everything up
         if ( mapResultQueue == null ) throw new IllegalArgumentException("mapResultQueue cannot be null");
         int nReducesNow = 0;
 
-//        if ( numSubmittedJobs != UNSET_NUM_SUBMITTED_JOBS )
-//            logger.warn("  maybeReleaseLatch " + numJobsReduced + " numSubmittedJobs " + numSubmittedJobs + " queue " + mapResultQueue.size());
         try {
-            while ( reduceNextValueInQueue(mapResultQueue) ) {
+            while ( mapResultQueue.nextValueIsAvailable() ) {
                 final MapResult<MapType> result = mapResultQueue.take();
-                prevJobID = result.getJobID();
 
                 if ( ! result.isEOFMarker() ) {
                     nReducesNow++;
@@ -129,8 +108,6 @@ class Reducer<MapType, ReduceType> {
             errorTracker.notifyOfError(ex);
             countDownLatch.countDown();
         }
-//        if ( numSubmittedJobs == UNSET_NUM_SUBMITTED_JOBS )
-//            logger.warn("  maybeReleaseLatch " + numJobsReduced + " numSubmittedJobs " + numSubmittedJobs + " queue " + mapResultQueue.size());
 
         return nReducesNow;
     }
@@ -176,10 +153,11 @@ class Reducer<MapType, ReduceType> {
     public synchronized void setTotalJobCount(final int numOfSubmittedJobs) {
         if ( numOfSubmittedJobs < 0 )
             throw new IllegalArgumentException("numOfSubmittedJobs must be >= 0, but saw " + numOfSubmittedJobs);
+        if ( numJobsReduced > numOfSubmittedJobs )
+            throw new IllegalArgumentException("numOfSubmittedJobs " + numOfSubmittedJobs + " < numJobsReduced " + numJobsReduced);
         if ( this.numSubmittedJobs != UNSET_NUM_SUBMITTED_JOBS)
             throw new IllegalStateException("setlastJobID called multiple times, but should only be called once");
 
-        //logger.warn("setTotalJobCount " + numJobsReduced + " numSubmitted " + numOfSubmittedJobs);
         this.numSubmittedJobs = numOfSubmittedJobs;
         maybeReleaseLatch();
     }
@@ -192,9 +170,7 @@ class Reducer<MapType, ReduceType> {
      * @throws InterruptedException
      */
     public ReduceType waitForFinalReduce() throws InterruptedException {
-        //logger.warn("waitForFinalReduce() " + numJobsReduced + " " + numSubmittedJobs);
         countDownLatch.await();
-        //logger.warn("  done waitForFinalReduce");
         return sum;
     }
 }

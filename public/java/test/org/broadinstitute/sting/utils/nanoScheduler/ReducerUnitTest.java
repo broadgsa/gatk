@@ -88,7 +88,7 @@ public class ReducerUnitTest extends BaseTest {
         if ( groupSize == -1 )
             groupSize = allJobs.size();
 
-        final PriorityBlockingQueue<MapResult<Integer>> mapResultsQueue = new PriorityBlockingQueue<MapResult<Integer>>();
+        final MapResultsQueue<Integer> mapResultsQueue = new MapResultsQueue<Integer>();
 
         final List<List<MapResult<Integer>>> jobGroups = Utils.groupList(allJobs, groupSize);
         final ReduceSumTest reduce = new ReduceSumTest();
@@ -98,6 +98,7 @@ public class ReducerUnitTest extends BaseTest {
         final ExecutorService es = Executors.newSingleThreadExecutor();
         es.submit(waitingThread);
 
+        int lastJobID = -1;
         int nJobsSubmitted = 0;
         int jobGroupCount = 0;
         final int lastJobGroupCount = jobGroups.size() - 1;
@@ -106,12 +107,13 @@ public class ReducerUnitTest extends BaseTest {
         for ( final List<MapResult<Integer>> jobs : jobGroups ) {
             //logger.warn("Processing job group " + jobGroupCount + " with " + jobs.size() + " jobs");
             for ( final MapResult<Integer> job : jobs ) {
-                mapResultsQueue.add(job);
+                lastJobID = Math.max(lastJobID, job.getJobID());
+                mapResultsQueue.put(job);
                 nJobsSubmitted++;
             }
 
             if ( jobGroupCount == lastJobGroupCount ) {
-                mapResultsQueue.add(new MapResult<Integer>());
+                mapResultsQueue.put(new MapResult<Integer>(lastJobID+1));
                 nJobsSubmitted++;
             }
 
@@ -119,7 +121,7 @@ public class ReducerUnitTest extends BaseTest {
 
             if ( jobGroupCount == 0 && setJobIDAtStart ) {
                 // only can do the setJobID if jobs cannot be submitted out of order
-                reducer.setTotalJobCount(allJobs.size());
+                reducer.setTotalJobCount(allJobs.size()+1);
                 Assert.assertFalse(reducer.latchIsReleased(), "Latch should be closed even after setting last job if we haven't processed anything");
             }
 
@@ -141,7 +143,7 @@ public class ReducerUnitTest extends BaseTest {
             Assert.assertTrue(reducer.latchIsReleased(), "Latch should be released after reducing with last job id being set");
         else {
             Assert.assertFalse(reducer.latchIsReleased(), "Latch should be closed after reducing without last job id being set");
-            reducer.setTotalJobCount(allJobs.size());
+            reducer.setTotalJobCount(allJobs.size() + 1);
             Assert.assertTrue(reducer.latchIsReleased(), "Latch should be released after reducing after setting last job id ");
         }
 
