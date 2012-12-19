@@ -135,6 +135,7 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
 
     private BAQ baq; // BAQ the reads on the fly to generate the alignment uncertainty vector
     private IndexedFastaSequenceFile referenceReader; // fasta reference reader for use with BAQ calculation
+    private final static byte NO_BAQ_UNCERTAINTY = (byte)'@';
 
     /**
      * Parse the -cov arguments and create a list of covariates to be used here
@@ -226,25 +227,45 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
             return 0L; // skip this read completely
         }
 
-        final byte[] baqArray = calculateBAQArray(read);
+        final int[] isSNP = calculateIsSNP(read, ref, originalRead);
+        final int[] isInsertion = calculateIsIndel(read, EventType.BASE_INSERTION);
+        final int[] isDeletion = calculateIsIndel(read, EventType.BASE_DELETION);
+        final int nErrors = nEvents(isSNP, isInsertion, isDeletion);
+
+        // note for efficiency regions we don't compute the BAQ array unless we actually have
+        // some error to marginalize over.  For ILMN data ~85% of reads have no error
+        final byte[] baqArray = nErrors == 0 ? flatBAQArray(read) : calculateBAQArray(read);
 
         if( baqArray != null ) { // some reads just can't be BAQ'ed
             final ReadCovariates covariates = RecalUtils.computeCovariates(read, requestedCovariates);
             final boolean[] skip = calculateSkipArray(read, metaDataTracker); // skip known sites of variation as well as low quality and non-regular bases
-            final int[] isSNP = calculateIsSNP(read, ref, originalRead);
-            final int[] isInsertion = calculateIsIndel(read, EventType.BASE_INSERTION);
-            final int[] isDeletion = calculateIsIndel(read, EventType.BASE_DELETION);
             final double[] snpErrors = calculateFractionalErrorArray(isSNP, baqArray);
             final double[] insertionErrors = calculateFractionalErrorArray(isInsertion, baqArray);
             final double[] deletionErrors = calculateFractionalErrorArray(isDeletion, baqArray);
 
-            // aggregrate all of the info into our info object, and update the data
+            // aggregate all of the info into our info object, and update the data
             final ReadRecalibrationInfo info = new ReadRecalibrationInfo(read, covariates, skip, snpErrors, insertionErrors, deletionErrors);
             recalibrationEngine.updateDataForRead(info);
             return 1L;
         } else {
             return 0L;
         }
+    }
+
+    /**
+     * Compute the number of mutational events across all hasEvent vectors
+     *
+     * Simply the sum of entries in hasEvents
+     *
+     * @param hasEvents a vector a vectors of 0 (no event) and 1 (has event)
+     * @return the total number of events across all hasEvent arrays
+     */
+    private int nEvents(final int[]... hasEvents) {
+        int n = 0;
+        for ( final int[] hasEvent : hasEvents ) {
+            n += MathUtils.sum(hasEvent);
+        }
+        return n;
     }
 
     protected boolean[] calculateSkipArray( final GATKSAMRecord read, final RefMetaDataTracker metaDataTracker ) {
@@ -374,7 +395,6 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
             throw new ReviewedStingException("Array length mismatch detected. Malformed read?");
         }
 
-        final byte NO_BAQ_UNCERTAINTY = (byte)'@';
         final int BLOCK_START_UNSET = -1;
 
         final double[] fractionalErrors = new double[baqArray.length];
@@ -418,8 +438,24 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
         }
     }
 
+    /**
+     * Create a BAQ style array that indicates no alignment uncertainty
+     * @param read the read for which we want a BAQ array
+     * @return a BAQ-style non-null byte[] counting NO_BAQ_UNCERTAINTY values
+     * // TODO -- could be optimized avoiding this function entirely by using this inline if the calculation code above
+     */
+    private byte[] flatBAQArray(final GATKSAMRecord read) {
+        final byte[] baq = new byte[read.getReadLength()];
+        Arrays.fill(baq, NO_BAQ_UNCERTAINTY);
+        return baq;
+    }
+
+    /**
+     * Compute an actual BAQ array for read, based on its quals and the reference sequence
+     * @param read the read to BAQ
+     * @return a non-null BAQ tag array for read
+     */
     private byte[] calculateBAQArray( final GATKSAMRecord read ) {
-        // todo -- it would be good to directly use the BAQ qualities rather than encoding and decoding the result and using the special @ value
         baq.baqRead(read, referenceReader, BAQ.CalculationMode.RECALCULATE, BAQ.QualityMode.ADD_TAG);
         return BAQ.getBAQTag(read);
     }

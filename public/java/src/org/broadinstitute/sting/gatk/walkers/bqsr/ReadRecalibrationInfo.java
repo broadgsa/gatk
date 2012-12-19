@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.recalibration.ReadCovariates;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -84,7 +85,7 @@ public final class ReadRecalibrationInfo {
      * @return a valid quality score for event at offset
      */
     @Requires("validOffset(offset)")
-    @Ensures("result >= 0 && result <= QualityUtils.MAX_QUAL_SCORE")
+    @Ensures("validQual(result)")
     public byte getQual(final EventType eventType, final int offset) {
         switch ( eventType ) {
             case BASE_SUBSTITUTION: return baseQuals[offset];
@@ -153,5 +154,9 @@ public final class ReadRecalibrationInfo {
      */
     private boolean validOffset(final int offset) {
         return offset >= 0 && offset < baseQuals.length;
+    }
+
+    private boolean validQual(final byte result) {
+        return result >= 0 && result <= QualityUtils.MAX_QUAL_SCORE;
     }
 }
