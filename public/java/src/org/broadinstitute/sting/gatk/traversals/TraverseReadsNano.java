@@ -40,6 +40,7 @@ import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Iterator;
+import java.util.LinkedList;
 
 /**
  * A nano-scheduling version of TraverseReads.
@@ -53,6 +54,7 @@ import java.util.Iterator;
  */
 public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,ReadShardDataProvider> {
     /** our log, which we want to capture anything from this class */
+    private final static boolean PRE_READ_ALL_MAP_DATA = true;
     protected static final Logger logger = Logger.getLogger(TraverseReadsNano.class);
     private static final boolean DEBUG = false;
     final NanoScheduler<MapData, MapResult, T> nanoScheduler;
@@ -111,7 +113,19 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
      *          should execute
      */
     private Iterator<MapData> aggregateMapData(final ReadShardDataProvider dataProvider) {
-        return new Iterator<MapData>() {
+        final Iterator<MapData> it = makeDataIterator(dataProvider);
+        if ( PRE_READ_ALL_MAP_DATA ) {
+            final LinkedList<MapData> l = new LinkedList<MapData>();
+            while ( it.hasNext() ) l.add(it.next());
+            return l.iterator();
+        } else {
+            return it;
+        }
+    }
+
+
+    private Iterator<MapData> makeDataIterator(final ReadShardDataProvider dataProvider) {
+        return new Iterator<MapData> ()  {
             final ReadView reads = new ReadView(dataProvider);
             final ReadReferenceView reference = new ReadReferenceView(dataProvider);
             final ReadBasedReferenceOrderedView rodView = new ReadBasedReferenceOrderedView(dataProvider);
