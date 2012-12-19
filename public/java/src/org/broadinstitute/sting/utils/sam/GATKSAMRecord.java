@@ -56,6 +56,12 @@ public class GATKSAMRecord extends BAMRecord {
     public static final String BQSR_BASE_INSERTION_QUALITIES = "BI";                // base qualities for insertions
     public static final String BQSR_BASE_DELETION_QUALITIES = "BD";                 // base qualities for deletions
 
+    /**
+     * The default quality score for an insertion or deletion, if
+     * none are provided for this read.
+     */
+    public static final byte DEFAULT_INSERTION_DELETION_QUAL = (byte)45;
+
     // the SAMRecord data we're caching
     private String mReadString = null;
     private GATKSAMReadGroupRecord mReadGroup = null;
@@ -239,7 +245,7 @@ public class GATKSAMRecord extends BAMRecord {
         byte [] quals = getExistingBaseInsertionQualities();
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
-            Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
+            Arrays.fill(quals, DEFAULT_INSERTION_DELETION_QUAL); // Some day in the future when base insertion and base deletion quals exist the samtools API will
                                            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
         }
         return quals;
@@ -255,7 +261,7 @@ public class GATKSAMRecord extends BAMRecord {
         byte[] quals = getExistingBaseDeletionQualities();
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
-            Arrays.fill(quals, (byte) 45);  // Some day in the future when base insertion and base deletion quals exist the samtools API will
+            Arrays.fill(quals, DEFAULT_INSERTION_DELETION_QUAL);  // Some day in the future when base insertion and base deletion quals exist the samtools API will
                                             // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
         }
         return quals;

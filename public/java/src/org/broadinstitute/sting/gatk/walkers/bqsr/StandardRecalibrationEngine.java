@@ -35,34 +35,37 @@ import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 public class StandardRecalibrationEngine implements RecalibrationEngine, PublicPackageSource {
-
     protected Covariate[] covariates;
     protected RecalibrationTables recalibrationTables;
 
+    @Override
     public void initialize(final Covariate[] covariates, final RecalibrationTables recalibrationTables) {
+        if ( covariates == null ) throw new IllegalArgumentException("Covariates cannot be null");
+        if ( recalibrationTables == null ) throw new IllegalArgumentException("recalibrationTables cannot be null");
+
         this.covariates = covariates.clone();
         this.recalibrationTables = recalibrationTables;
     }
 
     @Override
-    public void updateDataForRead( final GATKSAMRecord read, final boolean[] skip, final double[] snpErrors, final double[] insertionErrors, final double[] deletionErrors ) {
+    public void updateDataForRead( final ReadRecalibrationInfo recalInfo ) {
+        final GATKSAMRecord read = recalInfo.getRead();
+        final EventType eventType = EventType.BASE_SUBSTITUTION;
+        final ReadCovariates readCovariates = recalInfo.getCovariatesValues();
+
         for( int offset = 0; offset < read.getReadBases().length; offset++ ) {
-            if( !skip[offset] ) {
-                final ReadCovariates readCovariates = covariateKeySetFrom(read);
+            if( ! recalInfo.skip(offset) ) {
+                final byte qual = recalInfo.getQual(eventType, offset);
+                final double isError = recalInfo.getErrorFraction(eventType, offset);
+                final int[] keys = readCovariates.getKeySet(offset, eventType);
 
-                final byte qual = read.getBaseQualities()[offset];
-                final double isError = snpErrors[offset];
-
-                final int[] keys = readCovariates.getKeySet(offset, EventType.BASE_SUBSTITUTION);
-                final int eventIndex = EventType.BASE_SUBSTITUTION.index;
-
-                incrementDatumOrPutIfNecessary(recalibrationTables.getQualityScoreTable(), qual, isError, keys[0], keys[1], eventIndex);
+                incrementDatumOrPutIfNecessary(recalibrationTables.getQualityScoreTable(), qual, isError, keys[0], keys[1], eventType.index);
 
                 for (int i = 2; i < covariates.length; i++) {
                     if (keys[i] < 0)
                         continue;
 
-                    incrementDatumOrPutIfNecessary(recalibrationTables.getTable(i), qual, isError, keys[0], keys[1], keys[i], eventIndex);
+                    incrementDatumOrPutIfNecessary(recalibrationTables.getTable(i), qual, isError, keys[0], keys[1], keys[i], eventType.index);
                 }
             }
         }
@@ -77,16 +80,6 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
      */
     protected RecalDatum createDatumObject(final byte reportedQual, final double isError) {
         return new RecalDatum(1, isError, reportedQual);
-    }
-
-    /**
-     * Get the covariate key set from a read
-     *
-     * @param read the read
-     * @return the covariate keysets for this read
-     */
-    protected ReadCovariates covariateKeySetFrom(GATKSAMRecord read) {
-        return (ReadCovariates) read.getTemporaryAttribute(BaseRecalibrator.COVARS_ATTRIBUTE);
     }
 
     /**
@@ -129,7 +122,10 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
      * @param isError error value for this event
      * @param keys location in table of our item
      */
-    protected void incrementDatumOrPutIfNecessary( final NestedIntegerArray<RecalDatum> table, final byte qual, final double isError, final int... keys ) {
+    protected void incrementDatumOrPutIfNecessary( final NestedIntegerArray<RecalDatum> table,
+                                                   final byte qual,
+                                                   final double isError,
+                                                   final int... keys ) {
         final RecalDatum existingDatum = table.get(keys);
 
         if ( existingDatum == null ) {

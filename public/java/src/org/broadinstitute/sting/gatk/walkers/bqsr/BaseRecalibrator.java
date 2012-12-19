@@ -225,19 +225,22 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
         if (!RecalUtils.isColorSpaceConsistent(RAC.SOLID_NOCALL_STRATEGY, read)) { // parse the solid color space and check for color no-calls
             return 0L; // skip this read completely
         }
-        read.setTemporaryAttribute(COVARS_ATTRIBUTE, RecalUtils.computeCovariates(read, requestedCovariates));
 
-        final boolean[] skip = calculateSkipArray(read, metaDataTracker); // skip known sites of variation as well as low quality and non-regular bases
-        final int[] isSNP = calculateIsSNP(read, ref, originalRead);
-        final int[] isInsertion = calculateIsIndel(read, EventType.BASE_INSERTION);
-        final int[] isDeletion = calculateIsIndel(read, EventType.BASE_DELETION);
         final byte[] baqArray = calculateBAQArray(read);
 
         if( baqArray != null ) { // some reads just can't be BAQ'ed
+            final ReadCovariates covariates = RecalUtils.computeCovariates(read, requestedCovariates);
+            final boolean[] skip = calculateSkipArray(read, metaDataTracker); // skip known sites of variation as well as low quality and non-regular bases
+            final int[] isSNP = calculateIsSNP(read, ref, originalRead);
+            final int[] isInsertion = calculateIsIndel(read, EventType.BASE_INSERTION);
+            final int[] isDeletion = calculateIsIndel(read, EventType.BASE_DELETION);
             final double[] snpErrors = calculateFractionalErrorArray(isSNP, baqArray);
             final double[] insertionErrors = calculateFractionalErrorArray(isInsertion, baqArray);
             final double[] deletionErrors = calculateFractionalErrorArray(isDeletion, baqArray);
-            recalibrationEngine.updateDataForRead(read, skip, snpErrors, insertionErrors, deletionErrors);
+
+            // aggregrate all of the info into our info object, and update the data
+            final ReadRecalibrationInfo info = new ReadRecalibrationInfo(read, covariates, skip, snpErrors, insertionErrors, deletionErrors);
+            recalibrationEngine.updateDataForRead(info);
             return 1L;
         } else {
             return 0L;
