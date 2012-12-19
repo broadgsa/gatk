@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.samples;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.variant.variantcontext.Genotype;
 
 import java.util.*;
 

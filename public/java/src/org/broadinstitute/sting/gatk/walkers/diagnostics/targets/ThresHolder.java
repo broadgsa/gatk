@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.diagnostics.targets;
 
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.HashSet;

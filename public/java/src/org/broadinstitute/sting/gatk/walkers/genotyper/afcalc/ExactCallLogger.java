@@ -4,7 +4,7 @@ import com.google.java.contract.Requires;
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.variant.variantcontext.*;
 
 import java.io.*;
 import java.util.*;

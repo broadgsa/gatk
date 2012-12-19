@@ -24,12 +24,9 @@
 package org.broadinstitute.sting.gatk.walkers.validation.validationsiteselector;
 
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public abstract class FrequencyModeSelector  implements Cloneable{
 

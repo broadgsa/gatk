@@ -29,9 +29,10 @@ import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.variant.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.variant.variantcontext.*;
 
 import java.util.*;
 
@@ -161,8 +162,8 @@ class PhasingUtils {
     }
 
     static boolean mergeIntoMNPvalidationCheck(GenomeLocParser genomeLocParser, VariantContext vc1, VariantContext vc2) {
-        GenomeLoc loc1 = VariantContextUtils.getLocation(genomeLocParser, vc1);
-        GenomeLoc loc2 = VariantContextUtils.getLocation(genomeLocParser, vc2);
+        GenomeLoc loc1 = GATKVariantContextUtils.getLocation(genomeLocParser, vc1);
+        GenomeLoc loc2 = GATKVariantContextUtils.getLocation(genomeLocParser, vc2);
 
         if (!loc1.onSameContig(loc2))
             throw new ReviewedStingException("Can only merge vc1, vc2 if on the same chromosome");

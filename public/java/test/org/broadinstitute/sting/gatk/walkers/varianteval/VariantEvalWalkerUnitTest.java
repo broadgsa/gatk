@@ -37,9 +37,9 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.Variant
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.EvaluationContext;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
+import org.broadinstitute.variant.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;

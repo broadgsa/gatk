@@ -36,16 +36,16 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.variant.vcf.VCFHeader;
+import org.broadinstitute.variant.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.Genotype;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 
 import java.io.PrintStream;
 import java.util.Arrays;
@@ -90,7 +90,7 @@ public class VariantsToBeagleUnphased extends RodWalker<Integer, Integer> {
             throw new UserException.BadArgumentValue("bootstrap", "Bootstrap value must be fraction between 0 and 1");
 
         if ( bootstrapVCFOutput != null ) {
-            Set<VCFHeaderLine> hInfo = VCFUtils.getHeaderFields(getToolkit());
+            Set<VCFHeaderLine> hInfo = GATKVCFUtils.getHeaderFields(getToolkit());
             bootstrapVCFOutput.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit())));
         }
     }
@@ -141,7 +141,7 @@ public class VariantsToBeagleUnphased extends RodWalker<Integer, Integer> {
     }
 
     public void writeUnphasedBeagleOutput(VariantContext vc, boolean makeMissing) {
-        GenomeLoc currentLoc = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc);
+        GenomeLoc currentLoc = GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc);
         StringBuffer beagleOut = new StringBuffer();
 
         String marker = String.format("%s:%d ",currentLoc.getContig(), currentLoc.getStart());
