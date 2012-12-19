@@ -359,7 +359,10 @@ public class GATKBAMIndex {
             int bytesExpected = buffer.limit();
             //BufferedInputStream cannot read directly into a byte buffer, so we read into an array
             //and put the result into the bytebuffer after the if statement.
-            int bytesRead = bufferedStream.read(byteArray,0,bytesExpected);
+
+            //SeekableBufferedStream is evil, it will "read" beyond the end of the file if you let it!
+            final int bytesToRead = (int) Math.min(bufferedStream.length() - bufferedStream.position(), bytesExpected);   //min of int and long will definitely be castable to an int.
+            int bytesRead = bufferedStream.read(byteArray,0,bytesToRead);
 
             // We have a rigid expectation here to read in exactly the number of bytes we've limited
             // our buffer to -- if we read in fewer bytes than this, or encounter EOF (-1), the index
