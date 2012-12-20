@@ -45,6 +45,7 @@ import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.pairhmm.PairHMM;
 import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
@@ -157,8 +158,10 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
     /**
      * A raw, unfiltered, highly sensitive callset in VCF format.
      */
+    @Gather(className = "org.broadinstitute.sting.queue.extensions.gatk.CatVariantsGatherer")  //TODO: check this gatherer
     @Output(doc="File to which variants should be written",required=true)
     protected VariantContextWriter writer = null;
+
 
     @Hidden
     @Argument(fullName = "debug_file", shortName = "debug_file", doc = "File to print all of the annotated and detailed debugging output", required = false)

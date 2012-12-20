@@ -33,6 +33,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pairhmm.ExactPairHMM;
+import org.broadinstitute.sting.utils.pairhmm.LoglessCachingPairHMM;
 import org.broadinstitute.sting.utils.pairhmm.OriginalPairHMM;
 import org.broadinstitute.sting.utils.pairhmm.PairHMM;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -101,6 +102,8 @@ public class PairHMMIndelErrorModel {
                 break;
             case CACHING:
             case LOGLESS_CACHING:
+                pairHMM = new LoglessCachingPairHMM();
+                break;
             default:
                 throw new UserException.BadArgumentValue("pairHMM", "Specified pairHMM implementation is unrecognized or incompatible with the UnifiedGenotyper. Acceptable options are ORIGINAL and EXACT.");
         }
@@ -371,7 +374,7 @@ public class PairHMMIndelErrorModel {
                         readLikelihood = pairHMM.computeReadLikelihoodGivenHaplotypeLog10(haplotypeBases, readBases, readQuals,
                                 (read.hasBaseIndelQualities() ? read.getBaseInsertionQualities() : contextLogGapOpenProbabilities),
                                 (read.hasBaseIndelQualities() ? read.getBaseDeletionQualities() : contextLogGapOpenProbabilities),
-                                contextLogGapContinuationProbabilities, startIndexInHaplotype, false);
+                                contextLogGapContinuationProbabilities, startIndexInHaplotype, previousHaplotypeSeen == null);
 
 
                         if (DEBUG) {

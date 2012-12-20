@@ -195,7 +195,7 @@ public abstract class CommandLineProgram {
                 clp.setupLoggerLevel(layout);
 
                 Class[] argumentSources = clp.getArgumentSources();
-                for (Class argumentSource : argumentSources)
+                    for (Class argumentSource : argumentSources)
                     parser.addArgumentSource(clp.getArgumentSourceName(argumentSource), argumentSource);
                 parsedArgs = parser.parse(args);
 

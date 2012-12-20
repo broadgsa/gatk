@@ -23,7 +23,6 @@
  */
 
 package org.broadinstitute.sting.queue.extensions.gatk;
-
 import net.sf.samtools.BAMIndex;
 import net.sf.samtools.SAMFileWriter;
 import org.broad.tribble.Tribble;
@@ -119,9 +118,14 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         List<ArgumentField> argumentFields = new ArrayList<ArgumentField>();
         for (ArgumentSource argumentSource: parsingEngine.extractArgumentSources(classType))
             if (!argumentSource.isDeprecated()) {
-                Class<?> gatherer = null;
-                if (argumentSource.field.isAnnotationPresent(Gather.class))
-                    gatherer = argumentSource.field.getAnnotation(Gather.class).value();
+                String gatherer = null;
+                if (argumentSource.field.isAnnotationPresent(Gather.class)) {
+                    Gather gather = argumentSource.field.getAnnotation(Gather.class);
+                    if(! "".equals(gather.className()))
+                        gatherer = gather.className();
+                    else
+                        gatherer = gather.value().getName();
+                }
                 for (ArgumentDefinition argumentDefinition: argumentSource.createArgumentDefinitions())
                     argumentFields.addAll(getArgumentFields(argumentDefinition, gatherer));
             }
@@ -130,7 +134,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
 
     private static final List<String> intervalFields = Arrays.asList("intervals", "excludeIntervals", "targetIntervals");
 
-    private static List<? extends ArgumentField> getArgumentFields(ArgumentDefinition argumentDefinition, Class<?> gatherer) {
+    private static List<? extends ArgumentField> getArgumentFields(ArgumentDefinition argumentDefinition, String gatherer) {
         if (intervalFields.contains(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
             return Arrays.asList(
                     new IntervalFileArgumentField(argumentDefinition),
@@ -154,7 +158,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
 
             String gatherClass;
             if (gatherer != null)
-                gatherClass = gatherer.getName();
+                gatherClass = gatherer;
             else if (SAMFileWriter.class.isAssignableFrom(argumentDefinition.argumentType))
                 gatherClass = "BamGatherFunction";
             else if (VariantContextWriter.class.isAssignableFrom(argumentDefinition.argumentType))
