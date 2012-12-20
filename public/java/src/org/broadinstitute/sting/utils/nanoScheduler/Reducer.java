@@ -117,7 +117,7 @@ class Reducer<MapType, ReduceType> {
      *
      * Appropriate means we've seen the last job, or there's only a single job id
      */
-    private synchronized void maybeReleaseLatch() {
+    private void maybeReleaseLatch() {
         if ( numJobsReduced == numSubmittedJobs ) {
             // either we've already seen the last one prevJobID == numSubmittedJobs or
             // the last job ID is -1, meaning that no jobs were ever submitted

@@ -43,7 +43,7 @@ import java.util.concurrent.*;
 public class NanoScheduler<InputType, MapType, ReduceType> {
     private final static Logger logger = Logger.getLogger(NanoScheduler.class);
     private final static boolean ALLOW_SINGLE_THREAD_FASTPATH = true;
-    private final static boolean LOG_MAP_TIMES = false;
+    protected final static int UPDATE_PROGRESS_FREQ = 100;
 
     final int bufferSize;
     final int nThreads;
@@ -243,8 +243,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                 // map
                 final MapType mapValue = map.apply(input);
 
-                if ( progressFunction != null )
-                    progressFunction.progress(input);
+                updateProgress(i++, input);
 
                 // reduce
                 sum = reduce.apply(mapValue, sum);
@@ -252,6 +251,16 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         }
 
         return sum;
+    }
+
+    /**
+     * Maybe update the progress meter (maybe because we don't want to do so so often that it costs cpu time)
+     * @param counter increasing counter to use to cut down on updates
+     * @param input the input we're currently at
+     */
+    private void updateProgress(final int counter, final InputType input) {
+        if ( progressFunction != null && counter % UPDATE_PROGRESS_FREQ == 0 )
+            progressFunction.progress(input);
     }
 
     /**
@@ -453,8 +462,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                     // enqueue the result into the mapResultQueue
                     result = new MapResult<MapType>(mapValue, inputWrapper.getId());
 
-                    if ( progressFunction != null )
-                        progressFunction.progress(input);
+                    updateProgress(inputWrapper.getId(), input);
                 } else {
                     // if there's no input we push empty MapResults with jobIDs for synchronization with Reducer
                     result = new MapResult<MapType>(inputWrapper.getId());
