@@ -107,7 +107,7 @@
 
     <!-- To run tests with debugging, use -Dtest.debug=true -Dtest.debug.port=XXXX on the command line -->
     <property name="test.debug.port" value="5005" />  <!-- override on the command line if desired -->
-
+    <property name="test.default.maxmemory" value="4g"/>
 
     <!-- ******************************************************************************** -->
     <!-- Filesets and paths                                                               -->
@@ -267,19 +267,19 @@
 
         <!-- Comment out the following lines to build the GATK without a network connection, assuming you have all of the libraries cached already -->
 
-        <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
-             dest="${ivy.jar.dir}/${ivy.jar.file}"
-             usetimestamp="true"/>
-        <taskdef resource="org/apache/ivy/ant/antlib.xml"
-                 uri="antlib:org.apache.ivy.ant"
-                 classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
+<!--         <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}" -->
+<!--              dest="${ivy.jar.dir}/${ivy.jar.file}" -->
+<!--              usetimestamp="true"/> -->
+<!--         <taskdef resource="org/apache/ivy/ant/antlib.xml" -->
+<!--                  uri="antlib:org.apache.ivy.ant" -->
+<!--                  classpath="${ivy.jar.dir}/${ivy.jar.file}"/> -->
 
-        <get src="http://repo1.maven.org/maven2/org/apache/maven/maven-ant-tasks/${maven-ant-tasks.install.version}/${maven-ant-tasks.jar.file}"
-             dest="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"
-             usetimestamp="true"/>
-        <taskdef resource="org/apache/maven/artifact/ant/antlib.xml"
-                 uri="antlib:antlib:org.apache.maven.artifact.ant"
-                 classpath="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"/>
+<!--         <get src="http://repo1.maven.org/maven2/org/apache/maven/maven-ant-tasks/${maven-ant-tasks.install.version}/${maven-ant-tasks.jar.file}" -->
+<!--              dest="${ivy.jar.dir}/${maven-ant-tasks.jar.file}" -->
+<!--              usetimestamp="true"/> -->
+<!--         <taskdef resource="org/apache/maven/artifact/ant/antlib.xml" -->
+<!--                  uri="antlib:antlib:org.apache.maven.artifact.ant" -->
+<!--                  classpath="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"/> -->
 
         <!-- End network lines -->
 
@@ -596,6 +596,7 @@
         <path id="doclet.classpath">
             <path refid="external.dependencies" />
             <pathelement location="${java.classes}" />
+	    <pathelement location="${clover.jar}" />
         </path>
 
         <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
@@ -1038,6 +1039,7 @@
         <delete dir="${staging.dir}"/>
         <delete dir="${dist.dir}"/>
         <delete dir="${pipelinetest.dir}"/>
+	<clover-clean/>
     </target>
 
     <!-- Depend on this target if your target requires a clean working directory but you don't want to depend on clean directly -->
@@ -1090,7 +1092,6 @@
     <property name="iwww.report.dir" value="${user.home}/private_html/report"/>
     <property name="test.output" value="${dist.dir}/test"/>
     <property name="testng.jar" value="${lib.dir}/testng-5.14.1.jar"/>
-    <property name="test.maxmemory" value="4g"/>  <!-- provide a ceiling on the memory that unit/integration tests can consume. -->
 
     <path id="java.test.source.path">
         <dirset dir="${basedir}">
@@ -1119,14 +1120,29 @@
         </fileset>
     </path>
 
+    <property name="clover.jar" location="private/resources/clover/lib/clover.jar"/>
+    <taskdef resource="cloverlib.xml" classpath="${clover.jar}"/>
+
     <path id="testng.default.classpath">
         <path refid="build.results" />
+	<pathelement path="${clover.jar}"/>    
         <pathelement location="${java.contracts.dir}" />
         <pathelement location="${java.test.classes}" />
         <pathelement location="${scala.test.classes}" />
     </path>
 
     <!-- Test targets -->
+
+    <target name="clover.report">
+      <clover-html-report outdir="clover_html" title="GATK Clover report"/>
+    </target>
+
+    <target name="with.clover">
+      <clover-setup fullyQualifyJavaLang="true" instrumentationLevel="method">
+      </clover-setup>
+      <property name="compile.scala" value="false" /> <!-- currently doesn't work with scala -->
+      <property name="test.maxmemory" value="32g"/>  <!-- clover requires lots of memory -->
+    </target>
 
     <target name="test.init.compile">
         <mkdir dir="${java.test.classes}"/>
@@ -1207,6 +1223,7 @@
             <echo message="Test Classpath: ${test.classpath.display.string}" />
             <echo message="" />
             <echo message="Sting: Running @{testtype} test cases!"/>
+            <echo message="Test Memory : ${test.maxmemory}" />
 
 	    <!-- no test is allowed to run for more than 10 hours -->
             <taskdef resource="testngtasks" classpath="${testng.jar}"/>
@@ -1220,10 +1237,11 @@
                     listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.TestNGTestTransformer,org.broadinstitute.sting.StingTextReporter,org.uncommons.reportng.HTMLReporter">
                 <jvmarg value="-Xmx${test.maxmemory}" />
                 <jvmarg value="-ea" />
+		<jvmarg value="-Dclover.pertest.coverage=diff" />
                 <jvmarg value="-Djava.awt.headless=true" />
                 <jvmarg value="-Dpipeline.run=${pipeline.run}" />
                 <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
-                <jvmarg line="${cofoja.jvm.args}"/>
+<!--                 <jvmarg line="${cofoja.jvm.args}"/> -->
                 <jvmarg line="${debug.jvm.args}"/>
 
                 <!-- NOTE: To run tests with debugging, use -Dtest.debug=true -Dtest.debug.port=XXXX on the command line -->
@@ -1262,6 +1280,7 @@
 
     <target name="test.init">
         <property name="testng.classpath" value="testng.default.classpath" />
+	<property name="test.maxmemory" value="${test.default.maxmemory}"/>
     </target>
 
     <target name="init.testgatkjar">
@@ -1374,6 +1393,7 @@
     <!-- Fast test target that cuts major corners for speed. Requires that a full build has been done first. Java-only, single test class only -->
     <!-- Usage: ant fasttest -Dsingle=TestClass -->
     <target name="fasttest" depends="init.javaonly,init">
+	<property name="test.maxmemory" value="${test.default.maxmemory}"/>
         <condition property="not.clean">
             <and>
                 <available file="${build.dir}" />
