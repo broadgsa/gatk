@@ -180,6 +180,11 @@ public class RecalibrationArgumentCollection {
     @Argument(fullName = "binary_tag_name", shortName = "bintag", required = false, doc = "the binary tag covariate name if using it")
     public String BINARY_TAG_NAME = null;
 
+    /*
+     * whether GATK report tables should have rows in sorted order, starting from leftmost column
+     */
+    @Argument(fullName = "sort_by_all_columns", shortName = "sortAllCols", doc = "Sort the rows in the tables of reports", required = false)
+    public Boolean SORT_BY_ALL_COLUMNS  = false;
 
     /////////////////////////////
     // Debugging-only Arguments
@@ -200,7 +205,12 @@ public class RecalibrationArgumentCollection {
     public File existingRecalibrationReport = null;
 
     public GATKReportTable generateReportTable(final String covariateNames) {
-        GATKReportTable argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run", 2);
+        GATKReportTable argumentsTable;
+        if(SORT_BY_ALL_COLUMNS) {
+            argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run", 2, false, true);
+        } else {
+            argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run", 2);
+        }
         argumentsTable.addColumn("Argument");
         argumentsTable.addColumn(RecalUtils.ARGUMENT_VALUE_COLUMN_NAME);
         argumentsTable.addRowID("covariate", true);

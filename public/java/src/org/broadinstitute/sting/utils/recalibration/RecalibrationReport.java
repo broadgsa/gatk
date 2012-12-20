@@ -304,6 +304,9 @@ public class RecalibrationReport {
 
             else if (argument.equals("binary_tag_name"))
                 RAC.BINARY_TAG_NAME = (value == null) ? null : (String) value;
+
+            else if (argument.equals("sort_by_all_columns"))
+                RAC.SORT_BY_ALL_COLUMNS = Boolean.parseBoolean((String) value);
         }
 
         return RAC;
@@ -318,7 +321,7 @@ public class RecalibrationReport {
     }
 
     public void output(PrintStream output) {
-        RecalUtils.outputRecalibrationReport(argumentTable, quantizationInfo, recalibrationTables, requestedCovariates, output);
+        RecalUtils.outputRecalibrationReport(argumentTable, quantizationInfo, recalibrationTables, requestedCovariates, output, RAC.SORT_BY_ALL_COLUMNS);
     }
 
     public RecalibrationArgumentCollection getRAC() {

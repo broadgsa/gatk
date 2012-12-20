@@ -67,8 +67,13 @@ public class QuantizationInfo {
         return quantizationLevels;
     }
 
-    public GATKReportTable generateReportTable() {
-        GATKReportTable quantizedTable = new GATKReportTable(RecalUtils.QUANTIZED_REPORT_TABLE_TITLE, "Quality quantization map", 3);
+    public GATKReportTable generateReportTable(boolean sortBycols) {
+        GATKReportTable quantizedTable;
+        if(sortBycols) {
+            quantizedTable = new GATKReportTable(RecalUtils.QUANTIZED_REPORT_TABLE_TITLE, "Quality quantization map", 3, false, true);
+        }   else {
+            quantizedTable = new GATKReportTable(RecalUtils.QUANTIZED_REPORT_TABLE_TITLE, "Quality quantization map", 3);
+        }
         quantizedTable.addColumn(RecalUtils.QUALITY_SCORE_COLUMN_NAME);
         quantizedTable.addColumn(RecalUtils.QUANTIZED_COUNT_COLUMN_NAME);
         quantizedTable.addColumn(RecalUtils.QUANTIZED_VALUE_COLUMN_NAME);
