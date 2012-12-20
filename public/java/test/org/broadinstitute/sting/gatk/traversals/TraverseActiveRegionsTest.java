@@ -117,7 +117,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // TODO: reads which are partially between intervals (in/outside extension)
         // TODO: duplicate reads
 
-        // TODO: should we assign reads which are completely outside intervals but within extension?
+        // TODO: reads which are completely outside intervals but within extension
+        // TODO: test the extension itself
 
 
         intervals = new ArrayList<GenomeLoc>();
