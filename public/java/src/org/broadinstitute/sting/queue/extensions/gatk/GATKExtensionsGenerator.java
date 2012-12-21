@@ -193,6 +193,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      * The list of packages to search through.
      */
     private static final List<String> gatkPackages = Arrays.asList(
+            "org.broadinstitute.sting.tools",
             "org.broadinstitute.sting.gatk",
             "org.broadinstitute.sting.pipeline",
             "org.broadinstitute.sting.gatk.datasources.reads.utilities");
