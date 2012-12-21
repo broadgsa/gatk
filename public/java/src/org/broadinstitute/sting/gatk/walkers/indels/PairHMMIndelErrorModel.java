@@ -335,6 +335,7 @@ public class PairHMMIndelErrorModel {
                     getContextHomopolymerLength(readBases,hrunProfile);
                     fillGapProbabilities(hrunProfile, contextLogGapOpenProbabilities, contextLogGapContinuationProbabilities);
 
+                    boolean firstHap = true;
                     for (Allele a: haplotypeMap.keySet()) {
 
                         Haplotype haplotype = haplotypeMap.get(a);
@@ -374,7 +375,7 @@ public class PairHMMIndelErrorModel {
                         readLikelihood = pairHMM.computeReadLikelihoodGivenHaplotypeLog10(haplotypeBases, readBases, readQuals,
                                 (read.hasBaseIndelQualities() ? read.getBaseInsertionQualities() : contextLogGapOpenProbabilities),
                                 (read.hasBaseIndelQualities() ? read.getBaseDeletionQualities() : contextLogGapOpenProbabilities),
-                                contextLogGapContinuationProbabilities, startIndexInHaplotype, previousHaplotypeSeen == null);
+                                contextLogGapContinuationProbabilities, startIndexInHaplotype, firstHap);
 
 
                         if (DEBUG) {
@@ -386,6 +387,7 @@ public class PairHMMIndelErrorModel {
 
                         perReadAlleleLikelihoodMap.add(p, a, readLikelihood);
                         readLikelihoods[readIdx][j++] = readLikelihood;
+                        firstHap = false;
                     }
                 }
             }
