@@ -154,7 +154,8 @@ public class GATKSAMRecord extends BAMRecord {
     @Override
     public GATKSAMReadGroupRecord getReadGroup() {
         if ( ! retrievedReadGroup ) {
-            mReadGroup = (GATKSAMReadGroupRecord)super.getReadGroup();
+            final SAMReadGroupRecord rg = super.getReadGroup();
+            mReadGroup = rg instanceof GATKSAMReadGroupRecord ? (GATKSAMReadGroupRecord)rg : new GATKSAMReadGroupRecord(rg);
             retrievedReadGroup = true;
         }
         return mReadGroup;
