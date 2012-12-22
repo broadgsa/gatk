@@ -155,7 +155,16 @@ public class GATKSAMRecord extends BAMRecord {
     public GATKSAMReadGroupRecord getReadGroup() {
         if ( ! retrievedReadGroup ) {
             final SAMReadGroupRecord rg = super.getReadGroup();
-            mReadGroup = rg instanceof GATKSAMReadGroupRecord ? (GATKSAMReadGroupRecord)rg : new GATKSAMReadGroupRecord(rg);
+
+            // three cases: rg may be null (no rg, rg may already be a GATKSAMReadGroupRecord, or it may be
+            // a regular SAMReadGroupRecord in which case we have to make it a GATKSAMReadGroupRecord
+            if ( rg == null )
+                mReadGroup = null;
+            else if ( rg instanceof GATKSAMReadGroupRecord )
+                mReadGroup = (GATKSAMReadGroupRecord)rg;
+            else
+                mReadGroup = new GATKSAMReadGroupRecord(rg);
+
             retrievedReadGroup = true;
         }
         return mReadGroup;
