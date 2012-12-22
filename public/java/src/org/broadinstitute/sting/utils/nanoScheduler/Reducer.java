@@ -1,12 +1,12 @@
 package org.broadinstitute.sting.utils.nanoScheduler;
 
 import com.google.java.contract.Ensures;
-import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Reducer supporting two-threaded reduce of the map/reduce.
@@ -31,9 +31,10 @@ class Reducer<MapType, ReduceType> {
     private final static Logger logger = Logger.getLogger(Reducer.class);
     private final static int UNSET_NUM_SUBMITTED_JOBS = -2;
 
-    final CountDownLatch countDownLatch = new CountDownLatch(1);
-    final NSReduceFunction<MapType, ReduceType> reduce;
-    final MultiThreadedErrorTracker errorTracker;
+    private final CountDownLatch countDownLatch = new CountDownLatch(1);
+    private final NSReduceFunction<MapType, ReduceType> reduce;
+    private final MultiThreadedErrorTracker errorTracker;
+    private final Lock reduceLock = new ReentrantLock();
 
     /**
      * The sum of the reduce function applied to all MapResults.  After this Reducer
@@ -79,37 +80,61 @@ class Reducer<MapType, ReduceType> {
      * @throws InterruptedException
      */
     @Ensures("result >= 0")
-    public synchronized int reduceAsMuchAsPossible(final MapResultsQueue<MapType> mapResultQueue) {
-        // TODO -- have conditional lock acquistion.  If the lock can be acquired, actually do some useful
-        // TODO -- work, but if it cannot just continue on your way.  No sense in having all our map
-        // TODO -- threads block here just to fall through.  The only question is if, with that locking scheme,
-        // TODO -- it's possible to leave some values in the map queue, as the thread owning the lock is
-        // TODO -- exiting and the only remaining thread to actually complete the reduce falls through.
-        // TODO -- all we really need to do is add a final call to reduceAsMuchAsPossible when exiting the nano scheduler
-        // TODO -- to make sure we've cleaned everything up
+    public int reduceAsMuchAsPossible(final MapResultsQueue<MapType> mapResultQueue, final boolean waitForLock) {
         if ( mapResultQueue == null ) throw new IllegalArgumentException("mapResultQueue cannot be null");
         int nReducesNow = 0;
 
+        final boolean haveLock = acquireReduceLock(waitForLock);
         try {
-            while ( mapResultQueue.nextValueIsAvailable() ) {
-                final MapResult<MapType> result = mapResultQueue.take();
+            if ( haveLock ) {
+                while ( mapResultQueue.nextValueIsAvailable() ) {
+                    final MapResult<MapType> result = mapResultQueue.take();
 
-                if ( ! result.isEOFMarker() ) {
-                    nReducesNow++;
+                    if ( ! result.isEOFMarker() ) {
+                        nReducesNow++;
 
-                    // apply reduce, keeping track of sum
-                    sum = reduce.apply(result.getValue(), sum);
+                        // apply reduce, keeping track of sum
+                        sum = reduce.apply(result.getValue(), sum);
+                    }
+
+                    numJobsReduced++;
+                    maybeReleaseLatch();
                 }
-
-                numJobsReduced++;
-                maybeReleaseLatch();
             }
         } catch (Exception ex) {
             errorTracker.notifyOfError(ex);
             countDownLatch.countDown();
+        } finally {
+            if ( haveLock ) // if we acquired the lock, unlock it
+                releaseReduceLock();
         }
 
         return nReducesNow;
+    }
+
+    /**
+     * Acquire the reduce lock, either returning immediately if not possible or blocking until the lock is available
+     *
+     * @param blockUntilAvailable if true, we will block until the lock is available, otherwise we return immediately
+     *                            without acquiring the lock
+     * @return true if the lock has been acquired, false otherwise
+     */
+    protected boolean acquireReduceLock(final boolean blockUntilAvailable) {
+        if ( blockUntilAvailable ) {
+            reduceLock.lock();
+            return true;
+        } else {
+            return reduceLock.tryLock();
+        }
+    }
+
+    /**
+     * Free the reduce lock.
+     *
+     * Assumes that the invoking thread actually previously acquired the lock (it's a problem if not).
+     */
+    protected void releaseReduceLock() {
+        reduceLock.unlock();
     }
 
     /**

@@ -11,10 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * UnitTests for Reducer
@@ -125,7 +122,7 @@ public class ReducerUnitTest extends BaseTest {
                 Assert.assertFalse(reducer.latchIsReleased(), "Latch should be closed even after setting last job if we haven't processed anything");
             }
 
-            final int nReduced = reducer.reduceAsMuchAsPossible(mapResultsQueue);
+            final int nReduced = reducer.reduceAsMuchAsPossible(mapResultsQueue, true);
             Assert.assertTrue(nReduced <= nJobsSubmitted, "Somehow reduced more jobs than submitted");
 
             if ( setJobIDAtStart ) {
@@ -152,15 +149,70 @@ public class ReducerUnitTest extends BaseTest {
         es.awaitTermination(1, TimeUnit.HOURS);
     }
 
-    @Test(expectedExceptions = IllegalStateException.class)
+    @Test(enabled = true, expectedExceptions = IllegalStateException.class)
     private void runSettingJobIDTwice() throws Exception {
-        final PriorityBlockingQueue<MapResult<Integer>> mapResultsQueue = new PriorityBlockingQueue<MapResult<Integer>>();
-
         final Reducer<Integer, Integer> reducer = new Reducer<Integer, Integer>(new ReduceSumTest(), new MultiThreadedErrorTracker(), 0);
-
         reducer.setTotalJobCount(10);
         reducer.setTotalJobCount(15);
     }
+
+    @Test(timeOut = 1000, invocationCount = 100)
+    private void testNonBlockingReduce() throws Exception {
+        final Reducer<Integer, Integer> reducer = new Reducer<Integer, Integer>(new ReduceSumTest(), new MultiThreadedErrorTracker(), 0);
+        final MapResultsQueue<Integer> mapResultsQueue = new MapResultsQueue<Integer>();
+        mapResultsQueue.put(new MapResult<Integer>(0, 0));
+        mapResultsQueue.put(new MapResult<Integer>(1, 1));
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        final ExecutorService es = Executors.newSingleThreadExecutor();
+
+        es.submit(new Runnable() {
+            @Override
+            public void run() {
+                reducer.acquireReduceLock(true);
+                latch.countDown();
+            }
+        });
+
+        latch.await();
+        final int nReduced = reducer.reduceAsMuchAsPossible(mapResultsQueue, false);
+        Assert.assertEquals(nReduced, 0, "The reducer lock was already held but we did some work");
+        es.shutdown();
+        es.awaitTermination(1, TimeUnit.HOURS);
+    }
+
+    @Test(timeOut = 10000, invocationCount = 100)
+    private void testBlockingReduce() throws Exception {
+        final Reducer<Integer, Integer> reducer = new Reducer<Integer, Integer>(new ReduceSumTest(), new MultiThreadedErrorTracker(), 0);
+        final MapResultsQueue<Integer> mapResultsQueue = new MapResultsQueue<Integer>();
+        mapResultsQueue.put(new MapResult<Integer>(0, 0));
+        mapResultsQueue.put(new MapResult<Integer>(1, 1));
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        final ExecutorService es = Executors.newSingleThreadExecutor();
+
+        es.submit(new Runnable() {
+            @Override
+            public void run() {
+                reducer.acquireReduceLock(true);
+                latch.countDown();
+                try {
+                    Thread.sleep(100);
+                } catch ( InterruptedException e ) {
+                    ;
+                } finally {
+                    reducer.releaseReduceLock();
+                }
+            }
+        });
+
+        latch.await();
+        final int nReduced = reducer.reduceAsMuchAsPossible(mapResultsQueue, true);
+        Assert.assertEquals(nReduced, 2, "The reducer should have blocked until the lock was freed and reduced 2 values");
+        es.shutdown();
+        es.awaitTermination(1, TimeUnit.HOURS);
+    }
+
 
     public class ReduceSumTest implements NSReduceFunction<Integer, Integer> {
         int nRead = 0;

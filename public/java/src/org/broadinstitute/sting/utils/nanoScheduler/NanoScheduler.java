@@ -381,7 +381,7 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
                 reducer.setTotalJobCount(nSubmittedJobs);
 
                 // wait for all of the input and map threads to finish
-                return waitForCompletion(inputProducer, reducer);
+                return waitForCompletion(mapResultQueue, reducer);
             } catch (Throwable ex) {
 //                logger.warn("Reduce job got exception " + ex);
                 errorTracker.notifyOfError(ex);
@@ -392,16 +392,20 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
         /**
          * Wait until the input thread and all map threads have completed running, and return the final reduce result
          */
-        private ReduceType waitForCompletion(final InputProducer<InputType> inputProducer,
+        private ReduceType waitForCompletion(final MapResultsQueue<MapType> mapResultsQueue,
                                              final Reducer<MapType, ReduceType> reducer) throws InterruptedException {
-            // wait until we have a final reduce result
-//        logger.warn("waiting for final reduce");
-            final ReduceType finalSum = reducer.waitForFinalReduce();
-
             // wait for all the map threads to finish by acquiring and then releasing all map job semaphores
-//        logger.warn("waiting on map");
             runningMapJobSlots.acquire(bufferSize);
             runningMapJobSlots.release(bufferSize);
+
+            // do a final reduce here.  This is critically important because the InputMapReduce jobs
+            // no longer block on reducing, so it's possible for all the threads to end with a few
+            // reduce jobs on the queue still to do.  This call ensures that we reduce everything
+            reducer.reduceAsMuchAsPossible(mapResultsQueue, true);
+
+            // wait until we have a final reduce result
+            final ReduceType finalSum = reducer.waitForFinalReduce();
+
 
             // everything is finally shutdown, return the final reduce value
             return finalSum;
@@ -470,7 +474,8 @@ public class NanoScheduler<InputType, MapType, ReduceType> {
 
                 mapResultQueue.put(result);
 
-                final int nReduced = reducer.reduceAsMuchAsPossible(mapResultQueue);
+                // reduce as much as possible, without blocking, if another thread is already doing reduces
+                final int nReduced = reducer.reduceAsMuchAsPossible(mapResultQueue, false);
             } catch (Throwable ex) {
                 errorTracker.notifyOfError(ex);
             } finally {
