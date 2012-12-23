@@ -1,39 +1,67 @@
+/*
+ * Copyright (c) 2012 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.utils.nanoScheduler;
 
 import com.google.java.contract.Ensures;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Reducer supporting two-threaded reduce of the map/reduce.
+ * Reducer supporting multi-threaded reduce of the map/reduce.
  *
- * The first thread, using the reduceAsMuchAsPossible function, actually reduces the data
- * as it arrives in the blockingQueue.
+ * reduceAsMuchAsPossible is the key function.  Multiple threads can call into this, providing
+ * the map results queue, and this class accumulates the result of calling reduce
+ * on the maps objects.  reduceAsMuchAsPossible isn't directly synchronized, but manages multi-threading
+ * directly with a lock.  Threads can request either to block on the reduce call until it can be
+ * executed, or immediately exit if the lock isn't available.  That allows multi-threaded users
+ * to avoid piling up waiting to reduce while one thread is reducing.  They can instead immediately
+ * leave to go do something else productive
  *
- * The second thread, using the waitForFinalReduce, can block on this data structure
- * until that all jobs have arrived and been reduced.
- *
- * The key function for communication here is setTotalJobCount(), which the thread that submits
- * jobs that enqueue MapResults into the blocking queue must call ONCE to tell the
- * Reducer the total number of jobs that have been submitted for map.  When numOfSubmittedJobs
- * have been processed, this class frees a latch that allows thread blocked on waitForFinalReduce to proceed.
- *
- * This thread reads from mapResultsQueue until the poison EOF object arrives.  At each
- * stage is calls reduce(value, sum).  The blocking mapResultQueue ensures that the
- * queue waits until the mapResultQueue has a value to take. Then, it gets and waits
- * until the map result Future has a value.
+ * @author depristo
+ * @since 2012
  */
 class Reducer<MapType, ReduceType> {
     private final static Logger logger = Logger.getLogger(Reducer.class);
-    private final static int UNSET_NUM_SUBMITTED_JOBS = -2;
 
-    private final CountDownLatch countDownLatch = new CountDownLatch(1);
+    /**
+     * The reduce function to execute
+     */
     private final NSReduceFunction<MapType, ReduceType> reduce;
+
+    /**
+     * Used to communicate errors to the outer master thread
+     */
     private final MultiThreadedErrorTracker errorTracker;
+
+    /**
+     * Lock used to protect the call reduceAsMuchAsPossible from race conditions
+     */
     private final Lock reduceLock = new ReentrantLock();
 
     /**
@@ -41,13 +69,6 @@ class Reducer<MapType, ReduceType> {
      * is done sum contains the final reduce result.
      */
     ReduceType sum;
-
-    int numSubmittedJobs = UNSET_NUM_SUBMITTED_JOBS; // not yet set
-
-    /**
-     * A counter keeping track of the number of jobs we're reduced
-     */
-    int numJobsReduced = 0;
 
     /**
      * Create a new Reducer that will apply the reduce function with initialSum value
@@ -96,14 +117,10 @@ class Reducer<MapType, ReduceType> {
                         // apply reduce, keeping track of sum
                         sum = reduce.apply(result.getValue(), sum);
                     }
-
-                    numJobsReduced++;
-                    maybeReleaseLatch();
                 }
             }
         } catch (Exception ex) {
             errorTracker.notifyOfError(ex);
-            countDownLatch.countDown();
         } finally {
             if ( haveLock ) // if we acquired the lock, unlock it
                 releaseReduceLock();
@@ -138,64 +155,15 @@ class Reducer<MapType, ReduceType> {
     }
 
     /**
-     * release the latch if appropriate
+     * Get the current reduce result resulting from applying reduce(...) to all MapResult elements.
      *
-     * Appropriate means we've seen the last job, or there's only a single job id
-     */
-    private void maybeReleaseLatch() {
-        if ( numJobsReduced == numSubmittedJobs ) {
-            // either we've already seen the last one prevJobID == numSubmittedJobs or
-            // the last job ID is -1, meaning that no jobs were ever submitted
-            countDownLatch.countDown();
-        }
-    }
-
-    /**
-     * For testing only
-     *
-     * @return true if latch is released
-     */
-    protected synchronized boolean latchIsReleased() {
-        return countDownLatch.getCount() == 0;
-    }
-
-    /**
-     * Key function: tell this class the total number of jobs will provide data in the mapResultsQueue
-     *
-     * The total job count when we free threads blocked on waitForFinalReduce.  When we see numOfSubmittedJobs
-     * MapResults from the queue, those threads are released.
-     *
-     * Until this function is called, those thread will block forever.  The numOfSubmittedJobs has a few constraints.
-     * First, it must be >= 0.  0 indicates that in fact no jobs will ever be submitted (i.e., there's no
-     * data coming) so the latch should be opened immediately.  If it's >= 1, we will wait until
-     * we see numOfSubmittedJobs jobs before freeing them.
-     *
-     * Note that we throw an IllegalStateException if this function is called twice.
-     *
-     * @param numOfSubmittedJobs int >= 0 indicating the total number of MapResults that will
-     *                           enqueue results into our queue
-     */
-    public synchronized void setTotalJobCount(final int numOfSubmittedJobs) {
-        if ( numOfSubmittedJobs < 0 )
-            throw new IllegalArgumentException("numOfSubmittedJobs must be >= 0, but saw " + numOfSubmittedJobs);
-        if ( numJobsReduced > numOfSubmittedJobs )
-            throw new IllegalArgumentException("numOfSubmittedJobs " + numOfSubmittedJobs + " < numJobsReduced " + numJobsReduced);
-        if ( this.numSubmittedJobs != UNSET_NUM_SUBMITTED_JOBS)
-            throw new IllegalStateException("setlastJobID called multiple times, but should only be called once");
-
-        this.numSubmittedJobs = numOfSubmittedJobs;
-        maybeReleaseLatch();
-    }
-
-    /**
-     * Block until the last job has submitted its MapResult to our queue, and we've reduced it, and
-     * return the reduce result resulting from applying reduce(...) to all MapResult elements.
+     * Note that this method cannot know if future reduce calls are coming in.  So it simply gets
+     * the current reduce result.  It is up to the caller to know whether the returned value is
+     * a partial result, or the full final value
      *
      * @return the total reduce result across all jobs
-     * @throws InterruptedException
      */
-    public ReduceType waitForFinalReduce() throws InterruptedException {
-        countDownLatch.await();
+    public ReduceType getReduceResult() {
         return sum;
     }
 }
