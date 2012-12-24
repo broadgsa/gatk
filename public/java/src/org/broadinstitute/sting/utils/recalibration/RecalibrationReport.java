@@ -81,7 +81,7 @@ public class RecalibrationReport {
     /**
      * Counts the number of unique read groups in the table
      *
-     * @param reportTable            the GATKReport table containing data for this table
+     * @param reportTable the GATKReport table containing data for this table
      * @return the number of unique read groups
      */
     private int countReadGroups(final GATKReportTable reportTable) {
@@ -105,19 +105,10 @@ public class RecalibrationReport {
     * @param other the recalibration report to combine with this one
     */
     public void combine(final RecalibrationReport other) {
-
         for ( int tableIndex = 0; tableIndex < recalibrationTables.numTables(); tableIndex++ ) {
             final NestedIntegerArray<RecalDatum> myTable = recalibrationTables.getTable(tableIndex);
             final NestedIntegerArray<RecalDatum> otherTable = other.recalibrationTables.getTable(tableIndex);
-
-            for (final NestedIntegerArray.Leaf row : otherTable.getAllLeaves()) {
-                final RecalDatum myDatum = myTable.get(row.keys);
-
-                if (myDatum == null)
-                    myTable.put((RecalDatum)row.value, row.keys);
-                else
-                    myDatum.combine((RecalDatum)row.value);
-            }
+            RecalUtils.combineTables(myTable, otherTable);
         }
     }
 
