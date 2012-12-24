@@ -1045,7 +1045,6 @@
         <delete dir="${staging.dir}"/>
         <delete dir="${dist.dir}"/>
         <delete dir="${pipelinetest.dir}"/>
-	<clover-clean/>
     </target>
 
     <!-- Depend on this target if your target requires a clean working directory but you don't want to depend on clean directly -->
@@ -1135,6 +1134,10 @@
     </path>
 
     <!-- Test targets -->
+
+    <target name="clover.clean">
+      <clover-clean/>
+    </target>
 
     <target name="clover.report">
       <clover-html-report outdir="clover_html" title="GATK Clover report"/>
