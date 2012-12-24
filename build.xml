@@ -109,6 +109,12 @@
     <property name="test.debug.port" value="5005" />  <!-- override on the command line if desired -->
     <property name="test.default.maxmemory" value="4g"/>
 
+    <!-- clover parameters -->
+    <property name="clover.jar" location="private/resources/clover/lib/clover.jar"/>
+    <property name="clover.instrument.level" location="method"/>
+    <taskdef resource="cloverlib.xml" classpath="${clover.jar}"/>
+
+
     <!-- ******************************************************************************** -->
     <!-- Filesets and paths                                                               -->
     <!-- ******************************************************************************** -->
@@ -1120,9 +1126,6 @@
         </fileset>
     </path>
 
-    <property name="clover.jar" location="private/resources/clover/lib/clover.jar"/>
-    <taskdef resource="cloverlib.xml" classpath="${clover.jar}"/>
-
     <path id="testng.default.classpath">
         <path refid="build.results" />
 	<pathelement path="${clover.jar}"/>    
@@ -1138,7 +1141,7 @@
     </target>
 
     <target name="with.clover">
-      <clover-setup fullyQualifyJavaLang="true" instrumentationLevel="method">
+      <clover-setup fullyQualifyJavaLang="true" instrumentationLevel="${clover.instrument.level}">
       </clover-setup>
       <property name="compile.scala" value="false" /> <!-- currently doesn't work with scala -->
       <property name="test.maxmemory" value="32g"/>  <!-- clover requires lots of memory -->
