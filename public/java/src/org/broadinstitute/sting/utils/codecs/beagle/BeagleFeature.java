@@ -25,7 +25,7 @@
 package org.broadinstitute.sting.utils.codecs.beagle;
 
 import org.broad.tribble.Feature;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.Allele;
 
 import java.util.ArrayList;
 import java.util.Map;

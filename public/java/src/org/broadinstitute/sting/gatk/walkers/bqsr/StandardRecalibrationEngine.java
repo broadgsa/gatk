@@ -25,48 +25,47 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.classloader.PublicPackageSource;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.recalibration.ReadCovariates;
 import org.broadinstitute.sting.utils.recalibration.RecalDatum;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
+import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 public class StandardRecalibrationEngine implements RecalibrationEngine, PublicPackageSource {
-
     protected Covariate[] covariates;
     protected RecalibrationTables recalibrationTables;
 
+    @Override
     public void initialize(final Covariate[] covariates, final RecalibrationTables recalibrationTables) {
+        if ( covariates == null ) throw new IllegalArgumentException("Covariates cannot be null");
+        if ( recalibrationTables == null ) throw new IllegalArgumentException("recalibrationTables cannot be null");
+
         this.covariates = covariates.clone();
         this.recalibrationTables = recalibrationTables;
     }
 
     @Override
-    public void updateDataForRead( final GATKSAMRecord read, final boolean[] skip, final double[] snpErrors, final double[] insertionErrors, final double[] deletionErrors ) {
+    public void updateDataForRead( final ReadRecalibrationInfo recalInfo ) {
+        final GATKSAMRecord read = recalInfo.getRead();
+        final EventType eventType = EventType.BASE_SUBSTITUTION;
+        final ReadCovariates readCovariates = recalInfo.getCovariatesValues();
+
         for( int offset = 0; offset < read.getReadBases().length; offset++ ) {
-            if( !skip[offset] ) {
-                final ReadCovariates readCovariates = covariateKeySetFrom(read);
+            if( ! recalInfo.skip(offset) ) {
+                final byte qual = recalInfo.getQual(eventType, offset);
+                final double isError = recalInfo.getErrorFraction(eventType, offset);
+                final int[] keys = readCovariates.getKeySet(offset, eventType);
 
-                final byte qual = read.getBaseQualities()[offset];
-                final double isError = snpErrors[offset];
-
-                final int[] keys = readCovariates.getKeySet(offset, EventType.BASE_SUBSTITUTION);
-                final int eventIndex = EventType.BASE_SUBSTITUTION.index;
-
-                combineDatumOrPutIfNecessary(recalibrationTables.getReadGroupTable(), qual, isError, keys[0], eventIndex);
-
-                incrementDatumOrPutIfNecessary(recalibrationTables.getQualityScoreTable(), qual, isError, keys[0], keys[1], eventIndex);
+                incrementDatumOrPutIfNecessary(recalibrationTables.getQualityScoreTable(), qual, isError, keys[0], keys[1], eventType.index);
 
                 for (int i = 2; i < covariates.length; i++) {
                     if (keys[i] < 0)
                         continue;
 
-                    incrementDatumOrPutIfNecessary(recalibrationTables.getTable(i), qual, isError, keys[0], keys[1], keys[i], eventIndex);
+                    incrementDatumOrPutIfNecessary(recalibrationTables.getTable(i), qual, isError, keys[0], keys[1], keys[i], eventType.index);
                 }
             }
         }
@@ -84,13 +83,31 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
     }
 
     /**
-     * Get the covariate key set from a read
+     * Create derived recalibration data tables
      *
-     * @param read the read
-     * @return the covariate keysets for this read
+     * Assumes that all of the principal tables (by quality score) have been completely updated,
+     * and walks over this data to create summary data tables like by read group table.
      */
-    protected ReadCovariates covariateKeySetFrom(GATKSAMRecord read) {
-        return (ReadCovariates) read.getTemporaryAttribute(BaseRecalibrator.COVARS_ATTRIBUTE);
+    @Override
+    public void finalizeData() {
+        final NestedIntegerArray<RecalDatum> byReadGroupTable = recalibrationTables.getReadGroupTable();
+        final NestedIntegerArray<RecalDatum> byQualTable = recalibrationTables.getQualityScoreTable();
+
+        // iterate over all values in the qual table
+        for ( NestedIntegerArray.Leaf<RecalDatum> leaf : byQualTable.getAllLeaves() ) {
+            final int rgKey = leaf.keys[0];
+            final int eventIndex = leaf.keys[2];
+            final RecalDatum rgDatum = byReadGroupTable.get(rgKey, eventIndex);
+            final RecalDatum qualDatum = leaf.value;
+
+            if ( rgDatum == null ) {
+                // create a copy of qualDatum, and initialize byReadGroup table with it
+                byReadGroupTable.put(new RecalDatum(qualDatum), rgKey, eventIndex);
+            } else {
+                // combine the qual datum with the existing datum in the byReadGroup table
+                rgDatum.combine(qualDatum);
+            }
+        }
     }
 
     /**
@@ -105,7 +122,10 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
      * @param isError error value for this event
      * @param keys location in table of our item
      */
-    protected void incrementDatumOrPutIfNecessary( final NestedIntegerArray<RecalDatum> table, final byte qual, final double isError, final int... keys ) {
+    protected void incrementDatumOrPutIfNecessary( final NestedIntegerArray<RecalDatum> table,
+                                                   final byte qual,
+                                                   final double isError,
+                                                   final int... keys ) {
         final RecalDatum existingDatum = table.get(keys);
 
         if ( existingDatum == null ) {
@@ -119,36 +139,6 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
         else {
             // Easy case: already an item here, so increment it
             existingDatum.increment(1.0, isError);
-        }
-    }
-
-    /**
-     * Combines the RecalDatum at the specified position in the specified table with a new RecalDatum, or put a
-     * new item there if there isn't already one.
-     *
-     * Does this in a thread-safe way WITHOUT being synchronized: relies on the behavior of NestedIntegerArray.put()
-     * to return false if another thread inserts a new item at our position in the middle of our put operation.
-     *
-     * @param table the table that holds/will hold our item
-     * @param qual qual for this event
-     * @param isError error value for this event
-     * @param keys location in table of our item
-     */
-    protected void combineDatumOrPutIfNecessary( final NestedIntegerArray<RecalDatum> table, final byte qual, final double isError, final int... keys ) {
-        final RecalDatum existingDatum = table.get(keys);
-        final RecalDatum newDatum = createDatumObject(qual, isError);
-
-        if ( existingDatum == null ) {
-            // No existing item, try to put a new one
-            if ( ! table.put(newDatum, keys) ) {
-                // Failed to put a new item because another thread came along and put an item here first.
-                // Get the newly-put item and combine it with our item (item is guaranteed to exist at this point)
-                table.get(keys).combine(newDatum);
-            }
-        }
-        else {
-            // Easy case: already an item here, so combine it with our item
-            existingDatum.combine(newDatum);
         }
     }
 }

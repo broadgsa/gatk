@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.variant.utils.BaseUtils;
 
 public enum DiploidGenotype {
     AA ('A', 'A'),

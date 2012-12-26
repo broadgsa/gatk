@@ -35,10 +35,11 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.beagle.BeagleFeature;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.variantcontext.*;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.*;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 
 import java.util.*;
 
@@ -132,7 +133,7 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
         // setup the header fields
 
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+        hInfo.addAll(GATKVCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFFormatHeaderLine("OG",1, VCFHeaderLineType.String, "Original Genotype input to Beagle"));
         hInfo.add(new VCFInfoHeaderLine("R2", 1, VCFHeaderLineType.Float, "r2 Value reported by Beagle on each site"));
         hInfo.add(new VCFInfoHeaderLine("NumGenotypesChanged", 1, VCFHeaderLineType.Integer, "The number of genotypes changed by Beagle"));

@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.TribbleException;
-import org.broadinstitute.sting.alignment.bwa.java.AlignmentMatchSequence;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
@@ -10,18 +9,16 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.variant.variantcontext.*;
 
 import java.io.*;
 import java.util.*;
@@ -117,7 +114,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         // family ID, individual ID, Paternal ID, Maternal ID, Sex, Phenotype
         int dummyID = 0; // increments for dummy parental and family IDs used
         // want to be especially careful to maintain order here
-        Map<String,VCFHeader> headers = VCFUtils.getVCFHeadersFromRods(getToolkit());
+        Map<String,VCFHeader> headers = GATKVCFUtils.getVCFHeadersFromRods(getToolkit());
         for ( Map.Entry<String,VCFHeader> header : headers.entrySet() ) {
             if ( ! header.getKey().equals(variantCollection.variants.getName()) && ! metaDataFile.getAbsolutePath().endsWith(".fam") ) {
                 continue;

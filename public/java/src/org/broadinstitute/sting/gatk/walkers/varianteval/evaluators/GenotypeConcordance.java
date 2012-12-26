@@ -7,9 +7,9 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Molten;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeType;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.Genotype;
+import org.broadinstitute.variant.variantcontext.GenotypeType;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.util.*;
 

@@ -38,14 +38,15 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
+import org.broadinstitute.variant.variantcontext.VariantContextUtils;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.File;
 import java.util.*;
@@ -94,7 +95,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
         String trackName = variantCollection.variants.getName();
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(trackName));
-        Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
+        Map<String, VCFHeader> vcfHeaders = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList(trackName));
 
         Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
         if ( vcfHeaders.containsKey(trackName) )

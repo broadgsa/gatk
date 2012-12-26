@@ -42,13 +42,13 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompa
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeLikelihoods;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.GenotypeLikelihoods;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -232,7 +232,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
         // Check for protected modes
         if (GATKLiteUtils.isGATKLite()) {
             // no polyploid/pooled mode in GATK Like
-            if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY ||
+            if (UAC.samplePloidy != GATKVariantContextUtils.DEFAULT_PLOIDY ||
                     UAC.referenceSampleName != null ||
                     UAC.referenceSampleRod.isBound())  {
                 throw new UserException.NotSupportedInGATKLite("you cannot enable usage of ploidy values other than 2");
@@ -303,7 +303,7 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
             headerInfo.add(new VCFInfoHeaderLine(UnifiedGenotyperEngine.NUMBER_OF_DISCOVERED_ALLELES_KEY, 1, VCFHeaderLineType.Integer, "Number of alternate alleles discovered (but not necessarily genotyped) at this site"));
 
         // add the pool values for each genotype
-        if (UAC.samplePloidy != VariantContextUtils.DEFAULT_PLOIDY) {
+        if (UAC.samplePloidy != GATKVariantContextUtils.DEFAULT_PLOIDY) {
             headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_PER_SAMPLE_ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Maximum likelihood expectation (MLE) for the alternate allele count, in the same order as listed, for each individual sample"));
             headerInfo.add(new VCFFormatHeaderLine(VCFConstants.MLE_PER_SAMPLE_ALLELE_FRACTION_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Maximum likelihood expectation (MLE) for the alternate allele fraction, in the same order as listed, for each individual sample"));
         }

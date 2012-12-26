@@ -107,6 +107,12 @@
 
     <!-- To run tests with debugging, use -Dtest.debug=true -Dtest.debug.port=XXXX on the command line -->
     <property name="test.debug.port" value="5005" />  <!-- override on the command line if desired -->
+    <property name="test.default.maxmemory" value="4g"/>
+
+    <!-- clover parameters -->
+    <property name="clover.jar" location="private/resources/clover/lib/clover.jar"/>
+    <property name="clover.instrument.level" location="method"/>
+    <taskdef resource="cloverlib.xml" classpath="${clover.jar}"/>
 
 
     <!-- ******************************************************************************** -->
@@ -267,19 +273,19 @@
 
         <!-- Comment out the following lines to build the GATK without a network connection, assuming you have all of the libraries cached already -->
 
-        <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
-             dest="${ivy.jar.dir}/${ivy.jar.file}"
-             usetimestamp="true"/>
-        <taskdef resource="org/apache/ivy/ant/antlib.xml"
-                 uri="antlib:org.apache.ivy.ant"
-                 classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
+<!--         <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}" -->
+<!--              dest="${ivy.jar.dir}/${ivy.jar.file}" -->
+<!--              usetimestamp="true"/> -->
+<!--         <taskdef resource="org/apache/ivy/ant/antlib.xml" -->
+<!--                  uri="antlib:org.apache.ivy.ant" -->
+<!--                  classpath="${ivy.jar.dir}/${ivy.jar.file}"/> -->
 
-        <get src="http://repo1.maven.org/maven2/org/apache/maven/maven-ant-tasks/${maven-ant-tasks.install.version}/${maven-ant-tasks.jar.file}"
-             dest="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"
-             usetimestamp="true"/>
-        <taskdef resource="org/apache/maven/artifact/ant/antlib.xml"
-                 uri="antlib:antlib:org.apache.maven.artifact.ant"
-                 classpath="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"/>
+<!--         <get src="http://repo1.maven.org/maven2/org/apache/maven/maven-ant-tasks/${maven-ant-tasks.install.version}/${maven-ant-tasks.jar.file}" -->
+<!--              dest="${ivy.jar.dir}/${maven-ant-tasks.jar.file}" -->
+<!--              usetimestamp="true"/> -->
+<!--         <taskdef resource="org/apache/maven/artifact/ant/antlib.xml" -->
+<!--                  uri="antlib:antlib:org.apache.maven.artifact.ant" -->
+<!--                  classpath="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"/> -->
 
         <!-- End network lines -->
 
@@ -596,6 +602,7 @@
         <path id="doclet.classpath">
             <path refid="external.dependencies" />
             <pathelement location="${java.classes}" />
+	    <pathelement location="${clover.jar}" />
         </path>
 
         <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
@@ -644,12 +651,8 @@
 
     <target name="sting-utils.jar" depends="gatk.compile, init.jar, R.public.tar, R.script.stage">
         <jar jarfile="${dist.dir}/StingUtils.jar">
-            <fileset dir="${java.classes}">
-              <include name="**/utils/**/*.class"/>
-              <exclude name="**/utils/codecs/vcf/**/*.class"/>
-              <exclude name="**/utils/variantcontext/**/*.class"/>
-            </fileset>
-            <fileset dir="${java.classes}" includes="**/commandline/**/*.class"/>
+            <fileset dir="${java.classes}" includes="**/sting/utils/**/*.class"/>
+            <fileset dir="${java.classes}" includes="**/sting/commandline/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/pipeline/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/tools/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/jna/**/*.class"/>
@@ -659,7 +662,7 @@
                 <include name="**/${R.package.path}/**/*.tar.gz"/>
             </fileset>
             <fileset dir="${R.script.staging.dir}">
-                <include name="**/utils/**/*.R"/>
+                <include name="**/sting/utils/**/*.R"/>
             </fileset>
             <manifest>
                 <attribute name="Premain-Class" value="org.broadinstitute.sting.utils.instrumentation.Sizeof" />
@@ -667,14 +670,10 @@
         </jar>
     </target>
 
-    <target name="vcf.jar" depends="gatk.compile,init.jar">
-        <jar jarfile="${dist.dir}/vcf.jar">
+    <target name="variant.jar" depends="gatk.compile,init.jar">
+        <jar jarfile="${dist.dir}/variant.jar">
             <fileset dir="${java.classes}">
-              <include name="org/broadinstitute/sting/utils/codecs/vcf/**/*.class"/>
-              <include name="org/broadinstitute/sting/utils/codecs/bcf2/**/*.class"/>
-              <include name="org/broadinstitute/sting/utils/variantcontext/**/*.class"/>
-              <include name="org/broadinstitute/sting/utils/exceptions/**"/>
-	          <include name="org/broadinstitute/sting/utils/help/DocumentedGATKFeature.class"/>
+              <include name="org/broadinstitute/variant/**/*.class"/>
             </fileset>
         </jar>
     </target>
@@ -685,7 +684,7 @@
               <include name="org/broadinstitute/sting/utils/GenomeLocParser*.class"/>
               <include name="org/broadinstitute/sting/utils/GenomeLoc.class"/>
               <include name="org/broadinstitute/sting/utils/HasGenomeLocation.class"/>
-              <include name="org/broadinstitute/sting/utils/BaseUtils.class"/>
+              <include name="org/broadinstitute/variant/utils/BaseUtils.class"/>
               <include name="org/broadinstitute/sting/utils/Utils.class"/>
               <include name="org/broadinstitute/sting/utils/exceptions/**/*.class"/>
               <include name="org/broadinstitute/sting/gatk/walkers/na12878kb/core/**/*.class"/>
@@ -703,12 +702,12 @@
             <fileset dir="${java.contracts.dir}" />
             <fileset dir="${java.classes}">
 	          <include name="${resource.file}" />
-              <include name="**/gatk/**/*.class" />
-              <include name="**/alignment/**/*.class"/>
+              <include name="**/sting/gatk/**/*.class" />
+              <include name="**/sting/alignment/**/*.class"/>
             </fileset>
             <fileset dir="${R.script.staging.dir}">
-                <include name="**/gatk/**/*.R"/>
-                <include name="**/alignment/**/*.R"/>
+                <include name="**/sting/gatk/**/*.R"/>
+                <include name="**/sting/alignment/**/*.R"/>
             </fileset>
             <fileset dir="${key.dir}">
                 <include name="**/*.key"/>
@@ -719,7 +718,7 @@
         </jar>
 
         <jar jarfile="${dist.dir}/Aligner.jar">
-            <fileset dir="${java.classes}" includes="**/alignment/**/*.class" />
+            <fileset dir="${java.classes}" includes="**/sting/alignment/**/*.class" />
         </jar>
 
         <subant target="dist" genericantfile="build.xml">
@@ -755,7 +754,7 @@
         </jar>
     </target>
 
-    <target name="sting.jar" depends="sting-utils.jar, vcf.jar, gatk.jar, queue.jar" />
+    <target name="sting.jar" depends="sting-utils.jar, variant.jar, gatk.jar, queue.jar" />
 
     <target name="init.manifests" depends="sting.jar">
         <pathconvert property="jar.classpath" pathsep=" ">
@@ -1098,7 +1097,6 @@
     <property name="iwww.report.dir" value="${user.home}/private_html/report"/>
     <property name="test.output" value="${dist.dir}/test"/>
     <property name="testng.jar" value="${lib.dir}/testng-5.14.1.jar"/>
-    <property name="test.maxmemory" value="4g"/>  <!-- provide a ceiling on the memory that unit/integration tests can consume. -->
 
     <path id="java.test.source.path">
         <dirset dir="${basedir}">
@@ -1129,12 +1127,28 @@
 
     <path id="testng.default.classpath">
         <path refid="build.results" />
+	<pathelement path="${clover.jar}"/>    
         <pathelement location="${java.contracts.dir}" />
         <pathelement location="${java.test.classes}" />
         <pathelement location="${scala.test.classes}" />
     </path>
 
     <!-- Test targets -->
+
+    <target name="clover.clean">
+      <clover-clean/>
+    </target>
+
+    <target name="clover.report">
+      <clover-html-report outdir="clover_html" title="GATK Clover report"/>
+    </target>
+
+    <target name="with.clover">
+      <clover-setup fullyQualifyJavaLang="true" instrumentationLevel="${clover.instrument.level}">
+      </clover-setup>
+      <property name="compile.scala" value="false" /> <!-- currently doesn't work with scala -->
+      <property name="test.maxmemory" value="32g"/>  <!-- clover requires lots of memory -->
+    </target>
 
     <target name="test.init.compile">
         <mkdir dir="${java.test.classes}"/>
@@ -1215,6 +1229,7 @@
             <echo message="Test Classpath: ${test.classpath.display.string}" />
             <echo message="" />
             <echo message="Sting: Running @{testtype} test cases!"/>
+            <echo message="Test Memory : ${test.maxmemory}" />
 
 	    <!-- no test is allowed to run for more than 10 hours -->
             <taskdef resource="testngtasks" classpath="${testng.jar}"/>
@@ -1228,10 +1243,11 @@
                     listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.TestNGTestTransformer,org.broadinstitute.sting.StingTextReporter,org.uncommons.reportng.HTMLReporter">
                 <jvmarg value="-Xmx${test.maxmemory}" />
                 <jvmarg value="-ea" />
+		<jvmarg value="-Dclover.pertest.coverage=diff" />
                 <jvmarg value="-Djava.awt.headless=true" />
                 <jvmarg value="-Dpipeline.run=${pipeline.run}" />
                 <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
-                <jvmarg line="${cofoja.jvm.args}"/>
+<!--                 <jvmarg line="${cofoja.jvm.args}"/> -->
                 <jvmarg line="${debug.jvm.args}"/>
 
                 <!-- NOTE: To run tests with debugging, use -Dtest.debug=true -Dtest.debug.port=XXXX on the command line -->
@@ -1270,6 +1286,7 @@
 
     <target name="test.init">
         <property name="testng.classpath" value="testng.default.classpath" />
+	<property name="test.maxmemory" value="${test.default.maxmemory}"/>
     </target>
 
     <target name="init.testgatkjar">
@@ -1382,6 +1399,7 @@
     <!-- Fast test target that cuts major corners for speed. Requires that a full build has been done first. Java-only, single test class only -->
     <!-- Usage: ant fasttest -Dsingle=TestClass -->
     <target name="fasttest" depends="init.javaonly,init">
+	<property name="test.maxmemory" value="${test.default.maxmemory}"/>
         <condition property="not.clean">
             <and>
                 <available file="${build.dir}" />

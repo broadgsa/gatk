@@ -7,7 +7,7 @@ import org.broadinstitute.sting.queue.util.RemoteFile
  */
 trait QStatusMessenger {
   def started()
-  def done(inputs: Seq[Map[String, Seq[RemoteFile]]], outputs: Seq[Map[String, Seq[RemoteFile]]])
+  def done(inputs: Seq[_], outputs: Seq[_])
   def exit(message: String)
 
   def started(job: String)

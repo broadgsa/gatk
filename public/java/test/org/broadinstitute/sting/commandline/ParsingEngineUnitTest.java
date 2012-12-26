@@ -28,7 +28,7 @@ package org.broadinstitute.sting.commandline;
 import org.apache.commons.io.FileUtils;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;

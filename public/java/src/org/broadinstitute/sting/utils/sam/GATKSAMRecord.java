@@ -25,9 +25,9 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.recalibration.EventType;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -55,6 +55,12 @@ public class GATKSAMRecord extends BAMRecord {
     // Base Quality Score Recalibrator specific attribute tags
     public static final String BQSR_BASE_INSERTION_QUALITIES = "BI";                // base qualities for insertions
     public static final String BQSR_BASE_DELETION_QUALITIES = "BD";                 // base qualities for deletions
+
+    /**
+     * The default quality score for an insertion or deletion, if
+     * none are provided for this read.
+     */
+    public static final byte DEFAULT_INSERTION_DELETION_QUAL = (byte)45;
 
     // the SAMRecord data we're caching
     private String mReadString = null;
@@ -141,15 +147,35 @@ public class GATKSAMRecord extends BAMRecord {
         mReadString = s;
     }
 
+    /**
+     * Get the GATKSAMReadGroupRecord of this read
+     * @return a non-null GATKSAMReadGroupRecord
+     */
     @Override
     public GATKSAMReadGroupRecord getReadGroup() {
-        if ( !retrievedReadGroup ) {
-            SAMReadGroupRecord tempReadGroup = super.getReadGroup();
-            mReadGroup = (tempReadGroup == null ? null : new GATKSAMReadGroupRecord(tempReadGroup));
+        if ( ! retrievedReadGroup ) {
+            final SAMReadGroupRecord rg = super.getReadGroup();
+
+            // three cases: rg may be null (no rg, rg may already be a GATKSAMReadGroupRecord, or it may be
+            // a regular SAMReadGroupRecord in which case we have to make it a GATKSAMReadGroupRecord
+            if ( rg == null )
+                mReadGroup = null;
+            else if ( rg instanceof GATKSAMReadGroupRecord )
+                mReadGroup = (GATKSAMReadGroupRecord)rg;
+            else
+                mReadGroup = new GATKSAMReadGroupRecord(rg);
+
             retrievedReadGroup = true;
         }
         return mReadGroup;
     }
+
+    public void setReadGroup( final GATKSAMReadGroupRecord readGroup ) {
+        mReadGroup = readGroup;
+        retrievedReadGroup = true;
+        setAttribute("RG", mReadGroup.getId()); // todo -- this should be standardized, but we don't have access to SAMTagUtils!
+    }
+
 
     @Override
     public int hashCode() {
@@ -229,7 +255,7 @@ public class GATKSAMRecord extends BAMRecord {
         byte [] quals = getExistingBaseInsertionQualities();
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
-            Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
+            Arrays.fill(quals, DEFAULT_INSERTION_DELETION_QUAL); // Some day in the future when base insertion and base deletion quals exist the samtools API will
                                            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
         }
         return quals;
@@ -245,7 +271,7 @@ public class GATKSAMRecord extends BAMRecord {
         byte[] quals = getExistingBaseDeletionQualities();
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
-            Arrays.fill(quals, (byte) 45);  // Some day in the future when base insertion and base deletion quals exist the samtools API will
+            Arrays.fill(quals, DEFAULT_INSERTION_DELETION_QUAL);  // Some day in the future when base insertion and base deletion quals exist the samtools API will
                                             // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
         }
         return quals;
@@ -257,12 +283,6 @@ public class GATKSAMRecord extends BAMRecord {
      */
     public NGSPlatform getNGSPlatform() {
         return getReadGroup().getNGSPlatform();
-    }
-
-    public void setReadGroup( final GATKSAMReadGroupRecord readGroup ) {
-        mReadGroup = readGroup;
-        retrievedReadGroup = true;
-        setAttribute("RG", mReadGroup.getId()); // todo -- this should be standardized, but we don't have access to SAMTagUtils!
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -397,9 +417,6 @@ public class GATKSAMRecord extends BAMRecord {
                 else if (op != CigarOperator.HARD_CLIP)
                     break;
             }
-
-            if ( softStart < 1 )
-                softStart = 1;
         }
         return softStart;
     }

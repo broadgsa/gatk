@@ -38,14 +38,15 @@ import org.broadinstitute.sting.gatk.walkers.variantrecalibration.VQSRCalibratio
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFFilterHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.variant.vcf.VCFFilterHeaderLine;
+import org.broadinstitute.variant.vcf.VCFHeader;
+import org.broadinstitute.variant.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.variantcontext.*;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.*;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -231,7 +232,7 @@ public class ProduceBeagleInput extends RodWalker<Integer, Integer> {
     private final static double[] DIPLOID_FLAT_LOG10_LIKELIHOODS = MathUtils.toLog10(new double[]{ 0.33, 0.33, 0.33 });
 
     public void writeBeagleOutput(VariantContext preferredVC, VariantContext otherVC, boolean isValidationSite, double prior) {
-        GenomeLoc currentLoc = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),preferredVC);
+        GenomeLoc currentLoc = GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), preferredVC);
         StringBuffer beagleOut = new StringBuffer();
 
         String marker = String.format("%s:%d ",currentLoc.getContig(),currentLoc.getStart());
@@ -344,7 +345,7 @@ public class ProduceBeagleInput extends RodWalker<Integer, Integer> {
 
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
+        hInfo.addAll(GATKVCFUtils.getHeaderFields(getToolkit(), inputNames));
         hInfo.add(new VCFFilterHeaderLine("bootstrap","This site used for genotype bootstrapping with ProduceBeagleInputWalker"));
 
         bootstrapVCFOutput.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames)));

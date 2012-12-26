@@ -25,7 +25,7 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.testng.annotations.BeforeMethod;

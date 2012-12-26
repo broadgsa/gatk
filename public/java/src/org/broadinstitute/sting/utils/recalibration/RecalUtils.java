@@ -31,7 +31,7 @@ import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.recalibration.covariates.*;
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.variant.utils.BaseUtils;
 import org.broadinstitute.sting.utils.R.RScriptExecutor;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -257,11 +257,10 @@ public class RecalUtils {
         }
     }
 
-    private static List<GATKReportTable> generateReportTables(final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates) {
+    private static List<GATKReportTable> generateReportTables(final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, boolean sortByCols) {
         List<GATKReportTable> result = new LinkedList<GATKReportTable>();
         int reportTableIndex = 0;
         int rowIndex = 0;
-
         final Map<Covariate, String> covariateNameMap = new HashMap<Covariate, String>(requestedCovariates.length);
         for (final Covariate covariate : requestedCovariates)
             covariateNameMap.put(covariate, parseCovariateName(covariate));
@@ -287,7 +286,11 @@ public class RecalUtils {
 
             final GATKReportTable reportTable;
             if (tableIndex <= RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index) {
-                reportTable = new GATKReportTable("RecalTable" + reportTableIndex++, "", columnNames.size());
+                if(sortByCols) {
+                    reportTable = new GATKReportTable("RecalTable" + reportTableIndex++, "", columnNames.size(), false, true);
+                } else {
+                    reportTable = new GATKReportTable("RecalTable" + reportTableIndex++, "", columnNames.size());
+                }
                 for (final Pair<String, String> columnName : columnNames)
                     reportTable.addColumn(columnName.getFirst(), columnName.getSecond());
                 rowIndex = 0; // reset the row index since we're starting with a new table
@@ -334,8 +337,8 @@ public class RecalUtils {
         return covariate.getClass().getSimpleName().split("Covariate")[0];
     }
 
-    public static void outputRecalibrationReport(final RecalibrationArgumentCollection RAC, final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates) {
-        outputRecalibrationReport(RAC.generateReportTable(covariateNames(requestedCovariates)), quantizationInfo.generateReportTable(), generateReportTables(recalibrationTables, requestedCovariates), RAC.RECAL_TABLE);
+    public static void outputRecalibrationReport(final RecalibrationArgumentCollection RAC, final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, boolean sortByCols) {
+        outputRecalibrationReport(RAC.generateReportTable(covariateNames(requestedCovariates)), quantizationInfo.generateReportTable(sortByCols), generateReportTables(recalibrationTables, requestedCovariates, sortByCols), RAC.RECAL_TABLE);
     }
 
     /**
@@ -351,8 +354,8 @@ public class RecalUtils {
         return Utils.join(",", names);
     }
 
-    public static void outputRecalibrationReport(final GATKReportTable argumentTable, final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, final PrintStream outputFile) {
-        outputRecalibrationReport(argumentTable, quantizationInfo.generateReportTable(), generateReportTables(recalibrationTables, requestedCovariates), outputFile);
+    public static void outputRecalibrationReport(final GATKReportTable argumentTable, final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, final PrintStream outputFile, boolean sortByCols) {
+        outputRecalibrationReport(argumentTable, quantizationInfo.generateReportTable(sortByCols), generateReportTables(recalibrationTables, requestedCovariates, sortByCols), outputFile);
     }
 
     private static void outputRecalibrationReport(final GATKReportTable argumentTable, final GATKReportTable quantizationTable, final List<GATKReportTable> recalTables, final PrintStream outputFile) {
@@ -764,6 +767,30 @@ public class RecalUtils {
                 return 'A';
             default:
                 return base;
+        }
+    }
+
+    /**
+     * Combines the recalibration data for table1 and table2 into table1
+     *
+     * Note that table1 is the destination, so it is modified
+     *
+     * @param table1 the destination table to merge table2 into
+     * @param table2 the source table to merge into table1
+     */
+    public static void combineTables(final NestedIntegerArray<RecalDatum> table1, final NestedIntegerArray<RecalDatum> table2) {
+        if ( table1 == null ) throw new IllegalArgumentException("table1 cannot be null");
+        if ( table2 == null ) throw new IllegalArgumentException("table2 cannot be null");
+        if ( ! Arrays.equals(table1.getDimensions(), table2.getDimensions()))
+            throw new IllegalArgumentException("Table1 " + Utils.join(",", table1.getDimensions()) + " not equal to " + Utils.join(",", table2.getDimensions()));
+
+        for (final NestedIntegerArray.Leaf<RecalDatum> row : table2.getAllLeaves()) {
+            final RecalDatum myDatum = table1.get(row.keys);
+
+            if (myDatum == null)
+                table1.put(row.value, row.keys);
+            else
+                myDatum.combine(row.value);
         }
     }
 }

@@ -8,12 +8,12 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ExperimentalAn
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypeBuilder;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.variant.vcf.VCFFormatHeaderLine;
+import org.broadinstitute.variant.vcf.VCFHeaderLineType;
+import org.broadinstitute.variant.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.Genotype;
+import org.broadinstitute.variant.variantcontext.GenotypeBuilder;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.util.Arrays;
 import java.util.Collection;

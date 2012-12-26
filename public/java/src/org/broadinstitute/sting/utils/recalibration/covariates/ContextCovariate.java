@@ -26,13 +26,13 @@
 package org.broadinstitute.sting.utils.recalibration.covariates;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.recalibration.ReadCovariates;
 import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.variant.utils.BaseUtils;
 import org.broadinstitute.sting.utils.clipping.ClippingRepresentation;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.recalibration.ReadCovariates;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.ArrayList;
@@ -99,9 +99,21 @@ public class ContextCovariate implements StandardCovariate {
         final ArrayList<Integer> indelKeys = contextWith(bases, indelsContextSize, indelsKeyMask);
 
         final int readLength = bases.length;
+
+        // this is necessary to ensure that we don't keep historical data in the ReadCovariates values
+        // since the context covariate may not span the entire set of values in read covariates
+        // due to the clipping of the low quality bases
+        if ( readLength != originalBases.length ) {
+            // don't both zeroing out if we are going to overwrite the whole array
+            for ( int i = 0; i < originalBases.length; i++ )
+                // this base has been clipped off, so zero out the covariate values here
+                values.addCovariate(0, 0, 0, i);
+        }
+
         for (int i = 0; i < readLength; i++) {
+            final int readOffset = (negativeStrand ? readLength - i - 1 : i);
             final int indelKey = indelKeys.get(i);
-            values.addCovariate(mismatchKeys.get(i), indelKey, indelKey, (negativeStrand ? readLength - i - 1 : i));
+            values.addCovariate(mismatchKeys.get(i), indelKey, indelKey, readOffset);
         }
 
         // put the original bases back in

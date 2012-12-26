@@ -101,7 +101,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
 
         public int nExpectedCallbacks() {
             int nElements = Math.max(end - start, 0);
-            return nElements / bufferSize;
+            return nElements / bufferSize / NanoScheduler.UPDATE_PROGRESS_FREQ;
         }
 
         public Map2x makeMap() { return addDelays ? new Map2xWithDelays() : new Map2x(); }

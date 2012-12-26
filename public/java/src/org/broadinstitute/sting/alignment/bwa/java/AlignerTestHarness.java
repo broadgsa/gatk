@@ -4,7 +4,7 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.alignment.Aligner;
 import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.variant.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;

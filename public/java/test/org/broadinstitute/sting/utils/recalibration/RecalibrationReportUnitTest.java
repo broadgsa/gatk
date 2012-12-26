@@ -21,6 +21,14 @@ import java.util.*;
  * @since 4/21/12
  */
 public class RecalibrationReportUnitTest {
+    private static RecalDatum createRandomRecalDatum(int maxObservations, int maxErrors) {
+        final Random random = new Random();
+        final int nObservations = random.nextInt(maxObservations);
+        final int nErrors = random.nextInt(maxErrors);
+        final int qual = random.nextInt(QualityUtils.MAX_QUAL_SCORE);
+        return new RecalDatum(nObservations, nErrors, (byte)qual);
+    }
+
     @Test(enabled = false)
     public void testOutput() {
         final int length = 100;
@@ -86,12 +94,12 @@ public class RecalibrationReportUnitTest {
                 final int[] covariates = rc.getKeySet(offset, errorMode);
                 final int randomMax = errorMode == EventType.BASE_SUBSTITUTION ? 10000 : 100000;
 
-                rgTable.put(RecalDatum.createRandomRecalDatum(randomMax, 10), covariates[0], errorMode.index);
-                qualTable.put(RecalDatum.createRandomRecalDatum(randomMax, 10), covariates[0], covariates[1], errorMode.index);
+                rgTable.put(createRandomRecalDatum(randomMax, 10), covariates[0], errorMode.index);
+                qualTable.put(createRandomRecalDatum(randomMax, 10), covariates[0], covariates[1], errorMode.index);
                 nKeys += 2;
                 for (int j = 0; j < optionalCovariates.size(); j++) {
                     final NestedIntegerArray<RecalDatum> covTable = recalibrationTables.getTable(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + j);
-                    covTable.put(RecalDatum.createRandomRecalDatum(randomMax, 10), covariates[0], covariates[1], j, covariates[RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + j], errorMode.index);
+                    covTable.put(createRandomRecalDatum(randomMax, 10), covariates[0], covariates[1], j, covariates[RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + j], errorMode.index);
                     nKeys++;
                 }
             }

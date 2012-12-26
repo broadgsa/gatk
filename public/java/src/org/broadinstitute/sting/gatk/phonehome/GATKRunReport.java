@@ -131,7 +131,7 @@ public class GATKRunReport {
     private String hostName;
 
     @Element(required = true, name = "java")
-    private String java;
+    private String javaVersion;
 
     @Element(required = true, name = "machine")
     private String machine;
@@ -212,7 +212,7 @@ public class GATKRunReport {
         hostName = Utils.resolveHostname();
 
         // basic java information
-        java = Utils.join("-", Arrays.asList(System.getProperty("java.vendor"), System.getProperty("java.version")));
+        javaVersion = Utils.join("-", Arrays.asList(System.getProperty("java.vendor"), System.getProperty("java.version")));
         machine = Utils.join("-", Arrays.asList(System.getProperty("os.name"), System.getProperty("os.arch")));
 
         // if there was an exception, capture it

@@ -31,11 +31,11 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotatorCompatible;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineCount;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.variant.vcf.VCFHeaderLineCount;
+import org.broadinstitute.variant.vcf.VCFHeaderLineType;
+import org.broadinstitute.variant.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.variant.variantcontext.Genotype;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.util.Arrays;
 import java.util.HashMap;

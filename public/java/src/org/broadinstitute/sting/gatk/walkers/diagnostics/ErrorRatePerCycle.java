@@ -9,7 +9,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.variant.utils.BaseUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -124,7 +124,7 @@ public class ErrorRatePerCycle extends LocusWalker<Integer, Integer> {
 
     public void initialize() {
         report = new GATKReport();
-        report.addTable(reportName, reportDescription, 6, true);
+        report.addTable(reportName, reportDescription, 6, true, false);
         table = report.getTable(reportName);
         table.addColumn("readgroup");
         table.addColumn("cycle");

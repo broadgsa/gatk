@@ -3,8 +3,8 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContextUtils;
 
 import java.util.List;
 import java.util.ArrayList;

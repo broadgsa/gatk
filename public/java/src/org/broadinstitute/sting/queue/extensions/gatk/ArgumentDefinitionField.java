@@ -29,7 +29,7 @@ import net.sf.samtools.SAMFileWriter;
 import org.broad.tribble.Tribble;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 
 import java.io.File;
 import java.lang.annotation.Annotation;

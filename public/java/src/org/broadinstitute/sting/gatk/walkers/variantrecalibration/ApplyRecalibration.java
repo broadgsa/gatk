@@ -38,12 +38,13 @@ import org.broadinstitute.sting.gatk.walkers.PartitionType;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 
 import java.io.File;
 import java.util.*;
@@ -150,7 +151,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> implements T
 
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
+        hInfo.addAll(GATKVCFUtils.getHeaderFields(getToolkit(), inputNames));
         addVQSRStandardHeaderLines(hInfo);
         final TreeSet<String> samples = new TreeSet<String>();
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames));

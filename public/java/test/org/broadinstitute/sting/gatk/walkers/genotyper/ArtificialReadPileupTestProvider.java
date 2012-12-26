@@ -29,7 +29,7 @@ import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.variant.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -37,10 +37,8 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
 
 import java.util.*;
 
@@ -56,11 +54,11 @@ public class ArtificialReadPileupTestProvider {
     final String artificialReadName = "synth";
     final int artificialRefStart = 1;
     final int artificialMappingQuality = 60;
-    Map<String, SAMReadGroupRecord> sample2RG = new HashMap<String, SAMReadGroupRecord>();
+    Map<String, GATKSAMReadGroupRecord> sample2RG = new HashMap<String, GATKSAMReadGroupRecord>();
     List<SAMReadGroupRecord> sampleRGs;
     List<String> sampleNames = new ArrayList<String>();
     private String sampleName(int i) { return sampleNames.get(i); }
-    private SAMReadGroupRecord sampleRG(String name) { return sample2RG.get(name); }
+    private GATKSAMReadGroupRecord sampleRG(String name) { return sample2RG.get(name); }
     public final int locStart = 105; // start position where we desire artificial variant
     private final int readLength = 10; // desired read length in pileup
     public final int readOffset = 4;
@@ -78,7 +76,7 @@ public class ArtificialReadPileupTestProvider {
 
         for ( int i = 0; i < numSamples; i++ ) {
             sampleNames.add(String.format("%s%04d", SAMPLE_PREFIX, i));
-            SAMReadGroupRecord rg = createRG(sampleName(i));
+            GATKSAMReadGroupRecord rg = createRG(sampleName(i));
             sampleRGs.add(rg);
             sample2RG.put(sampleName(i), rg);
         }
@@ -137,8 +135,8 @@ public class ArtificialReadPileupTestProvider {
         return contexts;
     }
 
-    private SAMReadGroupRecord createRG(String name) {
-        SAMReadGroupRecord rg = new SAMReadGroupRecord(name);
+    private GATKSAMReadGroupRecord createRG(String name) {
+        GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord(name);
         rg.setPlatform("ILLUMINA");
         rg.setSample(name);
         return rg;
@@ -192,7 +190,7 @@ public class ArtificialReadPileupTestProvider {
             read.setMappingQuality(artificialMappingQuality);
             read.setReferenceName(loc.getContig());
             read.setReadNegativeStrandFlag(false);
-            read.setAttribute("RG", sampleRG(sample).getReadGroupId());
+            read.setReadGroup(sampleRG(sample));
 
 
             pileupElements.add(new PileupElement(read,readOffset,false,isBeforeDeletion, false, isBeforeInsertion,false,false,altBases,Math.abs(eventLength)));

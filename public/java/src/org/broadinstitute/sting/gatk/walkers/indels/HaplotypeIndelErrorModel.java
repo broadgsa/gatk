@@ -30,8 +30,9 @@ import org.broadinstitute.sting.utils.Haplotype;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.Allele;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -421,7 +422,7 @@ public class HaplotypeIndelErrorModel {
         double[][] haplotypeLikehoodMatrix = new double[haplotypesInVC.size()][haplotypesInVC.size()];
         double readLikelihoods[][] = new double[pileup.getReads().size()][haplotypesInVC.size()];
         int i=0;
-        for (SAMRecord read : pileup.getReads()) {
+        for (GATKSAMRecord read : pileup.getReads()) {
             if(ReadUtils.is454Read(read)) {
                 continue;
             }

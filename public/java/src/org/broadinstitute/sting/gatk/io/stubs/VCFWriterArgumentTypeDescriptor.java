@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.io.stubs;
 
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;

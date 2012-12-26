@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.variant.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.HashMap;

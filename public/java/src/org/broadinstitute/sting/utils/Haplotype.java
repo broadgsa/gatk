@@ -24,15 +24,14 @@
 
 package org.broadinstitute.sting.utils;
 
-import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.io.Serializable;
 import java.util.*;

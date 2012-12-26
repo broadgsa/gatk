@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.variant.utils.BaseUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -305,7 +306,7 @@ public class CallableLoci extends LocusWalker<CallableLoci.CallableBaseState, Ca
     public CallableBaseState map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         CalledState state;
 
-        if (BaseUtils.isNBase(ref.getBase())) {
+        if ( BaseUtils.isNBase(ref.getBase())) {
             state = CalledState.REF_N;
         } else {
             // count up the depths of all and QC+ bases

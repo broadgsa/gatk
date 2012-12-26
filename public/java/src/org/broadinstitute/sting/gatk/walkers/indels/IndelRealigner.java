@@ -54,7 +54,8 @@ import org.broadinstitute.sting.utils.sam.NWaySAMFileWriter;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.variant.utils.BaseUtils;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -528,7 +529,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         sawReadInCurrentInterval = false;
     }
 
-    private boolean doNotTryToClean(SAMRecord read) {
+    private boolean doNotTryToClean(GATKSAMRecord read) {
         return read.getReadUnmappedFlag() ||
                 read.getNotPrimaryAlignmentFlag() ||
                 read.getReadFailsVendorQualityCheckFlag() ||
@@ -834,7 +835,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         // TODO -- get rid of this try block when Picard does the right thing for reads aligned off the end of the reference
                         try {
                             if ( read.getAttribute(SAMTag.NM.name()) != null )
-                                read.setAttribute(SAMTag.NM.name(), SequenceUtil.calculateSamNmTag(read, reference, leftmostIndex-1));
+                                read.setAttribute(SAMTag.NM.name(), SequenceUtil.calculateSamNmTag(read, reference, leftmostIndex - 1));
                             if ( read.getAttribute(SAMTag.UQ.name()) != null )
                                 read.setAttribute(SAMTag.UQ.name(), SequenceUtil.sumQualitiesOfMismatches(read, reference, leftmostIndex-1));
                         } catch (Exception e) {

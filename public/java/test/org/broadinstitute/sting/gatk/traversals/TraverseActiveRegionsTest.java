@@ -2,6 +2,10 @@ package org.broadinstitute.sting.gatk.traversals;
 
 import com.google.java.contract.PreconditionError;
 import net.sf.samtools.*;
+import org.broadinstitute.sting.commandline.Tags;
+import org.broadinstitute.sting.gatk.datasources.reads.*;
+import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegionReadState;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -12,11 +16,8 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.reads.MockLocusShard;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.executive.WindowMaker;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -101,7 +102,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
     private GenomeLocParser genomeLocParser;
 
     private List<GenomeLoc> intervals;
-    private List<GATKSAMRecord> reads;
+
+    private static final String testBAM = "TraverseActiveRegionsTest.bam";
 
     @BeforeClass
     private void init() throws FileNotFoundException {
@@ -110,6 +112,13 @@ public class TraverseActiveRegionsTest extends BaseTest {
         genomeLocParser = new GenomeLocParser(dictionary);
 
         // TODO: test shard boundaries
+        // TODO: reads with indels
+        // TODO: reads which span many regions
+        // TODO: reads which are partially between intervals (in/outside extension)
+        // TODO: duplicate reads
+
+        // TODO: should we assign reads which are completely outside intervals but within extension?
+
 
         intervals = new ArrayList<GenomeLoc>();
         intervals.add(genomeLocParser.createGenomeLoc("1", 10, 20));
@@ -117,24 +126,34 @@ public class TraverseActiveRegionsTest extends BaseTest {
         intervals.add(genomeLocParser.createGenomeLoc("1", 1000, 1999));
         intervals.add(genomeLocParser.createGenomeLoc("1", 2000, 2999));
         intervals.add(genomeLocParser.createGenomeLoc("1", 10000, 20000));
-        intervals.add(genomeLocParser.createGenomeLoc("1", 249250600, 249250621));
         intervals.add(genomeLocParser.createGenomeLoc("2", 1, 100));
         intervals.add(genomeLocParser.createGenomeLoc("20", 10000, 10100));
         intervals = IntervalUtils.sortAndMergeIntervals(genomeLocParser, intervals, IntervalMergingRule.OVERLAPPING_ONLY).toList();
 
-        reads = new ArrayList<GATKSAMRecord>();
+        List<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
         reads.add(buildSAMRecord("simple", "1", 100, 200));
         reads.add(buildSAMRecord("overlap_equal", "1", 10, 20));
         reads.add(buildSAMRecord("overlap_unequal", "1", 10, 21));
         reads.add(buildSAMRecord("boundary_equal", "1", 1990, 2009));
         reads.add(buildSAMRecord("boundary_unequal", "1", 1990, 2008));
+        reads.add(buildSAMRecord("boundary_1_pre", "1", 1950, 2000));
+        reads.add(buildSAMRecord("boundary_1_post", "1", 1999, 2050));
         reads.add(buildSAMRecord("extended_and_np", "1", 990, 1990));
         reads.add(buildSAMRecord("outside_intervals", "1", 5000, 6000));
-        reads.add(buildSAMRecord("end_of_chr1", "1", 249250600, 249250700));
         reads.add(buildSAMRecord("simple20", "20", 10025, 10075));
 
-        // required by LocusIteratorByState, and I prefer to list them in test case order above
-        ReadUtils.sortReadsByCoordinate(reads);
+        createBAM(reads);
+    }
+
+    private void createBAM(List<GATKSAMRecord> reads) {
+        File outFile = new File(testBAM);
+        outFile.deleteOnExit();
+
+        SAMFileWriter out = new SAMFileWriterFactory().makeBAMWriter(reads.get(0).getHeader(), true, outFile);
+        for (GATKSAMRecord read : ReadUtils.sortReadsByCoordinate(reads)) {
+            out.addAlignment(read);
+        }
+        out.close();
     }
 
     @Test
@@ -148,7 +167,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
 
     private List<GenomeLoc> getIsActiveIntervals(DummyActiveRegionWalker walker, List<GenomeLoc> intervals) {
         List<GenomeLoc> activeIntervals = new ArrayList<GenomeLoc>();
-        for (LocusShardDataProvider dataProvider : createDataProviders(intervals)) {
+        for (LocusShardDataProvider dataProvider : createDataProviders(intervals, testBAM)) {
             t.traverse(walker, dataProvider, 0);
             activeIntervals.addAll(walker.isActiveCalls);
         }
@@ -230,73 +249,26 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // overlap_unequal: Primary in 1:1-999
         // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // boundary_1_pre: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // boundary_1_post: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
-        // end_of_chr1: Primary in 1:249250600-249250621
         // simple20: Primary in 20:10000-10100
 
         Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(walker, intervals);
         ActiveRegion region;
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1, 999));
-
-        getRead(region, "simple");
-        getRead(region, "overlap_equal");
-        getRead(region, "overlap_unequal");
-        verifyReadNotPlaced(region, "boundary_equal");
-        verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        verifyReadNotPlaced(region, "end_of_chr1");
-        verifyReadNotPlaced(region, "simple20");
+        verifyReadMapping(region, "simple", "overlap_equal", "overlap_unequal");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1000, 1999));
-
-        verifyReadNotPlaced(region, "simple");
-        verifyReadNotPlaced(region, "overlap_equal");
-        verifyReadNotPlaced(region, "overlap_unequal");
-        verifyReadNotPlaced(region, "boundary_equal");
-        getRead(region, "boundary_unequal");
-        getRead(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        verifyReadNotPlaced(region, "end_of_chr1");
-        verifyReadNotPlaced(region, "simple20");
+        verifyReadMapping(region, "boundary_unequal", "extended_and_np", "boundary_1_pre");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
-
-        verifyReadNotPlaced(region, "simple");
-        verifyReadNotPlaced(region, "overlap_equal");
-        verifyReadNotPlaced(region, "overlap_unequal");
-        getRead(region, "boundary_equal");
-        verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        verifyReadNotPlaced(region, "end_of_chr1");
-        verifyReadNotPlaced(region, "simple20");
-
-        region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 249250600, 249250621));
-
-        verifyReadNotPlaced(region, "simple");
-        verifyReadNotPlaced(region, "overlap_equal");
-        verifyReadNotPlaced(region, "overlap_unequal");
-        verifyReadNotPlaced(region, "boundary_equal");
-        verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        getRead(region, "end_of_chr1");
-        verifyReadNotPlaced(region, "simple20");
+        verifyReadMapping(region, "boundary_equal", "boundary_1_post");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
-
-        verifyReadNotPlaced(region, "simple");
-        verifyReadNotPlaced(region, "overlap_equal");
-        verifyReadNotPlaced(region, "overlap_unequal");
-        verifyReadNotPlaced(region, "boundary_equal");
-        verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        verifyReadNotPlaced(region, "end_of_chr1");
-        getRead(region, "simple20");
+        verifyReadMapping(region, "simple20");
     }
 
     @Test
@@ -314,73 +286,26 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // overlap_unequal: Primary in 1:1-999
         // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // boundary_1_pre: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // boundary_1_post: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
-        // end_of_chr1: Primary in 1:249250600-249250621
         // simple20: Primary in 20:10000-10100
 
         Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(walker, intervals);
         ActiveRegion region;
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1, 999));
-
-        getRead(region, "simple");
-        getRead(region, "overlap_equal");
-        getRead(region, "overlap_unequal");
-        verifyReadNotPlaced(region, "boundary_equal");
-        verifyReadNotPlaced(region, "boundary_unequal");
-        getRead(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        verifyReadNotPlaced(region, "end_of_chr1");
-        verifyReadNotPlaced(region, "simple20");
+        verifyReadMapping(region, "simple", "overlap_equal", "overlap_unequal", "extended_and_np");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1000, 1999));
-
-        verifyReadNotPlaced(region, "simple");
-        verifyReadNotPlaced(region, "overlap_equal");
-        verifyReadNotPlaced(region, "overlap_unequal");
-        getRead(region, "boundary_equal");
-        getRead(region, "boundary_unequal");
-        getRead(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        verifyReadNotPlaced(region, "end_of_chr1");
-        verifyReadNotPlaced(region, "simple20");
+        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "extended_and_np", "boundary_1_pre", "boundary_1_post");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
-
-        verifyReadNotPlaced(region, "simple");
-        verifyReadNotPlaced(region, "overlap_equal");
-        verifyReadNotPlaced(region, "overlap_unequal");
-        getRead(region, "boundary_equal");
-        getRead(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        verifyReadNotPlaced(region, "end_of_chr1");
-        verifyReadNotPlaced(region, "simple20");
-
-        region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 249250600, 249250621));
-
-        verifyReadNotPlaced(region, "simple");
-        verifyReadNotPlaced(region, "overlap_equal");
-        verifyReadNotPlaced(region, "overlap_unequal");
-        verifyReadNotPlaced(region, "boundary_equal");
-        verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        getRead(region, "end_of_chr1");
-        verifyReadNotPlaced(region, "simple20");
+        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "boundary_1_pre", "boundary_1_post");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
-
-        verifyReadNotPlaced(region, "simple");
-        verifyReadNotPlaced(region, "overlap_equal");
-        verifyReadNotPlaced(region, "overlap_unequal");
-        verifyReadNotPlaced(region, "boundary_equal");
-        verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        verifyReadNotPlaced(region, "end_of_chr1");
-        getRead(region, "simple20");
+        verifyReadMapping(region, "simple20");
     }
 
     @Test
@@ -399,73 +324,26 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // overlap_unequal: Primary in 1:1-999
         // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // boundary_1_pre: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // boundary_1_post: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
         // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
-        // end_of_chr1: Primary in 1:249250600-249250621
         // simple20: Primary in 20:10000-10100
 
         Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(walker, intervals);
         ActiveRegion region;
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1, 999));
-
-        getRead(region, "simple");
-        getRead(region, "overlap_equal");
-        getRead(region, "overlap_unequal");
-        verifyReadNotPlaced(region, "boundary_equal");
-        verifyReadNotPlaced(region, "boundary_unequal");
-        getRead(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        verifyReadNotPlaced(region, "end_of_chr1");
-        verifyReadNotPlaced(region, "simple20");
+        verifyReadMapping(region, "simple", "overlap_equal", "overlap_unequal", "extended_and_np");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1000, 1999));
-
-        verifyReadNotPlaced(region, "simple");
-        verifyReadNotPlaced(region, "overlap_equal");
-        verifyReadNotPlaced(region, "overlap_unequal");
-        getRead(region, "boundary_equal");
-        getRead(region, "boundary_unequal");
-        getRead(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        verifyReadNotPlaced(region, "end_of_chr1");
-        verifyReadNotPlaced(region, "simple20");
+        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "extended_and_np", "boundary_1_pre", "boundary_1_post");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
-
-        verifyReadNotPlaced(region, "simple");
-        verifyReadNotPlaced(region, "overlap_equal");
-        verifyReadNotPlaced(region, "overlap_unequal");
-        getRead(region, "boundary_equal");
-        getRead(region, "boundary_unequal");
-        getRead(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        verifyReadNotPlaced(region, "end_of_chr1");
-        verifyReadNotPlaced(region, "simple20");
-
-        region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 249250600, 249250621));
-
-        verifyReadNotPlaced(region, "simple");
-        verifyReadNotPlaced(region, "overlap_equal");
-        verifyReadNotPlaced(region, "overlap_unequal");
-        verifyReadNotPlaced(region, "boundary_equal");
-        verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        getRead(region, "end_of_chr1");
-        verifyReadNotPlaced(region, "simple20");
+        verifyReadMapping(region, "boundary_equal", "boundary_unequal", "extended_and_np", "boundary_1_pre", "boundary_1_post");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
-
-        verifyReadNotPlaced(region, "simple");
-        verifyReadNotPlaced(region, "overlap_equal");
-        verifyReadNotPlaced(region, "overlap_unequal");
-        verifyReadNotPlaced(region, "boundary_equal");
-        verifyReadNotPlaced(region, "boundary_unequal");
-        verifyReadNotPlaced(region, "extended_and_np");
-        verifyReadNotPlaced(region, "outside_intervals");
-        verifyReadNotPlaced(region, "end_of_chr1");
-        getRead(region, "simple20");
+        verifyReadMapping(region, "simple20");
     }
 
     @Test
@@ -473,25 +351,19 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // TODO
     }
 
-    private void verifyReadNotPlaced(ActiveRegion region, String readName) {
+    private void verifyReadMapping(ActiveRegion region, String... reads) {
+        Collection<String> wantReads = new ArrayList<String>(Arrays.asList(reads));
         for (SAMRecord read : region.getReads()) {
-            if (read.getReadName().equals(readName))
-                Assert.fail("Read " + readName + " found in active region " + region);
-        }
-    }
-
-    private SAMRecord getRead(ActiveRegion region, String readName) {
-        for (SAMRecord read : region.getReads()) {
-            if (read.getReadName().equals(readName))
-                return read;
+            String regionReadName = read.getReadName();
+            Assert.assertTrue(wantReads.contains(regionReadName), "Read " + regionReadName + " assigned to active region " + region);
+            wantReads.remove(regionReadName);
         }
 
-        Assert.fail("Read " + readName + " not assigned to active region " + region);
-        return null;
+        Assert.assertTrue(wantReads.isEmpty(), "Reads missing in active region " + region);
     }
 
     private Map<GenomeLoc, ActiveRegion> getActiveRegions(DummyActiveRegionWalker walker, List<GenomeLoc> intervals) {
-        for (LocusShardDataProvider dataProvider : createDataProviders(intervals))
+        for (LocusShardDataProvider dataProvider : createDataProviders(intervals, testBAM))
             t.traverse(walker, dataProvider, 0);
 
         t.endTraversal(walker, 0);
@@ -536,7 +408,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
 
     // copied from LocusViewTemplate
     protected GATKSAMRecord buildSAMRecord(String readName, String contig, int alignmentStart, int alignmentEnd) {
-        SAMFileHeader header = new SAMFileHeader();
+        SAMFileHeader header = ArtificialSAMUtils.createDefaultReadGroup(new SAMFileHeader(), "test", "test");
         header.setSequenceDictionary(dictionary);
         GATKSAMRecord record = new GATKSAMRecord(header);
 
@@ -548,23 +420,28 @@ public class TraverseActiveRegionsTest extends BaseTest {
         int len = alignmentEnd - alignmentStart + 1;
         cigar.add(new CigarElement(len, CigarOperator.M));
         record.setCigar(cigar);
-        record.setReadBases(new byte[len]);
+        record.setReadString(new String(new char[len]).replace("\0", "A"));
         record.setBaseQualities(new byte[len]);
 
         return record;
     }
 
-    private List<LocusShardDataProvider> createDataProviders(List<GenomeLoc> intervals) {
+    private List<LocusShardDataProvider> createDataProviders(List<GenomeLoc> intervals, String bamFile) {
         GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
         engine.setGenomeLocParser(genomeLocParser);
         t.initialize(engine);
 
-        StingSAMIterator iterator = ArtificialSAMUtils.createReadIterator(new ArrayList<SAMRecord>(reads));
-        Shard shard = new MockLocusShard(genomeLocParser, intervals);
+        Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();
+        SAMReaderID readerID = new SAMReaderID(new File(bamFile), new Tags());
+        samFiles.add(readerID);
+
+        SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser);
 
         List<LocusShardDataProvider> providers = new ArrayList<LocusShardDataProvider>();
-        for (WindowMaker.WindowMakerIterator window : new WindowMaker(shard, genomeLocParser, iterator, shard.getGenomeLocs())) {
-            providers.add(new LocusShardDataProvider(shard, shard.getReadProperties(), genomeLocParser, window.getLocus(), window, reference, new ArrayList<ReferenceOrderedDataSource>()));
+        for (Shard shard : dataSource.createShardIteratorOverIntervals(new GenomeLocSortedSet(genomeLocParser, intervals), new LocusShardBalancer())) {
+            for (WindowMaker.WindowMakerIterator window : new WindowMaker(shard, genomeLocParser, dataSource.seek(shard), shard.getGenomeLocs())) {
+                providers.add(new LocusShardDataProvider(shard, shard.getReadProperties(), genomeLocParser, window.getLocus(), window, reference, new ArrayList<ReferenceOrderedDataSource>()));
+            }
         }
 
         return providers;

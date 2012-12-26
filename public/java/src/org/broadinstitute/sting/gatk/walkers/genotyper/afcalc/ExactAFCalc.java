@@ -26,10 +26,10 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper.afcalc;
 
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.GenotypesContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.variant.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.Genotype;
+import org.broadinstitute.variant.variantcontext.GenotypesContext;
 
 import java.util.ArrayList;
 
@@ -71,7 +71,7 @@ abstract class ExactAFCalc extends AFCalc {
             if ( sample.hasLikelihoods() ) {
                 double[] gls = sample.getLikelihoods().getAsVector();
 
-                if ( MathUtils.sum(gls) < VariantContextUtils.SUM_GL_THRESH_NOCALL )
+                if ( MathUtils.sum(gls) < GATKVariantContextUtils.SUM_GL_THRESH_NOCALL )
                     genotypeLikelihoods.add(gls);
             }
         }

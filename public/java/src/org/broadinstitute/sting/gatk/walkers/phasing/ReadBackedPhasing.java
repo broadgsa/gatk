@@ -34,24 +34,26 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.MappingQualityZeroFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.variant.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.variantcontext.*;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriterFactory;
+import org.broadinstitute.variant.variantcontext.*;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
 
 import java.io.*;
 import java.util.*;
 
-import static org.broadinstitute.sting.utils.codecs.vcf.VCFUtils.getVCFHeadersFromRods;
+import static org.broadinstitute.sting.utils.variant.GATKVCFUtils.getVCFHeadersFromRods;
 
 /**
  * Walks along all variant ROD loci, caching a user-defined window of VariantContext sites, and then finishes phasing them when they go out of range (using upstream and downstream reads).
@@ -212,7 +214,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
 
         // setup the header fields:
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+        hInfo.addAll(GATKVCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
         // Phasing-specific INFO fields:
@@ -267,13 +269,13 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
                 unphasedSiteQueue.add(vr);
 
                 if (DEBUG)
-                    logger.debug("Added variant to queue = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vr.variant));
+                    logger.debug("Added variant to queue = " + GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vr.variant));
             }
             else {
                 unprocessedList.add(vc); // Finished with the unprocessed variant, and writer can enforce sorting on-the-fly
 
                 if (DEBUG)
-                    logger.debug("Unprocessed variant = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
+                    logger.debug("Unprocessed variant = " + GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
             }
 
             int numReads = context.getBasePileup().getNumberOfElements();
@@ -304,7 +306,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
         while (!unphasedSiteQueue.isEmpty()) {
             if (!processAll) { // otherwise, phase until the end of unphasedSiteQueue
                 VariantContext nextToPhaseVc = unphasedSiteQueue.peek().variant;
-                if (startDistancesAreInWindowRange(mostDownstreamLocusReached, VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), nextToPhaseVc))) {
+                if (startDistancesAreInWindowRange(mostDownstreamLocusReached, GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), nextToPhaseVc))) {
                     /* mostDownstreamLocusReached is still not far enough ahead of nextToPhaseVc to have all phasing information for nextToPhaseVc
                      (note that we ASSUME that the VCF is ordered by <contig,locus>).
                       Note that this will always leave at least one entry (the last one), since mostDownstreamLocusReached is in range of itself.
@@ -319,7 +321,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
 
             VariantAndReads vr = unphasedSiteQueue.remove();
             if (DEBUG)
-                logger.debug("Performing phasing for " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vr.variant));
+                logger.debug("Performing phasing for " + GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vr.variant));
             phaseSite(vr, phaseStats);
         }
 
@@ -338,7 +340,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
 
         GenomeLoc nextToPhaseLoc = null;
         if (!unphasedSiteQueue.isEmpty())
-            nextToPhaseLoc = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), unphasedSiteQueue.peek().variant);
+            nextToPhaseLoc = GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), unphasedSiteQueue.peek().variant);
 
         while (!partiallyPhasedSites.isEmpty()) {
             if (nextToPhaseLoc != null) { // otherwise, unphasedSiteQueue.isEmpty(), and therefore no need to keep any of the "past"
@@ -363,7 +365,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
 
     private void phaseSite(VariantAndReads vr, PhasingStats phaseStats) {
         VariantContext vc = vr.variant;
-        logger.debug("Will phase vc = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
+        logger.debug("Will phase vc = " + GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
 
         UnfinishedVariantAndReads uvr = new UnfinishedVariantAndReads(vr);
         UnfinishedVariantContext uvc = uvr.unfinishedVariant;
@@ -400,7 +402,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
 
                         if (pr.phasingContainsInconsistencies) {
                             if (DEBUG)
-                                logger.debug("MORE than " + (MAX_FRACTION_OF_INCONSISTENT_READS * 100) + "% of the reads are inconsistent for phasing of " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
+                                logger.debug("MORE than " + (MAX_FRACTION_OF_INCONSISTENT_READS * 100) + "% of the reads are inconsistent for phasing of " + GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
                             uvc.setPhasingInconsistent();
                         }
 
@@ -441,7 +443,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
                         }
 
                         if (statsWriter != null)
-                            statsWriter.addStat(samp, VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc), startDistance(prevUvc, vc), pr.phaseQuality, phaseWindow.readsAtHetSites.size(), phaseWindow.hetGenotypes.length);
+                            statsWriter.addStat(samp, GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc), startDistance(prevUvc, vc), pr.phaseQuality, phaseWindow.readsAtHetSites.size(), phaseWindow.hetGenotypes.length);
 
                         PhaseCounts sampPhaseCounts = samplePhaseStats.get(samp);
                         if (sampPhaseCounts == null) {
@@ -538,7 +540,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
             }
 
             // Add the (het) position to be phased:
-            GenomeLoc phaseLocus = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vr.variant);
+            GenomeLoc phaseLocus = GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vr.variant);
             GenotypeAndReadBases grbPhase = new GenotypeAndReadBases(vr.variant.getGenotype(sample), vr.sampleReadBases.get(sample), phaseLocus);
             listHetGenotypes.add(grbPhase);
             if (DEBUG)
@@ -553,7 +555,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
                     break;
                 }
                 else if (gt.isHet()) {
-                    GenotypeAndReadBases grb = new GenotypeAndReadBases(gt, nextVr.sampleReadBases.get(sample), VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), nextVr.variant));
+                    GenotypeAndReadBases grb = new GenotypeAndReadBases(gt, nextVr.sampleReadBases.get(sample), GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), nextVr.variant));
                     listHetGenotypes.add(grb);
                     if (DEBUG) logger.debug("Using DOWNSTREAM het site = " + grb.loc);
                 }
@@ -1027,7 +1029,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
     }
 
     private boolean startDistancesAreInWindowRange(VariantContext vc1, VariantContext vc2) {
-        return startDistancesAreInWindowRange(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc1), VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc2));
+        return startDistancesAreInWindowRange(GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc1), GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc2));
     }
 
     private boolean startDistancesAreInWindowRange(GenomeLoc loc1, GenomeLoc loc2) {
@@ -1035,7 +1037,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
     }
 
     private int startDistance(UnfinishedVariantContext uvc1, VariantContext vc2) {
-        return uvc1.getLocation().distance(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc2));
+        return uvc1.getLocation().distance(GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc2));
     }
 
     public PhasingStats reduce(PhasingStatsAndOutput statsAndList, PhasingStats stats) {
@@ -1219,7 +1221,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
             else
                 sb.append(" -- ");
 
-            sb.append(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
+            sb.append(GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
         }
         return sb.toString();
     }
@@ -1475,7 +1477,7 @@ public class ReadBackedPhasing extends RodWalker<PhasingStatsAndOutput, PhasingS
         public void outputMultipleBaseCounts() {
             GenomeLoc nextToPhaseLoc = null;
             if (!unphasedSiteQueue.isEmpty())
-                nextToPhaseLoc = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), unphasedSiteQueue.peek().variant);
+                nextToPhaseLoc = GATKVariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), unphasedSiteQueue.peek().variant);
 
             outputMultipleBaseCounts(nextToPhaseLoc);
         }

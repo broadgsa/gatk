@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEval;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manager.StratificationManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.util.ArrayList;
 import java.util.Set;

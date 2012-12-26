@@ -30,7 +30,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.Allele;
 
 import java.io.PrintStream;
 import java.lang.reflect.Constructor;
@@ -38,7 +38,7 @@ import java.util.*;
 
 public abstract class PerReadAlleleLikelihoodMap {
 
-    public static final double INFORMATIVE_LIKELIHOOD_THRESHOLD = 0.1;
+    public static final double INFORMATIVE_LIKELIHOOD_THRESHOLD = 0.2;
 
     protected List<Allele> alleles;
     protected Map<GATKSAMRecord, Map<Allele, Double>> likelihoodReadMap;
@@ -126,7 +126,7 @@ public abstract class PerReadAlleleLikelihoodMap {
     public static PerReadAlleleLikelihoodMap getBestAvailablePerReadAlleleLikelihoodMap() {
         final Class PerReadAlleleLikelihoodMapClass = GATKLiteUtils.getProtectedClassIfAvailable(PerReadAlleleLikelihoodMap.class);
         try {
-            Constructor constructor = PerReadAlleleLikelihoodMapClass.getDeclaredConstructor((Class[])null);
+            final Constructor constructor = PerReadAlleleLikelihoodMapClass.getDeclaredConstructor((Class[])null);
             constructor.setAccessible(true);
             return (PerReadAlleleLikelihoodMap)constructor.newInstance();
         }

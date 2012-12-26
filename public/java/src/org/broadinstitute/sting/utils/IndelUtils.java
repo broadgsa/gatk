@@ -2,7 +2,7 @@ package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -122,9 +122,9 @@ public class IndelUtils {
 
         ArrayList<Integer> inds = new ArrayList<Integer>();
         if ( vc.isSimpleInsertion() ) {
-            indelAlleleString = vc.getAlternateAllele(0).getDisplayString();
+            indelAlleleString = vc.getAlternateAllele(0).getDisplayString().substring(1);
         } else if ( vc.isSimpleDeletion() ) {
-            indelAlleleString = vc.getReference().getDisplayString();
+            indelAlleleString = vc.getReference().getDisplayString().substring(1);
         }
         else {
             inds.add(IND_FOR_OTHER_EVENT);

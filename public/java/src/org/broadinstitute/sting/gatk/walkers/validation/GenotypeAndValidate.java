@@ -36,14 +36,15 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.variant.vcf.VCFHeader;
+import org.broadinstitute.variant.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
+import org.broadinstitute.variant.variantcontext.VariantContextUtils;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.vcf.VCFUtils;
 
 import java.util.Map;
 import java.util.Set;
@@ -304,7 +305,7 @@ public class GenotypeAndValidate extends RodWalker<GenotypeAndValidate.CountedDa
 
         // Initialize VCF header
         if (vcfWriter != null) {
-            Map<String, VCFHeader> header = VCFUtils.getVCFHeadersFromRodPrefix(getToolkit(), alleles.getName());
+            Map<String, VCFHeader> header = GATKVCFUtils.getVCFHeadersFromRodPrefix(getToolkit(), alleles.getName());
             samples = SampleUtils.getSampleList(header, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
             Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(header.values(), logger);
             headerLines.add(new VCFHeaderLine("source", "GenotypeAndValidate"));
