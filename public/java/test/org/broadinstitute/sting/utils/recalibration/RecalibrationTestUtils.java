@@ -23,22 +23,27 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.nanoScheduler;
+package org.broadinstitute.sting.utils.recalibration;
+
+import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
+import org.broadinstitute.sting.utils.recalibration.covariates.*;
 
 /**
- * A function that maps from InputType -> ResultType
- *
- * For use with the NanoScheduler
- *
+ * Created with IntelliJ IDEA.
  * User: depristo
- * Date: 8/24/12
- * Time: 9:49 AM
+ * Date: 12/23/12
+ * Time: 1:06 PM
+ * To change this template use File | Settings | File Templates.
  */
-public interface NSMapFunction<InputType, ResultType> {
-    /**
-     * Return function on input, returning a value of ResultType
-     * @param input
-     * @return
-     */
-    public ResultType apply(final InputType input);
+public class RecalibrationTestUtils {
+    public static Covariate[] makeInitializedStandardCovariates() {
+        final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
+        final Covariate[] covariates = new Covariate[4];
+        covariates[0] = new ReadGroupCovariate();
+        covariates[1] = new QualityScoreCovariate();
+        covariates[2] = new ContextCovariate();
+        covariates[3] = new CycleCovariate();
+        for ( Covariate cov : covariates ) cov.initialize(RAC);
+        return covariates;
+    }
 }

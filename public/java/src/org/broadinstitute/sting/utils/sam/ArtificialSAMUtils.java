@@ -188,6 +188,7 @@ public class ArtificialSAMUtils {
         GATKSAMRecord rec = createArtificialRead(header, name, refIndex, alignmentStart, bases.length);
         rec.setReadBases(bases);
         rec.setBaseQualities(qual);
+        rec.setReadGroup(new GATKSAMReadGroupRecord("x"));
         if (refIndex == -1) {
             rec.setReadUnmappedFlag(true);
         }

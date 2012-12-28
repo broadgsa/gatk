@@ -11,10 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * UnitTests for Reducer
@@ -30,19 +27,17 @@ public class ReducerUnitTest extends BaseTest {
         List<Object[]> tests = new ArrayList<Object[]>();
 
         for ( final int groupSize : Arrays.asList(-1, 1, 5, 50, 500, 5000, 50000) ) {
-            for ( final boolean setJobIDAtStart : Arrays.asList(true, false) ) {
-                for ( final int nElements : Arrays.asList(0, 1, 3, 5) ) {
-                    if ( groupSize < nElements ) {
-                        for ( final List<MapResult<Integer>> jobs : Utils.makePermutations(makeJobs(nElements), nElements, false) ) {
-                            tests.add(new Object[]{ new ListOfJobs(jobs), setJobIDAtStart, groupSize });
-                        }
+            for ( final int nElements : Arrays.asList(0, 1, 3, 5) ) {
+                if ( groupSize < nElements ) {
+                    for ( final List<MapResult<Integer>> jobs : Utils.makePermutations(makeJobs(nElements), nElements, false) ) {
+                        tests.add(new Object[]{ new ListOfJobs(jobs), groupSize });
                     }
                 }
+            }
 
-                for ( final int nElements : Arrays.asList(10, 100, 1000, 10000, 100000, 1000000) ) {
-                    if ( groupSize < nElements ) {
-                        tests.add(new Object[]{ new ListOfJobs(makeJobs(nElements)), setJobIDAtStart, groupSize });
-                    }
+            for ( final int nElements : Arrays.asList(10, 100, 1000, 10000, 100000, 1000000) ) {
+                if ( groupSize < nElements ) {
+                    tests.add(new Object[]{ new ListOfJobs(makeJobs(nElements)), groupSize });
                 }
             }
         }
@@ -80,15 +75,11 @@ public class ReducerUnitTest extends BaseTest {
     }
 
     @Test(enabled = true, dataProvider = "ReducerThreadTest", timeOut = NanoSchedulerUnitTest.NANO_SCHEDULE_MAX_RUNTIME)
-    public void testReducerThread(final List<MapResult<Integer>> jobs, final boolean setJobIDAtStart, final int groupSize) throws Exception {
-        runTests(jobs, setJobIDAtStart, groupSize);
-    }
-
-    private void runTests( final List<MapResult<Integer>> allJobs, boolean setJobIDAtStart, int groupSize ) throws Exception {
+    public void testReducerThread(final List<MapResult<Integer>> allJobs, int groupSize) throws Exception {
         if ( groupSize == -1 )
             groupSize = allJobs.size();
 
-        final PriorityBlockingQueue<MapResult<Integer>> mapResultsQueue = new PriorityBlockingQueue<MapResult<Integer>>();
+        final MapResultsQueue<Integer> mapResultsQueue = new MapResultsQueue<Integer>();
 
         final List<List<MapResult<Integer>>> jobGroups = Utils.groupList(allJobs, groupSize);
         final ReduceSumTest reduce = new ReduceSumTest();
@@ -98,51 +89,28 @@ public class ReducerUnitTest extends BaseTest {
         final ExecutorService es = Executors.newSingleThreadExecutor();
         es.submit(waitingThread);
 
+        int lastJobID = -1;
         int nJobsSubmitted = 0;
         int jobGroupCount = 0;
         final int lastJobGroupCount = jobGroups.size() - 1;
-        setJobIDAtStart = setJobIDAtStart && groupSize == 1;
 
         for ( final List<MapResult<Integer>> jobs : jobGroups ) {
             //logger.warn("Processing job group " + jobGroupCount + " with " + jobs.size() + " jobs");
             for ( final MapResult<Integer> job : jobs ) {
-                mapResultsQueue.add(job);
+                lastJobID = Math.max(lastJobID, job.getJobID());
+                mapResultsQueue.put(job);
                 nJobsSubmitted++;
             }
 
             if ( jobGroupCount == lastJobGroupCount ) {
-                mapResultsQueue.add(new MapResult<Integer>());
+                mapResultsQueue.put(new MapResult<Integer>(lastJobID+1));
                 nJobsSubmitted++;
             }
 
-            Assert.assertFalse(reducer.latchIsReleased(), "Latch should be closed at the start");
-
-            if ( jobGroupCount == 0 && setJobIDAtStart ) {
-                // only can do the setJobID if jobs cannot be submitted out of order
-                reducer.setTotalJobCount(allJobs.size());
-                Assert.assertFalse(reducer.latchIsReleased(), "Latch should be closed even after setting last job if we haven't processed anything");
-            }
-
-            final int nReduced = reducer.reduceAsMuchAsPossible(mapResultsQueue);
+            final int nReduced = reducer.reduceAsMuchAsPossible(mapResultsQueue, true);
             Assert.assertTrue(nReduced <= nJobsSubmitted, "Somehow reduced more jobs than submitted");
 
-            if ( setJobIDAtStart ) {
-                final boolean submittedLastJob = jobGroupCount == lastJobGroupCount;
-                Assert.assertEquals(reducer.latchIsReleased(), submittedLastJob,
-                        "When last job is set, latch should only be released if the last job has been submitted");
-            } else {
-                Assert.assertEquals(reducer.latchIsReleased(), false, "When last job isn't set, latch should never be release");
-            }
-
             jobGroupCount++;
-        }
-
-        if ( setJobIDAtStart )
-            Assert.assertTrue(reducer.latchIsReleased(), "Latch should be released after reducing with last job id being set");
-        else {
-            Assert.assertFalse(reducer.latchIsReleased(), "Latch should be closed after reducing without last job id being set");
-            reducer.setTotalJobCount(allJobs.size());
-            Assert.assertTrue(reducer.latchIsReleased(), "Latch should be released after reducing after setting last job id ");
         }
 
         Assert.assertEquals(reduce.nRead, allJobs.size(), "number of read values not all of the values in the reducer queue");
@@ -150,15 +118,63 @@ public class ReducerUnitTest extends BaseTest {
         es.awaitTermination(1, TimeUnit.HOURS);
     }
 
-    @Test(expectedExceptions = IllegalStateException.class)
-    private void runSettingJobIDTwice() throws Exception {
-        final PriorityBlockingQueue<MapResult<Integer>> mapResultsQueue = new PriorityBlockingQueue<MapResult<Integer>>();
-
+    @Test(timeOut = 1000, invocationCount = 100)
+    private void testNonBlockingReduce() throws Exception {
         final Reducer<Integer, Integer> reducer = new Reducer<Integer, Integer>(new ReduceSumTest(), new MultiThreadedErrorTracker(), 0);
+        final MapResultsQueue<Integer> mapResultsQueue = new MapResultsQueue<Integer>();
+        mapResultsQueue.put(new MapResult<Integer>(0, 0));
+        mapResultsQueue.put(new MapResult<Integer>(1, 1));
 
-        reducer.setTotalJobCount(10);
-        reducer.setTotalJobCount(15);
+        final CountDownLatch latch = new CountDownLatch(1);
+        final ExecutorService es = Executors.newSingleThreadExecutor();
+
+        es.submit(new Runnable() {
+            @Override
+            public void run() {
+                reducer.acquireReduceLock(true);
+                latch.countDown();
+            }
+        });
+
+        latch.await();
+        final int nReduced = reducer.reduceAsMuchAsPossible(mapResultsQueue, false);
+        Assert.assertEquals(nReduced, 0, "The reducer lock was already held but we did some work");
+        es.shutdown();
+        es.awaitTermination(1, TimeUnit.HOURS);
     }
+
+    @Test(timeOut = 10000, invocationCount = 100)
+    private void testBlockingReduce() throws Exception {
+        final Reducer<Integer, Integer> reducer = new Reducer<Integer, Integer>(new ReduceSumTest(), new MultiThreadedErrorTracker(), 0);
+        final MapResultsQueue<Integer> mapResultsQueue = new MapResultsQueue<Integer>();
+        mapResultsQueue.put(new MapResult<Integer>(0, 0));
+        mapResultsQueue.put(new MapResult<Integer>(1, 1));
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        final ExecutorService es = Executors.newSingleThreadExecutor();
+
+        es.submit(new Runnable() {
+            @Override
+            public void run() {
+                reducer.acquireReduceLock(true);
+                latch.countDown();
+                try {
+                    Thread.sleep(100);
+                } catch ( InterruptedException e ) {
+                    ;
+                } finally {
+                    reducer.releaseReduceLock();
+                }
+            }
+        });
+
+        latch.await();
+        final int nReduced = reducer.reduceAsMuchAsPossible(mapResultsQueue, true);
+        Assert.assertEquals(nReduced, 2, "The reducer should have blocked until the lock was freed and reduced 2 values");
+        es.shutdown();
+        es.awaitTermination(1, TimeUnit.HOURS);
+    }
+
 
     public class ReduceSumTest implements NSReduceFunction<Integer, Integer> {
         int nRead = 0;
@@ -188,12 +204,8 @@ public class ReducerUnitTest extends BaseTest {
 
         @Override
         public void run() {
-            try {
-                final int observedSum = reducer.waitForFinalReduce();
-                Assert.assertEquals(observedSum, expectedSum, "Reduce didn't sum to expected value");
-            } catch ( InterruptedException ex ) {
-                Assert.fail("Got interrupted");
-            }
+            final int observedSum = reducer.getReduceResult();
+            Assert.assertEquals(observedSum, expectedSum, "Reduce didn't sum to expected value");
         }
     }
 }

@@ -44,6 +44,7 @@ import org.broadinstitute.sting.utils.SimpleTimer;
 import org.broadinstitute.sting.utils.baq.ReadTransformingIterator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
 
 import java.io.File;
@@ -252,9 +253,10 @@ public class SAMDataSource {
         if(readBufferSize != null)
             ReadShard.setReadBufferSize(readBufferSize);   // TODO: use of non-final static variable here is just awful, especially for parallel tests
         else {
-            // Choose a sensible default for the read buffer size.  For the moment, we're picking 1000 reads per BAM per shard (which effectively
-            // will mean per-thread once ReadWalkers are parallelized) with a max cap of 250K reads in memory at once.
-            ReadShard.setReadBufferSize(Math.min(10000*samFiles.size(),250000));
+            // Choose a sensible default for the read buffer size.
+            // Previously we we're picked 100000 reads per BAM per shard with a max cap of 250K reads in memory at once.
+            // Now we are simply setting it to 100K reads
+            ReadShard.setReadBufferSize(100000);
         }
 
         resourcePool = new SAMResourcePool(Integer.MAX_VALUE);
@@ -894,9 +896,11 @@ public class SAMDataSource {
             long lastTick = timer.currentTime();
             for(final SAMReaderID readerID: readerIDs) {
                 final ReaderInitializer init = new ReaderInitializer(readerID).call();
+
                 if (removeProgramRecords) {
                     init.reader.getFileHeader().setProgramRecords(new ArrayList<SAMProgramRecord>());
                 }
+
                 if (threadAllocation.getNumIOThreads() > 0) {
                     inputStreams.put(init.readerID, init.blockInputStream); // get from initializer
                 }
@@ -916,6 +920,13 @@ public class SAMDataSource {
             for(SAMFileReader reader: readers.values())
                 headers.add(reader.getFileHeader());
             headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,headers,true);
+
+            // update all read groups to GATKSAMRecordReadGroups
+            final List<SAMReadGroupRecord> gatkReadGroups = new LinkedList<SAMReadGroupRecord>();
+            for ( final SAMReadGroupRecord rg : headerMerger.getMergedHeader().getReadGroups() ) {
+                gatkReadGroups.add(new GATKSAMReadGroupRecord(rg));
+            }
+            headerMerger.getMergedHeader().setReadGroups(gatkReadGroups);
         }
 
         final private void printReaderPerformance(final int nExecutedTotal,

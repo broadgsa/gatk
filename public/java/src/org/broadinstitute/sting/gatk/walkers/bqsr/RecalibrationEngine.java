@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.bqsr;
 
+import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -29,10 +30,31 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 * OTHER DEALINGS IN THE SOFTWARE.
 */
 public interface RecalibrationEngine {
-
+    /**
+     * Initialize the recalibration engine
+     *
+     * Called once before any calls to updateDataForRead are made.  The engine should prepare itself
+     * to handle any number of updateDataForRead calls containing ReadRecalibrationInfo containing
+     * keys for each of the covariates provided.
+     *
+     * The engine should collect match and mismatch data into the recalibrationTables data.
+     *
+     * @param covariates an array of the covariates we'll be using in this engine, order matters
+     * @param recalibrationTables the destination recalibrationTables where stats should be collected
+     */
     public void initialize(final Covariate[] covariates, final RecalibrationTables recalibrationTables);
 
-    public void updateDataForRead(final GATKSAMRecord read, final boolean[] skip, final double[] snpErrors, final double[] insertionErrors, final double[] deletionErrors);
+    /**
+     * Update the recalibration statistics using the information in recalInfo
+     * @param recalInfo data structure holding information about the recalibration values for a single read
+     */
+    @Requires("recalInfo != null")
+    public void updateDataForRead(final ReadRecalibrationInfo recalInfo);
 
+    /**
+     * Finalize, if appropriate, all derived data in recalibrationTables.
+     *
+     * Called once after all calls to updateDataForRead have been issued.
+     */
     public void finalizeData();
 }

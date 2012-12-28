@@ -135,14 +135,6 @@ public class RecalDatum {
         this.estimatedQReported = estimatedQReported;
     }
 
-    public static RecalDatum createRandomRecalDatum(int maxObservations, int maxErrors) {
-        final Random random = new Random();
-        final int nObservations = random.nextInt(maxObservations);
-        final int nErrors = random.nextInt(maxErrors);
-        final int qual = random.nextInt(QualityUtils.MAX_QUAL_SCORE);
-        return new RecalDatum(nObservations, nErrors, (byte)qual);
-    }
-
     public final double getEstimatedQReported() {
         return estimatedQReported;
     }
@@ -212,49 +204,49 @@ public class RecalDatum {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public double getNumObservations() {
+    public final double getNumObservations() {
         return numObservations;
     }
 
-    public synchronized void setNumObservations(final double numObservations) {
+    public final synchronized void setNumObservations(final double numObservations) {
         if ( numObservations < 0 ) throw new IllegalArgumentException("numObservations < 0");
         this.numObservations = numObservations;
         empiricalQuality = UNINITIALIZED;
     }
 
-    public double getNumMismatches() {
+    public final double getNumMismatches() {
         return numMismatches;
     }
 
     @Requires({"numMismatches >= 0"})
-    public synchronized void setNumMismatches(final double numMismatches) {
+    public final synchronized void setNumMismatches(final double numMismatches) {
         if ( numMismatches < 0 ) throw new IllegalArgumentException("numMismatches < 0");
         this.numMismatches = numMismatches;
         empiricalQuality = UNINITIALIZED;
     }
 
     @Requires({"by >= 0"})
-    public synchronized void incrementNumObservations(final double by) {
+    public final synchronized void incrementNumObservations(final double by) {
         numObservations += by;
         empiricalQuality = UNINITIALIZED;
     }
 
     @Requires({"by >= 0"})
-    public synchronized void incrementNumMismatches(final double by) {
+    public final synchronized void incrementNumMismatches(final double by) {
         numMismatches += by;
         empiricalQuality = UNINITIALIZED;
     }
 
     @Requires({"incObservations >= 0", "incMismatches >= 0"})
     @Ensures({"numObservations == old(numObservations) + incObservations", "numMismatches == old(numMismatches) + incMismatches"})
-    public synchronized void increment(final double incObservations, final double incMismatches) {
+    public final synchronized void increment(final double incObservations, final double incMismatches) {
         numObservations += incObservations;
         numMismatches += incMismatches;
         empiricalQuality = UNINITIALIZED;
     }
 
     @Ensures({"numObservations == old(numObservations) + 1", "numMismatches >= old(numMismatches)"})
-    public synchronized void increment(final boolean isError) {
+    public final synchronized void increment(final boolean isError) {
         increment(1, isError ? 1 : 0.0);
     }
 

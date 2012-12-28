@@ -12,9 +12,6 @@ import org.broadinstitute.sting.utils.NGSPlatform;
  *
  */
 public class GATKSAMReadGroupRecord extends SAMReadGroupRecord {
-
-    public static final String LANE_TAG = "LN";
-    
     // the SAMReadGroupRecord data we're caching
     private String mSample = null;
     private String mPlatform = null;
@@ -33,46 +30,14 @@ public class GATKSAMReadGroupRecord extends SAMReadGroupRecord {
         super(record.getReadGroupId(), record);
     }
 
-    public GATKSAMReadGroupRecord(SAMReadGroupRecord record, NGSPlatform pl) {
-        super(record.getReadGroupId(), record);
-        setPlatform(pl.getDefaultPlatform());
-        mNGSPlatform = pl;
-        retrievedPlatform = retrievedNGSPlatform = true;
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // *** The following methods are overloaded to cache the appropriate data ***//
-    ///////////////////////////////////////////////////////////////////////////////
-
-    public String getSample() {
-        if ( !retrievedSample ) {
-            mSample = super.getSample();
-            retrievedSample = true;
-        }
-        return mSample;
-    }
-
-    public void setSample(String s) {
-        super.setSample(s);
-        mSample = s;
-        retrievedSample = true;
-    }
-
-    public String getPlatform() {
-        if ( !retrievedPlatform ) {
-            mPlatform = super.getPlatform();
-            retrievedPlatform = true;
-        }
-        return mPlatform;
-    }
-
-    public void setPlatform(String s) {
-        super.setPlatform(s);
-        mPlatform = s;
-        retrievedPlatform = true;
-        retrievedNGSPlatform = false; // recalculate the NGSPlatform
-    }
-
+    /**
+     * Get the NGSPlatform enum telling us the platform of this read group
+     *
+     * This function call is caching, so subsequent calls to it are free, while
+     * the first time it's called there's a bit of work to resolve the enum
+     *
+     * @return an NGSPlatform enum value
+     */
     public NGSPlatform getNGSPlatform() {
         if ( ! retrievedNGSPlatform ) {
             mNGSPlatform = NGSPlatform.fromReadGroupPL(getPlatform());
@@ -82,11 +47,40 @@ public class GATKSAMReadGroupRecord extends SAMReadGroupRecord {
         return mNGSPlatform;
     }
 
-    public String getLane() {
-        return this.getAttribute(LANE_TAG);
+    ///////////////////////////////////////////////////////////////////////////////
+    // *** The following methods are overloaded to cache the appropriate data ***//
+    ///////////////////////////////////////////////////////////////////////////////
+
+    @Override
+    public String getSample() {
+        if ( !retrievedSample ) {
+            mSample = super.getSample();
+            retrievedSample = true;
+        }
+        return mSample;
     }
-    
-    public void setLane(String lane) {
-        this.setAttribute(LANE_TAG, lane);
+
+    @Override
+    public void setSample(String s) {
+        super.setSample(s);
+        mSample = s;
+        retrievedSample = true;
+    }
+
+    @Override
+    public String getPlatform() {
+        if ( !retrievedPlatform ) {
+            mPlatform = super.getPlatform();
+            retrievedPlatform = true;
+        }
+        return mPlatform;
+    }
+
+    @Override
+    public void setPlatform(String s) {
+        super.setPlatform(s);
+        mPlatform = s;
+        retrievedPlatform = true;
+        retrievedNGSPlatform = false; // recalculate the NGSPlatform
     }
 }

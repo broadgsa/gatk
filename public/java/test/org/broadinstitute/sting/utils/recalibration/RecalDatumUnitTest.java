@@ -106,6 +106,11 @@ public class RecalDatumUnitTest extends BaseTest {
             Assert.assertEquals(datum.getEstimatedQReportedAsByte(), cfg.getReportedQual());
         BaseTest.assertEqualsDoubleSmart(datum.getEmpiricalQuality(), cfg.getErrorRatePhredScaled());
         BaseTest.assertEqualsDoubleSmart(datum.getEmpiricalErrorRate(), cfg.getErrorRate());
+
+        final double e = datum.getEmpiricalQuality();
+        Assert.assertTrue(datum.getEmpiricalQualityAsByte() >= Math.floor(e));
+        Assert.assertTrue(datum.getEmpiricalQualityAsByte() <= Math.ceil(e));
+        Assert.assertNotNull(datum.toString());
     }
 
     @Test(dataProvider = "RecalDatumTestProvider")
@@ -146,9 +151,31 @@ public class RecalDatumUnitTest extends BaseTest {
         assertBasicFeaturesOfRecalDatum(datum, cfg);
 
         datum = cfg.makeRecalDatum();
+        datum.increment(false);
+        cfg.exTotal++;
+        assertBasicFeaturesOfRecalDatum(datum, cfg);
+
+        datum = cfg.makeRecalDatum();
+        datum.incrementNumObservations(2);
+        cfg.exTotal += 2;
+        assertBasicFeaturesOfRecalDatum(datum, cfg);
+
+        datum = cfg.makeRecalDatum();
+        datum.incrementNumMismatches(2);
+        cfg.exError += 2;
+        assertBasicFeaturesOfRecalDatum(datum, cfg);
+
+
+        datum = cfg.makeRecalDatum();
         datum.increment(10, 5);
         cfg.exError += 5;
         cfg.exTotal += 10;
         assertBasicFeaturesOfRecalDatum(datum, cfg);
+    }
+
+    @Test
+    public void testNoObs() {
+        final RecalDatum rd = new RecalDatum(0, 0, (byte)10);
+        Assert.assertEquals(rd.getEmpiricalErrorRate(), 0.0);
     }
 }

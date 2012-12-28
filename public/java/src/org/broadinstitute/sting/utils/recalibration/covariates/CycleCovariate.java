@@ -50,7 +50,7 @@ import java.util.EnumSet;
 public class CycleCovariate implements StandardCovariate {
 
     private int MAXIMUM_CYCLE_VALUE;
-    private static final int CUSHION_FOR_INDELS = 4;
+    public static final int CUSHION_FOR_INDELS = 4;
     private String default_platform = null;
 
     private static final EnumSet<NGSPlatform> DISCRETE_CYCLE_PLATFORMS = EnumSet.of(NGSPlatform.ILLUMINA, NGSPlatform.SOLID, NGSPlatform.PACBIO, NGSPlatform.COMPLETE_GENOMICS);

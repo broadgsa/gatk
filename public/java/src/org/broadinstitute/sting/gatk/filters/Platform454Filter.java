@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.filters;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 /**
@@ -37,6 +38,6 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 public class Platform454Filter extends ReadFilter {
     public boolean filterOut(SAMRecord rec) {
-        return (ReadUtils.is454Read(rec));
+        return (ReadUtils.is454Read((GATKSAMRecord)rec));
     }
 }

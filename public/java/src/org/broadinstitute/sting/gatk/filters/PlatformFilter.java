@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.filters;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 /**
@@ -41,7 +42,7 @@ public class PlatformFilter extends ReadFilter {
 
     public boolean filterOut(SAMRecord rec) {
         for ( String name : PLFilterNames )
-            if ( ReadUtils.isPlatformRead(rec, name.toUpperCase() ))
+            if ( ReadUtils.isPlatformRead((GATKSAMRecord)rec, name.toUpperCase() ))
                 return true;
         return false;
     }

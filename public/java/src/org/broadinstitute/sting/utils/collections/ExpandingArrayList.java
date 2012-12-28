@@ -54,6 +54,7 @@ public class ExpandingArrayList<E> extends ArrayList<E> {
 
     private void maybeExpand(int index, E value) {
         if ( index >= size() ) {
+            ensureCapacity(index+1); // make sure we have space to hold at least index + 1 elements
             // We need to add null items until we can safely set index to element
             for ( int i = size(); i <= index; i++ )
                 add(value);

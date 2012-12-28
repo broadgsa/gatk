@@ -769,4 +769,28 @@ public class RecalUtils {
                 return base;
         }
     }
+
+    /**
+     * Combines the recalibration data for table1 and table2 into table1
+     *
+     * Note that table1 is the destination, so it is modified
+     *
+     * @param table1 the destination table to merge table2 into
+     * @param table2 the source table to merge into table1
+     */
+    public static void combineTables(final NestedIntegerArray<RecalDatum> table1, final NestedIntegerArray<RecalDatum> table2) {
+        if ( table1 == null ) throw new IllegalArgumentException("table1 cannot be null");
+        if ( table2 == null ) throw new IllegalArgumentException("table2 cannot be null");
+        if ( ! Arrays.equals(table1.getDimensions(), table2.getDimensions()))
+            throw new IllegalArgumentException("Table1 " + Utils.join(",", table1.getDimensions()) + " not equal to " + Utils.join(",", table2.getDimensions()));
+
+        for (final NestedIntegerArray.Leaf<RecalDatum> row : table2.getAllLeaves()) {
+            final RecalDatum myDatum = table1.get(row.keys);
+
+            if (myDatum == null)
+                table1.put(row.value, row.keys);
+            else
+                myDatum.combine(row.value);
+        }
+    }
 }
