@@ -114,7 +114,6 @@
     <property name="clover.instrument.level" value="method"/>
     <taskdef resource="cloverlib.xml" classpath="${clover.jar}"/>
 
-
     <!-- ******************************************************************************** -->
     <!-- Filesets and paths                                                               -->
     <!-- ******************************************************************************** -->
@@ -1031,6 +1030,14 @@
         <delete dir="${scaladoc.dir}" />
     </target>
 
+    <target name="-check.clover">
+      <available property="clover.installed" classname="com.cenqua.clover.CloverInstr" />
+    </target>
+
+    <target name="clean.clover" depends="-check.clover" if="clover.installed">
+      <clover-clean/>
+    </target>
+
     <target name="clean.gsalib">
         <!-- Currently not cleaning out the lib during 'ant clean' -->
       <exec executable="R" failonerror="false">
@@ -1038,7 +1045,7 @@
       </exec>
     </target>
 
-    <target name="clean" description="clean up" depends="clean.javadoc,clean.scaladoc,clean.gatkdocs">
+    <target name="clean" description="clean up" depends="clean.javadoc,clean.scaladoc,clean.gatkdocs,clean.clover">
         <delete dir="${build.dir}"/>
         <delete dir="${lib.dir}"/>
         <delete dir="${contract.dump.dir}"/>
@@ -1134,10 +1141,6 @@
     </path>
 
     <!-- Test targets -->
-
-    <target name="clover.clean">
-      <clover-clean/>
-    </target>
 
     <target name="clover.report">
       <clover-report coverageCacheSize="nocache">
