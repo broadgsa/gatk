@@ -104,6 +104,7 @@ public class TraverseActiveRegionsTest extends BaseTest {
     private List<GenomeLoc> intervals;
 
     private static final String testBAM = "TraverseActiveRegionsTest.bam";
+    private static final String testBAI = "TraverseActiveRegionsTest.bai";
 
     @BeforeClass
     private void init() throws FileNotFoundException {
@@ -149,6 +150,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
     private void createBAM(List<GATKSAMRecord> reads) {
         File outFile = new File(testBAM);
         outFile.deleteOnExit();
+        File indexFile = new File(testBAI);
+        indexFile.deleteOnExit();
 
         SAMFileWriter out = new SAMFileWriterFactory().makeBAMWriter(reads.get(0).getHeader(), true, outFile);
         for (GATKSAMRecord read : ReadUtils.sortReadsByCoordinate(reads)) {
