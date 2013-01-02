@@ -242,6 +242,21 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
     }
 
     @Test
+    public void testActiveRegionExtensionOnContig() {
+        DummyActiveRegionWalker walker = new DummyActiveRegionWalker();
+
+        Collection<ActiveRegion> activeRegions = getActiveRegions(walker, intervals).values();
+        for (ActiveRegion activeRegion : activeRegions) {
+            GenomeLoc loc = activeRegion.getExtendedLoc();
+
+            // Contract: active region extensions must stay on the contig
+            Assert.assertTrue(loc.getStart() > 0, "Active region extension begins at location " + loc.getStart() + ", past the left end of the contig");
+            int refLen = dictionary.getSequence(loc.getContigIndex()).getSequenceLength();
+            Assert.assertTrue(loc.getStop() <= refLen, "Active region extension ends at location " + loc.getStop() + ", past the right end of the contig");
+        }
+    }
+
+    @Test
     public void testPrimaryReadMapping() {
         DummyActiveRegionWalker walker = new DummyActiveRegionWalker();
 
