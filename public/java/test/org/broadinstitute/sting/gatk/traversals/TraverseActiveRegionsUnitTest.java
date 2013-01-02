@@ -45,7 +45,7 @@ import java.util.*;
  * Test the Active Region Traversal Contract
  * http://iwww.broadinstitute.org/gsa/wiki/index.php/Active_Region_Traversal_Contract
  */
-public class TraverseActiveRegionsTest extends BaseTest {
+public class TraverseActiveRegionsUnitTest extends BaseTest {
 
     private class DummyActiveRegionWalker extends ActiveRegionWalker<Integer, Integer> {
         private final double prob;
@@ -103,8 +103,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
 
     private List<GenomeLoc> intervals;
 
-    private static final String testBAM = "TraverseActiveRegionsTest.bam";
-    private static final String testBAI = "TraverseActiveRegionsTest.bai";
+    private static final String testBAM = "TraverseActiveRegionsUnitTest.bam";
+    private static final String testBAI = "TraverseActiveRegionsUnitTest.bai";
 
     @BeforeClass
     private void init() throws FileNotFoundException {
