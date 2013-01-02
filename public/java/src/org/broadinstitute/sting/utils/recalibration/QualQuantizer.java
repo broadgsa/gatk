@@ -175,8 +175,7 @@ public class QualQuantizer {
         }
 
         /**
-         * Human readable name of this interval: e.g., 10-12
-         * @return
+         * @return Human readable name of this interval: e.g., 10-12
          */
         public String getName() {
             return qStart + "-" + qEnd;
@@ -188,8 +187,7 @@ public class QualQuantizer {
         }
 
         /**
-         * Returns the error rate (in real space) of this interval, or 0 if there are no obserations
-         * @return
+         * @return the error rate (in real space) of this interval, or 0 if there are no observations
          */
         @Ensures("result >= 0.0")
         public double getErrorRate() {
@@ -202,9 +200,7 @@ public class QualQuantizer {
         }
 
         /**
-         * Returns the QUAL of the error rate of this interval, or the fixed
-         * qual if this interval was created with a fixed qual.
-         * @return
+         * @return the QUAL of the error rate of this interval, or the fixed qual if this interval was created with a fixed qual.
          */
         @Ensures("result >= 0 && result <= QualityUtils.MAX_QUAL_SCORE")
         public byte getQual() {
@@ -254,7 +250,7 @@ public class QualQuantizer {
             final QualInterval right = this.compareTo(toMerge) < 0 ? toMerge : this;
 
             if ( left.qEnd + 1 != right.qStart )
-                throw new ReviewedStingException("Attempting to merge non-continguous intervals: left = " + left + " right = " + right);
+                throw new ReviewedStingException("Attempting to merge non-contiguous intervals: left = " + left + " right = " + right);
 
             final long nCombinedObs = left.nObservations + right.nObservations;
             final long nCombinedErr = left.nErrors + right.nErrors;
@@ -343,8 +339,7 @@ public class QualQuantizer {
     }
 
     /**
-     * Helper function that finds and mergest together the lowest penalty pair
-     * of intervals
+     * Helper function that finds and merges together the lowest penalty pair of intervals
      * @param intervals
      */
     @Requires("! intervals.isEmpty()")

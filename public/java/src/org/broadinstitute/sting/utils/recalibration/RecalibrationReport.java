@@ -9,8 +9,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 
-import java.io.File;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -199,7 +198,7 @@ public class RecalibrationReport {
     private RecalDatum getRecalDatum(final GATKReportTable reportTable, final int row, final boolean hasEstimatedQReportedColumn) {
         final double nObservations = asDouble(reportTable.get(row, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME));
         final double nErrors = asDouble(reportTable.get(row, RecalUtils.NUMBER_ERRORS_COLUMN_NAME));
-        final double empiricalQuality = (Double) reportTable.get(row, RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME);
+        final double empiricalQuality = asDouble(reportTable.get(row, RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME));
 
         // the estimatedQreported column only exists in the ReadGroup table
         final double estimatedQReported = hasEstimatedQReportedColumn ?
