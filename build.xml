@@ -1278,7 +1278,7 @@
                 <jvmarg value="-Djava.awt.headless=true" />
                 <jvmarg value="-Dpipeline.run=${pipeline.run}" />
                 <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
-<!--                 <jvmarg line="${cofoja.jvm.args}"/> -->
+                <jvmarg line="${cofoja.jvm.args}"/>
                 <jvmarg line="${debug.jvm.args}"/>
 
                 <!-- NOTE: To run tests with debugging, use -Dtest.debug=true -Dtest.debug.port=XXXX on the command line -->
