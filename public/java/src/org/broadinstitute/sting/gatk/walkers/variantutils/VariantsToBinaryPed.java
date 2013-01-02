@@ -80,6 +80,9 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     @Argument(fullName="majorAlleleFirst",required=false,doc="Sets the major allele to be 'reference' for the bim file, rather than the ref allele")
     boolean majorAlleleFirst = false;
 
+    @Argument(fullName="checkAlternateAlleles",required=false,doc="Checks that alternate alleles actually appear in samples, erroring out if they do not")
+    boolean checkAlternateAlleles = false;
+
     enum OutputMode { INDIVIDUAL_MAJOR,SNP_MAJOR }
 
     private static double APPROX_CM_PER_BP = 1000000.0/750000.0;
@@ -473,7 +476,8 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         System.arraycopy(ref.getBases(), 0, observedRefBases, 0, refLength);
         final Allele observedRefAllele = Allele.create(observedRefBases);
         vc.validateReferenceBases(reportedRefAllele, observedRefAllele);
-        vc.validateAlternateAlleles();
+        if ( checkAlternateAlleles )
+            vc.validateAlternateAlleles();
     }
 
     private String getReferenceAllele(VariantContext vc) {
