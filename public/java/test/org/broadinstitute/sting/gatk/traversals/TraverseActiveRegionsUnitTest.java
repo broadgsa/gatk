@@ -179,15 +179,13 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         return activeIntervals;
     }
 
-    // TODO: fix this contracts issue and re-enable
-    @Test (enabled = false, expectedExceptions = PreconditionError.class)
+    @Test (expectedExceptions = PreconditionError.class)
     public void testIsActiveRangeLow () {
         DummyActiveRegionWalker walker = new DummyActiveRegionWalker(-0.1);
         getActiveRegions(walker, intervals).values();
     }
 
-    // TODO: fix this contracts issue and re-enable
-    @Test (enabled = false, expectedExceptions = PreconditionError.class)
+    @Test (expectedExceptions = PreconditionError.class)
     public void testIsActiveRangeHigh () {
         DummyActiveRegionWalker walker = new DummyActiveRegionWalker(1.1);
         getActiveRegions(walker, intervals).values();
