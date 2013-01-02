@@ -301,7 +301,11 @@ public abstract class BaseTest {
         Assert.assertTrue(actualSet.equals(expectedSet), info); // note this is necessary due to testng bug for set comps
     }
 
-    public static final void assertEqualsDoubleSmart(final double actual, final double expected, final double tolerance) {
+    public static void assertEqualsDoubleSmart(final double actual, final double expected, final double tolerance) {
+        assertEqualsDoubleSmart(actual, expected, tolerance, null);
+    }
+
+    public static void assertEqualsDoubleSmart(final double actual, final double expected, final double tolerance, final String message) {
         if ( Double.isNaN(expected) ) // NaN == NaN => false unfortunately
             Assert.assertTrue(Double.isNaN(actual), "expected is nan, actual is not");
         else if ( Double.isInfinite(expected) ) // NaN == NaN => false unfortunately
@@ -309,7 +313,9 @@ public abstract class BaseTest {
         else {
             final double delta = Math.abs(actual - expected);
             final double ratio = Math.abs(actual / expected - 1.0);
-            Assert.assertTrue(delta < tolerance || ratio < tolerance, "expected = " + expected + " actual = " + actual + " not within tolerance " + tolerance);
+            Assert.assertTrue(delta < tolerance || ratio < tolerance, "expected = " + expected + " actual = " + actual
+                    + " not within tolerance " + tolerance
+                    + (message == null ? "" : "message: " + message));
         }
     }
 }

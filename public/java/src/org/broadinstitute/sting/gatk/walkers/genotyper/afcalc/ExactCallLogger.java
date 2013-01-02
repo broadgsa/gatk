@@ -50,7 +50,7 @@ public class ExactCallLogger implements Cloneable {
             return String.format("ExactCall %s:%d alleles=%s nSamples=%s orig.pNonRef=%.2f orig.runtime=%s",
                     vc.getChr(), vc.getStart(), vc.getAlleles(), vc.getNSamples(),
                     originalCall.getLog10PosteriorOfAFGT0(),
-                    new AutoFormattingTime(runtime / 1e9).toString());
+                    new AutoFormattingTime(runtime).toString());
         }
     }
 

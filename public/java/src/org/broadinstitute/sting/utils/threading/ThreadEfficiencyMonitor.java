@@ -133,7 +133,7 @@ public class ThreadEfficiencyMonitor {
      */
     public synchronized void printUsageInformation(final Logger logger, final Priority priority) {
         logger.debug("Number of threads monitored: " + getnThreadsAnalyzed());
-        logger.debug("Total runtime " + new AutoFormattingTime(TimeUnit.MILLISECONDS.toSeconds(getTotalTime())));
+        logger.debug("Total runtime " + new AutoFormattingTime(TimeUnit.MILLISECONDS.toNanos(getTotalTime())));
         for ( final State state : State.values() ) {
             logger.debug(String.format("\tPercent of time spent %s is %.2f", state.getUserFriendlyName(), getStatePercent(state)));
         }
