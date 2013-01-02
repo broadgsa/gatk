@@ -160,6 +160,13 @@ public class ProgressMeter {
     public ProgressMeter(final File performanceLogFile,
                          final String processingUnitName,
                          final GenomeLocSortedSet processingIntervals) {
+        this(performanceLogFile, processingUnitName, processingIntervals, ProgressMeterDaemon.DEFAULT_POLL_FREQUENCY_MILLISECONDS);
+    }
+
+    protected ProgressMeter(final File performanceLogFile,
+                            final String processingUnitName,
+                            final GenomeLocSortedSet processingIntervals,
+                            final long pollingFrequency) {
         if ( processingUnitName == null ) throw new IllegalArgumentException("processingUnitName cannot be null");
         if ( processingIntervals == null ) throw new IllegalArgumentException("Target intervals cannot be null");
 
@@ -184,8 +191,12 @@ public class ProgressMeter {
         targetSizeInBP = processingIntervals.coveredSize();
 
         // start up the timer
-        progressMeterDaemon = new ProgressMeterDaemon(this);
+        progressMeterDaemon = new ProgressMeterDaemon(this, pollingFrequency);
         start();
+    }
+
+    public ProgressMeterDaemon getProgressMeterDaemon() {
+        return progressMeterDaemon;
     }
 
     /**
