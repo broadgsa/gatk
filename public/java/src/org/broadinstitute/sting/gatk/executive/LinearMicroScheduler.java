@@ -11,6 +11,8 @@ import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.sting.gatk.traversals.ExperimentalActiveRegionShardTraverseActiveRegions;
+import org.broadinstitute.sting.gatk.traversals.ExperimentalReadShardTraverseActiveRegions;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.traversals.TraverseActiveRegions;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -91,6 +93,14 @@ public class LinearMicroScheduler extends MicroScheduler {
         // Special function call to empty out the work queue. Ugly for now but will be cleaned up when we eventually push this functionality more into the engine
         if( traversalEngine instanceof TraverseActiveRegions ) {
             final Object result = ((TraverseActiveRegions) traversalEngine).endTraversal(walker, accumulator.getReduceInit());
+            accumulator.accumulate(null, result); // Assumes only used with StandardAccumulator
+        }
+        else if( traversalEngine instanceof ExperimentalReadShardTraverseActiveRegions ) {
+            final Object result = ((ExperimentalReadShardTraverseActiveRegions) traversalEngine).endTraversal(walker, accumulator.getReduceInit());
+            accumulator.accumulate(null, result); // Assumes only used with StandardAccumulator
+        }
+        else if( traversalEngine instanceof ExperimentalActiveRegionShardTraverseActiveRegions) {
+            final Object result = ((ExperimentalActiveRegionShardTraverseActiveRegions) traversalEngine).endTraversal(walker, accumulator.getReduceInit());
             accumulator.accumulate(null, result); // Assumes only used with StandardAccumulator
         }
                 

@@ -3,10 +3,12 @@ package org.broadinstitute.sting.gatk.traversals;
 import com.google.java.contract.PreconditionError;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.commandline.Tags;
+import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.datasources.reads.*;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegionReadState;
+import org.broadinstitute.sting.utils.activeregion.ExperimentalActiveRegionShardType;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -478,6 +480,9 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
     private List<LocusShardDataProvider> createDataProviders(List<GenomeLoc> intervals, String bamFile) {
         GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
         engine.setGenomeLocParser(genomeLocParser);
+        GATKArgumentCollection arguments = new GATKArgumentCollection();
+        arguments.activeRegionShardType = ExperimentalActiveRegionShardType.LOCUSSHARD;     // make explicit
+        engine.setArguments(arguments);
         t.initialize(engine);
 
         Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();

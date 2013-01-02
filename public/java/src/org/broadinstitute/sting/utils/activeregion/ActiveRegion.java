@@ -30,6 +30,7 @@ public class ActiveRegion implements HasGenomeLocation {
         this.activeRegionLoc = activeRegionLoc;
         this.isActive = isActive;
         this.genomeLocParser = genomeLocParser;
+
         this.extension = extension;
         extendedLoc = genomeLocParser.createGenomeLocOnContig(activeRegionLoc.getContig(), activeRegionLoc.getStart() - extension, activeRegionLoc.getStop() + extension);
         fullExtentReferenceLoc = extendedLoc;
