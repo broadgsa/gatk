@@ -69,12 +69,12 @@ public class RecalibrationReport {
 
     }
 
-    protected RecalibrationReport(final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final GATKReportTable argumentTable, final RecalibrationArgumentCollection RAC) {
+    protected RecalibrationReport(final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, final GATKReportTable argumentTable, final RecalibrationArgumentCollection RAC) {
         this.quantizationInfo = quantizationInfo;
         this.recalibrationTables = recalibrationTables;
+        this.requestedCovariates = requestedCovariates;
         this.argumentTable = argumentTable;
         this.RAC = RAC;
-        this.requestedCovariates = null;
         this.optionalCovariateIndexes = null;
     }
 

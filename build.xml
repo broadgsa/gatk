@@ -111,9 +111,8 @@
 
     <!-- clover parameters -->
     <property name="clover.jar" location="private/resources/clover/lib/clover.jar"/>
-    <property name="clover.instrument.level" location="method"/>
+    <property name="clover.instrument.level" value="method"/>
     <taskdef resource="cloverlib.xml" classpath="${clover.jar}"/>
-
 
     <!-- ******************************************************************************** -->
     <!-- Filesets and paths                                                               -->
@@ -273,19 +272,19 @@
 
         <!-- Comment out the following lines to build the GATK without a network connection, assuming you have all of the libraries cached already -->
 
-<!--         <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}" -->
-<!--              dest="${ivy.jar.dir}/${ivy.jar.file}" -->
-<!--              usetimestamp="true"/> -->
-<!--         <taskdef resource="org/apache/ivy/ant/antlib.xml" -->
-<!--                  uri="antlib:org.apache.ivy.ant" -->
-<!--                  classpath="${ivy.jar.dir}/${ivy.jar.file}"/> -->
+        <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
+             dest="${ivy.jar.dir}/${ivy.jar.file}"
+             usetimestamp="true"/>
+        <taskdef resource="org/apache/ivy/ant/antlib.xml"
+                 uri="antlib:org.apache.ivy.ant"
+                 classpath="${ivy.jar.dir}/${ivy.jar.file}"/>
 
-<!--         <get src="http://repo1.maven.org/maven2/org/apache/maven/maven-ant-tasks/${maven-ant-tasks.install.version}/${maven-ant-tasks.jar.file}" -->
-<!--              dest="${ivy.jar.dir}/${maven-ant-tasks.jar.file}" -->
-<!--              usetimestamp="true"/> -->
-<!--         <taskdef resource="org/apache/maven/artifact/ant/antlib.xml" -->
-<!--                  uri="antlib:antlib:org.apache.maven.artifact.ant" -->
-<!--                  classpath="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"/> -->
+        <get src="http://repo1.maven.org/maven2/org/apache/maven/maven-ant-tasks/${maven-ant-tasks.install.version}/${maven-ant-tasks.jar.file}"
+             dest="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"
+             usetimestamp="true"/>
+        <taskdef resource="org/apache/maven/artifact/ant/antlib.xml"
+                 uri="antlib:antlib:org.apache.maven.artifact.ant"
+                 classpath="${ivy.jar.dir}/${maven-ant-tasks.jar.file}"/>
 
         <!-- End network lines -->
 
@@ -1031,6 +1030,14 @@
         <delete dir="${scaladoc.dir}" />
     </target>
 
+    <target name="-check.clover">
+      <available property="clover.installed" classname="com.cenqua.clover.CloverInstr" />
+    </target>
+
+    <target name="clean.clover" depends="-check.clover" if="clover.installed">
+      <clover-clean/>
+    </target>
+
     <target name="clean.gsalib">
         <!-- Currently not cleaning out the lib during 'ant clean' -->
       <exec executable="R" failonerror="false">
@@ -1038,7 +1045,7 @@
       </exec>
     </target>
 
-    <target name="clean" description="clean up" depends="clean.javadoc,clean.scaladoc,clean.gatkdocs">
+    <target name="clean" description="clean up" depends="clean.javadoc,clean.scaladoc,clean.gatkdocs,clean.clover">
         <delete dir="${build.dir}"/>
         <delete dir="${lib.dir}"/>
         <delete dir="${contract.dump.dir}"/>
@@ -1135,12 +1142,35 @@
 
     <!-- Test targets -->
 
-    <target name="clover.clean">
-      <clover-clean/>
-    </target>
-
     <target name="clover.report">
-      <clover-html-report outdir="clover_html" title="GATK Clover report"/>
+      <clover-report coverageCacheSize="nocache">
+	<current outfile="clover_html" title="GATK clover report" showUniqueCoverage="false" numThreads="4">
+	  <format type="html" filter="catch,static,property"/>
+	  <fileset dir="public">
+	    <patternset id="clover.excludes">
+	      <exclude name="**/*UnitTest.java"/>
+	      <exclude name="**/*TestProvider*.java"/>
+	      <exclude name="**/*PerformanceTest.java"/>
+	      <exclude name="**/*Benchmark.java"/>
+	      <exclude name="**/*LargeScaleTest.java"/>
+	      <exclude name="**/*IntegrationTest.java"/>
+	      <exclude name="**/jna/**/*.java"/>
+	      <exclude name="**/queue/extensions/**/*.java"/>
+	      <exclude name="**/sting/utils/help/*.java"/>
+	      <exclude name="**/sting/tools/*.java"/>
+	      <exclude name="**/datasources/reads/utilities/*.java"/>
+	      <exclude name="**/sting/alignment/**/*.java"/>
+	      <exclude name="**/examples/**/*.java"/>
+	    </patternset>
+	  </fileset>
+	  <fileset dir="private">
+	    <patternset refid="clover.excludes" />
+	  </fileset>
+	  <fileset dir="protected">
+	    <patternset refid="clover.excludes" />
+	  </fileset>
+	</current>
+      </clover-report>
     </target>
 
     <target name="with.clover">
@@ -1148,6 +1178,7 @@
       </clover-setup>
       <property name="compile.scala" value="false" /> <!-- currently doesn't work with scala -->
       <property name="test.maxmemory" value="32g"/>  <!-- clover requires lots of memory -->
+      <echo message="Clover instrument level: ${clover.instrument.level}" />
     </target>
 
     <target name="test.init.compile">
@@ -1247,7 +1278,7 @@
                 <jvmarg value="-Djava.awt.headless=true" />
                 <jvmarg value="-Dpipeline.run=${pipeline.run}" />
                 <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
-<!--                 <jvmarg line="${cofoja.jvm.args}"/> -->
+                <jvmarg line="${cofoja.jvm.args}"/>
                 <jvmarg line="${debug.jvm.args}"/>
 
                 <!-- NOTE: To run tests with debugging, use -Dtest.debug=true -Dtest.debug.port=XXXX on the command line -->

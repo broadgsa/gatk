@@ -284,7 +284,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
     protected boolean abortExecution() {
         final boolean abort = engine.exceedsRuntimeLimit(progressMeter.getRuntimeInNanoseconds(), TimeUnit.NANOSECONDS);
         if ( abort ) {
-            final AutoFormattingTime aft = new AutoFormattingTime(TimeUnit.SECONDS.convert(engine.getRuntimeLimitInNanoseconds(), TimeUnit.NANOSECONDS), 1, 4);
+            final AutoFormattingTime aft = new AutoFormattingTime(engine.getRuntimeLimitInNanoseconds(), -1, 4);
             logger.info("Aborting execution (cleanly) because the runtime has exceeded the requested maximum " + aft);
         }
         return abort;

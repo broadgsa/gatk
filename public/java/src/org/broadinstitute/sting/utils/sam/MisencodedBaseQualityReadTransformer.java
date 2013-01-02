@@ -47,6 +47,8 @@ public class MisencodedBaseQualityReadTransformer extends ReadTransformer {
         final byte[] quals = read.getBaseQualities();
         for ( int i = 0; i < quals.length; i++ ) {
             quals[i] -= encodingFixValue;
+            if ( quals[i] < 0 )
+                throw new UserException.BadInput("while fixing mis-encoded base qualities we encountered a read that was correctly encoded; we cannot handle such a mixture of reads so unfortunately the BAM must be fixed with some other tool");
         }
         read.setBaseQualities(quals);
         return read;
