@@ -113,12 +113,11 @@ import java.util.List;
 @ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class, UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class, FailsVendorQualityCheckFilter.class})
 @PartitionBy(PartitionType.READ)
 public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSchedulable {
+    /**
+     * all the command line arguments for BQSR and it's covariates
+     */
     @ArgumentCollection
-    private final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection(); // all the command line arguments for BQSR and it's covariates
-
-    @Advanced
-    @Argument(fullName = "bqsrBAQGapOpenPenalty", shortName="bqsrBAQGOP", doc="BQSR BAQ gap open penalty (Phred Scaled).  Default value is 40.  30 is perhaps better for whole genome call sets", required = false)
-    public double BAQGOP = BAQ.DEFAULT_GOP;
+    private final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
 
     /**
      * When you have nct > 1, BQSR uses nct times more memory to compute its recalibration tables, for efficiency
@@ -129,9 +128,19 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
     @Argument(fullName = "lowMemoryMode", shortName="lowMemoryMode", doc="Reduce memory usage in multi-threaded code at the expense of threading efficiency", required = false)
     public boolean lowMemoryMode = false;
 
-    private QuantizationInfo quantizationInfo; // an object that keeps track of the information necessary for quality score quantization
+    @Advanced
+    @Argument(fullName = "bqsrBAQGapOpenPenalty", shortName="bqsrBAQGOP", doc="BQSR BAQ gap open penalty (Phred Scaled).  Default value is 40.  30 is perhaps better for whole genome call sets", required = false)
+    public double BAQGOP = BAQ.DEFAULT_GOP;
 
-    private Covariate[] requestedCovariates; // list to hold the all the covariate objects that were requested (required + standard + experimental)
+    /**
+     * an object that keeps track of the information necessary for quality score quantization
+     */
+    private QuantizationInfo quantizationInfo;
+
+    /**
+     * list to hold the all the covariate objects that were requested (required + standard + experimental)
+     */
+    private Covariate[] requestedCovariates;
 
     private RecalibrationEngine recalibrationEngine;
 
@@ -189,30 +198,20 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
             throw new UserException.CouldNotCreateOutputFile(RAC.RECAL_TABLE_FILE, e);
         }
 
-        int numReadGroups = 0;
-        for ( final SAMFileHeader header : getToolkit().getSAMFileHeaders() )
-            numReadGroups += header.getReadGroups().size();
-
-        recalibrationEngine = initializeRecalibrationEngine();
-        recalibrationEngine.initialize(requestedCovariates, numReadGroups, RAC.RECAL_TABLE_UPDATE_LOG);
-        if ( lowMemoryMode )
-            recalibrationEngine.enableLowMemoryMode();
-
+        initializeRecalibrationEngine();
         minimumQToUse = getToolkit().getArguments().PRESERVE_QSCORES_LESS_THAN;
         referenceReader = getToolkit().getReferenceDataSource().getReference();
     }
 
-    private RecalibrationEngine initializeRecalibrationEngine() {
+    /**
+     * Initialize the recalibration engine
+     */
+    private void initializeRecalibrationEngine() {
+        int numReadGroups = 0;
+        for ( final SAMFileHeader header : getToolkit().getSAMFileHeaders() )
+            numReadGroups += header.getReadGroups().size();
 
-        final Class recalibrationEngineClass = GATKLiteUtils.getProtectedClassIfAvailable(RecalibrationEngine.class);
-        try {
-            final Constructor constructor = recalibrationEngineClass.getDeclaredConstructor((Class[])null);
-            constructor.setAccessible(true);
-            return (RecalibrationEngine)constructor.newInstance();
-        }
-        catch (Exception e) {
-            throw new ReviewedStingException("Unable to create RecalibrationEngine class instance " + recalibrationEngineClass.getSimpleName());
-        }
+        recalibrationEngine = new RecalibrationEngine(requestedCovariates, numReadGroups, RAC.RECAL_TABLE_UPDATE_LOG, lowMemoryMode);
     }
 
     private boolean isLowQualityBase( final GATKSAMRecord read, final int offset ) {
