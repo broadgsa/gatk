@@ -45,6 +45,22 @@ public class LocusShardDataProvider extends ShardDataProvider {
     }
 
     /**
+     * Create a data provider based on an input provider
+     * Used only by ExperimentalReadShardTraverseActiveRegions
+     * @param dataProvider
+     * @param sourceInfo
+     * @param genomeLocParser
+     * @param locus
+     * @param locusIterator
+     */
+    public LocusShardDataProvider(ShardDataProvider dataProvider, ReadProperties sourceInfo, GenomeLocParser genomeLocParser, GenomeLoc locus, LocusIterator locusIterator) {
+        super(dataProvider.getShard(),genomeLocParser,dataProvider.getReference(),dataProvider.getReferenceOrderedData());
+        this.sourceInfo = sourceInfo;
+        this.locus = locus;
+        this.locusIterator = locusIterator;
+    }
+
+    /**
      * Returns information about the source of the reads.
      * @return Info about the source of the reads.
      */
