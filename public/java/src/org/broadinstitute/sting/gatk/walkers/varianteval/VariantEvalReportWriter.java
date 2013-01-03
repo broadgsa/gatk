@@ -162,7 +162,7 @@ public class VariantEvalReportWriter {
             // create the table
             final String tableName = ve.getSimpleName();
             final String tableDesc = ve.getClass().getAnnotation(Analysis.class).description();
-            report.addTable(tableName, tableDesc, 1 + stratifiers.size() + (scanner.hasMoltenField() ? 2 : datamap.size()), true, false);
+            report.addTable(tableName, tableDesc, 1 + stratifiers.size() + (scanner.hasMoltenField() ? 2 : datamap.size()), GATKReportTable.TableSortingWay.SORT_BY_ROW);
 
             // grab the table, and add the columns we need to it
             final GATKReportTable table = report.getTable(tableName);

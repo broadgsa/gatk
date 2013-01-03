@@ -124,7 +124,7 @@ public class ErrorRatePerCycle extends LocusWalker<Integer, Integer> {
 
     public void initialize() {
         report = new GATKReport();
-        report.addTable(reportName, reportDescription, 6, true, false);
+        report.addTable(reportName, reportDescription, 6, GATKReportTable.TableSortingWay.SORT_BY_ROW);
         table = report.getTable(reportName);
         table.addColumn("readgroup");
         table.addColumn("cycle");
