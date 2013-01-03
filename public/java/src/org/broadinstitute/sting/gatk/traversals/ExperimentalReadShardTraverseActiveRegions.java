@@ -40,7 +40,7 @@ public class ExperimentalReadShardTraverseActiveRegions <M,T> extends TraversalE
     public T traverse( final ActiveRegionWalker<M,T> walker,
                        final ReadShardDataProvider readDataProvider,
                        T sum) {
-        logger.debug(String.format("TraverseActiveRegion.traverse: Read Shard is %s", readDataProvider));
+        logger.debug(String.format("ExperimentalReadShardTraverseActiveRegions.traverse: Read Shard is %s", readDataProvider));
 
         final int activeRegionExtension = walker.getClass().getAnnotation(ActiveRegionExtension.class).extension();
         final int maxRegionSize = walker.getClass().getAnnotation(ActiveRegionExtension.class).maxRegion();

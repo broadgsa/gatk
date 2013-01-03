@@ -4,6 +4,7 @@ import com.google.java.contract.PreconditionError;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.datasources.providers.ActiveRegionShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
@@ -32,6 +33,7 @@ import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.testng.Assert;
+import org.testng.TestException;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -513,7 +515,15 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
                     providers.add(new ReadShardDataProvider(shard, genomeLocParser, shard.iterator(), reference, new ArrayList<ReferenceOrderedDataSource>()));
                 }
                 break;
-            default: // other types not implemented
+            case ACTIVEREGIONSHARD:
+                activeRegionShardTraverse.initialize(engine);
+                for (Shard shard : dataSource.createShardIteratorOverIntervals(new GenomeLocSortedSet(genomeLocParser, intervals), new ActiveRegionShardBalancer())) {
+                    for (WindowMaker.WindowMakerIterator window : new WindowMaker(shard, genomeLocParser, dataSource.seek(shard), shard.getGenomeLocs())) {
+                        providers.add(new ActiveRegionShardDataProvider(shard, shard.getReadProperties(), genomeLocParser, shard.iterator(), window.getLocus(), window, reference, new ArrayList<ReferenceOrderedDataSource>()));
+                    }
+                }
+                break;
+            default: throw new TestException("Invalid shard type");
         }
 
         return providers;
@@ -527,7 +537,10 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
             case READSHARD:
                 readShardTraverse.traverse(walker, (ReadShardDataProvider) dataProvider, i);
                 break;
-            default: // other types not implemented
+            case ACTIVEREGIONSHARD:
+                activeRegionShardTraverse.traverse(walker, (ActiveRegionShardDataProvider) dataProvider, i);
+                break;
+            default: throw new TestException("Invalid shard type");
         }
     }
 
@@ -539,7 +552,10 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
             case READSHARD:
                 readShardTraverse.endTraversal(walker, i);
                 break;
-            default: // other types not implemented
+            case ACTIVEREGIONSHARD:
+                activeRegionShardTraverse.endTraversal(walker, i);
+                break;
+            default: throw new TestException("Invalid shard type");
         }
     }
 

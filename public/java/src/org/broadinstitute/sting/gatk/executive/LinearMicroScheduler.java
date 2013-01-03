@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.executive;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.datasources.providers.ActiveRegionShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
@@ -73,6 +74,18 @@ public class LinearMicroScheduler extends MicroScheduler {
                         getReadIterator(shard), shard.getGenomeLocs(), SampleUtils.getSAMFileSamples(engine));
                 for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
                     ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),engine.getGenomeLocParser(),iterator.getLocus(),iterator,reference,rods);
+                    Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
+                    accumulator.accumulate(dataProvider,result);
+                    dataProvider.close();
+                    if ( walker.isDone() ) break;
+                }
+                windowMaker.close();
+            }
+            else if(shard.getShardType() == Shard.ShardType.ACTIVEREGION) {
+                WindowMaker windowMaker = new WindowMaker(shard, engine.getGenomeLocParser(),
+                        getReadIterator(shard), shard.getGenomeLocs(), SampleUtils.getSAMFileSamples(engine));
+                for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
+                    ShardDataProvider dataProvider = new ActiveRegionShardDataProvider(shard,iterator.getSourceInfo(),engine.getGenomeLocParser(),getReadIterator(shard),iterator.getLocus(),iterator,reference,rods);
                     Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
                     accumulator.accumulate(dataProvider,result);
                     dataProvider.close();

@@ -588,7 +588,10 @@ public class GenomeAnalysisEngine {
                         else
                             return readsDataSource.createShardIteratorOverIntervals(((ActiveRegionWalker)walker).extendIntervals(intervals, this.genomeLocParser, this.getReferenceDataSource().getReference()), readShardBalancer);
                     case ACTIVEREGIONSHARD:
-                        throw new UserException.CommandLineException("Not implemented.");
+                        if(intervals == null)
+                            return readsDataSource.createShardIteratorOverMappedReads(referenceDataSource.getReference().getSequenceDictionary(),new ActiveRegionShardBalancer());
+                        else
+                            return readsDataSource.createShardIteratorOverIntervals(((ActiveRegionWalker)walker).extendIntervals(intervals, this.genomeLocParser, this.getReferenceDataSource().getReference()), new ActiveRegionShardBalancer());
                     default:
                         throw new UserException.CommandLineException("Invalid active region shard type.");
                 }

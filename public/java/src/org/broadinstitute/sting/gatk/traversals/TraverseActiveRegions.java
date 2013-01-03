@@ -43,7 +43,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
     public T traverse( final ActiveRegionWalker<M,T> walker,
                        final LocusShardDataProvider dataProvider,
                        T sum) {
-        logger.debug(String.format("TraverseActiveRegion.traverse: Shard is %s", dataProvider));
+        logger.debug(String.format("TraverseActiveRegions.traverse: Shard is %s", dataProvider));
 
         final LocusView locusView = new AllLocusView(dataProvider);
 
