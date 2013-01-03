@@ -287,6 +287,11 @@ public final class GenomeLocParser {
         return new GenomeLoc(contig, index, start, stop);
     }
 
+    public GenomeLoc createGenomeLocOnContig(final String contig, final int start, final int stop) {
+        GenomeLoc contigLoc = createOverEntireContig(contig);
+        return new GenomeLoc(contig, getContigIndex(contig), start, stop).intersect(contigLoc);
+    }
+
     /**
      * validate a position or interval on the genome as valid
      *

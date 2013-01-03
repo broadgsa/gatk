@@ -45,7 +45,7 @@ import java.util.*;
  * Test the Active Region Traversal Contract
  * http://iwww.broadinstitute.org/gsa/wiki/index.php/Active_Region_Traversal_Contract
  */
-public class TraverseActiveRegionsTest extends BaseTest {
+public class TraverseActiveRegionsUnitTest extends BaseTest {
 
     private class DummyActiveRegionWalker extends ActiveRegionWalker<Integer, Integer> {
         private final double prob;
@@ -103,7 +103,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
 
     private List<GenomeLoc> intervals;
 
-    private static final String testBAM = "TraverseActiveRegionsTest.bam";
+    private static final String testBAM = "TraverseActiveRegionsUnitTest.bam";
+    private static final String testBAI = "TraverseActiveRegionsUnitTest.bai";
 
     @BeforeClass
     private void init() throws FileNotFoundException {
@@ -117,7 +118,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // TODO: reads which are partially between intervals (in/outside extension)
         // TODO: duplicate reads
 
-        // TODO: should we assign reads which are completely outside intervals but within extension?
+        // TODO: reads which are completely outside intervals but within extension
+        // TODO: test the extension itself
 
 
         intervals = new ArrayList<GenomeLoc>();
@@ -148,6 +150,8 @@ public class TraverseActiveRegionsTest extends BaseTest {
     private void createBAM(List<GATKSAMRecord> reads) {
         File outFile = new File(testBAM);
         outFile.deleteOnExit();
+        File indexFile = new File(testBAI);
+        indexFile.deleteOnExit();
 
         SAMFileWriter out = new SAMFileWriterFactory().makeBAMWriter(reads.get(0).getHeader(), true, outFile);
         for (GATKSAMRecord read : ReadUtils.sortReadsByCoordinate(reads)) {
@@ -235,6 +239,21 @@ public class TraverseActiveRegionsTest extends BaseTest {
         // Contract: All explicit interval boundaries must also be region boundaries
         Assert.assertEquals(intervalStarts.size(), 0, "Interval start location does not match an active region start location");
         Assert.assertEquals(intervalStops.size(), 0, "Interval stop location does not match an active region stop location");
+    }
+
+    @Test
+    public void testActiveRegionExtensionOnContig() {
+        DummyActiveRegionWalker walker = new DummyActiveRegionWalker();
+
+        Collection<ActiveRegion> activeRegions = getActiveRegions(walker, intervals).values();
+        for (ActiveRegion activeRegion : activeRegions) {
+            GenomeLoc loc = activeRegion.getExtendedLoc();
+
+            // Contract: active region extensions must stay on the contig
+            Assert.assertTrue(loc.getStart() > 0, "Active region extension begins at location " + loc.getStart() + ", past the left end of the contig");
+            int refLen = dictionary.getSequence(loc.getContigIndex()).getSequenceLength();
+            Assert.assertTrue(loc.getStop() <= refLen, "Active region extension ends at location " + loc.getStop() + ", past the right end of the contig");
+        }
     }
 
     @Test

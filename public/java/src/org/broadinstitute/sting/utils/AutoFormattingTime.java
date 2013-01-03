@@ -1,32 +1,104 @@
 package org.broadinstitute.sting.utils;
 
+import java.util.concurrent.TimeUnit;
+
 /**
- * Simple utility class that makes it convenient to print unit adjusted times
+ * Conveniently print a time with an automatically determined time unit
+ *
+ * For example, if the amount of time is 10^6 seconds, instead of printing
+ * out 10^6 seconds, prints out 11.57 days instead.
+ *
+ * Dynamically uses time units:
+ *
+ *   - seconds: s
+ *   - minutes: m
+ *   - hours  : h
+ *   - days   : d
+ *   - weeks  : w
+ *
+ * @author depristo
+ * @since 2009
  */
 public class AutoFormattingTime {
+    private static final double NANOSECONDS_PER_SECOND = 1e9;
+
+    /**
+     * Width a la format's %WIDTH.PERCISIONf
+     */
     private final int width; // for format
+
+    /**
+     * Precision a la format's %WIDTH.PERCISIONf
+     */
     private final int precision;      // for format
 
-    double timeInSeconds;           // in Seconds
-    private final String formatString;
+    /**
+     * The elapsed time in nanoseconds
+     */
+    private final long nanoTime;
 
-    public AutoFormattingTime(double timeInSeconds, final int width, int precision) {
+    /**
+     * Create a new autoformatting time with elapsed time nanoTime in nanoseconds
+     * @param nanoTime the elapsed time in nanoseconds
+     * @param width the width >= 0 (a la format's %WIDTH.PERCISIONf) to use to display the format, or -1 if none is required
+     * @param precision the precision to display the time at.  Must be >= 0;
+     */
+    public AutoFormattingTime(final long nanoTime, final int width, int precision) {
+        if ( width < -1 ) throw new IllegalArgumentException("Width " + width + " must be >= -1");
+        if ( precision < 0 ) throw new IllegalArgumentException("Precision " + precision + " must be >= 0");
+
         this.width = width;
-        this.timeInSeconds = timeInSeconds;
+        this.nanoTime = nanoTime;
         this.precision = precision;
-        this.formatString = "%" + width + "." + precision + "f %s";
     }
 
-    public AutoFormattingTime(double timeInSeconds, int precision) {
-        this(timeInSeconds, 6, precision);
+    /**
+     * @see #AutoFormattingTime(long, int, int) but with default width and precision
+     * @param nanoTime
+     */
+    public AutoFormattingTime(final long nanoTime) {
+        this(nanoTime, 6, 1);
     }
 
+    /**
+     * @see #AutoFormattingTime(long, int, int) but with time specificied as a double in seconds
+     */
+    public AutoFormattingTime(final double timeInSeconds, final int width, final int precision) {
+        this(secondsToNano(timeInSeconds), width, precision);
+    }
+
+    /**
+     * @see #AutoFormattingTime(long) but with time specificied as a double in seconds
+     */
     public AutoFormattingTime(double timeInSeconds) {
-        this(timeInSeconds, 1);
+        this(timeInSeconds, 6, 1);
     }
 
+    /**
+     * Precomputed format string suitable for string.format with the required width and precision
+     */
+    private String getFormatString() {
+        final StringBuilder b = new StringBuilder("%");
+        if ( width != -1 )
+            b.append(width);
+        b.append(".").append(precision).append("f %s");
+        return b.toString();
+    }
+
+    /**
+     * Get the time associated with this object in nanoseconds
+     * @return the time in nanoseconds
+     */
+    public long getTimeInNanoSeconds() {
+        return nanoTime;
+    }
+
+    /**
+     * Get the time associated with this object in seconds, as a double
+     * @return time in seconds as a double
+     */
     public double getTimeInSeconds() {
-        return timeInSeconds;
+        return TimeUnit.NANOSECONDS.toSeconds(getTimeInNanoSeconds());
     }
 
     /**
@@ -44,15 +116,16 @@ public class AutoFormattingTime {
     }
 
     /**
-     * Instead of 10000 s, returns 2.8 hours
-     * @return
+     * Get a string representation of this time, automatically converting the time
+     * to a human readable unit with width and precision provided during construction
+     * @return a non-null string
      */
     public String toString() {
-        double unitTime = timeInSeconds;
+        double unitTime = getTimeInSeconds();
         String unit = "s";
 
-        if ( timeInSeconds > 120 ) {
-            unitTime = timeInSeconds / 60; // minutes
+        if ( unitTime > 120 ) {
+            unitTime /= 60; // minutes
             unit = "m";
 
             if ( unitTime > 120 ) {
@@ -64,13 +137,24 @@ public class AutoFormattingTime {
                     unit = "d";
 
                     if ( unitTime > 20 ) {
-                        unitTime /= 7; // days
+                        unitTime /= 7; // weeks
                         unit = "w";
                     }
                 }
             }
         }
 
-        return String.format(formatString, unitTime, unit);
+        return String.format(getFormatString(), unitTime, unit);
     }
+
+
+    /**
+     * Convert a time in seconds as a double into nanoseconds as a long
+     * @param timeInSeconds an elapsed time in seconds, as a double
+     * @return an equivalent value in nanoseconds as a long
+     */
+    private static long secondsToNano(final double timeInSeconds) {
+        return (long)(NANOSECONDS_PER_SECOND * timeInSeconds);
+    }
+
 }

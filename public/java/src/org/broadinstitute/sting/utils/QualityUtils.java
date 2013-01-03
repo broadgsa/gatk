@@ -14,7 +14,8 @@ public class QualityUtils {
     public final static double ERROR_RATE_OF_MAX_QUAL_SCORE = qualToErrorProbRaw(MAX_QUAL_SCORE);
 
     public final static double MIN_REASONABLE_ERROR = 0.0001;
-    public final static byte MAX_REASONABLE_Q_SCORE = 60;  // quals above this value are extremely suspicious
+    public final static byte MAX_REASONABLE_Q_SCORE = 60;  // bams containing quals above this value are extremely suspicious and we should warn the user
+    public final static byte MAX_GATK_USABLE_Q_SCORE = 40; // quals above this value should be capped down to this value (because they are too high)
     public final static byte MIN_USABLE_Q_SCORE = 6;
     public final static int MAPPING_QUALITY_UNAVAILABLE = 255;
 
@@ -73,7 +74,7 @@ public class QualityUtils {
     }
 
     public static double qualToErrorProb(final double qual) {
-        return Math.pow(10.0, ((double) qual)/-10.0);
+        return Math.pow(10.0, qual/-10.0);
     }
 
 

@@ -76,7 +76,7 @@ public class BaseRecalibration {
         quantizationInfo = recalibrationReport.getQuantizationInfo();
         if (quantizationLevels == 0) // quantizationLevels == 0 means no quantization, preserve the quality scores
             quantizationInfo.noQuantization();
-        else if (quantizationLevels > 0 && quantizationLevels != quantizationInfo.getQuantizationLevels()) // any other positive value means, we want a different quantization than the one pre-calculated in the recalibration report. Negative values mean the user did not provide a quantization argument, and just wnats to use what's in the report.
+        else if (quantizationLevels > 0 && quantizationLevels != quantizationInfo.getQuantizationLevels()) // any other positive value means, we want a different quantization than the one pre-calculated in the recalibration report. Negative values mean the user did not provide a quantization argument, and just wants to use what's in the report.
             quantizationInfo.quantizeQualityScores(quantizationLevels);
 
         this.disableIndelQuals = disableIndelQuals;
@@ -233,9 +233,9 @@ public class BaseRecalibration {
      * Note that this calculation is a constant for each rgKey and errorModel.  We need only
      * compute this value once for all data.
      *
-     * @param rgKey
-     * @param errorModel
-     * @return
+     * @param rgKey        read group key
+     * @param errorModel   the event type
+     * @return global delta Q
      */
     private double calculateGlobalDeltaQ(final int rgKey, final EventType errorModel) {
         double result = 0.0;

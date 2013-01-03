@@ -28,9 +28,10 @@ package org.broadinstitute.sting.utils.recalibration;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
+import org.apache.commons.math.optimization.fitting.GaussianFunction;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 
-import java.util.Random;
 
 /**
  * An individual piece of recalibration data. Each bin counts up the number of observations and the number
@@ -149,7 +150,7 @@ public class RecalDatum {
     //---------------------------------------------------------------------------------------------------------------
 
     /**
-     * Returns the error rate (in real space) of this interval, or 0 if there are no obserations
+     * Returns the error rate (in real space) of this interval, or 0 if there are no observations
      * @return the empirical error rate ~= N errors / N obs
      */
     @Ensures("result >= 0.0")
@@ -262,6 +263,9 @@ public class RecalDatum {
     @Requires("empiricalQuality == UNINITIALIZED")
     @Ensures("empiricalQuality != UNINITIALIZED")
     private synchronized void calcEmpiricalQuality() {
+
+        // TODO -- add code for Bayesian estimate of Qemp here
+
         final double empiricalQual = -10 * Math.log10(getEmpiricalErrorRate());
         empiricalQuality = Math.min(empiricalQual, (double) QualityUtils.MAX_RECALIBRATED_Q_SCORE);
     }
@@ -275,5 +279,66 @@ public class RecalDatum {
     @Ensures("result >= 0.0")
     private double calcExpectedErrors() {
         return getNumObservations() * QualityUtils.qualToErrorProb(estimatedQReported);
+    }
+
+    static final boolean DEBUG = false;
+    static final double RESOLUTION_BINS_PER_QUAL = 1.0;
+
+    static public double bayesianEstimateOfEmpiricalQuality(final double nObservations, final double nErrors, final double QReported) {
+
+        final int numBins = (QualityUtils.MAX_REASONABLE_Q_SCORE + 1) * (int)RESOLUTION_BINS_PER_QUAL;
+
+        final double[] log10Posteriors = new double[numBins];
+
+        for ( int bin = 0; bin < numBins; bin++ ) {
+
+            final double QEmpOfBin = bin / RESOLUTION_BINS_PER_QUAL;
+
+            log10Posteriors[bin] = log10QempPrior(QEmpOfBin, QReported) + log10Likelihood(QEmpOfBin, nObservations, nErrors);
+
+            if ( DEBUG )
+                System.out.println(String.format("bin = %d, Qreported = %f, nObservations = %f, nErrors = %f, posteriors = %f", bin, QReported, nObservations, nErrors, log10Posteriors[bin]));
+        }
+
+        if ( DEBUG )
+            System.out.println(String.format("Qreported = %f, nObservations = %f, nErrors = %f", QReported, nObservations, nErrors));
+
+        final double[] normalizedPosteriors = MathUtils.normalizeFromLog10(log10Posteriors);
+        final int MLEbin = MathUtils.maxElementIndex(normalizedPosteriors);
+
+        final double Qemp = MLEbin / RESOLUTION_BINS_PER_QUAL;
+        return Qemp;
+    }
+
+    static final double[] log10QempPriorCache = new double[QualityUtils.MAX_GATK_USABLE_Q_SCORE + 1];
+    static {
+        // f(x) = a + b*exp(-((x - c)^2 / (2*d^2)))
+        // Note that b is the height of the curve's peak, c is the position of the center of the peak, and d controls the width of the "bell".
+        final double GF_a = 0.0;
+        final double GF_b = 0.9;
+        final double GF_c = 0.0;
+        final double GF_d = 0.5;
+
+        final GaussianFunction gaussian = new GaussianFunction(GF_a, GF_b, GF_c, GF_d);
+        for ( int i = 0; i <= QualityUtils.MAX_GATK_USABLE_Q_SCORE; i++ )
+            log10QempPriorCache[i] = Math.log10(gaussian.value((double) i));
+    }
+
+    static public double log10QempPrior(final double Qempirical, final double Qreported) {
+        final int difference = Math.min(Math.abs((int) (Qempirical - Qreported)), QualityUtils.MAX_GATK_USABLE_Q_SCORE);
+        if ( DEBUG )
+            System.out.println(String.format("Qemp = %f, log10Priors = %f", Qempirical, log10QempPriorCache[difference]));
+        return log10QempPriorCache[difference];
+    }
+
+    static public double log10Likelihood(final double Qempirical, final double nObservations, final double nErrors) {
+        // this is just a straight binomial PDF
+        double log10Prob = MathUtils.log10BinomialProbability((int)nObservations, (int)nErrors, QualityUtils.qualToErrorProbLog10((byte)(int)Qempirical));
+        if ( log10Prob == Double.NEGATIVE_INFINITY )
+            log10Prob = -Double.MAX_VALUE;
+
+        if ( DEBUG )
+            System.out.println(String.format("Qemp = %f, log10Likelihood = %f", Qempirical, log10Prob));
+        return log10Prob;
     }
 }
