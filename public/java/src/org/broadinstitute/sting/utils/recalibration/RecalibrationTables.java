@@ -123,12 +123,16 @@ public final class RecalibrationTables {
     }
 
     /**
-     * Merge in the quality score table information from qualityScoreTable into this
-     * recalibration table's quality score table.
-     *
-     * @param qualityScoreTable the quality score table we want to merge in
+     * Merge all of the tables from toMerge into into this set of tables
      */
-    public void combineQualityScoreTable(final NestedIntegerArray<RecalDatum> qualityScoreTable) {
-        RecalUtils.combineTables(getQualityScoreTable(), qualityScoreTable);
+    public void combine(final RecalibrationTables toMerge) {
+        if ( numTables() != toMerge.numTables() )
+            throw new IllegalArgumentException("Attempting to merge RecalibrationTables with different sizes");
+
+        for ( int i = 0; i < numTables(); i++ ) {
+            final NestedIntegerArray<RecalDatum> myTable = this.getTable(i);
+            final NestedIntegerArray<RecalDatum> otherTable = toMerge.getTable(i);
+            RecalUtils.combineTables(myTable, otherTable);
+        }
     }
 }

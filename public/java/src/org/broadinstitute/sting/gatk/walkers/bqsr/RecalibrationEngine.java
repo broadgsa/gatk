@@ -5,6 +5,8 @@ import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
 import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+import java.io.PrintStream;
+
 /*
 * Copyright (c) 2009 The Broad Institute
 *
@@ -40,9 +42,10 @@ public interface RecalibrationEngine {
      * The engine should collect match and mismatch data into the recalibrationTables data.
      *
      * @param covariates an array of the covariates we'll be using in this engine, order matters
-     * @param recalibrationTables the destination recalibrationTables where stats should be collected
+     * @param numReadGroups the number of read groups we should use for the recalibration tables
+     * @param maybeLogStream an optional print stream for logging calls to the nestedhashmap in the recalibration tables
      */
-    public void initialize(final Covariate[] covariates, final RecalibrationTables recalibrationTables);
+    public void initialize(final Covariate[] covariates, final int numReadGroups, final PrintStream maybeLogStream);
 
     /**
      * Update the recalibration statistics using the information in recalInfo
@@ -57,4 +60,8 @@ public interface RecalibrationEngine {
      * Called once after all calls to updateDataForRead have been issued.
      */
     public void finalizeData();
+
+    public void enableLowMemoryMode();
+
+    public RecalibrationTables getFinalRecalibrationTables();
 }

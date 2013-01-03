@@ -25,26 +25,64 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import com.google.java.contract.Requires;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.classloader.PublicPackageSource;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
-import org.broadinstitute.sting.utils.recalibration.EventType;
-import org.broadinstitute.sting.utils.recalibration.ReadCovariates;
-import org.broadinstitute.sting.utils.recalibration.RecalDatum;
-import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
+import org.broadinstitute.sting.utils.recalibration.*;
 import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+import java.io.PrintStream;
+import java.util.LinkedList;
+import java.util.List;
+
 public class StandardRecalibrationEngine implements RecalibrationEngine, PublicPackageSource {
+    private static final Logger logger = Logger.getLogger(StandardRecalibrationEngine.class);
     protected Covariate[] covariates;
-    protected RecalibrationTables recalibrationTables;
+    private int numReadGroups;
+    private PrintStream maybeLogStream;
+    private boolean lowMemoryMode = false;
+
+    private boolean finalized = false;
+    private RecalibrationTables mergedRecalibrationTables = null;
+
+    private final List<RecalibrationTables> recalibrationTablesList = new LinkedList<RecalibrationTables>();
+
+    private final ThreadLocal<RecalibrationTables> threadLocalTables = new ThreadLocal<RecalibrationTables>() {
+        private synchronized RecalibrationTables makeAndCaptureTable() {
+            logger.info("Creating RecalibrationTable for " + Thread.currentThread());
+            final RecalibrationTables newTable = new RecalibrationTables(covariates, numReadGroups, maybeLogStream);
+            recalibrationTablesList.add(newTable);
+            return newTable;
+        }
+
+        @Override
+        protected synchronized RecalibrationTables initialValue() {
+            if ( lowMemoryMode ) {
+                return recalibrationTablesList.isEmpty() ? makeAndCaptureTable() : recalibrationTablesList.get(0);
+            } else {
+                return makeAndCaptureTable();
+            }
+        }
+    };
+
+    protected RecalibrationTables getRecalibrationTables() {
+        return threadLocalTables.get();
+    }
+
+    public void enableLowMemoryMode() {
+        this.lowMemoryMode = true;
+    }
 
     @Override
-    public void initialize(final Covariate[] covariates, final RecalibrationTables recalibrationTables) {
+    public void initialize(final Covariate[] covariates, final int numReadGroups, final PrintStream maybeLogStream) {
         if ( covariates == null ) throw new IllegalArgumentException("Covariates cannot be null");
-        if ( recalibrationTables == null ) throw new IllegalArgumentException("recalibrationTables cannot be null");
+        if ( numReadGroups < 1 ) throw new IllegalArgumentException("numReadGroups must be >= 1 but got " + numReadGroups);
 
         this.covariates = covariates.clone();
-        this.recalibrationTables = recalibrationTables;
+        this.numReadGroups = numReadGroups;
+        this.maybeLogStream = maybeLogStream;
     }
 
     @Override
@@ -59,13 +97,13 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
                 final double isError = recalInfo.getErrorFraction(eventType, offset);
                 final int[] keys = readCovariates.getKeySet(offset, eventType);
 
-                incrementDatumOrPutIfNecessary(recalibrationTables.getQualityScoreTable(), qual, isError, keys[0], keys[1], eventType.index);
+                incrementDatumOrPutIfNecessary(getRecalibrationTables().getQualityScoreTable(), qual, isError, keys[0], keys[1], eventType.index);
 
                 for (int i = 2; i < covariates.length; i++) {
                     if (keys[i] < 0)
                         continue;
 
-                    incrementDatumOrPutIfNecessary(recalibrationTables.getTable(i), qual, isError, keys[0], keys[1], keys[i], eventType.index);
+                    incrementDatumOrPutIfNecessary(getRecalibrationTables().getTable(i), qual, isError, keys[0], keys[1], keys[i], eventType.index);
                 }
             }
         }
@@ -90,8 +128,13 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
      */
     @Override
     public void finalizeData() {
-        final NestedIntegerArray<RecalDatum> byReadGroupTable = recalibrationTables.getReadGroupTable();
-        final NestedIntegerArray<RecalDatum> byQualTable = recalibrationTables.getQualityScoreTable();
+        if ( finalized ) throw new IllegalStateException("FinalizeData() has already been called");
+
+        // merge all of the thread-local tables
+        mergedRecalibrationTables = mergeThreadLocalRecalibrationTables();
+
+        final NestedIntegerArray<RecalDatum> byReadGroupTable = mergedRecalibrationTables.getReadGroupTable();
+        final NestedIntegerArray<RecalDatum> byQualTable = mergedRecalibrationTables.getQualityScoreTable();
 
         // iterate over all values in the qual table
         for ( NestedIntegerArray.Leaf<RecalDatum> leaf : byQualTable.getAllLeaves() ) {
@@ -108,6 +151,38 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
                 rgDatum.combine(qualDatum);
             }
         }
+
+        finalized = true;
+    }
+
+    /**
+     * Merge all of the thread local recalibration tables into a single one.
+     *
+     * Reuses one of the recalibration tables to hold the merged table, so this function can only be
+     * called once in the engine.
+     *
+     * @return the merged recalibration table
+     */
+    @Requires("! finalized")
+    private RecalibrationTables mergeThreadLocalRecalibrationTables() {
+        if ( recalibrationTablesList.isEmpty() ) throw new IllegalStateException("recalibration tables list is empty");
+
+        RecalibrationTables merged = null;
+        for ( final RecalibrationTables table : recalibrationTablesList ) {
+            if ( merged == null )
+                // fast path -- if there's only only one table, so just make it the merged one
+                merged = table;
+            else {
+                merged.combine(table);
+            }
+        }
+
+        return merged;
+    }
+
+    public RecalibrationTables getFinalRecalibrationTables() {
+        if ( ! finalized ) throw new IllegalStateException("Cannot get final recalibration tables until finalizeData() has been called");
+        return mergedRecalibrationTables;
     }
 
     /**
