@@ -103,9 +103,10 @@ public class PairHMMIndelErrorModel {
             case CACHING:
             case LOGLESS_CACHING:
                 pairHMM = new LoglessCachingPairHMM();
+                System.err.println("warning: this option (LOGLESS_CACHING in UG) is still under development");
                 break;
             default:
-                throw new UserException.BadArgumentValue("pairHMM", "Specified pairHMM implementation is unrecognized or incompatible with the UnifiedGenotyper. Acceptable options are ORIGINAL and EXACT.");
+                throw new UserException.BadArgumentValue("pairHMM", "Specified pairHMM implementation is unrecognized or incompatible with the UnifiedGenotyper. Acceptable options are ORIGINAL, EXACT or LOGLESS_CACHING (the third option is still under development).");
         }
 
         // fill gap penalty table, affine naive model:
