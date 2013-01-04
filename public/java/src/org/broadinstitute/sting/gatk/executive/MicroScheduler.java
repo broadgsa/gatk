@@ -41,6 +41,7 @@ import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.AutoFormattingTime;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.activeregion.ExperimentalActiveRegionShardType;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
@@ -245,7 +246,12 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         } else if (walker instanceof ReadPairWalker) {
             return new TraverseReadPairs();
         } else if (walker instanceof ActiveRegionWalker) {
-            return new TraverseActiveRegions();
+            switch (engine.getArguments().activeRegionShardType) {
+                case LOCUSSHARD: return new TraverseActiveRegions();
+                case READSHARD: return new ExperimentalReadShardTraverseActiveRegions();
+                case ACTIVEREGIONSHARD: return new ExperimentalActiveRegionShardTraverseActiveRegions();
+                default: throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type of ActiveRegionWalker.");
+            }
         } else {
             throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
         }

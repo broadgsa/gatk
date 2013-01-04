@@ -133,7 +133,7 @@ public class RecalibrationReport {
             tempCOVarray[2] = requestedCovariates[RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + covIndex].keyFromValue(covValue);
 
             final EventType event = EventType.eventFrom((String)reportTable.get(i, RecalUtils.EVENT_TYPE_COLUMN_NAME));
-            tempCOVarray[3] = event.index;
+            tempCOVarray[3] = event.ordinal();
 
             recalibrationTables.getTable(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + covIndex).put(getRecalDatum(reportTable, i, false), tempCOVarray);
         }
@@ -152,7 +152,7 @@ public class RecalibrationReport {
             final Object qual = reportTable.get(i, RecalUtils.QUALITY_SCORE_COLUMN_NAME);
             tempQUALarray[1] = requestedCovariates[1].keyFromValue(qual);
             final EventType event = EventType.eventFrom((String)reportTable.get(i, RecalUtils.EVENT_TYPE_COLUMN_NAME));
-            tempQUALarray[2] = event.index;
+            tempQUALarray[2] = event.ordinal();
 
             qualTable.put(getRecalDatum(reportTable, i, false), tempQUALarray);
         }
@@ -169,7 +169,7 @@ public class RecalibrationReport {
             final Object rg = reportTable.get(i, RecalUtils.READGROUP_COLUMN_NAME);
             tempRGarray[0] = requestedCovariates[0].keyFromValue(rg);
             final EventType event = EventType.eventFrom((String)reportTable.get(i, RecalUtils.EVENT_TYPE_COLUMN_NAME));
-            tempRGarray[1] = event.index;
+            tempRGarray[1] = event.ordinal();
 
             rgTable.put(getRecalDatum(reportTable, i, true), tempRGarray);
         }

@@ -65,7 +65,8 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
             @Override
             public void progress(MapData lastProcessedMap) {
                 if ( lastProcessedMap.refContext != null )
-                    printProgress(lastProcessedMap.refContext.getLocus());
+                    // note, need to use getStopLocation so we don't give an interval to ProgressMeterDaemon
+                    printProgress(lastProcessedMap.refContext.getLocus().getStopLocation());
             }
         });
     }
