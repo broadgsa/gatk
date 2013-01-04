@@ -40,9 +40,7 @@ import java.util.Map;
  */
 public abstract class Shard implements HasGenomeLocation {
     public enum ShardType {
-        READ,
-        LOCUS,
-        ACTIVEREGION        // Used only by ExperimentalActiveRegionShardTraverseActiveRegions
+        READ, LOCUS
     }
 
     protected final GenomeLocParser parser; // incredibly annoying!
