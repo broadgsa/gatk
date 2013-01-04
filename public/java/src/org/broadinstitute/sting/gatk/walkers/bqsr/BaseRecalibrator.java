@@ -113,24 +113,38 @@ import java.util.List;
 @ReadFilters({MappingQualityZeroFilter.class, MappingQualityUnavailableFilter.class, UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class, FailsVendorQualityCheckFilter.class})
 @PartitionBy(PartitionType.READ)
 public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSchedulable {
+    /**
+     * all the command line arguments for BQSR and it's covariates
+     */
     @ArgumentCollection
-    private final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection(); // all the command line arguments for BQSR and it's covariates
+    private final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
+
+    /**
+     * When you have nct > 1, BQSR uses nct times more memory to compute its recalibration tables, for efficiency
+     * purposes.  If you have many covariates, and therefore are using a lot of memory, you can use this flag
+     * to safely access only one table.  There may be some CPU cost, but as long as the table is really big
+     * there should be relatively little CPU costs.
+     */
+    @Argument(fullName = "lowMemoryMode", shortName="lowMemoryMode", doc="Reduce memory usage in multi-threaded code at the expense of threading efficiency", required = false)
+    public boolean lowMemoryMode = false;
 
     @Advanced
     @Argument(fullName = "bqsrBAQGapOpenPenalty", shortName="bqsrBAQGOP", doc="BQSR BAQ gap open penalty (Phred Scaled).  Default value is 40.  30 is perhaps better for whole genome call sets", required = false)
     public double BAQGOP = BAQ.DEFAULT_GOP;
 
-    private QuantizationInfo quantizationInfo; // an object that keeps track of the information necessary for quality score quantization
+    /**
+     * an object that keeps track of the information necessary for quality score quantization
+     */
+    private QuantizationInfo quantizationInfo;
 
-    private RecalibrationTables recalibrationTables;
-
-    private Covariate[] requestedCovariates; // list to hold the all the covariate objects that were requested (required + standard + experimental)
+    /**
+     * list to hold the all the covariate objects that were requested (required + standard + experimental)
+     */
+    private Covariate[] requestedCovariates;
 
     private RecalibrationEngine recalibrationEngine;
 
     private int minimumQToUse;
-
-    protected static final String COVARS_ATTRIBUTE = "COVARS"; // used to store covariates array as a temporary attribute inside GATKSAMRecord.\
 
     private static final String NO_DBSNP_EXCEPTION = "This calculation is critically dependent on being able to skip over known variant sites. Please provide a VCF file containing known sites of genetic variation.";
 
@@ -143,7 +157,6 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
      * Based on the covariates' estimates for initial capacity allocate the data hashmap
      */
     public void initialize() {
-
         baq = new BAQ(BAQGOP); // setup the BAQ object with the provided gap open penalty
 
         // check for unsupported access
@@ -185,29 +198,20 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
             throw new UserException.CouldNotCreateOutputFile(RAC.RECAL_TABLE_FILE, e);
         }
 
-        int numReadGroups = 0;
-        for ( final SAMFileHeader header : getToolkit().getSAMFileHeaders() )
-            numReadGroups += header.getReadGroups().size();
-        recalibrationTables = new RecalibrationTables(requestedCovariates, numReadGroups, RAC.RECAL_TABLE_UPDATE_LOG);
-
-        recalibrationEngine = initializeRecalibrationEngine();
-        recalibrationEngine.initialize(requestedCovariates, recalibrationTables);
-
+        initializeRecalibrationEngine();
         minimumQToUse = getToolkit().getArguments().PRESERVE_QSCORES_LESS_THAN;
         referenceReader = getToolkit().getReferenceDataSource().getReference();
     }
 
-    private RecalibrationEngine initializeRecalibrationEngine() {
+    /**
+     * Initialize the recalibration engine
+     */
+    private void initializeRecalibrationEngine() {
+        int numReadGroups = 0;
+        for ( final SAMFileHeader header : getToolkit().getSAMFileHeaders() )
+            numReadGroups += header.getReadGroups().size();
 
-        final Class recalibrationEngineClass = GATKLiteUtils.getProtectedClassIfAvailable(RecalibrationEngine.class);
-        try {
-            final Constructor constructor = recalibrationEngineClass.getDeclaredConstructor((Class[])null);
-            constructor.setAccessible(true);
-            return (RecalibrationEngine)constructor.newInstance();
-        }
-        catch (Exception e) {
-            throw new ReviewedStingException("Unable to create RecalibrationEngine class instance " + recalibrationEngineClass.getSimpleName());
-        }
+        recalibrationEngine = new RecalibrationEngine(requestedCovariates, numReadGroups, RAC.RECAL_TABLE_UPDATE_LOG, lowMemoryMode);
     }
 
     private boolean isLowQualityBase( final GATKSAMRecord read, final int offset ) {
@@ -501,14 +505,18 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
         logger.info("Processed: " + result + " reads");
     }
 
+    private RecalibrationTables getRecalibrationTable() {
+        return recalibrationEngine.getFinalRecalibrationTables();
+    }
+
     private void generatePlots() {
         File recalFile = getToolkit().getArguments().BQSR_RECAL_FILE;
         if (recalFile != null) {
             RecalibrationReport report = new RecalibrationReport(recalFile);
-            RecalUtils.generateRecalibrationPlot(RAC, report.getRecalibrationTables(), recalibrationTables, requestedCovariates);
+            RecalUtils.generateRecalibrationPlot(RAC, report.getRecalibrationTables(), getRecalibrationTable(), requestedCovariates);
         }
         else
-            RecalUtils.generateRecalibrationPlot(RAC, recalibrationTables, requestedCovariates);
+            RecalUtils.generateRecalibrationPlot(RAC, getRecalibrationTable(), requestedCovariates);
     }
 
     /**
@@ -517,10 +525,10 @@ public class BaseRecalibrator extends ReadWalker<Long, Long> implements NanoSche
      * generate a quantization map (recalibrated_qual -> quantized_qual)
      */
     private void quantizeQualityScores() {
-        quantizationInfo = new QuantizationInfo(recalibrationTables, RAC.QUANTIZING_LEVELS);
+        quantizationInfo = new QuantizationInfo(getRecalibrationTable(), RAC.QUANTIZING_LEVELS);
     }
 
     private void generateReport() {
-        RecalUtils.outputRecalibrationReport(RAC, quantizationInfo, recalibrationTables, requestedCovariates, RAC.SORT_BY_ALL_COLUMNS);
+        RecalUtils.outputRecalibrationReport(RAC, quantizationInfo, getRecalibrationTable(), requestedCovariates, RAC.SORT_BY_ALL_COLUMNS);
     }
 }
