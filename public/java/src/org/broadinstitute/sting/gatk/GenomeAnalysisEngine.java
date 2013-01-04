@@ -570,32 +570,11 @@ public class GenomeAnalysisEngine {
             else if(walker instanceof ActiveRegionWalker) {
                 if (readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
                     throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Active region walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
-
-                switch(argCollection.activeRegionShardType) {
-                    case LOCUSSHARD:
-                        if(intervals == null)
-                            return readsDataSource.createShardIteratorOverMappedReads(referenceDataSource.getReference().getSequenceDictionary(),new LocusShardBalancer());
-                        else
-                            return readsDataSource.createShardIteratorOverIntervals(((ActiveRegionWalker)walker).extendIntervals(intervals, this.genomeLocParser, this.getReferenceDataSource().getReference()), new LocusShardBalancer());
-                    case READSHARD:
-                        // Use the legacy ReadShardBalancer if legacy downsampling is enabled
-                        ShardBalancer readShardBalancer = downsamplingMethod != null && downsamplingMethod.useLegacyDownsampler ?
-                                new LegacyReadShardBalancer() :
-                                new ReadShardBalancer();
-
-                        if(intervals == null)
-                            return readsDataSource.createShardIteratorOverMappedReads(referenceDataSource.getReference().getSequenceDictionary(), readShardBalancer);
-                        else
-                            return readsDataSource.createShardIteratorOverIntervals(((ActiveRegionWalker)walker).extendIntervals(intervals, this.genomeLocParser, this.getReferenceDataSource().getReference()), readShardBalancer);
-                    case ACTIVEREGIONSHARD:
-                        if(intervals == null)
-                            return readsDataSource.createShardIteratorOverMappedReads(referenceDataSource.getReference().getSequenceDictionary(),new ActiveRegionShardBalancer());
-                        else
-                            return readsDataSource.createShardIteratorOverIntervals(((ActiveRegionWalker)walker).extendIntervals(intervals, this.genomeLocParser, this.getReferenceDataSource().getReference()), new ActiveRegionShardBalancer());
-                    default:
-                        throw new UserException.CommandLineException("Invalid active region shard type.");
-                }
-            }
+                if(intervals == null)
+                    return readsDataSource.createShardIteratorOverMappedReads(referenceDataSource.getReference().getSequenceDictionary(),new LocusShardBalancer());
+                else
+                    return readsDataSource.createShardIteratorOverIntervals(((ActiveRegionWalker)walker).extendIntervals(intervals, this.genomeLocParser, this.getReferenceDataSource().getReference()), new LocusShardBalancer());
+            } 
             else if(walker instanceof ReadWalker || walker instanceof ReadPairWalker || walker instanceof DuplicateWalker) {
                 // Apply special validation to read pair walkers.
                 if(walker instanceof ReadPairWalker) {
