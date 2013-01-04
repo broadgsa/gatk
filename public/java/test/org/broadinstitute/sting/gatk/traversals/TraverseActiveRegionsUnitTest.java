@@ -126,10 +126,10 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         // TODO: reads which span many regions
         // TODO: reads which are partially between intervals (in/outside extension)
         // TODO: duplicate reads
-
+        // TODO: read at the end of a contig
         // TODO: reads which are completely outside intervals but within extension
         // TODO: test the extension itself
-
+        // TODO: unmapped reads
 
         intervals = new ArrayList<GenomeLoc>();
         intervals.add(genomeLocParser.createGenomeLoc("1", 10, 20));
