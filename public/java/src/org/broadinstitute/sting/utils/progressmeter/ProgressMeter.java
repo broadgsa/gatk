@@ -234,11 +234,13 @@ public class ProgressMeter {
      * the progress itself.  A separate printing daemon periodically polls the meter to print out
      * progress
      *
-     * @param loc       Current location, can be null if you are at the end of the processing unit
+     * @param loc Current location, can be null if you are at the end of the processing unit.  Must
+     *            have size == 1 (cannot be multiple bases in size).
      * @param nTotalRecordsProcessed the total number of records we've processed
      */
     public synchronized void notifyOfProgress(final GenomeLoc loc, final long nTotalRecordsProcessed) {
         if ( nTotalRecordsProcessed < 0 ) throw new IllegalArgumentException("nTotalRecordsProcessed must be >= 0");
+        if ( loc.size() != 1 ) throw new IllegalArgumentException("GenomeLoc must have size == 1 but got " + loc);
 
         // weird comparison to ensure that loc == null (in unmapped reads) is keep before maxGenomeLoc == null (on startup)
         this.maxGenomeLoc = loc == null ? loc : (maxGenomeLoc == null ? loc : loc.max(maxGenomeLoc));
