@@ -105,7 +105,7 @@ public class GATKReportUnitTest extends BaseTest {
 
     private boolean isSorted(GATKReportTable table) {
         boolean result = true;
-        File testingSortingTableFile = new File("myFile.txt");
+        File testingSortingTableFile = new File("testSortingFile.txt");
 
         try {
             // Connect print stream to the output stream
