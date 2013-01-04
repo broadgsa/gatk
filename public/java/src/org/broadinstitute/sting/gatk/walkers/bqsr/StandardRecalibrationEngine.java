@@ -79,7 +79,7 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
      * @return a new RecalDatum object with the observation and the error
      */
     protected RecalDatum createDatumObject(final byte reportedQual, final double isError) {
-        return new RecalDatum(1, isError, reportedQual);
+        return new RecalDatum(1L, isError, reportedQual);
     }
 
     /**
@@ -133,12 +133,12 @@ public class StandardRecalibrationEngine implements RecalibrationEngine, PublicP
             if ( ! table.put(createDatumObject(qual, isError), keys) ) {
                 // Failed to put a new item because another thread came along and put an item here first.
                 // Get the newly-put item and increment it (item is guaranteed to exist at this point)
-                table.get(keys).increment(1.0, isError);
+                table.get(keys).increment(1, isError);
             }
         }
         else {
             // Easy case: already an item here, so increment it
-            existingDatum.increment(1.0, isError);
+            existingDatum.increment(1, isError);
         }
     }
 }

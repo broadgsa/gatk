@@ -93,7 +93,7 @@ public class RecalUtils {
     private static final Pair<String, String> eventType          = new Pair<String, String>(RecalUtils.EVENT_TYPE_COLUMN_NAME, "%s");
     private static final Pair<String, String> empiricalQuality   = new Pair<String, String>(RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME, "%.4f");
     private static final Pair<String, String> estimatedQReported = new Pair<String, String>(RecalUtils.ESTIMATED_Q_REPORTED_COLUMN_NAME, "%.4f");
-    private static final Pair<String, String> nObservations      = new Pair<String, String>(RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME, "%.2f");
+    private static final Pair<String, String> nObservations      = new Pair<String, String>(RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME, "%d");
     private static final Pair<String, String> nErrors            = new Pair<String, String>(RecalUtils.NUMBER_ERRORS_COLUMN_NAME, "%.2f");
 
     /**

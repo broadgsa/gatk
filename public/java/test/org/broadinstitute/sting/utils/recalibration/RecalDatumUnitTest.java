@@ -30,16 +30,13 @@ package org.broadinstitute.sting.utils.recalibration;
 
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.testng.Assert;
-import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 
 public class RecalDatumUnitTest extends BaseTest {
@@ -74,7 +71,7 @@ public class RecalDatumUnitTest extends BaseTest {
         }
 
         public RecalDatum makeRecalDatum() {
-            return new RecalDatum(exTotal, exError, (byte)getReportedQual());
+            return new RecalDatum((long)exTotal, (double)exError, (byte)getReportedQual());
         }
 
         @Override
@@ -83,13 +80,19 @@ public class RecalDatumUnitTest extends BaseTest {
         }
     }
 
+    private static boolean createdDatumTestProviders = false;
+
     @DataProvider(name = "RecalDatumTestProvider")
     public Object[][] makeRecalDatumTestProvider() {
-        for ( int E : Arrays.asList(1, 10, 100, 1000, 10000) )
-            for ( int N : Arrays.asList(10, 100, 1000, 10000, 100000, 1000000) )
-                for ( int reportedQual : Arrays.asList(10, 20) )
-                    if ( E <= N )
-                        new RecalDatumTestProvider(E, N, reportedQual);
+        if ( !createdDatumTestProviders ) {
+            for ( int E : Arrays.asList(1, 10, 100, 1000, 10000) )
+                for ( int N : Arrays.asList(10, 100, 1000, 10000, 100000, 1000000) )
+                    for ( int reportedQual : Arrays.asList(10, 20) )
+                        if ( E <= N )
+                            new RecalDatumTestProvider(E, N, reportedQual);
+            createdDatumTestProviders = true;
+        }
+
         return RecalDatumTestProvider.getTests(RecalDatumTestProvider.class);
     }
 
@@ -104,7 +107,6 @@ public class RecalDatumUnitTest extends BaseTest {
         Assert.assertEquals(datum.getNumObservations(), cfg.exTotal, 1E-6);
         if ( cfg.getReportedQual() != -1 )
             Assert.assertEquals(datum.getEstimatedQReportedAsByte(), cfg.getReportedQual());
-        BaseTest.assertEqualsDoubleSmart(datum.getEmpiricalQuality(), cfg.getErrorRatePhredScaled());
         BaseTest.assertEqualsDoubleSmart(datum.getEmpiricalErrorRate(), cfg.getErrorRate());
 
         final double e = datum.getEmpiricalQuality();
@@ -175,7 +177,87 @@ public class RecalDatumUnitTest extends BaseTest {
 
     @Test
     public void testNoObs() {
-        final RecalDatum rd = new RecalDatum(0, 0, (byte)10);
+        final RecalDatum rd = new RecalDatum(0L, 0.0, (byte)10);
         Assert.assertEquals(rd.getEmpiricalErrorRate(), 0.0);
+    }
+
+    @Test
+    public void testlog10QempPrior() {
+        for ( int Qemp = 0; Qemp <= QualityUtils.MAX_QUAL_SCORE; Qemp++ ) {
+            for ( int Qrep = 0; Qrep <= QualityUtils.MAX_QUAL_SCORE; Qrep++ ) {
+                final double log10prior = RecalDatum.log10QempPrior(Qemp, Qrep);
+                Assert.assertTrue(log10prior < 0.0);
+                Assert.assertFalse(Double.isInfinite(log10prior));
+                Assert.assertFalse(Double.isNaN(log10prior));
+            }
+        }
+
+        final int Qrep = 20;
+        int maxQemp = -1;
+        double maxQempValue = -Double.MAX_VALUE;
+        for ( int Qemp = 0; Qemp <= QualityUtils.MAX_QUAL_SCORE; Qemp++ ) {
+            final double log10prior = RecalDatum.log10QempPrior(Qemp, Qrep);
+            if ( log10prior > maxQempValue ) {
+                maxQemp = Qemp;
+                maxQempValue = log10prior;
+            }
+        }
+        Assert.assertEquals(maxQemp, Qrep);
+    }
+
+    @Test
+    public void testlog10QempLikelihood() {
+
+        final int Qrep = 20;
+
+        // test no shift
+        Assert.assertEquals(RecalDatum.bayesianEstimateOfEmpiricalQuality(0, 0, Qrep), (double)Qrep);
+        Assert.assertEquals(RecalDatum.bayesianEstimateOfEmpiricalQuality(10, 0, Qrep), (double)Qrep);
+        Assert.assertEquals(RecalDatum.bayesianEstimateOfEmpiricalQuality(1000, 10, Qrep), (double)Qrep);
+
+        // test small shift
+        Assert.assertEquals(RecalDatum.bayesianEstimateOfEmpiricalQuality(10, 10, Qrep), Qrep - 1.0);
+        Assert.assertEquals(RecalDatum.bayesianEstimateOfEmpiricalQuality(1000, 0, Qrep), Qrep + 1.0);
+
+        // test medium shift
+        Assert.assertEquals(RecalDatum.bayesianEstimateOfEmpiricalQuality(10000, 0, Qrep), Qrep + 3.0);
+        Assert.assertEquals(RecalDatum.bayesianEstimateOfEmpiricalQuality(10000, 10, Qrep), Qrep + 3.0);
+
+        // test large shift
+        Assert.assertEquals(RecalDatum.bayesianEstimateOfEmpiricalQuality(100000, 10, Qrep), Qrep + 8.0);
+        Assert.assertEquals(RecalDatum.bayesianEstimateOfEmpiricalQuality(1000000, 10, Qrep), Qrep + 16.0);
+    }
+
+    @Test
+    public void testBayesianEstimateOfEmpiricalQuality() {
+
+        final double[] Qemps = new double[] { 0.0, 10.0, 20.0, 30.0 };
+        final int[] observations = new int[] {0, 10, 1000, 1000000};
+        final int[] errors = new int[] {0, 10, 1000, 1000000};
+
+        for ( double Qemp : Qemps ) {
+            for ( int observation : observations ) {
+                for ( int error : errors ) {
+                    if ( error > observation )
+                        continue;
+
+                    final double log10likelihood = RecalDatum.log10QempLikelihood(Qemp, observation, error);
+                    Assert.assertTrue(observation == 0 ? MathUtils.compareDoubles(log10likelihood, 0.0) == 0 : log10likelihood < 0.0);
+                    Assert.assertFalse(Double.isInfinite(log10likelihood));
+                    Assert.assertFalse(Double.isNaN(log10likelihood));
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testLongToInt() {
+        long l = new Long((long)Integer.MAX_VALUE);
+        int i = RecalDatum.longToInt(l);
+        Assert.assertEquals(i, Integer.MAX_VALUE);
+
+        l++;
+        i = RecalDatum.longToInt(l);
+        Assert.assertEquals(i, Integer.MAX_VALUE);
     }
 }

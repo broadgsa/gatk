@@ -68,15 +68,6 @@ public class RecalibrationReport {
 
     }
 
-    protected RecalibrationReport(final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, final GATKReportTable argumentTable, final RecalibrationArgumentCollection RAC) {
-        this.quantizationInfo = quantizationInfo;
-        this.recalibrationTables = recalibrationTables;
-        this.requestedCovariates = requestedCovariates;
-        this.argumentTable = argumentTable;
-        this.RAC = RAC;
-        this.optionalCovariateIndexes = null;
-    }
-
     /**
      * Counts the number of unique read groups in the table
      *
@@ -192,11 +183,22 @@ public class RecalibrationReport {
         else if ( o instanceof Long )
             return (Long)o;
         else
-            throw new ReviewedStingException("Object " + o + " is expected to be either a double, long or integer but its not either: " + o.getClass());
+            throw new ReviewedStingException("Object " + o + " is expected to be either a double, long or integer but it's not either: " + o.getClass());
+    }
+
+    private long asLong(final Object o) {
+        if ( o instanceof Long )
+            return (Long)o;
+        else if ( o instanceof Integer )
+            return ((Integer)o).longValue();
+        else if ( o instanceof Double )
+            return ((Double)o).longValue();
+        else
+            throw new ReviewedStingException("Object " + o + " is expected to be a long but it's not: " + o.getClass());
     }
 
     private RecalDatum getRecalDatum(final GATKReportTable reportTable, final int row, final boolean hasEstimatedQReportedColumn) {
-        final double nObservations = asDouble(reportTable.get(row, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME));
+        final long nObservations = asLong(reportTable.get(row, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME));
         final double nErrors = asDouble(reportTable.get(row, RecalUtils.NUMBER_ERRORS_COLUMN_NAME));
         final double empiricalQuality = asDouble(reportTable.get(row, RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME));
 

@@ -20,9 +20,11 @@ public class RecalibrationReportUnitTest {
     private static RecalDatum createRandomRecalDatum(int maxObservations, int maxErrors) {
         final Random random = new Random();
         final int nObservations = random.nextInt(maxObservations);
-        final int nErrors = random.nextInt(maxErrors);
+        int nErrors = random.nextInt(maxErrors);
+        while ( nErrors > nObservations )
+            nErrors = random.nextInt(maxErrors);
         final int qual = random.nextInt(QualityUtils.MAX_QUAL_SCORE);
-        return new RecalDatum(nObservations, nErrors, (byte)qual);
+        return new RecalDatum((long)nObservations, (double)nErrors, (byte)qual);
     }
 
     @Test(enabled = true)
