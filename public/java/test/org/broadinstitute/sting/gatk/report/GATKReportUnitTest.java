@@ -32,6 +32,13 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Random;
+import java.io.FileInputStream;
+import java.io.DataInputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+
 
 public class GATKReportUnitTest extends BaseTest {
     @Test
@@ -75,6 +82,85 @@ public class GATKReportUnitTest extends BaseTest {
     @Test(dataProvider = "rightAlignValues")
     public void testIsRightAlign(String value, boolean expected) {
         Assert.assertEquals(GATKReportColumn.isRightAlign(value), expected, "right align of '" + value + "'");
+    }
+
+    private GATKReportTable getTableWithRandomValues() {
+        Random number = new Random(123L);
+        final int VALUESRANGE = 10;
+
+        GATKReport report = GATKReport.newSimpleReport("TableName", "col1", "col2", "col3");
+        GATKReportTable table = new GATKReportTable("testSortingTable", "table with random values sorted by columns", 3, GATKReportTable.TableSortingWay.SORT_BY_COLUMN );
+
+        final int NUMROWS = 100;
+        for (int x = 0; x < NUMROWS; x++) {
+            report.addRow(number.nextInt(VALUESRANGE), number.nextInt(VALUESRANGE), number.nextInt(VALUESRANGE));
+        }
+        return table;
+    }
+
+    @Test(enabled = true)
+    public void testSortingByColumn() {
+        Assert.assertEquals(isSorted(getTableWithRandomValues()), true);
+    }
+
+    private boolean isSorted(GATKReportTable table) {
+        boolean result = true;
+        File testingSortingTableFile = new File("myFile.txt");
+
+        try {
+            // Connect print stream to the output stream
+            PrintStream ps = new PrintStream(testingSortingTableFile);
+            table.write(ps);
+            ps.close();
+        }
+        catch (Exception e){
+            System.err.println ("Error: " + e.getMessage());
+        }
+
+        ArrayList<int[]> rows = new ArrayList<int[]>();
+        try {
+            // Open the file
+            FileInputStream fStream = new FileInputStream(testingSortingTableFile);
+            // Get the object of DataInputStream
+            DataInputStream in = new DataInputStream(fStream);
+            BufferedReader br = new BufferedReader(new InputStreamReader(in));
+            String strLine;
+            //Read File Line By Line
+            while ((strLine = br.readLine()) != null) {
+
+                String[] parts = strLine.split(" ");
+                int l = parts.length;
+                int[] row = new int[l];
+                for(int n = 0; n < l; n++) {
+                    row[n] = Integer.parseInt(parts[n]);
+                }
+                rows.add(row);
+            }
+            //Close the input stream
+            in.close();
+        } catch (Exception e){//Catch exception if any
+            System.err.println("Error: " + e.getMessage());
+        }
+        for (int x = 1; x < rows.size() && result; x++)    {
+            result = checkRowOrder(rows.get(x - 1), rows.get(x));
+        }
+        return result;
+    }
+
+    private boolean checkRowOrder(int[] row1, int[] row2) {
+        int l = row1.length;
+        final int EQUAL = 0;
+
+        int result = EQUAL;
+
+        for(int x = 0; x < l && ( result <= EQUAL); x++) {
+            result = ((Integer)row1[x]).compareTo(row2[x]);
+        }
+        if (result <= EQUAL) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private GATKReportTable makeBasicTable() {
@@ -168,7 +254,7 @@ public class GATKReportUnitTest extends BaseTest {
         table.set("RZ", "SomeFloat", 535646345.657453464576);
         table.set("RZ", "TrueFalse", true);
 
-        report1.addTable("Table3", "blah", 1, true, false);
+        report1.addTable("Table3", "blah", 1, GATKReportTable.TableSortingWay.SORT_BY_ROW);
         report1.getTable("Table3").addColumn("a");
         report1.getTable("Table3").addRowIDMapping("q", 2);
         report1.getTable("Table3").addRowIDMapping("5", 3);

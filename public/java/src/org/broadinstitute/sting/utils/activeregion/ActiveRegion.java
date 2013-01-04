@@ -26,6 +26,11 @@ public class ActiveRegion implements HasGenomeLocation {
     private final GenomeLocParser genomeLocParser;
     public final boolean isActive;
 
+    // maximum stop position of all reads with start position in this active region
+    // Used only by ExperimentalReadShardTraverseActiveRegions
+    // NB: these reads may not be associated with this active region!
+    private int maxReadStop;
+
     public ActiveRegion( final GenomeLoc activeRegionLoc, final boolean isActive, final GenomeLocParser genomeLocParser, final int extension ) {
         this.activeRegionLoc = activeRegionLoc;
         this.isActive = isActive;
@@ -33,6 +38,7 @@ public class ActiveRegion implements HasGenomeLocation {
         this.extension = extension;
         extendedLoc = genomeLocParser.createGenomeLocOnContig(activeRegionLoc.getContig(), activeRegionLoc.getStart() - extension, activeRegionLoc.getStop() + extension);
         fullExtentReferenceLoc = extendedLoc;
+        maxReadStop = activeRegionLoc.getStart();
     }
 
     @Override
@@ -92,6 +98,18 @@ public class ActiveRegion implements HasGenomeLocation {
     public void clearReads() { reads.clear(); }
     public void remove( final GATKSAMRecord read ) { reads.remove( read ); }
     public void removeAll( final ArrayList<GATKSAMRecord> readsToRemove ) { reads.removeAll( readsToRemove ); }
+
+    public void setMaxReadStop(int maxReadStop) {
+        this.maxReadStop = maxReadStop;
+    }
+
+    public int getMaxReadStop() {
+        return maxReadStop;
+    }
+
+    public int getExtendedMaxReadStop() {
+        return maxReadStop + extension;
+    }
 
     public boolean equalExceptReads(final ActiveRegion other) {
         if ( activeRegionLoc.compareTo(other.activeRegionLoc) != 0 ) return false;

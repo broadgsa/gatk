@@ -287,7 +287,7 @@ public class RecalUtils {
             final GATKReportTable reportTable;
             if (tableIndex <= RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index) {
                 if(sortByCols) {
-                    reportTable = new GATKReportTable("RecalTable" + reportTableIndex++, "", columnNames.size(), false, true);
+                    reportTable = new GATKReportTable("RecalTable" + reportTableIndex++, "", columnNames.size(), GATKReportTable.TableSortingWay.SORT_BY_COLUMN);
                 } else {
                     reportTable = new GATKReportTable("RecalTable" + reportTableIndex++, "", columnNames.size());
                 }

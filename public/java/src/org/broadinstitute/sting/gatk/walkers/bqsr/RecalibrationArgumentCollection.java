@@ -207,7 +207,7 @@ public class RecalibrationArgumentCollection {
     public GATKReportTable generateReportTable(final String covariateNames) {
         GATKReportTable argumentsTable;
         if(SORT_BY_ALL_COLUMNS) {
-            argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run", 2, false, true);
+            argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run", 2, GATKReportTable.TableSortingWay.SORT_BY_COLUMN);
         } else {
             argumentsTable = new GATKReportTable("Arguments", "Recalibration argument collection values used in this run", 2);
         }
