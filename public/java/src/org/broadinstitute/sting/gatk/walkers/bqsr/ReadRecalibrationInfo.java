@@ -58,7 +58,8 @@ public final class ReadRecalibrationInfo {
         if ( covariates == null ) throw new IllegalArgumentException("covariates cannot be null");
         if ( skips == null ) throw new IllegalArgumentException("skips cannot be null");
         if ( snpErrors == null ) throw new IllegalArgumentException("snpErrors cannot be null");
-        // future: may allow insertionErrors && deletionErrors to be null, so don't enforce
+        if ( insertionErrors == null ) throw new IllegalArgumentException("insertionErrors cannot be null");
+        if ( deletionErrors == null ) throw new IllegalArgumentException("deletionErrors cannot be null");
 
         this.read = read;
         this.baseQuals = read.getBaseQualities();
@@ -73,8 +74,8 @@ public final class ReadRecalibrationInfo {
 
         if ( skips.length != length ) throw new IllegalArgumentException("skips.length " + snpErrors.length + " != length " + length);
         if ( snpErrors.length != length ) throw new IllegalArgumentException("snpErrors.length " + snpErrors.length + " != length " + length);
-        if ( insertionErrors != null && insertionErrors.length != length ) throw new IllegalArgumentException("insertionErrors.length " + snpErrors.length + " != length " + length);
-        if ( deletionErrors != null && deletionErrors.length != length ) throw new IllegalArgumentException("deletionErrors.length " + snpErrors.length + " != length " + length);
+        if ( insertionErrors.length != length ) throw new IllegalArgumentException("insertionErrors.length " + snpErrors.length + " != length " + length);
+        if ( deletionErrors.length != length ) throw new IllegalArgumentException("deletionErrors.length " + snpErrors.length + " != length " + length);
     }
 
     /**

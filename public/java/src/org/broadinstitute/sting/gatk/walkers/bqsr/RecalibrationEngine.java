@@ -124,7 +124,7 @@ public class RecalibrationEngine {
 
                 for (final EventType eventType : EventType.values()) {
                     final int[] keys = readCovariates.getKeySet(offset, eventType);
-                    final int eventIndex = eventType.index;
+                    final int eventIndex = eventType.ordinal();
                     final byte qual = recalInfo.getQual(eventType, offset);
                     final double isError = recalInfo.getErrorFraction(eventType, offset);
 

@@ -20,7 +20,7 @@ public class RecalibrationReportUnitTest {
     private static RecalDatum createRandomRecalDatum(int maxObservations, int maxErrors) {
         final Random random = new Random();
         final int nObservations = random.nextInt(maxObservations);
-        final int nErrors = random.nextInt(maxErrors);
+        final int nErrors = Math.min(random.nextInt(maxErrors), nObservations);
         final int qual = random.nextInt(QualityUtils.MAX_QUAL_SCORE);
         return new RecalDatum(nObservations, nErrors, (byte)qual);
     }
@@ -90,14 +90,14 @@ public class RecalibrationReportUnitTest {
                 final int[] covariates = rc.getKeySet(offset, errorMode);
                 final int randomMax = errorMode == EventType.BASE_SUBSTITUTION ? 10000 : 100000;
 
-                rgTable.put(createRandomRecalDatum(randomMax, 10), covariates[0], errorMode.index);
-                qualTable.put(createRandomRecalDatum(randomMax, 10), covariates[0], covariates[1], errorMode.index);
+                rgTable.put(createRandomRecalDatum(randomMax, 10), covariates[0], errorMode.ordinal());
+                qualTable.put(createRandomRecalDatum(randomMax, 10), covariates[0], covariates[1], errorMode.ordinal());
                 nKeys += 2;
                 for (int j = 0; j < optionalCovariates.size(); j++) {
                     final NestedIntegerArray<RecalDatum> covTable = recalibrationTables.getTable(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + j);
                     final int covValue = covariates[RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + j];
                     if ( covValue >= 0 ) {
-                        covTable.put(createRandomRecalDatum(randomMax, 10), covariates[0], covariates[1], covValue, errorMode.index);
+                        covTable.put(createRandomRecalDatum(randomMax, 10), covariates[0], covariates[1], covValue, errorMode.ordinal());
                         nKeys++;
                     }
                 }

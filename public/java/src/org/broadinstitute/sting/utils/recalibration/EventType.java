@@ -1,41 +1,39 @@
 package org.broadinstitute.sting.utils.recalibration;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-
 public enum EventType {
-    BASE_SUBSTITUTION(0, "M", "Base Substitution"),
-    BASE_INSERTION(1, "I", "Base Insertion"),
-    BASE_DELETION(2, "D", "Base Deletion");
+    BASE_SUBSTITUTION("M", "Base Substitution"),
+    BASE_INSERTION("I", "Base Insertion"),
+    BASE_DELETION("D", "Base Deletion");
 
-    public final int index;
     private final String representation;
     private final String longRepresentation;
 
-    private EventType(int index, String representation, String longRepresentation) {
-        this.index = index;
+    private EventType(String representation, String longRepresentation) {
         this.representation = representation;
         this.longRepresentation = longRepresentation;
     }
 
+    /**
+     * Get the EventType corresponding to its ordinal index
+     * @param index an ordinal index
+     * @return the event type corresponding to ordinal index
+     */
     public static EventType eventFrom(int index) {
-        switch (index) {
-            case 0:
-                return BASE_SUBSTITUTION;
-            case 1:
-                return BASE_INSERTION;
-            case 2:
-                return BASE_DELETION;
-            default:
-                throw new ReviewedStingException(String.format("Event %d does not exist.", index));
-        }        
+        return EventType.values()[index];
     }
-    
-    public static EventType eventFrom(String event) {
+
+    /**
+     * Get the EventType with short string representation
+     * @throws IllegalArgumentException if representation doesn't correspond to one of EventType
+     * @param representation short string representation of the event
+     * @return an EventType
+     */
+    public static EventType eventFrom(String representation) {
         for (EventType eventType : EventType.values())
-            if (eventType.representation.equals(event))
+            if (eventType.representation.equals(representation))
                 return eventType;
 
-        throw new ReviewedStingException(String.format("Event %s does not exist.", event));
+        throw new IllegalArgumentException(String.format("Event %s does not exist.", representation));
     }
 
     @Override
