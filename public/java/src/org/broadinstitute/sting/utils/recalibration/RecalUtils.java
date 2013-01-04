@@ -269,9 +269,9 @@ public class RecalUtils {
 
             final ArrayList<Pair<String, String>> columnNames = new ArrayList<Pair<String, String>>(); // initialize the array to hold the column names
             columnNames.add(new Pair<String, String>(covariateNameMap.get(requestedCovariates[0]), "%s")); // save the required covariate name so we can reference it in the future
-            if (tableIndex != RecalibrationTables.TableType.READ_GROUP_TABLE.index) {
+            if (tableIndex != RecalibrationTables.TableType.READ_GROUP_TABLE.ordinal()) {
                 columnNames.add(new Pair<String, String>(covariateNameMap.get(requestedCovariates[1]), "%s")); // save the required covariate name so we can reference it in the future
-                if (tableIndex >= RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index) {
+                if (tableIndex >= RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.ordinal()) {
                     columnNames.add(covariateValue);
                     columnNames.add(covariateName);
                 }
@@ -279,13 +279,13 @@ public class RecalUtils {
 
             columnNames.add(eventType); // the order of these column names is important here
             columnNames.add(empiricalQuality);
-            if (tableIndex == RecalibrationTables.TableType.READ_GROUP_TABLE.index)
+            if (tableIndex == RecalibrationTables.TableType.READ_GROUP_TABLE.ordinal())
                 columnNames.add(estimatedQReported); // only the read group table needs the estimated Q reported
             columnNames.add(nObservations);
             columnNames.add(nErrors);
 
             final GATKReportTable reportTable;
-            if (tableIndex <= RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index) {
+            if (tableIndex <= RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.ordinal()) {
                 if(sortByCols) {
                     reportTable = new GATKReportTable("RecalTable" + reportTableIndex++, "", columnNames.size(), GATKReportTable.TableSortingWay.SORT_BY_COLUMN);
                 } else {
@@ -295,7 +295,7 @@ public class RecalUtils {
                     reportTable.addColumn(columnName.getFirst(), columnName.getSecond());
                 rowIndex = 0; // reset the row index since we're starting with a new table
             } else {
-                reportTable = result.get(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index);
+                reportTable = result.get(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.ordinal());
             }
 
             final NestedIntegerArray<RecalDatum> table = recalibrationTables.getTable(tableIndex);
@@ -306,9 +306,9 @@ public class RecalUtils {
                 int columnIndex = 0;
                 int keyIndex = 0;
                 reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), requestedCovariates[0].formatKey(keys[keyIndex++]));
-                if (tableIndex != RecalibrationTables.TableType.READ_GROUP_TABLE.index) {
+                if (tableIndex != RecalibrationTables.TableType.READ_GROUP_TABLE.ordinal()) {
                     reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), requestedCovariates[1].formatKey(keys[keyIndex++]));
-                    if (tableIndex >= RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index) {
+                    if (tableIndex >= RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.ordinal()) {
                         final Covariate covariate = requestedCovariates[tableIndex];
 
                         reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), covariate.formatKey(keys[keyIndex++]));
@@ -320,7 +320,7 @@ public class RecalUtils {
                 reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), event.toString());
 
                 reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEmpiricalQuality());
-                if (tableIndex == RecalibrationTables.TableType.READ_GROUP_TABLE.index)
+                if (tableIndex == RecalibrationTables.TableType.READ_GROUP_TABLE.ordinal())
                     reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getEstimatedQReported()); // we only add the estimated Q reported in the RG table
                 reportTable.set(rowIndex, columnNames.get(columnIndex++).getFirst(), datum.getNumObservations());
                 reportTable.set(rowIndex, columnNames.get(columnIndex).getFirst(), datum.getNumMismatches());
@@ -414,7 +414,7 @@ public class RecalUtils {
         }
 
         // add the optional covariates to the delta table
-        for (int i = RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index; i < requestedCovariates.length; i++) {
+        for (int i = RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.ordinal(); i < requestedCovariates.length; i++) {
             final NestedIntegerArray<RecalDatum> covTable = recalibrationTables.getTable(i);
             for (final NestedIntegerArray.Leaf leaf : covTable.getAllLeaves()) {
                 final int[] covs = new int[4];
@@ -458,9 +458,9 @@ public class RecalUtils {
 
     private static List<Object> generateValuesFromKeys(final List<Object> keys, final Covariate[] covariates, final Map<Covariate, String> covariateNameMap) {
         final List<Object> values = new ArrayList<Object>(4);
-        values.add(covariates[RecalibrationTables.TableType.READ_GROUP_TABLE.index].formatKey((Integer)keys.get(0)));
+        values.add(covariates[RecalibrationTables.TableType.READ_GROUP_TABLE.ordinal()].formatKey((Integer)keys.get(0)));
         final int covariateIndex = (Integer)keys.get(1);
-        final Covariate covariate = covariateIndex == covariates.length ? covariates[RecalibrationTables.TableType.QUALITY_SCORE_TABLE.index] : covariates[covariateIndex];
+        final Covariate covariate = covariateIndex == covariates.length ? covariates[RecalibrationTables.TableType.QUALITY_SCORE_TABLE.ordinal()] : covariates[covariateIndex];
         final int covariateKey = (Integer)keys.get(2);
         values.add(covariate.formatKey(covariateKey));
         values.add(covariateNameMap.get(covariate));
@@ -792,5 +792,49 @@ public class RecalUtils {
             else
                 myDatum.combine(row.value);
         }
+    }
+
+    /**
+     * Increments the RecalDatum at the specified position in the specified table, or put a new item there
+     * if there isn't already one.
+     *
+     * Does this in a thread-safe way WITHOUT being synchronized: relies on the behavior of NestedIntegerArray.put()
+     * to return false if another thread inserts a new item at our position in the middle of our put operation.
+     *
+     * @param table the table that holds/will hold our item
+     * @param qual qual for this event
+     * @param isError error value for this event
+     * @param keys location in table of our item
+     */
+    public static void incrementDatumOrPutIfNecessary( final NestedIntegerArray<RecalDatum> table,
+                                                          final byte qual,
+                                                          final double isError,
+                                                          final int... keys ) {
+        final RecalDatum existingDatum = table.get(keys);
+
+        if ( existingDatum == null ) {
+            // No existing item, try to put a new one
+            if ( ! table.put(createDatumObject(qual, isError), keys) ) {
+                // Failed to put a new item because another thread came along and put an item here first.
+                // Get the newly-put item and increment it (item is guaranteed to exist at this point)
+                table.get(keys).increment(1.0, isError);
+            }
+        }
+        else {
+            // Easy case: already an item here, so increment it
+            existingDatum.increment(1.0, isError);
+        }
+    }
+
+
+    /**
+     * creates a datum object with one observation and one or zero error
+     *
+     * @param reportedQual  the quality score reported by the instrument for this base
+     * @param isError       whether or not the observation is an error
+     * @return a new RecalDatum object with the observation and the error
+     */
+    private static RecalDatum createDatumObject(final byte reportedQual, final double isError) {
+        return new RecalDatum(1, isError, reportedQual);
     }
 }
