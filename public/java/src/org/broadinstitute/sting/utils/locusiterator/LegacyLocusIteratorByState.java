@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.sting.utils.locusiterator;
 
 import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.Cigar;
@@ -31,11 +31,14 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
+import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.downsampling.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.LegacyReservoirDownsampler;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
@@ -47,7 +50,7 @@ import java.util.*;
 /**
  * Iterator that traverses a SAM File, accumulating information on a per-locus basis
  */
-public class LocusIteratorByState extends LocusIterator {
+public class LegacyLocusIteratorByState extends LocusIterator {
     /**
      * our log, which we want to capture anything from this class
      */
@@ -66,7 +69,7 @@ public class LocusIteratorByState extends LocusIterator {
     private final ArrayList<String> samples;
     private final ReadStateManager readStates;
 
-    protected static class SAMRecordState {
+    static private class SAMRecordState {
         SAMRecord read;
         int readOffset = -1;                    // how far are we offset from the start of the read bases?
         int genomeOffset = -1;                  // how far are we offset from the alignment start on the genome?
@@ -210,7 +213,6 @@ public class LocusIteratorByState extends LocusIterator {
     //final boolean DEBUG2 = false && DEBUG;
     private ReadProperties readInfo;
     private AlignmentContext nextAlignmentContext;
-    private boolean performDownsampling;
 
     // -----------------------------------------------------------------------------------------------------------------
     //
@@ -218,22 +220,11 @@ public class LocusIteratorByState extends LocusIterator {
     //
     // -----------------------------------------------------------------------------------------------------------------
 
-    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation, GenomeLocParser genomeLocParser, Collection<String> samples) {
+    public LegacyLocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation, GenomeLocParser genomeLocParser, Collection<String> samples) {
         this.readInfo = readInformation;
         this.genomeLocParser = genomeLocParser;
         this.samples = new ArrayList<String>(samples);
-
-        // LIBS will invoke the Reservoir and Leveling downsamplers on the read stream if we're
-        // downsampling to coverage by sample. SAMDataSource will have refrained from applying
-        // any downsamplers to the read stream in this case, in the expectation that LIBS will
-        // manage the downsampling. The reason for this is twofold: performance (don't have to
-        // split/re-assemble the read stream in SAMDataSource), and to enable partial downsampling
-        // of reads (eg., using half of a read, and throwing the rest away).
-        this.performDownsampling = readInfo.getDownsamplingMethod() != null &&
-                                   readInfo.getDownsamplingMethod().type == DownsampleType.BY_SAMPLE &&
-                                   readInfo.getDownsamplingMethod().toCoverage != null;
-
-        this.readStates = new ReadStateManager(samIterator);
+        this.readStates = new ReadStateManager(samIterator, readInformation.getDownsamplingMethod());
 
         // currently the GATK expects this LocusIteratorByState to accept empty sample lists, when
         // there's no read data.  So we need to throw this error only when samIterator.hasNext() is true
@@ -294,13 +285,11 @@ public class LocusIteratorByState extends LocusIterator {
 
             final GenomeLoc location = getLocation();
             final Map<String, ReadBackedPileupImpl> fullPileup = new HashMap<String, ReadBackedPileupImpl>();
-
-            // TODO: How can you determine here whether the current pileup has been downsampled?
             boolean hasBeenSampled = false;
-
             for (final String sample : samples) {
                 final Iterator<SAMRecordState> iterator = readStates.iterator(sample);
                 final List<PileupElement> pile = new ArrayList<PileupElement>(readStates.size(sample));
+                hasBeenSampled |= location.getStart() <= readStates.getDownsamplingExtent(sample);
 
                 int size = 0;                                                           // number of elements in this sample's pileup
                 int nDeletions = 0;                                                     // number of deletions in this sample's pileup
@@ -409,20 +398,34 @@ public class LocusIteratorByState extends LocusIterator {
         throw new UnsupportedOperationException("Can not remove records from a SAM file via an iterator!");
     }
 
-    protected class ReadStateManager {
+    private class ReadStateManager {
         private final PeekableIterator<SAMRecord> iterator;
+        private final DownsamplingMethod downsamplingMethod;
         private final SamplePartitioner samplePartitioner;
         private final Map<String, PerSampleReadStateManager> readStatesBySample = new HashMap<String, PerSampleReadStateManager>();
+        private final int targetCoverage;
         private int totalReadStates = 0;
 
-        public ReadStateManager(Iterator<SAMRecord> source) {
+        public ReadStateManager(Iterator<SAMRecord> source, DownsamplingMethod downsamplingMethod) {
             this.iterator = new PeekableIterator<SAMRecord>(source);
-
-            for (final String sample : samples) {
-                readStatesBySample.put(sample, new PerSampleReadStateManager());
+            this.downsamplingMethod = downsamplingMethod.type != null ? downsamplingMethod : DownsamplingMethod.NONE;
+            switch (this.downsamplingMethod.type) {
+                case BY_SAMPLE:
+                    if (downsamplingMethod.toCoverage == null)
+                        throw new UserException.BadArgumentValue("dcov", "Downsampling coverage (-dcov) must be specified when downsampling by sample");
+                    this.targetCoverage = downsamplingMethod.toCoverage;
+                    break;
+                default:
+                    this.targetCoverage = Integer.MAX_VALUE;
             }
 
-            samplePartitioner = new SamplePartitioner(performDownsampling);
+            Map<String, ReadSelector> readSelectors = new HashMap<String, ReadSelector>();
+            for (final String sample : samples) {
+                readStatesBySample.put(sample, new PerSampleReadStateManager());
+                readSelectors.put(sample, downsamplingMethod.type == DownsampleType.BY_SAMPLE ? new NRandomReadSelector(null, targetCoverage) : new AllReadsSelector());
+            }
+
+            samplePartitioner = new SamplePartitioner(readSelectors);
         }
 
         /**
@@ -446,6 +449,7 @@ public class LocusIteratorByState extends LocusIterator {
 
                 public void remove() {
                     wrappedIterator.remove();
+                    totalReadStates--;
                 }
             };
         }
@@ -471,6 +475,17 @@ public class LocusIteratorByState extends LocusIterator {
          */
         public int size(final String sample) {
             return readStatesBySample.get(sample).size();
+        }
+
+        /**
+         * The extent of downsampling; basically, the furthest base out which has 'fallen
+         * victim' to the downsampler.
+         *
+         * @param sample Sample, downsampled independently.
+         * @return Integer stop of the furthest undownsampled region.
+         */
+        public int getDownsamplingExtent(final String sample) {
+            return readStatesBySample.get(sample).getDownsamplingExtent();
         }
 
         public SAMRecordState getFirst() {
@@ -505,15 +520,61 @@ public class LocusIteratorByState extends LocusIterator {
                     samplePartitioner.submitRead(iterator.next());
                 }
             }
-
-            samplePartitioner.doneSubmittingReads();
+            samplePartitioner.complete();
 
             for (final String sample : samples) {
-                Collection<SAMRecord> newReads = samplePartitioner.getReadsForSample(sample);
-                PerSampleReadStateManager statesBySample = readStatesBySample.get(sample);
-                addReadsToSample(statesBySample, newReads);
-            }
+                ReadSelector aggregator = samplePartitioner.getSelectedReads(sample);
 
+                Collection<SAMRecord> newReads = new ArrayList<SAMRecord>(aggregator.getSelectedReads());
+
+                PerSampleReadStateManager statesBySample = readStatesBySample.get(sample);
+                int numReads = statesBySample.size();
+                int downsamplingExtent = aggregator.getDownsamplingExtent();
+
+                if (numReads + newReads.size() <= targetCoverage || downsamplingMethod.type == DownsampleType.NONE) {
+                    long readLimit = aggregator.getNumReadsSeen();
+                    addReadsToSample(statesBySample, newReads, readLimit);
+                    statesBySample.specifyNewDownsamplingExtent(downsamplingExtent);
+                } else {
+                    int[] counts = statesBySample.getCountsPerAlignmentStart();
+                    int[] updatedCounts = new int[counts.length];
+                    System.arraycopy(counts, 0, updatedCounts, 0, counts.length);
+
+                    boolean readPruned = true;
+                    while (numReads + newReads.size() > targetCoverage && readPruned) {
+                        readPruned = false;
+                        for (int alignmentStart = updatedCounts.length - 1; numReads + newReads.size() > targetCoverage && alignmentStart >= 0; alignmentStart--) {
+                            if (updatedCounts[alignmentStart] > 1) {
+                                updatedCounts[alignmentStart]--;
+                                numReads--;
+                                readPruned = true;
+                            }
+                        }
+                    }
+
+                    if (numReads == targetCoverage) {
+                        updatedCounts[0]--;
+                        numReads--;
+                    }
+
+                    BitSet toPurge = new BitSet(readStates.size());
+                    int readOffset = 0;
+
+                    for (int i = 0; i < updatedCounts.length; i++) {
+                        int n = counts[i];
+                        int k = updatedCounts[i];
+
+                        for (Integer purgedElement : MathUtils.sampleIndicesWithoutReplacement(n, n - k))
+                            toPurge.set(readOffset + purgedElement);
+
+                        readOffset += counts[i];
+                    }
+                    downsamplingExtent = Math.max(downsamplingExtent, statesBySample.purge(toPurge));
+
+                    addReadsToSample(statesBySample, newReads, targetCoverage - numReads);
+                    statesBySample.specifyNewDownsamplingExtent(downsamplingExtent);
+                }
+            }
             samplePartitioner.reset();
         }
 
@@ -522,140 +583,380 @@ public class LocusIteratorByState extends LocusIterator {
          *
          * @param readStates The list of read states to add this collection of reads.
          * @param reads      Reads to add.  Selected reads will be pulled from this source.
+         * @param maxReads   Maximum number of reads to add.
          */
-        private void addReadsToSample(final PerSampleReadStateManager readStates, final Collection<SAMRecord> reads) {
+        private void addReadsToSample(final PerSampleReadStateManager readStates, final Collection<SAMRecord> reads, final long maxReads) {
             if (reads.isEmpty())
                 return;
 
             Collection<SAMRecordState> newReadStates = new LinkedList<SAMRecordState>();
-
+            int readCount = 0;
             for (SAMRecord read : reads) {
-                SAMRecordState state = new SAMRecordState(read);
-                state.stepForwardOnGenome();
-                newReadStates.add(state);
+                if (readCount < maxReads) {
+                    SAMRecordState state = new SAMRecordState(read);
+                    state.stepForwardOnGenome();
+                    newReadStates.add(state);
+                    readCount++;
+                }
             }
-
             readStates.addStatesAtNextAlignmentStart(newReadStates);
         }
 
-        protected class PerSampleReadStateManager implements Iterable<SAMRecordState> {
-            private List<LinkedList<SAMRecordState>> readStatesByAlignmentStart = new LinkedList<LinkedList<SAMRecordState>>();
-            private int thisSampleReadStates = 0;
-            private Downsampler<LinkedList<SAMRecordState>> levelingDownsampler =
-                      performDownsampling ?
-                      new LevelingDownsampler<LinkedList<SAMRecordState>, SAMRecordState>(readInfo.getDownsamplingMethod().toCoverage) :
-                      null;
+        private class PerSampleReadStateManager implements Iterable<SAMRecordState> {
+            private final Queue<SAMRecordState> readStates = new LinkedList<SAMRecordState>();
+            private final Deque<Counter> readStateCounter = new LinkedList<Counter>();
+            private int downsamplingExtent = 0;
 
             public void addStatesAtNextAlignmentStart(Collection<SAMRecordState> states) {
-                if ( states.isEmpty() ) {
-                    return;
-                }
-
-                readStatesByAlignmentStart.add(new LinkedList<SAMRecordState>(states));
-                thisSampleReadStates += states.size();
+                readStates.addAll(states);
+                readStateCounter.add(new Counter(states.size()));
                 totalReadStates += states.size();
-
-                if ( levelingDownsampler != null ) {
-                    levelingDownsampler.submit(readStatesByAlignmentStart);
-                    levelingDownsampler.signalEndOfInput();
-
-                    thisSampleReadStates -= levelingDownsampler.getNumberOfDiscardedItems();
-                    totalReadStates -= levelingDownsampler.getNumberOfDiscardedItems();
-
-                    // use returned List directly rather than make a copy, for efficiency's sake
-                    readStatesByAlignmentStart = levelingDownsampler.consumeFinalizedItems();
-                    levelingDownsampler.reset();
-                }
             }
 
             public boolean isEmpty() {
-                return readStatesByAlignmentStart.isEmpty();
+                return readStates.isEmpty();
             }
 
             public SAMRecordState peek() {
-                return isEmpty() ? null : readStatesByAlignmentStart.get(0).peek();
+                return readStates.peek();
             }
 
             public int size() {
-                return thisSampleReadStates;
+                return readStates.size();
+            }
+
+            public void specifyNewDownsamplingExtent(int downsamplingExtent) {
+                this.downsamplingExtent = Math.max(this.downsamplingExtent, downsamplingExtent);
+            }
+
+            public int getDownsamplingExtent() {
+                return downsamplingExtent;
+            }
+
+            public int[] getCountsPerAlignmentStart() {
+                int[] counts = new int[readStateCounter.size()];
+                int index = 0;
+                for (Counter counter : readStateCounter)
+                    counts[index++] = counter.getCount();
+                return counts;
             }
 
             public Iterator<SAMRecordState> iterator() {
                 return new Iterator<SAMRecordState>() {
-                    private Iterator<LinkedList<SAMRecordState>> alignmentStartIterator = readStatesByAlignmentStart.iterator();
-                    private LinkedList<SAMRecordState> currentPositionReadStates = null;
-                    private Iterator<SAMRecordState> currentPositionReadStatesIterator = null;
+                    private Iterator<SAMRecordState> wrappedIterator = readStates.iterator();
 
                     public boolean hasNext() {
-                        return  alignmentStartIterator.hasNext() ||
-                                (currentPositionReadStatesIterator != null && currentPositionReadStatesIterator.hasNext());
+                        return wrappedIterator.hasNext();
                     }
 
                     public SAMRecordState next() {
-                        if ( currentPositionReadStatesIterator == null || ! currentPositionReadStatesIterator.hasNext() ) {
-                            currentPositionReadStates = alignmentStartIterator.next();
-                            currentPositionReadStatesIterator = currentPositionReadStates.iterator();
-                        }
-
-                        return currentPositionReadStatesIterator.next();
+                        return wrappedIterator.next();
                     }
 
                     public void remove() {
-                        currentPositionReadStatesIterator.remove();
-                        thisSampleReadStates--;
-                        totalReadStates--;
-
-                        if ( currentPositionReadStates.isEmpty() ) {
-                            alignmentStartIterator.remove();
-                        }
+                        wrappedIterator.remove();
+                        Counter counter = readStateCounter.peek();
+                        counter.decrement();
+                        if (counter.getCount() == 0)
+                            readStateCounter.remove();
                     }
                 };
+            }
+
+            /**
+             * Purge the given elements from the bitset.  If an element in the bitset is true, purge
+             * the corresponding read state.
+             *
+             * @param elements bits from the set to purge.
+             * @return the extent of the final downsampled read.
+             */
+            public int purge(final BitSet elements) {
+                int downsamplingExtent = 0;
+
+                if (elements.isEmpty() || readStates.isEmpty()) return downsamplingExtent;
+
+                Iterator<SAMRecordState> readStateIterator = readStates.iterator();
+
+                Iterator<Counter> counterIterator = readStateCounter.iterator();
+                Counter currentCounter = counterIterator.next();
+
+                int readIndex = 0;
+                long alignmentStartCounter = currentCounter.getCount();
+
+                int toPurge = elements.nextSetBit(0);
+                int removedCount = 0;
+
+                while (readStateIterator.hasNext() && toPurge >= 0) {
+                    SAMRecordState state = readStateIterator.next();
+                    downsamplingExtent = Math.max(downsamplingExtent, state.getRead().getAlignmentEnd());
+
+                    if (readIndex == toPurge) {
+                        readStateIterator.remove();
+                        currentCounter.decrement();
+                        if (currentCounter.getCount() == 0)
+                            counterIterator.remove();
+                        removedCount++;
+                        toPurge = elements.nextSetBit(toPurge + 1);
+                    }
+
+                    readIndex++;
+                    alignmentStartCounter--;
+                    if (alignmentStartCounter == 0 && counterIterator.hasNext()) {
+                        currentCounter = counterIterator.next();
+                        alignmentStartCounter = currentCounter.getCount();
+                    }
+                }
+
+                totalReadStates -= removedCount;
+
+                return downsamplingExtent;
             }
         }
     }
 
     /**
-     * Divides reads by sample and (if requested) does a preliminary downsampling pass with a ReservoirDownsampler.
-     *
-     * Note: stores reads by sample ID string, not by sample object
+     * Note: assuming that, whenever we downsample, we downsample to an integer capacity.
      */
-    private class SamplePartitioner {
-        private Map<String, Downsampler<SAMRecord>> readsBySample;
+    static private class Counter {
+        private int count;
 
-        public SamplePartitioner( boolean downsampleReads ) {
-            readsBySample = new HashMap<String, Downsampler<SAMRecord>>();
-
-            for ( String sample : samples ) {
-                readsBySample.put(sample,
-                                  downsampleReads ? new ReservoirDownsampler<SAMRecord>(readInfo.getDownsamplingMethod().toCoverage) :
-                                                    new PassThroughDownsampler<SAMRecord>());
-            }
+        public Counter(int count) {
+            this.count = count;
         }
 
-        public void submitRead(SAMRecord read) {
-            String sampleName = read.getReadGroup() != null ? read.getReadGroup().getSample() : null;
-            if (readsBySample.containsKey(sampleName))
-                readsBySample.get(sampleName).submit(read);
+        public int getCount() {
+            return count;
         }
 
-        public void doneSubmittingReads() {
-            for ( Map.Entry<String, Downsampler<SAMRecord>> perSampleReads : readsBySample.entrySet() ) {
-                perSampleReads.getValue().signalEndOfInput();
-            }
-        }
-
-        public Collection<SAMRecord> getReadsForSample(String sampleName) {
-            if ( ! readsBySample.containsKey(sampleName) )
-                throw new NoSuchElementException("Sample name not found");
-
-            return readsBySample.get(sampleName).consumeFinalizedItems();
-        }
-
-        public void reset() {
-            for ( Map.Entry<String, Downsampler<SAMRecord>> perSampleReads : readsBySample.entrySet() ) {
-                perSampleReads.getValue().clear();
-                perSampleReads.getValue().reset();
-            }
+        public void decrement() {
+            count--;
         }
     }
+}
+
+/**
+ * Selects reads passed to it based on a criteria decided through inheritance.
+ * TODO: This is a temporary abstraction until we can get rid of this downsampling implementation and the mrl option.  Get rid of this.
+ */
+interface ReadSelector {
+    /**
+     * All previous selectors in the chain have allowed this read.  Submit it to this selector for consideration.
+     *
+     * @param read the read to evaluate.
+     */
+    public void submitRead(SAMRecord read);
+
+    /**
+     * A previous selector has deemed this read unfit.  Notify this selector so that this selector's counts are valid.
+     *
+     * @param read the read previously rejected.
+     */
+    public void notifyReadRejected(SAMRecord read);
+
+    /**
+     * Signal the selector that read additions are complete.
+     */
+    public void complete();
+
+    /**
+     * Retrieve the number of reads seen by this selector so far.
+     *
+     * @return number of reads seen.
+     */
+    public long getNumReadsSeen();
+
+    /**
+     * Return the number of reads accepted by this selector so far.
+     *
+     * @return number of reads selected.
+     */
+    public long getNumReadsSelected();
+
+    /**
+     * Gets the locus at which the last of the downsampled reads selected by this selector ends.  The value returned will be the
+     * last aligned position from this selection to which a downsampled read aligns -- in other words, if a read is thrown out at
+     * position 3 whose cigar string is 76M, the value of this parameter will be 78.
+     *
+     * @return If any read has been downsampled, this will return the last aligned base of the longest alignment.  Else, 0.
+     */
+    public int getDownsamplingExtent();
+
+    /**
+     * Get the reads selected by this selector.
+     *
+     * @return collection of reads selected by this selector.
+     */
+    public Collection<SAMRecord> getSelectedReads();
+
+    /**
+     * Reset this collection to its pre-gathered state.
+     */
+    public void reset();
+}
+
+/**
+ * Select every read passed in.
+ */
+class AllReadsSelector implements ReadSelector {
+    private Collection<SAMRecord> reads = new LinkedList<SAMRecord>();
+    private long readsSeen = 0;
+    private int downsamplingExtent = 0;
+
+    public void submitRead(SAMRecord read) {
+        reads.add(read);
+        readsSeen++;
+    }
+
+    public void notifyReadRejected(SAMRecord read) {
+        readsSeen++;
+        downsamplingExtent = Math.max(downsamplingExtent, read.getAlignmentEnd());
+    }
+
+    public void complete() {
+        // NO-OP.
+    }
+
+    public long getNumReadsSeen() {
+        return readsSeen;
+    }
+
+    public long getNumReadsSelected() {
+        return readsSeen;
+    }
+
+    public int getDownsamplingExtent() {
+        return downsamplingExtent;
+    }
+
+    public Collection<SAMRecord> getSelectedReads() {
+        return reads;
+    }
+
+    public void reset() {
+        reads.clear();
+        readsSeen = 0;
+        downsamplingExtent = 0;
+    }
+}
+
+
+/**
+ * Select N reads randomly from the input stream.
+ */
+class NRandomReadSelector implements ReadSelector {
+    private final LegacyReservoirDownsampler<SAMRecord> reservoir;
+    private final ReadSelector chainedSelector;
+    private long readsSeen = 0;
+    private int downsamplingExtent = 0;
+
+    public NRandomReadSelector(ReadSelector chainedSelector, long readLimit) {
+        this.reservoir = new LegacyReservoirDownsampler<SAMRecord>((int) readLimit);
+        this.chainedSelector = chainedSelector;
+    }
+
+    public void submitRead(SAMRecord read) {
+        SAMRecord displaced = reservoir.add(read);
+        if (displaced != null && chainedSelector != null) {
+            chainedSelector.notifyReadRejected(read);
+            downsamplingExtent = Math.max(downsamplingExtent, read.getAlignmentEnd());
+        }
+        readsSeen++;
+    }
+
+    public void notifyReadRejected(SAMRecord read) {
+        readsSeen++;
+    }
+
+    public void complete() {
+        for (SAMRecord read : reservoir.getDownsampledContents())
+            chainedSelector.submitRead(read);
+        if (chainedSelector != null)
+            chainedSelector.complete();
+    }
+
+
+    public long getNumReadsSeen() {
+        return readsSeen;
+    }
+
+    public long getNumReadsSelected() {
+        return reservoir.size();
+    }
+
+    public int getDownsamplingExtent() {
+        return downsamplingExtent;
+    }
+
+    public Collection<SAMRecord> getSelectedReads() {
+        return reservoir.getDownsampledContents();
+    }
+
+    public void reset() {
+        reservoir.clear();
+        downsamplingExtent = 0;
+        if (chainedSelector != null)
+            chainedSelector.reset();
+    }
+}
+
+/**
+ * Note: stores reads by sample ID string, not by sample object
+ */
+class SamplePartitioner implements ReadSelector {
+    private final Map<String, ReadSelector> readsBySample;
+    private long readsSeen = 0;
+
+    public SamplePartitioner(Map<String, ReadSelector> readSelectors) {
+        readsBySample = readSelectors;
+    }
+
+    public void submitRead(SAMRecord read) {
+        String sampleName = read.getReadGroup() != null ? read.getReadGroup().getSample() : null;
+        if (readsBySample.containsKey(sampleName))
+            readsBySample.get(sampleName).submitRead(read);
+        readsSeen++;
+    }
+
+    public void notifyReadRejected(SAMRecord read) {
+        String sampleName = read.getReadGroup() != null ? read.getReadGroup().getSample() : null;
+        if (readsBySample.containsKey(sampleName))
+            readsBySample.get(sampleName).notifyReadRejected(read);
+        readsSeen++;
+    }
+
+    public void complete() {
+        // NO-OP.
+    }
+
+    public long getNumReadsSeen() {
+        return readsSeen;
+    }
+
+    public long getNumReadsSelected() {
+        return readsSeen;
+    }
+
+    public int getDownsamplingExtent() {
+        int downsamplingExtent = 0;
+        for (ReadSelector storage : readsBySample.values())
+            downsamplingExtent = Math.max(downsamplingExtent, storage.getDownsamplingExtent());
+        return downsamplingExtent;
+    }
+
+    public Collection<SAMRecord> getSelectedReads() {
+        throw new UnsupportedOperationException("Cannot directly get selected reads from a read partitioner.");
+    }
+
+    public ReadSelector getSelectedReads(String sampleName) {
+        if (!readsBySample.containsKey(sampleName))
+            throw new NoSuchElementException("Sample name not found");
+        return readsBySample.get(sampleName);
+    }
+
+    public void reset() {
+        for (ReadSelector storage : readsBySample.values())
+            storage.reset();
+        readsSeen = 0;
+    }
+
 }
