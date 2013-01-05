@@ -96,7 +96,11 @@ public class ProgressMeterDaemonUnitTest extends BaseTest {
         daemon.done();
         Assert.assertTrue(daemon.isDone());
 
-        Assert.assertEquals(meter.progressCalls.size(), ticks,
-                "Expected " + ticks + " progress calls from daemon thread, but only got " + meter.progressCalls.size() + " with exact calls " + meter.progressCalls);
+        Assert.assertTrue(meter.progressCalls.size() >= 1,
+                "Expected at least one progress update call from daemon thread, but only got " + meter.progressCalls.size() + " with exact calls " + meter.progressCalls);
+
+        final int tolerance = (int)Math.ceil(0.8 * meter.progressCalls.size());
+        Assert.assertTrue(Math.abs(meter.progressCalls.size() - ticks) <= tolerance,
+                "Expected " + ticks + " progress calls from daemon thread, but got " + meter.progressCalls.size() + " and a tolerance of only " + tolerance);
     }
 }
