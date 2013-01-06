@@ -206,7 +206,7 @@ public class RecalDatumUnitTest extends BaseTest {
     }
 
     @Test
-    public void testlog10QempLikelihood() {
+    public void testBayesianEstimateOfEmpiricalQuality() {
 
         final int Qrep = 20;
 
@@ -229,7 +229,7 @@ public class RecalDatumUnitTest extends BaseTest {
     }
 
     @Test
-    public void testBayesianEstimateOfEmpiricalQuality() {
+    public void testlog10QempLikelihood() {
 
         final double[] Qemps = new double[] { 0.0, 10.0, 20.0, 30.0 };
         final int[] observations = new int[] {0, 10, 1000, 1000000};
@@ -248,16 +248,12 @@ public class RecalDatumUnitTest extends BaseTest {
                 }
             }
         }
-    }
 
-    @Test
-    public void testLongToInt() {
-        long l = new Long((long)Integer.MAX_VALUE);
-        int i = RecalDatum.longToInt(l);
-        Assert.assertEquals(i, Integer.MAX_VALUE);
-
-        l++;
-        i = RecalDatum.longToInt(l);
-        Assert.assertEquals(i, Integer.MAX_VALUE);
+        long bigNum = new Long((long)Integer.MAX_VALUE);
+        bigNum *= 2L;
+        final double log10likelihood = RecalDatum.log10QempLikelihood(30, bigNum, 100000);
+        Assert.assertTrue(log10likelihood < 0.0);
+        Assert.assertFalse(Double.isInfinite(log10likelihood));
+        Assert.assertFalse(Double.isNaN(log10likelihood));
     }
 }

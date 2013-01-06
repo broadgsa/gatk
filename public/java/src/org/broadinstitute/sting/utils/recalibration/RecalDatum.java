@@ -341,12 +341,22 @@ public class RecalDatum {
         return log10QempPriorCache[difference];
     }
 
-    static protected double log10QempLikelihood(final double Qempirical, final long nObservations, final long nErrors) {
+    static protected double log10QempLikelihood(final double Qempirical, long nObservations, long nErrors) {
         if ( nObservations == 0 )
             return 0.0;
 
+        // the binomial code requires ints as input (because it does caching).  This should theoretically be fine because
+        // there is plenty of precision in 2^31 observations, but we need to make sure that we don't have overflow
+        // before casting down to an int.
+        if ( nObservations > Integer.MAX_VALUE ) {
+            // we need to decrease nErrors by the same fraction that we are decreasing nObservations
+            final double fraction = (double)Integer.MAX_VALUE / (double)nObservations;
+            nErrors = Math.round((double)nErrors * fraction);
+            nObservations = Integer.MAX_VALUE;
+        }
+
         // this is just a straight binomial PDF
-        double log10Prob = MathUtils.log10BinomialProbability(longToInt(nObservations), longToInt(nErrors), QualityUtils.qualToErrorProbLog10((byte)(int)Qempirical));
+        double log10Prob = MathUtils.log10BinomialProbability((int)nObservations, (int)nErrors, QualityUtils.qualToErrorProbLog10((byte)(int)Qempirical));
         if ( Double.isInfinite(log10Prob) || Double.isNaN(log10Prob) )
             log10Prob = -Double.MAX_VALUE;
 
@@ -354,9 +364,5 @@ public class RecalDatum {
         //    System.out.println(String.format("Qemp = %f, log10Likelihood = %f", Qempirical, log10Prob));
 
         return log10Prob;
-    }
-
-    static protected int longToInt(final long l) {
-        return (l > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int)l;
     }
 }
