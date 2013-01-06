@@ -80,7 +80,8 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
                     Collections.<ReadFilter>emptyList(),
                     Collections.<ReadTransformer>emptyList(),
                     false,
-                    (byte)0);
+                    (byte)0,
+                    false);
 
             GenomeLocParser genomeLocParser = new GenomeLocParser(reader.getFileHeader().getSequenceDictionary());
             // Filter unmapped reads.  TODO: is this always strictly necessary?  Who in the GATK normally filters these out?

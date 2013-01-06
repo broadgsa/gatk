@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils.locusiterator;
 
+import com.google.java.contract.Ensures;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
@@ -63,7 +64,6 @@ public class LocusIteratorByState extends LocusIterator {
     private final GenomeLocParser genomeLocParser;
     private final ArrayList<String> samples;
     private final ReadStateManager readStates;
-    private final boolean keepSubmittedReads;
     private final boolean includeReadsWithDeletionAtLoci;
 
     private AlignmentContext nextAlignmentContext;
@@ -82,19 +82,20 @@ public class LocusIteratorByState extends LocusIterator {
                 toDownsamplingInfo(readInformation),
                 readInformation.includeReadsWithDeletionAtLoci(),
                 genomeLocParser,
-                samples);
+                samples,
+                readInformation.keepUniqueReadListInLIBS());
     }
 
     protected LocusIteratorByState(final Iterator<SAMRecord> samIterator,
                                    final LIBSDownsamplingInfo downsamplingInfo,
                                    final boolean includeReadsWithDeletionAtLoci,
                                    final GenomeLocParser genomeLocParser,
-                                   final Collection<String> samples) {
+                                   final Collection<String> samples,
+                                   final boolean maintainUniqueReadsList ) {
         this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;
         this.genomeLocParser = genomeLocParser;
         this.samples = new ArrayList<String>(samples);
-        this.keepSubmittedReads = false; // TODO -- HOOK UP SYSTEM
-        this.readStates = new ReadStateManager(samIterator, this.samples, downsamplingInfo, keepSubmittedReads);
+        this.readStates = new ReadStateManager(samIterator, this.samples, downsamplingInfo, maintainUniqueReadsList);
 
         // currently the GATK expects this LocusIteratorByState to accept empty sample lists, when
         // there's no read data.  So we need to throw this error only when samIterator.hasNext() is true
@@ -235,6 +236,51 @@ public class LocusIteratorByState extends LocusIterator {
                 }
             }
         }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //
+    // getting the list of reads
+    //
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Transfer current list of all unique reads that have ever been used in any pileup, clearing old list
+     *
+     * This list is guaranteed to only contain unique reads, even across calls to the this function.  It is
+     * literally the unique set of reads ever seen.
+     *
+     * The list occurs in the same order as they are encountered in the underlying iterator.
+     *
+     * Takes the maintained list of submitted reads, and transfers it to the caller of this
+     * function.  The old list of set to a new, cleanly allocated list so the caller officially
+     * owns the list returned by this call.  This is the only way to clear the tracking
+     * of submitted reads, if enabled.
+     *
+     * The purpose of this function is allow users of LIBS to keep track of all of the reads pulled off the
+     * underlying SAMRecord iterator and that appeared at any point in the list of SAMRecordAlignmentState for
+     * any reads.  This function is intended to allow users to efficiently reconstruct the unique set of reads
+     * used across all pileups.  This is necessary for LIBS to handle because attempting to do
+     * so from the pileups coming out of LIBS is extremely expensive.
+     *
+     * This functionality is only available if LIBS was created with the argument to track the reads
+     *
+     * @throws UnsupportedOperationException if called when keepingSubmittedReads is false
+     *
+     * @return the current list
+     */
+    @Ensures("result != null")
+    public List<SAMRecord> transferReadsFromAllPreviousPileups() {
+        return readStates.transferSubmittedReads();
+    }
+
+    /**
+     * Get the underlying list of tracked reads.  For testing only
+     * @return a non-null list
+     */
+    @Ensures("result != null")
+    protected List<SAMRecord> getReadsFromAllPreviousPileups() {
+        return readStates.getSubmittedReads();
     }
 
     // -----------------------------------------------------------------------------------------------------------------

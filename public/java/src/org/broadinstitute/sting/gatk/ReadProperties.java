@@ -61,6 +61,7 @@ public class ReadProperties {
     private final ValidationExclusion exclusionList;
     private final Collection<ReadFilter> supplementalFilters;
     private final List<ReadTransformer> readTransformers;
+    private final boolean keepUniqueReadListInLIBS;
     private final boolean includeReadsWithDeletionAtLoci;
     private final boolean useOriginalBaseQualities;
     private final byte defaultBaseQualities;
@@ -72,6 +73,10 @@ public class ReadProperties {
      */
     public boolean includeReadsWithDeletionAtLoci() {
         return includeReadsWithDeletionAtLoci;
+    }
+
+    public boolean keepUniqueReadListInLIBS() {
+        return keepUniqueReadListInLIBS;
     }
 
     /**
@@ -161,6 +166,8 @@ public class ReadProperties {
      *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
      * @param defaultBaseQualities if the reads have incomplete quality scores, set them all to defaultBaseQuality.
+     * @param keepUniqueReadListInLIBS If true, we will tell LocusIteratorByState to track the unique reads it sees
+     *                                 This is really useful for ActiveRegionTraversals
      */
     public ReadProperties( Collection<SAMReaderID> samFiles,
            SAMFileHeader header,
@@ -172,7 +179,8 @@ public class ReadProperties {
            Collection<ReadFilter> supplementalFilters,
            List<ReadTransformer> readTransformers,
            boolean includeReadsWithDeletionAtLoci,
-           byte defaultBaseQualities) {
+           byte defaultBaseQualities,
+           final boolean keepUniqueReadListInLIBS) {
         this.readers = samFiles;
         this.header = header;
         this.sortOrder = sortOrder;
@@ -184,5 +192,6 @@ public class ReadProperties {
         this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;
         this.useOriginalBaseQualities = useOriginalBaseQualities;
         this.defaultBaseQualities = defaultBaseQualities;
+        this.keepUniqueReadListInLIBS = keepUniqueReadListInLIBS;
     }
 }

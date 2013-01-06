@@ -25,25 +25,10 @@
 
 package org.broadinstitute.sting.utils.locusiterator;
 
-import net.sf.samtools.*;
-import net.sf.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.ReadProperties;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -79,13 +64,8 @@ public class ReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
         public void run() {
             final List<String> samples = sampleListForSAMWithoutReadGroups();
             final Iterator<SAMRecord> iterator = new LinkedList<SAMRecord>().iterator();
-            ReadStateManager readStateManager = new ReadStateManager(iterator, samples, LIBSDownsamplingInfo.NO_DOWNSAMPLING);
+            ReadStateManager readStateManager = new ReadStateManager(iterator, samples, LIBSDownsamplingInfo.NO_DOWNSAMPLING, false);
             ReadStateManager.PerSampleReadStateManager perSampleReadStateManager = readStateManager.new PerSampleReadStateManager(LIBSDownsamplingInfo.NO_DOWNSAMPLING);
-
-//            ReadStateManager readStateManager =
-//                    libs.new ReadStateManager(new ArrayList<SAMRecord>().iterator());
-//            ReadStateManager.PerSampleReadStateManager perSampleReadStateManager =
-//                    readStateManager.new PerSampleReadStateManager();
 
             makeReads();
 

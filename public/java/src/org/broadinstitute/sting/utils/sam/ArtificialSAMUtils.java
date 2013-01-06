@@ -335,16 +335,17 @@ public class ArtificialSAMUtils {
      * @return a collection of stackSize reads all sharing the above properties
      */
     public static List<SAMRecord> createReadStream( final int nReadsPerLocus,
-                                                        final int nLoci,
-                                                        final SAMFileHeader header,
-                                                        final int alignmentStart,
-                                                        final int length ) {
-        final String name = "readName";
+                                                    final int nLoci,
+                                                    final SAMFileHeader header,
+                                                    final int alignmentStart,
+                                                    final int length ) {
+        final String baseName = "read";
         List<SAMRecord> reads = new ArrayList<SAMRecord>(nReadsPerLocus*nLoci);
         for ( int locus = 0; locus < nLoci; locus++ ) {
             for ( int readI = 0; readI < nReadsPerLocus; readI++ ) {
                 for ( final SAMReadGroupRecord rg : header.getReadGroups() ) {
-                    final GATKSAMRecord read = createArtificialRead(header, name, 0, alignmentStart, length);
+                    final String readName = String.format("%s.%d.%d.%s", baseName, locus, readI, rg.getId());
+                    final GATKSAMRecord read = createArtificialRead(header, readName, 0, alignmentStart + locus, length);
                     read.setReadGroup(new GATKSAMReadGroupRecord(rg));
                     reads.add(read);
                 }

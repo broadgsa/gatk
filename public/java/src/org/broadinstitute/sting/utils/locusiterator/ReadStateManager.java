@@ -206,7 +206,7 @@ class ReadStateManager {
      *   interact with ReadStateManager in some way to make work unit
      *   readsUsedInPileup = transferSubmittedReads)
      *
-     * @throws UnsupportedOperationException if called when keepingSubmittedReads is false
+     * @throws UnsupportedOperationException if called when keepSubmittedReads is false
      *
      * @return the current list of submitted reads
      */
@@ -224,6 +224,14 @@ class ReadStateManager {
     }
 
     /**
+     * Are we keeping submitted reads, or not?
+     * @return true if we are keeping them, false otherwise
+     */
+    public boolean isKeepingSubmittedReads() {
+        return keepSubmittedReads;
+    }
+
+    /**
      * Obtain a pointer to the list of submitted reads.
      *
      * This is not a copy of the list; it is shared with this ReadStateManager.  It should
@@ -232,11 +240,11 @@ class ReadStateManager {
      *
      * For testing purposes only.
      *
-     * Will always be empty if we are are not keepingSubmittedReads
+     * Will always be empty if we are are not keepSubmittedReads
      *
      * @return a non-null list of reads that have been submitted to this ReadStateManager
      */
-    @Ensures({"result != null","keepingSubmittedReads || result.isEmpty()"})
+    @Ensures({"result != null","keepSubmittedReads || result.isEmpty()"})
     protected List<SAMRecord> getSubmittedReads() {
         return submittedReads;
     }

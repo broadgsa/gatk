@@ -51,6 +51,11 @@ import java.util.*;
  */
 
 public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegionWalker<M,T>,LocusShardDataProvider> {
+    // TODO
+    // TODO -- remove me when ART uses the LIBS traversal
+    // TODO
+    public static final boolean KEEP_READS_IN_LIBS = false;
+
     /**
      * our log, which we want to capture anything from this class
      */

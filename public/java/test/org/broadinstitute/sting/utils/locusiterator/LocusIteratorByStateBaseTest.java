@@ -82,10 +82,10 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
     }
 
     protected static ReadProperties createTestReadProperties() {
-        return createTestReadProperties(null);
+        return createTestReadProperties(null, false);
     }
 
-    protected static ReadProperties createTestReadProperties( DownsamplingMethod downsamplingMethod ) {
+    protected static ReadProperties createTestReadProperties( DownsamplingMethod downsamplingMethod, final boolean keepReads ) {
         return new ReadProperties(
                 Collections.<SAMReaderID>emptyList(),
                 new SAMFileHeader(),
@@ -97,8 +97,8 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
                 Collections.<ReadFilter>emptyList(),
                 Collections.<ReadTransformer>emptyList(),
                 false,
-                (byte) -1
-        );
+                (byte) -1,
+                keepReads);
     }
 
     protected static class FakeCloseableIterator<T> implements CloseableIterator<T> {
