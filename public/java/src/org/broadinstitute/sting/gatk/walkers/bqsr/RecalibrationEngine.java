@@ -27,10 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.bqsr;
 
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.collections.NestedIntegerArray;
-import org.broadinstitute.sting.utils.recalibration.EventType;
-import org.broadinstitute.sting.utils.recalibration.ReadCovariates;
-import org.broadinstitute.sting.utils.recalibration.RecalDatum;
-import org.broadinstitute.sting.utils.recalibration.RecalibrationTables;
+import org.broadinstitute.sting.utils.recalibration.*;
 import org.broadinstitute.sting.utils.recalibration.covariates.Covariate;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -128,29 +125,19 @@ public class RecalibrationEngine {
                     final byte qual = recalInfo.getQual(eventType, offset);
                     final double isError = recalInfo.getErrorFraction(eventType, offset);
 
-                    incrementDatumOrPutIfNecessary(qualityScoreTable, qual, isError, keys[0], keys[1], eventIndex);
+                    RecalUtils.incrementDatumOrPutIfNecessary(qualityScoreTable, qual, isError, keys[0], keys[1], eventIndex);
 
                     for (int i = 2; i < covariates.length; i++) {
                         if (keys[i] < 0)
                             continue;
 
-                        incrementDatumOrPutIfNecessary(tables.getTable(i), qual, isError, keys[0], keys[1], keys[i], eventIndex);
+                        RecalUtils.incrementDatumOrPutIfNecessary(tables.getTable(i), qual, isError, keys[0], keys[1], keys[i], eventIndex);
                     }
                 }
             }
         }
     }
 
-    /**
-     * creates a datum object with one observation and one or zero error
-     *
-     * @param reportedQual  the quality score reported by the instrument for this base
-     * @param isError       whether or not the observation is an error
-     * @return a new RecalDatum object with the observation and the error
-     */
-    protected RecalDatum createDatumObject(final byte reportedQual, final double isError) {
-        return new RecalDatum(1, isError, reportedQual);
-    }
 
     /**
      * Finalize, if appropriate, all derived data in recalibrationTables.
@@ -225,37 +212,5 @@ public class RecalibrationEngine {
     public RecalibrationTables getFinalRecalibrationTables() {
         if ( ! finalized ) throw new IllegalStateException("Cannot get final recalibration tables until finalizeData() has been called");
         return finalRecalibrationTables;
-    }
-
-    /**
-     * Increments the RecalDatum at the specified position in the specified table, or put a new item there
-     * if there isn't already one.
-     *
-     * Does this in a thread-safe way WITHOUT being synchronized: relies on the behavior of NestedIntegerArray.put()
-     * to return false if another thread inserts a new item at our position in the middle of our put operation.
-     *
-     * @param table the table that holds/will hold our item
-     * @param qual qual for this event
-     * @param isError error value for this event
-     * @param keys location in table of our item
-     */
-    protected void incrementDatumOrPutIfNecessary( final NestedIntegerArray<RecalDatum> table,
-                                                   final byte qual,
-                                                   final double isError,
-                                                   final int... keys ) {
-        final RecalDatum existingDatum = table.get(keys);
-
-        if ( existingDatum == null ) {
-            // No existing item, try to put a new one
-            if ( ! table.put(createDatumObject(qual, isError), keys) ) {
-                // Failed to put a new item because another thread came along and put an item here first.
-                // Get the newly-put item and increment it (item is guaranteed to exist at this point)
-                table.get(keys).increment(1L, isError);
-            }
-        }
-        else {
-            // Easy case: already an item here, so increment it
-            existingDatum.increment(1L, isError);
-        }
     }
 }

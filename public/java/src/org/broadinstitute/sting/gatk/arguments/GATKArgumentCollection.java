@@ -37,7 +37,6 @@ import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.activeregion.ExperimentalActiveRegionShardType;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
@@ -449,14 +448,5 @@ public class GATKArgumentCollection {
     @Hidden
     public boolean generateShadowBCF = false;
     // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // Experimental Active Region Traversal modes
-    //
-    // --------------------------------------------------------------------------------------------------------------
-
-    @Argument(fullName = "active_region_traversal_shard_type", shortName = "active_region_traversal_shard_type", doc = "Choose an experimental shard type for active region traversal, instead of the default LocusShard", required = false)
-    public ExperimentalActiveRegionShardType activeRegionShardType = ExperimentalActiveRegionShardType.LOCUSSHARD;
 }
 
