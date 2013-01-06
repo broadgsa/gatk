@@ -32,8 +32,8 @@ import org.apache.log4j.PatternLayout;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.help.HelpFormatter;
-import org.broadinstitute.sting.utils.help.HelpUtils;
 
 import java.io.IOException;
 import java.util.*;
@@ -289,7 +289,7 @@ public abstract class CommandLineProgram {
      */
     private static void printDocumentationReference() {
         errorPrintf("Visit our website and forum for extensive documentation and answers to %n");
-        errorPrintf("commonly asked questions " + HelpUtils.BASE_GATK_URL + "%n");
+        errorPrintf("commonly asked questions " + HelpConstants.BASE_GATK_URL + "%n");
     }
 
 
