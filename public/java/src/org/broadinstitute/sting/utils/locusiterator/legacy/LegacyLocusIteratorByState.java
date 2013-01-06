@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.locusiterator;
+package org.broadinstitute.sting.utils.locusiterator.legacy;
 
 import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.Cigar;
@@ -40,6 +40,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.LegacyReservoirDownsampler;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.locusiterator.LocusIterator;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;

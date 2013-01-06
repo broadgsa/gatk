@@ -29,7 +29,7 @@ import net.sf.picard.util.PeekableIterator;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.utils.locusiterator.LegacyLocusIteratorByState;
+import org.broadinstitute.sting.utils.locusiterator.legacy.LegacyLocusIteratorByState;
 import org.broadinstitute.sting.utils.locusiterator.LocusIterator;
 import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;

@@ -36,7 +36,7 @@ import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
-import org.broadinstitute.sting.utils.locusiterator.LegacyLocusIteratorByState;
+import org.broadinstitute.sting.utils.locusiterator.legacy.LegacyLocusIteratorByState;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.walkers.qc.CountLoci;
 import org.broadinstitute.sting.utils.GenomeLocParser;

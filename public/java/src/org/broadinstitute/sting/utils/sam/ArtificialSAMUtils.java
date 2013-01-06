@@ -327,6 +327,34 @@ public class ArtificialSAMUtils {
     }
 
     /**
+     * Create a read stream based on the parameters.  The cigar string for each
+     * read will be *M, where * is the length of the read.
+     *
+     * Useful for testing things like LocusIteratorBystate
+     *
+     * @return a collection of stackSize reads all sharing the above properties
+     */
+    public static List<SAMRecord> createReadStream( final int nReadsPerLocus,
+                                                        final int nLoci,
+                                                        final SAMFileHeader header,
+                                                        final int alignmentStart,
+                                                        final int length ) {
+        final String name = "readName";
+        List<SAMRecord> reads = new ArrayList<SAMRecord>(nReadsPerLocus*nLoci);
+        for ( int locus = 0; locus < nLoci; locus++ ) {
+            for ( int readI = 0; readI < nReadsPerLocus; readI++ ) {
+                for ( final SAMReadGroupRecord rg : header.getReadGroups() ) {
+                    final GATKSAMRecord read = createArtificialRead(header, name, 0, alignmentStart, length);
+                    read.setReadGroup(new GATKSAMReadGroupRecord(rg));
+                    reads.add(read);
+                }
+            }
+        }
+
+        return reads;
+    }
+
+    /**
      * create an iterator containing the specified read piles
      *
      * @param startingChr the chromosome (reference ID) to start from
