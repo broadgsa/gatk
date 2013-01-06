@@ -817,12 +817,12 @@ public class RecalUtils {
             if ( ! table.put(createDatumObject(qual, isError), keys) ) {
                 // Failed to put a new item because another thread came along and put an item here first.
                 // Get the newly-put item and increment it (item is guaranteed to exist at this point)
-                table.get(keys).increment(1.0, isError);
+                table.get(keys).increment(1L, isError);
             }
         }
         else {
             // Easy case: already an item here, so increment it
-            existingDatum.increment(1.0, isError);
+            existingDatum.increment(1L, isError);
         }
     }
 
