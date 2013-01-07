@@ -27,6 +27,25 @@ public class BQSRGathererUnitTest extends BaseTest {
     private static File recal_original = new File(privateTestDir + "HiSeq.1mb.1RG.noSG.table");
 
     @Test(enabled = true)
+    public void testManyObservations() {
+        File recal = new File(privateTestDir + "bqsr.manyObservations.piece.table");
+
+        final File output = BaseTest.createTempFile("BQSRgathererTest", ".table");
+
+        List<File> recalFiles = new LinkedList<File> ();
+        for ( int i=0; i < 5; i++ )
+            recalFiles.add(recal);
+
+        BQSRGatherer gatherer = new BQSRGatherer();
+        gatherer.gather(recalFiles, output);
+
+        GATKReport originalReport = new GATKReport(new File(privateTestDir + "bqsr.manyObservations.full.table"));
+        GATKReport calculatedReport = new GATKReport(output);
+
+        testReports(originalReport, calculatedReport);
+    }
+
+    @Test(enabled = true)
     public void testGatherBQSR() {
         BQSRGatherer gatherer = new BQSRGatherer();
         List<File> recalFiles = new LinkedList<File> ();
@@ -41,6 +60,11 @@ public class BQSRGathererUnitTest extends BaseTest {
 
         GATKReport originalReport = new GATKReport(recal_original);
         GATKReport calculatedReport = new GATKReport(output);
+
+        testReports(originalReport, calculatedReport);
+    }
+
+    private void testReports(final GATKReport originalReport, final GATKReport calculatedReport) {
 
         // test the Arguments table
         List<String> columnsToTest = Arrays.asList(RecalUtils.ARGUMENT_COLUMN_NAME, RecalUtils.ARGUMENT_VALUE_COLUMN_NAME);
