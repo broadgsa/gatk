@@ -53,7 +53,6 @@ import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -218,13 +217,6 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Utility method to determine whether this is the lite version of the GATK
-     */
-    public boolean isGATKLite() {
-        return GATKLiteUtils.isGATKLite();
-    }
-
-    /**
      * Actually run the GATK with the specified walker.
      *
      * @return the value of this traversal.
@@ -330,10 +322,7 @@ public class GenomeAnalysisEngine {
         try {
             return walkerManager.createByName(walkerName);
         } catch ( UserException e ) {
-            if ( isGATKLite() && GATKLiteUtils.isAvailableOnlyInFullGATK(walkerName) ) {
-                e = new UserException.NotSupportedInGATKLite("the " + walkerName + " walker is available only in the full version of the GATK");
-            }
-            else if ( isDeprecatedWalker(walkerName) ) {
+            if ( isDeprecatedWalker(walkerName) ) {
                 e = new UserException.DeprecatedWalker(walkerName, getDeprecatedMajorVersionNumber(walkerName));
             }
             throw e;
