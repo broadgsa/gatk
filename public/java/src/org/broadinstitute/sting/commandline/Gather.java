@@ -35,5 +35,6 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD})
 public @interface Gather {
     Class value() default Gather.class;
+    String className() default "";
     boolean enabled() default true;
 }

@@ -205,7 +205,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         if ( PRIORITY_STRING == null && genotypeMergeOption == null) {
             genotypeMergeOption = VariantContextUtils.GenotypeMergeType.UNSORTED;
             //PRIORITY_STRING = Utils.join(",", vcfRods.keySet());  Deleted by Ami (7/10/12)
-            logger.info("Priority string not provided, using arbitrary genotyping order: "+priority);
+            logger.info("Priority string is not provided, using arbitrary genotyping order: "+priority);
         }
 
         samples = sitesOnlyVCF ? Collections.<String>emptySet() : SampleUtils.getSampleList(vcfRods, genotypeMergeOption);
