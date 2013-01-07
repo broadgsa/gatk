@@ -90,6 +90,10 @@ public class QualityUtils {
         return qualToErrorProbLog10Cache[(int)qual & 0xff]; // Map: 127 -> 127; -128 -> 128; -1 -> 255; etc.
     }
 
+    static public double qualToErrorProbLog10(final double qual) {
+        return qual/-10.0;
+    }
+
     /**
      * Convert a probability to a quality score.  Note, this is capped at Q40.
      *

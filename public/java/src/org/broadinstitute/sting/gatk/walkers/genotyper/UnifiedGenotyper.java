@@ -50,7 +50,6 @@ import org.broadinstitute.variant.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 
-
 import java.io.PrintStream;
 import java.util.*;
 
@@ -158,10 +157,9 @@ public class UnifiedGenotyper extends LocusWalker<List<VariantCallContext>, Unif
     /**
      * A raw, unfiltered, highly sensitive callset in VCF format.
      */
-    @Gather(className = "org.broadinstitute.sting.queue.extensions.gatk.CatVariantsGatherer")  //TODO: check this gatherer
+    @Gather(className = "org.broadinstitute.sting.queue.extensions.gatk.CatVariantsGatherer")
     @Output(doc="File to which variants should be written",required=true)
     protected VariantContextWriter writer = null;
-
 
     @Hidden
     @Argument(fullName = "debug_file", shortName = "debug_file", doc = "File to print all of the annotated and detailed debugging output", required = false)

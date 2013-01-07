@@ -146,7 +146,7 @@ public final class RecalUtilsUnitTest extends BaseTest {
     public NestedIntegerArray<RecalDatum> makeTable(final List<Row> rows) {
         final NestedIntegerArray<RecalDatum> x = new NestedIntegerArray<RecalDatum>(3, 3);
         for ( final Row r : rows )
-            x.put(new RecalDatum(r.no, r.ne, (byte)10), r.rg, r.qual);
+            x.put(new RecalDatum((long)r.no, (double)r.ne, (byte)10), r.rg, r.qual);
         return x;
     }
 }

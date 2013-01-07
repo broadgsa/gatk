@@ -68,15 +68,6 @@ public class RecalibrationReport {
 
     }
 
-    protected RecalibrationReport(final QuantizationInfo quantizationInfo, final RecalibrationTables recalibrationTables, final Covariate[] requestedCovariates, final GATKReportTable argumentTable, final RecalibrationArgumentCollection RAC) {
-        this.quantizationInfo = quantizationInfo;
-        this.recalibrationTables = recalibrationTables;
-        this.requestedCovariates = requestedCovariates;
-        this.argumentTable = argumentTable;
-        this.RAC = RAC;
-        this.optionalCovariateIndexes = null;
-    }
-
     /**
      * Counts the number of unique read groups in the table
      *
@@ -139,12 +130,12 @@ public class RecalibrationReport {
             final String covName = (String)reportTable.get(i, RecalUtils.COVARIATE_NAME_COLUMN_NAME);
             final int covIndex = optionalCovariateIndexes.get(covName);
             final Object covValue = reportTable.get(i, RecalUtils.COVARIATE_VALUE_COLUMN_NAME);
-            tempCOVarray[2] = requestedCovariates[RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + covIndex].keyFromValue(covValue);
+            tempCOVarray[2] = requestedCovariates[RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.ordinal() + covIndex].keyFromValue(covValue);
 
             final EventType event = EventType.eventFrom((String)reportTable.get(i, RecalUtils.EVENT_TYPE_COLUMN_NAME));
-            tempCOVarray[3] = event.index;
+            tempCOVarray[3] = event.ordinal();
 
-            recalibrationTables.getTable(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.index + covIndex).put(getRecalDatum(reportTable, i, false), tempCOVarray);
+            recalibrationTables.getTable(RecalibrationTables.TableType.OPTIONAL_COVARIATE_TABLES_START.ordinal() + covIndex).put(getRecalDatum(reportTable, i, false), tempCOVarray);
         }
     }
 
@@ -161,7 +152,7 @@ public class RecalibrationReport {
             final Object qual = reportTable.get(i, RecalUtils.QUALITY_SCORE_COLUMN_NAME);
             tempQUALarray[1] = requestedCovariates[1].keyFromValue(qual);
             final EventType event = EventType.eventFrom((String)reportTable.get(i, RecalUtils.EVENT_TYPE_COLUMN_NAME));
-            tempQUALarray[2] = event.index;
+            tempQUALarray[2] = event.ordinal();
 
             qualTable.put(getRecalDatum(reportTable, i, false), tempQUALarray);
         }
@@ -178,7 +169,7 @@ public class RecalibrationReport {
             final Object rg = reportTable.get(i, RecalUtils.READGROUP_COLUMN_NAME);
             tempRGarray[0] = requestedCovariates[0].keyFromValue(rg);
             final EventType event = EventType.eventFrom((String)reportTable.get(i, RecalUtils.EVENT_TYPE_COLUMN_NAME));
-            tempRGarray[1] = event.index;
+            tempRGarray[1] = event.ordinal();
 
             rgTable.put(getRecalDatum(reportTable, i, true), tempRGarray);
         }
@@ -192,11 +183,22 @@ public class RecalibrationReport {
         else if ( o instanceof Long )
             return (Long)o;
         else
-            throw new ReviewedStingException("Object " + o + " is expected to be either a double, long or integer but its not either: " + o.getClass());
+            throw new ReviewedStingException("Object " + o + " is expected to be either a double, long or integer but it's not either: " + o.getClass());
+    }
+
+    private long asLong(final Object o) {
+        if ( o instanceof Long )
+            return (Long)o;
+        else if ( o instanceof Integer )
+            return ((Integer)o).longValue();
+        else if ( o instanceof Double )
+            return ((Double)o).longValue();
+        else
+            throw new ReviewedStingException("Object " + o + " is expected to be a long but it's not: " + o.getClass());
     }
 
     private RecalDatum getRecalDatum(final GATKReportTable reportTable, final int row, final boolean hasEstimatedQReportedColumn) {
-        final double nObservations = asDouble(reportTable.get(row, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME));
+        final long nObservations = asLong(reportTable.get(row, RecalUtils.NUMBER_OBSERVATIONS_COLUMN_NAME));
         final double nErrors = asDouble(reportTable.get(row, RecalUtils.NUMBER_ERRORS_COLUMN_NAME));
         final double empiricalQuality = asDouble(reportTable.get(row, RecalUtils.EMPIRICAL_QUALITY_COLUMN_NAME));
 

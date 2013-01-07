@@ -30,7 +30,7 @@ import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.HelpUtils;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 
@@ -278,7 +278,7 @@ public class UserException extends ReviewedStingException {
 
     public static class ReadMissingReadGroup extends MalformedBAM {
         public ReadMissingReadGroup(SAMRecord read) {
-            super(read, String.format("Read %s is either missing the read group or its read group is not defined in the BAM header, both of which are required by the GATK.  Please use " + HelpUtils.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName()));
+            super(read, String.format("Read %s is either missing the read group or its read group is not defined in the BAM header, both of which are required by the GATK.  Please use " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName()));
         }
     }
 
@@ -354,7 +354,7 @@ public class UserException extends ReviewedStingException {
             super(String.format("Lexicographically sorted human genome sequence detected in %s."
                     + "\nFor safety's sake the GATK requires human contigs in karyotypic order: 1, 2, ..., 10, 11, ..., 20, 21, 22, X, Y with M either leading or trailing these contigs."
                     + "\nThis is because all distributed GATK resources are sorted in karyotypic order, and your processing will fail when you need to use these files."
-                    + "\nYou can use the ReorderSam utility to fix this problem: " + HelpUtils.forumPost("discussion/58/companion-utilities-reordersam")
+                    + "\nYou can use the ReorderSam utility to fix this problem: " + HelpConstants.forumPost("discussion/58/companion-utilities-reordersam")
                     + "\n  %s contigs = %s",
                     name, name, ReadUtils.prettyPrintSequenceRecords(dict)));
         }

@@ -68,9 +68,9 @@ public class ReadCovariates {
      * @param readOffset the read offset, must be >= 0 and <= the read length used to create this ReadCovariates
      */
     public void addCovariate(final int mismatch, final int insertion, final int deletion, final int readOffset) {
-        keys[EventType.BASE_SUBSTITUTION.index][readOffset][currentCovariateIndex] = mismatch;
-        keys[EventType.BASE_INSERTION.index][readOffset][currentCovariateIndex] = insertion;
-        keys[EventType.BASE_DELETION.index][readOffset][currentCovariateIndex] = deletion;
+        keys[EventType.BASE_SUBSTITUTION.ordinal()][readOffset][currentCovariateIndex] = mismatch;
+        keys[EventType.BASE_INSERTION.ordinal()][readOffset][currentCovariateIndex] = insertion;
+        keys[EventType.BASE_DELETION.ordinal()][readOffset][currentCovariateIndex] = deletion;
     }
 
     /**
@@ -81,11 +81,11 @@ public class ReadCovariates {
      * @return
      */
     public int[] getKeySet(final int readPosition, final EventType errorModel) {
-        return keys[errorModel.index][readPosition];
+        return keys[errorModel.ordinal()][readPosition];
     }
 
     public int[][] getKeySet(final EventType errorModel) {
-        return keys[errorModel.index];
+        return keys[errorModel.ordinal()];
     }
 
     // ----------------------------------------------------------------------
@@ -94,17 +94,9 @@ public class ReadCovariates {
     //
     // ----------------------------------------------------------------------
 
-    protected int[][] getMismatchesKeySet() {
-        return keys[EventType.BASE_SUBSTITUTION.index];
-    }
-
-    protected int[][] getInsertionsKeySet() {
-        return keys[EventType.BASE_INSERTION.index];
-    }
-
-    protected int[][] getDeletionsKeySet() {
-        return keys[EventType.BASE_DELETION.index];
-    }
+    protected int[][] getMismatchesKeySet() { return getKeySet(EventType.BASE_SUBSTITUTION); }
+    protected int[][] getInsertionsKeySet() { return getKeySet(EventType.BASE_INSERTION); }
+    protected int[][] getDeletionsKeySet() { return getKeySet(EventType.BASE_DELETION); }
 
     protected int[] getMismatchesKeySet(final int readPosition) {
         return getKeySet(readPosition, EventType.BASE_SUBSTITUTION);

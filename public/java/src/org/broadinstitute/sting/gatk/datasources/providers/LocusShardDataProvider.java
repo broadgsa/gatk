@@ -23,11 +23,6 @@ public class LocusShardDataProvider extends ShardDataProvider {
     private final ReadProperties sourceInfo;
 
     /**
-     * The parser, used to create and build new GenomeLocs.
-     */
-    private final GenomeLocParser genomeLocParser;
-
-    /**
      * The particular locus for which data is provided.  Should be contained within shard.getGenomeLocs().
      */
     private final GenomeLoc locus;
@@ -45,7 +40,6 @@ public class LocusShardDataProvider extends ShardDataProvider {
     public LocusShardDataProvider(Shard shard, ReadProperties sourceInfo, GenomeLocParser genomeLocParser, GenomeLoc locus, LocusIterator locusIterator, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
         super(shard,genomeLocParser,reference,rods);
         this.sourceInfo = sourceInfo;
-        this.genomeLocParser = genomeLocParser;
         this.locus = locus;
         this.locusIterator = locusIterator;
     }

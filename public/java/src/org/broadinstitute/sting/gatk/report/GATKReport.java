@@ -117,7 +117,7 @@ public class GATKReport {
      * @param numColumns       the number of columns in this table
      */
     public void addTable(final String tableName, final String tableDescription, final int numColumns) {
-        addTable(tableName, tableDescription, numColumns, false, false);
+        addTable(tableName, tableDescription, numColumns, GATKReportTable.TableSortingWay.DO_NOT_SORT);
     }
 
     /**
@@ -126,11 +126,10 @@ public class GATKReport {
      * @param tableName        the name of the table
      * @param tableDescription the description of the table
      * @param numColumns       the number of columns in this table
-     * @param sortByRowID      whether to sort the rows by the row ID
-     * @param sortByAllColumns whether to sort the rows by all columns starting from leftmost column
+     * @param sortingWay       way to sort table
      */
-    public void addTable(final String tableName, final String tableDescription, final int numColumns, final boolean sortByRowID, final boolean sortByAllColumns) {
-        GATKReportTable table = new GATKReportTable(tableName, tableDescription, numColumns, sortByRowID, sortByAllColumns);
+    public void addTable(final String tableName, final String tableDescription, final int numColumns, final GATKReportTable.TableSortingWay sortingWay) {
+        GATKReportTable table = new GATKReportTable(tableName, tableDescription, numColumns, sortingWay);
         tables.put(tableName, table);
     }
 
