@@ -33,7 +33,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pairhmm.ExactPairHMM;
-import org.broadinstitute.sting.utils.pairhmm.LoglessCachingPairHMM;
+//import org.broadinstitute.sting.utils.pairhmm.LoglessCachingPairHMM;
 import org.broadinstitute.sting.utils.pairhmm.OriginalPairHMM;
 import org.broadinstitute.sting.utils.pairhmm.PairHMM;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -102,9 +102,9 @@ public class PairHMMIndelErrorModel {
                 break;
             case CACHING:
             case LOGLESS_CACHING:                //TODO: still not tested so please do not use yet
-                pairHMM = new LoglessCachingPairHMM();
-                System.err.println("warning: this option (LOGLESS_CACHING in UG) is still under development");
-                break;
+                //pairHMM = new LoglessCachingPairHMM(); //TODO - add it back when the figure out how to use the protected LoglessCachingPairHMM class
+                throw new UserException.BadArgumentValue("pairHMM"," this option (LOGLESS_CACHING in UG) is still under development");
+                //break;
             default:
                 throw new UserException.BadArgumentValue("pairHMM", "Specified pairHMM implementation is unrecognized or incompatible with the UnifiedGenotyper. Acceptable options are ORIGINAL, EXACT or LOGLESS_CACHING (the third option is still under development).");
         }
