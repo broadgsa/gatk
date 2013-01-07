@@ -264,7 +264,7 @@ public class RecalDatumNode<T extends RecalDatum> {
             for ( final RecalDatumNode<T> subnode : subnodes ) {
                 // use the yates correction to help avoid all zeros => NaN
                 counts[i][0] = Math.round(subnode.getRecalDatum().getNumMismatches()) + 1L;
-                counts[i][1] = Math.round(subnode.getRecalDatum().getNumObservations()) + 2L;
+                counts[i][1] = subnode.getRecalDatum().getNumObservations() + 2L;
                 i++;
             }
 
@@ -320,7 +320,7 @@ public class RecalDatumNode<T extends RecalDatum> {
 
         if ( isLeaf() ) {
             // this is leave node
-            return (Math.abs(Math.log10(recalDatum.getEmpiricalErrorRate()) - Math.log10(globalErrorRate))) * recalDatum.getNumObservations();
+            return (Math.abs(Math.log10(recalDatum.getEmpiricalErrorRate()) - Math.log10(globalErrorRate))) * (double)recalDatum.getNumObservations();
             // TODO -- how we can generalize this calculation?
 //            if ( this.qEnd <= minInterestingQual )
 //                // It's free to merge up quality scores below the smallest interesting one

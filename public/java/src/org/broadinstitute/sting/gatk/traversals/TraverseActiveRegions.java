@@ -43,7 +43,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
     public T traverse( final ActiveRegionWalker<M,T> walker,
                        final LocusShardDataProvider dataProvider,
                        T sum) {
-        logger.debug(String.format("TraverseActiveRegion.traverse: Shard is %s", dataProvider));
+        logger.debug(String.format("TraverseActiveRegions.traverse: Shard is %s", dataProvider));
 
         final LocusView locusView = new AllLocusView(dataProvider);
 
@@ -227,7 +227,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
             final GenomeLoc extendedLoc = workQueue.peek().getExtendedLoc();
             if ( extendedLoc.getStop() < minStart || (currentContig != null && !workQueue.peek().getExtendedLoc().getContig().equals(currentContig))) {
                 final ActiveRegion activeRegion = workQueue.remove();
-                sum = processActiveRegion( activeRegion, myReads, workQueue, sum, walker );
+                sum = processActiveRegion( activeRegion, sum, walker );
             } else {
                 break;
             }
@@ -236,9 +236,9 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
         return sum;
     }
 
-    private T processActiveRegion( final ActiveRegion activeRegion, final LinkedHashSet<GATKSAMRecord> reads, final Queue<ActiveRegion> workQueue, final T sum, final ActiveRegionWalker<M,T> walker ) {
+    private T processActiveRegion( final ActiveRegion activeRegion, final T sum, final ActiveRegionWalker<M,T> walker ) {
         final ArrayList<GATKSAMRecord> placedReads = new ArrayList<GATKSAMRecord>();
-        for( final GATKSAMRecord read : reads ) {
+        for( final GATKSAMRecord read : myReads ) {
             final GenomeLoc readLoc = this.engine.getGenomeLocParser().createGenomeLoc( read );
             if( activeRegion.getLocation().overlapsP( readLoc ) ) {
                 // The region which the highest amount of overlap is chosen as the primary region for the read (tie breaking is done as right most region)
@@ -278,7 +278,7 @@ public class TraverseActiveRegions <M,T> extends TraversalEngine<M,T,ActiveRegio
                 activeRegion.add( read );
             }
         }
-        reads.removeAll( placedReads ); // remove all the reads which have been placed into their active region
+        myReads.removeAll( placedReads ); // remove all the reads which have been placed into their active region
         // WARNING: This hashset relies on reads being exactly equal when they are placed in the list as when they are removed. So the ActiveRegionWalker can't modify the reads in any way.
 
         logger.debug(">> Map call with " + activeRegion.getReads().size() + " " + (activeRegion.isActive ? "active" : "inactive") + " reads @ " + activeRegion.getLocation() + " with full extent: " + activeRegion.getReferenceLoc());

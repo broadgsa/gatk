@@ -28,7 +28,7 @@ public class GATKDocUtils {
     /**
      * The URL root for RELEASED GATKDOC units
      */
-    public final static String URL_ROOT_FOR_RELEASE_GATKDOCS = HelpUtils.GATK_DOCS_URL;
+    public final static String URL_ROOT_FOR_RELEASE_GATKDOCS = HelpConstants.GATK_DOCS_URL;
     /**
      * The URL root for STABLE GATKDOC units
      */

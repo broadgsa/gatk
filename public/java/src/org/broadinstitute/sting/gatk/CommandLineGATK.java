@@ -36,10 +36,7 @@ import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.gatk.walkers.Attribution;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.help.ApplicationDetails;
-import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.GATKDocUtils;
-import org.broadinstitute.sting.utils.help.HelpUtils;
+import org.broadinstitute.sting.utils.help.*;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
 import java.util.*;
@@ -161,7 +158,7 @@ public class CommandLineGATK extends CommandLineExecutable {
         List<String> header = new ArrayList<String>();
         header.add(String.format("The Genome Analysis Toolkit (GATK) v%s, Compiled %s",getVersionNumber(), getBuildTime()));
         header.add("Copyright (c) 2010 The Broad Institute");
-        header.add("For support and documentation go to " + HelpUtils.BASE_GATK_URL);
+        header.add("For support and documentation go to " + HelpConstants.BASE_GATK_URL);
         return header;
     }
 

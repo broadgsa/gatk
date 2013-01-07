@@ -54,9 +54,10 @@ import java.util.*;
  * Left-aligns indels from a variants file.
  *
  * <p>
- * LeftAlignVariants is a tool that takes a VCF file and left-aligns any indels inside it.  The same indel can often be
+ * LeftAlignVariants is a tool that takes a VCF file and left-aligns the indels inside it.  The same indel can often be
  * placed at multiple positions and still represent the same haplotype.  While the standard convention with VCF is to
  * place an indel at the left-most position this doesn't always happen, so this tool can be used to left-align them.
+ * Note that this tool cannot handle anything other than bi-allelic, simple indels.  Complex events are written out unchanged.
  *
  * <h2>Input</h2>
  * <p>

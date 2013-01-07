@@ -198,7 +198,7 @@ public class BaseRecalibration {
     }
 
     private double getGlobalDeltaQ(final int rgKey, final EventType errorModel) {
-        final Double cached = globalDeltaQs.get(rgKey, errorModel.index);
+        final Double cached = globalDeltaQs.get(rgKey, errorModel.ordinal());
 
         if ( TEST_CACHING ) {
             final double calcd = calculateGlobalDeltaQ(rgKey, errorModel);
@@ -210,7 +210,7 @@ public class BaseRecalibration {
     }
 
     private double getDeltaQReported(final int rgKey, final int qualKey, final EventType errorModel, final double globalDeltaQ) {
-        final Double cached = deltaQReporteds.get(rgKey, qualKey, errorModel.index);
+        final Double cached = deltaQReporteds.get(rgKey, qualKey, errorModel.ordinal());
 
         if ( TEST_CACHING ) {
             final double calcd = calculateDeltaQReported(rgKey, qualKey, errorModel, globalDeltaQ, (byte)qualKey);
@@ -240,7 +240,7 @@ public class BaseRecalibration {
     private double calculateGlobalDeltaQ(final int rgKey, final EventType errorModel) {
         double result = 0.0;
 
-        final RecalDatum empiricalQualRG = recalibrationTables.getReadGroupTable().get(rgKey, errorModel.index);
+        final RecalDatum empiricalQualRG = recalibrationTables.getReadGroupTable().get(rgKey, errorModel.ordinal());
 
         if (empiricalQualRG != null) {
             final double globalDeltaQEmpirical = empiricalQualRG.getEmpiricalQuality();
@@ -254,7 +254,7 @@ public class BaseRecalibration {
     private double calculateDeltaQReported(final int rgKey, final int qualKey, final EventType errorModel, final double globalDeltaQ, final byte qualFromRead) {
         double result = 0.0;
 
-        final RecalDatum empiricalQualQS = recalibrationTables.getQualityScoreTable().get(rgKey, qualKey, errorModel.index);
+        final RecalDatum empiricalQualQS = recalibrationTables.getQualityScoreTable().get(rgKey, qualKey, errorModel.ordinal());
         if (empiricalQualQS != null) {
             final double deltaQReportedEmpirical = empiricalQualQS.getEmpiricalQuality();
             result = deltaQReportedEmpirical - qualFromRead - globalDeltaQ;
@@ -287,7 +287,7 @@ public class BaseRecalibration {
                                             final double globalDeltaQ,
                                             final double deltaQReported,
                                             final byte qualFromRead) {
-        final RecalDatum empiricalQualCO = table.get(rgKey, qualKey, tableKey, errorModel.index);
+        final RecalDatum empiricalQualCO = table.get(rgKey, qualKey, tableKey, errorModel.ordinal());
         if (empiricalQualCO != null) {
             final double deltaQCovariateEmpirical = empiricalQualCO.getEmpiricalQuality();
             return deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported);

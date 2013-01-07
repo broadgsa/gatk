@@ -42,7 +42,6 @@ public class BQSRGathererUnitTest extends BaseTest {
         GATKReport originalReport = new GATKReport(recal_original);
         GATKReport calculatedReport = new GATKReport(output);
 
-
         // test the Arguments table
         List<String> columnsToTest = Arrays.asList(RecalUtils.ARGUMENT_COLUMN_NAME, RecalUtils.ARGUMENT_VALUE_COLUMN_NAME);
         GATKReportTable originalTable = originalReport.getTable(RecalUtils.ARGUMENT_REPORT_TABLE_TITLE);
@@ -86,7 +85,9 @@ public class BQSRGathererUnitTest extends BaseTest {
             for (String column : columnsToTest) {
                 Object actual = calculated.get(new Integer(row), column);
                 Object expected = original.get(row, column);
-                Assert.assertEquals(actual, expected, "Row: " + row + " Original Table: " + original.getTableName() + " Calc Table: " + calculated.getTableName());
+                //if ( !actual.equals(expected) )
+                //    System.out.println("Row=" + row + " Table=" + original.getTableName() + " Column=" + column + " Expected=" + expected + " Actual=" + actual);
+                Assert.assertEquals(actual, expected, "Row: " + row + " Original Table: " + original.getTableName() + " Column=" + column);
             }
         }
         
