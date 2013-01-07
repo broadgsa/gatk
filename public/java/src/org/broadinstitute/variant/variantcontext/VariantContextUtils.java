@@ -499,7 +499,6 @@ public class VariantContextUtils {
         final VariantContext first = VCs.get(0);
         final String name = first.getSource();
         final Allele refAllele = determineReferenceAllele(VCs);
-        Byte referenceBaseForIndel = null;
 
         final Set<Allele> alleles = new LinkedHashSet<Allele>();
         final Set<String> filters = new HashSet<String>();
