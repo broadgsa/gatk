@@ -58,7 +58,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.recalibration.BQSRArgumentSet;
 import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import java.io.File;
@@ -209,11 +209,11 @@ public class GenomeAnalysisEngine {
     /**
      *  Base Quality Score Recalibration helper object
      */
-    private BaseRecalibration baseRecalibration = null;
-    public BaseRecalibration getBaseRecalibration() { return baseRecalibration; }
-    public boolean hasBaseRecalibration() { return baseRecalibration != null; }
-    public void setBaseRecalibration(final File recalFile, final int quantizationLevels, final boolean disableIndelQuals, final int preserveQLessThan, final boolean emitOriginalQuals) {
-        baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, disableIndelQuals, preserveQLessThan, emitOriginalQuals);
+    private BQSRArgumentSet bqsrArgumentSet = null;
+    public BQSRArgumentSet getBQSRArgumentSet() { return bqsrArgumentSet; }
+    public boolean hasBQSRArgumentSet() { return bqsrArgumentSet != null; }
+    public void setBaseRecalibration(final GATKArgumentCollection args) {
+        bqsrArgumentSet = new BQSRArgumentSet(args);
     }
 
     /**
@@ -242,7 +242,7 @@ public class GenomeAnalysisEngine {
 
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
         if (args.BQSR_RECAL_FILE != null)
-            setBaseRecalibration(args.BQSR_RECAL_FILE, args.quantizationLevels, args.disableIndelQuals, args.PRESERVE_QSCORES_LESS_THAN, args.emitOriginalQuals);
+            setBaseRecalibration(args);
 
         // Determine how the threads should be divided between CPU vs. IO.
         determineThreadAllocation();
