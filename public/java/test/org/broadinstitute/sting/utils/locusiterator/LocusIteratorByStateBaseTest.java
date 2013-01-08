@@ -67,7 +67,7 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
      * For testing only.  Assumes that the incoming SAMRecords have no read groups, so creates a dummy sample list
      * for the system.
      */
-    protected static List<String> sampleListForSAMWithoutReadGroups() {
+    public static List<String> sampleListForSAMWithoutReadGroups() {
         List<String> samples = new ArrayList<String>();
         samples.add(null);
         return samples;
@@ -81,11 +81,11 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
                 sampleListForSAMWithoutReadGroups());
     }
 
-    protected static ReadProperties createTestReadProperties() {
+    public static ReadProperties createTestReadProperties() {
         return createTestReadProperties(null, false);
     }
 
-    protected static ReadProperties createTestReadProperties( DownsamplingMethod downsamplingMethod, final boolean keepReads ) {
+    public static ReadProperties createTestReadProperties( DownsamplingMethod downsamplingMethod, final boolean keepReads ) {
         return new ReadProperties(
                 Collections.<SAMReaderID>emptyList(),
                 new SAMFileHeader(),
@@ -222,7 +222,8 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
             hasMatch = hasMatch || ce.getOperator() == CigarOperator.M;
         }
 
-        if ( ! hasMatch )
+        if ( ! hasMatch && elements.size() == 1 &&
+                ! (last.getOperator() == CigarOperator.I || last.getOperator() == CigarOperator.S))
             return null;
 
         return new LIBSTest(elements, cigar, len);
