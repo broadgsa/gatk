@@ -30,23 +30,17 @@ import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
 
 import java.util.*;
 
@@ -134,7 +128,7 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
         final private List<CigarElement> elements;
 
         public LIBSTest(final String cigar, final int readLength) {
-            this(null, cigar, readLength);
+            this(TextCigarCodec.getSingleton().decode(cigar).getCigarElements(), cigar, readLength);
         }
 
         public LIBSTest(final List<CigarElement> elements, final String cigar, final int readLength) {
@@ -250,4 +244,22 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
+    /**
+     * Work around inadequate tests that aren't worth fixing.
+     *
+     * Look at the CIGAR 2M2P2D2P2M.  Both M states border a deletion, separated by P (padding elements).  So
+     * the right answer for deletions here is true for isBeforeDeletion() and isAfterDeletion() for the first
+     * and second M.  But the LIBS_position doesn't say so.
+     *
+     * @param elements
+     * @return
+     */
+    protected static boolean hasNeighboringPaddedOps(final List<CigarElement> elements, final int elementI) {
+        return (elementI - 1 >= 0 && isPadding(elements.get(elementI-1))) ||
+                (elementI + 1 < elements.size() && isPadding(elements.get(elementI+1)));
+    }
+
+    private static boolean isPadding(final CigarElement elt) {
+        return elt.getOperator() == CigarOperator.P || elt.getOperator() == CigarOperator.H || elt.getOperator() == CigarOperator.S;
+    }
 }

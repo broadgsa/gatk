@@ -23,8 +23,11 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.locusiterator;
+package org.broadinstitute.sting.utils.locusiterator.old;
 
+import org.broadinstitute.sting.utils.locusiterator.LIBS_position;
+import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByStateBaseTest;
+import org.broadinstitute.sting.utils.locusiterator.old.SAMRecordAlignmentState;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;

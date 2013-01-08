@@ -45,14 +45,15 @@ public final class LIBS_position {
     int currentOperatorIndex = 0;
     int currentPositionOnOperator = 0;
     int currentReadOffset = 0;
+    int currentGenomeOffset = 0;
 
-    boolean isBeforeDeletionStart = false;
-    boolean isBeforeDeletedBase = false;
-    boolean isAfterDeletionEnd = false;
-    boolean isAfterDeletedBase = false;
-    boolean isBeforeInsertion = false;
-    boolean isAfterInsertion = false;
-    boolean isNextToSoftClip = false;
+    public boolean isBeforeDeletionStart = false;
+    public boolean isBeforeDeletedBase = false;
+    public boolean isAfterDeletionEnd = false;
+    public boolean isAfterDeletedBase = false;
+    public boolean isBeforeInsertion = false;
+    public boolean isAfterInsertion = false;
+    public boolean isNextToSoftClip = false;
 
     boolean sawMop = false;
 
@@ -63,6 +64,14 @@ public final class LIBS_position {
 
     public int getCurrentReadOffset() {
         return Math.max(0, currentReadOffset - 1);
+    }
+
+    public int getCurrentPositionOnOperatorBase0() {
+        return currentPositionOnOperator - 1;
+    }
+
+    public int getCurrentGenomeOffsetBase0() {
+        return currentGenomeOffset - 1;
     }
 
     /**
@@ -95,6 +104,7 @@ public final class LIBS_position {
             case D: // deletion w.r.t. the reference
             case N: // reference skip (looks and gets processed just like a "deletion", just different logical meaning)
                 currentPositionOnOperator++;
+                currentGenomeOffset++;
                 break;
 
             case M:
@@ -103,6 +113,7 @@ public final class LIBS_position {
                 sawMop = true;
                 currentReadOffset++;
                 currentPositionOnOperator++;
+                currentGenomeOffset++;
                 break;
             default:
                 throw new IllegalStateException("No support for cigar op: " + curElement.getOperator());

@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.locusiterator;
+package org.broadinstitute.sting.utils.locusiterator.old;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
@@ -31,6 +31,7 @@ import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.downsampling.Downsampler;
 import org.broadinstitute.sting.gatk.downsampling.LevelingDownsampler;
+import org.broadinstitute.sting.utils.locusiterator.LIBSDownsamplingInfo;
 
 import java.util.*;
 
@@ -83,15 +84,15 @@ class ReadStateManager {
      * @param sample The sample.
      * @return Iterator over the reads associated with that sample.
      */
-    public Iterator<AlignmentStateMachine> iterator(final String sample) {
-        return new Iterator<AlignmentStateMachine>() {
-            private Iterator<AlignmentStateMachine> wrappedIterator = readStatesBySample.get(sample).iterator();
+    public Iterator<SAMRecordAlignmentState> iterator(final String sample) {
+        return new Iterator<SAMRecordAlignmentState>() {
+            private Iterator<SAMRecordAlignmentState> wrappedIterator = readStatesBySample.get(sample).iterator();
 
             public boolean hasNext() {
                 return wrappedIterator.hasNext();
             }
 
-            public AlignmentStateMachine next() {
+            public SAMRecordAlignmentState next() {
                 return wrappedIterator.next();
             }
 
@@ -124,7 +125,7 @@ class ReadStateManager {
         return readStatesBySample.get(sample).size();
     }
 
-    public AlignmentStateMachine getFirst() {
+    public SAMRecordAlignmentState getFirst() {
         for (final String sample : samples) {
             PerSampleReadStateManager reads = readStatesBySample.get(sample);
             if (!reads.isEmpty())
@@ -142,7 +143,7 @@ class ReadStateManager {
         if (isEmpty())
             return false;
         else {
-            AlignmentStateMachine state = getFirst();
+            SAMRecordAlignmentState state = getFirst();
             SAMRecord ourRead = state.getRead();
             return read.getReferenceIndex() > ourRead.getReferenceIndex() || read.getAlignmentStart() > state.getGenomePosition();
         }
@@ -258,36 +259,35 @@ class ReadStateManager {
         if (reads.isEmpty())
             return;
 
-        Collection<AlignmentStateMachine> newReadStates = new LinkedList<AlignmentStateMachine>();
+        Collection<SAMRecordAlignmentState> newReadStates = new LinkedList<SAMRecordAlignmentState>();
 
         for (SAMRecord read : reads) {
-            AlignmentStateMachine state = new AlignmentStateMachine(read);
-            if ( state.stepForwardOnGenome() != null )
-                // explicitly filter out reads that are all insertions / soft clips
-                newReadStates.add(state);
+            SAMRecordAlignmentState state = new SAMRecordAlignmentState(read);
+            state.stepForwardOnGenome();
+            newReadStates.add(state);
         }
 
         readStates.addStatesAtNextAlignmentStart(newReadStates);
     }
 
-    protected class PerSampleReadStateManager implements Iterable<AlignmentStateMachine> {
-        private List<LinkedList<AlignmentStateMachine>> readStatesByAlignmentStart = new LinkedList<LinkedList<AlignmentStateMachine>>();
-        private final Downsampler<LinkedList<AlignmentStateMachine>> levelingDownsampler;
+    protected class PerSampleReadStateManager implements Iterable<SAMRecordAlignmentState> {
+        private List<LinkedList<SAMRecordAlignmentState>> readStatesByAlignmentStart = new LinkedList<LinkedList<SAMRecordAlignmentState>>();
+        private final Downsampler<LinkedList<SAMRecordAlignmentState>> levelingDownsampler;
 
         private int thisSampleReadStates = 0;
 
         public PerSampleReadStateManager(final LIBSDownsamplingInfo LIBSDownsamplingInfo) {
             this.levelingDownsampler = LIBSDownsamplingInfo.isPerformDownsampling()
-                    ? new LevelingDownsampler<LinkedList<AlignmentStateMachine>, AlignmentStateMachine>(LIBSDownsamplingInfo.getToCoverage())
+                    ? new LevelingDownsampler<LinkedList<SAMRecordAlignmentState>, SAMRecordAlignmentState>(LIBSDownsamplingInfo.getToCoverage())
                     : null;
         }
 
-        public void addStatesAtNextAlignmentStart(Collection<AlignmentStateMachine> states) {
+        public void addStatesAtNextAlignmentStart(Collection<SAMRecordAlignmentState> states) {
             if ( states.isEmpty() ) {
                 return;
             }
 
-            readStatesByAlignmentStart.add(new LinkedList<AlignmentStateMachine>(states));
+            readStatesByAlignmentStart.add(new LinkedList<SAMRecordAlignmentState>(states));
             thisSampleReadStates += states.size();
             totalReadStates += states.size();
 
@@ -308,7 +308,7 @@ class ReadStateManager {
             return readStatesByAlignmentStart.isEmpty();
         }
 
-        public AlignmentStateMachine peek() {
+        public SAMRecordAlignmentState peek() {
             return isEmpty() ? null : readStatesByAlignmentStart.get(0).peek();
         }
 
@@ -316,18 +316,18 @@ class ReadStateManager {
             return thisSampleReadStates;
         }
 
-        public Iterator<AlignmentStateMachine> iterator() {
-            return new Iterator<AlignmentStateMachine>() {
-                private Iterator<LinkedList<AlignmentStateMachine>> alignmentStartIterator = readStatesByAlignmentStart.iterator();
-                private LinkedList<AlignmentStateMachine> currentPositionReadStates = null;
-                private Iterator<AlignmentStateMachine> currentPositionReadStatesIterator = null;
+        public Iterator<SAMRecordAlignmentState> iterator() {
+            return new Iterator<SAMRecordAlignmentState>() {
+                private Iterator<LinkedList<SAMRecordAlignmentState>> alignmentStartIterator = readStatesByAlignmentStart.iterator();
+                private LinkedList<SAMRecordAlignmentState> currentPositionReadStates = null;
+                private Iterator<SAMRecordAlignmentState> currentPositionReadStatesIterator = null;
 
                 public boolean hasNext() {
                     return  alignmentStartIterator.hasNext() ||
                             (currentPositionReadStatesIterator != null && currentPositionReadStatesIterator.hasNext());
                 }
 
-                public AlignmentStateMachine next() {
+                public SAMRecordAlignmentState next() {
                     if ( currentPositionReadStatesIterator == null || ! currentPositionReadStatesIterator.hasNext() ) {
                         currentPositionReadStates = alignmentStartIterator.next();
                         currentPositionReadStatesIterator = currentPositionReadStates.iterator();

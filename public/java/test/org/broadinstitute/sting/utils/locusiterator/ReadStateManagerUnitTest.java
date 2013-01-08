@@ -27,6 +27,9 @@ package org.broadinstitute.sting.utils.locusiterator;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.locusiterator.LIBSDownsamplingInfo;
+import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByStateBaseTest;
+import org.broadinstitute.sting.utils.locusiterator.old.SAMRecordAlignmentState;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -45,7 +48,7 @@ public class ReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
     private class PerSampleReadStateManagerTest extends TestDataProvider {
         private List<Integer> readCountsPerAlignmentStart;
         private List<SAMRecord> reads;
-        private List<ArrayList<SAMRecordAlignmentState>> recordStatesByAlignmentStart;
+        private List<ArrayList<AlignmentStateMachine>> recordStatesByAlignmentStart;
         private int removalInterval;
 
         public PerSampleReadStateManagerTest( List<Integer> readCountsPerAlignmentStart, int removalInterval ) {
@@ -55,7 +58,7 @@ public class ReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
             this.removalInterval = removalInterval;
 
             reads = new ArrayList<SAMRecord>();
-            recordStatesByAlignmentStart = new ArrayList<ArrayList<SAMRecordAlignmentState>>();
+            recordStatesByAlignmentStart = new ArrayList<ArrayList<AlignmentStateMachine>>();
 
             setName(String.format("%s: readCountsPerAlignmentStart: %s  removalInterval: %d",
                     getClass().getSimpleName(), readCountsPerAlignmentStart, removalInterval));
@@ -69,7 +72,7 @@ public class ReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
 
             makeReads();
 
-            for ( ArrayList<SAMRecordAlignmentState> stackRecordStates : recordStatesByAlignmentStart ) {
+            for ( ArrayList<AlignmentStateMachine> stackRecordStates : recordStatesByAlignmentStart ) {
                 perSampleReadStateManager.addStatesAtNextAlignmentStart(stackRecordStates);
             }
 
@@ -77,14 +80,14 @@ public class ReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
             Assert.assertEquals(reads.size(), perSampleReadStateManager.size());
 
             Iterator<SAMRecord> originalReadsIterator = reads.iterator();
-            Iterator<SAMRecordAlignmentState> recordStateIterator = perSampleReadStateManager.iterator();
+            Iterator<AlignmentStateMachine> recordStateIterator = perSampleReadStateManager.iterator();
             int recordStateCount = 0;
             int numReadStatesRemoved = 0;
 
             // Do a first-pass validation of the record state iteration by making sure we get back everything we
             // put in, in the same order, doing any requested removals of read states along the way
             while ( recordStateIterator.hasNext() ) {
-                SAMRecordAlignmentState readState = recordStateIterator.next();
+                AlignmentStateMachine readState = recordStateIterator.next();
                 recordStateCount++;
                 SAMRecord readFromPerSampleReadStateManager = readState.getRead();
 
@@ -115,7 +118,7 @@ public class ReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
 
                 // Match record states with the reads that should remain after removal
                 while ( recordStateIterator.hasNext() ) {
-                    SAMRecordAlignmentState readState = recordStateIterator.next();
+                    AlignmentStateMachine readState = recordStateIterator.next();
                     readStateCount++;
                     SAMRecord readFromPerSampleReadStateManager = readState.getRead();
 
@@ -147,10 +150,10 @@ public class ReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
 
             for ( int readsThisStack : readCountsPerAlignmentStart ) {
                 ArrayList<SAMRecord> stackReads = new ArrayList<SAMRecord>(ArtificialSAMUtils.createStackOfIdenticalArtificialReads(readsThisStack, header, "foo", 0, alignmentStart, MathUtils.randomIntegerInRange(50, 100)));
-                ArrayList<SAMRecordAlignmentState> stackRecordStates = new ArrayList<SAMRecordAlignmentState>();
+                ArrayList<AlignmentStateMachine> stackRecordStates = new ArrayList<AlignmentStateMachine>();
 
                 for ( SAMRecord read : stackReads ) {
-                    stackRecordStates.add(new SAMRecordAlignmentState(read));
+                    stackRecordStates.add(new AlignmentStateMachine(read));
                 }
 
                 reads.addAll(stackReads);

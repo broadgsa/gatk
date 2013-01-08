@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.locusiterator;
+package org.broadinstitute.sting.utils.locusiterator.old;
 
 import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
@@ -51,7 +51,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
  * Date: 1/5/13
  * Time: 1:08 PM
  */
-class SAMRecordAlignmentState {
+public class SAMRecordAlignmentState {
     // TODO -- one idea to clean up this functionality:
     // TODO --
     // TODO -- split functionality here into an alignment state machine and an

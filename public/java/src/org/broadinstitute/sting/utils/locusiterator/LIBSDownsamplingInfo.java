@@ -32,13 +32,13 @@ package org.broadinstitute.sting.utils.locusiterator;
 * Time: 1:26 PM
 * To change this template use File | Settings | File Templates.
 */
-class LIBSDownsamplingInfo {
+public class LIBSDownsamplingInfo {
     public final static LIBSDownsamplingInfo NO_DOWNSAMPLING = new LIBSDownsamplingInfo(false, -1);
 
     final private boolean performDownsampling;
     final private int toCoverage;
 
-    LIBSDownsamplingInfo(boolean performDownsampling, int toCoverage) {
+    public LIBSDownsamplingInfo(boolean performDownsampling, int toCoverage) {
         this.performDownsampling = performDownsampling;
         this.toCoverage = toCoverage;
     }

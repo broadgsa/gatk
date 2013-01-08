@@ -27,11 +27,17 @@ package org.broadinstitute.sting.utils.pileup;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
 import org.broadinstitute.variant.utils.BaseUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+
+import java.util.EnumSet;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -49,14 +55,10 @@ public class PileupElement implements Comparable<PileupElement> {
 
     protected final GATKSAMRecord read;         // the read this base belongs to
     protected final int offset;                 // the offset in the bases array for this base
-    protected final boolean isDeletion;         // is this base a deletion
-    protected final boolean isBeforeDeletedBase;   // is the base to the right of this base an deletion
-    protected final boolean isAfterDeletedBase;    // is the base to the left of this base a deletion
-    protected final boolean isBeforeInsertion;  // is the base to the right of this base an insertion
-    protected final boolean isAfterInsertion;   // is the base to the left of this base an insertion
-    protected final boolean isNextToSoftClip;   // is this base either before or after a soft clipped base
-    protected final int eventLength;            // what is the length of the event (insertion or deletion) *after* this base
-    protected final String eventBases;          // if it is a deletion, we do not have information about the actual deleted bases in the read itself, so we fill the string with D's; for insertions we keep actual inserted bases
+
+    private final CigarElement currentCigarElement;
+    private final int currentCigarOffset;
+    private final int offsetInCurrentCigar;
 
     /**
      * Creates a new pileup element.
@@ -76,61 +78,48 @@ public class PileupElement implements Comparable<PileupElement> {
             "read != null",
             "offset >= -1",
             "offset <= read.getReadLength()"})
+    @Deprecated
     public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip, final String nextEventBases, final int nextEventLength) {
         if (offset < 0 && isDeletion)
             throw new ReviewedStingException("Pileup Element cannot create a deletion with a negative offset");
 
         this.read = read;
         this.offset = offset;
-        this.isDeletion = isDeletion;
-        this.isBeforeDeletedBase = isBeforeDeletion;
-        this.isAfterDeletedBase = isAfterDeletion;
-        this.isBeforeInsertion = isBeforeInsertion;
-        this.isAfterInsertion = isAfterInsertion;
-        this.isNextToSoftClip = isNextToSoftClip;
-        if (isBeforeInsertion)
-            eventBases = nextEventBases;
-        else
-            eventBases = null;                  // ignore argument in any other case
-        if (isBeforeDeletion || isBeforeInsertion)
-            eventLength = nextEventLength;
-        else
-            eventLength = -1;
+        currentCigarElement = null;
+        currentCigarOffset = offsetInCurrentCigar = -1;
     }
 
+    @Deprecated
     public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip) {
         this(read, offset, isDeletion, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, null, -1);
     }
+
+    //
+    // TODO -- make convenient testing constructor
+    //
+    public PileupElement(final GATKSAMRecord read, final int baseOffset,
+                         final CigarElement currentElement, final int currentCigarOffset, final int offsetInCurrentCigar) {
+        this.read = read;
+        this.offset = baseOffset;
+        this.currentCigarElement = currentElement;
+        this.currentCigarOffset = currentCigarOffset;
+        this.offsetInCurrentCigar = offsetInCurrentCigar;
+    }
+
+    public PileupElement(final PileupElement toCopy) {
+        this(toCopy.read, toCopy.offset, toCopy.currentCigarElement, toCopy.currentCigarOffset, toCopy.offsetInCurrentCigar);
+    }
+
     public boolean isDeletion() {
-        return isDeletion;
-    }
-
-    public boolean isBeforeDeletedBase() {
-        return isBeforeDeletedBase;
-    }
-
-    public boolean isAfterDeletedBase() {
-        return isAfterDeletedBase;
+        return currentCigarElement.getOperator() == CigarOperator.D;
     }
 
     public boolean isBeforeDeletionStart() {
-        return isBeforeDeletedBase && !isDeletion;
+        return isBeforeDeletion() && ! isDeletion();
     }
 
     public boolean isAfterDeletionEnd() {
-        return isAfterDeletedBase && !isDeletion;
-    }
-
-    public boolean isBeforeInsertion() {
-        return isBeforeInsertion;
-    }
-
-    public boolean isAfterInsertion() {
-        return isAfterInsertion;
-    }
-
-    public boolean isNextToSoftClip() {
-        return isNextToSoftClip;
+        return isAfterDeletion() && ! isDeletion();
     }
 
     public boolean isInsertionAtBeginningOfRead() {
@@ -158,7 +147,7 @@ public class PileupElement implements Comparable<PileupElement> {
     public byte getQual() {
         return getQual(offset);
     }
-    
+
     public byte getBaseInsertionQual() {
         return getBaseInsertionQual(offset);
     }
@@ -170,15 +159,19 @@ public class PileupElement implements Comparable<PileupElement> {
     /**
      * @return length of the event (number of inserted or deleted bases
      */
+    @Deprecated
     public int getEventLength() {
-        return eventLength;
+        // TODO -- compute on the fly, provide meaningful function
+        return -1;
     }
 
     /**
      * @return actual sequence of inserted bases, or a null if the event is a deletion or if there is no event in the associated read.
      */
+    @Deprecated
     public String getEventBases() {
-        return eventBases;
+        // TODO -- compute on the fly, provide meaningful function
+        return null;
     }
 
     public int getMappingQual() {
@@ -251,4 +244,117 @@ public class PileupElement implements Comparable<PileupElement> {
         return representativeCount;
     }
 
+//    public CigarElement getNextElement() {
+//        return ( offsetInCurrentCigar + 1 > currentCigarElement.getLength() && currentCigarOffset + 1 < read.getCigarLength()
+//                ? read.getCigar().getCigarElement(currentCigarOffset + 1)
+//                : currentCigarElement );
+//    }
+//
+//    public CigarElement getPrevElement() {
+//        return ( offsetInCurrentCigar - 1 == 0 && currentCigarOffset - 1 > 0
+//                ? read.getCigar().getCigarElement(currentCigarOffset - 1)
+//                : currentCigarElement );
+//    }
+
+
+    public CigarElement getCurrentCigarElement() {
+        return currentCigarElement;
+    }
+
+    public int getCurrentCigarOffset() {
+        return currentCigarOffset;
+    }
+
+    public int getOffsetInCurrentCigar() {
+        return offsetInCurrentCigar;
+    }
+
+    public LinkedList<CigarElement> getBetweenPrevPosition() {
+        return atStartOfCurrentCigar() ? getBetween(-1) : EMPTY_LINKED_LIST;
+    }
+
+    public LinkedList<CigarElement> getBetweenNextPosition() {
+        return atEndOfCurrentCigar() ? getBetween(1) : EMPTY_LINKED_LIST;
+    }
+
+    // TODO -- can I make this unmodifable?
+    private final static LinkedList<CigarElement> EMPTY_LINKED_LIST = new LinkedList<CigarElement>();
+
+    private final static EnumSet<CigarOperator> ON_GENOME_OPERATORS =
+            EnumSet.of(CigarOperator.M, CigarOperator.EQ, CigarOperator.X, CigarOperator.D);
+
+    private LinkedList<CigarElement> getBetween(final int increment) {
+        LinkedList<CigarElement> elements = null;
+        final int nCigarElements = read.getCigarLength();
+        for ( int i = currentCigarOffset + increment; i >= 0 && i < nCigarElements; i += increment) {
+            final CigarElement elt = read.getCigar().getCigarElement(i);
+            if ( ON_GENOME_OPERATORS.contains(elt.getOperator()) )
+                break;
+            else {
+                // optimization: don't allocate list if not necessary
+                if ( elements == null )
+                    elements = new LinkedList<CigarElement>();
+
+                if ( increment > 0 )
+                    // to keep the list in the right order, if we are incrementing positively add to the end
+                    elements.add(elt);
+                else
+                    // counting down => add to front
+                    elements.addFirst(elt);
+            }
+        }
+
+        // optimization: elements is null because nothing got added, just return the empty list
+        return elements == null ? EMPTY_LINKED_LIST : elements;
+    }
+
+    public CigarElement getPreviousOnGenomeCigarElement() {
+        return getNeighboringOnGenomeCigarElement(-1);
+    }
+
+    public CigarElement getNextOnGenomeCigarElement() {
+        return getNeighboringOnGenomeCigarElement(1);
+    }
+
+    private CigarElement getNeighboringOnGenomeCigarElement(final int increment) {
+        final int nCigarElements = read.getCigarLength();
+
+        for ( int i = currentCigarOffset + increment; i >= 0 && i < nCigarElements; i += increment) {
+            final CigarElement elt = read.getCigar().getCigarElement(i);
+            if ( ON_GENOME_OPERATORS.contains(elt.getOperator()) )
+                return elt;
+        }
+
+        // getting here means that you didn't find anything
+        return null;
+    }
+
+    private boolean hasOperator(final CigarElement maybeCigarElement, final CigarOperator toMatch) {
+        return maybeCigarElement != null && maybeCigarElement.getOperator() == toMatch;
+    }
+
+    public boolean isAfterDeletion() { return atStartOfCurrentCigar() && hasOperator(getPreviousOnGenomeCigarElement(), CigarOperator.D); }
+    public boolean isBeforeDeletion() { return atEndOfCurrentCigar() && hasOperator(getNextOnGenomeCigarElement(), CigarOperator.D); }
+    public boolean isAfterInsertion() { return isAfter(getBetweenPrevPosition(), CigarOperator.I); }
+    public boolean isBeforeInsertion() { return isBefore(getBetweenNextPosition(), CigarOperator.I); }
+
+    public boolean isAfterSoftClip() { return isAfter(getBetweenPrevPosition(), CigarOperator.S); }
+    public boolean isBeforeSoftClip() { return isBefore(getBetweenNextPosition(), CigarOperator.S); }
+    public boolean isNextToSoftClip() { return isAfterSoftClip() || isBeforeSoftClip(); }
+
+    public boolean atEndOfCurrentCigar() {
+        return offsetInCurrentCigar == currentCigarElement.getLength() - 1;
+    }
+
+    public boolean atStartOfCurrentCigar() {
+        return offsetInCurrentCigar == 0;
+    }
+
+    private boolean isAfter(final LinkedList<CigarElement> elements, final CigarOperator op) {
+        return ! elements.isEmpty() && elements.peekLast().getOperator() == op;
+    }
+
+    private boolean isBefore(final List<CigarElement> elements, final CigarOperator op) {
+        return ! elements.isEmpty() && elements.get(0).getOperator() == op;
+    }
 }

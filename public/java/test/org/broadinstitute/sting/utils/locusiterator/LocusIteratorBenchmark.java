@@ -33,12 +33,10 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.fragments.FragmentUtils;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.locusiterator.old.SAMRecordAlignmentState;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -75,8 +73,23 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
 
     public void timeOriginalLIBS(int rep) {
         for ( int i = 0; i < rep; i++ ) {
-            final LocusIteratorByState libs =
-                    new LocusIteratorByState(
+            final org.broadinstitute.sting.utils.locusiterator.old.LocusIteratorByState libs =
+                    new org.broadinstitute.sting.utils.locusiterator.old.LocusIteratorByState(
+                            new LocusIteratorByStateBaseTest.FakeCloseableIterator<SAMRecord>(reads.iterator()),
+                            LocusIteratorByStateBaseTest.createTestReadProperties(),
+                            genomeLocParser,
+                            LocusIteratorByStateBaseTest.sampleListForSAMWithoutReadGroups());
+
+            while ( libs.hasNext() ) {
+                AlignmentContext context = libs.next();
+            }
+        }
+    }
+
+    public void timeNewLIBS(int rep) {
+        for ( int i = 0; i < rep; i++ ) {
+            final org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState libs =
+                    new org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState(
                             new LocusIteratorByStateBaseTest.FakeCloseableIterator<SAMRecord>(reads.iterator()),
                             LocusIteratorByStateBaseTest.createTestReadProperties(),
                             genomeLocParser,
@@ -104,7 +117,7 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
             for ( final SAMRecord read : reads ) {
                 final AlignmentStateMachine alignmentStateMachine = new AlignmentStateMachine(read);
                 while ( alignmentStateMachine.stepForwardOnGenome() != null ) {
-                    alignmentStateMachine.getCurrent();
+                    ;
                 }
             }
         }

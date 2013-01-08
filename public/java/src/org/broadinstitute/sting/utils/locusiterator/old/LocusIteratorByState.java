@@ -1,30 +1,5 @@
 /*
-<<<<<<< HEAD
-* Copyright (c) 2012 The Broad Institute
-* 
-* Permission is hereby granted, free of charge, to any person
-* obtaining a copy of this software and associated documentation
-* files (the "Software"), to deal in the Software without
-* restriction, including without limitation the rights to use,
-* copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the
-* Software is furnished to do so, subject to the following
-* conditions:
-* 
-* The above copyright notice and this permission notice shall be
-* included in all copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
-* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
-=======
- * Copyright (c) 2012 The Broad Institute
+ * Copyright (c) 2009 The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -44,22 +19,25 @@
  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
->>>>>>> Create LIBS using new AlignmentStateMachine infrastructure
 
-package org.broadinstitute.sting.utils.locusiterator;
+package org.broadinstitute.sting.utils.locusiterator.old;
 
 import com.google.java.contract.Ensures;
+import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
+import org.broadinstitute.sting.gatk.downsampling.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.locusiterator.LIBSDownsamplingInfo;
+import org.broadinstitute.sting.utils.locusiterator.LocusIterator;
+import org.broadinstitute.sting.utils.locusiterator.legacy.LegacyLocusIteratorByState;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -74,7 +52,7 @@ public class LocusIteratorByState extends LocusIterator {
     /**
      * our log, which we want to capture anything from this class
      */
-    private static Logger logger = Logger.getLogger(LocusIteratorByState.class);
+    private static Logger logger = Logger.getLogger(LegacyLocusIteratorByState.class);
 
     // -----------------------------------------------------------------------------------------------------------------
     //
@@ -115,9 +93,9 @@ public class LocusIteratorByState extends LocusIterator {
                                    final boolean includeReadsWithDeletionAtLoci,
                                    final GenomeLocParser genomeLocParser,
                                    final Collection<String> samples,
-                                   final boolean maintainUniqueReadsList) {
-        this.genomeLocParser = genomeLocParser;
+                                   final boolean maintainUniqueReadsList ) {
         this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;
+        this.genomeLocParser = genomeLocParser;
         this.samples = new ArrayList<String>(samples);
         this.readStates = new ReadStateManager(samIterator, this.samples, downsamplingInfo, maintainUniqueReadsList);
 
@@ -178,7 +156,7 @@ public class LocusIteratorByState extends LocusIterator {
             boolean hasBeenSampled = false;
 
             for (final String sample : samples) {
-                final Iterator<AlignmentStateMachine> iterator = readStates.iterator(sample);
+                final Iterator<SAMRecordAlignmentState> iterator = readStates.iterator(sample);
                 final List<PileupElement> pile = new ArrayList<PileupElement>(readStates.size(sample));
 
                 int size = 0;                                                           // number of elements in this sample's pileup
@@ -186,27 +164,53 @@ public class LocusIteratorByState extends LocusIterator {
                 int nMQ0Reads = 0;                                                      // number of MQ0 reads in this sample's pileup (warning: current implementation includes N bases that are MQ0)
 
                 while (iterator.hasNext()) {
-                    final AlignmentStateMachine state = iterator.next();                   // state object with the read/offset information
+                    final SAMRecordAlignmentState state = iterator.next();                   // state object with the read/offset information
                     final GATKSAMRecord read = (GATKSAMRecord) state.getRead();     // the actual read
-                    final CigarOperator op = state.getCigarOperator();       // current cigar operator
+                    final CigarOperator op = state.getCurrentCigarOperator();       // current cigar operator
+                    final CigarElement nextElement = state.peekForwardOnGenome();   // next cigar element
+                    final CigarElement lastElement = state.peekBackwardOnGenome();  // last cigar element
+                    final boolean isSingleElementCigar = nextElement == lastElement;
+                    final CigarOperator nextOp = nextElement.getOperator();         // next cigar operator
+                    final CigarOperator lastOp = lastElement.getOperator();         // last cigar operator
+                    int readOffset = state.getReadOffset();                         // the base offset on this read
+
+                    final boolean isBeforeDeletion  = nextOp == CigarOperator.DELETION;
+                    final boolean isAfterDeletion   = lastOp == CigarOperator.DELETION;
+                    final boolean isBeforeInsertion = nextOp == CigarOperator.INSERTION;
+                    final boolean isAfterInsertion  = lastOp == CigarOperator.INSERTION && !isSingleElementCigar;
+                    final boolean isNextToSoftClip  = nextOp == CigarOperator.S || (state.getGenomeOffset() == 0 && read.getSoftStart() != read.getAlignmentStart());
+
+                    int nextElementLength = nextElement.getLength();
 
                     if (op == CigarOperator.N)                                      // N's are never added to any pileup
                         continue;
 
-                    if (!filterBaseInRead(read, location.getStart())) {
-                        if ( op == CigarOperator.D ) {
-                            if ( ! includeReadsWithDeletionAtLoci )
-                                continue;
+                    if (op == CigarOperator.D) {
+                        // TODO -- LIBS is totally busted for deletions so that reads with Ds right before Is in their CIGAR are broken; must fix
+                        if (includeReadsWithDeletionAtLoci) {            // only add deletions to the pileup if we are authorized to do so
+                            pile.add(new PileupElement(read, readOffset, true, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, null, nextOp == CigarOperator.D ? nextElementLength : -1));
+                            size++;
                             nDeletions++;
+                            if (read.getMappingQuality() == 0)
+                                nMQ0Reads++;
                         }
+                    }
+                    else {
+                        if (!filterBaseInRead(read, location.getStart())) {
+                            String insertedBaseString = null;
+                            if (nextOp == CigarOperator.I) {
+                                final int insertionOffset = isSingleElementCigar ? 0 : 1;
+                                // TODO -- someone please implement a better fix for the single element insertion CIGAR!
+                                if (isSingleElementCigar)
+                                    readOffset -= (nextElement.getLength() - 1); // LIBS has passed over the insertion bases!
+                                insertedBaseString = new String(Arrays.copyOfRange(read.getReadBases(), readOffset + insertionOffset, readOffset + insertionOffset + nextElement.getLength()));
+                            }
 
-                        pile.add(new PileupElement(read, state.getReadOffset(),
-                                state.getCurrentCigarElement(), state.getCurrentCigarElementOffset(),
-                                state.getOffsetIntoCurrentCigarElement()));
-                        size++;
-
-                        if ( read.getMappingQuality() == 0 )
-                            nMQ0Reads++;
+                            pile.add(new PileupElement(read, readOffset, false, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, insertedBaseString, nextElementLength));
+                            size++;
+                            if (read.getMappingQuality() == 0)
+                                nMQ0Reads++;
+                        }
                     }
                 }
 
@@ -222,9 +226,9 @@ public class LocusIteratorByState extends LocusIterator {
 
     private void updateReadStates() {
         for (final String sample : samples) {
-            Iterator<AlignmentStateMachine> it = readStates.iterator(sample);
+            Iterator<SAMRecordAlignmentState> it = readStates.iterator(sample);
             while (it.hasNext()) {
-                AlignmentStateMachine state = it.next();
+                SAMRecordAlignmentState state = it.next();
                 CigarOperator op = state.stepForwardOnGenome();
                 if (op == null) {
                     // we discard the read only when we are past its end AND indel at the end of the read (if any) was

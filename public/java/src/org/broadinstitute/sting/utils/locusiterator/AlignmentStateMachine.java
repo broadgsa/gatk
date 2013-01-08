@@ -25,15 +25,13 @@
 
 package org.broadinstitute.sting.utils.locusiterator;
 
-import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-
-import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Steps a single read along its alignment to the genome
@@ -53,144 +51,153 @@ import java.util.List;
  * Time: 1:08 PM
  */
 class AlignmentStateMachine {
-    // TODO -- optimizations
-    // TODO -- only keep 3 States, and recycle the prev state to become the next state
-
     /**
      * Our read
      */
     private final SAMRecord read;
     private final Cigar cigar;
     private final int nCigarElements;
-    int cigarOffset = -1;
+    private int currentCigarElementOffset = -1;
 
-    AlignmentState prev = null, current = null, next = null;
+    /**
+     * how far are we offset from the start of the read bases?
+     */
+    private int readOffset;
 
-    @Requires("read != null")
-    // TODO -- should enforce contracts like the read is aligned, etc
+    /**
+     * how far are we offset from the alignment start on the genome?
+     */
+    private int genomeOffset;
+
+    /**
+     * Our cigar element
+     */
+    private CigarElement currentElement;
+
+    /**
+     * how far are we into our cigarElement?
+     */
+    private int offsetIntoCurrentCigarElement;
+
     public AlignmentStateMachine(final SAMRecord read) {
         this.read = read;
         this.cigar = read.getCigar();
         this.nCigarElements = cigar.numCigarElements();
-        this.prev = AlignmentState.makeLeftEdge(read);
+        initializeAsLeftEdge();
+    }
+
+    private void initializeAsLeftEdge() {
+        readOffset = offsetIntoCurrentCigarElement = genomeOffset = -1;
+        currentElement = null;
     }
 
     public SAMRecord getRead() {
         return read;
     }
 
-    public AlignmentState getPrev() {
-        return prev;
+    /**
+     * Is this an edge state?  I.e., one that is before or after the current read?
+     * @return true if this state is an edge state, false otherwise
+     */
+    public boolean isEdge() {
+        return readOffset == -1;
     }
 
-    public AlignmentState getCurrent() {
-        return current;
+    /**
+     * What is our current offset in the read's bases that aligns us with the reference genome?
+     *
+     * @return the current read offset position
+     */
+    public int getReadOffset() {
+        return readOffset;
     }
 
-    public AlignmentState getNext() {
-        return next;
+    /**
+     * What is the current offset w.r.t. the alignment state that aligns us to the readOffset?
+     *
+     * @return the current offset
+     */
+    public int getGenomeOffset() {
+        return genomeOffset;
     }
 
-    @Deprecated
-    public CigarElement peekForwardOnGenome() {
-        return null;
+    public int getGenomePosition() {
+        return read.getAlignmentStart() + getGenomeOffset();
     }
 
-    @Deprecated
-    public CigarElement peekBackwardOnGenome() {
-        return null;
+    public GenomeLoc getLocation(final GenomeLocParser genomeLocParser) {
+        return genomeLocParser.createGenomeLoc(read.getReferenceName(), getGenomePosition());
     }
+
+    public CigarElement getCurrentCigarElement() {
+        return currentElement;
+    }
+
+    public int getCurrentCigarElementOffset() {
+        return currentCigarElementOffset;
+    }
+
+    public int getOffsetIntoCurrentCigarElement() {
+        return offsetIntoCurrentCigarElement;
+    }
+
+    /**
+     * @return null if this is an edge state
+     */
+    public CigarOperator getCigarOperator() {
+        return currentElement == null ? null : currentElement.getOperator();
+    }
+
+    public String toString() {
+        return String.format("%s ro=%d go=%d cec=%d %s", read.getReadName(), readOffset, genomeOffset, offsetIntoCurrentCigarElement, currentElement);
+    }
+
+    // -----------------------------------------------------------------------------------------------
+    //
+    // Code for setting up prev / next states
+    //
+    // -----------------------------------------------------------------------------------------------
 
     public CigarOperator stepForwardOnGenome() {
-        if ( current == null ) {
-            // start processing from the edge by updating current to be prev
-            current = this.prev;
-            current = nextAlignmentState();
-        } else {
-            // otherwise prev is current, and current is next
-            prev = current;
-            current = next;
-        }
-
-        // if the current pointer isn't the edge, update next
-        if ( ! current.isEdge() )
-            next = nextAlignmentState();
-        else
-            next = null;
-
-        finalizeStates();
-
-        // todo -- cleanup historical interface
-        return current.isEdge() ? null : current.getCigarOperator();
-    }
-
-    private void finalizeStates() {
-        // note the order of updates on the betweens.  Next has info, and then current does, so
-        // the update order is next updates current, and current update prev
-
-        if ( next != null ) {
-            // next can be null because current is the edge
-            assert ! current.isEdge();
-
-            next.setPrev(current);
-
-            // Next holds the info about what happened between
-            // current and next, so we propagate it to current
-            current.setBetweenNextPosition(next.getBetweenPrevPosition());
-        }
-
-        // TODO -- prev setting to current is not necessary (except in creating the left edge)
-        prev.setNext(current);
-        prev.setBetweenNextPosition(current.getBetweenPrevPosition());
-
-        // current just needs to set prev and next
-        current.setPrev(prev);
-        current.setNext(next);
-
-    }
-
-    private AlignmentState nextAlignmentState() {
-        int cigarElementCounter = getCurrent().getCigarElementCounter();
-        CigarElement curElement = getCurrent().getCigarElement();
-        int genomeOffset = getCurrent().getGenomeOffset();
-        int readOffset = getCurrent().getReadOffset();
-
-        // todo -- optimization: could keep null and allocate lazy since most of the time the between is empty
-        final LinkedList<CigarElement> betweenCurrentAndNext = new LinkedList<CigarElement>();
-
-        boolean done = false;
-        while ( ! done ) {
+        // loop until we either find a cigar element step that moves us one base on the genome, or we run
+        // out of cigar elements
+        while ( true ) {
             // we enter this method with readOffset = index of the last processed base on the read
             // (-1 if we did not process a single base yet); this can be last matching base,
             // or last base of an insertion
-            if (curElement == null || ++cigarElementCounter > curElement.getLength()) {
-                cigarOffset++;
-                if (cigarOffset < nCigarElements) {
-                    curElement = cigar.getCigarElement(cigarOffset);
-                    cigarElementCounter = 0;
+            if (currentElement == null || (offsetIntoCurrentCigarElement + 1) >= currentElement.getLength()) {
+                currentCigarElementOffset++;
+                if (currentCigarElementOffset < nCigarElements) {
+                    currentElement = cigar.getCigarElement(currentCigarElementOffset);
+                    offsetIntoCurrentCigarElement = -1;
                     // next line: guards against cigar elements of length 0; when new cigar element is retrieved,
-                    // we reenter in order to re-check cigarElementCounter against curElement's length
+                    // we reenter in order to re-check offsetIntoCurrentCigarElement against currentElement's length
+                    continue;
                 } else {
-                    if (curElement != null && curElement.getOperator() == CigarOperator.D)
+                    if (currentElement != null && currentElement.getOperator() == CigarOperator.D)
                         throw new UserException.MalformedBAM(read, "read ends with deletion. Cigar: " + read.getCigarString() + ". Although the SAM spec technically permits such reads, this is often indicative of malformed files. If you are sure you want to use this file, re-run your analysis with the extra option: -rf BadCigar");
-                    return AlignmentState.makeRightEdge(read, getCurrent(), betweenCurrentAndNext);
-                }
 
-                // in either case we continue the loop
-                continue;
+                    // Reads that contain indels model the genomeOffset as the following base in the reference.  Because
+                    // we fall into this else block only when indels end the read, increment genomeOffset  such that the
+                    // current offset of this read is the next ref base after the end of the indel.  This position will
+                    // model a point on the reference somewhere after the end of the read.
+                    genomeOffset++; // extended events need that. Logically, it's legal to advance the genomic offset here:
+                    // we do step forward on the ref, and by returning null we also indicate that we are past the read end.
+                    return null;
+                }
             }
 
-            switch (curElement.getOperator()) {
+            offsetIntoCurrentCigarElement++;
+            boolean done = false;
+            switch (currentElement.getOperator()) {
                 case H: // ignore hard clips
                 case P: // ignore pads
-                    cigarElementCounter = curElement.getLength();
-                    betweenCurrentAndNext.add(curElement);
+                    offsetIntoCurrentCigarElement = currentElement.getLength();
                     break;
                 case I: // insertion w.r.t. the reference
                 case S: // soft clip
-                    cigarElementCounter = curElement.getLength();
-                    readOffset += curElement.getLength();
-                    betweenCurrentAndNext.add(curElement);
+                    offsetIntoCurrentCigarElement = currentElement.getLength();
+                    readOffset += currentElement.getLength();
                     break;
                 case D: // deletion w.r.t. the reference
                     if (readOffset < 0)             // we don't want reads starting with deletion, this is a malformed cigar string
@@ -211,10 +218,12 @@ class AlignmentStateMachine {
                     done = true;
                     break;
                 default:
-                    throw new IllegalStateException("Case statement didn't deal with cigar op: " + curElement.getOperator());
+                    throw new IllegalStateException("Case statement didn't deal with cigar op: " + currentElement.getOperator());
             }
-        }
 
-        return AlignmentState.makeInternalNode(read, readOffset, genomeOffset, curElement, cigarElementCounter, betweenCurrentAndNext);
+            if ( done )
+                return currentElement.getOperator();
+        }
     }
 }
+
