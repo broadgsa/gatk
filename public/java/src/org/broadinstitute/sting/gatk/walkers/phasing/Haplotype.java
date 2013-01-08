@@ -26,6 +26,9 @@ package org.broadinstitute.sting.gatk.walkers.phasing;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
 class Haplotype extends BaseArray implements Cloneable {
     public Haplotype(byte[] bases) {
@@ -67,5 +70,20 @@ class Haplotype extends BaseArray implements Cloneable {
 
     public Haplotype subHaplotype(int fromIndex, int toIndex) {
         return new Haplotype(Arrays.copyOfRange(bases, fromIndex, Math.min(toIndex, size())));
+    }
+
+    public Haplotype subHaplotype(Set<Integer> inds) {
+        List<Byte> basesList = new LinkedList<Byte>();
+        for (int i : inds) {
+            if (0 <= i && i < bases.length)
+                basesList.add(bases[i]);
+        }
+
+        Byte[] newBases = new Byte[basesList.size()];
+        int index = 0;
+        for (Byte b : basesList)
+            newBases[index++] = b;
+
+        return new Haplotype(newBases);
     }
 }
