@@ -153,7 +153,7 @@ public class SelectHeaders extends RodWalker<Integer, Integer> implements TreeRe
         List<String> rodNames = Arrays.asList(variantCollection.variants.getName());
 
         Map<String, VCFHeader> vcfRods = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
-        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
+        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), true);
 
         headerLines.add(new VCFHeaderLine(VCFHeader.SOURCE_KEY, "SelectHeaders"));
 

@@ -27,8 +27,8 @@ package org.broadinstitute.variant.vcf;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.apache.log4j.Logger;
 import org.broad.tribble.TribbleException;
+import org.broadinstitute.variant.utils.GeneralUtils;
 
 import java.util.*;
 
@@ -46,7 +46,6 @@ public class VCFStandardHeaderLines {
      * Enabling this causes us to repair header lines even if only their descriptions differ
      */
     private final static boolean REPAIR_BAD_DESCRIPTIONS = false;
-    protected final static Logger logger = Logger.getLogger(VCFStandardHeaderLines.class);
     private static Standards<VCFFormatHeaderLine> formatStandards = new Standards<VCFFormatHeaderLine>();
     private static Standards<VCFInfoHeaderLine> infoStandards = new Standards<VCFInfoHeaderLine>();
 
@@ -216,11 +215,13 @@ public class VCFStandardHeaderLines {
                 final boolean needsRepair = badCountType || badCount || badType || (REPAIR_BAD_DESCRIPTIONS && badDesc);
 
                 if ( needsRepair ) {
-                    logger.warn("Repairing standard header line for field " + line.getID() + " because"
-                            + (badCountType ? " -- count types disagree; header has " + line.getCountType() + " but standard is " + standard.getCountType() : "")
-                            + (badType ? " -- type disagree; header has " + line.getType() + " but standard is " + standard.getType() : "")
-                            + (badCount ? " -- counts disagree; header has " + line.getCount() + " but standard is " + standard.getCount() : "")
-                            + (badDesc ? " -- descriptions disagree; header has '" + line.getDescription() + "' but standard is '" + standard.getDescription() + "'": ""));
+                    if ( GeneralUtils.DEBUG_MODE_ENABLED ) {
+                        System.err.println("Repairing standard header line for field " + line.getID() + " because"
+                                           + (badCountType ? " -- count types disagree; header has " + line.getCountType() + " but standard is " + standard.getCountType() : "")
+                                           + (badType ? " -- type disagree; header has " + line.getType() + " but standard is " + standard.getType() : "")
+                                           + (badCount ? " -- counts disagree; header has " + line.getCount() + " but standard is " + standard.getCount() : "")
+                                           + (badDesc ? " -- descriptions disagree; header has '" + line.getDescription() + "' but standard is '" + standard.getDescription() + "'": ""));
+                    }
                     return standard;
                 } else
                     return line;

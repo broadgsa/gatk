@@ -25,8 +25,8 @@
 
 package org.broadinstitute.variant.vcf;
 
-import org.apache.log4j.Logger;
 import org.broad.tribble.TribbleException;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.broadinstitute.variant.variantcontext.GenotypeLikelihoods;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 
@@ -38,7 +38,6 @@ import java.util.Map;
  * a base class for compound header lines, which include info lines and format lines (so far)
  */
 public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCFIDHeaderLine {
-    final protected static Logger logger = Logger.getLogger(VCFHeader.class);
 
     public enum SupportedHeaderLineType {
         INFO(true), FORMAT(false);
@@ -197,7 +196,9 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
 
         if ( type == VCFHeaderLineType.Flag && count != 0 ) {
             count = 0;
-            logger.warn("FLAG fields must have a count value of 0, but saw " + count + " for header line " + getID() + ". Changing it to 0 inside the code");
+            if ( GeneralUtils.DEBUG_MODE_ENABLED ) {
+                System.err.println("FLAG fields must have a count value of 0, but saw " + count + " for header line " + getID() + ". Changing it to 0 inside the code");
+            }
         }
     }
 

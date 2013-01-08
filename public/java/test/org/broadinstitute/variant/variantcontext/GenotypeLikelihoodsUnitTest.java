@@ -30,9 +30,9 @@ package org.broadinstitute.variant.variantcontext;
 
 
 import org.broad.tribble.TribbleException;
+import org.broadinstitute.variant.VariantBaseTest;
 import org.broadinstitute.variant.utils.BaseUtils;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -44,7 +44,7 @@ import java.util.List;
 /**
  * Basic unit test for Genotype likelihoods objects
  */
-public class GenotypeLikelihoodsUnitTest {
+public class GenotypeLikelihoodsUnitTest extends VariantBaseTest {
     double [] v = new double[]{-10.5, -1.25, -5.11};
     final static String vGLString = "-10.50,-1.25,-5.11";
     final static String vPLString = "93,0,39";
@@ -88,7 +88,7 @@ public class GenotypeLikelihoodsUnitTest {
 
         //Linear scale
         glMap = gl.getAsMap(true);
-        double [] vl = MathUtils.normalizeFromLog10(v);
+        double [] vl = GeneralUtils.normalizeFromLog10(v);
         Assert.assertEquals(vl[GenotypeType.HOM_REF.ordinal()-1],glMap.get(GenotypeType.HOM_REF));
         Assert.assertEquals(vl[GenotypeType.HET.ordinal()-1],glMap.get(GenotypeType.HET));
         Assert.assertEquals(vl[GenotypeType.HOM_VAR.ordinal()-1],glMap.get(GenotypeType.HOM_VAR));
@@ -118,7 +118,7 @@ public class GenotypeLikelihoodsUnitTest {
         //GQ for the best guess genotype
         Assert.assertEquals(gl.getLog10GQ(GenotypeType.HET),-3.9);
 
-        double[] test = MathUtils.normalizeFromLog10(gl.getAsVector());
+        double[] test = GeneralUtils.normalizeFromLog10(gl.getAsVector());
 
         //GQ for the other genotypes
         Assert.assertEquals(gl.getLog10GQ(GenotypeType.HOM_REF), Math.log10(1.0 - test[GenotypeType.HOM_REF.ordinal()-1]));

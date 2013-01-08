@@ -26,12 +26,8 @@
 package org.broadinstitute.variant.variantcontext;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.variant.VariantBaseTest;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
@@ -41,19 +37,17 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 
-public class VariantContextUtilsUnitTest extends BaseTest {
+public class VariantContextUtilsUnitTest extends VariantBaseTest {
     Allele Aref, T, C, G, Cref, ATC, ATCATC;
-    private GenomeLocParser genomeLocParser;
 
     @BeforeSuite
     public void setup() {
         final File referenceFile = new File(b37KGReference);
         try {
-            IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(referenceFile);
-            genomeLocParser = new GenomeLocParser(seq);
+            IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(referenceFile);
         }
         catch(FileNotFoundException ex) {
-            throw new UserException.CouldNotReadInputFile(referenceFile,ex);
+            throw new RuntimeException(referenceFile.getAbsolutePath(),ex);
         }
 
         // alleles
@@ -658,7 +652,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
     public void testRepeatDetectorTest(RepeatDetectorTest cfg) {
 
          // test alleles are equal
-        Assert.assertEquals(GATKVariantContextUtils.isTandemRepeat(cfg.vc, cfg.ref.getBytes()), cfg.isTrueRepeat);
+        Assert.assertEquals(VariantContextUtils.isTandemRepeat(cfg.vc, cfg.ref.getBytes()), cfg.isTrueRepeat);
     }
 
     // --------------------------------------------------------------------------------
@@ -704,7 +698,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
     @Test(dataProvider = "ReverseClippingPositionTestProvider")
     public void testReverseClippingPositionTestProvider(ReverseClippingPositionTestProvider cfg) {
-        int result = GATKVariantContextUtils.computeReverseClipping(cfg.alleles, cfg.ref.getBytes(), 0, false);
+        int result = VariantContextUtils.computeReverseClipping(cfg.alleles, cfg.ref.getBytes(), 0, false);
         Assert.assertEquals(result, cfg.expectedClip);
     }
 
@@ -782,7 +776,7 @@ public class VariantContextUtilsUnitTest extends BaseTest {
 
     @Test(dataProvider = "SplitBiallelics")
     public void testSplitBiallelicsNoGenotypes(final VariantContext vc, final List<VariantContext> expectedBiallelics) {
-        final List<VariantContext> biallelics = GATKVariantContextUtils.splitVariantContextToBiallelics(vc);
+        final List<VariantContext> biallelics = VariantContextUtils.splitVariantContextToBiallelics(vc);
         Assert.assertEquals(biallelics.size(), expectedBiallelics.size());
         for ( int i = 0; i < biallelics.size(); i++ ) {
             final VariantContext actual = biallelics.get(i);
@@ -796,14 +790,14 @@ public class VariantContextUtilsUnitTest extends BaseTest {
         final List<Genotype> genotypes = new ArrayList<Genotype>();
 
         int sampleI = 0;
-        for ( final List<Allele> alleles : Utils.makePermutations(vc.getAlleles(), 2, true) ) {
+        for ( final List<Allele> alleles : GeneralUtils.makePermutations(vc.getAlleles(), 2, true) ) {
             genotypes.add(GenotypeBuilder.create("sample" + sampleI++, alleles));
         }
         genotypes.add(GenotypeBuilder.createMissing("missing", 2));
 
         final VariantContext vcWithGenotypes = new VariantContextBuilder(vc).genotypes(genotypes).make();
 
-        final List<VariantContext> biallelics = GATKVariantContextUtils.splitVariantContextToBiallelics(vcWithGenotypes);
+        final List<VariantContext> biallelics = VariantContextUtils.splitVariantContextToBiallelics(vcWithGenotypes);
         for ( int i = 0; i < biallelics.size(); i++ ) {
             final VariantContext actual = biallelics.get(i);
             Assert.assertEquals(actual.getNSamples(), vcWithGenotypes.getNSamples()); // not dropping any samples

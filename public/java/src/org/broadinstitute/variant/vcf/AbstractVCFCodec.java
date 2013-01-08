@@ -25,7 +25,6 @@
 
 package org.broadinstitute.variant.vcf;
 
-import org.apache.log4j.Logger;
 import org.broad.tribble.AsciiFeatureCodec;
 import org.broad.tribble.Feature;
 import org.broad.tribble.NameAwareCodec;
@@ -33,6 +32,7 @@ import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.BlockCompressedInputStream;
 import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.broadinstitute.variant.variantcontext.*;
 
 import java.io.FileInputStream;
@@ -46,7 +46,6 @@ import java.util.zip.GZIPInputStream;
 public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext> implements NameAwareCodec {
     public final static int MAX_ALLELE_SIZE_BEFORE_WARNING = (int)Math.pow(2, 20);
 
-    protected final static Logger log = Logger.getLogger(AbstractVCFCodec.class);
     protected final static int NUM_STANDARD_FIELDS = 8;  // INFO is the 8th column
 
     // we have to store the list of strings that make up the header until they're needed
@@ -397,9 +396,9 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
                     key = infoFieldArray[i];
                     final VCFInfoHeaderLine headerLine = header.getInfoHeaderLine(key);
                     if ( headerLine != null && headerLine.getType() != VCFHeaderLineType.Flag ) {
-                        if ( ! warnedAboutNoEqualsForNonFlag ) {
-                            log.warn("Found info key " + key + " without a = value, but the header says the field is of type "
-                                    + headerLine.getType() + " but this construct is only value for FLAG type fields");
+                        if ( GeneralUtils.DEBUG_MODE_ENABLED && ! warnedAboutNoEqualsForNonFlag ) {
+                            System.err.println("Found info key " + key + " without a = value, but the header says the field is of type "
+                                               + headerLine.getType() + " but this construct is only value for FLAG type fields");
                             warnedAboutNoEqualsForNonFlag = true;
                         }
 
@@ -517,8 +516,9 @@ public abstract class AbstractVCFCodec extends AsciiFeatureCodec<VariantContext>
         if ( allele == null || allele.length() == 0 )
             generateException("Empty alleles are not permitted in VCF records", lineNo);
 
-        if ( MAX_ALLELE_SIZE_BEFORE_WARNING != -1 && allele.length() > MAX_ALLELE_SIZE_BEFORE_WARNING )
-            log.warn(String.format("Allele detected with length %d exceeding max size %d at approximately line %d, likely resulting in degraded VCF processing performance", allele.length(), MAX_ALLELE_SIZE_BEFORE_WARNING, lineNo));
+        if ( GeneralUtils.DEBUG_MODE_ENABLED && MAX_ALLELE_SIZE_BEFORE_WARNING != -1 && allele.length() > MAX_ALLELE_SIZE_BEFORE_WARNING ) {
+            System.err.println(String.format("Allele detected with length %d exceeding max size %d at approximately line %d, likely resulting in degraded VCF processing performance", allele.length(), MAX_ALLELE_SIZE_BEFORE_WARNING, lineNo));
+        }
 
         if ( isSymbolicAllele(allele) ) {
             if ( isRef ) {

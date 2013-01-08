@@ -32,11 +32,10 @@ package org.broadinstitute.variant.variantcontext.writer;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.FeatureCodec;
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.variant.VariantBaseTest;
 import org.broadinstitute.variant.bcf2.BCF2Codec;
 import org.broadinstitute.variant.vcf.VCFCodec;
 import org.broadinstitute.variant.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.VariantContextTestProvider;
 import org.testng.annotations.BeforeSuite;
@@ -50,15 +49,13 @@ import java.util.EnumSet;
 import java.util.List;
 
 
-public class VariantContextWritersUnitTest extends BaseTest {
+public class VariantContextWritersUnitTest extends VariantBaseTest {
     private SAMSequenceDictionary dictionary;
 
     @BeforeSuite
     public void before() throws IOException {
         final File source = new File(b37KGReference);
-        //final File source = new File("/Users/depristo/Desktop/broadLocal/localData/human_g1k_v37.fasta");
-        IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(source);
-        //IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
+        IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(source);
         dictionary = seq.getSequenceDictionary();
         VariantContextTestProvider.initializeTests();
     }

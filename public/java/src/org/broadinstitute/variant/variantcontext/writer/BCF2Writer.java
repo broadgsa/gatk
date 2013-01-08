@@ -28,11 +28,11 @@ package org.broadinstitute.variant.variantcontext.writer;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.SAMSequenceDictionary;
-import org.apache.log4j.Logger;
 import org.broadinstitute.variant.bcf2.BCF2Codec;
 import org.broadinstitute.variant.bcf2.BCF2Type;
 import org.broadinstitute.variant.bcf2.BCF2Utils;
 import org.broadinstitute.variant.bcf2.BCFVersion;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.broadinstitute.variant.vcf.VCFConstants;
 import org.broadinstitute.variant.vcf.VCFContigHeaderLine;
 import org.broadinstitute.variant.vcf.VCFHeader;
@@ -89,7 +89,6 @@ class BCF2Writer extends IndexingVariantContextWriter {
     public static final int MAJOR_VERSION = 2;
     public static final int MINOR_VERSION = 1;
 
-    final protected static Logger logger = Logger.getLogger(BCF2Writer.class);
     final private static boolean ALLOW_MISSING_CONTIG_LINES = false;
 
     private final OutputStream outputStream;      // Note: do not flush until completely done writing, to avoid issues with eventual BGZF support
@@ -129,7 +128,9 @@ class BCF2Writer extends IndexingVariantContextWriter {
         // create the config offsets map
         if ( header.getContigLines().isEmpty() ) {
             if ( ALLOW_MISSING_CONTIG_LINES ) {
-                logger.warn("No contig dictionary found in header, falling back to reference sequence dictionary");
+                if ( GeneralUtils.DEBUG_MODE_ENABLED ) {
+                    System.err.println("No contig dictionary found in header, falling back to reference sequence dictionary");
+                }
                 createContigDictionary(VCFUtils.makeContigHeaderLines(getRefDict(), null));
             } else {
                 throw new IllegalStateException("Cannot write BCF2 file with missing contig lines");
@@ -275,10 +276,8 @@ class BCF2Writer extends IndexingVariantContextWriter {
 
             if ( lgc.getUnparsedGenotypeData() instanceof BCF2Codec.LazyData &&
                     canSafelyWriteRawGenotypesBytes((BCF2Codec.LazyData) lgc.getUnparsedGenotypeData())) {
-                //logger.info("Passing on raw BCF2 genotypes data");
                 return (BCF2Codec.LazyData)lgc.getUnparsedGenotypeData();
             } else {
-                //logger.info("Decoding raw BCF2 genotypes data");
                 lgc.decode(); // WARNING -- required to avoid keeping around bad lazy data for too long
             }
         }

@@ -25,8 +25,8 @@
 
 package org.broadinstitute.variant.bcf2;
 
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.variant.VariantBaseTest;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.broadinstitute.variant.vcf.*;
 
 import java.util.*;
@@ -37,7 +37,7 @@ import org.testng.annotations.Test;
 /**
  * Tests for BCF2Utils
  */
-public final class BCF2UtilsUnitTest extends BaseTest {
+public final class BCF2UtilsUnitTest extends VariantBaseTest {
     @DataProvider(name = "CollapseExpandTest")
     public Object[][] makeCollapseExpandTest() {
         List<Object[]> tests = new ArrayList<Object[]>();
@@ -87,7 +87,7 @@ public final class BCF2UtilsUnitTest extends BaseTest {
             final List<VCFHeaderLine> empty = Collections.emptyList();
             final List<List<VCFHeaderLine>> permutations = extrasToTake == 0
                     ? Collections.singletonList(empty)
-                    : Utils.makePermutations(extraLines, extrasToTake, false);
+                    : GeneralUtils.makePermutations(extraLines, extrasToTake, false);
             for ( final List<VCFHeaderLine> permutation : permutations ) {
                 for ( int i = -1; i < inputLines.size(); i++ ) {
                     final List<VCFHeaderLine> allLines = new ArrayList<VCFHeaderLine>(inputLines);
@@ -113,7 +113,7 @@ public final class BCF2UtilsUnitTest extends BaseTest {
 
                 final List<List<String>> permutations = testSamples.isEmpty()
                         ? Collections.singletonList(testSamples)
-                        : Utils.makePermutations(testSamples, testSamples.size(), false);
+                        : GeneralUtils.makePermutations(testSamples, testSamples.size(), false);
                 for ( final List<String> testSamplesPermutation : permutations ) {
                     final VCFHeader testHeaderWithSamples = new VCFHeader(inputHeader.getMetaDataInInputOrder(), testSamplesPermutation);
                     final boolean expectedConsistent = testSamples.equals(inSamples);

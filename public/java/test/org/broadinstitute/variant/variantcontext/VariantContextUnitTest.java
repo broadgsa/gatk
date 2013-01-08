@@ -29,9 +29,8 @@ package org.broadinstitute.variant.variantcontext;
 // the imports for unit testing.
 
 
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.variant.VariantBaseTest;
+import org.broadinstitute.variant.utils.Pair;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
@@ -41,7 +40,7 @@ import org.testng.Assert;
 import java.util.*;
 
 
-public class VariantContextUnitTest extends BaseTest {
+public class VariantContextUnitTest extends VariantBaseTest {
     Allele A, Aref, C, T, Tref;
     Allele del, delRef, ATC, ATCref;
 
@@ -500,30 +499,30 @@ public class VariantContextUnitTest extends BaseTest {
         Pair<List<Integer>,byte[]> result;
         byte[] refBytes = "TATCATCATCGGA".getBytes();
 
-        Assert.assertEquals(GATKVariantContextUtils.findNumberofRepetitions("ATG".getBytes(), "ATGATGATGATG".getBytes()),4);
-        Assert.assertEquals(GATKVariantContextUtils.findNumberofRepetitions("G".getBytes(), "ATGATGATGATG".getBytes()),0);
-        Assert.assertEquals(GATKVariantContextUtils.findNumberofRepetitions("T".getBytes(), "T".getBytes()),1);
-        Assert.assertEquals(GATKVariantContextUtils.findNumberofRepetitions("AT".getBytes(), "ATGATGATCATG".getBytes()),1);
-        Assert.assertEquals(GATKVariantContextUtils.findNumberofRepetitions("CCC".getBytes(), "CCCCCCCC".getBytes()),2);
+        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("ATG".getBytes(), "ATGATGATGATG".getBytes()),4);
+        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("G".getBytes(), "ATGATGATGATG".getBytes()),0);
+        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("T".getBytes(), "T".getBytes()),1);
+        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("AT".getBytes(), "ATGATGATCATG".getBytes()),1);
+        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("CCC".getBytes(), "CCCCCCCC".getBytes()),2);
 
-        Assert.assertEquals(GATKVariantContextUtils.findRepeatedSubstring("ATG".getBytes()),3);
-        Assert.assertEquals(GATKVariantContextUtils.findRepeatedSubstring("AAA".getBytes()),1);
-        Assert.assertEquals(GATKVariantContextUtils.findRepeatedSubstring("CACACAC".getBytes()),7);
-        Assert.assertEquals(GATKVariantContextUtils.findRepeatedSubstring("CACACA".getBytes()),2);
-        Assert.assertEquals(GATKVariantContextUtils.findRepeatedSubstring("CATGCATG".getBytes()),4);
-        Assert.assertEquals(GATKVariantContextUtils.findRepeatedSubstring("AATAATA".getBytes()),7);
+        Assert.assertEquals(VariantContextUtils.findRepeatedSubstring("ATG".getBytes()),3);
+        Assert.assertEquals(VariantContextUtils.findRepeatedSubstring("AAA".getBytes()),1);
+        Assert.assertEquals(VariantContextUtils.findRepeatedSubstring("CACACAC".getBytes()),7);
+        Assert.assertEquals(VariantContextUtils.findRepeatedSubstring("CACACA".getBytes()),2);
+        Assert.assertEquals(VariantContextUtils.findRepeatedSubstring("CATGCATG".getBytes()),4);
+        Assert.assertEquals(VariantContextUtils.findRepeatedSubstring("AATAATA".getBytes()),7);
 
 
         // A*,ATC, context = ATC ATC ATC : (ATC)3 -> (ATC)4
         VariantContext vc = new VariantContextBuilder("foo", insLoc, insLocStart, insLocStop, Arrays.asList(nullR,atc)).make();
-        result = GATKVariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
+        result = VariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
         Assert.assertEquals(result.getFirst().toArray()[0],3);
         Assert.assertEquals(result.getFirst().toArray()[1],4);
         Assert.assertEquals(result.getSecond().length,3);
 
         // ATC*,A,ATCATC
         vc = new VariantContextBuilder("foo", insLoc, insLocStart, insLocStart+3, Arrays.asList(Allele.create("AATC", true),nullA,atcatc)).make();
-        result = GATKVariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
+        result = VariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
         Assert.assertEquals(result.getFirst().toArray()[0],3);
         Assert.assertEquals(result.getFirst().toArray()[1],2);
         Assert.assertEquals(result.getFirst().toArray()[2],4);
@@ -532,7 +531,7 @@ public class VariantContextUnitTest extends BaseTest {
         // simple non-tandem deletion: CCCC*, -
         refBytes = "TCCCCCCCCATG".getBytes();
         vc = new VariantContextBuilder("foo", delLoc, 10, 14, Arrays.asList(ccccR,nullA)).make();
-        result = GATKVariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
+        result = VariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
         Assert.assertEquals(result.getFirst().toArray()[0],8);
         Assert.assertEquals(result.getFirst().toArray()[1],4);
         Assert.assertEquals(result.getSecond().length,1);
@@ -540,7 +539,7 @@ public class VariantContextUnitTest extends BaseTest {
         // CCCC*,CC,-,CCCCCC, context = CCC: (C)7 -> (C)5,(C)3,(C)9
         refBytes = "TCCCCCCCAGAGAGAG".getBytes();
         vc = new VariantContextBuilder("foo", insLoc, insLocStart, insLocStart+4, Arrays.asList(ccccR,cc, nullA,cccccc)).make();
-        result = GATKVariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
+        result = VariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
         Assert.assertEquals(result.getFirst().toArray()[0],7);
         Assert.assertEquals(result.getFirst().toArray()[1],5);
         Assert.assertEquals(result.getFirst().toArray()[2],3);
@@ -550,7 +549,7 @@ public class VariantContextUnitTest extends BaseTest {
         // GAGA*,-,GAGAGAGA
         refBytes = "TGAGAGAGAGATTT".getBytes();
         vc = new VariantContextBuilder("foo", insLoc, insLocStart, insLocStart+4, Arrays.asList(gagaR, nullA,gagagaga)).make();
-        result = GATKVariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
+        result = VariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
         Assert.assertEquals(result.getFirst().toArray()[0],5);
         Assert.assertEquals(result.getFirst().toArray()[1],3);
         Assert.assertEquals(result.getFirst().toArray()[2],7);

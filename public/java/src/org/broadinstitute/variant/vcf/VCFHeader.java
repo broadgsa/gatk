@@ -25,9 +25,9 @@
 
 package org.broadinstitute.variant.vcf;
 
-import org.apache.log4j.Logger;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.variant.utils.GeneralUtils;
 
 import java.util.*;
 
@@ -45,7 +45,6 @@ import java.util.*;
  *         A class representing the VCF header
  */
 public class VCFHeader {
-    final protected static Logger logger = Logger.getLogger(VCFHeader.class);
 
     // the mandatory header fields
     public enum HEADER_FIELDS {
@@ -238,9 +237,11 @@ public class VCFHeader {
         }
 
         if ( hasFormatLine(VCFConstants.GENOTYPE_LIKELIHOODS_KEY) && ! hasFormatLine(VCFConstants.GENOTYPE_PL_KEY) ) {
-            logger.warn("Found " + VCFConstants.GENOTYPE_LIKELIHOODS_KEY + " format, but no "
-                    + VCFConstants.GENOTYPE_PL_KEY + " field.  We now only manage PL fields internally"
-                    + " automatically adding a corresponding PL field to your VCF header");
+            if ( GeneralUtils.DEBUG_MODE_ENABLED ) {
+                System.err.println("Found " + VCFConstants.GENOTYPE_LIKELIHOODS_KEY + " format, but no "
+                                   + VCFConstants.GENOTYPE_PL_KEY + " field.  We now only manage PL fields internally"
+                                   + " automatically adding a corresponding PL field to your VCF header");
+            }
             addMetaDataLine(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_PL_KEY, VCFHeaderLineCount.G, VCFHeaderLineType.Integer, "Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification"));
         }
     }
@@ -254,10 +255,14 @@ public class VCFHeader {
      */
     private final <T extends VCFCompoundHeaderLine> void addMetaDataMapBinding(final Map<String, T> map, T line) {
         final String key = line.getID();
-        if ( map.containsKey(key) )
-            logger.debug("Found duplicate VCF header lines for " + key + "; keeping the first only" );
-        else
+        if ( map.containsKey(key) ) {
+            if ( GeneralUtils.DEBUG_MODE_ENABLED ) {
+                System.err.println("Found duplicate VCF header lines for " + key + "; keeping the first only" );
+            }
+        }
+        else {
             map.put(key, line);
+        }
     }
 
     /**

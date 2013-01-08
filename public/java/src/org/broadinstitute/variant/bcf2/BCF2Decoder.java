@@ -27,9 +27,8 @@ package org.broadinstitute.variant.bcf2;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.apache.log4j.Logger;
-import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.TribbleException;
+import org.broadinstitute.variant.utils.GeneralUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -38,8 +37,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public final class BCF2Decoder {
-    final protected static Logger logger = Logger.getLogger(FeatureCodec.class);
-
     byte[] recordBytes = null;
     ByteArrayInputStream recordStream = null;
 
@@ -343,8 +340,9 @@ public final class BCF2Decoder {
                     bytesRead += read1;
             }
 
-            if ( nReadAttempts > 1 ) // TODO -- remove me
-                logger.warn("Required multiple read attempts to actually get the entire BCF2 block, unexpected behavior");
+            if ( GeneralUtils.DEBUG_MODE_ENABLED && nReadAttempts > 1 ) { // TODO -- remove me
+                System.err.println("Required multiple read attempts to actually get the entire BCF2 block, unexpected behavior");
+            }
 
             validateReadBytes(bytesRead, nReadAttempts, blockSizeInBytes);
         } catch ( IOException e ) {

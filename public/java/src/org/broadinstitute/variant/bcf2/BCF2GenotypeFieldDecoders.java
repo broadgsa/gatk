@@ -27,7 +27,6 @@ package org.broadinstitute.variant.bcf2;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.apache.log4j.Logger;
 import org.broadinstitute.variant.vcf.VCFConstants;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.variant.variantcontext.Allele;
@@ -46,7 +45,6 @@ import java.util.*;
  * @since 6/12
  */
 public class BCF2GenotypeFieldDecoders {
-    final protected static Logger logger = Logger.getLogger(BCF2GenotypeFieldDecoders.class);
     private final static boolean ENABLE_FASTPATH_GT = true;
     private final static int MIN_SAMPLES_FOR_FASTPATH_GENOTYPES = 0; // TODO -- update to reasonable number
 

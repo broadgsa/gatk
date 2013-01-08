@@ -25,15 +25,14 @@
 
 package org.broadinstitute.variant.variantcontext;
 
-import org.apache.log4j.Logger;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.variant.VariantBaseTest;
 import org.broadinstitute.variant.bcf2.BCF2Codec;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.broadinstitute.variant.vcf.*;
-import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.variant.utils.Pair;
 import org.broadinstitute.variant.variantcontext.writer.Options;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.testng.Assert;
@@ -50,8 +49,6 @@ import java.util.*;
  * @since Date created
  */
 public class VariantContextTestProvider {
-    final protected static Logger logger = Logger.getLogger(VariantContextTestProvider.class);
-
     final private static boolean ENABLE_GENOTYPE_TESTS = true;
     final private static boolean ENABLE_A_AND_G_TESTS = true;
     final private static boolean ENABLE_VARARRAY_TESTS = true;
@@ -68,12 +65,12 @@ public class VariantContextTestProvider {
 
     private final static List<File> testSourceVCFs = new ArrayList<File>();
     static {
-        testSourceVCFs.add(new File(BaseTest.privateTestDir + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"));
-        testSourceVCFs.add(new File(BaseTest.privateTestDir + "ex2.vcf"));
-        testSourceVCFs.add(new File(BaseTest.privateTestDir + "dbsnp_135.b37.1000.vcf"));
+        testSourceVCFs.add(new File(VariantBaseTest.variantTestDataRoot + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"));
+        testSourceVCFs.add(new File(VariantBaseTest.variantTestDataRoot + "ex2.vcf"));
+        testSourceVCFs.add(new File(VariantBaseTest.variantTestDataRoot + "dbsnp_135.b37.1000.vcf"));
         if ( ENABLE_SYMBOLIC_ALLELE_TESTS ) {
-            testSourceVCFs.add(new File(BaseTest.privateTestDir + "diagnosis_targets_testfile.vcf"));
-            testSourceVCFs.add(new File(BaseTest.privateTestDir + "VQSR.mixedTest.recal"));
+            testSourceVCFs.add(new File(VariantBaseTest.variantTestDataRoot + "diagnosis_targets_testfile.vcf"));
+            testSourceVCFs.add(new File(VariantBaseTest.variantTestDataRoot + "VQSR.mixedTest.recal"));
         }
     }
 
@@ -156,12 +153,10 @@ public class VariantContextTestProvider {
                 Pair<VCFHeader, Iterable<VariantContext>> x = readAllVCs( file, codec );
                 List<VariantContext> fullyDecoded = new ArrayList<VariantContext>();
 
-                logger.warn("Reading records from " + file);
                 for ( final VariantContext raw : x.getSecond() ) {
                     if ( raw != null )
                         fullyDecoded.add(raw.fullyDecode(x.getFirst(), false));
                 }
-                logger.warn("Done reading " + file);
 
                 TEST_DATAs.add(new VariantContextTestData(x.getFirst(), fullyDecoded));
             }
@@ -788,12 +783,12 @@ public class VariantContextTestProvider {
         assertAttributesEquals(actual.getAttributes(), expected.getAttributes());
         Assert.assertEquals(actual.filtersWereApplied(), expected.filtersWereApplied(), "filtersWereApplied");
         Assert.assertEquals(actual.isFiltered(), expected.isFiltered(), "isFiltered");
-        BaseTest.assertEqualsSet(actual.getFilters(), expected.getFilters(), "filters");
-        BaseTest.assertEqualsDoubleSmart(actual.getPhredScaledQual(), expected.getPhredScaledQual());
+        VariantBaseTest.assertEqualsSet(actual.getFilters(), expected.getFilters(), "filters");
+        VariantBaseTest.assertEqualsDoubleSmart(actual.getPhredScaledQual(), expected.getPhredScaledQual());
 
         Assert.assertEquals(actual.hasGenotypes(), expected.hasGenotypes(), "hasGenotypes");
         if ( expected.hasGenotypes() ) {
-            BaseTest.assertEqualsSet(actual.getSampleNames(), expected.getSampleNames(), "sample names set");
+            VariantBaseTest.assertEqualsSet(actual.getSampleNames(), expected.getSampleNames(), "sample names set");
             Assert.assertEquals(actual.getSampleNamesOrderedByName(), expected.getSampleNamesOrderedByName(), "sample names");
             final Set<String> samples = expected.getSampleNames();
             for ( final String sample : samples ) {
@@ -879,7 +874,7 @@ public class VariantContextTestProvider {
     private static void assertAttributeEquals(final String key, final Object actual, final Object expected) {
         if ( expected instanceof Double ) {
             // must be very tolerant because doubles are being rounded to 2 sig figs
-            BaseTest.assertEqualsDoubleSmart(actual, (Double)expected, 1e-2);
+            VariantBaseTest.assertEqualsDoubleSmart(actual, (Double)expected, 1e-2);
         } else
             Assert.assertEquals(actual, expected, "Attribute " + key);
     }
@@ -935,7 +930,7 @@ public class VariantContextTestProvider {
     }
 
     private static List<List<Allele>> makeAllGenotypes(final List<Allele> alleles, final int highestPloidy) {
-        return Utils.makePermutations(alleles, highestPloidy, true);
+        return GeneralUtils.makePermutations(alleles, highestPloidy, true);
     }
 
     public static void assertEquals(final VCFHeader actual, final VCFHeader expected) {

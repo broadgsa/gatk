@@ -27,7 +27,7 @@ package org.broadinstitute.variant.variantcontext;
 
 import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.MapContext;
-import org.broadinstitute.variant.utils.Utils;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.broadinstitute.variant.vcf.VCFConstants;
 
 import java.util.Collection;
@@ -168,7 +168,7 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
                 infoMap.put("QUAL", String.valueOf(vc.getPhredScaledQual()));
 
                 // add alleles
-                infoMap.put("ALLELES", Utils.join(";", vc.getAlleles()));
+                infoMap.put("ALLELES", GeneralUtils.join(";", vc.getAlleles()));
                 infoMap.put("N_ALLELES", String.valueOf(vc.getNAlleles()));
 
                 // add attributes
