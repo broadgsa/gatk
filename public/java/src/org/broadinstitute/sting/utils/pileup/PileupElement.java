@@ -90,14 +90,6 @@ public class PileupElement implements Comparable<PileupElement> {
         currentCigarOffset = offsetInCurrentCigar = -1;
     }
 
-    @Deprecated
-    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip) {
-        this(read, offset, isDeletion, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, null, -1);
-    }
-
-    //
-    // TODO -- make convenient testing constructor
-    //
     public PileupElement(final GATKSAMRecord read, final int baseOffset,
                          final CigarElement currentElement, final int currentCigarOffset, final int offsetInCurrentCigar) {
         this.read = read;
@@ -107,8 +99,17 @@ public class PileupElement implements Comparable<PileupElement> {
         this.offsetInCurrentCigar = offsetInCurrentCigar;
     }
 
+    /**
+     * Create a new PileupElement that's a copy of toCopy
+     * @param toCopy the element we want to copy
+     */
     public PileupElement(final PileupElement toCopy) {
         this(toCopy.read, toCopy.offset, toCopy.currentCigarElement, toCopy.currentCigarOffset, toCopy.offsetInCurrentCigar);
+    }
+
+    @Deprecated
+    public PileupElement(final GATKSAMRecord read, final int baseOffset) {
+        throw new UnsupportedOperationException("please use LocusIteratorByState.createPileupForReadAndOffset instead");
     }
 
     public boolean isDeletion() {
@@ -290,19 +291,6 @@ public class PileupElement implements Comparable<PileupElement> {
         }
         return representativeCount;
     }
-
-//    public CigarElement getNextElement() {
-//        return ( offsetInCurrentCigar + 1 > currentCigarElement.getLength() && currentCigarOffset + 1 < read.getCigarLength()
-//                ? read.getCigar().getCigarElement(currentCigarOffset + 1)
-//                : currentCigarElement );
-//    }
-//
-//    public CigarElement getPrevElement() {
-//        return ( offsetInCurrentCigar - 1 == 0 && currentCigarOffset - 1 > 0
-//                ? read.getCigar().getCigarElement(currentCigarOffset - 1)
-//                : currentCigarElement );
-//    }
-
 
     public CigarElement getCurrentCigarElement() {
         return currentCigarElement;

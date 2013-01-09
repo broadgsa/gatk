@@ -178,7 +178,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
         for (int i = 0; i < reads.size(); i++) {
             GATKSAMRecord read = reads.get(i);
             int offset = offsets.get(i);
-            pileup.add(createNewPileupElement(read, offset, false, false, false, false, false, false)); // only used to create fake pileups for testing so ancillary information is not important
+            pileup.add(createNewPileupElement(read, offset)); // only used to create fake pileups for testing so ancillary information is not important
         }
 
         return pileup;
@@ -197,7 +197,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
 
         UnifiedPileupElementTracker<PE> pileup = new UnifiedPileupElementTracker<PE>();
         for (GATKSAMRecord read : reads) {
-            pileup.add(createNewPileupElement(read, offset, false, false, false, false, false, false)); // only used to create fake pileups for testing so ancillary information is not important
+            pileup.add(createNewPileupElement(read, offset)); // only used to create fake pileups for testing so ancillary information is not important
         }
 
         return pileup;
@@ -205,8 +205,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
 
     protected abstract AbstractReadBackedPileup<RBP, PE> createNewPileup(GenomeLoc loc, PileupElementTracker<PE> pileupElementTracker);
 
-    protected abstract PE createNewPileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip);
-    protected abstract PE createNewPileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip, final String nextEventBases, final int nextEventLength );
+    protected abstract PE createNewPileupElement(final GATKSAMRecord read, final int offset);
 
     // --------------------------------------------------------
     //

@@ -35,6 +35,8 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
  * Steps a single read along its alignment to the genome
@@ -59,7 +61,7 @@ class AlignmentStateMachine {
     /**
      * Our read
      */
-    private final SAMRecord read;
+    private final GATKSAMRecord read;
     private final Cigar cigar;
     private final int nCigarElements;
     private int currentCigarElementOffset = -1;
@@ -86,7 +88,7 @@ class AlignmentStateMachine {
 
     @Requires({"read != null", "read.getAlignmentStart() != -1", "read.getCigar() != null"})
     public AlignmentStateMachine(final SAMRecord read) {
-        this.read = read;
+        this.read = (GATKSAMRecord)read;
         this.cigar = read.getCigar();
         this.nCigarElements = cigar.numCigarElements();
         initializeAsLeftEdge();
@@ -336,6 +338,24 @@ class AlignmentStateMachine {
             if ( done )
                 return currentElement.getOperator();
         }
+    }
+
+    /**
+     * Create a new PileupElement based on the current state of this element
+     *
+     * Must not be a left or right edge
+     *
+     * @return a pileup element
+     */
+    @Ensures("result != null")
+    public final PileupElement makePileupElement() {
+        if ( isLeftEdge() || isRightEdge() )
+            throw new IllegalStateException("Cannot make a pileup element from an edge alignment state");
+        return new PileupElement(read,
+                getReadOffset(),
+                getCurrentCigarElement(),
+                getCurrentCigarElementOffset(),
+                getOffsetIntoCurrentCigarElement());
     }
 }
 

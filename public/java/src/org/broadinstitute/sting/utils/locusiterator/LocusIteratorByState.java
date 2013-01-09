@@ -256,9 +256,7 @@ public class LocusIteratorByState extends LocusIterator {
                             nDeletions++;
                         }
 
-                        pile.add(new PileupElement(read, state.getReadOffset(),
-                                state.getCurrentCigarElement(), state.getCurrentCigarElementOffset(),
-                                state.getOffsetIntoCurrentCigarElement()));
+                        pile.add(state.makePileupElement());
                         size++;
 
                         if ( read.getMappingQuality() == 0 )
@@ -383,5 +381,30 @@ public class LocusIteratorByState extends LocusIterator {
         final int coverage = performDownsampling ? readInfo.getDownsamplingMethod().toCoverage : 0;
 
         return new LIBSDownsamplingInfo(performDownsampling, coverage);
+    }
+
+    /**
+     * Create a pileup element for read at offset
+     *
+     * offset must correspond to a valid read offset given the read's cigar, or an IllegalStateException will be throw
+     *
+     * @param read a read
+     * @param offset the offset into the bases we'd like to use in the pileup
+     * @return a valid PileupElement with read and at offset
+     */
+    @Ensures("result != null")
+    public static PileupElement createPileupForReadAndOffset(final GATKSAMRecord read, final int offset) {
+        if ( read == null ) throw new IllegalArgumentException("read cannot be null");
+        if ( offset < 0 || offset >= read.getReadLength() ) throw new IllegalArgumentException("Invalid offset " + offset + " outside of bounds 0 and " + read.getReadLength());
+
+        final AlignmentStateMachine stateMachine = new AlignmentStateMachine(read);
+
+        while ( stateMachine.stepForwardOnGenome() != null ) {
+            if ( stateMachine.getReadOffset() == offset )
+                return stateMachine.makePileupElement();
+        }
+
+        throw new IllegalStateException("Tried to create a pileup for read " + read + " with offset " + offset +
+                " but we never saw such an offset in the alignment state machine");
     }
 }

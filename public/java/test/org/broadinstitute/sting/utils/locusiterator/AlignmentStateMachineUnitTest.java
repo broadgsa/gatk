@@ -94,6 +94,9 @@ public class AlignmentStateMachineUnitTest extends LocusIteratorByStateBaseTest 
             Assert.assertEquals(state.getLocation(genomeLocParser).size(), 1, "GenomeLoc position should have size == 1");
             Assert.assertEquals(state.getLocation(genomeLocParser).getStart(), state.getGenomePosition(), "GenomeLoc position is bad");
 
+            // most tests of this functionality are in LIBS
+            Assert.assertNotNull(state.makePileupElement());
+
             lastOffset = state.getReadOffset();
             bpVisited++;
         }

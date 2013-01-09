@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.utils.pileup;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.List;
@@ -76,14 +77,7 @@ public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPil
     }
 
     @Override
-    protected PileupElement createNewPileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip) {
-        return new PileupElement(read, offset, isDeletion, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, null, 0);
+    protected PileupElement createNewPileupElement(GATKSAMRecord read, int offset) {
+        return LocusIteratorByState.createPileupForReadAndOffset(read, offset);
     }
-
-    @Override
-    protected PileupElement createNewPileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip, final String nextEventBases, final int nextEventLength ) {
-        return new PileupElement(read, offset, isDeletion, isBeforeDeletion, isAfterDeletion, isBeforeInsertion, isAfterInsertion, isNextToSoftClip, nextEventBases, nextEventLength);
-    }
-
-
 }
