@@ -107,8 +107,8 @@
 //            for (PileupElement p : pileup) {
 //                if (p.isBeforeInsertion()) {
 //                    foundIndel = true;
-//                    Assert.assertEquals(p.getEventLength(), 2, "Wrong event length");
-//                    Assert.assertEquals(p.getEventBases(), "CT", "Inserted bases are incorrect");
+//                    Assert.assertEquals(p.getLengthOfImmediatelyFollowingIndel(), 2, "Wrong event length");
+//                    Assert.assertEquals(p.getBasesOfImmediatelyFollowingInsertion(), "CT", "Inserted bases are incorrect");
 //                    break;
 //               }
 //            }
@@ -222,7 +222,7 @@
 //            PileupElement pe = p.iterator().next();
 //            Assert.assertTrue(pe.isBeforeInsertion());
 //            Assert.assertFalse(pe.isAfterInsertion());
-//            Assert.assertEquals(pe.getEventBases(), "A");
+//            Assert.assertEquals(pe.getBasesOfImmediatelyFollowingInsertion(), "A");
 //        }
 //
 //        SAMRecord read2 = ArtificialSAMUtils.createArtificialRead(header,"read2",0,secondLocus,10);
@@ -242,7 +242,7 @@
 //            PileupElement pe = p.iterator().next();
 //            Assert.assertTrue(pe.isBeforeInsertion());
 //            Assert.assertFalse(pe.isAfterInsertion());
-//            Assert.assertEquals(pe.getEventBases(), "AAAAAAAAAA");
+//            Assert.assertEquals(pe.getBasesOfImmediatelyFollowingInsertion(), "AAAAAAAAAA");
 //        }
 //    }
 //

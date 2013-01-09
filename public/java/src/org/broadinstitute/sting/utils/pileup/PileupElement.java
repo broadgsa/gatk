@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -157,21 +158,67 @@ public class PileupElement implements Comparable<PileupElement> {
     }
 
     /**
-     * @return length of the event (number of inserted or deleted bases
+     * Get the length of an immediately following insertion or deletion event, or 0 if no such event exists
+     *
+     * Only returns a positive value when this pileup element is immediately before an indel.  Being
+     * immediately before a deletion means that this pileup element isn't an deletion, and that the
+     * next genomic alignment for this read is a deletion.  For the insertion case, this means
+     * that an insertion cigar occurs immediately after this element, between this one and the
+     * next genomic position.
+     *
+     * Note this function may be expensive, so multiple uses should be cached by the caller
+     *
+     * @return length of the event (number of inserted or deleted bases), or 0
      */
-    @Deprecated
-    public int getEventLength() {
-        // TODO -- compute on the fly, provide meaningful function
-        return -1;
+    @Ensures("result >= 0")
+    public int getLengthOfImmediatelyFollowingIndel() {
+        final CigarElement element = getNextIndelCigarElement();
+        return element == null ? 0 : element.getLength();
     }
 
     /**
+     * Helpful function to get the immediately following cigar element, for an insertion or deletion
+     *
+     * if this state precedes a deletion (i.e., next position on genome) or insertion (immediately between
+     * this and the next position) returns the CigarElement corresponding to this event.  Otherwise returns
+     * null.
+     *
+     * @return a CigarElement, or null if the next alignment state ins't an insertion or deletion.
+     */
+    private CigarElement getNextIndelCigarElement() {
+        if ( isBeforeDeletionStart() ) {
+            final CigarElement element = getNextOnGenomeCigarElement();
+            if ( element == null || element.getOperator() != CigarOperator.D )
+                throw new IllegalStateException("Immediately before deletion but the next cigar element isn't a deletion " + element);
+            return element;
+        } else if ( isBeforeInsertion() ) {
+            final CigarElement element = getBetweenNextPosition().get(0);
+            if ( element.getOperator() != CigarOperator.I )
+                throw new IllegalStateException("Immediately before insertion but the next cigar element isn't an insertion " + element);
+            return element;
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Get the bases for an insertion that immediately follows this alignment state, or null if none exists
+     *
+     * @see #getLengthOfImmediatelyFollowingIndel() for details on the meaning of immediately.
+     *
+     * If the immediately following state isn't an insertion, returns null
+     *
      * @return actual sequence of inserted bases, or a null if the event is a deletion or if there is no event in the associated read.
      */
-    @Deprecated
-    public String getEventBases() {
-        // TODO -- compute on the fly, provide meaningful function
-        return null;
+    @Ensures("result == null || result.length() == getLengthOfImmediatelyFollowingIndel()")
+    public String getBasesOfImmediatelyFollowingInsertion() {
+        final CigarElement element = getNextIndelCigarElement();
+        if ( element != null && element.getOperator() == CigarOperator.I ) {
+            final int getFrom = offset + 1;
+            final byte[] bases = Arrays.copyOfRange(read.getReadBases(), getFrom, getFrom + element.getLength());
+            return new String(bases);
+        } else
+            return null;
     }
 
     public int getMappingQual() {

@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils.locusiterator;
 
+import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.ReadProperties;
@@ -32,6 +33,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.utils.NGSPlatform;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -90,7 +92,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         }
     }
 
-    @Test(enabled = false)
+    @Test(enabled = true)
     public void testIndelsInRegularPileup() {
         final byte[] bases = new byte[] {'A','A','A','A','A','A','A','A','A','A'};
         final byte[] indelBases = new byte[] {'A','A','A','A','C','T','A','A','A','A','A','A'};
@@ -125,8 +127,8 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
             for (PileupElement p : pileup) {
                 if (p.isBeforeInsertion()) {
                     foundIndel = true;
-                    Assert.assertEquals(p.getEventLength(), 2, "Wrong event length");
-                    Assert.assertEquals(p.getEventBases(), "CT", "Inserted bases are incorrect");
+                    Assert.assertEquals(p.getLengthOfImmediatelyFollowingIndel(), 2, "Wrong event length");
+                    Assert.assertEquals(p.getBasesOfImmediatelyFollowingInsertion(), "CT", "Inserted bases are incorrect");
                     break;
                }
             }
@@ -240,7 +242,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
 //            PileupElement pe = p.iterator().next();
 //            Assert.assertTrue(pe.isBeforeInsertion());
 //            Assert.assertFalse(pe.isAfterInsertion());
-//            Assert.assertEquals(pe.getEventBases(), "A");
+//            Assert.assertEquals(pe.getBasesOfImmediatelyFollowingInsertion(), "A");
         }
 
         SAMRecord read2 = ArtificialSAMUtils.createArtificialRead(header,"read2",0,secondLocus,10);
@@ -261,8 +263,70 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
 //            PileupElement pe = p.iterator().next();
 //            Assert.assertTrue(pe.isBeforeInsertion());
 //            Assert.assertFalse(pe.isAfterInsertion());
-//            Assert.assertEquals(pe.getEventBases(), "AAAAAAAAAA");
+//            Assert.assertEquals(pe.getBasesOfImmediatelyFollowingInsertion(), "AAAAAAAAAA");
         }
+    }
+
+
+    /////////////////////////////////////////////
+    // get event length and bases calculations //
+    /////////////////////////////////////////////
+
+    @DataProvider(name = "IndelLengthAndBasesTest")
+    public Object[][] makeIndelLengthAndBasesTest() {
+        final String EVENT_BASES = "ACGTACGTACGT";
+        final List<Object[]> tests = new LinkedList<Object[]>();
+
+        for ( int eventSize = 1; eventSize < 10; eventSize++ ) {
+            for ( final CigarOperator indel : Arrays.asList(CigarOperator.D, CigarOperator.I) ) {
+                final String cigar = String.format("2M%d%s1M", eventSize, indel.toString());
+                final String eventBases = indel == CigarOperator.D ? "" : EVENT_BASES.substring(0, eventSize);
+                final int readLength = 3 + eventBases.length();
+
+                GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read", 0, 1, readLength);
+                read.setReadBases(("TT" + eventBases + "A").getBytes());
+                final byte[] quals = new byte[readLength];
+                for ( int i = 0; i < readLength; i++ )
+                    quals[i] = (byte)(i % QualityUtils.MAX_QUAL_SCORE);
+                read.setBaseQualities(quals);
+                read.setCigarString(cigar);
+
+                tests.add(new Object[]{read, indel, eventSize, eventBases.equals("") ? null : eventBases});
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "IndelLengthAndBasesTest")
+    public void testIndelLengthAndBasesTest(GATKSAMRecord read, final CigarOperator op, final int eventSize, final String eventBases) {
+        // create the iterator by state with the fake reads and fake records
+        li = makeLTBS(Arrays.asList((SAMRecord)read), createTestReadProperties());
+
+        Assert.assertTrue(li.hasNext());
+
+        final PileupElement firstMatch = getFirstPileupElement(li.next());
+
+        Assert.assertEquals(firstMatch.getLengthOfImmediatelyFollowingIndel(), 0, "Length != 0 for site not adjacent to indel");
+        Assert.assertEquals(firstMatch.getBasesOfImmediatelyFollowingInsertion(), null, "Getbases of following event should be null at non-adajenct event");
+
+        Assert.assertTrue(li.hasNext());
+
+        final PileupElement pe = getFirstPileupElement(li.next());
+
+        if ( op == CigarOperator.D )
+            Assert.assertTrue(pe.isBeforeDeletionStart());
+        else
+            Assert.assertTrue(pe.isBeforeInsertion());
+
+        Assert.assertEquals(pe.getLengthOfImmediatelyFollowingIndel(), eventSize, "Length of event failed");
+        Assert.assertEquals(pe.getBasesOfImmediatelyFollowingInsertion(), eventBases, "Getbases of following event failed");
+    }
+
+    private PileupElement getFirstPileupElement(final AlignmentContext context) {
+        final ReadBackedPileup p = context.getBasePileup();
+        Assert.assertEquals(p.getNumberOfElements(), 1);
+        return p.iterator().next();
     }
 
     ////////////////////////////////////////////
@@ -276,30 +340,16 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
 //        tests.add(new Object[]{new LIBSTest("1X2D2P2X", 1)});
 //        return tests.toArray(new Object[][]{});
 
-//        tests.add(new Object[]{new LIBSTest("1I", 1)});
-//        tests.add(new Object[]{new LIBSTest("10I", 10)});
-//        tests.add(new Object[]{new LIBSTest("2M2I2M", 6)});
-//        tests.add(new Object[]{new LIBSTest("2M2I", 4)});
-//        //TODO -- uncomment these when LIBS is fixed
-//        //{new LIBSTest("2I2M", 4, Arrays.asList(2,3), Arrays.asList(IS_AFTER_INSERTION_FLAG,0))},
-//        //{new LIBSTest("1I1M1D1M", 3, Arrays.asList(0,1), Arrays.asList(IS_AFTER_INSERTION_FLAG | IS_BEFORE_DELETION_START_FLAG | IS_BEFORE_DELETED_BASE_FLAG,IS_AFTER_DELETED_BASE_FLAG | IS_AFTER_DELETION_END_FLAG))},
-//        //{new LIBSTest("1S1I1M", 3, Arrays.asList(2), Arrays.asList(IS_AFTER_INSERTION_FLAG))},
-//        //{new LIBSTest("1M2D2M", 3)},
-//        tests.add(new Object[]{new LIBSTest("1S1M", 2)});
-//        tests.add(new Object[]{new LIBSTest("1M1S", 2)});
-//        tests.add(new Object[]{new LIBSTest("1S1M1I", 3)});
-
-//        return tests.toArray(new Object[][]{});
-
         return createLIBSTests(
                 Arrays.asList(1, 2),
                 Arrays.asList(1, 2, 3, 4));
+
 //        return createLIBSTests(
 //                Arrays.asList(2),
 //                Arrays.asList(3));
     }
 
-    @Test(dataProvider = "LIBSTest")
+    @Test(enabled = false, dataProvider = "LIBSTest")
     public void testLIBS(LIBSTest params) {
         // create the iterator by state with the fake reads and fake records
         final GATKSAMRecord read = params.makeRead();
