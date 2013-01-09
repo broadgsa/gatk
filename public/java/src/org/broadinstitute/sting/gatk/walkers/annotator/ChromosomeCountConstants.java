@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 The Broad Institute
+ * Copyright (c) 2010.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -23,27 +23,22 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.recalibration;
+package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broadinstitute.sting.gatk.walkers.bqsr.RecalibrationArgumentCollection;
-import org.broadinstitute.sting.utils.recalibration.covariates.*;
+import org.broadinstitute.variant.vcf.VCFConstants;
+import org.broadinstitute.variant.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.variant.vcf.VCFStandardHeaderLines;
+
 
 /**
- * Created with IntelliJ IDEA.
- * User: depristo
- * Date: 12/23/12
- * Time: 1:06 PM
- * To change this template use File | Settings | File Templates.
+ * Keys and descriptions for the common chromosome count annotations
  */
-public class RecalibrationTestUtils {
-    public static Covariate[] makeInitializedStandardCovariates() {
-        final RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
-        final Covariate[] covariates = new Covariate[4];
-        covariates[0] = new ReadGroupCovariate();
-        covariates[1] = new QualityScoreCovariate();
-        covariates[2] = new ContextCovariate();
-        covariates[3] = new CycleCovariate();
-        for ( Covariate cov : covariates ) cov.initialize(RAC);
-        return covariates;
-    }
+public class ChromosomeCountConstants {
+
+    public static final String[] keyNames = { VCFConstants.ALLELE_NUMBER_KEY, VCFConstants.ALLELE_COUNT_KEY, VCFConstants.ALLELE_FREQUENCY_KEY };
+
+    public static final VCFInfoHeaderLine[] descriptions = {
+            VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_FREQUENCY_KEY),
+            VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_COUNT_KEY),
+            VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_NUMBER_KEY) };
 }
