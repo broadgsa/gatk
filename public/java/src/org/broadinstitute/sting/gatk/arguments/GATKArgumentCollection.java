@@ -284,14 +284,14 @@ public class GATKArgumentCollection {
     @Argument(fullName = "preserve_qscores_less_than", shortName = "preserveQ", doc = "Bases with quality scores less than this threshold won't be recalibrated (with -BQSR)", required = false)
     public int PRESERVE_QSCORES_LESS_THAN = QualityUtils.MIN_USABLE_Q_SCORE;
 
-    @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
-    public byte defaultBaseQualities = -1;
-
     // --------------------------------------------------------------------------------------------------------------
     //
     // Other utility arguments
     //
     // --------------------------------------------------------------------------------------------------------------
+
+    @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
+    public byte defaultBaseQualities = -1;
 
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
     public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;

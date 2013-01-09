@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2010.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -12,26 +12,33 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils.help;
+package org.broadinstitute.sting.gatk.walkers.annotator;
 
-public class HelpConstants {
+import org.broadinstitute.variant.vcf.VCFConstants;
+import org.broadinstitute.variant.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.variant.vcf.VCFStandardHeaderLines;
 
-    public final static String BASE_GATK_URL = "http://www.broadinstitute.org/gatk";
-    public final static String GATK_DOCS_URL = BASE_GATK_URL + "/gatkdocs/";
-    public final static String GATK_FORUM_URL = "http://gatkforums.broadinstitute.org/";
-    public final static String GATK_FORUM_API_URL = "https://gatkforums.broadinstitute.org/api/v1/";
 
-    public static String forumPost(String post) {
-    	return GATK_FORUM_URL + post;
-    }
+/**
+ * Keys and descriptions for the common chromosome count annotations
+ */
+public class ChromosomeCountConstants {
+
+    public static final String[] keyNames = { VCFConstants.ALLELE_NUMBER_KEY, VCFConstants.ALLELE_COUNT_KEY, VCFConstants.ALLELE_FREQUENCY_KEY };
+
+    public static final VCFInfoHeaderLine[] descriptions = {
+            VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_FREQUENCY_KEY),
+            VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_COUNT_KEY),
+            VCFStandardHeaderLines.getInfoLine(VCFConstants.ALLELE_NUMBER_KEY) };
 }

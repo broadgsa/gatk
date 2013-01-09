@@ -35,7 +35,7 @@ import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
-import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCounts;
+import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCountConstants;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.variant.vcf.*;
@@ -217,7 +217,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         if ( SET_KEY != null )
             headerLines.add(new VCFInfoHeaderLine(SET_KEY, 1, VCFHeaderLineType.String, "Source VCF for the merged record in CombineVariants"));
         if ( !ASSUME_IDENTICAL_SAMPLES )
-             headerLines.addAll(Arrays.asList(ChromosomeCounts.descriptions));
+             headerLines.addAll(Arrays.asList(ChromosomeCountConstants.descriptions));
         VCFHeader vcfHeader = new VCFHeader(headerLines, samples);
         vcfHeader.setWriteCommandLine(!SUPPRESS_COMMAND_LINE_HEADER);
         vcfWriter.writeHeader(vcfHeader);

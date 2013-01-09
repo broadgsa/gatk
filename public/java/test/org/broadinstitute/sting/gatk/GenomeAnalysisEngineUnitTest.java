@@ -28,7 +28,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.ArgumentException;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.walkers.PrintReads;
+import org.broadinstitute.sting.gatk.walkers.readutils.PrintReads;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.testng.annotations.Test;
 

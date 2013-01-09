@@ -92,12 +92,6 @@ public class UserException extends ReviewedStingException {
         }
     }
 
-    public static class NotSupportedInGATKLite extends UserException {
-        public NotSupportedInGATKLite(String message) {
-            super(String.format("GATK Lite does not support all of the features of the full version: %s", message));
-        }
-    }
-
     // todo -- fix up exception cause passing
     public static class MissingArgument extends CommandLineException {
         public MissingArgument(String arg, String message) {
