@@ -90,7 +90,7 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
                 new ValidationExclusion(),
                 Collections.<ReadFilter>emptyList(),
                 Collections.<ReadTransformer>emptyList(),
-                false,
+                true,
                 (byte) -1,
                 keepReads);
     }

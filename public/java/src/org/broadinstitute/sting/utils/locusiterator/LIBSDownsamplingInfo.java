@@ -26,12 +26,12 @@
 package org.broadinstitute.sting.utils.locusiterator;
 
 /**
-* Created with IntelliJ IDEA.
-* User: depristo
-* Date: 1/5/13
-* Time: 1:26 PM
-* To change this template use File | Settings | File Templates.
-*/
+ * Simple wrapper about the information LIBS needs about downsampling
+ *
+ * User: depristo
+ * Date: 1/5/13
+ * Time: 1:26 PM
+ */
 public class LIBSDownsamplingInfo {
     public final static LIBSDownsamplingInfo NO_DOWNSAMPLING = new LIBSDownsamplingInfo(false, -1);
 

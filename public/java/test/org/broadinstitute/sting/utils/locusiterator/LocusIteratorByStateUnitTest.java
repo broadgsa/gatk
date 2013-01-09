@@ -50,9 +50,10 @@ import java.util.*;
  * testing of the new (non-legacy) version of LocusIteratorByState
  */
 public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
+    private static final boolean DEBUG = false;
     protected LocusIteratorByState li;
 
-    @Test
+    @Test(enabled = true && ! DEBUG)
     public void testXandEQOperators() {
         final byte[] bases1 = new byte[] {'A','A','A','A','A','A','A','A','A','A'};
         final byte[] bases2 = new byte[] {'A','A','A','C','A','A','A','A','A','C'};
@@ -92,7 +93,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         }
     }
 
-    @Test(enabled = true)
+    @Test(enabled = true && ! DEBUG)
     public void testIndelsInRegularPileup() {
         final byte[] bases = new byte[] {'A','A','A','A','A','A','A','A','A','A'};
         final byte[] indelBases = new byte[] {'A','A','A','A','C','T','A','A','A','A','A','A'};
@@ -138,7 +139,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
          Assert.assertTrue(foundIndel,"Indel in pileup not found");
     }
 
-    @Test(enabled = false)
+    @Test(enabled = false && ! DEBUG)
     public void testWholeIndelReadInIsolation() {
         final int firstLocus = 44367789;
 
@@ -169,7 +170,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
      * Test to make sure that reads supporting only an indel (example cigar string: 76I) do
      * not negatively influence the ordering of the pileup.
      */
-    @Test(enabled = true)
+    @Test(enabled = true && ! DEBUG)
     public void testWholeIndelRead() {
         final int firstLocus = 44367788, secondLocus = firstLocus + 1;
 
@@ -220,7 +221,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     /**
      * Test to make sure that reads supporting only an indel (example cigar string: 76I) are represented properly
      */
-    @Test(enabled = false)
+    @Test(enabled = false && ! DEBUG)
     public void testWholeIndelReadRepresentedTest() {
         final int firstLocus = 44367788, secondLocus = firstLocus + 1;
 
@@ -298,7 +299,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "IndelLengthAndBasesTest")
+    @Test(enabled = true && ! DEBUG, dataProvider = "IndelLengthAndBasesTest")
     public void testIndelLengthAndBasesTest(GATKSAMRecord read, final CigarOperator op, final int eventSize, final String eventBases) {
         // create the iterator by state with the fake reads and fake records
         li = makeLTBS(Arrays.asList((SAMRecord)read), createTestReadProperties());
@@ -337,7 +338,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     public Object[][] makeLIBSTest() {
         final List<Object[]> tests = new LinkedList<Object[]>();
 
-//        tests.add(new Object[]{new LIBSTest("1X2D2P2X", 1)});
+//        tests.add(new Object[]{new LIBSTest("2=2D2=2X", 1)});
 //        return tests.toArray(new Object[][]{});
 
         return createLIBSTests(
@@ -349,7 +350,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
 //                Arrays.asList(3));
     }
 
-    @Test(enabled = false, dataProvider = "LIBSTest")
+    @Test(enabled = true, dataProvider = "LIBSTest")
     public void testLIBS(LIBSTest params) {
         // create the iterator by state with the fake reads and fake records
         final GATKSAMRecord read = params.makeRead();
@@ -366,19 +367,19 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
             Assert.assertEquals(p.getNumberOfElements(), 1);
             PileupElement pe = p.iterator().next();
 
-            Assert.assertEquals(p.getNumberOfDeletions(), pe.isDeletion() ? 1 : 0);
-            Assert.assertEquals(p.getNumberOfMappingQualityZeroReads(), pe.getRead().getMappingQuality() == 0 ? 1 : 0);
+            Assert.assertEquals(p.getNumberOfDeletions(), pe.isDeletion() ? 1 : 0, "wrong number of deletions in the pileup");
+            Assert.assertEquals(p.getNumberOfMappingQualityZeroReads(), pe.getRead().getMappingQuality() == 0 ? 1 : 0, "wront number of mapq reads in the pileup");
 
             tester.stepForwardOnGenome();
 
             if ( ! hasNeighboringPaddedOps(params.getElements(), pe.getCurrentCigarOffset()) ) {
-                Assert.assertEquals(pe.isBeforeDeletionStart(), tester.isBeforeDeletionStart);
-                Assert.assertEquals(pe.isAfterDeletionEnd(), tester.isAfterDeletionEnd);
+                Assert.assertEquals(pe.isBeforeDeletionStart(), tester.isBeforeDeletionStart, "before deletion start failure");
+                Assert.assertEquals(pe.isAfterDeletionEnd(), tester.isAfterDeletionEnd, "after deletion end failure");
             }
 
-            Assert.assertEquals(pe.isBeforeInsertion(), tester.isBeforeInsertion);
-            Assert.assertEquals(pe.isAfterInsertion(), tester.isAfterInsertion);
-            Assert.assertEquals(pe.isNextToSoftClip(), tester.isNextToSoftClip);
+            Assert.assertEquals(pe.isBeforeInsertion(), tester.isBeforeInsertion, "before insertion failure");
+            Assert.assertEquals(pe.isAfterInsertion(), tester.isAfterInsertion, "after insertion failure");
+            Assert.assertEquals(pe.isNextToSoftClip(), tester.isNextToSoftClip, "next to soft clip failure");
 
             Assert.assertTrue(pe.getOffset() >= lastOffset, "Somehow read offsets are decreasing: lastOffset " + lastOffset + " current " + pe.getOffset());
             Assert.assertEquals(pe.getOffset(), tester.getCurrentReadOffset(), "Read offsets are wrong at " + bpVisited);
@@ -391,7 +392,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
             Assert.assertTrue(pe.getOffsetInCurrentCigar() >= 0, "Offset into current cigar too small");
             Assert.assertTrue(pe.getOffsetInCurrentCigar() < pe.getCurrentCigarElement().getLength(), "Offset into current cigar too big");
 
-            Assert.assertEquals(pe.getOffset(), tester.getCurrentReadOffset());
+            Assert.assertEquals(pe.getOffset(), tester.getCurrentReadOffset(), "Read offset failure");
             lastOffset = pe.getOffset();
         }
 
@@ -431,7 +432,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(enabled = true, dataProvider = "LIBSKeepSubmittedReads")
+    @Test(enabled = true && ! DEBUG, dataProvider = "LIBSKeepSubmittedReads")
     public void testLIBSKeepSubmittedReads(final int nReadsPerLocus,
                                            final int nLoci,
                                            final int nSamples,

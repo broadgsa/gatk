@@ -52,6 +52,7 @@
 package org.broadinstitute.sting.utils.locusiterator;
 
 import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
@@ -69,12 +70,16 @@ import java.util.*;
 
 /**
  * Iterator that traverses a SAM File, accumulating information on a per-locus basis
+ *
+ * Produces AlignmentContext objects, that contain ReadBackedPileups of PileupElements.  This
+ * class has its core job of converting an iterator of ordered SAMRecords into those
+ * RBPs.
  */
 public class LocusIteratorByState extends LocusIterator {
     /**
      * our log, which we want to capture anything from this class
      */
-    private static Logger logger = Logger.getLogger(LocusIteratorByState.class);
+    private final static Logger logger = Logger.getLogger(LocusIteratorByState.class);
 
     // -----------------------------------------------------------------------------------------------------------------
     //
@@ -83,13 +88,32 @@ public class LocusIteratorByState extends LocusIterator {
     // -----------------------------------------------------------------------------------------------------------------
 
     /**
-     * Used to create new GenomeLocs.
+     * Used to create new GenomeLocs as needed
      */
     private final GenomeLocParser genomeLocParser;
+
+    /**
+     * A complete list of all samples that may come out of the reads.  Must be
+     * comprehensive.
+     */
     private final ArrayList<String> samples;
+
+    /**
+     * The system that maps incoming reads from the iterator to their pileup states
+     */
     private final ReadStateManager readStates;
+
+    /**
+     * Should we include reads in the pileup which are aligned with a deletion operator to the reference?
+     */
     private final boolean includeReadsWithDeletionAtLoci;
 
+    /**
+     * The next alignment context.  A non-null value means that a
+     * context is waiting from hasNext() for sending off to the next next() call.  A null
+     * value means that either hasNext() has not been called at all or that
+     * the underlying iterator is exhausted
+     */
     private AlignmentContext nextAlignmentContext;
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -98,6 +122,18 @@ public class LocusIteratorByState extends LocusIterator {
     //
     // -----------------------------------------------------------------------------------------------------------------
 
+    /**
+     * Create a new LocusIteratorByState
+     *
+     * @param samIterator the iterator of reads to process into pileups.  Reads must be ordered
+     *                    according to standard coordinate-sorted BAM conventions
+     * @param readInformation meta-information about how to process the reads (i.e., should we do downsampling?)
+     * @param genomeLocParser used to create genome locs
+     * @param samples a complete list of samples present in the read groups for the reads coming from samIterator.
+     *                This is generally just the set of read group sample fields in the SAMFileHeader.  This
+     *                list of samples may contain a null element, and all reads without read groups will
+     *                be mapped to this null sample
+     */
     public LocusIteratorByState(final Iterator<SAMRecord> samIterator,
                                 final ReadProperties readInformation,
                                 final GenomeLocParser genomeLocParser,
@@ -116,16 +152,21 @@ public class LocusIteratorByState extends LocusIterator {
                                    final GenomeLocParser genomeLocParser,
                                    final Collection<String> samples,
                                    final boolean maintainUniqueReadsList) {
+        if ( samIterator == null ) throw new IllegalArgumentException("samIterator cannot be null");
+        if ( downsamplingInfo == null ) throw new IllegalArgumentException("downsamplingInfo cannot be null");
+        if ( genomeLocParser == null ) throw new IllegalArgumentException("genomeLocParser cannot be null");
+        if ( samples == null ) throw new IllegalArgumentException("Samples cannot be null");
+
+        // currently the GATK expects this LocusIteratorByState to accept empty sample lists, when
+        // there's no read data.  So we need to throw this error only when samIterator.hasNext() is true
+        if (samples.isEmpty() && samIterator.hasNext()) {
+            throw new IllegalArgumentException("samples list must not be empty");
+        }
+
         this.genomeLocParser = genomeLocParser;
         this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;
         this.samples = new ArrayList<String>(samples);
         this.readStates = new ReadStateManager(samIterator, this.samples, downsamplingInfo, maintainUniqueReadsList);
-
-        // currently the GATK expects this LocusIteratorByState to accept empty sample lists, when
-        // there's no read data.  So we need to throw this error only when samIterator.hasNext() is true
-        if (this.samples.isEmpty() && samIterator.hasNext()) {
-            throw new IllegalArgumentException("samples list must not be empty");
-        }
     }
 
     @Override
@@ -133,16 +174,14 @@ public class LocusIteratorByState extends LocusIterator {
         return this;
     }
 
-    @Override
-    public void close() {
-    }
-
-    @Override
-    public boolean hasNext() {
-        lazyLoadNextAlignmentContext();
-        return nextAlignmentContext != null;
-    }
-
+    /**
+     * Get the current location (i.e., the bp of the center of the pileup) of the pileup, or null if not anywhere yet
+     *
+     * Assumes that read states is updated to reflect the current pileup position, but not advanced to the
+     * next location.
+     *
+     * @return the location of the current pileup, or null if we're after all reads
+     */
     private GenomeLoc getLocation() {
         return readStates.isEmpty() ? null : readStates.getFirst().getLocation(genomeLocParser);
     }
@@ -153,6 +192,22 @@ public class LocusIteratorByState extends LocusIterator {
     //
     // -----------------------------------------------------------------------------------------------------------------
 
+    /**
+     * Is there another pileup available?
+     * @return
+     */
+    @Override
+    public boolean hasNext() {
+        lazyLoadNextAlignmentContext();
+        return nextAlignmentContext != null;
+    }
+
+    /**
+     * Get the next AlignmentContext available from the reads.
+     *
+     * @return a non-null AlignmentContext of the pileup after to the next genomic position covered by
+     * at least one read.
+     */
     @Override
     public AlignmentContext next() {
         lazyLoadNextAlignmentContext();
@@ -164,8 +219,9 @@ public class LocusIteratorByState extends LocusIterator {
     }
 
     /**
-     * Creates the next alignment context from the given state.  Note that this is implemented as a lazy load method.
-     * nextAlignmentContext MUST BE null in order for this method to advance to the next entry.
+     * Creates the next alignment context from the given state.  Note that this is implemented as a
+     * lazy load method. nextAlignmentContext MUST BE null in order for this method to advance to the
+     * next entry.
      */
     private void lazyLoadNextAlignmentContext() {
         while (nextAlignmentContext == null && readStates.hasNext()) {
@@ -193,7 +249,7 @@ public class LocusIteratorByState extends LocusIterator {
                     if (op == CigarOperator.N)                                      // N's are never added to any pileup
                         continue;
 
-                    if (!filterBaseInRead(read, location.getStart())) {
+                    if (!dontIncludeReadInPileup(read, location.getStart())) {
                         if ( op == CigarOperator.D ) {
                             if ( ! includeReadsWithDeletionAtLoci )
                                 continue;
@@ -220,6 +276,10 @@ public class LocusIteratorByState extends LocusIterator {
         }
     }
 
+    /**
+     * Advances all fo the read states by one bp.  After this call the read states are reflective
+     * of the next pileup.
+     */
     private void updateReadStates() {
         for (final String sample : samples) {
             Iterator<AlignmentStateMachine> it = readStates.iterator(sample);
@@ -288,13 +348,16 @@ public class LocusIteratorByState extends LocusIterator {
     // -----------------------------------------------------------------------------------------------------------------
 
     /**
+     * Should this read be excluded from the pileup?
+     *
      * Generic place to put per-base filters appropriate to LocusIteratorByState
      *
-     * @param rec
-     * @param pos
-     * @return
+     * @param rec the read to potentially exclude
+     * @param pos the genomic position of the current alignment
+     * @return true if the read should be excluded from the pileup, false otherwise
      */
-    private boolean filterBaseInRead(GATKSAMRecord rec, long pos) {
+    @Requires({"rec != null", "pos > 0"})
+    private boolean dontIncludeReadInPileup(GATKSAMRecord rec, long pos) {
         return ReadUtils.isBaseInsideAdaptor(rec, pos);
     }
 
@@ -311,6 +374,8 @@ public class LocusIteratorByState extends LocusIterator {
      * @param readInfo GATK engine information about what should be done to the reads
      * @return a LIBS specific info holder about downsampling only
      */
+    @Requires("readInfo != null")
+    @Ensures("result != null")
     private static LIBSDownsamplingInfo toDownsamplingInfo(final ReadProperties readInfo) {
         final boolean performDownsampling = readInfo.getDownsamplingMethod() != null &&
                 readInfo.getDownsamplingMethod().type == DownsampleType.BY_SAMPLE &&

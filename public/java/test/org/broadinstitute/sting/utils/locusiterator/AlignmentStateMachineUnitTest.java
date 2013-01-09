@@ -41,7 +41,7 @@ public class AlignmentStateMachineUnitTest extends LocusIteratorByStateBaseTest 
 //        return new Object[][]{{new LIBSTest("2M2D2X", 2)}};
 //        return createLIBSTests(
 //                Arrays.asList(2),
-//                Arrays.asList(5));
+//                Arrays.asList(2));
         return createLIBSTests(
                 Arrays.asList(1, 2),
                 Arrays.asList(1, 2, 3, 4));
@@ -63,15 +63,23 @@ public class AlignmentStateMachineUnitTest extends LocusIteratorByStateBaseTest 
         int lastOffset = -1;
 
         // TODO -- more tests about test state machine state before first step?
-        Assert.assertTrue(state.isEdge());
+        Assert.assertTrue(state.isLeftEdge());
+        Assert.assertNull(state.getCigarOperator());
+        Assert.assertNotNull(state.toString());
+        Assert.assertEquals(state.getReadOffset(), -1);
+        Assert.assertEquals(state.getGenomeOffset(), -1);
+        Assert.assertEquals(state.getCurrentCigarElementOffset(), -1);
+        Assert.assertEquals(state.getCurrentCigarElement(), null);
 
         while ( state.stepForwardOnGenome() != null ) {
+            Assert.assertNotNull(state.toString());
+
             tester.stepForwardOnGenome();
 
             Assert.assertTrue(state.getReadOffset() >= lastOffset, "Somehow read offsets are decreasing: lastOffset " + lastOffset + " current " + state.getReadOffset());
             Assert.assertEquals(state.getReadOffset(), tester.getCurrentReadOffset(), "Read offsets are wrong at " + bpVisited);
 
-            Assert.assertFalse(state.isEdge());
+            Assert.assertFalse(state.isLeftEdge());
 
             Assert.assertEquals(state.getCurrentCigarElement(), read.getCigar().getCigarElement(tester.currentOperatorIndex), "CigarElement index failure");
             Assert.assertEquals(state.getOffsetIntoCurrentCigarElement(), tester.getCurrentPositionOnOperatorBase0(), "CigarElement index failure");
@@ -91,5 +99,9 @@ public class AlignmentStateMachineUnitTest extends LocusIteratorByStateBaseTest 
         }
 
         Assert.assertEquals(bpVisited, expectedBpToVisit, "Didn't visit the expected number of bp");
+        Assert.assertEquals(state.getReadOffset(), read.getReadLength());
+        Assert.assertEquals(state.getCurrentCigarElementOffset(), read.getCigarLength());
+        Assert.assertEquals(state.getCurrentCigarElement(), null);
+        Assert.assertNotNull(state.toString());
     }
 }

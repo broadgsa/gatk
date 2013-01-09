@@ -25,6 +25,9 @@
 
 package org.broadinstitute.sting.utils.locusiterator;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Invariant;
+import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
@@ -40,16 +43,18 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
  * implements the traversal along the reference; thus stepForwardOnGenome() returns
  * on every and only on actual reference bases. This can be a (mis)match or a deletion
  * (in the latter case, we still return on every individual reference base the deletion spans).
- * In the extended events mode, the record state also remembers if there was an insertion, or
- * if the deletion just started *right before* the current reference base the record state is
- * pointing to upon the return from stepForwardOnGenome(). The next call to stepForwardOnGenome()
- * will clear that memory (as we remember only extended events immediately preceding
- * the current reference base).
  *
  * User: depristo
  * Date: 1/5/13
  * Time: 1:08 PM
  */
+@Invariant({
+        "nCigarElements >= 0",
+        "cigar != null",
+        "read != null",
+        "currentCigarElementOffset >= -1",
+        "currentCigarElementOffset <= nCigarElements"
+})
 class AlignmentStateMachine {
     /**
      * Our read
@@ -79,6 +84,7 @@ class AlignmentStateMachine {
      */
     private int offsetIntoCurrentCigarElement;
 
+    @Requires({"read != null", "read.getAlignmentStart() != -1", "read.getCigar() != null"})
     public AlignmentStateMachine(final SAMRecord read) {
         this.read = read;
         this.cigar = read.getCigar();
@@ -86,28 +92,48 @@ class AlignmentStateMachine {
         initializeAsLeftEdge();
     }
 
+    /**
+     * Initialize the state variables to put this machine one bp before the
+     * start of the alignment, so that a call to stepForwardOnGenome() will advance
+     * us to the first proper location
+     */
+    @Ensures("isLeftEdge()")
     private void initializeAsLeftEdge() {
         readOffset = offsetIntoCurrentCigarElement = genomeOffset = -1;
         currentElement = null;
     }
 
+    /**
+     * Get the read we are aligning to the genome
+     * @return a non-null GATKSAMRecord
+     */
+    @Ensures("result != null")
     public SAMRecord getRead() {
         return read;
     }
 
     /**
-     * Is this an edge state?  I.e., one that is before or after the current read?
+     * Is this the left edge state?  I.e., one that is before or after the current read?
      * @return true if this state is an edge state, false otherwise
      */
-    public boolean isEdge() {
+    public boolean isLeftEdge() {
         return readOffset == -1;
+    }
+
+    /**
+     * Are we on the right edge?  I.e., is the current state off the right of the alignment?
+     * @return true if off the right edge, false if otherwise
+     */
+    public boolean isRightEdge() {
+        return readOffset == read.getReadLength();
     }
 
     /**
      * What is our current offset in the read's bases that aligns us with the reference genome?
      *
-     * @return the current read offset position
+     * @return the current read offset position.  If an edge will be == -1
      */
+    @Ensures("result >= -1")
     public int getReadOffset() {
         return readOffset;
     }
@@ -115,39 +141,96 @@ class AlignmentStateMachine {
     /**
      * What is the current offset w.r.t. the alignment state that aligns us to the readOffset?
      *
-     * @return the current offset
+     * @return the current offset from the alignment start on the genome.  If this state is
+     * at the left edge the result will be -1;
      */
+    @Ensures("result >= -1")
     public int getGenomeOffset() {
         return genomeOffset;
     }
 
+    /**
+     * Get the position (1-based as standard) of the current alignment on the genome w.r.t. the read's alignment start
+     * @return the position on the genome of the current state in absolute coordinates
+     */
+    @Ensures("result > 0")
     public int getGenomePosition() {
         return read.getAlignmentStart() + getGenomeOffset();
     }
 
+    /**
+     * Gets #getGenomePosition but as a 1 bp GenomeLoc
+     * @param genomeLocParser the parser to use to create the genome loc
+     * @return a non-null genome location with start position of getGenomePosition
+     */
+    @Requires("genomeLocParser != null")
+    @Ensures("result != null")
     public GenomeLoc getLocation(final GenomeLocParser genomeLocParser) {
+        // TODO -- may return wonky results if on an edge (could be 0 or could be beyond genome location)
         return genomeLocParser.createGenomeLoc(read.getReferenceName(), getGenomePosition());
     }
 
+    /**
+     * Get the cigar element we're currently aligning with.
+     *
+     * For example, if the cigar string is 2M2D2M and we're in the second step of the
+     * first 2M, then this function returns the element 2M.  After calling stepForwardOnGenome
+     * this function would return 2D.
+     *
+     * @return the cigar element, or null if we're the left edge
+     */
+    @Ensures("result != null || isLeftEdge() || isRightEdge()")
     public CigarElement getCurrentCigarElement() {
         return currentElement;
     }
 
+    /**
+     * Get the offset of the current cigar element among all cigar elements in the read
+     *
+     * Suppose our read's cigar is 1M2D3M, and we're at the first 1M.  This would
+     * return 0.  Stepping forward puts us in the 2D, so our offset is 1.  Another
+     * step forward would result in a 1 again (we're in the second position of the 2D).
+     * Finally, one more step forward brings us to 2 (for the 3M element)
+     *
+     * @return the offset of the current cigar element in the reads's cigar.  Will return -1 for
+     * when the state is on the left edge, and be == the number of cigar elements in the
+     * read when we're past the last position on the genome
+     */
+    @Ensures({"result >= -1", "result <= nCigarElements"})
     public int getCurrentCigarElementOffset() {
         return currentCigarElementOffset;
     }
 
+    /**
+     * Get the offset of the current state into the current cigar element
+     *
+     * That is, suppose we have a read with cigar 2M3D4M, and we're right at
+     * the second M position.  offsetIntoCurrentCigarElement would be 1, as
+     * it's two elements into the 2M cigar.  Now stepping forward we'd be
+     * in cigar element 3D, and our offsetIntoCurrentCigarElement would be 0.
+     *
+     * @return the offset (from 0) of the current state in the current cigar element.
+     *  Will be 0 on the right edge, and -1 on the left.
+     */
+    @Ensures({"result >= 0 || (result == -1 && isLeftEdge())", "!isRightEdge() || result == 0"})
     public int getOffsetIntoCurrentCigarElement() {
         return offsetIntoCurrentCigarElement;
     }
 
     /**
+     * Convenience accessor of the CigarOperator of the current cigar element
+     *
+     * Robust to the case where we're on the edge, and currentElement is null, in which
+     * case this function returns null as well
+     *
      * @return null if this is an edge state
      */
+    @Ensures("result != null || isLeftEdge() || isRightEdge()")
     public CigarOperator getCigarOperator() {
         return currentElement == null ? null : currentElement.getOperator();
     }
 
+    @Override
     public String toString() {
         return String.format("%s ro=%d go=%d cec=%d %s", read.getReadName(), readOffset, genomeOffset, offsetIntoCurrentCigarElement, currentElement);
     }
@@ -158,6 +241,29 @@ class AlignmentStateMachine {
     //
     // -----------------------------------------------------------------------------------------------
 
+    /**
+     * Step the state machine forward one unit
+     *
+     * Takes the current state of this machine, and advances the state until the next on-genome
+     * cigar element (M, X, =, D) is encountered, at which point this function returns with the
+     * cigar operator of the current element.
+     *
+     * Assumes that the AlignmentStateMachine is in the left edge state at the start, so that
+     * stepForwardOnGenome() can be called to move the machine to the first alignment position.  That
+     * is, the normal use of this code is:
+     *
+     * AlignmentStateMachine machine = new AlignmentStateMachine(read)
+     * machine.stepForwardOnGenome()
+     * // now the machine is at the first position on the genome
+     *
+     * When stepForwardOnGenome() advances off the right edge of the read, the state machine is
+     * left in a state such that isRightEdge() returns true and returns null, indicating the
+     * the machine cannot advance further.  The machine may explode, though this is not contracted,
+     * if stepForwardOnGenome() is called after a previous call returned null.
+     *
+     * @return the operator of the cigar element that machine stopped at, null if we advanced off the end of the read
+     */
+    @Ensures("result != null || isRightEdge()")
     public CigarOperator stepForwardOnGenome() {
         // loop until we either find a cigar element step that moves us one base on the genome, or we run
         // out of cigar elements
@@ -177,11 +283,17 @@ class AlignmentStateMachine {
                     if (currentElement != null && currentElement.getOperator() == CigarOperator.D)
                         throw new UserException.MalformedBAM(read, "read ends with deletion. Cigar: " + read.getCigarString() + ". Although the SAM spec technically permits such reads, this is often indicative of malformed files. If you are sure you want to use this file, re-run your analysis with the extra option: -rf BadCigar");
 
+                    // we're done, so set the offset of the cigar to 0 for cleanliness, as well as the current element
+                    offsetIntoCurrentCigarElement = 0;
+                    readOffset = read.getReadLength();
+                    currentElement = null;
+
                     // Reads that contain indels model the genomeOffset as the following base in the reference.  Because
                     // we fall into this else block only when indels end the read, increment genomeOffset  such that the
                     // current offset of this read is the next ref base after the end of the indel.  This position will
                     // model a point on the reference somewhere after the end of the read.
                     genomeOffset++; // extended events need that. Logically, it's legal to advance the genomic offset here:
+
                     // we do step forward on the ref, and by returning null we also indicate that we are past the read end.
                     return null;
                 }
