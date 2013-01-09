@@ -33,8 +33,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
-import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotype;
+import org.broadinstitute.sting.utils.genotyper.DiploidGenotype;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -50,6 +49,9 @@ import java.io.PrintStream;
  */
 @DocumentedGATKFeature( groupName = "Variant Discovery Tools", extraDocs = {CommandLineGATK.class} )
 public class GATKPaperGenotyper extends LocusWalker<Integer,Long> implements TreeReducible<Long> {
+
+    public static final double HUMAN_SNP_HETEROZYGOSITY = 1e-3;
+
     // the possible diploid genotype strings
     private static enum GENOTYPE { AA, AC, AG, AT, CC, CG, CT, GG, GT, TT }
 
@@ -73,7 +75,7 @@ public class GATKPaperGenotyper extends LocusWalker<Integer,Long> implements Tre
 
         ReadBackedPileup pileup = context.getBasePileup().getPileupWithoutMappingQualityZeroReads();
         double likelihoods[] = getReferencePolarizedPriors(ref.getBase(),
-                UnifiedGenotyperEngine.HUMAN_SNP_HETEROZYGOSITY,
+                HUMAN_SNP_HETEROZYGOSITY,
                 0.01);
         // get the bases and qualities from the pileup
         byte bases[] = pileup.getBases();
