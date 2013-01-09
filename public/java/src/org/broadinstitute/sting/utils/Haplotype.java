@@ -46,8 +46,7 @@ public class Haplotype {
     private int alignmentStartHapwrtRef;
     public int leftBreakPoint = 0;
     public int rightBreakPoint = 0;
-    private Allele artificialAllele = null;
-    private int artificialAllelePosition = -1;
+    private Event artificialEvent = null;
 
     /**
      * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
@@ -70,10 +69,9 @@ public class Haplotype {
         this(bases, 0);
     }
 
-    protected Haplotype( final byte[] bases, final Allele artificialAllele, final int artificialAllelePosition ) {
+    protected Haplotype( final byte[] bases, final Event artificialEvent ) {
         this(bases, 0);
-        this.artificialAllele = artificialAllele;
-        this.artificialAllelePosition = artificialAllelePosition;
+        this.artificialEvent = artificialEvent;
     }
 
     public Haplotype( final byte[] bases, final GenomeLoc loc ) {
@@ -152,20 +150,27 @@ public class Haplotype {
     }
 
     public boolean isArtificialHaplotype() {
-        return artificialAllele != null;
+        return artificialEvent != null;
     }
 
-    public Allele getArtificialAllele() {
-        return artificialAllele;
+    public Event getArtificialEvent() {
+        return artificialEvent;
+    }
+
+    public Allele getArtificialRefAllele() {
+        return artificialEvent.ref;
+    }
+
+    public Allele getArtificialAltAllele() {
+        return artificialEvent.alt;
     }
 
     public int getArtificialAllelePosition() {
-        return artificialAllelePosition;
+        return artificialEvent.pos;
     }
 
-    public void setArtificialAllele(final Allele artificialAllele, final int artificialAllelePosition) {
-        this.artificialAllele = artificialAllele;
-        this.artificialAllelePosition = artificialAllelePosition;
+    public void setArtificialEvent( final Event artificialEvent ) {
+        this.artificialEvent = artificialEvent;
     }
 
     @Requires({"refInsertLocation >= 0"})
@@ -179,7 +184,7 @@ public class Haplotype {
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, 0, haplotypeInsertLocation)); // bases before the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, altAllele.getBases()); // the alt allele of the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, haplotypeInsertLocation + refAllele.length(), bases.length)); // bases after the variant
-        return new Haplotype(newHaplotypeBases, altAllele, genomicInsertLocation);
+        return new Haplotype(newHaplotypeBases, new Event(refAllele, altAllele, genomicInsertLocation));
     }
 
     public static class HaplotypeBaseComparator implements Comparator<Haplotype>, Serializable {
@@ -243,5 +248,17 @@ public class Haplotype {
         }
 
         return haplotypeMap;
+    }
+
+    private static class Event {
+        public Allele ref;
+        public Allele alt;
+        public int pos;
+
+        public Event( final Allele ref, final Allele alt, final int pos ) {
+            this.ref = ref;
+            this.alt = alt;
+            this.pos = pos;
+        }
     }
 }
