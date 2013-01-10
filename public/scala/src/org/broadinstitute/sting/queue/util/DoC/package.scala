@@ -33,10 +33,6 @@ import org.broadinstitute.sting.commandline.{Input, Gather, Output}
 import org.broadinstitute.sting.queue.function.CommandLineFunction
 import org.broadinstitute.sting.gatk.walkers.coverage.CoverageUtils
 
-*/
-
-*/
-
 package object DoC {
   class DoC(val bams: List[File], val DoC_output: File, val countType: CoverageUtils.CountPileupType, val MAX_DEPTH: Int, val minMappingQuality: Int, val minBaseQuality: Int, val scatterCountInput: Int, val START_BIN: Int, val NUM_BINS: Int, val minCoverageCalcs: Seq[Int]) extends CommandLineGATK with ScatterGatherableFunction {
     val DOC_OUTPUT_SUFFIX: String = ".sample_interval_summary"
