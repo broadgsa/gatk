@@ -710,7 +710,7 @@ public class VariantContextUtils {
         for ( VariantContext vc : VCs ) {
 
             // look at previous variant contexts of different type. If:
-            // a) otherVC has alleles which are subset of vc, remove otherVC from its list and add otherVC to  vc's list
+            // a) otherVC has alleles which are subset of vc, remove otherVC from its list and add otherVC to vc's list
             // b) vc has alleles which are subset of otherVC. Then, add vc to otherVC's type list (rather, do nothing since vc will be added automatically to its list)
             // c) neither: do nothing, just add vc to its own list
             boolean addtoOwnList = true;
