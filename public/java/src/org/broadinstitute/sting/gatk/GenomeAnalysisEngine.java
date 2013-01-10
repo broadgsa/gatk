@@ -52,7 +52,6 @@ import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
-import org.broadinstitute.sting.gatk.traversals.TraverseActiveRegions;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -843,7 +842,7 @@ public class GenomeAnalysisEngine {
         if (argCollection.keepProgramRecords)
             removeProgramRecords = false;
 
-        final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker && TraverseActiveRegions.KEEP_READS_IN_LIBS;
+        final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker && argCollection.newART;
 
         return new SAMDataSource(
                 samReaderIDs,
