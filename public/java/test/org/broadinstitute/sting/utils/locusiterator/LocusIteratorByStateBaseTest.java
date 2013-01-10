@@ -123,24 +123,21 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
 
     protected static class LIBSTest {
         public static final int locus = 44367788;
-        final String cigar;
+        final String cigarString;
         final int readLength;
         final private List<CigarElement> elements;
 
-        public LIBSTest(final String cigar, final int readLength) {
-            this(TextCigarCodec.getSingleton().decode(cigar).getCigarElements(), cigar, readLength);
-        }
-
-        public LIBSTest(final List<CigarElement> elements, final String cigar, final int readLength) {
-            this.elements = elements;
-            this.cigar = cigar;
-            this.readLength = readLength;
+        public LIBSTest(final String cigarString) {
+            final Cigar cigar = TextCigarCodec.getSingleton().decode(cigarString);
+            this.cigarString = cigarString;
+            this.elements = cigar.getCigarElements();
+            this.readLength = cigar.getReadLength();
         }
 
         @Override
         public String toString() {
             return "LIBSTest{" +
-                    "cigar='" + cigar + '\'' +
+                    "cigar='" + cigarString + '\'' +
                     ", readLength=" + readLength +
                     '}';
         }
@@ -156,7 +153,7 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
             for ( int i = 0; i < readLength; i++ )
                 quals[i] = (byte)(i % QualityUtils.MAX_QUAL_SCORE);
             read.setBaseQualities(quals);
-            read.setCigarString(cigar);
+            read.setCigarString(cigarString);
             return read;
         }
     }
@@ -220,7 +217,7 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
                 ! (last.getOperator() == CigarOperator.I || last.getOperator() == CigarOperator.S))
             return null;
 
-        return new LIBSTest(elements, cigar, len);
+        return new LIBSTest(cigar);
     }
 
     @DataProvider(name = "LIBSTest")

@@ -25,6 +25,11 @@ public abstract class LocusIterator implements Iterable<AlignmentContext>, Close
     public abstract boolean hasNext();
     public abstract AlignmentContext next();
 
+    // TODO -- remove me when ART testing is done
+    public LocusIteratorByState getLIBS() {
+        return null;
+    }
+
     public void remove() {
         throw new UnsupportedOperationException("Can not remove records from a SAM file via an iterator!");
     }

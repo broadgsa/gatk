@@ -57,7 +57,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
         "currentCigarElementOffset >= -1",
         "currentCigarElementOffset <= nCigarElements"
 })
-class AlignmentStateMachine {
+public class AlignmentStateMachine {
     /**
      * Our read
      */

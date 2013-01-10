@@ -47,6 +47,11 @@ import java.util.List;
  * Time: 8:54:05 AM
  */
 public class PileupElement implements Comparable<PileupElement> {
+    private final static LinkedList<CigarElement> EMPTY_LINKED_LIST = new LinkedList<CigarElement>();
+
+    private final static EnumSet<CigarOperator> ON_GENOME_OPERATORS =
+            EnumSet.of(CigarOperator.M, CigarOperator.EQ, CigarOperator.X, CigarOperator.D);
+
     public static final byte DELETION_BASE = BaseUtils.D;
     public static final byte DELETION_QUAL = (byte) 16;
     public static final byte A_FOLLOWED_BY_INSERTION_BASE = (byte) 87;
@@ -90,13 +95,34 @@ public class PileupElement implements Comparable<PileupElement> {
         currentCigarOffset = offsetInCurrentCigar = -1;
     }
 
+    /**
+     * Create a new pileup element
+     *
+     * @param read a non-null read to pileup
+     * @param baseOffset the offset into the read's base / qual vector aligned to this position on the genome. If the
+     *                   current cigar element is a deletion, offset should be the offset of the last M/=/X position.
+     * @param currentElement a non-null CigarElement that indicates the cigar element aligning the read to the genome
+     * @param currentCigarOffset the offset of currentElement in read.getCigar().getElement(currentCigarOffset) == currentElement)
+     * @param offsetInCurrentCigar how far into the currentElement are we in our alignment to the genome?
+     */
     public PileupElement(final GATKSAMRecord read, final int baseOffset,
-                         final CigarElement currentElement, final int currentCigarOffset, final int offsetInCurrentCigar) {
+                         final CigarElement currentElement, final int currentCigarOffset,
+                         final int offsetInCurrentCigar) {
+        assert currentElement != null;
+
         this.read = read;
         this.offset = baseOffset;
         this.currentCigarElement = currentElement;
         this.currentCigarOffset = currentCigarOffset;
         this.offsetInCurrentCigar = offsetInCurrentCigar;
+
+        // for performance regions these are assertions
+        assert this.read != null;
+        assert this.offset >= 0 && this.offset < this.read.getReadLength();
+        assert this.currentCigarOffset >= 0;
+        assert this.currentCigarOffset < read.getCigarLength();
+        assert this.offsetInCurrentCigar >= 0;
+        assert this.offsetInCurrentCigar < currentElement.getLength();
     }
 
     /**
@@ -112,50 +138,100 @@ public class PileupElement implements Comparable<PileupElement> {
         throw new UnsupportedOperationException("please use LocusIteratorByState.createPileupForReadAndOffset instead");
     }
 
+    /**
+     * Is this element a deletion w.r.t. the reference genome?
+     *
+     * @return true if this is a deletion, false otherwise
+     */
     public boolean isDeletion() {
         return currentCigarElement.getOperator() == CigarOperator.D;
     }
 
+    /**
+     * Is the current element immediately before a deletion, but itself not a deletion?
+     *
+     * Suppose we are aligning a read with cigar 3M2D1M.  This function is true
+     * if we are in the last cigar position of the 3M, but not if we are in the 2D itself.
+     *
+     * @return true if the next alignment position is a deletion w.r.t. the reference genome
+     */
     public boolean isBeforeDeletionStart() {
-        return isBeforeDeletion() && ! isDeletion();
+        return ! isDeletion() && atEndOfCurrentCigar() && hasOperator(getNextOnGenomeCigarElement(), CigarOperator.D);
     }
 
+    /**
+     * Is the current element immediately after a deletion, but itself not a deletion?
+     *
+     * Suppose we are aligning a read with cigar 1M2D3M.  This function is true
+     * if we are in the first cigar position of the 3M, but not if we are in the 2D itself or
+     * in any but the first position of the 3M.
+     *
+     * @return true if the previous alignment position is a deletion w.r.t. the reference genome
+     */
     public boolean isAfterDeletionEnd() {
-        return isAfterDeletion() && ! isDeletion();
+        return ! isDeletion() && atStartOfCurrentCigar() && hasOperator(getPreviousOnGenomeCigarElement(), CigarOperator.D);
     }
 
-    public boolean isInsertionAtBeginningOfRead() {
-        return offset == -1;
-    }
-
+    /**
+     * Get the read for this pileup element
+     * @return a non-null GATKSAMRecord
+     */
     @Ensures("result != null")
     public GATKSAMRecord getRead() {
         return read;
     }
 
-    @Ensures("result == offset")
+    /**
+     * Get the offset of the this element into the read that aligns that read's base to this genomic position.
+     *
+     * If the current element is a deletion then offset is the offset of the last base containing offset.
+     *
+     * @return a valid offset into the read's bases
+     */
+    @Ensures({"result >= 0", "result <= read.getReadLength()"})
     public int getOffset() {
         return offset;
     }
 
+    /**
+     * Get the base aligned to the genome at this location
+     *
+     * If the current element is a deletion returns DELETION_BASE
+     *
+     * @return a base encoded as a byte
+     */
+    @Ensures("result != DELETION_BASE || (isDeletion() && result == DELETION_BASE)")
     public byte getBase() {
-        return getBase(offset);
+        return isDeletion() ? DELETION_BASE : read.getReadBases()[offset];
     }
 
+    @Deprecated
     public int getBaseIndex() {
-        return getBaseIndex(offset);
+        return BaseUtils.simpleBaseToBaseIndex(getBase());
     }
 
+    /**
+     * Get the base quality score of the base at this aligned position on the genome
+     * @return a phred-scaled quality score as a byte
+     */
     public byte getQual() {
-        return getQual(offset);
+        return isDeletion() ? DELETION_QUAL : read.getBaseQualities()[offset];
     }
 
+    /**
+     * Get the Base Insertion quality at this pileup position
+     * @return a phred-scaled quality score as a byte
+     */
     public byte getBaseInsertionQual() {
-        return getBaseInsertionQual(offset);
+        return isDeletion() ? DELETION_QUAL : read.getBaseInsertionQualities()[offset];
     }
 
+    /**
+     * Get the Base Deletion quality at this pileup position
+     * @return a phred-scaled quality score as a byte
+     */
     public byte getBaseDeletionQual() {
-        return getBaseDeletionQual(offset);
+        return isDeletion() ? DELETION_QUAL : read.getBaseDeletionQualities()[offset];
     }
 
     /**
@@ -222,6 +298,10 @@ public class PileupElement implements Comparable<PileupElement> {
             return null;
     }
 
+    /**
+     * Get the mapping quality of the read of this element
+     * @return the mapping quality of the underlying SAM record
+     */
     public int getMappingQual() {
         return read.getMappingQuality();
     }
@@ -229,26 +309,6 @@ public class PileupElement implements Comparable<PileupElement> {
     @Ensures("result != null")
     public String toString() {
         return String.format("%s @ %d = %c Q%d", getRead().getReadName(), getOffset(), (char) getBase(), getQual());
-    }
-
-    protected byte getBase(final int offset) {
-        return (isDeletion() || isInsertionAtBeginningOfRead()) ? DELETION_BASE : read.getReadBases()[offset];
-    }
-
-    protected int getBaseIndex(final int offset) {
-        return BaseUtils.simpleBaseToBaseIndex((isDeletion() || isInsertionAtBeginningOfRead()) ? DELETION_BASE : read.getReadBases()[offset]);
-    }
-
-    protected byte getQual(final int offset) {
-        return (isDeletion() || isInsertionAtBeginningOfRead()) ? DELETION_QUAL : read.getBaseQualities()[offset];
-    }
-
-    protected byte getBaseInsertionQual(final int offset) {
-        return (isDeletion() || isInsertionAtBeginningOfRead()) ? DELETION_QUAL : read.getBaseInsertionQualities()[offset];
-    }
-
-    protected byte getBaseDeletionQual(final int offset) {
-        return (isDeletion() || isInsertionAtBeginningOfRead()) ? DELETION_QUAL : read.getBaseDeletionQualities()[offset];
     }
 
     @Override
@@ -281,44 +341,94 @@ public class PileupElement implements Comparable<PileupElement> {
      * @return
      */
     public int getRepresentativeCount() {
-        int representativeCount = 1;
-
-        if (read.isReducedRead() && !isInsertionAtBeginningOfRead())     {
+        if (read.isReducedRead())     {
             if (isDeletion() && (offset + 1 >= read.getReadLength()) )  // deletion in the end of the read
                 throw new UserException.MalformedBAM(read, String.format("Adjacent I/D events in read %s -- cigar: %s", read.getReadName(), read.getCigarString()));
 
-            representativeCount = (isDeletion()) ? MathUtils.fastRound((read.getReducedCount(offset) + read.getReducedCount(offset + 1)) / 2.0) : read.getReducedCount(offset);
+            return isDeletion()
+                    ? MathUtils.fastRound((read.getReducedCount(offset) + read.getReducedCount(offset + 1)) / 2.0)
+                    : read.getReducedCount(offset);
+        } else {
+            return 1;
         }
-        return representativeCount;
     }
 
+    /**
+     * Get the cigar element aligning this element to the genome
+     * @return a non-null CigarElement
+     */
+    @Ensures("result != null")
     public CigarElement getCurrentCigarElement() {
         return currentCigarElement;
     }
 
+    /**
+     * Get the offset of this cigar element in the Cigar of the current read (0-based)
+     *
+     * Suppose the cigar is 1M2D3I4D.  If we are in the 1M state this function returns
+     * 0.  If we are in 2D, the result is 1.  If we are in the 4D, the result is 3.
+     *
+     * @return an offset into the read.getCigar() that brings us to the current cigar element
+     */
     public int getCurrentCigarOffset() {
         return currentCigarOffset;
     }
 
+    /**
+     * Get the offset into the *current* cigar element for this alignment position
+     *
+     * We can be anywhere from offset 0 (first position) to length - 1 of the current
+     * cigar element aligning us to this genomic position.
+     *
+     * @return a valid offset into the current cigar element
+     */
+    @Ensures({"result >= 0", "result < getCurrentCigarElement().getLength()"})
     public int getOffsetInCurrentCigar() {
         return offsetInCurrentCigar;
     }
 
+    /**
+     * Get the cigar elements that occur before the current position but after the previous position on the genome
+     *
+     * For example, if we are in the 3M state of 1M2I3M state then 2I occurs before this position.
+     *
+     * Note that this function does not care where we are in the current cigar element.  In the previous
+     * example this list of elements contains the 2I state regardless of where you are in the 3M.
+     *
+     * Note this returns the list of all elements that occur between this and the prev site, so for
+     * example we might have 5S10I2M and this function would return [5S, 10I].
+     *
+     * @return a non-null list of CigarElements
+     */
+    @Ensures("result != null")
     public LinkedList<CigarElement> getBetweenPrevPosition() {
-        return atStartOfCurrentCigar() ? getBetween(-1) : EMPTY_LINKED_LIST;
+        return atStartOfCurrentCigar() ? getBetween(Direction.PREV) : EMPTY_LINKED_LIST;
     }
 
+    /**
+     * Get the cigar elements that occur after the current position but before the next position on the genome
+     *
+     * @see #getBetweenPrevPosition() for more details
+     *
+     * @return a non-null list of CigarElements
+     */
+    @Ensures("result != null")
     public LinkedList<CigarElement> getBetweenNextPosition() {
-        return atEndOfCurrentCigar() ? getBetween(1) : EMPTY_LINKED_LIST;
+        return atEndOfCurrentCigar() ? getBetween(Direction.NEXT) : EMPTY_LINKED_LIST;
     }
 
-    // TODO -- can I make this unmodifable?
-    private final static LinkedList<CigarElement> EMPTY_LINKED_LIST = new LinkedList<CigarElement>();
+    /** for some helper functions */
+    private enum Direction { PREV, NEXT }
 
-    private final static EnumSet<CigarOperator> ON_GENOME_OPERATORS =
-            EnumSet.of(CigarOperator.M, CigarOperator.EQ, CigarOperator.X, CigarOperator.D);
-
-    private LinkedList<CigarElement> getBetween(final int increment) {
+    /**
+     * Helper function to get cigar elements between this and either the prev or next genomic position
+     *
+     * @param direction PREVIOUS if we want before, NEXT if we want after
+     * @return a non-null list of cigar elements between this and the neighboring position in direction
+     */
+    @Ensures("result != null")
+    private LinkedList<CigarElement> getBetween(final Direction direction) {
+        final int increment = direction == Direction.NEXT ? 1 : -1;
         LinkedList<CigarElement> elements = null;
         final int nCigarElements = read.getCigarLength();
         for ( int i = currentCigarOffset + increment; i >= 0 && i < nCigarElements; i += increment) {
@@ -343,15 +453,42 @@ public class PileupElement implements Comparable<PileupElement> {
         return elements == null ? EMPTY_LINKED_LIST : elements;
     }
 
+    /**
+     * Get the cigar element of the previous genomic aligned position
+     *
+     * For example, we might have 1M2I3M, and be sitting at the someone in the 3M.  This
+     * function would return 1M, as the 2I isn't on the genome.  Note this function skips
+     * all of the positions that would occur in the current element.  So the result
+     * is always 1M regardless of whether we're in the first, second, or third position of the 3M
+     * cigar.
+     *
+     * @return a CigarElement, or null (indicating that no previous element exists)
+     */
+    @Ensures("result == null || ON_GENOME_OPERATORS.contains(result.getOperator())")
     public CigarElement getPreviousOnGenomeCigarElement() {
-        return getNeighboringOnGenomeCigarElement(-1);
+        return getNeighboringOnGenomeCigarElement(Direction.PREV);
     }
 
+    /**
+     * Get the cigar element of the next genomic aligned position
+     *
+     * @see #getPreviousOnGenomeCigarElement() for more details
+     *
+     * @return a CigarElement, or null (indicating that no next element exists)
+     */
+    @Ensures("result == null || ON_GENOME_OPERATORS.contains(result.getOperator())")
     public CigarElement getNextOnGenomeCigarElement() {
-        return getNeighboringOnGenomeCigarElement(1);
+        return getNeighboringOnGenomeCigarElement(Direction.NEXT);
     }
 
-    private CigarElement getNeighboringOnGenomeCigarElement(final int increment) {
+    /**
+     * Helper function to get the cigar element of the next or previous genomic position
+     * @param direction the direction to look in
+     * @return a CigarElement, or null if no such element exists
+     */
+    @Ensures("result == null || ON_GENOME_OPERATORS.contains(result.getOperator())")
+    private CigarElement getNeighboringOnGenomeCigarElement(final Direction direction) {
+        final int increment = direction == Direction.NEXT ? 1 : -1;
         final int nCigarElements = read.getCigarLength();
 
         for ( int i = currentCigarOffset + increment; i >= 0 && i < nCigarElements; i += increment) {
@@ -364,31 +501,97 @@ public class PileupElement implements Comparable<PileupElement> {
         return null;
     }
 
+    /**
+     * Does the cigar element (which may be null) have operation toMatch?
+     *
+     * @param maybeCigarElement a CigarElement that might be null
+     * @param toMatch a CigarOperator we want to match against the one in maybeCigarElement
+     * @return true if maybeCigarElement isn't null and has operator toMatch
+     */
+    @Requires("toMatch != null")
     private boolean hasOperator(final CigarElement maybeCigarElement, final CigarOperator toMatch) {
         return maybeCigarElement != null && maybeCigarElement.getOperator() == toMatch;
     }
 
-    public boolean isAfterDeletion() { return atStartOfCurrentCigar() && hasOperator(getPreviousOnGenomeCigarElement(), CigarOperator.D); }
-    public boolean isBeforeDeletion() { return atEndOfCurrentCigar() && hasOperator(getNextOnGenomeCigarElement(), CigarOperator.D); }
+    /**
+     * Does an insertion occur immediately before the current position on the genome?
+     *
+     * @return true if yes, false if no
+     */
     public boolean isAfterInsertion() { return isAfter(getBetweenPrevPosition(), CigarOperator.I); }
+
+    /**
+     * Does an insertion occur immediately after the current position on the genome?
+     *
+     * @return true if yes, false if no
+     */
     public boolean isBeforeInsertion() { return isBefore(getBetweenNextPosition(), CigarOperator.I); }
 
+    /**
+     * Does a soft-clipping event occur immediately before the current position on the genome?
+     *
+     * @return true if yes, false if no
+     */
     public boolean isAfterSoftClip() { return isAfter(getBetweenPrevPosition(), CigarOperator.S); }
+
+    /**
+     * Does a soft-clipping event occur immediately after the current position on the genome?
+     *
+     * @return true if yes, false if no
+     */
     public boolean isBeforeSoftClip() { return isBefore(getBetweenNextPosition(), CigarOperator.S); }
+
+    /**
+     * Does a soft-clipping event occur immediately before or after the current position on the genome?
+     *
+     * @return true if yes, false if no
+     */
     public boolean isNextToSoftClip() { return isAfterSoftClip() || isBeforeSoftClip(); }
 
+    /**
+     * Is the current position at the end of the current cigar?
+     *
+     * For example, if we are in element 3M, this function returns true if we are at offsetInCurrentCigar
+     * of 2, but not 0 or 1.
+     *
+     * @return true if we're at the end of the current cigar
+     */
     public boolean atEndOfCurrentCigar() {
         return offsetInCurrentCigar == currentCigarElement.getLength() - 1;
     }
 
+    /**
+     * Is the current position at the start of the current cigar?
+     *
+     * For example, if we are in element 3M, this function returns true if we are at offsetInCurrentCigar
+     * of 0, but not 1 or 2.
+     *
+     * @return true if we're at the start of the current cigar
+     */
     public boolean atStartOfCurrentCigar() {
         return offsetInCurrentCigar == 0;
     }
 
+    /**
+     * Is op the last element in the list of elements?
+     *
+     * @param elements the elements to examine
+     * @param op the op we want the last element's op to equal
+     * @return true if op == last(elements).op
+     */
+    @Requires({"elements != null", "op != null"})
     private boolean isAfter(final LinkedList<CigarElement> elements, final CigarOperator op) {
         return ! elements.isEmpty() && elements.peekLast().getOperator() == op;
     }
 
+    /**
+     * Is op the first element in the list of elements?
+     *
+     * @param elements the elements to examine
+     * @param op the op we want the last element's op to equal
+     * @return true if op == first(elements).op
+     */
+    @Requires({"elements != null", "op != null"})
     private boolean isBefore(final List<CigarElement> elements, final CigarOperator op) {
         return ! elements.isEmpty() && elements.get(0).getOperator() == op;
     }
