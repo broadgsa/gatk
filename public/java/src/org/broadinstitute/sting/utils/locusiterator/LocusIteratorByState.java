@@ -242,39 +242,30 @@ public class LocusIteratorByState extends LocusIterator {
                 final Iterator<AlignmentStateMachine> iterator = readStates.iterator(sample);
                 final List<PileupElement> pile = new ArrayList<PileupElement>(readStates.size(sample));
 
-                int size = 0;                                                           // number of elements in this sample's pileup
-                int nDeletions = 0;                                                     // number of deletions in this sample's pileup
-                int nMQ0Reads = 0;                                                      // number of MQ0 reads in this sample's pileup (warning: current implementation includes N bases that are MQ0)
-
                 while (iterator.hasNext()) {
-                    final AlignmentStateMachine state = iterator.next();                   // state object with the read/offset information
-                    final GATKSAMRecord read = (GATKSAMRecord) state.getRead();     // the actual read
-                    final CigarOperator op = state.getCigarOperator();       // current cigar operator
+                    // state object with the read/offset information
+                    final AlignmentStateMachine state = iterator.next();
+                    final GATKSAMRecord read = (GATKSAMRecord) state.getRead();
+                    final CigarOperator op = state.getCigarOperator();
 
-                    if (op == CigarOperator.N)                                      // N's are never added to any pileup
+                    if (op == CigarOperator.N) // N's are never added to any pileup
                         continue;
 
                     if (!dontIncludeReadInPileup(read, location.getStart())) {
-                        if ( op == CigarOperator.D ) {
-                            if ( ! includeReadsWithDeletionAtLoci )
-                                continue;
-                            nDeletions++;
+                        if ( ! includeReadsWithDeletionAtLoci && op == CigarOperator.D ) {
+                            continue;
                         }
 
                         pile.add(state.makePileupElement());
-                        size++;
-
-                        if ( read.getMappingQuality() == 0 )
-                            nMQ0Reads++;
                     }
                 }
 
-                if (pile.size() != 0)                                             // if this pileup added at least one base, add it to the full pileup
-                    fullPileup.put(sample, new ReadBackedPileupImpl(location, pile, size, nDeletions, nMQ0Reads));
+                if (! pile.isEmpty() ) // if this pileup added at least one base, add it to the full pileup
+                    fullPileup.put(sample, new ReadBackedPileupImpl(location, pile));
             }
 
-            updateReadStates();                                                   // critical - must be called after we get the current state offsets and location
-            if (!fullPileup.isEmpty())                                            // if we got reads with non-D/N over the current position, we are done
+            updateReadStates(); // critical - must be called after we get the current state offsets and location
+            if (!fullPileup.isEmpty()) // if we got reads with non-D/N over the current position, we are done
                 nextAlignmentContext = new AlignmentContext(location, new ReadBackedPileupImpl(location, fullPileup), hasBeenSampled);
         }
     }
