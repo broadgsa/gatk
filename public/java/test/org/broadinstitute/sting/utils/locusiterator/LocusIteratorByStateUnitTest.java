@@ -61,27 +61,27 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         // create a test version of the Reads object
         ReadProperties readAttributes = createTestReadProperties();
 
-        SAMRecord r1 = ArtificialSAMUtils.createArtificialRead(header,"r1",0,1,10);
+        GATKSAMRecord r1 = ArtificialSAMUtils.createArtificialRead(header,"r1",0,1,10);
         r1.setReadBases(bases1);
         r1.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20});
         r1.setCigarString("10M");
 
-        SAMRecord r2 = ArtificialSAMUtils.createArtificialRead(header,"r2",0,1,10);
+        GATKSAMRecord r2 = ArtificialSAMUtils.createArtificialRead(header,"r2",0,1,10);
         r2.setReadBases(bases2);
         r2.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20,20,20});
         r2.setCigarString("3=1X5=1X");
 
-        SAMRecord r3 = ArtificialSAMUtils.createArtificialRead(header,"r3",0,1,10);
+        GATKSAMRecord r3 = ArtificialSAMUtils.createArtificialRead(header,"r3",0,1,10);
         r3.setReadBases(bases2);
         r3.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20,20,20});
         r3.setCigarString("3=1X5M1X");
 
-        SAMRecord r4  = ArtificialSAMUtils.createArtificialRead(header,"r4",0,1,10);
+        GATKSAMRecord r4  = ArtificialSAMUtils.createArtificialRead(header,"r4",0,1,10);
         r4.setReadBases(bases2);
         r4.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20});
         r4.setCigarString("10M");
 
-        List<SAMRecord> reads = Arrays.asList(r1, r2, r3, r4);
+        List<GATKSAMRecord> reads = Arrays.asList(r1, r2, r3, r4);
 
         // create the iterator by state with the fake reads and fake records
         li = makeLTBS(reads,readAttributes);
@@ -101,22 +101,22 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         // create a test version of the Reads object
         ReadProperties readAttributes = createTestReadProperties();
 
-        SAMRecord before = ArtificialSAMUtils.createArtificialRead(header,"before",0,1,10);
+        GATKSAMRecord before = ArtificialSAMUtils.createArtificialRead(header,"before",0,1,10);
         before.setReadBases(bases);
         before.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20});
         before.setCigarString("10M");
 
-        SAMRecord during = ArtificialSAMUtils.createArtificialRead(header,"during",0,2,10);
+        GATKSAMRecord during = ArtificialSAMUtils.createArtificialRead(header,"during",0,2,10);
         during.setReadBases(indelBases);
         during.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20,20,20});
         during.setCigarString("4M2I6M");
 
-        SAMRecord after  = ArtificialSAMUtils.createArtificialRead(header,"after",0,3,10);
+        GATKSAMRecord after  = ArtificialSAMUtils.createArtificialRead(header,"after",0,3,10);
         after.setReadBases(bases);
         after.setBaseQualities(new byte[] {20,20,20,20,20,20,20,20,20,20});
         after.setCigarString("10M");
 
-        List<SAMRecord> reads = Arrays.asList(before, during, after);
+        List<GATKSAMRecord> reads = Arrays.asList(before, during, after);
 
         // create the iterator by state with the fake reads and fake records
         li = makeLTBS(reads,readAttributes);
@@ -146,12 +146,12 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         // create a test version of the Reads object
         ReadProperties readAttributes = createTestReadProperties();
 
-        SAMRecord indelOnlyRead = ArtificialSAMUtils.createArtificialRead(header, "indelOnly", 0, firstLocus, 76);
+        GATKSAMRecord indelOnlyRead = ArtificialSAMUtils.createArtificialRead(header, "indelOnly", 0, firstLocus, 76);
         indelOnlyRead.setReadBases(Utils.dupBytes((byte)'A',76));
         indelOnlyRead.setBaseQualities(Utils.dupBytes((byte) '@', 76));
         indelOnlyRead.setCigarString("76I");
 
-        List<SAMRecord> reads = Arrays.asList(indelOnlyRead);
+        List<GATKSAMRecord> reads = Arrays.asList(indelOnlyRead);
 
         // create the iterator by state with the fake reads and fake records
         li = makeLTBS(reads, readAttributes);
@@ -174,22 +174,22 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     public void testWholeIndelRead() {
         final int firstLocus = 44367788, secondLocus = firstLocus + 1;
 
-        SAMRecord leadingRead = ArtificialSAMUtils.createArtificialRead(header,"leading",0,firstLocus,76);
+        GATKSAMRecord leadingRead = ArtificialSAMUtils.createArtificialRead(header,"leading",0,firstLocus,76);
         leadingRead.setReadBases(Utils.dupBytes((byte)'A',76));
         leadingRead.setBaseQualities(Utils.dupBytes((byte)'@',76));
         leadingRead.setCigarString("1M75I");
 
-        SAMRecord indelOnlyRead = ArtificialSAMUtils.createArtificialRead(header,"indelOnly",0,secondLocus,76);
+        GATKSAMRecord indelOnlyRead = ArtificialSAMUtils.createArtificialRead(header,"indelOnly",0,secondLocus,76);
         indelOnlyRead.setReadBases(Utils.dupBytes((byte) 'A', 76));
         indelOnlyRead.setBaseQualities(Utils.dupBytes((byte)'@',76));
         indelOnlyRead.setCigarString("76I");
 
-        SAMRecord fullMatchAfterIndel = ArtificialSAMUtils.createArtificialRead(header,"fullMatch",0,secondLocus,76);
+        GATKSAMRecord fullMatchAfterIndel = ArtificialSAMUtils.createArtificialRead(header,"fullMatch",0,secondLocus,76);
         fullMatchAfterIndel.setReadBases(Utils.dupBytes((byte)'A',76));
         fullMatchAfterIndel.setBaseQualities(Utils.dupBytes((byte)'@',76));
         fullMatchAfterIndel.setCigarString("75I1M");
 
-        List<SAMRecord> reads = Arrays.asList(leadingRead, indelOnlyRead, fullMatchAfterIndel);
+        List<GATKSAMRecord> reads = Arrays.asList(leadingRead, indelOnlyRead, fullMatchAfterIndel);
 
         // create the iterator by state with the fake reads and fake records
         li = makeLTBS(reads, createTestReadProperties());
@@ -225,12 +225,12 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     public void testWholeIndelReadRepresentedTest() {
         final int firstLocus = 44367788, secondLocus = firstLocus + 1;
 
-        SAMRecord read1 = ArtificialSAMUtils.createArtificialRead(header,"read1",0,secondLocus,1);
+        GATKSAMRecord read1 = ArtificialSAMUtils.createArtificialRead(header,"read1",0,secondLocus,1);
         read1.setReadBases(Utils.dupBytes((byte) 'A', 1));
         read1.setBaseQualities(Utils.dupBytes((byte) '@', 1));
         read1.setCigarString("1I");
 
-        List<SAMRecord> reads = Arrays.asList(read1);
+        List<GATKSAMRecord> reads = Arrays.asList(read1);
 
         // create the iterator by state with the fake reads and fake records
         li = makeLTBS(reads, createTestReadProperties());
@@ -246,7 +246,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
 //            Assert.assertEquals(pe.getBasesOfImmediatelyFollowingInsertion(), "A");
         }
 
-        SAMRecord read2 = ArtificialSAMUtils.createArtificialRead(header,"read2",0,secondLocus,10);
+        GATKSAMRecord read2 = ArtificialSAMUtils.createArtificialRead(header,"read2",0,secondLocus,10);
         read2.setReadBases(Utils.dupBytes((byte) 'A', 10));
         read2.setBaseQualities(Utils.dupBytes((byte) '@', 10));
         read2.setCigarString("10I");
@@ -302,7 +302,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     @Test(enabled = true && ! DEBUG, dataProvider = "IndelLengthAndBasesTest")
     public void testIndelLengthAndBasesTest(GATKSAMRecord read, final CigarOperator op, final int eventSize, final String eventBases) {
         // create the iterator by state with the fake reads and fake records
-        li = makeLTBS(Arrays.asList((SAMRecord)read), createTestReadProperties());
+        li = makeLTBS(Arrays.asList((GATKSAMRecord)read), createTestReadProperties());
 
         Assert.assertTrue(li.hasNext());
 
@@ -354,7 +354,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     public void testLIBS(LIBSTest params) {
         // create the iterator by state with the fake reads and fake records
         final GATKSAMRecord read = params.makeRead();
-        li = makeLTBS(Arrays.asList((SAMRecord)read), createTestReadProperties());
+        li = makeLTBS(Arrays.asList((GATKSAMRecord)read), createTestReadProperties());
         final LIBS_position tester = new LIBS_position(read);
 
         int bpVisited = 0;
@@ -458,14 +458,14 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         final DownsamplingMethod downsampler = downsample
                 ? new DownsamplingMethod(DownsampleType.BY_SAMPLE, maxDownsampledCoverage, null, false)
                 : new DownsamplingMethod(DownsampleType.NONE, null, null, false);
-        final List<SAMRecord> reads = ArtificialSAMUtils.createReadStream(nReadsPerLocus, nLoci, header, 1, readLength);
-        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),
+        final List<GATKSAMRecord> reads = ArtificialSAMUtils.createReadStream(nReadsPerLocus, nLoci, header, 1, readLength);
+        li = new LocusIteratorByState(new FakeCloseableIterator<GATKSAMRecord>(reads.iterator()),
                 createTestReadProperties(downsampler, keepReads),
                 genomeLocParser,
                 samples);
 
-        final Set<SAMRecord> seenSoFar = new HashSet<SAMRecord>();
-        final Set<SAMRecord> keptReads = new HashSet<SAMRecord>();
+        final Set<GATKSAMRecord> seenSoFar = new HashSet<GATKSAMRecord>();
+        final Set<GATKSAMRecord> keptReads = new HashSet<GATKSAMRecord>();
         int bpVisited = 0;
         while ( li.hasNext() ) {
             bpVisited++;
@@ -482,11 +482,11 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
 
             seenSoFar.addAll(p.getReads());
             if ( keepReads && grabReadsAfterEachCycle ) {
-                final List<SAMRecord> locusReads = li.transferReadsFromAllPreviousPileups();
+                final List<GATKSAMRecord> locusReads = li.transferReadsFromAllPreviousPileups();
 
                 // the number of reads starting here
                 int nReadsStartingHere = 0;
-                for ( final SAMRecord read : p.getReads() )
+                for ( final GATKSAMRecord read : p.getReads() )
                     if ( read.getAlignmentStart() == alignmentContext.getPosition() )
                         nReadsStartingHere++;
 
@@ -499,7 +499,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
                 keptReads.addAll(locusReads);
 
                 // check that all reads we've seen so far are in our keptReads
-                for ( final SAMRecord read : seenSoFar ) {
+                for ( final GATKSAMRecord read : seenSoFar ) {
                     Assert.assertTrue(keptReads.contains(read), "A read that appeared in a pileup wasn't found in the kept reads: " + read);
                 }
             }
@@ -524,8 +524,8 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
 
                 // check that the order of reads is the same as in our read list
                 for ( int i = 0; i < reads.size(); i++ ) {
-                    final SAMRecord inputRead = reads.get(i);
-                    final SAMRecord keptRead = reads.get(i);
+                    final GATKSAMRecord inputRead = reads.get(i);
+                    final GATKSAMRecord keptRead = reads.get(i);
                     Assert.assertSame(keptRead, inputRead, "Input reads and kept reads differ at position " + i);
                 }
             } else {
@@ -534,13 +534,13 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
 
             // check uniqueness
             final Set<String> readNames = new HashSet<String>();
-            for ( final SAMRecord read : keptReads ) {
+            for ( final GATKSAMRecord read : keptReads ) {
                 Assert.assertFalse(readNames.contains(read.getReadName()), "Found duplicate reads in the kept reads");
                 readNames.add(read.getReadName());
             }
 
             // check that all reads we've seen are in our keptReads
-            for ( final SAMRecord read : seenSoFar ) {
+            for ( final GATKSAMRecord read : seenSoFar ) {
                 Assert.assertTrue(keptReads.contains(read), "A read that appeared in a pileup wasn't found in the kept reads: " + read);
             }
         }

@@ -31,7 +31,6 @@ import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -87,8 +86,8 @@ public class AlignmentStateMachine {
     private int offsetIntoCurrentCigarElement;
 
     @Requires({"read != null", "read.getAlignmentStart() != -1", "read.getCigar() != null"})
-    public AlignmentStateMachine(final SAMRecord read) {
-        this.read = (GATKSAMRecord)read;
+    public AlignmentStateMachine(final GATKSAMRecord read) {
+        this.read = read;
         this.cigar = read.getCigar();
         this.nCigarElements = cigar.numCigarElements();
         initializeAsLeftEdge();
@@ -110,7 +109,7 @@ public class AlignmentStateMachine {
      * @return a non-null GATKSAMRecord
      */
     @Ensures("result != null")
-    public SAMRecord getRead() {
+    public GATKSAMRecord getRead() {
         return read;
     }
 

@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.locusiterator;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -63,7 +64,7 @@ public class ReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
 
         public void run() {
             final List<String> samples = LocusIteratorByState.sampleListForSAMWithoutReadGroups();
-            final Iterator<SAMRecord> iterator = new LinkedList<SAMRecord>().iterator();
+            final Iterator<GATKSAMRecord> iterator = new LinkedList<GATKSAMRecord>().iterator();
             ReadStateManager readStateManager = new ReadStateManager(iterator, samples, LIBSDownsamplingInfo.NO_DOWNSAMPLING, false);
             ReadStateManager.PerSampleReadStateManager perSampleReadStateManager = readStateManager.new PerSampleReadStateManager(LIBSDownsamplingInfo.NO_DOWNSAMPLING);
 
@@ -146,10 +147,10 @@ public class ReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
             int alignmentStart = 1;
 
             for ( int readsThisStack : readCountsPerAlignmentStart ) {
-                ArrayList<SAMRecord> stackReads = new ArrayList<SAMRecord>(ArtificialSAMUtils.createStackOfIdenticalArtificialReads(readsThisStack, header, "foo", 0, alignmentStart, MathUtils.randomIntegerInRange(50, 100)));
+                ArrayList<GATKSAMRecord> stackReads = new ArrayList<GATKSAMRecord>(ArtificialSAMUtils.createStackOfIdenticalArtificialReads(readsThisStack, header, "foo", 0, alignmentStart, MathUtils.randomIntegerInRange(50, 100)));
                 ArrayList<AlignmentStateMachine> stackRecordStates = new ArrayList<AlignmentStateMachine>();
 
-                for ( SAMRecord read : stackReads ) {
+                for ( GATKSAMRecord read : stackReads ) {
                     stackRecordStates.add(new AlignmentStateMachine(read));
                 }
 

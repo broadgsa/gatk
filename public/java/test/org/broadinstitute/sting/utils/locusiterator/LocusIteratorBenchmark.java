@@ -46,7 +46,7 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
     protected SAMFileHeader header;
     protected GenomeLocParser genomeLocParser;
 
-    List<SAMRecord> reads = new LinkedList<SAMRecord>();
+    List<GATKSAMRecord> reads = new LinkedList<GATKSAMRecord>();
     final int readLength = 101;
     final int nReads = 10000;
     final int locus = 1;
@@ -104,7 +104,7 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
         for ( int i = 0; i < rep; i++ ) {
             final org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState libs =
                     new org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState(
-                            new LocusIteratorByStateBaseTest.FakeCloseableIterator<SAMRecord>(reads.iterator()),
+                            new LocusIteratorByStateBaseTest.FakeCloseableIterator<GATKSAMRecord>(reads.iterator()),
                             LocusIteratorByStateBaseTest.createTestReadProperties(),
                             genomeLocParser,
                             LocusIteratorByState.sampleListForSAMWithoutReadGroups());
@@ -128,7 +128,7 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
 
     public void timeAlignmentStateMachine(int rep) {
         for ( int i = 0; i < rep; i++ ) {
-            for ( final SAMRecord read : reads ) {
+            for ( final GATKSAMRecord read : reads ) {
                 final AlignmentStateMachine alignmentStateMachine = new AlignmentStateMachine(read);
                 while ( alignmentStateMachine.stepForwardOnGenome() != null ) {
                     ;

@@ -84,9 +84,9 @@ public class TraverseActiveRegionsOptimized<M,T> extends TraverseActiveRegions<M
             // Grab all the previously unseen reads from this pileup and add them to the massive read list
             // Note that this must occur before we leave because we are outside the intervals because
             // reads may occur outside our intervals but overlap them in the future
-            final Collection<SAMRecord> reads = locusView.getLIBS().transferReadsFromAllPreviousPileups();
-            for( final SAMRecord read : reads ) {
-                notifyOfCurrentPosition((GATKSAMRecord)read);
+            final Collection<GATKSAMRecord> reads = locusView.getLIBS().transferReadsFromAllPreviousPileups();
+            for( final GATKSAMRecord read : reads ) {
+                notifyOfCurrentPosition(read);
                 // most of the time maybeDuplicatedReads is empty
                 // TODO -- I believe that because of the ordering of reads that as soon as we don't find a read in the
                 // TODO -- potential list of duplicates we can clear the hashset

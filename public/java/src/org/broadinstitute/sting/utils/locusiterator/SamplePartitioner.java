@@ -37,35 +37,35 @@ import java.util.*;
  *
  * Note: stores reads by sample ID string, not by sample object
  */
-class SamplePartitioner {
-    private Map<String, Downsampler<SAMRecord>> readsBySample;
+class SamplePartitioner<T extends SAMRecord> {
+    private Map<String, Downsampler<T>> readsBySample;
 
     public SamplePartitioner(final LIBSDownsamplingInfo LIBSDownsamplingInfo, final List<String> samples) {
-        readsBySample = new HashMap<String, Downsampler<SAMRecord>>(samples.size());
+        readsBySample = new HashMap<String, Downsampler<T>>(samples.size());
         for ( String sample : samples ) {
             readsBySample.put(sample, createDownsampler(LIBSDownsamplingInfo));
         }
     }
 
-    private Downsampler<SAMRecord> createDownsampler(final LIBSDownsamplingInfo LIBSDownsamplingInfo) {
+    private Downsampler<T> createDownsampler(final LIBSDownsamplingInfo LIBSDownsamplingInfo) {
         return LIBSDownsamplingInfo.isPerformDownsampling()
-                ? new ReservoirDownsampler<SAMRecord>(LIBSDownsamplingInfo.getToCoverage())
-                : new PassThroughDownsampler<SAMRecord>();
+                ? new ReservoirDownsampler<T>(LIBSDownsamplingInfo.getToCoverage())
+                : new PassThroughDownsampler<T>();
     }
 
-    public void submitRead(SAMRecord read) {
+    public void submitRead(T read) {
         String sampleName = read.getReadGroup() != null ? read.getReadGroup().getSample() : null;
         if (readsBySample.containsKey(sampleName))
             readsBySample.get(sampleName).submit(read);
     }
 
     public void doneSubmittingReads() {
-        for ( Map.Entry<String, Downsampler<SAMRecord>> perSampleReads : readsBySample.entrySet() ) {
+        for ( Map.Entry<String, Downsampler<T>> perSampleReads : readsBySample.entrySet() ) {
             perSampleReads.getValue().signalEndOfInput();
         }
     }
 
-    public Collection<SAMRecord> getReadsForSample(String sampleName) {
+    public Collection<T> getReadsForSample(String sampleName) {
         if ( ! readsBySample.containsKey(sampleName) )
             throw new NoSuchElementException("Sample name not found");
 
@@ -73,7 +73,7 @@ class SamplePartitioner {
     }
 
     public void reset() {
-        for ( Map.Entry<String, Downsampler<SAMRecord>> perSampleReads : readsBySample.entrySet() ) {
+        for ( Map.Entry<String, Downsampler<T>> perSampleReads : readsBySample.entrySet() ) {
             perSampleReads.getValue().clear();
             perSampleReads.getValue().reset();
         }

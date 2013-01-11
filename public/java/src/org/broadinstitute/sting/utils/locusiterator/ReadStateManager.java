@@ -28,9 +28,9 @@ package org.broadinstitute.sting.utils.locusiterator;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.picard.util.PeekableIterator;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.downsampling.Downsampler;
 import org.broadinstitute.sting.gatk.downsampling.LevelingDownsampler;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.*;
 
@@ -50,30 +50,30 @@ import java.util.*;
  */
 class ReadStateManager {
     private final List<String> samples;
-    private final PeekableIterator<SAMRecord> iterator;
-    private final SamplePartitioner samplePartitioner;
+    private final PeekableIterator<GATKSAMRecord> iterator;
+    private final SamplePartitioner<GATKSAMRecord> samplePartitioner;
     private final Map<String, PerSampleReadStateManager> readStatesBySample = new HashMap<String, PerSampleReadStateManager>();
 
-    private LinkedList<SAMRecord> submittedReads;
+    private LinkedList<GATKSAMRecord> submittedReads;
     private final boolean keepSubmittedReads;
 
     private int totalReadStates = 0;
 
-    public ReadStateManager(final Iterator<SAMRecord> source,
+    public ReadStateManager(final Iterator<GATKSAMRecord> source,
                             final List<String> samples,
                             final LIBSDownsamplingInfo LIBSDownsamplingInfo,
                             final boolean keepSubmittedReads) {
         this.samples = samples;
-        this.iterator = new PeekableIterator<SAMRecord>(source);
+        this.iterator = new PeekableIterator<GATKSAMRecord>(source);
 
         this.keepSubmittedReads = keepSubmittedReads;
-        this.submittedReads = new LinkedList<SAMRecord>();
+        this.submittedReads = new LinkedList<GATKSAMRecord>();
 
         for (final String sample : samples) {
             readStatesBySample.put(sample, new PerSampleReadStateManager(LIBSDownsamplingInfo));
         }
 
-        samplePartitioner = new SamplePartitioner(LIBSDownsamplingInfo, samples);
+        samplePartitioner = new SamplePartitioner<GATKSAMRecord>(LIBSDownsamplingInfo, samples);
     }
 
     /**
@@ -138,12 +138,12 @@ class ReadStateManager {
     }
 
     // fast testing of position
-    private boolean readIsPastCurrentPosition(SAMRecord read) {
+    private boolean readIsPastCurrentPosition(GATKSAMRecord read) {
         if (isEmpty())
             return false;
         else {
-            AlignmentStateMachine state = getFirst();
-            SAMRecord ourRead = state.getRead();
+            final AlignmentStateMachine state = getFirst();
+            final GATKSAMRecord ourRead = state.getRead();
             return read.getReferenceIndex() > ourRead.getReferenceIndex() || read.getAlignmentStart() > state.getGenomePosition();
         }
     }
@@ -172,7 +172,7 @@ class ReadStateManager {
         samplePartitioner.doneSubmittingReads();
 
         for (final String sample : samples) {
-            Collection<SAMRecord> newReads = samplePartitioner.getReadsForSample(sample);
+            final Collection<GATKSAMRecord> newReads = samplePartitioner.getReadsForSample(sample);
             PerSampleReadStateManager statesBySample = readStatesBySample.get(sample);
             addReadsToSample(statesBySample, newReads);
         }
@@ -185,7 +185,7 @@ class ReadStateManager {
      * @param read a non-null read
      */
     @Requires("read != null")
-    protected void submitRead(final SAMRecord read) {
+    protected void submitRead(final GATKSAMRecord read) {
         if ( keepSubmittedReads )
             submittedReads.add(read);
         samplePartitioner.submitRead(read);
@@ -213,11 +213,11 @@ class ReadStateManager {
             "result != null",
             "result != submittedReads" // result and previous submitted reads are not == objects
     })
-    public List<SAMRecord> transferSubmittedReads() {
+    public List<GATKSAMRecord> transferSubmittedReads() {
         if ( ! keepSubmittedReads ) throw new UnsupportedOperationException("cannot transferSubmittedReads if you aren't keeping them");
 
-        final List<SAMRecord> prevSubmittedReads = submittedReads;
-        this.submittedReads = new LinkedList<SAMRecord>();
+        final List<GATKSAMRecord> prevSubmittedReads = submittedReads;
+        this.submittedReads = new LinkedList<GATKSAMRecord>();
 
         return prevSubmittedReads;
     }
@@ -244,7 +244,7 @@ class ReadStateManager {
      * @return a non-null list of reads that have been submitted to this ReadStateManager
      */
     @Ensures({"result != null","keepSubmittedReads || result.isEmpty()"})
-    protected List<SAMRecord> getSubmittedReads() {
+    protected List<GATKSAMRecord> getSubmittedReads() {
         return submittedReads;
     }
 
@@ -254,13 +254,13 @@ class ReadStateManager {
      * @param readStates The list of read states to add this collection of reads.
      * @param reads      Reads to add.  Selected reads will be pulled from this source.
      */
-    private void addReadsToSample(final PerSampleReadStateManager readStates, final Collection<SAMRecord> reads) {
+    private void addReadsToSample(final PerSampleReadStateManager readStates, final Collection<GATKSAMRecord> reads) {
         if (reads.isEmpty())
             return;
 
         Collection<AlignmentStateMachine> newReadStates = new LinkedList<AlignmentStateMachine>();
 
-        for (SAMRecord read : reads) {
+        for (GATKSAMRecord read : reads) {
             AlignmentStateMachine state = new AlignmentStateMachine(read);
             if ( state.stepForwardOnGenome() != null )
                 // explicitly filter out reads that are all insertions / soft clips

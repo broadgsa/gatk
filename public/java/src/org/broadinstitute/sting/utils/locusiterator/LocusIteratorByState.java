@@ -28,7 +28,6 @@ package org.broadinstitute.sting.utils.locusiterator;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -51,7 +50,7 @@ import java.util.*;
  *
  * There are a few constraints on required and ensured by LIBS:
  *
- * -- Requires the Iterator<SAMRecord> to returns reads in coordinate sorted order, consistent with the ordering
+ * -- Requires the Iterator<GATKSAMRecord> to returns reads in coordinate sorted order, consistent with the ordering
  * defined by the SAM file format.  That that for performance reasons this constraint isn't actually enforced.
  * The behavior of LIBS is undefined in the case where the reads are badly ordered.
  * -- The reads in the ReadBackedPileup are themselves in the order of appearance of the reads from the iterator.
@@ -126,7 +125,7 @@ public class LocusIteratorByState extends LocusIterator {
      *                list of samples may contain a null element, and all reads without read groups will
      *                be mapped to this null sample
      */
-    public LocusIteratorByState(final Iterator<SAMRecord> samIterator,
+    public LocusIteratorByState(final Iterator<GATKSAMRecord> samIterator,
                                 final ReadProperties readInformation,
                                 final GenomeLocParser genomeLocParser,
                                 final Collection<String> samples) {
@@ -151,7 +150,7 @@ public class LocusIteratorByState extends LocusIterator {
      *                be mapped to this null sample
      * @param maintainUniqueReadsList if true, we will keep the unique reads from off the samIterator and make them
      *                                available via the transferReadsFromAllPreviousPileups interface
-     */    protected LocusIteratorByState(final Iterator<SAMRecord> samIterator,
+     */    protected LocusIteratorByState(final Iterator<GATKSAMRecord> samIterator,
                                    final LIBSDownsamplingInfo downsamplingInfo,
                                    final boolean includeReadsWithDeletionAtLoci,
                                    final GenomeLocParser genomeLocParser,
@@ -310,7 +309,7 @@ public class LocusIteratorByState extends LocusIterator {
      * of submitted reads, if enabled.
      *
      * The purpose of this function is allow users of LIBS to keep track of all of the reads pulled off the
-     * underlying SAMRecord iterator and that appeared at any point in the list of SAMRecordAlignmentState for
+     * underlying GATKSAMRecord iterator and that appeared at any point in the list of SAMRecordAlignmentState for
      * any reads.  This function is intended to allow users to efficiently reconstruct the unique set of reads
      * used across all pileups.  This is necessary for LIBS to handle because attempting to do
      * so from the pileups coming out of LIBS is extremely expensive.
@@ -322,7 +321,7 @@ public class LocusIteratorByState extends LocusIterator {
      * @return the current list
      */
     @Ensures("result != null")
-    public List<SAMRecord> transferReadsFromAllPreviousPileups() {
+    public List<GATKSAMRecord> transferReadsFromAllPreviousPileups() {
         return readStates.transferSubmittedReads();
     }
 
@@ -331,7 +330,7 @@ public class LocusIteratorByState extends LocusIterator {
      * @return a non-null list
      */
     @Ensures("result != null")
-    protected List<SAMRecord> getReadsFromAllPreviousPileups() {
+    protected List<GATKSAMRecord> getReadsFromAllPreviousPileups() {
         return readStates.getSubmittedReads();
     }
 

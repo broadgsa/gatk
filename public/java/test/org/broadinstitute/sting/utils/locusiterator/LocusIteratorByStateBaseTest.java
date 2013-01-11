@@ -57,9 +57,9 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
         genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
     }
 
-    protected LocusIteratorByState makeLTBS(List<SAMRecord> reads,
+    protected LocusIteratorByState makeLTBS(List<GATKSAMRecord> reads,
                                             ReadProperties readAttributes) {
-        return new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),
+        return new LocusIteratorByState(new FakeCloseableIterator<GATKSAMRecord>(reads.iterator()),
                 readAttributes,
                 genomeLocParser,
                 LocusIteratorByState.sampleListForSAMWithoutReadGroups());
@@ -85,7 +85,7 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
                 keepReads);
     }
 
-    protected static class FakeCloseableIterator<T> implements CloseableIterator<T> {
+    public static class FakeCloseableIterator<T> implements CloseableIterator<T> {
         Iterator<T> iterator;
 
         public FakeCloseableIterator(Iterator<T> it) {

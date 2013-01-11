@@ -29,12 +29,14 @@ import net.sf.picard.util.PeekableIterator;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
+import org.broadinstitute.sting.gatk.iterators.GATKSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.locusiterator.LocusIterator;
 import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -70,7 +72,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
     /**
      * Hold the read iterator so that it can be closed later.
      */
-    private final StingSAMIterator readIterator;
+    private final GATKSAMIterator readIterator;
 
     /**
      * The data source for reads.  Will probably come directly from the BAM file.
@@ -107,12 +109,12 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
 
     public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator iterator, List<GenomeLoc> intervals, Collection<String> sampleNames) {
         this.sourceInfo = shard.getReadProperties();
-        this.readIterator = iterator;
+        this.readIterator = new GATKSAMIterator(iterator);
 
         // Use the legacy version of LocusIteratorByState if legacy downsampling was requested:
         if ( sourceInfo.getDownsamplingMethod().useLegacyDownsampler )
             throw new IllegalArgumentException("legacy downsampler no longer supported in the window maker");
-        this.libs = new LocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleNames);
+        this.libs = new LocusIteratorByState(readIterator,sourceInfo,genomeLocParser,sampleNames);
         this.sourceIterator = new PeekableIterator<AlignmentContext>(libs);
 
         this.intervalIterator = intervals.size()>0 ? new PeekableIterator<GenomeLoc>(intervals.iterator()) : null;
