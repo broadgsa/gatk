@@ -1,9 +1,8 @@
 package org.broadinstitute.sting.queue.extensions.gatk
 
-import org.broadinstitute.sting.queue.function.{RetryMemoryLimit, JavaCommandLineFunction}
+import org.broadinstitute.sting.queue.function.RetryMemoryLimit
 import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
-import org.broadinstitute.sting.queue.util.ClassFieldCache
-import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor
+
 
 /**
  * Created with IntelliJ IDEA.

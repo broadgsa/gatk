@@ -1,6 +1,7 @@
-package org.broadinstitute.sting.gatk.walkers.coverage;
+package org.broadinstitute.sting.gatk.walkers.diagnostics;
 
 
+import ca.mcgill.mcb.pcingola.interval.Intron;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
@@ -52,10 +53,10 @@ import java.util.List;
  */
 
 @By(DataSource.REFERENCE_ORDERED_DATA)
-public class CoveredByNSamplesSites extends RodWalker<Pair<Integer,Integer>, Pair<Integer,Integer>> implements TreeReducible<Pair<Integer,Integer>> {
+public class CoveredByNSamplesSites extends RodWalker<GenomeLoc, Integer> implements TreeReducible<Integer> {
 
     @Output(fullName = "OutputIntervals", shortName = "out", doc = "Name of file for output intervals", required = true)
-    File intervalsFile;
+    PrintStream outputStream;
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
@@ -66,38 +67,18 @@ public class CoveredByNSamplesSites extends RodWalker<Pair<Integer,Integer>, Pai
     @Argument(fullName = "precentageOfSamples", shortName = "percentage", doc = "only sites where at list percentageOfSamples of the samples have good coverage, will be emited", required = false)
     double percentageOfSamples = 0.9;
 
-    private FileOutputStream outputStream;
-
     @Override
-    public void initialize(){
-        if (! intervalsFile.getName().endsWith(".intervals")){
-            throw new UserException(String.format("Output interval file %s should be <name>.intervals", intervalsFile));
-        }
-        try{
-            outputStream = new FileOutputStream(intervalsFile);
-            if (!intervalsFile.exists()) {
-                intervalsFile.createNewFile();
-            }
-        }
-        catch (IOException e){
-            System.err.println(String.format("Problems with creating outputStream from %s",intervalsFile));
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public Pair<Integer,Integer> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public GenomeLoc map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null )
-            return new Pair<Integer, Integer>(0,0);
+            return null;
 
         Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
         if ( VCs.size() == 0 )
-            return new Pair<Integer, Integer>(0,0);
+            return null;
         if(VCs.size() != 1)
             throw new RuntimeException("there are more then one vc: "+VCs.size());
 
         boolean emitSite = false;
-        List<GenomeLoc> outputIntervals = new ArrayList<GenomeLoc>();
         for(VariantContext vc : VCs){
             int coveredSamples = 0;
             final GenotypesContext genotypes = vc.getGenotypes();
@@ -108,49 +89,38 @@ public class CoveredByNSamplesSites extends RodWalker<Pair<Integer,Integer>, Pai
             }
             if((double)coveredSamples/numOfGenotypes > percentageOfSamples){
                 emitSite = true;
-                outputIntervals.add(ref.getLocus());
-                //System.out.println(ref.getLocus());
-                try{
-                    String toPrint = ref.getLocus().toString() + "\n";
-                    outputStream.write(toPrint.getBytes());
-                }catch (IOException e){
-                    e.printStackTrace();
-                }
             }
-
         }
         if (emitSite)
-            return new Pair<Integer, Integer>(1,1);
+            return ref.getLocus();
         else
-            return new Pair<Integer, Integer>(1,0);
+            return null;
     }
 
     @Override
-    public Pair<Integer,Integer> reduceInit() { return new Pair<Integer, Integer>(0,0); }
+    public Integer reduceInit() { return 0; }
 
     @Override
-    public Pair<Integer,Integer> reduce(Pair<Integer,Integer> value, Pair<Integer,Integer> sum) { return new Pair<Integer, Integer>(value.getFirst() + sum.getFirst(),value.getSecond()+sum.getSecond()); }
+    public Integer reduce(GenomeLoc value, Integer sum) {
+        if ( value != null ) {
+            outputStream.println(value);
+            sum++;
+        }
+        return sum;
+    }
 
     @Override
-    public Pair<Integer,Integer> treeReduce(Pair<Integer,Integer> lhs, Pair<Integer,Integer> rhs) {
-        return new Pair<Integer, Integer>(lhs.getFirst() + rhs.getFirst(),lhs.getSecond() + rhs.getSecond());
+    public Integer treeReduce(Integer lhs, Integer rhs) {
+        return lhs + rhs;
     }
 
     /**
      * Tell the user the number of sites processed and how many passed. Close out the new intervals file.
      *
-     * @param result  pair of the number of sites seen and number of sites passed the filter.
+     * @param result  pair of *the number of sites seen and number of sites passed the filter.
      */
-    public void onTraversalDone(Pair<Integer,Integer> result) {
-        logger.info("Processed " + result.getFirst() + " variant sites and found "+ result.getSecond()+" sites that have "+(percentageOfSamples*100)+"% of the samples with at list "+minCoverage+" coverage.\n");
-        logger.info("All these sites were printed to the intervals file: "+intervalsFile.getAbsolutePath());
-        try{
-            outputStream.close();
-        }
-        catch (IOException e){
-            System.err.println("Couldn't close output steam properly");
-            e.printStackTrace();
-        }
+    public void onTraversalDone(Integer result) {
+        logger.info(result+" sites that have "+(percentageOfSamples*100)+"% of the samples with at list "+minCoverage+" coverage.\n");
     }
 
 
