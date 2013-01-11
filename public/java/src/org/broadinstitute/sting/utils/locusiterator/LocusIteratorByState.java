@@ -48,6 +48,24 @@ import java.util.*;
  * Produces AlignmentContext objects, that contain ReadBackedPileups of PileupElements.  This
  * class has its core job of converting an iterator of ordered SAMRecords into those
  * RBPs.
+ *
+ * There are a few constraints on required and ensured by LIBS:
+ *
+ * -- Requires the Iterator<SAMRecord> to returns reads in coordinate sorted order, consistent with the ordering
+ * defined by the SAM file format.  That that for performance reasons this constraint isn't actually enforced.
+ * The behavior of LIBS is undefined in the case where the reads are badly ordered.
+ * -- The reads in the ReadBackedPileup are themselves in the order of appearance of the reads from the iterator.
+ * That is, the pileup is ordered in a way consistent with the SAM coordinate ordering
+ * -- Only aligned reads with at least one on-genomic cigar operator are passed on in the pileups.  That is,
+ * unmapped reads or reads that are all insertions (10I) or soft clipped (10S) are not passed on.
+ * -- LIBS can perform per-sample downsampling of a variety of kinds.
+ * -- Because of downsampling there's no guarantee that:
+ *   -- A read that could be aligned to a position will actually occur in the pileup (downsampled away)
+ *   -- A read that appears in a previous pileup that could align to a future position will actually occur
+ *      in that pileup.  That is, a read might show up at position i but be downsampled away in the pileup at j
+ * -- LIBS can optionally capture all of the reads that come off the iterator, before any leveling downsampling
+ * occurs, if requested.  This allows users of LIBS to see both a ReadBackedPileup view of the data as well as
+ * a stream of unique, sorted reads
  */
 public class LocusIteratorByState extends LocusIterator {
     /**
@@ -120,7 +138,20 @@ public class LocusIteratorByState extends LocusIterator {
                 readInformation.keepUniqueReadListInLIBS());
     }
 
-    protected LocusIteratorByState(final Iterator<SAMRecord> samIterator,
+    /**
+     * Create a new LocusIteratorByState
+     *
+     * @param samIterator the iterator of reads to process into pileups.  Reads must be ordered
+     *                    according to standard coordinate-sorted BAM conventions
+     * @param downsamplingInfo meta-information about how to downsampling the reads
+     * @param genomeLocParser used to create genome locs
+     * @param samples a complete list of samples present in the read groups for the reads coming from samIterator.
+     *                This is generally just the set of read group sample fields in the SAMFileHeader.  This
+     *                list of samples may contain a null element, and all reads without read groups will
+     *                be mapped to this null sample
+     * @param maintainUniqueReadsList if true, we will keep the unique reads from off the samIterator and make them
+     *                                available via the transferReadsFromAllPreviousPileups interface
+     */    protected LocusIteratorByState(final Iterator<SAMRecord> samIterator,
                                    final LIBSDownsamplingInfo downsamplingInfo,
                                    final boolean includeReadsWithDeletionAtLoci,
                                    final GenomeLocParser genomeLocParser,
