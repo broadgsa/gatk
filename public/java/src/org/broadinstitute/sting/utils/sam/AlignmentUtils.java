@@ -297,7 +297,7 @@ public class AlignmentUtils {
     }
 
     public static int calcAlignmentByteArrayOffset(final Cigar cigar, final PileupElement pileupElement, final int alignmentStart, final int refLocus) {
-        return calcAlignmentByteArrayOffset( cigar, pileupElement.getOffset(), pileupElement.isInsertionAtBeginningOfRead(), pileupElement.isDeletion(), alignmentStart, refLocus );
+        return calcAlignmentByteArrayOffset( cigar, pileupElement.getOffset(), false, pileupElement.isDeletion(), alignmentStart, refLocus );
     }
 
     public static int calcAlignmentByteArrayOffset(final Cigar cigar, final int offset, final boolean isInsertionAtBeginningOfRead, final boolean isDeletion, final int alignmentStart, final int refLocus) {

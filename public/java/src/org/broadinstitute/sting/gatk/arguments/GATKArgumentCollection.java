@@ -448,5 +448,10 @@ public class GATKArgumentCollection {
     @Hidden
     public boolean generateShadowBCF = false;
     // TODO -- remove all code tagged with TODO -- remove me when argument generateShadowBCF is removed
+
+    @Hidden
+    @Argument(fullName="newART", shortName = "newART", doc = "use the new ART traversal", required=false)
+    public boolean newART = false;
+
 }
 

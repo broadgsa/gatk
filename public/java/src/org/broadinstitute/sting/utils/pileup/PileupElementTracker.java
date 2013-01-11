@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
+import org.apache.commons.collections.iterators.IteratorChain;
+
 import java.util.*;
 
 /**
@@ -35,6 +37,20 @@ import java.util.*;
  */
 abstract class PileupElementTracker<PE extends PileupElement> implements Iterable<PE> {
     public abstract int size();
+
+    /**
+     * Iterate through the PEs here, but in any order, which may improve performance
+     * if you don't care about the underlying order the reads are coming to you in.
+     * @return an iteratable over all pileup elements in this tracker
+     */
+    public abstract Iterable<PE> unorderedIterable();
+
+    /**
+     * Same as @see #unorderedIterable but the actual iterator itself
+     * @return
+     */
+    public Iterator<PE> unorderedIterator() { return unorderedIterable().iterator(); }
+
     public abstract PileupElementTracker<PE> copy();
 }
 
@@ -65,6 +81,7 @@ class UnifiedPileupElementTracker<PE extends PileupElement> extends PileupElemen
     }
 
     public Iterator<PE> iterator() { return pileup.iterator(); }
+    public Iterable<PE> unorderedIterable() { return this; }
 }
 
 class PerSamplePileupElementTracker<PE extends PileupElement> extends PileupElementTracker<PE> {
@@ -112,5 +129,26 @@ class PerSamplePileupElementTracker<PE extends PileupElement> extends PileupElem
 
     public int size() {
         return size;
+    }
+
+
+    public Iterable<PE> unorderedIterable() {
+        return new Iterable<PE>() {
+            @Override
+            public Iterator<PE> iterator() {
+                return new Iterator<PE>() {
+                    final private IteratorChain chain = new IteratorChain();
+
+                    { // initialize the chain with the unordered iterators of the per sample pileups
+                        for ( PileupElementTracker<PE> pet : pileup.values() ) {
+                            chain.addIterator(pet.unorderedIterator());
+                        }
+                    }
+                    @Override public boolean hasNext() { return chain.hasNext(); }
+                    @Override public PE next() { return (PE)chain.next(); }
+                    @Override public void remove() { throw new UnsupportedOperationException("Cannot remove"); }
+                };
+            }
+        };
     }
 }

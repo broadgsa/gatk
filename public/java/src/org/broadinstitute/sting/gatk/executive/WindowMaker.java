@@ -29,13 +29,14 @@ import net.sf.picard.util.PeekableIterator;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.iterators.LegacyLocusIteratorByState;
-import org.broadinstitute.sting.gatk.iterators.LocusIterator;
-import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
+import org.broadinstitute.sting.gatk.iterators.GATKSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.locusiterator.LocusIterator;
+import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -71,7 +72,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
     /**
      * Hold the read iterator so that it can be closed later.
      */
-    private final StingSAMIterator readIterator;
+    private final GATKSAMIterator readIterator;
 
     /**
      * The data source for reads.  Will probably come directly from the BAM file.
@@ -104,22 +105,23 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
      * @param sampleNames The complete set of sample names in the reads in shard
      */
 
+    private final LocusIteratorByState libs;
+
     public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator iterator, List<GenomeLoc> intervals, Collection<String> sampleNames) {
         this.sourceInfo = shard.getReadProperties();
-        this.readIterator = iterator;
+        this.readIterator = new GATKSAMIterator(iterator);
 
         // Use the legacy version of LocusIteratorByState if legacy downsampling was requested:
-        this.sourceIterator = sourceInfo.getDownsamplingMethod().useLegacyDownsampler ?
-                              new PeekableIterator<AlignmentContext>(new LegacyLocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleNames))
-                              :
-                              new PeekableIterator<AlignmentContext>(new LocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleNames));
-
+        if ( sourceInfo.getDownsamplingMethod().useLegacyDownsampler )
+            throw new IllegalArgumentException("legacy downsampler no longer supported in the window maker");
+        this.libs = new LocusIteratorByState(readIterator,sourceInfo,genomeLocParser,sampleNames);
+        this.sourceIterator = new PeekableIterator<AlignmentContext>(libs);
 
         this.intervalIterator = intervals.size()>0 ? new PeekableIterator<GenomeLoc>(intervals.iterator()) : null;
     }
 
     public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator iterator, List<GenomeLoc> intervals ) {
-        this(shard, genomeLocParser, iterator, intervals, LegacyLocusIteratorByState.sampleListForSAMWithoutReadGroups());
+        this(shard, genomeLocParser, iterator, intervals, LocusIteratorByState.sampleListForSAMWithoutReadGroups());
     }
 
     public Iterator<WindowMakerIterator> iterator() {
@@ -208,6 +210,11 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
                 else
                     throw new ReviewedStingException("BUG: filtering locus does not contain, is not before, and is not past the given alignment context");
             }
+        }
+
+        @Override
+        public LocusIteratorByState getLIBS() {
+            return libs;
         }
     }
 }

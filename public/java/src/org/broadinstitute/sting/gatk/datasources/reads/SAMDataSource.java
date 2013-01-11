@@ -158,6 +158,9 @@ public class SAMDataSource {
 
     /**
      * Create a new SAM data source given the supplied read metadata.
+     *
+     * For testing purposes
+     *
      * @param samFiles list of reads files.
      */
     public SAMDataSource(Collection<SAMReaderID> samFiles, ThreadAllocation threadAllocation, Integer numFileHandles, GenomeLocParser genomeLocParser) {
@@ -177,6 +180,8 @@ public class SAMDataSource {
 
     /**
      * See complete constructor.  Does not enable BAQ by default.
+     *
+     * For testing purposes
      */
     public SAMDataSource(
             Collection<SAMReaderID> samFiles,
@@ -203,6 +208,7 @@ public class SAMDataSource {
                 Collections.<ReadTransformer>emptyList(),
                 includeReadsWithDeletionAtLoci,
                 (byte) -1,
+                false,
                 false);
     }
 
@@ -219,6 +225,7 @@ public class SAMDataSource {
      *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
      * @param defaultBaseQualities if the reads have incomplete quality scores, set them all to defaultBaseQuality.
+     * @param keepReadsInLIBS should we keep a unique list of reads in LIBS?
      */
     public SAMDataSource(
             Collection<SAMReaderID> samFiles,
@@ -234,7 +241,8 @@ public class SAMDataSource {
             List<ReadTransformer> readTransformers,
             boolean includeReadsWithDeletionAtLoci,
             byte defaultBaseQualities,
-            boolean removeProgramRecords) {
+            boolean removeProgramRecords,
+            final boolean keepReadsInLIBS) {
         this.readMetrics = new ReadMetrics();
         this.genomeLocParser = genomeLocParser;
 
@@ -306,7 +314,8 @@ public class SAMDataSource {
                 supplementalFilters,
                 readTransformers,
                 includeReadsWithDeletionAtLoci,
-                defaultBaseQualities);
+                defaultBaseQualities,
+                keepReadsInLIBS);
 
         // cache the read group id (original) -> read group id (merged)
         // and read group id (merged) -> read group id (original) mappings.

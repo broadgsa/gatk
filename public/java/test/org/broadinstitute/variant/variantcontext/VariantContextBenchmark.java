@@ -27,13 +27,15 @@ package org.broadinstitute.variant.variantcontext;
 
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
-import com.google.caliper.runner.CaliperMain;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.variant.vcf.VCFCodec;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Caliper microbenchmark of parsing a VCF file
@@ -372,6 +374,6 @@ public class VariantContextBenchmark extends SimpleBenchmark {
 //    }
 
     public static void main(String[] args) {
-        CaliperMain.main(VariantContextBenchmark.class, args);
+        com.google.caliper.Runner.main(VariantContextBenchmark.class, args);
     }
 }

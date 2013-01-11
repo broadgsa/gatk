@@ -842,6 +842,8 @@ public class GenomeAnalysisEngine {
         if (argCollection.keepProgramRecords)
             removeProgramRecords = false;
 
+        final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker && argCollection.newART;
+
         return new SAMDataSource(
                 samReaderIDs,
                 threadAllocation,
@@ -856,7 +858,8 @@ public class GenomeAnalysisEngine {
                 readTransformers,
                 includeReadsWithDeletionAtLoci(),
                 argCollection.defaultBaseQualities,
-                removeProgramRecords);
+                removeProgramRecords,
+                keepReadsInLIBS);
     }
 
     /**

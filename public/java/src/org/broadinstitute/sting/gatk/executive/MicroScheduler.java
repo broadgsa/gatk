@@ -213,7 +213,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
 
         // Now that we have a progress meter, go through and initialize the traversal engines
         for ( final TraversalEngine traversalEngine : allCreatedTraversalEngines )
-            traversalEngine.initialize(engine, progressMeter);
+            traversalEngine.initialize(engine, walker, progressMeter);
 
         // JMX does not allow multiple instances with the same ObjectName to be registered with the same platform MXBean.
         // To get around this limitation and since we have no job identifier at this point, register a simple counter that
@@ -245,7 +245,12 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         } else if (walker instanceof ReadPairWalker) {
             return new TraverseReadPairs();
         } else if (walker instanceof ActiveRegionWalker) {
-            return new TraverseActiveRegions();
+            if ( engine.getArguments().newART ) {
+                // todo -- create optimized traversal
+                return new TraverseActiveRegionsOptimized();
+            } else {
+                return new TraverseActiveRegionsOriginal();
+            }
         } else {
             throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
         }

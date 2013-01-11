@@ -28,9 +28,10 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.iterators.LocusIterator;
+import org.broadinstitute.sting.utils.locusiterator.LocusIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -211,5 +212,11 @@ public abstract class LocusView extends LocusIterator implements View {
      */
     private boolean isContainedInShard(GenomeLoc location) {
         return locus.containsP(location);
+    }
+
+    // TODO -- remove me
+    @Override
+    public LocusIteratorByState getLIBS() {
+        return loci.getLIBS();
     }
 }
