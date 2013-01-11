@@ -84,6 +84,7 @@ class ReadStateManager {
      * @return Iterator over the reads associated with that sample.
      */
     public Iterator<AlignmentStateMachine> iterator(final String sample) {
+        // TODO -- why is this wrapped?
         return new Iterator<AlignmentStateMachine>() {
             private Iterator<AlignmentStateMachine> wrappedIterator = readStatesBySample.get(sample).iterator();
 
@@ -138,6 +139,18 @@ class ReadStateManager {
     }
 
     // fast testing of position
+
+    /**
+     * TODO -- this function needs to be optimized
+     *
+     * Notes:
+     * -- the only place where it's called is in a block where we know isEmpty is false
+     * -- getFirst() is quite expensive, and it seems that we could cache this value in the outer
+     *    block, and then pass this in as an argument
+     *
+     * @param read
+     * @return
+     */
     private boolean readIsPastCurrentPosition(GATKSAMRecord read) {
         if (isEmpty())
             return false;
