@@ -26,6 +26,9 @@
 package org.broadinstitute.sting.utils.locusiterator;
 
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.locusiterator.old.SAMRecordAlignmentState;
@@ -33,6 +36,8 @@ import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Caliper microbenchmark of fragment pileup
@@ -42,33 +47,59 @@ public class AlignmentStateMachinePerformance {
     final static int nReads = 10000;
     final static int locus = 1;
 
+    private enum Op {
+        NEW_STATE, OLD_STATE, NEW_LIBS
+    }
+
     public static void main(String[] args) {
         final int rep = Integer.valueOf(args[0]);
-        final boolean useNew = Boolean.valueOf(args[1]);
+        final Op op = Op.valueOf(args[1]);
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
+        final GenomeLocParser genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
 
         int nIterations = 0;
         for ( final String cigar : Arrays.asList("101M", "50M10I40M", "50M10D40M") ) {
-            for ( int j = 0; j < nReads; j++ ) {
-                GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read", 0, locus, readLength);
-                read.setReadBases(Utils.dupBytes((byte) 'A', readLength));
-                final byte[] quals = new byte[readLength];
-                for ( int i = 0; i < readLength; i++ )
-                    quals[i] = (byte)(i % QualityUtils.MAX_QUAL_SCORE);
-                read.setBaseQualities(quals);
-                read.setCigarString(cigar);
+            GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read", 0, locus, readLength);
+            read.setReadBases(Utils.dupBytes((byte) 'A', readLength));
+            final byte[] quals = new byte[readLength];
+            for ( int i = 0; i < readLength; i++ )
+                quals[i] = (byte)(i % QualityUtils.MAX_QUAL_SCORE);
+            read.setBaseQualities(quals);
+            read.setCigarString(cigar);
 
+            for ( int j = 0; j < nReads; j++ ) {
                 for ( int i = 0; i < rep; i++ ) {
-                    if ( useNew ) {
-                        final AlignmentStateMachine alignmentStateMachine = new AlignmentStateMachine(read);
-                        while ( alignmentStateMachine.stepForwardOnGenome() != null ) {
-                            nIterations++;
+                    switch ( op ) {
+                        case NEW_STATE:
+                        {
+                            final AlignmentStateMachine alignmentStateMachine = new AlignmentStateMachine(read);
+                            while ( alignmentStateMachine.stepForwardOnGenome() != null ) {
+                                nIterations++;
+                            }
                         }
-                    } else {
-                        final SAMRecordAlignmentState alignmentStateMachine = new SAMRecordAlignmentState(read);
-                        while ( alignmentStateMachine.stepForwardOnGenome() != null ) {
-                            alignmentStateMachine.getRead();
-                            nIterations++;
+                        break;
+                        case OLD_STATE:
+                        {
+                            final SAMRecordAlignmentState alignmentStateMachine = new SAMRecordAlignmentState(read);
+                            while ( alignmentStateMachine.stepForwardOnGenome() != null ) {
+                                alignmentStateMachine.getRead();
+                                nIterations++;
+                            }
+                        }
+                        break;
+                        case NEW_LIBS:
+                        {
+                            final List<SAMRecord> reads = Collections.nCopies(30, (SAMRecord)read);
+                            final org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState libs =
+                                    new org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState(
+                                            new LocusIteratorByStateBaseTest.FakeCloseableIterator<SAMRecord>(reads.iterator()),
+                                            LocusIteratorByStateBaseTest.createTestReadProperties(),
+                                            genomeLocParser,
+                                            LocusIteratorByStateBaseTest.sampleListForSAMWithoutReadGroups());
+
+                            while ( libs.hasNext() ) {
+                                AlignmentContext context = libs.next();
+                            }
                         }
                     }
                 }
