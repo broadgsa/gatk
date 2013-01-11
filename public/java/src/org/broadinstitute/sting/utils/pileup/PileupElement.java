@@ -67,35 +67,6 @@ public class PileupElement implements Comparable<PileupElement> {
     private final int offsetInCurrentCigar;
 
     /**
-     * Creates a new pileup element.
-     *
-     * @param read              the read we are adding to the pileup
-     * @param offset            the position in the read for this base. All deletions must be left aligned! (-1 is only allowed for reads starting with insertions)
-     * @param isDeletion        whether or not this base is a deletion
-     * @param isBeforeDeletion  whether or not this base is before a deletion
-     * @param isAfterDeletion   whether or not this base is after a deletion
-     * @param isBeforeInsertion whether or not this base is before an insertion
-     * @param isAfterInsertion  whether or not this base is after an insertion
-     * @param isNextToSoftClip  whether or not this base is next to a soft clipped base
-     * @param nextEventBases    bases in event in case element comes before insertion or deletion 
-     * @param nextEventLength   length of next event in case it's insertion or deletion                             
-     */
-    @Requires({
-            "read != null",
-            "offset >= -1",
-            "offset <= read.getReadLength()"})
-    @Deprecated
-    public PileupElement(final GATKSAMRecord read, final int offset, final boolean isDeletion, final boolean isBeforeDeletion, final boolean isAfterDeletion, final boolean isBeforeInsertion, final boolean isAfterInsertion, final boolean isNextToSoftClip, final String nextEventBases, final int nextEventLength) {
-        if (offset < 0 && isDeletion)
-            throw new ReviewedStingException("Pileup Element cannot create a deletion with a negative offset");
-
-        this.read = read;
-        this.offset = offset;
-        currentCigarElement = null;
-        currentCigarOffset = offsetInCurrentCigar = -1;
-    }
-
-    /**
      * Create a new pileup element
      *
      * @param read a non-null read to pileup
@@ -131,11 +102,6 @@ public class PileupElement implements Comparable<PileupElement> {
      */
     public PileupElement(final PileupElement toCopy) {
         this(toCopy.read, toCopy.offset, toCopy.currentCigarElement, toCopy.currentCigarOffset, toCopy.offsetInCurrentCigar);
-    }
-
-    @Deprecated
-    public PileupElement(final GATKSAMRecord read, final int baseOffset) {
-        throw new UnsupportedOperationException("please use LocusIteratorByState.createPileupForReadAndOffset instead");
     }
 
     /**

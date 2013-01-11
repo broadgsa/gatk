@@ -29,13 +29,12 @@ import net.sf.picard.util.PeekableIterator;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
-import org.broadinstitute.sting.utils.locusiterator.legacy.LegacyLocusIteratorByState;
-import org.broadinstitute.sting.utils.locusiterator.LocusIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.locusiterator.LocusIterator;
+import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -111,11 +110,10 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
         this.readIterator = iterator;
 
         // Use the legacy version of LocusIteratorByState if legacy downsampling was requested:
-        libs = ! sourceInfo.getDownsamplingMethod().useLegacyDownsampler ? new LocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleNames) : null;
-        this.sourceIterator = sourceInfo.getDownsamplingMethod().useLegacyDownsampler
-                // TODO -- remove me when we collapse legacy engine fork
-                ? new PeekableIterator<AlignmentContext>(new LegacyLocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleNames))
-                : new PeekableIterator<AlignmentContext>(libs);
+        if ( sourceInfo.getDownsamplingMethod().useLegacyDownsampler )
+            throw new IllegalArgumentException("legacy downsampler no longer supported in the window maker");
+        this.libs = new LocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleNames);
+        this.sourceIterator = new PeekableIterator<AlignmentContext>(libs);
 
         this.intervalIterator = intervals.size()>0 ? new PeekableIterator<GenomeLoc>(intervals.iterator()) : null;
     }

@@ -84,21 +84,21 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
 //            }
 //        }
 //    }
-
-    public void timeLegacyLIBS(int rep) {
-        for ( int i = 0; i < rep; i++ ) {
-            final org.broadinstitute.sting.utils.locusiterator.legacy.LegacyLocusIteratorByState libs =
-                    new org.broadinstitute.sting.utils.locusiterator.legacy.LegacyLocusIteratorByState(
-                            new LocusIteratorByStateBaseTest.FakeCloseableIterator<SAMRecord>(reads.iterator()),
-                            LocusIteratorByStateBaseTest.createTestReadProperties(),
-                            genomeLocParser,
-                            LocusIteratorByState.sampleListForSAMWithoutReadGroups());
-
-            while ( libs.hasNext() ) {
-                AlignmentContext context = libs.next();
-            }
-        }
-    }
+//
+//    public void timeLegacyLIBS(int rep) {
+//        for ( int i = 0; i < rep; i++ ) {
+//            final org.broadinstitute.sting.utils.locusiterator.legacy.LegacyLocusIteratorByState libs =
+//                    new org.broadinstitute.sting.utils.locusiterator.legacy.LegacyLocusIteratorByState(
+//                            new LocusIteratorByStateBaseTest.FakeCloseableIterator<SAMRecord>(reads.iterator()),
+//                            LocusIteratorByStateBaseTest.createTestReadProperties(),
+//                            genomeLocParser,
+//                            LocusIteratorByState.sampleListForSAMWithoutReadGroups());
+//
+//            while ( libs.hasNext() ) {
+//                AlignmentContext context = libs.next();
+//            }
+//        }
+//    }
 
     public void timeNewLIBS(int rep) {
         for ( int i = 0; i < rep; i++ ) {
