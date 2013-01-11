@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -39,6 +40,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 import org.broadinstitute.sting.utils.activeregion.ActivityProfile;
 import org.broadinstitute.sting.utils.activeregion.ActivityProfileResult;
+import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.LinkedList;
@@ -52,9 +54,11 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public abstract class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegionWalker<M,T>,LocusShardDataProvider> {
+    protected final static boolean DEBUG = false;
+
     // set by the tranversal
-    protected int activeRegionExtension = -1;
-    protected int maxRegionSize = -1;
+    private int activeRegionExtension = -1;
+    private int maxRegionSize = -1;
 
     /**
      * our log, which we want to capture anything from this class
@@ -64,9 +68,30 @@ public abstract class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Ac
 
     abstract protected T processActiveRegion(final ActiveRegion activeRegion, final T sum, final ActiveRegionWalker<M, T> walker);
 
+    protected int getActiveRegionExtension() {
+        return activeRegionExtension;
+    }
+
+    protected int getMaxRegionSize() {
+        return maxRegionSize;
+    }
+
     @Override
     public String getTraversalUnits() {
         return "active regions";
+    }
+
+    @Override
+    public void initialize(GenomeAnalysisEngine engine, Walker walker, ProgressMeter progressMeter) {
+        super.initialize(engine, walker, progressMeter);
+        activeRegionExtension = walker.getClass().getAnnotation(ActiveRegionExtension.class).extension();
+        maxRegionSize = walker.getClass().getAnnotation(ActiveRegionExtension.class).maxRegion();
+
+        final ActiveRegionWalker arWalker = (ActiveRegionWalker)walker;
+        if ( arWalker.wantsExtendedReads() && ! arWalker.wantsNonPrimaryReads() ) {
+            throw new IllegalArgumentException("Active region walker " + arWalker + " requested extended events but not " +
+                    "non-primary reads, an inconsistent state.  Please modify the walker");
+        }
     }
 
     /**
@@ -85,19 +110,15 @@ public abstract class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Ac
      *
      * @param profile
      * @param activeRegions
-     * @param activeRegionExtension
-     * @param maxRegionSize
      * @return
      */
     protected ActivityProfile incorporateActiveRegions(final ActivityProfile profile,
-                                                       final List<ActiveRegion> activeRegions,
-                                                       final int activeRegionExtension,
-                                                       final int maxRegionSize) {
+                                                       final List<ActiveRegion> activeRegions) {
         if ( profile.isEmpty() )
             throw new IllegalStateException("trying to incorporate an empty active profile " + profile);
 
         final ActivityProfile bandPassFiltered = profile.bandPassFilter();
-        activeRegions.addAll(bandPassFiltered.createActiveRegions( activeRegionExtension, maxRegionSize ));
+        activeRegions.addAll(bandPassFiltered.createActiveRegions( getActiveRegionExtension(), getMaxRegionSize() ));
         return new ActivityProfile( engine.getGenomeLocParser(), profile.hasPresetRegions() );
     }
 
@@ -161,7 +182,7 @@ public abstract class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Ac
     }
 
     protected boolean regionCompletelyWithinDeadZone(final GenomeLoc region, final boolean includeExtension) {
-        return (region.getStop() < (getStartOfLiveRegion().getStart() - (includeExtension ? activeRegionExtension : 0)))
+        return (region.getStop() < (getStartOfLiveRegion().getStart() - (includeExtension ? getActiveRegionExtension() : 0)))
                 || ! region.onSameContig(getStartOfLiveRegion());
     }
 
@@ -172,7 +193,7 @@ public abstract class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Ac
             final GenomeLoc extendedLoc = workQueue.peek().getExtendedLoc();
             if ( forceRegionsToBeActive || regionCompletelyWithinDeadZone(extendedLoc, false) ) {
                 final ActiveRegion activeRegion = workQueue.remove();
-                logger.warn("Processing active region " + activeRegion + " dead zone " + getStartOfLiveRegion());
+                if ( DEBUG ) logger.warn("Processing active region " + activeRegion + " dead zone " + getStartOfLiveRegion());
                 sum = processActiveRegion( activeRegion, sum, walker );
             } else {
                 break;
@@ -190,15 +211,18 @@ public abstract class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Ac
         return processActiveRegions((ActiveRegionWalker<M, T>)walker, sum, true);
     }
 
+    // todo -- remove me
     protected ActiveRegion getBestRegion(final ActiveRegion activeRegion, final GenomeLoc readLoc) {
+        long minStart = activeRegion.getLocation().getStart();
         ActiveRegion bestRegion = activeRegion;
-        long maxOverlap = activeRegion.getLocation().sizeOfOverlap( readLoc );
+
         for( final ActiveRegion otherRegionToTest : workQueue ) {
-            if( otherRegionToTest.getLocation().sizeOfOverlap(readLoc) >= maxOverlap ) {
-                maxOverlap = otherRegionToTest.getLocation().sizeOfOverlap( readLoc );
+            if( otherRegionToTest.getLocation().getStart() < minStart ) {
+                minStart = otherRegionToTest.getLocation().getStart();
                 bestRegion = otherRegionToTest;
             }
         }
+
         return bestRegion;
     }
 }

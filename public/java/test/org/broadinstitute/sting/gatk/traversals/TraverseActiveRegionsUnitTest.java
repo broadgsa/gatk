@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegionReadState;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
@@ -148,6 +149,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
 
     @BeforeClass
     private void init() throws FileNotFoundException {
+        //reference = new CachingIndexedFastaSequenceFile(new File("/Users/depristo/Desktop/broadLocal/localData/human_g1k_v37.fasta")); // hg19Reference));
         reference = new CachingIndexedFastaSequenceFile(new File(hg19Reference));
         dictionary = reference.getSequenceDictionary();
         genomeLocParser = new GenomeLocParser(dictionary);
@@ -213,7 +215,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
 
     private List<GenomeLoc> getIsActiveIntervals(final TraverseActiveRegions t, DummyActiveRegionWalker walker, List<GenomeLoc> intervals) {
         List<GenomeLoc> activeIntervals = new ArrayList<GenomeLoc>();
-        for (LocusShardDataProvider dataProvider : createDataProviders(t, intervals, testBAM)) {
+        for (LocusShardDataProvider dataProvider : createDataProviders(t, walker, intervals, testBAM)) {
             t.traverse(walker, dataProvider, 0);
             activeIntervals.addAll(walker.isActiveCalls);
         }
@@ -308,40 +310,40 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         // simple: Primary in 1:1-999
         // overlap_equal: Primary in 1:1-999
         // overlap_unequal: Primary in 1:1-999
-        // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
+        // boundary_equal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
         // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
         // boundary_1_pre: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
-        // boundary_1_post: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
-        // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
+        // boundary_1_post: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // extended_and_np: Primary in 1:1-999, Non-Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
         // shard_boundary_1_pre: Primary in 1:14908-16384, Non-Primary in 1:16385-16927
-        // shard_boundary_1_post: Non-Primary in 1:14908-16384, Primary in 1:16385-16927
-        // shard_boundary_equal: Non-Primary in 1:14908-16384, Primary in 1:16385-16927
+        // shard_boundary_1_post: Primary in 1:14908-16384, Non-Primary in 1:16385-16927
+        // shard_boundary_equal: Primary in 1:14908-16384, Non-Primary in 1:16385-16927
         // simple20: Primary in 20:10000-10100
 
         Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(t, walker, intervals);
         ActiveRegion region;
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1, 999));
-        verifyReadMapping(region, "simple", "overlap_equal", "overlap_unequal");
+        verifyReadMapping(region, "simple", "overlap_equal", "overlap_unequal", "extended_and_np");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1000, 1999));
-        verifyReadMapping(region, "boundary_unequal", "extended_and_np", "boundary_1_pre");
+        verifyReadMapping(region, "boundary_unequal", "boundary_1_pre", "boundary_equal", "boundary_1_post");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
-        verifyReadMapping(region, "boundary_equal", "boundary_1_post");
+        verifyReadMapping(region);
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 14908, 16384));
-        verifyReadMapping(region, "shard_boundary_1_pre");
+        verifyReadMapping(region, "shard_boundary_1_pre", "shard_boundary_1_post", "shard_boundary_equal");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 16385, 16927));
-        verifyReadMapping(region, "shard_boundary_1_post", "shard_boundary_equal");
+        verifyReadMapping(region);
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
         verifyReadMapping(region, "simple20");
     }
 
-    @Test(enabled = true && ! DEBUG, dataProvider = "TraversalEngineProvider")
+    @Test(enabled = true, dataProvider = "TraversalEngineProvider")
     public void testNonPrimaryReadMapping(TraverseActiveRegions t) {
         DummyActiveRegionWalker walker = new DummyActiveRegionWalker(
                 EnumSet.of(ActiveRegionReadState.PRIMARY, ActiveRegionReadState.NONPRIMARY));
@@ -354,15 +356,15 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         // simple: Primary in 1:1-999
         // overlap_equal: Primary in 1:1-999
         // overlap_unequal: Primary in 1:1-999
-        // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
+        // boundary_equal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
         // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
         // boundary_1_pre: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
-        // boundary_1_post: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
-        // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
+        // boundary_1_post: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // extended_and_np: Primary in 1:1-999, Non-Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
         // shard_boundary_1_pre: Primary in 1:14908-16384, Non-Primary in 1:16385-16927
-        // shard_boundary_1_post: Non-Primary in 1:14908-16384, Primary in 1:16385-16927
-        // shard_boundary_equal: Non-Primary in 1:14908-16384, Primary in 1:16385-16927
+        // shard_boundary_1_post: Primary in 1:14908-16384, Non-Primary in 1:16385-16927
+        // shard_boundary_equal: Primary in 1:14908-16384, Non-Primary in 1:16385-16927
         // simple20: Primary in 20:10000-10100
 
         Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(t, walker, intervals);
@@ -387,7 +389,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         verifyReadMapping(region, "simple20");
     }
 
-    @Test(enabled = true, dataProvider = "TraversalEngineProvider")
+    @Test(enabled = true && ! DEBUG, dataProvider = "TraversalEngineProvider")
     public void testExtendedReadMapping(TraverseActiveRegions t) {
         DummyActiveRegionWalker walker = new DummyActiveRegionWalker(
                 EnumSet.of(ActiveRegionReadState.PRIMARY, ActiveRegionReadState.NONPRIMARY, ActiveRegionReadState.EXTENDED));
@@ -457,7 +459,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
     }
 
     private Map<GenomeLoc, ActiveRegion> getActiveRegions(TraverseActiveRegions t, DummyActiveRegionWalker walker, List<GenomeLoc> intervals) {
-        for (LocusShardDataProvider dataProvider : createDataProviders(t, intervals, testBAM))
+        for (LocusShardDataProvider dataProvider : createDataProviders(t, walker, intervals, testBAM))
             t.traverse(walker, dataProvider, 0);
 
         t.endTraversal(walker, 0);
@@ -521,10 +523,10 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         return record;
     }
 
-    private List<LocusShardDataProvider> createDataProviders(TraverseActiveRegions t, List<GenomeLoc> intervals, String bamFile) {
+    private List<LocusShardDataProvider> createDataProviders(TraverseActiveRegions t, final Walker walker, List<GenomeLoc> intervals, String bamFile) {
         GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
         engine.setGenomeLocParser(genomeLocParser);
-        t.initialize(engine);
+        t.initialize(engine, walker);
 
         Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();
         SAMReaderID readerID = new SAMReaderID(new File(bamFile), new Tags());

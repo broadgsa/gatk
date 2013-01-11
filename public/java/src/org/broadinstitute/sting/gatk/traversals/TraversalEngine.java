@@ -74,7 +74,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      * @param engine GenomeAnalysisEngine for this traversal
      * @param progressMeter An optional (null == optional) meter to track our progress
      */
-    public void initialize(final GenomeAnalysisEngine engine, final ProgressMeter progressMeter) {
+    public void initialize(final GenomeAnalysisEngine engine, final Walker walker, final ProgressMeter progressMeter) {
         if ( engine == null )
             throw new ReviewedStingException("BUG: GenomeAnalysisEngine cannot be null!");
 
@@ -87,8 +87,8 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      *
      * @param engine
      */
-    protected void initialize(final GenomeAnalysisEngine engine) {
-        initialize(engine, null);
+    protected void initialize(final GenomeAnalysisEngine engine, final Walker walker) {
+        initialize(engine, walker, null);
     }
 
     /**

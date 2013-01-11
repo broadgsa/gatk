@@ -29,6 +29,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.*;
+import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ActiveRegionExtension;
 import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
@@ -47,18 +48,26 @@ import java.util.*;
 
 public class TraverseActiveRegionsOptimized<M,T> extends TraverseActiveRegions<M,T> {
     private LinkedList<GATKSAMRecord> myReads = new LinkedList<GATKSAMRecord>();
+    private Shard lastShard = null;
 
     @Override
     public T traverse( final ActiveRegionWalker<M,T> walker,
                        final LocusShardDataProvider dataProvider,
                        T sum) {
-        logger.debug(String.format("TraverseActiveRegions.traverse: Shard is %s", dataProvider));
+        if ( DEBUG ) logger.warn(String.format("TraverseActiveRegions.traverse: Shard is %s", dataProvider));
+
+        final HashSet<GATKSAMRecord> maybeDuplicatedReads = new HashSet<GATKSAMRecord>();
+        // TODO -- there's got to be a better way to know this
+        if ( lastShard != dataProvider.getShard() ) {
+            maybeDuplicatedReads.addAll(myReads);
+            logger.info("Crossing shard boundary requires us to check for duplicates against " + maybeDuplicatedReads.size() +  " reads");
+            if ( DEBUG ) logger.warn("Clearing myReads");
+        }
+        lastShard = dataProvider.getShard();
 
         final LocusView locusView = new AllLocusView(dataProvider);
 
         final LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
-        activeRegionExtension = walker.getClass().getAnnotation(ActiveRegionExtension.class).extension();
-        maxRegionSize = walker.getClass().getAnnotation(ActiveRegionExtension.class).maxRegion();
 
         final List<ActiveRegion> activeRegions = new LinkedList<ActiveRegion>();
         ActivityProfile profile = new ActivityProfile(engine.getGenomeLocParser(), walker.hasPresetActiveRegions() );
@@ -77,7 +86,15 @@ public class TraverseActiveRegionsOptimized<M,T> extends TraverseActiveRegions<M
             final Collection<SAMRecord> reads = locusView.getLIBS().transferReadsFromAllPreviousPileups();
             for( final SAMRecord read : reads ) {
                 notifyOfCurrentPosition((GATKSAMRecord)read);
-                myReads.add((GATKSAMRecord)read);
+                // most of the time maybeDuplicatedReads is empty
+                // TODO -- I believe that because of the ordering of reads that as soon as we don't find a read in the
+                // TODO -- potential list of duplicates we can clear the hashset
+                if ( ! maybeDuplicatedReads.isEmpty() && maybeDuplicatedReads.contains(read) ) {
+                    if ( DEBUG ) logger.warn("Skipping duplicated " + read.getReadName());
+                } else {
+                    if ( DEBUG ) logger.warn("Adding read " + read.getReadName() + " at " + engine.getGenomeLocParser().createGenomeLoc(read) + " from provider " + dataProvider);
+                    myReads.add((GATKSAMRecord)read);
+                }
             }
 
             // skip this location -- it's not part of our engine intervals
@@ -86,7 +103,7 @@ public class TraverseActiveRegionsOptimized<M,T> extends TraverseActiveRegions<M
 
             if ( prevLoc != null && location.getStart() != prevLoc.getStop() + 1 ) {
                 // we've move across some interval boundary, restart profile
-                profile = incorporateActiveRegions(profile, activeRegions, activeRegionExtension, maxRegionSize);
+                profile = incorporateActiveRegions(profile, activeRegions);
             }
 
             dataProvider.getShard().getReadMetrics().incrementNumIterations();
@@ -109,7 +126,7 @@ public class TraverseActiveRegionsOptimized<M,T> extends TraverseActiveRegions<M
         updateCumulativeMetrics(dataProvider.getShard());
 
         if ( ! profile.isEmpty() )
-            incorporateActiveRegions(profile, activeRegions, activeRegionExtension, maxRegionSize);
+            incorporateActiveRegions(profile, activeRegions);
 
         // add active regions to queue of regions to process
         // first check if can merge active regions over shard boundaries
@@ -117,10 +134,10 @@ public class TraverseActiveRegionsOptimized<M,T> extends TraverseActiveRegions<M
             if( !workQueue.isEmpty() ) {
                 final ActiveRegion last = workQueue.getLast();
                 final ActiveRegion first = activeRegions.get(0);
-                if( last.isActive == first.isActive && last.getLocation().contiguousP(first.getLocation()) && last.getLocation().size() + first.getLocation().size() <= maxRegionSize ) {
+                if( last.isActive == first.isActive && last.getLocation().contiguousP(first.getLocation()) && last.getLocation().size() + first.getLocation().size() <= getMaxRegionSize() ) {
                     workQueue.removeLast();
                     activeRegions.remove(first);
-                    workQueue.add( new ActiveRegion(last.getLocation().union(first.getLocation()), first.isActive, this.engine.getGenomeLocParser(), activeRegionExtension) );
+                    workQueue.add( new ActiveRegion(last.getLocation().union(first.getLocation()), first.isActive, this.engine.getGenomeLocParser(), getActiveRegionExtension()) );
                 }
             }
             workQueue.addAll( activeRegions );
@@ -139,50 +156,32 @@ public class TraverseActiveRegionsOptimized<M,T> extends TraverseActiveRegions<M
         return "TraverseActiveRegionsOptimized";
     }
 
-    // TODO -- remove me when we fix the traversal
-    private final void addToRegion(final ActiveRegion region, final GATKSAMRecord read) {
-        if ( ! region.getReads().contains(read) )
-            region.add(read);
+    private boolean readIsDead(final GATKSAMRecord read, final GenomeLoc readLoc, final ActiveRegion activeRegion) {
+        return readLoc.getStop() < activeRegion.getLocation().getStart() && regionCompletelyWithinDeadZone(readLoc, true);
     }
 
     @Override
     protected T processActiveRegion(final ActiveRegion activeRegion, final T sum, final ActiveRegionWalker<M, T> walker) {
         final Iterator<GATKSAMRecord> liveReads = myReads.iterator();
         while ( liveReads.hasNext() ) {
+            boolean killed = false;
             final GATKSAMRecord read = liveReads.next();
             final GenomeLoc readLoc = this.engine.getGenomeLocParser().createGenomeLoc( read );
 
             if( activeRegion.getLocation().overlapsP( readLoc ) ) {
-                // TODO -- this test assumes that we've successfully defined all regions that might be
-                // TODO -- the primary home for read.  Doesn't seem safe to me
-                // The region which the highest amount of overlap is chosen as the primary region for the read (tie breaking is done as right most region)
-                final ActiveRegion bestRegion = getBestRegion(activeRegion, readLoc);
-                addToRegion(bestRegion, read);
+                activeRegion.add(read);
 
-                // The read is also added to all other regions in which it overlaps but marked as non-primary
-
-                if( walker.wantsNonPrimaryReads() ) {
-                    if( !bestRegion.equals(activeRegion) ) {
-                        addToRegion(activeRegion, read);
-                    }
-                    for( final ActiveRegion otherRegionToTest : workQueue ) {
-                        if( !bestRegion.equals(otherRegionToTest) ) {
-                            // check for non-primary vs. extended
-                            if ( otherRegionToTest.getLocation().overlapsP( readLoc ) ) {
-                                addToRegion(otherRegionToTest, read);
-                            } else if ( walker.wantsExtendedReads() && otherRegionToTest.getExtendedLoc().overlapsP( readLoc ) ) {
-                                addToRegion(otherRegionToTest, read);
-                            }
-                        }
-                    }
+                if ( ! walker.wantsNonPrimaryReads() ) {
+                    if ( DEBUG ) logger.warn("Removing read " + read.getReadName() + " at " + readLoc + " with dead zone start " + getStartOfLiveRegion());
+                    liveReads.remove();
+                    killed = true;
                 }
-                // check for non-primary vs. extended
             } else if( walker.wantsExtendedReads() && activeRegion.getExtendedLoc().overlapsP( readLoc )) {
                 activeRegion.add( read );
             }
 
-            if ( regionCompletelyWithinDeadZone(readLoc, true) ) {
-                logger.info("Removing read " + read.getReadName() + " at " + readLoc + " with dead zone start " + getStartOfLiveRegion());
+            if ( ! killed && readIsDead(read, readLoc, activeRegion) ) {
+                if ( DEBUG ) logger.warn("Removing read " + read.getReadName() + " at " + readLoc + " with dead zone start " + getStartOfLiveRegion());
                 liveReads.remove();
             }
         }

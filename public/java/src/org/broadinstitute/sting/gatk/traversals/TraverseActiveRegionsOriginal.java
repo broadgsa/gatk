@@ -40,8 +40,6 @@ public class TraverseActiveRegionsOriginal<M,T> extends TraverseActiveRegions<M,
         final LocusView locusView = new AllLocusView(dataProvider);
 
         final LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
-        activeRegionExtension = walker.getClass().getAnnotation(ActiveRegionExtension.class).extension();
-        maxRegionSize = walker.getClass().getAnnotation(ActiveRegionExtension.class).maxRegion();
 
         int minStart = Integer.MAX_VALUE;
         final List<ActiveRegion> activeRegions = new LinkedList<ActiveRegion>();
@@ -77,7 +75,7 @@ public class TraverseActiveRegionsOriginal<M,T> extends TraverseActiveRegions<M,
 
             if ( prevLoc != null && location.getStart() != prevLoc.getStop() + 1 ) {
                 // we've move across some interval boundary, restart profile
-                profile = incorporateActiveRegions(profile, activeRegions, activeRegionExtension, maxRegionSize);
+                profile = incorporateActiveRegions(profile, activeRegions);
             }
 
             dataProvider.getShard().getReadMetrics().incrementNumIterations();
@@ -100,7 +98,7 @@ public class TraverseActiveRegionsOriginal<M,T> extends TraverseActiveRegions<M,
         updateCumulativeMetrics(dataProvider.getShard());
 
         if ( ! profile.isEmpty() )
-            incorporateActiveRegions(profile, activeRegions, activeRegionExtension, maxRegionSize);
+            incorporateActiveRegions(profile, activeRegions);
 
         // add active regions to queue of regions to process
         // first check if can merge active regions over shard boundaries
@@ -108,10 +106,10 @@ public class TraverseActiveRegionsOriginal<M,T> extends TraverseActiveRegions<M,
             if( !workQueue.isEmpty() ) {
                 final ActiveRegion last = workQueue.getLast();
                 final ActiveRegion first = activeRegions.get(0);
-                if( last.isActive == first.isActive && last.getLocation().contiguousP(first.getLocation()) && last.getLocation().size() + first.getLocation().size() <= maxRegionSize ) {
+                if( last.isActive == first.isActive && last.getLocation().contiguousP(first.getLocation()) && last.getLocation().size() + first.getLocation().size() <= getMaxRegionSize() ) {
                     workQueue.removeLast();
                     activeRegions.remove(first);
-                    workQueue.add( new ActiveRegion(last.getLocation().union(first.getLocation()), first.isActive, this.engine.getGenomeLocParser(), activeRegionExtension) );
+                    workQueue.add( new ActiveRegion(last.getLocation().union(first.getLocation()), first.isActive, this.engine.getGenomeLocParser(), getActiveRegionExtension()) );
                 }
             }
             workQueue.addAll( activeRegions );

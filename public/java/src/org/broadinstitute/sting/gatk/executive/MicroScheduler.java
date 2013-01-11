@@ -213,7 +213,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
 
         // Now that we have a progress meter, go through and initialize the traversal engines
         for ( final TraversalEngine traversalEngine : allCreatedTraversalEngines )
-            traversalEngine.initialize(engine, progressMeter);
+            traversalEngine.initialize(engine, walker, progressMeter);
 
         // JMX does not allow multiple instances with the same ObjectName to be registered with the same platform MXBean.
         // To get around this limitation and since we have no job identifier at this point, register a simple counter that
