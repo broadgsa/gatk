@@ -33,7 +33,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.locusiterator.old.SAMRecordAlignmentState;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -71,14 +70,29 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
         }
     }
 
-    public void timeOriginalLIBS(int rep) {
+//    public void timeOriginalLIBS(int rep) {
+//        for ( int i = 0; i < rep; i++ ) {
+//            final org.broadinstitute.sting.utils.locusiterator.old.LocusIteratorByState libs =
+//                    new org.broadinstitute.sting.utils.locusiterator.old.LocusIteratorByState(
+//                            new LocusIteratorByStateBaseTest.FakeCloseableIterator<SAMRecord>(reads.iterator()),
+//                            LocusIteratorByStateBaseTest.createTestReadProperties(),
+//                            genomeLocParser,
+//                            LocusIteratorByState.sampleListForSAMWithoutReadGroups());
+//
+//            while ( libs.hasNext() ) {
+//                AlignmentContext context = libs.next();
+//            }
+//        }
+//    }
+
+    public void timeLegacyLIBS(int rep) {
         for ( int i = 0; i < rep; i++ ) {
-            final org.broadinstitute.sting.utils.locusiterator.old.LocusIteratorByState libs =
-                    new org.broadinstitute.sting.utils.locusiterator.old.LocusIteratorByState(
+            final org.broadinstitute.sting.utils.locusiterator.legacy.LegacyLocusIteratorByState libs =
+                    new org.broadinstitute.sting.utils.locusiterator.legacy.LegacyLocusIteratorByState(
                             new LocusIteratorByStateBaseTest.FakeCloseableIterator<SAMRecord>(reads.iterator()),
                             LocusIteratorByStateBaseTest.createTestReadProperties(),
                             genomeLocParser,
-                            LocusIteratorByStateBaseTest.sampleListForSAMWithoutReadGroups());
+                            LocusIteratorByState.sampleListForSAMWithoutReadGroups());
 
             while ( libs.hasNext() ) {
                 AlignmentContext context = libs.next();
@@ -93,7 +107,7 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
                             new LocusIteratorByStateBaseTest.FakeCloseableIterator<SAMRecord>(reads.iterator()),
                             LocusIteratorByStateBaseTest.createTestReadProperties(),
                             genomeLocParser,
-                            LocusIteratorByStateBaseTest.sampleListForSAMWithoutReadGroups());
+                            LocusIteratorByState.sampleListForSAMWithoutReadGroups());
 
             while ( libs.hasNext() ) {
                 AlignmentContext context = libs.next();
@@ -101,16 +115,16 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
         }
     }
 
-    public void timeOriginalLIBSStateMachine(int rep) {
-        for ( int i = 0; i < rep; i++ ) {
-            for ( final SAMRecord read : reads ) {
-                final SAMRecordAlignmentState alignmentStateMachine = new SAMRecordAlignmentState(read);
-                while ( alignmentStateMachine.stepForwardOnGenome() != null ) {
-                    alignmentStateMachine.getGenomeOffset();
-                }
-            }
-        }
-    }
+//    public void timeOriginalLIBSStateMachine(int rep) {
+//        for ( int i = 0; i < rep; i++ ) {
+//            for ( final SAMRecord read : reads ) {
+//                final SAMRecordAlignmentState alignmentStateMachine = new SAMRecordAlignmentState(read);
+//                while ( alignmentStateMachine.stepForwardOnGenome() != null ) {
+//                    alignmentStateMachine.getGenomeOffset();
+//                }
+//            }
+//        }
+//    }
 
     public void timeAlignmentStateMachine(int rep) {
         for ( int i = 0; i < rep; i++ ) {

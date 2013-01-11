@@ -113,6 +113,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
         // Use the legacy version of LocusIteratorByState if legacy downsampling was requested:
         libs = ! sourceInfo.getDownsamplingMethod().useLegacyDownsampler ? new LocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleNames) : null;
         this.sourceIterator = sourceInfo.getDownsamplingMethod().useLegacyDownsampler
+                // TODO -- remove me when we collapse legacy engine fork
                 ? new PeekableIterator<AlignmentContext>(new LegacyLocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleNames))
                 : new PeekableIterator<AlignmentContext>(libs);
 
@@ -120,7 +121,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
     }
 
     public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator iterator, List<GenomeLoc> intervals ) {
-        this(shard, genomeLocParser, iterator, intervals, LegacyLocusIteratorByState.sampleListForSAMWithoutReadGroups());
+        this(shard, genomeLocParser, iterator, intervals, LocusIteratorByState.sampleListForSAMWithoutReadGroups());
     }
 
     public Iterator<WindowMakerIterator> iterator() {

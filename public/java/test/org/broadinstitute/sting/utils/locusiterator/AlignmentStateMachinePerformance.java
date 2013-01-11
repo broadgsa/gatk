@@ -31,7 +31,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.locusiterator.old.SAMRecordAlignmentState;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -78,24 +77,24 @@ public class AlignmentStateMachinePerformance {
                             }
                         }
                         break;
-                        case OLD_STATE:
-                        {
-                            final SAMRecordAlignmentState alignmentStateMachine = new SAMRecordAlignmentState(read);
-                            while ( alignmentStateMachine.stepForwardOnGenome() != null ) {
-                                alignmentStateMachine.getRead();
-                                nIterations++;
-                            }
-                        }
-                        break;
+//                        case OLD_STATE:
+//                        {
+//                            final SAMRecordAlignmentState alignmentStateMachine = new SAMRecordAlignmentState(read);
+//                            while ( alignmentStateMachine.stepForwardOnGenome() != null ) {
+//                                alignmentStateMachine.getRead();
+//                                nIterations++;
+//                            }
+//                        }
+//                        break;
                         case NEW_LIBS:
                         {
-                            final List<SAMRecord> reads = Collections.nCopies(30, (SAMRecord)read);
+                            final List<SAMRecord> reads = Collections.nCopies(30, (SAMRecord) read);
                             final org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState libs =
                                     new org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState(
                                             new LocusIteratorByStateBaseTest.FakeCloseableIterator<SAMRecord>(reads.iterator()),
                                             LocusIteratorByStateBaseTest.createTestReadProperties(),
                                             genomeLocParser,
-                                            LocusIteratorByStateBaseTest.sampleListForSAMWithoutReadGroups());
+                                            LocusIteratorByState.sampleListForSAMWithoutReadGroups());
 
                             while ( libs.hasNext() ) {
                                 AlignmentContext context = libs.next();

@@ -27,9 +27,6 @@ package org.broadinstitute.sting.utils.locusiterator;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.locusiterator.LIBSDownsamplingInfo;
-import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByStateBaseTest;
-import org.broadinstitute.sting.utils.locusiterator.old.SAMRecordAlignmentState;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
@@ -65,7 +62,7 @@ public class ReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
         }
 
         public void run() {
-            final List<String> samples = sampleListForSAMWithoutReadGroups();
+            final List<String> samples = LocusIteratorByState.sampleListForSAMWithoutReadGroups();
             final Iterator<SAMRecord> iterator = new LinkedList<SAMRecord>().iterator();
             ReadStateManager readStateManager = new ReadStateManager(iterator, samples, LIBSDownsamplingInfo.NO_DOWNSAMPLING, false);
             ReadStateManager.PerSampleReadStateManager perSampleReadStateManager = readStateManager.new PerSampleReadStateManager(LIBSDownsamplingInfo.NO_DOWNSAMPLING);

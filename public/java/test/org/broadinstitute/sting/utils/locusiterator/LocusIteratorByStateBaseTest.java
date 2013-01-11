@@ -57,22 +57,12 @@ public class LocusIteratorByStateBaseTest extends BaseTest {
         genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
     }
 
-    /**
-     * For testing only.  Assumes that the incoming SAMRecords have no read groups, so creates a dummy sample list
-     * for the system.
-     */
-    public static List<String> sampleListForSAMWithoutReadGroups() {
-        List<String> samples = new ArrayList<String>();
-        samples.add(null);
-        return samples;
-    }
-
     protected LocusIteratorByState makeLTBS(List<SAMRecord> reads,
                                             ReadProperties readAttributes) {
         return new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),
                 readAttributes,
                 genomeLocParser,
-                sampleListForSAMWithoutReadGroups());
+                LocusIteratorByState.sampleListForSAMWithoutReadGroups());
     }
 
     public static ReadProperties createTestReadProperties() {

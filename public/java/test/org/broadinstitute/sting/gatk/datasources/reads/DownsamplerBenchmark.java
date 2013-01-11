@@ -67,32 +67,32 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
     @Param
     private Downsampling downsampling;
 
-    public void timeDownsampling(int reps) {
-        for(int i = 0; i < reps; i++) {
-            SAMFileReader reader = new SAMFileReader(inputFile);
-            ReadProperties readProperties = new ReadProperties(Collections.<SAMReaderID>singletonList(new SAMReaderID(inputFile,new Tags())),
-                    reader.getFileHeader(),
-                    SAMFileHeader.SortOrder.coordinate,
-                    false,
-                    SAMFileReader.ValidationStringency.SILENT,
-                    downsampling.create(),
-                    new ValidationExclusion(Collections.singletonList(ValidationExclusion.TYPE.ALL)),
-                    Collections.<ReadFilter>emptyList(),
-                    Collections.<ReadTransformer>emptyList(),
-                    false,
-                    (byte)0,
-                    false);
-
-            GenomeLocParser genomeLocParser = new GenomeLocParser(reader.getFileHeader().getSequenceDictionary());
-            // Filter unmapped reads.  TODO: is this always strictly necessary?  Who in the GATK normally filters these out?
-            Iterator<SAMRecord> readIterator = new FilteringIterator(reader.iterator(),new UnmappedReadFilter());
-            LegacyLocusIteratorByState locusIteratorByState = new LegacyLocusIteratorByState(readIterator,readProperties,genomeLocParser, LegacyLocusIteratorByState.sampleListForSAMWithoutReadGroups());
-            while(locusIteratorByState.hasNext()) {
-                locusIteratorByState.next().getLocation();
-            }
-            reader.close();
-        }
-    }
+//    public void timeDownsampling(int reps) {
+//        for(int i = 0; i < reps; i++) {
+//            SAMFileReader reader = new SAMFileReader(inputFile);
+//            ReadProperties readProperties = new ReadProperties(Collections.<SAMReaderID>singletonList(new SAMReaderID(inputFile,new Tags())),
+//                    reader.getFileHeader(),
+//                    SAMFileHeader.SortOrder.coordinate,
+//                    false,
+//                    SAMFileReader.ValidationStringency.SILENT,
+//                    downsampling.create(),
+//                    new ValidationExclusion(Collections.singletonList(ValidationExclusion.TYPE.ALL)),
+//                    Collections.<ReadFilter>emptyList(),
+//                    Collections.<ReadTransformer>emptyList(),
+//                    false,
+//                    (byte)0,
+//                    false);
+//
+//            GenomeLocParser genomeLocParser = new GenomeLocParser(reader.getFileHeader().getSequenceDictionary());
+//            // Filter unmapped reads.  TODO: is this always strictly necessary?  Who in the GATK normally filters these out?
+//            Iterator<SAMRecord> readIterator = new FilteringIterator(reader.iterator(),new UnmappedReadFilter());
+//            LegacyLocusIteratorByState locusIteratorByState = new LegacyLocusIteratorByState(readIterator,readProperties,genomeLocParser, LegacyLocusIteratorByState.sampleListForSAMWithoutReadGroups());
+//            while(locusIteratorByState.hasNext()) {
+//                locusIteratorByState.next().getLocation();
+//            }
+//            reader.close();
+//        }
+//    }
 
     private enum Downsampling {
         NONE {

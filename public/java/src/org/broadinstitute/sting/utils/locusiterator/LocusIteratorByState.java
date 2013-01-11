@@ -403,4 +403,14 @@ public class LocusIteratorByState extends LocusIterator {
         throw new IllegalStateException("Tried to create a pileup for read " + read + " with offset " + offset +
                 " but we never saw such an offset in the alignment state machine");
     }
+
+    /**
+     * For testing only.  Assumes that the incoming SAMRecords have no read groups, so creates a dummy sample list
+     * for the system.
+     */
+    public static List<String> sampleListForSAMWithoutReadGroups() {
+        List<String> samples = new ArrayList<String>();
+        samples.add(null);
+        return samples;
+    }
 }
