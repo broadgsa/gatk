@@ -991,7 +991,7 @@
 
     <!-- Maven install a package consisting of all supporting files. Don't call this target directly. Call one of the specific packaging targets below -->
     <target name="mvninstall" depends="package" description="maven install a package into .m2/repository">
-        <property name="mvn.build.version" value="0.0.1" />
+        <property name="mvn.build.version" value="0.0.2" />
         <!--
         We should use the build version or better yet a git tag version, but tags are currently missing. Alternatively how do we then depend on the LATEST?
         <property name="mvn.build.version" value="${build.version}" />
