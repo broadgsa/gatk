@@ -76,9 +76,7 @@ import java.util.*;
  * Test the Active Region Traversal Contract
  * http://iwww.broadinstitute.org/gsa/wiki/index.php/Active_Region_Traversal_Contract
  */
-public class TraverseActiveRegionsUnitTest extends BaseTest {
-    private final static boolean INCLUDE_OLD = false;
-    private final static boolean INCLUDE_NEW = true;
+public class TraverseActiveRegionsOptimizedUnitTest extends BaseTest {
     private final static boolean ENFORCE_CONTRACTS = false;
     private final static boolean DEBUG = false;
 
@@ -133,8 +131,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
     @DataProvider(name = "TraversalEngineProvider")
     public Object[][] makeTraversals() {
         final List<Object[]> traversals = new LinkedList<Object[]>();
-        if ( INCLUDE_OLD ) traversals.add(new Object[]{new TraverseActiveRegionsOriginal<Integer, Integer>()});
-        if ( INCLUDE_NEW ) traversals.add(new Object[]{new TraverseActiveRegionsOptimized<Integer, Integer>()});
+        traversals.add(new Object[]{new TraverseActiveRegionsOptimized<Integer, Integer>()});
         return traversals.toArray(new Object[][]{});
     }
 

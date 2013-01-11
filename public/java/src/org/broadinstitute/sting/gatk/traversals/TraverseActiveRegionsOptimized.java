@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ActiveRegionExtension;
 import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 import org.broadinstitute.sting.utils.activeregion.ActivityProfile;
@@ -151,6 +152,54 @@ public class TraverseActiveRegionsOptimized<M,T> extends TraverseActiveRegions<M
         return sum;
     }
 
+    private GenomeLoc startOfLiveRegion = null;
+
+    protected void notifyOfCurrentPosition(final GATKSAMRecord read) {
+        notifyOfCurrentPosition(engine.getGenomeLocParser().createGenomeLoc(read));
+    }
+
+    protected void notifyOfCurrentPosition(final GenomeLoc currentLocation) {
+        if ( startOfLiveRegion == null )
+            startOfLiveRegion = currentLocation;
+        else
+            startOfLiveRegion = startOfLiveRegion.max(currentLocation.getStartLocation());
+    }
+
+    protected GenomeLoc getStartOfLiveRegion() {
+        return startOfLiveRegion;
+    }
+
+    protected boolean regionCompletelyWithinDeadZone(final GenomeLoc region, final boolean includeExtension) {
+        return (region.getStop() < (getStartOfLiveRegion().getStart() - (includeExtension ? getActiveRegionExtension() : 0)))
+                || ! region.onSameContig(getStartOfLiveRegion());
+    }
+
+    private T processActiveRegions(final ActiveRegionWalker<M, T> walker, T sum, final boolean forceRegionsToBeActive) {
+        if( walker.activeRegionOutStream != null ) {
+            writeActiveRegionsToStream(walker);
+            return sum;
+        } else {
+            return callWalkerMapOnActiveRegions(walker, sum, forceRegionsToBeActive);
+        }
+    }
+
+    private T callWalkerMapOnActiveRegions(final ActiveRegionWalker<M, T> walker, T sum, final boolean forceRegionsToBeActive) {
+        // Since we've traversed sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
+        // TODO can implement parallel traversal here
+        while( workQueue.peek() != null ) {
+            final GenomeLoc extendedLoc = workQueue.peek().getExtendedLoc();
+            if ( forceRegionsToBeActive || regionCompletelyWithinDeadZone(extendedLoc, false) ) {
+                final ActiveRegion activeRegion = workQueue.remove();
+                if ( DEBUG ) logger.warn("Processing active region " + activeRegion + " dead zone " + getStartOfLiveRegion());
+                sum = processActiveRegion( activeRegion, sum, walker );
+            } else {
+                break;
+            }
+        }
+
+        return sum;
+    }
+
     @Override
     public String toString() {
         return "TraverseActiveRegionsOptimized";
@@ -190,4 +239,15 @@ public class TraverseActiveRegionsOptimized<M,T> extends TraverseActiveRegions<M
         final M x = walker.map(activeRegion, null);
         return walker.reduce( x, sum );
     }
+
+
+    /**
+     * Special function called in LinearMicroScheduler to empty out the work queue.
+     * Ugly for now but will be cleaned up when we push this functionality more into the engine
+     */
+    @Override
+    public T endTraversal(final Walker<M, T> walker, T sum) {
+        return processActiveRegions((ActiveRegionWalker<M, T>)walker, sum, true);
+    }
+
 }

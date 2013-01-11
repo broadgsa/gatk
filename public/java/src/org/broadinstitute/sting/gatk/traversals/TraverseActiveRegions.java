@@ -68,6 +68,12 @@ public abstract class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Ac
 
     abstract protected T processActiveRegion(final ActiveRegion activeRegion, final T sum, final ActiveRegionWalker<M, T> walker);
 
+    /**
+     * Special function called in LinearMicroScheduler to empty out the work queue.
+     * Ugly for now but will be cleaned up when we push this functionality more into the engine
+     */
+    public abstract T endTraversal(final Walker<M, T> walker, T sum);
+
     protected int getActiveRegionExtension() {
         return activeRegionExtension;
     }
@@ -141,88 +147,17 @@ public abstract class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Ac
             return (RodLocusView)locusView;
     }
 
-    protected T processActiveRegions(final ActiveRegionWalker<M, T> walker, T sum, final boolean forceRegionsToBeActive) {
-        if( walker.activeRegionOutStream != null ) {
-            writeActiveRegionsToStream(walker);
-            return sum;
-        } else {
-            return callWalkerMapOnActiveRegions(walker, sum, forceRegionsToBeActive);
-        }
-    }
-
     /**
      * Write out each active region to the walker activeRegionOutStream
      *
      * @param walker
      */
-    private void writeActiveRegionsToStream( final ActiveRegionWalker<M, T> walker ) {
+    protected void writeActiveRegionsToStream( final ActiveRegionWalker<M, T> walker ) {
         // Just want to output the active regions to a file, not actually process them
         for( final ActiveRegion activeRegion : workQueue ) {
             if( activeRegion.isActive ) {
                 walker.activeRegionOutStream.println( activeRegion.getLocation() );
             }
         }
-    }
-
-    private GenomeLoc startOfLiveRegion = null;
-
-    protected void notifyOfCurrentPosition(final GATKSAMRecord read) {
-        notifyOfCurrentPosition(engine.getGenomeLocParser().createGenomeLoc(read));
-    }
-
-    protected void notifyOfCurrentPosition(final GenomeLoc currentLocation) {
-        if ( startOfLiveRegion == null )
-            startOfLiveRegion = currentLocation;
-        else
-            startOfLiveRegion = startOfLiveRegion.max(currentLocation.getStartLocation());
-    }
-
-    protected GenomeLoc getStartOfLiveRegion() {
-        return startOfLiveRegion;
-    }
-
-    protected boolean regionCompletelyWithinDeadZone(final GenomeLoc region, final boolean includeExtension) {
-        return (region.getStop() < (getStartOfLiveRegion().getStart() - (includeExtension ? getActiveRegionExtension() : 0)))
-                || ! region.onSameContig(getStartOfLiveRegion());
-    }
-
-    private T callWalkerMapOnActiveRegions(final ActiveRegionWalker<M, T> walker, T sum, final boolean forceRegionsToBeActive) {
-        // Since we've traversed sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
-        // TODO can implement parallel traversal here
-        while( workQueue.peek() != null ) {
-            final GenomeLoc extendedLoc = workQueue.peek().getExtendedLoc();
-            if ( forceRegionsToBeActive || regionCompletelyWithinDeadZone(extendedLoc, false) ) {
-                final ActiveRegion activeRegion = workQueue.remove();
-                if ( DEBUG ) logger.warn("Processing active region " + activeRegion + " dead zone " + getStartOfLiveRegion());
-                sum = processActiveRegion( activeRegion, sum, walker );
-            } else {
-                break;
-            }
-        }
-
-        return sum;
-    }
-
-    /**
-     * Special function called in LinearMicroScheduler to empty out the work queue.
-     * Ugly for now but will be cleaned up when we push this functionality more into the engine
-     */
-    public T endTraversal(final Walker<M, T> walker, T sum) {
-        return processActiveRegions((ActiveRegionWalker<M, T>)walker, sum, true);
-    }
-
-    // todo -- remove me
-    protected ActiveRegion getBestRegion(final ActiveRegion activeRegion, final GenomeLoc readLoc) {
-        long minStart = activeRegion.getLocation().getStart();
-        ActiveRegion bestRegion = activeRegion;
-
-        for( final ActiveRegion otherRegionToTest : workQueue ) {
-            if( otherRegionToTest.getLocation().getStart() < minStart ) {
-                minStart = otherRegionToTest.getLocation().getStart();
-                bestRegion = otherRegionToTest;
-            }
-        }
-
-        return bestRegion;
     }
 }
