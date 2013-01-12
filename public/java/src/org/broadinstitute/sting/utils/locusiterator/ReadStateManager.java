@@ -195,7 +195,15 @@ final class ReadStateManager implements Iterable<Map.Entry<String, ReadStateMana
 
         for (final String sample : samples) {
             final Collection<GATKSAMRecord> newReads = samplePartitioner.getReadsForSample(sample);
-            PerSampleReadStateManager statesBySample = readStatesBySample.get(sample);
+
+//            // if we're keeping reads, take the (potentially downsampled) list of new reads for this sample
+//            // and add to the list of reads.  Note this may reorder the list of reads someone (it groups them
+//            // by sample, but it cannot change their absolute position on the genome as they all must
+//            // start at the current location
+            if ( keepSubmittedReads )
+                submittedReads.addAll(newReads);
+
+            final PerSampleReadStateManager statesBySample = readStatesBySample.get(sample);
             addReadsToSample(statesBySample, newReads);
         }
 
@@ -208,8 +216,6 @@ final class ReadStateManager implements Iterable<Map.Entry<String, ReadStateMana
      */
     @Requires("read != null")
     protected void submitRead(final GATKSAMRecord read) {
-        if ( keepSubmittedReads )
-            submittedReads.add(read);
         samplePartitioner.submitRead(read);
     }
 
