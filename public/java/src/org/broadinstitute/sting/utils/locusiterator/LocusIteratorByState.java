@@ -34,8 +34,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
+import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
@@ -234,17 +233,16 @@ public class LocusIteratorByState extends LocusIterator {
             final GenomeLoc location = getLocation();
             final Map<String, ReadBackedPileupImpl> fullPileup = new HashMap<String, ReadBackedPileupImpl>();
 
-            // TODO: How can you determine here whether the current pileup has been downsampled?
-            boolean hasBeenSampled = false;
-
-            for (final String sample : samples) {
-                final Iterator<AlignmentStateMachine> iterator = readStates.iterator(sample);
-                final List<PileupElement> pile = new ArrayList<PileupElement>(readStates.size(sample));
+            for (final Map.Entry<String, ReadStateManager.PerSampleReadStateManager> sampleStatePair : readStates ) {
+                final String sample = sampleStatePair.getKey();
+                final ReadStateManager.PerSampleReadStateManager readState = sampleStatePair.getValue();
+                final Iterator<AlignmentStateMachine> iterator = readState.iterator();
+                final List<PileupElement> pile = new ArrayList<PileupElement>(readState.size());
 
                 while (iterator.hasNext()) {
                     // state object with the read/offset information
                     final AlignmentStateMachine state = iterator.next();
-                    final GATKSAMRecord read = (GATKSAMRecord) state.getRead();
+                    final GATKSAMRecord read = state.getRead();
                     final CigarOperator op = state.getCigarOperator();
 
                     if (op == CigarOperator.N) // N's are never added to any pileup
@@ -263,29 +261,9 @@ public class LocusIteratorByState extends LocusIterator {
                     fullPileup.put(sample, new ReadBackedPileupImpl(location, pile));
             }
 
-            updateReadStates(); // critical - must be called after we get the current state offsets and location
+            readStates.updateReadStates(); // critical - must be called after we get the current state offsets and location
             if (!fullPileup.isEmpty()) // if we got reads with non-D/N over the current position, we are done
-                nextAlignmentContext = new AlignmentContext(location, new ReadBackedPileupImpl(location, fullPileup), hasBeenSampled);
-        }
-    }
-
-    /**
-     * Advances all fo the read states by one bp.  After this call the read states are reflective
-     * of the next pileup.
-     */
-    private void updateReadStates() {
-        for (final String sample : samples) {
-            Iterator<AlignmentStateMachine> it = readStates.iterator(sample);
-            while (it.hasNext()) {
-                AlignmentStateMachine state = it.next();
-                CigarOperator op = state.stepForwardOnGenome();
-                if (op == null) {
-                    // we discard the read only when we are past its end AND indel at the end of the read (if any) was
-                    // already processed. Keeping the read state that returned null upon stepForwardOnGenome() is safe
-                    // as the next call to stepForwardOnGenome() will return null again AND will clear hadIndel() flag.
-                    it.remove();                                                // we've stepped off the end of the object
-                }
-            }
+                nextAlignmentContext = new AlignmentContext(location, new ReadBackedPileupImpl(location, fullPileup), false);
         }
     }
 

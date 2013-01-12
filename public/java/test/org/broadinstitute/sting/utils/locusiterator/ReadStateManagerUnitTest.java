@@ -71,7 +71,7 @@ public class ReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
             makeReads();
 
             for ( ArrayList<AlignmentStateMachine> stackRecordStates : recordStatesByAlignmentStart ) {
-                perSampleReadStateManager.addStatesAtNextAlignmentStart(stackRecordStates);
+                perSampleReadStateManager.addStatesAtNextAlignmentStart(new LinkedList<AlignmentStateMachine>(stackRecordStates));
             }
 
             // read state manager should have the right number of reads

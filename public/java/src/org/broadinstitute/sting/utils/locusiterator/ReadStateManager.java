@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.locusiterator;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.picard.util.PeekableIterator;
+import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.gatk.downsampling.Downsampler;
 import org.broadinstitute.sting.gatk.downsampling.LevelingDownsampler;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -48,11 +49,18 @@ import java.util.*;
  * Date: 1/5/13
  * Time: 2:02 PM
  */
-class ReadStateManager {
+final class ReadStateManager implements Iterable<Map.Entry<String, ReadStateManager.PerSampleReadStateManager>> {
     private final List<String> samples;
     private final PeekableIterator<GATKSAMRecord> iterator;
     private final SamplePartitioner<GATKSAMRecord> samplePartitioner;
-    private final Map<String, PerSampleReadStateManager> readStatesBySample = new HashMap<String, PerSampleReadStateManager>();
+
+    /**
+     * A mapping from sample name -> the per sample read state manager that manages
+     *
+     * IT IS CRITICAL THAT THIS BE A LINKED HASH MAP, SO THAT THE ITERATION OF THE MAP OCCURS IN THE SAME
+     * ORDER AS THE ORIGINL SAMPLES
+     */
+    private final Map<String, PerSampleReadStateManager> readStatesBySample = new LinkedHashMap<String, PerSampleReadStateManager>();
 
     private LinkedList<GATKSAMRecord> submittedReads;
     private final boolean keepSubmittedReads;
@@ -70,6 +78,7 @@ class ReadStateManager {
         this.submittedReads = new LinkedList<GATKSAMRecord>();
 
         for (final String sample : samples) {
+            // because this is a linked hash map the order of iteration will be in sample order
             readStatesBySample.put(sample, new PerSampleReadStateManager(LIBSDownsamplingInfo));
         }
 
@@ -77,29 +86,16 @@ class ReadStateManager {
     }
 
     /**
-     * Returns a iterator over all the reads associated with the given sample.  Note that remove() is implemented
-     * for this iterator; if present, total read states will be decremented.
+     * Returns a iterator over all the sample -> per-sample read state managers with each sample in this read state manager.
      *
-     * @param sample The sample.
-     * @return Iterator over the reads associated with that sample.
+     * The order of iteration is the same as the order of the samples provided upon construction to this
+     * ReadStateManager.
+     *
+     * @return Iterator over sample + per sample read state manager pairs for this read state manager.
      */
-    public Iterator<AlignmentStateMachine> iterator(final String sample) {
-        // TODO -- why is this wrapped?
-        return new Iterator<AlignmentStateMachine>() {
-            private Iterator<AlignmentStateMachine> wrappedIterator = readStatesBySample.get(sample).iterator();
-
-            public boolean hasNext() {
-                return wrappedIterator.hasNext();
-            }
-
-            public AlignmentStateMachine next() {
-                return wrappedIterator.next();
-            }
-
-            public void remove() {
-                wrappedIterator.remove();
-            }
-        };
+    @Override
+    public Iterator<Map.Entry<String, ReadStateManager.PerSampleReadStateManager>> iterator() {
+        return readStatesBySample.entrySet().iterator();
     }
 
     public boolean isEmpty() {
@@ -126,10 +122,9 @@ class ReadStateManager {
     }
 
     public AlignmentStateMachine getFirst() {
-        for (final String sample : samples) {
-            PerSampleReadStateManager reads = readStatesBySample.get(sample);
-            if (!reads.isEmpty())
-                return reads.peek();
+        for ( final PerSampleReadStateManager manager : readStatesBySample.values() ) {
+            if ( ! manager.isEmpty() )
+                return manager.peek();
         }
         return null;
     }
@@ -138,51 +133,65 @@ class ReadStateManager {
         return totalReadStates > 0 || iterator.hasNext();
     }
 
-    // fast testing of position
-
     /**
-     * TODO -- this function needs to be optimized
-     *
-     * Notes:
-     * -- the only place where it's called is in a block where we know isEmpty is false
-     * -- getFirst() is quite expensive, and it seems that we could cache this value in the outer
-     *    block, and then pass this in as an argument
-     *
-     * @param read
-     * @return
+     * Advances all fo the read states by one bp.  After this call the read states are reflective
+     * of the next pileup.
      */
-    private boolean readIsPastCurrentPosition(GATKSAMRecord read) {
-        if (isEmpty())
-            return false;
-        else {
-            final AlignmentStateMachine state = getFirst();
-            final GATKSAMRecord ourRead = state.getRead();
-            return read.getReferenceIndex() > ourRead.getReferenceIndex() || read.getAlignmentStart() > state.getGenomePosition();
+    public void updateReadStates() {
+        for (final PerSampleReadStateManager readStateManager : readStatesBySample.values() ) {
+            final Iterator<AlignmentStateMachine> it = readStateManager.iterator();
+            while (it.hasNext()) {
+                final AlignmentStateMachine state = it.next();
+                final CigarOperator op = state.stepForwardOnGenome();
+                if (op == null) {
+                    // we discard the read only when we are past its end AND indel at the end of the read (if any) was
+                    // already processed. Keeping the read state that returned null upon stepForwardOnGenome() is safe
+                    // as the next call to stepForwardOnGenome() will return null again AND will clear hadIndel() flag.
+                    it.remove();                                                // we've stepped off the end of the object
+                }
+            }
         }
     }
 
+    /**
+     * Does read start at the same position as described by currentContextIndex and currentAlignmentStart?
+     *
+     * @param read the read we want to test
+     * @param currentContigIndex the contig index (from the read's getReferenceIndex) of the reads in this state manager
+     * @param currentAlignmentStart the alignment start of the of the left-most position on the
+     *                           genome of the reads in this read state manager
+     * @return true if read has contig index and start equal to the current ones
+     */
+    private boolean readStartsAtCurrentPosition(final GATKSAMRecord read, final int currentContigIndex, final int currentAlignmentStart) {
+        return read.getAlignmentStart() == currentAlignmentStart && read.getReferenceIndex() == currentContigIndex;
+    }
+
+    /**
+     * Pull all of the reads off the iterator that overlap the left-most position among all
+     * reads this ReadStateManager
+     */
     public void collectPendingReads() {
         if (!iterator.hasNext())
             return;
 
-        // the next record in the stream, peeked as to not remove it from the stream
+        // determine the left-most boundary that determines which reads to keep in this new pileup
+        final int firstContigIndex;
+        final int firstAlignmentStart;
         if ( isEmpty() ) {
-            final int firstContigIndex = iterator.peek().getReferenceIndex();
-            final int firstAlignmentStart = iterator.peek().getAlignmentStart();
-            while (iterator.hasNext() && iterator.peek().getReferenceIndex() == firstContigIndex && iterator.peek().getAlignmentStart() == firstAlignmentStart) {
-                submitRead(iterator.next());
-            }
+            // there are no reads here, so our next state is the next read in the stream
+            firstContigIndex = iterator.peek().getReferenceIndex();
+            firstAlignmentStart = iterator.peek().getAlignmentStart();
         } else {
-            // Fast fail in the case that the read is past the current position.
-            if (readIsPastCurrentPosition(iterator.peek()))
-                return;
-
-            while (iterator.hasNext() && !readIsPastCurrentPosition(iterator.peek())) {
-                submitRead(iterator.next());
-            }
+            // there's a read in the system, so it's our targeted first read
+            final AlignmentStateMachine firstState = getFirst();
+            firstContigIndex = firstState.getReferenceIndex();
+            // note this isn't the alignment start of the read, but rather the alignment start position
+            firstAlignmentStart = firstState.getGenomePosition();
         }
 
-        samplePartitioner.doneSubmittingReads();
+        while ( iterator.hasNext() && readStartsAtCurrentPosition(iterator.peek(), firstContigIndex, firstAlignmentStart) ) {
+            submitRead(iterator.next());
+        }
 
         for (final String sample : samples) {
             final Collection<GATKSAMRecord> newReads = samplePartitioner.getReadsForSample(sample);
@@ -271,11 +280,11 @@ class ReadStateManager {
         if (reads.isEmpty())
             return;
 
-        Collection<AlignmentStateMachine> newReadStates = new LinkedList<AlignmentStateMachine>();
+        final LinkedList<AlignmentStateMachine> newReadStates = new LinkedList<AlignmentStateMachine>();
 
-        for (GATKSAMRecord read : reads) {
-            AlignmentStateMachine state = new AlignmentStateMachine(read);
-            if ( state.stepForwardOnGenome() != null )
+        for (final GATKSAMRecord read : reads) {
+            final AlignmentStateMachine state = new AlignmentStateMachine(read);
+            if ( state.stepForwardOnGenome() != null ) // todo -- should be an assertion not a skip
                 // explicitly filter out reads that are all insertions / soft clips
                 newReadStates.add(state);
         }
@@ -283,6 +292,7 @@ class ReadStateManager {
         readStates.addStatesAtNextAlignmentStart(newReadStates);
     }
 
+    // TODO -- refactor into separate class with pointer to ReadStateManager for updates to the total counts
     protected class PerSampleReadStateManager implements Iterable<AlignmentStateMachine> {
         private List<LinkedList<AlignmentStateMachine>> readStatesByAlignmentStart = new LinkedList<LinkedList<AlignmentStateMachine>>();
         private final Downsampler<LinkedList<AlignmentStateMachine>> levelingDownsampler;
@@ -295,12 +305,16 @@ class ReadStateManager {
                     : null;
         }
 
-        public void addStatesAtNextAlignmentStart(Collection<AlignmentStateMachine> states) {
+        /**
+         * Assumes it can just keep the states linked lists without making a copy
+         * @param states
+         */
+        public void addStatesAtNextAlignmentStart(LinkedList<AlignmentStateMachine> states) {
             if ( states.isEmpty() ) {
                 return;
             }
 
-            readStatesByAlignmentStart.add(new LinkedList<AlignmentStateMachine>(states));
+            readStatesByAlignmentStart.add(states);
             thisSampleReadStates += states.size();
             totalReadStates += states.size();
 
