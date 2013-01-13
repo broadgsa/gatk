@@ -61,6 +61,7 @@
         <dependency org="commons-lang" name="commons-lang" rev="2.5"/>
         <dependency org="commons-logging" name="commons-logging" rev="1.1.1"/>
         <dependency org="commons-io" name="commons-io" rev="2.1"/>
+        <dependency org="commons-collections" name="commons-collections" rev="3.2.1"/>
         <dependency org="org.apache.commons" name="commons-math" rev="2.2"/>
 
         <!-- Lucene core utilities -->
@@ -82,7 +83,7 @@
         <!-- testing and evaluation dependencies -->
         <dependency org="org.testng" name="testng" rev="5.14.1"/>
         <dependency org="org.uncommons" name="reportng" rev="1.1.2"/>
-        <dependency org="com.google.code.caliper" name="caliper" rev="1.0-SNAPSHOT"/>
+        <dependency org="com.google.caliper" name="caliper" rev="0.5-rc1"/>
 
         <!-- Contracts for Java and dependencies -->
         <dependency org="com.google.code.cofoja" name="cofoja" rev="1.0-r139"/>

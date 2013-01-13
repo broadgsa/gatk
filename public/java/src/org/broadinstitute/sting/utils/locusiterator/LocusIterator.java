@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.sting.utils.locusiterator;
 
 import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -24,6 +24,11 @@ public abstract class LocusIterator implements Iterable<AlignmentContext>, Close
 
     public abstract boolean hasNext();
     public abstract AlignmentContext next();
+
+    // TODO -- remove me when ART testing is done
+    public LocusIteratorByState getLIBS() {
+        return null;
+    }
 
     public void remove() {
         throw new UnsupportedOperationException("Can not remove records from a SAM file via an iterator!");
