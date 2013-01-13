@@ -122,7 +122,7 @@ final class ReadStateManager implements Iterable<Map.Entry<String, PerSampleRead
     public AlignmentStateMachine getFirst() {
         for ( final PerSampleReadStateManager manager : readStatesBySample.values() ) {
             if ( ! manager.isEmpty() )
-                return manager.peek();
+                return manager.getFirst();
         }
         return null;
     }
