@@ -37,10 +37,7 @@ import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.iterators.GATKSAMIterator;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -100,12 +97,18 @@ public class LIBSPerformance extends CommandLineProgram {
                         samples,
                         false);
 
+        final SimpleTimer timer = new SimpleTimer().start();
         int bp = 0;
+        double lastElapsed = 0;
         while ( libs.hasNext() ) {
             AlignmentContext context = libs.next();
-            if ( ++bp % 100000 == 0 )
+            bp++;
+            if ( timer.getElapsedTime() - lastElapsed > 10 ) {
                 logger.info(bp + " iterations at " + context.getLocation());
+                lastElapsed = timer.getElapsedTime();
+            }
         }
+        logger.info(String.format("runtime in seconds: %.2f", timer.getElapsedTime()));
 
         return 0;
     }
