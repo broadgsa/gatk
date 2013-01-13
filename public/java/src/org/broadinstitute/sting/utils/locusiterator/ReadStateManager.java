@@ -29,6 +29,7 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.CigarOperator;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.downsampling.Downsampler;
 import org.broadinstitute.sting.gatk.downsampling.LevelingDownsampler;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -50,6 +51,8 @@ import java.util.*;
  * Time: 2:02 PM
  */
 final class ReadStateManager implements Iterable<Map.Entry<String, ReadStateManager.PerSampleReadStateManager>> {
+    private final static Logger logger = Logger.getLogger(ReadStateManager.class);
+    private final static boolean CAPTURE_DOWNSAMPLING_STATS = true;
     private final List<String> samples;
     private final PeekableIterator<GATKSAMRecord> iterator;
     private final SamplePartitioner<GATKSAMRecord> samplePartitioner;
@@ -138,18 +141,8 @@ final class ReadStateManager implements Iterable<Map.Entry<String, ReadStateMana
      * of the next pileup.
      */
     public void updateReadStates() {
-        for (final PerSampleReadStateManager readStateManager : readStatesBySample.values() ) {
-            final Iterator<AlignmentStateMachine> it = readStateManager.iterator();
-            while (it.hasNext()) {
-                final AlignmentStateMachine state = it.next();
-                final CigarOperator op = state.stepForwardOnGenome();
-                if (op == null) {
-                    // we discard the read only when we are past its end AND indel at the end of the read (if any) was
-                    // already processed. Keeping the read state that returned null upon stepForwardOnGenome() is safe
-                    // as the next call to stepForwardOnGenome() will return null again AND will clear hadIndel() flag.
-                    it.remove();                                                // we've stepped off the end of the object
-                }
-            }
+        for (final PerSampleReadStateManager perSampleReadStateManager : readStatesBySample.values() ) {
+            perSampleReadStateManager.updateReadStates();
         }
     }
 
@@ -301,13 +294,17 @@ final class ReadStateManager implements Iterable<Map.Entry<String, ReadStateMana
     }
 
     // TODO -- refactor into separate class with pointer to ReadStateManager for updates to the total counts
-    protected class PerSampleReadStateManager implements Iterable<AlignmentStateMachine> {
+    protected final class PerSampleReadStateManager implements Iterable<AlignmentStateMachine> {
         private List<LinkedList<AlignmentStateMachine>> readStatesByAlignmentStart = new LinkedList<LinkedList<AlignmentStateMachine>>();
         private final Downsampler<LinkedList<AlignmentStateMachine>> levelingDownsampler;
-
         private int thisSampleReadStates = 0;
 
+        private final int downsamplingTarget;
+        private int nSitesNeedingDownsampling = 0;
+        private int nSites = 0;
+
         public PerSampleReadStateManager(final LIBSDownsamplingInfo LIBSDownsamplingInfo) {
+            this.downsamplingTarget = LIBSDownsamplingInfo.isPerformDownsampling() ? LIBSDownsamplingInfo.getToCoverage() : -1;
             this.levelingDownsampler = LIBSDownsamplingInfo.isPerformDownsampling()
                     ? new LevelingDownsampler<LinkedList<AlignmentStateMachine>, AlignmentStateMachine>(LIBSDownsamplingInfo.getToCoverage())
                     : null;
@@ -326,7 +323,8 @@ final class ReadStateManager implements Iterable<Map.Entry<String, ReadStateMana
             thisSampleReadStates += states.size();
             totalReadStates += states.size();
 
-            if ( levelingDownsampler != null ) {
+            if ( isDownsampling() ) {
+                captureDownsamplingStats();
                 levelingDownsampler.submit(readStatesByAlignmentStart);
                 levelingDownsampler.signalEndOfInput();
 
@@ -336,6 +334,28 @@ final class ReadStateManager implements Iterable<Map.Entry<String, ReadStateMana
                 // use returned List directly rather than make a copy, for efficiency's sake
                 readStatesByAlignmentStart = levelingDownsampler.consumeFinalizedItems();
                 levelingDownsampler.reset();
+            }
+        }
+
+        private boolean isDownsampling() {
+            return levelingDownsampler != null;
+        }
+
+        @Requires("isDownsampling()")
+        private void captureDownsamplingStats() {
+            if ( CAPTURE_DOWNSAMPLING_STATS ) {
+                nSites++;
+                final int loc = getFirst().getGenomePosition();
+                String message = "Pass through";
+                final boolean downsampling = thisSampleReadStates > downsamplingTarget;
+                if ( downsampling ) {
+                    nSitesNeedingDownsampling++;
+                    message = "Downsampling";
+                }
+
+                if ( downsampling || nSites % 10000 == 0 )
+                    logger.info(String.format("%20s at %s: coverage=%d, max=%d, fraction of downsampled sites=%.2e",
+                            message, loc, thisSampleReadStates, downsamplingTarget, (1.0 * nSitesNeedingDownsampling / nSites)));
             }
         }
 
@@ -351,11 +371,25 @@ final class ReadStateManager implements Iterable<Map.Entry<String, ReadStateMana
             return thisSampleReadStates;
         }
 
+        public void updateReadStates() {
+            final Iterator<AlignmentStateMachine> it = iterator();
+            while (it.hasNext()) {
+                final AlignmentStateMachine state = it.next();
+                final CigarOperator op = state.stepForwardOnGenome();
+                if (op == null) {
+                    // we discard the read only when we are past its end AND indel at the end of the read (if any) was
+                    // already processed. Keeping the read state that returned null upon stepForwardOnGenome() is safe
+                    // as the next call to stepForwardOnGenome() will return null again AND will clear hadIndel() flag.
+                    it.remove();                                                // we've stepped off the end of the object
+                }
+            }
+        }
+
         public Iterator<AlignmentStateMachine> iterator() {
             return new Iterator<AlignmentStateMachine>() {
-                private Iterator<LinkedList<AlignmentStateMachine>> alignmentStartIterator = readStatesByAlignmentStart.iterator();
-                private LinkedList<AlignmentStateMachine> currentPositionReadStates = null;
-                private Iterator<AlignmentStateMachine> currentPositionReadStatesIterator = null;
+                private final Iterator<LinkedList<AlignmentStateMachine>> alignmentStartIterator = readStatesByAlignmentStart.iterator();
+                private LinkedList<AlignmentStateMachine> currentPositionReadStates;
+                private Iterator<AlignmentStateMachine> currentPositionReadStatesIterator;
 
                 public boolean hasNext() {
                     return  alignmentStartIterator.hasNext() ||

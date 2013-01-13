@@ -63,6 +63,8 @@ public class LIBSPerformance extends CommandLineProgram {
     @Argument(fullName = "L", shortName = "L", doc = "Query location", required = false)
     public String location = null;
 
+    @Argument(fullName = "dt", shortName = "dt", doc = "Enable downsampling", required = false)
+    public boolean downsample = false;
 
     @Override
     public int execute() throws IOException {
@@ -86,7 +88,7 @@ public class LIBSPerformance extends CommandLineProgram {
         for ( final SAMReadGroupRecord rg : reader.getFileHeader().getReadGroups() )
             samples.add(rg.getSample());
 
-        final LIBSDownsamplingInfo ds = new LIBSDownsamplingInfo(false, -1);
+        final LIBSDownsamplingInfo ds = new LIBSDownsamplingInfo(downsample, 250);
 
         final LocusIteratorByState libs =
                 new LocusIteratorByState(
