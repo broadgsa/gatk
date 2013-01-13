@@ -418,8 +418,8 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
                         for ( final boolean keepReads : Arrays.asList(true, false) ) {
                             for ( final boolean grabReadsAfterEachCycle : Arrays.asList(true, false) ) {
 //        for ( final int downsampleTo : Arrays.asList(1)) {
-//            for ( final int nReadsPerLocus : Arrays.asList(10) ) {
-//                for ( final int nLoci : Arrays.asList(25) ) {
+//            for ( final int nReadsPerLocus : Arrays.asList(1) ) {
+//                for ( final int nLoci : Arrays.asList(1) ) {
 //                    for ( final int nSamples : Arrays.asList(1) ) {
 //                        for ( final boolean keepReads : Arrays.asList(true) ) {
 //                            for ( final boolean grabReadsAfterEachCycle : Arrays.asList(true) ) {
@@ -436,7 +436,6 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    //@Test(enabled = true && ! DEBUG, dataProvider = "LIBS_ComplexPileupTests")
     @Test(enabled = true && ! DEBUG, dataProvider = "LIBS_ComplexPileupTests")
     public void testLIBS_ComplexPileupTests(final int nReadsPerLocus,
                                             final int nLoci,

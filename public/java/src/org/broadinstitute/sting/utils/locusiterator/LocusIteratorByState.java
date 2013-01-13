@@ -65,7 +65,7 @@ import java.util.*;
  * occurs, if requested.  This allows users of LIBS to see both a ReadBackedPileup view of the data as well as
  * a stream of unique, sorted reads
  */
-public class LocusIteratorByState extends LocusIterator {
+public final class LocusIteratorByState extends LocusIterator {
     /**
      * our log, which we want to capture anything from this class
      */
@@ -233,9 +233,9 @@ public class LocusIteratorByState extends LocusIterator {
             final GenomeLoc location = getLocation();
             final Map<String, ReadBackedPileupImpl> fullPileup = new HashMap<String, ReadBackedPileupImpl>();
 
-            for (final Map.Entry<String, ReadStateManager.PerSampleReadStateManager> sampleStatePair : readStates ) {
+            for (final Map.Entry<String, PerSampleReadStateManager> sampleStatePair : readStates ) {
                 final String sample = sampleStatePair.getKey();
-                final ReadStateManager.PerSampleReadStateManager readState = sampleStatePair.getValue();
+                final PerSampleReadStateManager readState = sampleStatePair.getValue();
                 final Iterator<AlignmentStateMachine> iterator = readState.iterator();
                 final List<PileupElement> pile = new ArrayList<PileupElement>(readState.size());
 
