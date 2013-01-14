@@ -61,6 +61,7 @@ public class RefMetaDataTracker {
 
     final Map<String, RODRecordList> bindings;
     final protected static Logger logger = Logger.getLogger(RefMetaDataTracker.class);
+    public final static RefMetaDataTracker EMPTY_TRACKER = new RefMetaDataTracker();
 
     // ------------------------------------------------------------------------------------------
     //
