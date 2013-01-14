@@ -62,16 +62,17 @@ class SamplePartitioner<T extends SAMRecord> {
      * will throw an exception.  Duplicates in the list of samples will be ignored
      *
      * @param LIBSDownsamplingInfo do we want to downsample, and if so to what coverage?
-     * @param samples the complete list of samples we're going to partition reads into
+     * @param samples the complete list of samples we're going to partition reads into. Can be
+     *                empty, but in that case this code cannot function properly if you
+     *                attempt to add data to it.
      */
     @Ensures({
             "readsBySample != null",
-            "! readsBySample.isEmpty()",
             "readsBySample.size() == new HashSet(samples).size()"
     })
     public SamplePartitioner(final LIBSDownsamplingInfo LIBSDownsamplingInfo, final List<String> samples) {
         if ( LIBSDownsamplingInfo == null ) throw new IllegalArgumentException("LIBSDownsamplingInfo cannot be null");
-        if ( samples == null || samples.isEmpty() ) throw new IllegalArgumentException("samples must be a non-null, non-empty list but got " + samples);
+        if ( samples == null ) throw new IllegalArgumentException("samples must be a non-null list");
 
         readsBySample = new LinkedHashMap<String, Downsampler<T>>(samples.size());
         for ( final String sample : samples ) {
@@ -89,7 +90,7 @@ class SamplePartitioner<T extends SAMRecord> {
     @Ensures("result != null")
     private Downsampler<T> createDownsampler(final LIBSDownsamplingInfo LIBSDownsamplingInfo) {
         return LIBSDownsamplingInfo.isPerformDownsampling()
-                ? new ReservoirDownsampler<T>(LIBSDownsamplingInfo.getToCoverage())
+                ? new ReservoirDownsampler<T>(LIBSDownsamplingInfo.getToCoverage(), true)
                 : new PassThroughDownsampler<T>();
     }
 
