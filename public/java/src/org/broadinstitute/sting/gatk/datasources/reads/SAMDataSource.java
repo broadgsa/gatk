@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 2010, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
@@ -157,6 +158,9 @@ public class SAMDataSource {
 
     /**
      * Create a new SAM data source given the supplied read metadata.
+     *
+     * For testing purposes
+     *
      * @param samFiles list of reads files.
      */
     public SAMDataSource(Collection<SAMReaderID> samFiles, ThreadAllocation threadAllocation, Integer numFileHandles, GenomeLocParser genomeLocParser) {
@@ -176,6 +180,8 @@ public class SAMDataSource {
 
     /**
      * See complete constructor.  Does not enable BAQ by default.
+     *
+     * For testing purposes
      */
     public SAMDataSource(
             Collection<SAMReaderID> samFiles,
@@ -202,6 +208,7 @@ public class SAMDataSource {
                 Collections.<ReadTransformer>emptyList(),
                 includeReadsWithDeletionAtLoci,
                 (byte) -1,
+                false,
                 false);
     }
 
@@ -218,6 +225,7 @@ public class SAMDataSource {
      *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
      * @param defaultBaseQualities if the reads have incomplete quality scores, set them all to defaultBaseQuality.
+     * @param keepReadsInLIBS should we keep a unique list of reads in LIBS?
      */
     public SAMDataSource(
             Collection<SAMReaderID> samFiles,
@@ -233,7 +241,8 @@ public class SAMDataSource {
             List<ReadTransformer> readTransformers,
             boolean includeReadsWithDeletionAtLoci,
             byte defaultBaseQualities,
-            boolean removeProgramRecords) {
+            boolean removeProgramRecords,
+            final boolean keepReadsInLIBS) {
         this.readMetrics = new ReadMetrics();
         this.genomeLocParser = genomeLocParser;
 
@@ -305,7 +314,8 @@ public class SAMDataSource {
                 supplementalFilters,
                 readTransformers,
                 includeReadsWithDeletionAtLoci,
-                defaultBaseQualities);
+                defaultBaseQualities,
+                keepReadsInLIBS);
 
         // cache the read group id (original) -> read group id (merged)
         // and read group id (merged) -> read group id (original) mappings.

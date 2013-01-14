@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
@@ -5,6 +30,7 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
@@ -302,6 +328,35 @@ public class ArtificialSAMUtils {
     }
 
     /**
+     * Create a read stream based on the parameters.  The cigar string for each
+     * read will be *M, where * is the length of the read.
+     *
+     * Useful for testing things like LocusIteratorBystate
+     *
+     * @return a collection of stackSize reads all sharing the above properties
+     */
+    public static List<GATKSAMRecord> createReadStream( final int nReadsPerLocus,
+                                                    final int nLoci,
+                                                    final SAMFileHeader header,
+                                                    final int alignmentStart,
+                                                    final int length ) {
+        final String baseName = "read";
+        List<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>(nReadsPerLocus*nLoci);
+        for ( int locus = 0; locus < nLoci; locus++ ) {
+            for ( int readI = 0; readI < nReadsPerLocus; readI++ ) {
+                for ( final SAMReadGroupRecord rg : header.getReadGroups() ) {
+                    final String readName = String.format("%s.%d.%d.%s", baseName, locus, readI, rg.getId());
+                    final GATKSAMRecord read = createArtificialRead(header, readName, 0, alignmentStart + locus, length);
+                    read.setReadGroup(new GATKSAMReadGroupRecord(rg));
+                    reads.add(read);
+                }
+            }
+        }
+
+        return reads;
+    }
+
+    /**
      * create an iterator containing the specified read piles
      *
      * @param startingChr the chromosome (reference ID) to start from
@@ -424,10 +479,10 @@ public class ArtificialSAMUtils {
             final GATKSAMRecord left = pair.get(0);
             final GATKSAMRecord right = pair.get(1);
 
-            pileupElements.add(new PileupElement(left, pos - leftStart, false, false, false, false, false, false));
+            pileupElements.add(LocusIteratorByState.createPileupForReadAndOffset(left, pos - leftStart));
 
             if (pos >= right.getAlignmentStart() && pos <= right.getAlignmentEnd()) {
-                pileupElements.add(new PileupElement(right, pos - rightStart, false, false, false, false, false, false));
+                pileupElements.add(LocusIteratorByState.createPileupForReadAndOffset(right, pos - rightStart));
             }
         }
 

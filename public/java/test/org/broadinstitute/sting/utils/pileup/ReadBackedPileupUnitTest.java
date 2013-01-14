@@ -1,35 +1,42 @@
 /*
- * Copyright (c) 2010, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils.pileup;
 
+import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.*;
@@ -38,6 +45,17 @@ import java.util.*;
  * Test routines for read-backed pileup.
  */
 public class ReadBackedPileupUnitTest {
+    protected static SAMFileHeader header;
+    protected GenomeLocParser genomeLocParser;
+    private GenomeLoc loc;
+
+    @BeforeClass
+    public void beforeClass() {
+        header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
+        genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
+        loc = genomeLocParser.createGenomeLoc("chr1", 1);
+    }
+
     /**
      * Ensure that basic read group splitting works.
      */
@@ -193,5 +211,99 @@ public class ReadBackedPileupUnitTest {
 
         missingSamplePileup = pileup.getPileupForSample("not here");
         Assert.assertNull(missingSamplePileup,"Pileup for sample 'not here' should be null but isn't");
+    }
+
+    private static int sampleI = 0;
+    private class RBPCountTest {
+        final String sample;
+        final int nReads, nMapq0, nDeletions;
+
+        private RBPCountTest(int nReads, int nMapq0, int nDeletions) {
+            this.sample = "sample" + sampleI++;
+            this.nReads = nReads;
+            this.nMapq0 = nMapq0;
+            this.nDeletions = nDeletions;
+        }
+
+        private List<PileupElement> makeReads( final int n, final int mapq, final String op ) {
+            final int readLength = 3;
+
+            final List<PileupElement> elts = new LinkedList<PileupElement>();
+            for ( int i = 0; i < n; i++ ) {
+                GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read", 0, 1, readLength);
+                read.setReadBases(Utils.dupBytes((byte) 'A', readLength));
+                read.setBaseQualities(Utils.dupBytes((byte) 30, readLength));
+                read.setCigarString("1M1" + op + "1M");
+                read.setMappingQuality(mapq);
+                final int baseOffset = op.equals("M") ? 1 : 0;
+                final CigarElement cigarElement = read.getCigar().getCigarElement(1);
+                elts.add(new PileupElement(read, baseOffset, cigarElement, 1, 0));
+            }
+
+            return elts;
+        }
+
+        private ReadBackedPileupImpl makePileup() {
+            final List<PileupElement> elts = new LinkedList<PileupElement>();
+
+            elts.addAll(makeReads(nMapq0, 0, "M"));
+            elts.addAll(makeReads(nDeletions, 30, "D"));
+            elts.addAll(makeReads(nReads - nMapq0 - nDeletions, 30, "M"));
+
+            return new ReadBackedPileupImpl(loc, elts);
+        }
+
+        @Override
+        public String toString() {
+            return "RBPCountTest{" +
+                    "sample='" + sample + '\'' +
+                    ", nReads=" + nReads +
+                    ", nMapq0=" + nMapq0 +
+                    ", nDeletions=" + nDeletions +
+                    '}';
+        }
+    }
+
+    @DataProvider(name = "RBPCountingTest")
+    public Object[][] makeRBPCountingTest() {
+        final List<Object[]> tests = new LinkedList<Object[]>();
+
+        for ( final int nMapq : Arrays.asList(0, 10, 20) ) {
+            for ( final int nDeletions : Arrays.asList(0, 10, 20) ) {
+                for ( final int nReg : Arrays.asList(0, 10, 20) ) {
+                    final int total = nMapq + nDeletions + nReg;
+                    if ( total > 0 )
+                        tests.add(new Object[]{new RBPCountTest(total, nMapq, nDeletions)});
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "RBPCountingTest")
+    public void testRBPCountingTestSinglePileup(RBPCountTest params) {
+        testRBPCounts(params.makePileup(), params);
+    }
+
+    @Test(dataProvider = "RBPCountingTest")
+    public void testRBPCountingTestMultiSample(RBPCountTest params) {
+        final RBPCountTest newSample = new RBPCountTest(2, 1, 1);
+        final Map<String, ReadBackedPileupImpl> pileupsBySample = new HashMap<String, ReadBackedPileupImpl>();
+        pileupsBySample.put(newSample.sample, newSample.makePileup());
+        pileupsBySample.put(params.sample, params.makePileup());
+        final ReadBackedPileup pileup = new ReadBackedPileupImpl(loc, pileupsBySample);
+        testRBPCounts(pileup, new RBPCountTest(params.nReads + 2, params.nMapq0 + 1, params.nDeletions + 1));
+    }
+
+
+    private void testRBPCounts(final ReadBackedPileup rbp, RBPCountTest expected) {
+        for ( int cycles = 0; cycles < 3; cycles++ ) {
+            // multiple cycles to make sure caching is working
+            Assert.assertEquals(rbp.getNumberOfElements(), expected.nReads);
+            Assert.assertEquals(rbp.depthOfCoverage(), expected.nReads);
+            Assert.assertEquals(rbp.getNumberOfDeletions(), expected.nDeletions);
+            Assert.assertEquals(rbp.getNumberOfMappingQualityZeroReads(), expected.nMapq0);
+        }
     }
 }

@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.gatk;
 
 import net.sf.samtools.SAMFileHeader;
@@ -36,6 +61,7 @@ public class ReadProperties {
     private final ValidationExclusion exclusionList;
     private final Collection<ReadFilter> supplementalFilters;
     private final List<ReadTransformer> readTransformers;
+    private final boolean keepUniqueReadListInLIBS;
     private final boolean includeReadsWithDeletionAtLoci;
     private final boolean useOriginalBaseQualities;
     private final byte defaultBaseQualities;
@@ -47,6 +73,10 @@ public class ReadProperties {
      */
     public boolean includeReadsWithDeletionAtLoci() {
         return includeReadsWithDeletionAtLoci;
+    }
+
+    public boolean keepUniqueReadListInLIBS() {
+        return keepUniqueReadListInLIBS;
     }
 
     /**
@@ -136,6 +166,8 @@ public class ReadProperties {
      *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
      * @param defaultBaseQualities if the reads have incomplete quality scores, set them all to defaultBaseQuality.
+     * @param keepUniqueReadListInLIBS If true, we will tell LocusIteratorByState to track the unique reads it sees
+     *                                 This is really useful for ActiveRegionTraversals
      */
     public ReadProperties( Collection<SAMReaderID> samFiles,
            SAMFileHeader header,
@@ -147,7 +179,8 @@ public class ReadProperties {
            Collection<ReadFilter> supplementalFilters,
            List<ReadTransformer> readTransformers,
            boolean includeReadsWithDeletionAtLoci,
-           byte defaultBaseQualities) {
+           byte defaultBaseQualities,
+           final boolean keepUniqueReadListInLIBS) {
         this.readers = samFiles;
         this.header = header;
         this.sortOrder = sortOrder;
@@ -159,5 +192,6 @@ public class ReadProperties {
         this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;
         this.useOriginalBaseQualities = useOriginalBaseQualities;
         this.defaultBaseQualities = defaultBaseQualities;
+        this.keepUniqueReadListInLIBS = keepUniqueReadListInLIBS;
     }
 }
