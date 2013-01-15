@@ -191,6 +191,10 @@ public class Haplotype {
     public static class HaplotypeBaseComparator implements Comparator<Haplotype>, Serializable {
         @Override
         public int compare( final Haplotype hap1, final Haplotype hap2 ) {
+            return compareHaplotypeBases(hap1, hap2);
+        }
+
+        public static int compareHaplotypeBases(final Haplotype hap1, final Haplotype hap2) {
             final byte[] arr1 = hap1.getBases();
             final byte[] arr2 = hap2.getBases();
             // compares byte arrays using lexical ordering
@@ -200,6 +204,14 @@ public class Haplotype {
                 if (cmp != 0) { return cmp; }
             }
             return arr2.length - arr1.length;
+        }
+    }
+
+    public static class HaplotypePositionComparator implements Comparator<Haplotype>, Serializable {
+        @Override
+        public int compare( final Haplotype hap1, final Haplotype hap2 ) {
+            final int comp = hap1.getAlignmentStartHapwrtRef() - hap2.getAlignmentStartHapwrtRef();
+            return comp == 0 ? HaplotypeBaseComparator.compareHaplotypeBases(hap1, hap2) : comp;
         }
     }
 
