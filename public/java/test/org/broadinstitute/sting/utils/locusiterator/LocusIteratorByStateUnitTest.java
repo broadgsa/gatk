@@ -28,17 +28,16 @@ package org.broadinstitute.sting.utils.locusiterator;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.ArtificialBAMBuilder;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -447,26 +446,19 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         //logger.warn(String.format("testLIBSKeepSubmittedReads %d %d %d %b %b %b", nReadsPerLocus, nLoci, nSamples, keepReads, grabReadsAfterEachCycle, downsample));
         final int readLength = 10;
 
-        final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 100000);
-        final List<String> samples = new ArrayList<String>(nSamples);
-        for ( int i = 0; i < nSamples; i++ ) {
-            final GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord("rg" + i);
-            final String sample = "sample" + i;
-            samples.add(sample);
-            rg.setSample(sample);
-            rg.setPlatform(NGSPlatform.ILLUMINA.getDefaultPlatform());
-            header.addReadGroup(rg);
-        }
-
         final boolean downsample = downsampleTo != -1;
         final DownsamplingMethod downsampler = downsample
                 ? new DownsamplingMethod(DownsampleType.BY_SAMPLE, downsampleTo, null, false)
                 : new DownsamplingMethod(DownsampleType.NONE, null, null, false);
-        final List<GATKSAMRecord> reads = ArtificialSAMUtils.createReadStream(nReadsPerLocus, nLoci, header, 1, readLength);
+
+        final ArtificialBAMBuilder bamBuilder = new ArtificialBAMBuilder(nReadsPerLocus, nLoci);
+        bamBuilder.createAndSetHeader(nSamples).setReadLength(readLength).setAlignmentStart(1);
+
+        final List<GATKSAMRecord> reads = bamBuilder.makeReads();
         li = new LocusIteratorByState(new FakeCloseableIterator<GATKSAMRecord>(reads.iterator()),
                 createTestReadProperties(downsampler, keepReads),
                 genomeLocParser,
-                samples);
+                bamBuilder.getSamples());
 
         final Set<GATKSAMRecord> seenSoFar = new HashSet<GATKSAMRecord>();
         final Set<GATKSAMRecord> keptReads = new HashSet<GATKSAMRecord>();
