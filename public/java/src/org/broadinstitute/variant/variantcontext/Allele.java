@@ -111,7 +111,7 @@ public class Allele implements Comparable<Allele> {
     /** A generic static NO_CALL allele for use */
 
     // no public way to create an allele
-    private Allele(byte[] bases, boolean isRef) {
+    protected Allele(byte[] bases, boolean isRef) {
         // null alleles are no longer allowed
         if ( wouldBeNullAllele(bases) ) {
             throw new IllegalArgumentException("Null alleles are not supported");
@@ -140,7 +140,7 @@ public class Allele implements Comparable<Allele> {
             throw new IllegalArgumentException("Unexpected base in allele bases \'" + new String(bases)+"\'");
     }
 
-    private Allele(String bases, boolean isRef) {
+    protected Allele(String bases, boolean isRef) {
         this(bases.getBytes(), isRef);
     }
 
