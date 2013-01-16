@@ -194,17 +194,18 @@ public class VariantContextAdaptors {
                 return null; // we weren't given enough reference context to create the VariantContext
 
             final byte refBaseForIndel = ref.getBases()[index];
+            final boolean refBaseIsDash = dbsnp.getNCBIRefBase().equals("-");
 
             boolean addPaddingBase;
             if ( isSNP(dbsnp) || isMNP(dbsnp) )
                 addPaddingBase = false;
             else if ( isIndel(dbsnp) || dbsnp.getVariantType().contains("mixed") )
-                addPaddingBase = VariantContextUtils.requiresPaddingBase(stripNullDashes(getAlleleList(dbsnp)));
+                addPaddingBase = refBaseIsDash || VariantContextUtils.requiresPaddingBase(stripNullDashes(getAlleleList(dbsnp)));
             else
                 return null; // can't handle anything else
 
             Allele refAllele;
-            if ( dbsnp.getNCBIRefBase().equals("-") )
+            if ( refBaseIsDash )
                 refAllele = Allele.create(refBaseForIndel, true);
             else if ( ! Allele.acceptableAlleleBases(dbsnp.getNCBIRefBase()) )
                 return null;
