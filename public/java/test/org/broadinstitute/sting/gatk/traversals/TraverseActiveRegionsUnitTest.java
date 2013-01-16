@@ -76,7 +76,7 @@ import java.util.*;
  * Test the Active Region Traversal Contract
  * http://iwww.broadinstitute.org/gsa/wiki/index.php/Active_Region_Traversal_Contract
  */
-public class TraverseActiveRegionsOptimizedUnitTest extends BaseTest {
+public class TraverseActiveRegionsUnitTest extends BaseTest {
     private final static boolean ENFORCE_CONTRACTS = false;
     private final static boolean DEBUG = false;
 
@@ -131,7 +131,7 @@ public class TraverseActiveRegionsOptimizedUnitTest extends BaseTest {
     @DataProvider(name = "TraversalEngineProvider")
     public Object[][] makeTraversals() {
         final List<Object[]> traversals = new LinkedList<Object[]>();
-        traversals.add(new Object[]{new TraverseActiveRegionsOptimized<Integer, Integer>()});
+        traversals.add(new Object[]{new TraverseActiveRegions<Integer, Integer>()});
         return traversals.toArray(new Object[][]{});
     }
 
@@ -537,7 +537,7 @@ public class TraverseActiveRegionsOptimizedUnitTest extends BaseTest {
                 new ValidationExclusion(),
                 new ArrayList<ReadFilter>(),
                 new ArrayList<ReadTransformer>(),
-                false, (byte)30, false, t instanceof TraverseActiveRegionsOptimized);
+                false, (byte)30, false, true);
 
         List<LocusShardDataProvider> providers = new ArrayList<LocusShardDataProvider>();
         for (Shard shard : dataSource.createShardIteratorOverIntervals(new GenomeLocSortedSet(genomeLocParser, intervals), new LocusShardBalancer())) {

@@ -842,7 +842,7 @@ public class GenomeAnalysisEngine {
         if (argCollection.keepProgramRecords)
             removeProgramRecords = false;
 
-        final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker && argCollection.newART;
+        final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker;
 
         return new SAMDataSource(
                 samReaderIDs,
