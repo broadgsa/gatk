@@ -47,8 +47,8 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class ArtificialBAMBuilderUnitTest extends BaseTest {
-    @DataProvider(name = "CombinatorialARTTilingProvider")
-    public Object[][] makeCombinatorialARTTilingProvider() {
+    @DataProvider(name = "ArtificialBAMBuilderUnitTestProvider")
+    public Object[][] makeArtificialBAMBuilderUnitTestProvider() {
         final List<Object[]> tests = new LinkedList<Object[]>();
 
         final List<Integer> starts = Arrays.asList(
@@ -79,7 +79,7 @@ public class ArtificialBAMBuilderUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "CombinatorialARTTilingProvider")
+    @Test(dataProvider = "ArtificialBAMBuilderUnitTestProvider")
     public void testBamProvider(final ArtificialBAMBuilder bamBuilder, int readLength, int skips, int start, int nSamples, int nReadsPerLocus, int nLoci) {
         Assert.assertEquals(bamBuilder.getReadLength(), readLength);
         Assert.assertEquals(bamBuilder.getSkipNLoci(), skips);

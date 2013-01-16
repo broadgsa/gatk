@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.traversals;
 
+import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.WalkerManager;
@@ -47,24 +48,36 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import java.util.*;
 
 /**
- * Created with IntelliJ IDEA.
+ * Implement active region traversal
+ *
  * User: depristo
  * Date: 1/9/13
  * Time: 4:45 PM
- * To change this template use File | Settings | File Templates.
+ *
+ * Live region:
+ *
+ *   The ART tracks a thing called the live region.  The live region is a position on a specific contig
+ *   of the alignment start of the last read we processed during this traversal.  Because the
+ *   read stream is sorted, future reads must occurs in the the live region.  Therefore the the dead region
+ *   (everything to the left of the live boundary) cannot have any more read data.  The live / dead
+ *   regions are used to decide when we can safely call map on active regions, as only active regions
+ *   contained completely within the dead region (including extensions) have a complete set of read data
+ *   in the collected read list.  All of the data related to the live region is captured by the local
+ *   variable spanOfLastReadSeen
+ *
  */
 public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegionWalker<M,T>,LocusShardDataProvider> {
+    protected final static Logger logger = Logger.getLogger(TraversalEngine.class);
     protected final static boolean DEBUG = false;
 
     // set by the tranversal
     private int activeRegionExtension = -1;
     private int maxRegionSize = -1;
 
-    /**
-     * our log, which we want to capture anything from this class
-     */
-    protected final static Logger logger = Logger.getLogger(TraversalEngine.class);
-    protected final LinkedList<ActiveRegion> workQueue = new LinkedList<ActiveRegion>();
+    private final LinkedList<ActiveRegion> workQueue = new LinkedList<ActiveRegion>();
+
+    private LinkedList<GATKSAMRecord> myReads = new LinkedList<GATKSAMRecord>();
+    private GenomeLoc spanOfLastReadSeen = null;
 
     protected int getActiveRegionExtension() {
         return activeRegionExtension;
@@ -77,6 +90,11 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
     @Override
     public String getTraversalUnits() {
         return "active regions";
+    }
+
+    @Override
+    public String toString() {
+        return "TraverseActiveRegions";
     }
 
     @Override
@@ -153,23 +171,58 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         }
     }
 
-    private LinkedList<GATKSAMRecord> myReads = new LinkedList<GATKSAMRecord>();
-    private Shard lastShard = null;
+    /**
+     * Did read appear in the last shard?
+     *
+     * When we transition across shard boundaries we see duplicate reads because
+     * each shard contains the reads that *overlap* the shard.  So if we just finished
+     * shard 1-1000 and are now in 1001-2000 we'll see duplicate reads from 1001
+     * that overlapped 1-1000.  This function tests read to determine if we would have
+     * seen it before by asking if read.getAlignmentStart() is less than the
+     * stop position of the last seen read at the start of the traversal.  The reason
+     * we need to use the location of the last read at the start of the traversal
+     * is that we update the lastRead during the traversal, and we only want to filter
+     * out reads whose start is before the last read of the previous shard, not the
+     * current shard.
+     *
+     * @param locOfLastReadAtTraversalStart the location of the last read seen at the start of the traversal
+     * @param read the read we want to test if it's already been seen in the last shard
+     * @return true if read would have appeared in the last shard, false otherwise
+     */
+    protected boolean appearedInLastShard(final GenomeLoc locOfLastReadAtTraversalStart, final GATKSAMRecord read) {
+        if ( locOfLastReadAtTraversalStart == null )
+            // we're in the first shard, so obviously the answer is no
+            return false;
+        else {
+            // otherwise check to see if the alignment occurred in the previous shard
+            return read.getAlignmentStart() <= locOfLastReadAtTraversalStart.getStart()
+                    // we're on the same contig
+                    && read.getReferenceIndex() == locOfLastReadAtTraversalStart.getContigIndex();
+        }
+
+    }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // Actual traverse function
+    //
+    // -------------------------------------------------------------------------------------
+
+    /**
+     * Is the current shard on a new contig w.r.t. the previous shard?
+     * @param currentShard the current shard we are processing
+     * @return true if the last shard was on a different contig than the current shard
+     */
+    private boolean onNewContig(final Shard currentShard) {
+        return spanOfLastSeenRead() != null
+                && spanOfLastSeenRead().getContigIndex() != currentShard.getLocation().getContigIndex();
+    }
 
     @Override
     public T traverse( final ActiveRegionWalker<M,T> walker,
                        final LocusShardDataProvider dataProvider,
                        T sum) {
-        if ( DEBUG ) logger.warn(String.format("TraverseActiveRegions.traverse: Shard is %s", dataProvider));
-
-        final HashSet<GATKSAMRecord> maybeDuplicatedReads = new HashSet<GATKSAMRecord>();
-        // TODO -- there's got to be a better way to know this
-        if ( lastShard != dataProvider.getShard() ) {
-            maybeDuplicatedReads.addAll(myReads);
-            logger.info("Crossing shard boundary requires us to check for duplicates against " + maybeDuplicatedReads.size() +  " reads");
-            if ( DEBUG ) logger.warn("Clearing myReads");
-        }
-        lastShard = dataProvider.getShard();
+        logger.debug(String.format("TraverseActiveRegions.traverse: Shard is %s", dataProvider));
 
         final LocusView locusView = new AllLocusView(dataProvider);
 
@@ -181,6 +234,12 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         ReferenceOrderedView referenceOrderedDataView = getReferenceOrderedView(walker, dataProvider, locusView);
 
         // We keep processing while the next reference location is within the interval
+        final GenomeLoc locOfLastReadAtTraversalStart = spanOfLastSeenRead();
+
+        // if we've moved onto a new contig, process all of the active regions
+        if ( onNewContig(dataProvider.getShard()) )
+            sum = processActiveRegions(walker, sum, true);
+
         GenomeLoc prevLoc = null;
         while( locusView.hasNext() ) {
             final AlignmentContext locus = locusView.next();
@@ -191,15 +250,12 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             // reads may occur outside our intervals but overlap them in the future
             final Collection<GATKSAMRecord> reads = locusView.getLIBS().transferReadsFromAllPreviousPileups();
             for( final GATKSAMRecord read : reads ) {
-                notifyOfCurrentPosition(read);
-                // most of the time maybeDuplicatedReads is empty
-                // TODO -- I believe that because of the ordering of reads that as soon as we don't find a read in the
-                // TODO -- potential list of duplicates we can clear the hashset
-                if ( ! maybeDuplicatedReads.isEmpty() && maybeDuplicatedReads.contains(read) ) {
+                if ( appearedInLastShard(locOfLastReadAtTraversalStart, read) ) {
                     if ( DEBUG ) logger.warn("Skipping duplicated " + read.getReadName());
                 } else {
                     if ( DEBUG ) logger.warn("Adding read " + read.getReadName() + " at " + engine.getGenomeLocParser().createGenomeLoc(read) + " from provider " + dataProvider);
-                    myReads.add((GATKSAMRecord)read);
+                    rememberLastReadLocation(read);
+                    myReads.add(read);
                 }
             }
 
@@ -257,27 +313,86 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         return sum;
     }
 
-    private GenomeLoc startOfLiveRegion = null;
-
-    protected void notifyOfCurrentPosition(final GATKSAMRecord read) {
-        notifyOfCurrentPosition(engine.getGenomeLocParser().createGenomeLoc(read));
+    /**
+     * Special function called in LinearMicroScheduler to empty out the work queue.
+     * Ugly for now but will be cleaned up when we push this functionality more into the engine
+     */
+    public T endTraversal(final Walker<M, T> walker, T sum) {
+        return processActiveRegions((ActiveRegionWalker<M, T>)walker, sum, true);
     }
 
-    protected void notifyOfCurrentPosition(final GenomeLoc currentLocation) {
-        if ( startOfLiveRegion == null )
-            startOfLiveRegion = currentLocation;
-        else
-            startOfLiveRegion = startOfLiveRegion.max(currentLocation.getStartLocation());
+    // -------------------------------------------------------------------------------------
+    //
+    // Functions to manage and interact with the live / dead zone
+    //
+    // -------------------------------------------------------------------------------------
+
+    /**
+     * Update the live region to reflect that the last read we've seen in the traversal is read
+     *
+     * Requires that sequential calls always be provided reads in coordinate sorted order
+     *
+     * @param read the last read we've seen during the traversal
+     */
+    protected void rememberLastReadLocation(final GATKSAMRecord read) {
+        final GenomeLoc currentLocation = engine.getGenomeLocParser().createGenomeLoc(read);
+        if ( spanOfLastReadSeen == null )
+            spanOfLastReadSeen = currentLocation;
+        else {
+            if ( currentLocation.isBefore(spanOfLastReadSeen) )
+                throw new IllegalStateException("Updating last read seen in the traversal with read " + read + " with span " + currentLocation + " but this occurs before the previously seen read " + spanOfLastReadSeen);
+            spanOfLastReadSeen = currentLocation;
+        }
     }
 
-    protected GenomeLoc getStartOfLiveRegion() {
-        return startOfLiveRegion;
+    /**
+     * Get a GenomeLoc indicating the start (heading to the right) of the live ART region.
+     * @return the left-most position of the live region on the genome
+     */
+    protected GenomeLoc spanOfLastSeenRead() {
+        return spanOfLastReadSeen;
     }
 
-    protected boolean regionCompletelyWithinDeadZone(final GenomeLoc region, final boolean includeExtension) {
-        return (region.getStop() < (getStartOfLiveRegion().getStart() - (includeExtension ? getActiveRegionExtension() : 0)))
-                || ! region.onSameContig(getStartOfLiveRegion());
+    /**
+     * Is the active region completely within the traversal's dead zone?
+     *
+     * @param region the region we want to test
+     * @return true if the extended location of region is completely within the current dead zone, false otherwise
+     */
+    protected boolean regionCompletelyWithinDeadZone(final ActiveRegion region) {
+        return region.getExtendedLoc().getStop() < spanOfLastSeenRead().getStart()
+                || ! region.getExtendedLoc().onSameContig(spanOfLastSeenRead());
     }
+
+    /**
+     * Is the read dead?  That is, can it no longer be in any future active region, and therefore can be discarded?
+     *
+     * read: start |--------> stop ------ stop + extension
+     * region:                      start |-----------------| end
+     *
+     * Since the regions are coming in order, read could potentially be contained in a future interval if
+     * stop + activeRegionExtension >= end.  If, on the other hand, stop + extension is < the end
+     * of this region, then we can discard it, since any future region could only include reads
+     * up to end + 1 - extension.
+     *
+     * Note that this function doesn't care about the dead zone.  We're assuming that by
+     * actually calling this function with an active region that region is already in the dead zone,
+     * so checking that the read is in the dead zone doesn't make sense.
+     *
+     * @param read the read we're testing
+     * @param activeRegion the current active region
+     * @return true if the read is dead, false other
+     */
+    @Requires({"read != null", "activeRegion != null"})
+    private boolean readCannotOccurInAnyMoreActiveRegions(final GATKSAMRecord read, final ActiveRegion activeRegion) {
+        return read.getAlignmentEnd() + getActiveRegionExtension() < activeRegion.getLocation().getStop();
+    }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // Functions to process active regions that are ready for map / reduce calls
+    //
+    // -------------------------------------------------------------------------------------
 
     private T processActiveRegions(final ActiveRegionWalker<M, T> walker, T sum, final boolean forceRegionsToBeActive) {
         if( walker.activeRegionOutStream != null ) {
@@ -292,26 +407,16 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         // Since we've traversed sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
         // TODO can implement parallel traversal here
         while( workQueue.peek() != null ) {
-            final GenomeLoc extendedLoc = workQueue.peek().getExtendedLoc();
-            if ( forceRegionsToBeActive || regionCompletelyWithinDeadZone(extendedLoc, false) ) {
-                final ActiveRegion activeRegion = workQueue.remove();
-                if ( DEBUG ) logger.warn("Processing active region " + activeRegion + " dead zone " + getStartOfLiveRegion());
-                sum = processActiveRegion( activeRegion, sum, walker );
+            final ActiveRegion activeRegion = workQueue.peek();
+            if ( forceRegionsToBeActive || regionCompletelyWithinDeadZone(activeRegion) ) {
+                if ( DEBUG ) logger.warn("Processing active region " + activeRegion + " dead zone " + spanOfLastSeenRead());
+                sum = processActiveRegion( workQueue.remove(), sum, walker );
             } else {
                 break;
             }
         }
 
         return sum;
-    }
-
-    @Override
-    public String toString() {
-        return "TraverseActiveRegions";
-    }
-
-    private boolean readIsDead(final GATKSAMRecord read, final GenomeLoc readLoc, final ActiveRegion activeRegion) {
-        return readLoc.getStop() < activeRegion.getLocation().getStart() && regionCompletelyWithinDeadZone(readLoc, true);
     }
 
     protected T processActiveRegion(final ActiveRegion activeRegion, final T sum, final ActiveRegionWalker<M, T> walker) {
@@ -325,7 +430,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
                 activeRegion.add(read);
 
                 if ( ! walker.wantsNonPrimaryReads() ) {
-                    if ( DEBUG ) logger.warn("Removing read " + read.getReadName() + " at " + readLoc + " with dead zone start " + getStartOfLiveRegion());
+                    if ( DEBUG ) logger.warn("Removing read " + read.getReadName() + " at " + readLoc + " with dead zone start " + spanOfLastSeenRead());
                     liveReads.remove();
                     killed = true;
                 }
@@ -333,8 +438,8 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
                 activeRegion.add( read );
             }
 
-            if ( ! killed && readIsDead(read, readLoc, activeRegion) ) {
-                if ( DEBUG ) logger.warn("Removing read " + read.getReadName() + " at " + readLoc + " with dead zone start " + getStartOfLiveRegion());
+            if ( ! killed && readCannotOccurInAnyMoreActiveRegions(read, activeRegion) ) {
+                if ( DEBUG ) logger.warn("Removing read " + read.getReadName() + " at " + readLoc + " with dead zone start " + spanOfLastSeenRead());
                 liveReads.remove();
             }
         }
@@ -342,14 +447,5 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         logger.debug(">> Map call with " + activeRegion.getReads().size() + " " + (activeRegion.isActive ? "active" : "inactive") + " reads @ " + activeRegion.getLocation() + " with full extent: " + activeRegion.getReferenceLoc());
         final M x = walker.map(activeRegion, null);
         return walker.reduce( x, sum );
-    }
-
-
-    /**
-     * Special function called in LinearMicroScheduler to empty out the work queue.
-     * Ugly for now but will be cleaned up when we push this functionality more into the engine
-     */
-    public T endTraversal(final Walker<M, T> walker, T sum) {
-        return processActiveRegions((ActiveRegionWalker<M, T>)walker, sum, true);
     }
 }

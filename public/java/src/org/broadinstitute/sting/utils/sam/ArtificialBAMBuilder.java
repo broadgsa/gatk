@@ -25,7 +25,9 @@
 
 package org.broadinstitute.sting.utils.sam;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.*;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.NGSPlatform;
 
 import java.io.File;
@@ -51,6 +53,9 @@ import java.util.List;
 public class ArtificialBAMBuilder {
     public final static int BAM_SHARD_SIZE = 16384;
 
+    private final IndexedFastaSequenceFile reference;
+    private final GenomeLocParser parser;
+
     final int nReadsPerLocus;
     final int nLoci;
 
@@ -66,14 +71,39 @@ public class ArtificialBAMBuilder {
 
     SAMFileHeader header;
 
-    public ArtificialBAMBuilder(int nReadsPerLocus, int nLoci) {
+    public ArtificialBAMBuilder(final IndexedFastaSequenceFile reference, int nReadsPerLocus, int nLoci) {
         this.nReadsPerLocus = nReadsPerLocus;
         this.nLoci = nLoci;
+
+        this.reference = reference;
+        this.parser = new GenomeLocParser(reference);
         createAndSetHeader(1);
     }
 
+    public ArtificialBAMBuilder(int nReadsPerLocus, int nLoci) {
+        this(ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000000).getSequenceDictionary(), nReadsPerLocus, nLoci);
+    }
+
+    public ArtificialBAMBuilder(final SAMSequenceDictionary dict, int nReadsPerLocus, int nLoci) {
+        this.nReadsPerLocus = nReadsPerLocus;
+        this.nLoci = nLoci;
+        this.reference = null;
+        this.parser = new GenomeLocParser(dict);
+        createAndSetHeader(1);
+    }
+
+    public IndexedFastaSequenceFile getReference() {
+        return reference;
+    }
+
+    public GenomeLocParser getGenomeLocParser() {
+        return parser;
+    }
+
     public ArtificialBAMBuilder createAndSetHeader(final int nSamples) {
-        this.header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000000);
+        this.header = new SAMFileHeader();
+        header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
+        header.setSequenceDictionary(parser.getContigs());
         samples.clear();
 
         for ( int i = 0; i < nSamples; i++ ) {
@@ -155,6 +185,11 @@ public class ArtificialBAMBuilder {
     public ArtificialBAMBuilder setReadLength(int readLength) { this.readLength = readLength; return this; }
     public SAMFileHeader getHeader() { return header; }
     public ArtificialBAMBuilder setHeader(SAMFileHeader header) { this.header = header; return this; }
+
+    public int getAlignmentEnd() {
+        return alignmentStart + nLoci * (skipNLoci + 1) + readLength;
+    }
+
 
     public int getNSamples() { return samples.size(); }
 

@@ -54,6 +54,32 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     private static final boolean DEBUG = false;
     protected LocusIteratorByState li;
 
+    @Test(enabled = true)
+    public void testUnmappedAndAllIReadsPassThrough() {
+        final int readLength = 10;
+        GATKSAMRecord mapped1 = ArtificialSAMUtils.createArtificialRead(header,"mapped1",0,1,readLength);
+        GATKSAMRecord mapped2 = ArtificialSAMUtils.createArtificialRead(header,"mapped2",0,1,readLength);
+        GATKSAMRecord unmapped = ArtificialSAMUtils.createArtificialRead(header,"unmapped",0,1,readLength);
+        GATKSAMRecord allI = ArtificialSAMUtils.createArtificialRead(header,"allI",0,1,readLength);
+
+        unmapped.setReadUnmappedFlag(true);
+        unmapped.setCigarString("*");
+        allI.setCigarString(readLength + "I");
+
+        List<GATKSAMRecord> reads = Arrays.asList(mapped1, unmapped, allI, mapped2);
+
+        // create the iterator by state with the fake reads and fake records
+        li = makeLTBS(reads,createTestReadProperties(DownsamplingMethod.NONE, true));
+
+        Assert.assertTrue(li.hasNext());
+        AlignmentContext context = li.next();
+        ReadBackedPileup pileup = context.getBasePileup();
+        Assert.assertEquals(pileup.depthOfCoverage(), 2, "Should see only 2 reads in pileup, even with unmapped and all I reads");
+
+        final List<GATKSAMRecord> rawReads = li.transferReadsFromAllPreviousPileups();
+        Assert.assertEquals(rawReads, reads, "Input and transferred read lists should be the same, and include the unmapped and all I reads");
+    }
+
     @Test(enabled = true && ! DEBUG)
     public void testXandEQOperators() {
         final byte[] bases1 = new byte[] {'A','A','A','A','A','A','A','A','A','A'};
@@ -451,7 +477,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
                 ? new DownsamplingMethod(DownsampleType.BY_SAMPLE, downsampleTo, null, false)
                 : new DownsamplingMethod(DownsampleType.NONE, null, null, false);
 
-        final ArtificialBAMBuilder bamBuilder = new ArtificialBAMBuilder(nReadsPerLocus, nLoci);
+        final ArtificialBAMBuilder bamBuilder = new ArtificialBAMBuilder(header.getSequenceDictionary(), nReadsPerLocus, nLoci);
         bamBuilder.createAndSetHeader(nSamples).setReadLength(readLength).setAlignmentStart(1);
 
         final List<GATKSAMRecord> reads = bamBuilder.makeReads();
