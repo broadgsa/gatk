@@ -211,14 +211,6 @@ public class Haplotype  extends Allele {
         }
     }
 
-    public static class HaplotypePositionComparator implements Comparator<Haplotype>, Serializable {
-        @Override
-        public int compare( final Haplotype hap1, final Haplotype hap2 ) {
-            final int comp = hap1.getAlignmentStartHapwrtRef() - hap2.getAlignmentStartHapwrtRef();
-            return comp == 0 ? HaplotypeBaseComparator.compareHaplotypeBases(hap1, hap2) : comp;
-        }
-    }
-
     public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(final List<Allele> alleleList,
                                                                                final int startPos,
                                                                                final ReferenceContext ref,
