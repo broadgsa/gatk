@@ -32,8 +32,10 @@ package org.broadinstitute.sting.utils.fasta;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.SAMSequenceRecord;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Priority;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -49,7 +51,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Basic unit test for GenomeLoc
+ * Basic unit test for CachingIndexedFastaSequenceFile
  */
 public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
     private File simpleFasta = new File(publicTestDir + "/exampleFASTA.fasta");
@@ -80,7 +82,7 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
 
     @Test(dataProvider = "fastas", enabled = true && ! DEBUG)
     public void testCachingIndexedFastaReaderSequential1(File fasta, int cacheSize, int querySize) throws FileNotFoundException {
-        final CachingIndexedFastaSequenceFile caching = new CachingIndexedFastaSequenceFile(fasta, getCacheSize(cacheSize), true);
+        final CachingIndexedFastaSequenceFile caching = new CachingIndexedFastaSequenceFile(fasta, getCacheSize(cacheSize), true, false);
 
         SAMSequenceRecord contig = caching.getSequenceDictionary().getSequence(0);
         logger.warn(String.format("Checking contig %s length %d with cache size %d and query size %d",
@@ -122,7 +124,7 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
     @Test(dataProvider = "fastas", enabled = true && ! DEBUG)
     public void testCachingIndexedFastaReaderTwoStage(File fasta, int cacheSize, int querySize) throws FileNotFoundException {
         final IndexedFastaSequenceFile uncached = new IndexedFastaSequenceFile(fasta);
-        final CachingIndexedFastaSequenceFile caching = new CachingIndexedFastaSequenceFile(fasta, getCacheSize(cacheSize), true);
+        final CachingIndexedFastaSequenceFile caching = new CachingIndexedFastaSequenceFile(fasta, getCacheSize(cacheSize), true, false);
 
         SAMSequenceRecord contig = uncached.getSequenceDictionary().getSequence(0);
 
@@ -167,7 +169,7 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
 
     @Test(dataProvider = "ParallelFastaTest", enabled = true && ! DEBUG, timeOut = 60000)
     public void testCachingIndexedFastaReaderParallel(final File fasta, final int cacheSize, final int querySize, final int nt) throws FileNotFoundException, InterruptedException {
-        final CachingIndexedFastaSequenceFile caching = new CachingIndexedFastaSequenceFile(fasta, getCacheSize(cacheSize), true);
+        final CachingIndexedFastaSequenceFile caching = new CachingIndexedFastaSequenceFile(fasta, getCacheSize(cacheSize), true, false);
 
         logger.warn(String.format("Parallel caching index fasta reader test cacheSize %d querySize %d nt %d", caching.getCacheSize(), querySize, nt));
         for ( int iterations = 0; iterations < 1; iterations++ ) {
@@ -229,5 +231,34 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
             return new String(reader.getSequence(contig).getBases());
         else
             return new String(reader.getSubsequenceAt(contig, start, stop).getBases());
+    }
+
+    @Test(enabled = true)
+    public void testIupacChanges() throws FileNotFoundException, InterruptedException {
+        final String testFasta = privateTestDir + "iupacFASTA.fasta";
+        final CachingIndexedFastaSequenceFile iupacPreserving = new CachingIndexedFastaSequenceFile(new File(testFasta), CachingIndexedFastaSequenceFile.DEFAULT_CACHE_SIZE, false, true);
+        final CachingIndexedFastaSequenceFile makeNs = new CachingIndexedFastaSequenceFile(new File(testFasta));
+
+        int preservingNs = 0;
+        int changingNs = 0;
+        for ( SAMSequenceRecord contig : iupacPreserving.getSequenceDictionary().getSequences() ) {
+            final String sPreserving = fetchBaseString(iupacPreserving, contig.getSequenceName(), 0, 15000);
+            preservingNs += StringUtils.countMatches(sPreserving, "N");
+
+            final String sChanging = fetchBaseString(makeNs, contig.getSequenceName(), 0, 15000);
+            changingNs += StringUtils.countMatches(sChanging, "N");
+        }
+
+        Assert.assertEquals(changingNs, preservingNs + 4);
+    }
+
+    @Test(enabled = true, expectedExceptions = {UserException.class})
+    public void testFailOnBadBase() throws FileNotFoundException, InterruptedException {
+        final String testFasta = privateTestDir + "problematicFASTA.fasta";
+        final CachingIndexedFastaSequenceFile fasta = new CachingIndexedFastaSequenceFile(new File(testFasta));
+
+        for ( SAMSequenceRecord contig : fasta.getSequenceDictionary().getSequences() ) {
+            fetchBaseString(fasta, contig.getSequenceName(), -1, -1);
+        }
     }
 }

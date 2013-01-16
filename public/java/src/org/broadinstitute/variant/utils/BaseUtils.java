@@ -166,9 +166,11 @@ public class BaseUtils {
         return base >= 'A' && base <= 'Z';
     }
 
-    public static byte[] convertIUPACtoN(final byte[] bases, final boolean errorOnBadReferenceBase) {
+    public static byte[] convertIUPACtoN(final byte[] bases, final boolean errorOnBadReferenceBase, final boolean ignoreConversionOfFirstByte) {
         final int length = bases.length;
-        for ( int i = 0; i < length; i++ ) {
+        final int start = ignoreConversionOfFirstByte ? 1 : 0;
+
+        for ( int i = start; i < length; i++ ) {
             final int baseIndex = baseIndexWithIupacMap[bases[i]];
             if ( baseIndex == Base.N.ordinal() ) {
                 bases[i] = 'N';

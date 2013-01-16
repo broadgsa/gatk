@@ -125,13 +125,13 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
      * @param cacheSize the size of the cache to use in this CachingIndexedFastaReader, must be >= 0
      * @param preserveCase If true, we will keep the case of the underlying bases in the FASTA, otherwise everything is converted to upper case
      */
-    public CachingIndexedFastaSequenceFile(final File fasta, final long cacheSize, final boolean preserveCase ) throws FileNotFoundException {
+    public CachingIndexedFastaSequenceFile(final File fasta, final long cacheSize, final boolean preserveCase, final boolean  preserveIUPAC) throws FileNotFoundException {
         super(fasta);
         if ( cacheSize < 0 ) throw new IllegalArgumentException("cacheSize must be > 0");
         this.cacheSize = cacheSize;
         this.cacheMissBackup = Math.max(cacheSize / 1000, 1);
         this.preserveCase = preserveCase;
-        preserveIUPAC = false;
+        this.preserveIUPAC = preserveIUPAC;
     }
 
     /**
@@ -168,7 +168,7 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
      * @param preserveCase If true, we will keep the case of the underlying bases in the FASTA, otherwise everything is converted to upper case
      */
     public CachingIndexedFastaSequenceFile(final File fasta, final boolean preserveCase) throws FileNotFoundException {
-        this(fasta, DEFAULT_CACHE_SIZE, preserveCase);
+        this(fasta, DEFAULT_CACHE_SIZE, preserveCase, false);
     }
 
     /**
@@ -181,7 +181,7 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
      * @param cacheSize the size of the cache to use in this CachingIndexedFastaReader, must be >= 0
      */
     public CachingIndexedFastaSequenceFile(final File fasta, final long cacheSize ) throws FileNotFoundException {
-        this(fasta, cacheSize, false);
+        this(fasta, cacheSize, false, false);
     }
 
     /**
@@ -261,7 +261,7 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
      *         all of the bases in the ReferenceSequence returned by this method will be upper cased.
      */
     @Override
-    public ReferenceSequence getSubsequenceAt( final String contig, final long start, final long stop ) {
+    public ReferenceSequence getSubsequenceAt( final String contig, long start, final long stop ) {
         final ReferenceSequence result;
         final Cache myCache = cache.get();
 
@@ -269,7 +269,7 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
             cacheMisses++;
             result = super.getSubsequenceAt(contig, start, stop);
             if ( ! preserveCase ) StringUtil.toUpperCase(result.getBases());
-            if ( ! preserveIUPAC ) BaseUtils.convertIUPACtoN(result.getBases(), true);
+            if ( ! preserveIUPAC ) BaseUtils.convertIUPACtoN(result.getBases(), true, start < 1);
         } else {
             // todo -- potential optimization is to check if contig.name == contig, as this in general will be true
             SAMSequenceRecord contigInfo = super.getSequenceDictionary().getSequence(contig);
@@ -285,7 +285,7 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
 
                 // convert all of the bases in the sequence to upper case if we aren't preserving cases
                 if ( ! preserveCase ) StringUtil.toUpperCase(myCache.seq.getBases());
-                if ( ! preserveIUPAC ) BaseUtils.convertIUPACtoN(myCache.seq.getBases(), true);
+                if ( ! preserveIUPAC ) BaseUtils.convertIUPACtoN(myCache.seq.getBases(), true, myCache.start == 0);
             } else {
                 cacheHits++;
             }
