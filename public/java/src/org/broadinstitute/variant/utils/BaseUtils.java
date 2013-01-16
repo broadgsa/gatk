@@ -26,6 +26,7 @@
 package org.broadinstitute.variant.utils;
 
 import net.sf.samtools.util.StringUtil;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -34,42 +35,66 @@ import java.util.Random;
  * BaseUtils contains some basic utilities for manipulating nucleotides.
  */
 public class BaseUtils {
-    public final static byte A = (byte) 'A';
-    public final static byte C = (byte) 'C';
-    public final static byte G = (byte) 'G';
-    public final static byte T = (byte) 'T';
 
-    public final static byte N = (byte) 'N';
-    public final static byte D = (byte) 'D';
+    public enum Base {
+        A ((byte)'A'),
+        C ((byte)'C'),
+        G ((byte)'G'),
+        T ((byte)'T'),
+        N ((byte)'N'),
+        D ((byte)'D');
 
-    //
-    // todo -- we need a generalized base abstraction using the Base enum.
-    //
+        public byte base;
+
+        private Base(final byte base) {
+            this.base = base;
+        }
+    }
+
+    // todo -- add this to the generalized base abstraction using the Base enum.
     public final static byte[] BASES = {'A', 'C', 'G', 'T'};
     public final static byte[] EXTENDED_BASES = {'A', 'C', 'G', 'T', 'N', 'D'};
 
     static private final int[] baseIndexMap = new int[256];
     static {
         Arrays.fill(baseIndexMap, -1);
-        baseIndexMap['A'] = 0;
-        baseIndexMap['a'] = 0;
-        baseIndexMap['*'] = 0;    // the wildcard character counts as an A
-        baseIndexMap['C'] = 1;
-        baseIndexMap['c'] = 1;
-        baseIndexMap['G'] = 2;
-        baseIndexMap['g'] = 2;
-        baseIndexMap['T'] = 3;
-        baseIndexMap['t'] = 3;
+        baseIndexMap['A'] = Base.A.ordinal();
+        baseIndexMap['a'] = Base.A.ordinal();
+        baseIndexMap['*'] = Base.A.ordinal();    // the wildcard character counts as an A
+        baseIndexMap['C'] = Base.C.ordinal();
+        baseIndexMap['c'] = Base.C.ordinal();
+        baseIndexMap['G'] = Base.G.ordinal();
+        baseIndexMap['g'] = Base.G.ordinal();
+        baseIndexMap['T'] = Base.T.ordinal();
+        baseIndexMap['t'] = Base.T.ordinal();
     }
 
-    // todo -- fix me (enums?)
-    public static final byte DELETION_INDEX = 4;
-    public static final byte NO_CALL_INDEX = 5; // (this is 'N')
-
-    public static final int aIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'A');
-    public static final int cIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'C');
-    public static final int gIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'G');
-    public static final int tIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'T');
+    static private final int[] baseIndexWithIupacMap = baseIndexMap.clone();
+    static {
+        baseIndexWithIupacMap['*'] = -1;    // the wildcard character is bad
+        baseIndexWithIupacMap['N'] = Base.N.ordinal();
+        baseIndexWithIupacMap['n'] = Base.N.ordinal();
+        baseIndexWithIupacMap['R'] = Base.N.ordinal();
+        baseIndexWithIupacMap['r'] = Base.N.ordinal();
+        baseIndexWithIupacMap['Y'] = Base.N.ordinal();
+        baseIndexWithIupacMap['y'] = Base.N.ordinal();
+        baseIndexWithIupacMap['M'] = Base.N.ordinal();
+        baseIndexWithIupacMap['m'] = Base.N.ordinal();
+        baseIndexWithIupacMap['K'] = Base.N.ordinal();
+        baseIndexWithIupacMap['k'] = Base.N.ordinal();
+        baseIndexWithIupacMap['W'] = Base.N.ordinal();
+        baseIndexWithIupacMap['w'] = Base.N.ordinal();
+        baseIndexWithIupacMap['S'] = Base.N.ordinal();
+        baseIndexWithIupacMap['s'] = Base.N.ordinal();
+        baseIndexWithIupacMap['B'] = Base.N.ordinal();
+        baseIndexWithIupacMap['b'] = Base.N.ordinal();
+        baseIndexWithIupacMap['D'] = Base.N.ordinal();
+        baseIndexWithIupacMap['d'] = Base.N.ordinal();
+        baseIndexWithIupacMap['H'] = Base.N.ordinal();
+        baseIndexWithIupacMap['h'] = Base.N.ordinal();
+        baseIndexWithIupacMap['V'] = Base.N.ordinal();
+        baseIndexWithIupacMap['v'] = Base.N.ordinal();
+    }
 
     // Use a fixed random seed to allow for deterministic results when using random bases
     private static final Random randomNumberGen = new Random(47382911L);
@@ -96,10 +121,10 @@ public class BaseUtils {
     }
 
     public static boolean isTransition(byte base1, byte base2) {
-        int b1 = simpleBaseToBaseIndex(base1);
-        int b2 = simpleBaseToBaseIndex(base2);
-        return b1 == 0 && b2 == 2 || b1 == 2 && b2 == 0 ||
-                b1 == 1 && b2 == 3 || b1 == 3 && b2 == 1;
+        final int b1 = simpleBaseToBaseIndex(base1);
+        final int b2 = simpleBaseToBaseIndex(base2);
+        return b1 == Base.A.ordinal() && b2 == Base.G.ordinal() || b1 == Base.G.ordinal() && b2 == Base.A.ordinal() ||
+                b1 == Base.C.ordinal() && b2 == Base.T.ordinal() || b1 == Base.T.ordinal() && b2 == Base.C.ordinal();
     }
 
     public static boolean isTransversion(byte base1, byte base2) {
@@ -139,6 +164,19 @@ public class BaseUtils {
 
     public static boolean isUpperCase(final byte base) {
         return base >= 'A' && base <= 'Z';
+    }
+
+    public static byte[] convertIUPACtoN(final byte[] bases, final boolean errorOnBadReferenceBase) {
+        final int length = bases.length;
+        for ( int i = 0; i < length; i++ ) {
+            final int baseIndex = baseIndexWithIupacMap[bases[i]];
+            if ( baseIndex == Base.N.ordinal() ) {
+                bases[i] = 'N';
+            } else if ( errorOnBadReferenceBase && baseIndex == -1 ) {
+                throw new UserException.BadInput("We encountered a non-standard non-IUPAC base in the provided reference: '" + bases[i] + "'");
+            }
+        }
+        return bases;
     }
 
     /**
@@ -231,10 +269,10 @@ public class BaseUtils {
         switch (base) {
             case 'd':
             case 'D':
-                return DELETION_INDEX;
+                return Base.D.ordinal();
             case 'n':
             case 'N':
-                return NO_CALL_INDEX;
+                return Base.N.ordinal();
 
             default:
                 return simpleBaseToBaseIndex(base);
