@@ -1068,7 +1068,7 @@ public class IntervalUtilsUnitTest extends BaseTest {
         List<IntervalBinding<Feature>> intervalArgs = new ArrayList<IntervalBinding<Feature>>(1);
         intervalArgs.add(new IntervalBinding<Feature>(picardIntervalFile.getAbsolutePath()));
 
-        IntervalUtils.loadIntervals(intervalArgs, argCollection.intervalSetRule, argCollection.intervalMerging, argCollection.intervalPadding, genomeLocParser);
+        IntervalUtils.loadIntervals(intervalArgs, argCollection.intervalArguments.intervalSetRule, argCollection.intervalArguments.intervalMerging, argCollection.intervalArguments.intervalPadding, genomeLocParser);
     }
 
     @Test(expectedExceptions=UserException.class, dataProvider="invalidIntervalTestData")
@@ -1081,7 +1081,7 @@ public class IntervalUtilsUnitTest extends BaseTest {
         List<IntervalBinding<Feature>> intervalArgs = new ArrayList<IntervalBinding<Feature>>(1);
         intervalArgs.add(new IntervalBinding<Feature>(gatkIntervalFile.getAbsolutePath()));
 
-        IntervalUtils.loadIntervals(intervalArgs, argCollection.intervalSetRule, argCollection.intervalMerging, argCollection.intervalPadding, genomeLocParser);
+        IntervalUtils.loadIntervals(intervalArgs, argCollection.intervalArguments.intervalSetRule, argCollection.intervalArguments.intervalMerging, argCollection.intervalArguments.intervalPadding, genomeLocParser);
     }
 
     private File createTempFile( String tempFilePrefix, String tempFileExtension, String... lines ) throws Exception {

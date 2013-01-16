@@ -26,11 +26,7 @@
 package org.broadinstitute.sting.gatk.arguments;
 
 import net.sf.samtools.SAMFileReader;
-import org.broad.tribble.Feature;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.IntervalBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
@@ -38,8 +34,6 @@ import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -100,41 +94,8 @@ public class GATKArgumentCollection {
     @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually", required = false)
     public List<String> readFilters = new ArrayList<String>();
 
-    /**
-     * Using this option one can instruct the GATK engine to traverse over only part of the genome.  This argument can be specified multiple times.
-     * One may use samtools-style intervals either explicitly (e.g. -L chr1 or -L chr1:100-200) or listed in a file (e.g. -L myFile.intervals).
-     * Additionally, one may specify a rod file to traverse over the positions for which there is a record in the file (e.g. -L file.vcf).
-     * To specify the completely unmapped reads in the BAM file (i.e. those without a reference contig) use -L unmapped.
-     */
-    @Input(fullName = "intervals", shortName = "L", doc = "One or more genomic intervals over which to operate. Can be explicitly specified on the command line or in a file (including a rod file)", required = false)
-    public List<IntervalBinding<Feature>> intervals = null;
-
-    /**
-     * Using this option one can instruct the GATK engine NOT to traverse over certain parts of the genome.  This argument can be specified multiple times.
-     * One may use samtools-style intervals either explicitly (e.g. -XL chr1 or -XL chr1:100-200) or listed in a file (e.g. -XL myFile.intervals).
-     * Additionally, one may specify a rod file to skip over the positions for which there is a record in the file (e.g. -XL file.vcf).
-     */
-    @Input(fullName = "excludeIntervals", shortName = "XL", doc = "One or more genomic intervals to exclude from processing. Can be explicitly specified on the command line or in a file (including a rod file)", required = false)
-    public List<IntervalBinding<Feature>> excludeIntervals = null;
-
-    /**
-     * How should the intervals specified by multiple -L or -XL arguments be combined?  Using this argument one can, for example, traverse over all of the positions
-     * for which there is a record in a VCF but just in chromosome 20 (-L chr20 -L file.vcf -isr INTERSECTION).
-     */
-    @Argument(fullName = "interval_set_rule", shortName = "isr", doc = "Indicates the set merging approach the interval parser should use to combine the various -L or -XL inputs", required = false)
-    public IntervalSetRule intervalSetRule = IntervalSetRule.UNION;
-
-    /**
-     * Should abutting (but not overlapping) intervals be treated as separate intervals?
-     */
-    @Argument(fullName = "interval_merging", shortName = "im", doc = "Indicates the interval merging rule we should use for abutting intervals", required = false)
-    public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
-
-    /**
-     * For example, '-L chr1:100' with a padding value of 20 would turn into '-L chr1:80-120'.
-     */
-    @Argument(fullName = "interval_padding", shortName = "ip", doc = "Indicates how many basepairs of padding to include around each of the intervals specified with the -L/--intervals argument", required = false)
-    public int intervalPadding = 0;
+    @ArgumentCollection
+    public IntervalArgumentCollection intervalArguments = new IntervalArgumentCollection();
 
     @Input(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
