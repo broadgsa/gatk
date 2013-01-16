@@ -37,8 +37,8 @@ import org.broadinstitute.variant.variantcontext.VariantContext;
 import java.io.Serializable;
 import java.util.*;
 
-public class Haplotype  extends Allele {
-    protected final double[] quals;
+public class Haplotype extends Allele {
+
     private GenomeLoc genomeLocation = null;
     private HashMap<Integer, VariantContext> eventMap = null;
     private Cigar cigar;
@@ -51,49 +51,23 @@ public class Haplotype  extends Allele {
      * Main constructor
      *
      * @param bases bases
-     * @param quals quals
      * @param isRef is reference allele?
      */
-    public Haplotype( final byte[] bases, final double[] quals, final boolean isRef ) {
-        super(bases.clone(), isRef);
-        this.quals = quals.clone();
-    }
-
-    /**
-     * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
-     *
-     * @param bases bases
-     * @param qual  qual
-     */
-    public Haplotype( final byte[] bases, final int qual, final boolean isRef ) {
-        super(bases.clone(), isRef);
-        quals = new double[bases.length];
-        Arrays.fill(quals, (double)qual);
-    }
-
-    public Haplotype( final byte[] bases, final int qual ) {
-        this(bases, qual, false);
-    }
-
     public Haplotype( final byte[] bases, final boolean isRef ) {
-        this(bases, 0, isRef);
-    }
-
-    public Haplotype( final byte[] bases, final double[] quals ) {
-        this(bases, quals, false);
+        super(bases.clone(), isRef);
     }
 
     public Haplotype( final byte[] bases ) {
-        this(bases, 0, false);
+        this(bases, false);
     }
 
     protected Haplotype( final byte[] bases, final Event artificialEvent ) {
-        this(bases, 0, false);
+        this(bases, false);
         this.artificialEvent = artificialEvent;
     }
 
     public Haplotype( final byte[] bases, final GenomeLoc loc ) {
-        this(bases, 0, false);
+        this(bases, false);
         this.genomeLocation = loc;
     }
 
@@ -110,22 +84,11 @@ public class Haplotype  extends Allele {
         this.eventMap = eventMap;
     }
 
-    public double getQualitySum() {
-        double s = 0;
-        for (int k=0; k < quals.length; k++) {
-            s += quals[k];
-        }
-        return s;
-    }
-
     @Override
     public String toString() {
         return getDisplayString();
     }
 
-    public double[] getQuals() {
-        return quals.clone();
-    }
     public byte[] getBases() {
         return super.getBases().clone();
     }
