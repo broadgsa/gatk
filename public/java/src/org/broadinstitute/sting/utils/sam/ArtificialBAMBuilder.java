@@ -32,8 +32,7 @@ import org.broadinstitute.sting.utils.NGSPlatform;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Easy to use creator of artificial BAM files for testing
@@ -63,6 +62,8 @@ public class ArtificialBAMBuilder {
     int alignmentStart = 1;
     int readLength = 10;
     private final ArrayList<String> samples = new ArrayList<String>();
+
+    private LinkedList<GATKSAMRecord> additionalReads = new LinkedList<GATKSAMRecord>();
 
     final SAMFileWriterFactory factory = new SAMFileWriterFactory();
     {
@@ -118,6 +119,14 @@ public class ArtificialBAMBuilder {
         return this;
     }
 
+    public void addReads(final GATKSAMRecord readToAdd) {
+        additionalReads.add(readToAdd);
+    }
+
+    public void addReads(final Collection<GATKSAMRecord> readsToAdd) {
+        additionalReads.addAll(readsToAdd);
+    }
+
     public List<String> getSamples() {
         return samples;
     }
@@ -143,6 +152,11 @@ public class ArtificialBAMBuilder {
                     reads.add(read);
                 }
             }
+        }
+
+        if ( ! additionalReads.isEmpty() ) {
+            reads.addAll(additionalReads);
+            Collections.sort(reads, new SAMRecordCoordinateComparator());
         }
 
         return reads;
