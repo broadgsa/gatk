@@ -40,7 +40,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegionReadState;
-import org.broadinstitute.sting.utils.activeregion.ActivityProfileResult;
+import org.broadinstitute.sting.utils.activeregion.ActivityProfileState;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -114,7 +114,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
 
     // Determine probability of active status over the AlignmentContext
     @Ensures({"result.isActiveProb >= 0.0", "result.isActiveProb <= 1.0"})
-    public abstract ActivityProfileResult isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
+    public abstract ActivityProfileState isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
 
     // Map over the ActiveRegion
     public abstract MapType map(final ActiveRegion activeRegion, final RefMetaDataTracker metaDataTracker);

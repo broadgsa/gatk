@@ -41,7 +41,8 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 import org.broadinstitute.sting.utils.activeregion.ActivityProfile;
-import org.broadinstitute.sting.utils.activeregion.ActivityProfileResult;
+import org.broadinstitute.sting.utils.activeregion.ActivityProfileState;
+import org.broadinstitute.sting.utils.activeregion.BandPassActivityProfile;
 import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -71,6 +72,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
     protected final static boolean DEBUG = false;
 
     // set by the tranversal
+    private boolean walkerHasPresetRegions = false;
     private int activeRegionExtension = -1;
     private int maxRegionSize = -1;
 
@@ -78,6 +80,27 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
 
     private LinkedList<GATKSAMRecord> myReads = new LinkedList<GATKSAMRecord>();
     private GenomeLoc spanOfLastReadSeen = null;
+
+    @Override
+    public void initialize(GenomeAnalysisEngine engine, Walker walker, ProgressMeter progressMeter) {
+        super.initialize(engine, walker, progressMeter);
+
+        final ActiveRegionWalker arWalker = (ActiveRegionWalker)walker;
+        if ( arWalker.wantsExtendedReads() && ! arWalker.wantsNonPrimaryReads() ) {
+            throw new IllegalArgumentException("Active region walker " + arWalker + " requested extended events but not " +
+                    "non-primary reads, an inconsistent state.  Please modify the walker");
+        }
+
+        activeRegionExtension = walker.getClass().getAnnotation(ActiveRegionExtension.class).extension();
+        maxRegionSize = walker.getClass().getAnnotation(ActiveRegionExtension.class).maxRegion();
+        walkerHasPresetRegions = arWalker.hasPresetActiveRegions();
+    }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // Utility functions
+    //
+    // -------------------------------------------------------------------------------------
 
     protected int getActiveRegionExtension() {
         return activeRegionExtension;
@@ -97,19 +120,6 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         return "TraverseActiveRegions";
     }
 
-    @Override
-    public void initialize(GenomeAnalysisEngine engine, Walker walker, ProgressMeter progressMeter) {
-        super.initialize(engine, walker, progressMeter);
-        activeRegionExtension = walker.getClass().getAnnotation(ActiveRegionExtension.class).extension();
-        maxRegionSize = walker.getClass().getAnnotation(ActiveRegionExtension.class).maxRegion();
-
-        final ActiveRegionWalker arWalker = (ActiveRegionWalker)walker;
-        if ( arWalker.wantsExtendedReads() && ! arWalker.wantsNonPrimaryReads() ) {
-            throw new IllegalArgumentException("Active region walker " + arWalker + " requested extended events but not " +
-                    "non-primary reads, an inconsistent state.  Please modify the walker");
-        }
-    }
-
     /**
      * Is the loc outside of the intervals being requested for processing by the GATK?
      * @param loc
@@ -118,6 +128,22 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
     protected boolean outsideEngineIntervals(final GenomeLoc loc) {
         return engine.getIntervals() != null && ! engine.getIntervals().overlaps(loc);
     }
+
+    protected ReferenceOrderedView getReferenceOrderedView(final ActiveRegionWalker<M, T> walker,
+                                                           final LocusShardDataProvider dataProvider,
+                                                           final LocusView locusView) {
+        if ( WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE_ORDERED_DATA )
+            return new ManagingReferenceOrderedView( dataProvider );
+        else
+            return (RodLocusView)locusView;
+    }
+
+
+    // -------------------------------------------------------------------------------------
+    //
+    // Working with ActivityProfiles and Active Regions
+    //
+    // -------------------------------------------------------------------------------------
 
     /**
      * Take the individual isActive calls and integrate them into contiguous active regions and
@@ -133,28 +159,26 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         if ( profile.isEmpty() )
             throw new IllegalStateException("trying to incorporate an empty active profile " + profile);
 
-        final ActivityProfile bandPassFiltered = profile.bandPassFilter();
-        activeRegions.addAll(bandPassFiltered.createActiveRegions( getActiveRegionExtension(), getMaxRegionSize() ));
-        return new ActivityProfile( engine.getGenomeLocParser(), profile.hasPresetRegions() );
+        final ActivityProfile finalizedProfile = profile.finalizeProfile();
+        activeRegions.addAll(finalizedProfile.createActiveRegions(getActiveRegionExtension(), getMaxRegionSize()));
+        return makeNewActivityProfile();
     }
 
-    protected final ActivityProfileResult walkerActiveProb(final ActiveRegionWalker<M, T> walker,
+    protected final ActivityProfileState walkerActiveProb(final ActiveRegionWalker<M, T> walker,
                                                            final RefMetaDataTracker tracker, final ReferenceContext refContext,
                                                            final AlignmentContext locus, final GenomeLoc location) {
-        if ( walker.hasPresetActiveRegions() ) {
-            return new ActivityProfileResult(location, walker.presetActiveRegions.overlaps(location) ? 1.0 : 0.0);
+        if ( walkerHasPresetRegions ) {
+            return new ActivityProfileState(location, walker.presetActiveRegions.overlaps(location) ? 1.0 : 0.0);
         } else {
             return walker.isActive( tracker, refContext, locus );
         }
     }
 
-    protected ReferenceOrderedView getReferenceOrderedView(final ActiveRegionWalker<M, T> walker,
-                                                           final LocusShardDataProvider dataProvider,
-                                                           final LocusView locusView) {
-        if ( WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE_ORDERED_DATA )
-            return new ManagingReferenceOrderedView( dataProvider );
+    private ActivityProfile makeNewActivityProfile() {
+        if ( walkerHasPresetRegions )
+            return new ActivityProfile(engine.getGenomeLocParser());
         else
-            return (RodLocusView)locusView;
+            return new BandPassActivityProfile(engine.getGenomeLocParser());
     }
 
     /**
@@ -170,6 +194,12 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             }
         }
     }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // Actual traverse function
+    //
+    // -------------------------------------------------------------------------------------
 
     /**
      * Did read appear in the last shard?
@@ -202,12 +232,6 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
 
     }
 
-    // -------------------------------------------------------------------------------------
-    //
-    // Actual traverse function
-    //
-    // -------------------------------------------------------------------------------------
-
     /**
      * Is the current shard on a new contig w.r.t. the previous shard?
      * @param currentShard the current shard we are processing
@@ -229,7 +253,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         final LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
 
         final List<ActiveRegion> activeRegions = new LinkedList<ActiveRegion>();
-        ActivityProfile profile = new ActivityProfile(engine.getGenomeLocParser(), walker.hasPresetActiveRegions() );
+        ActivityProfile profile = makeNewActivityProfile();
 
         ReferenceOrderedView referenceOrderedDataView = getReferenceOrderedView(walker, dataProvider, locusView);
 
@@ -245,9 +269,8 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             final AlignmentContext locus = locusView.next();
             final GenomeLoc location = locus.getLocation();
 
-            // Grab all the previously unseen reads from this pileup and add them to the massive read list
-            // Note that this must occur before we leave because we are outside the intervals because
-            // reads may occur outside our intervals but overlap them in the future
+            // get all of the new reads that appear in the current pileup, and them to our list of reads
+            // provided we haven't seen them before
             final Collection<GATKSAMRecord> reads = locusView.getLIBS().transferReadsFromAllPreviousPileups();
             for( final GATKSAMRecord read : reads ) {
                 if ( appearedInLastShard(locOfLastReadAtTraversalStart, read) ) {

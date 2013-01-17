@@ -33,7 +33,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegionReadState;
-import org.broadinstitute.sting.utils.activeregion.ActivityProfileResult;
+import org.broadinstitute.sting.utils.activeregion.ActivityProfileState;
 
 import java.util.*;
 
@@ -80,10 +80,10 @@ class DummyActiveRegionWalker extends ActiveRegionWalker<Integer, Integer> {
     }
 
     @Override
-    public ActivityProfileResult isActive(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public ActivityProfileState isActive(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         isActiveCalls.add(ref.getLocus());
         final double p = activeRegions == null || activeRegions.overlaps(ref.getLocus()) ? prob : 0.0;
-        return new ActivityProfileResult(ref.getLocus(), p);
+        return new ActivityProfileState(ref.getLocus(), p);
     }
 
     @Override

@@ -42,9 +42,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 
 public class ActivityProfileUnitTest extends BaseTest {
@@ -70,23 +68,26 @@ public class ActivityProfileUnitTest extends BaseTest {
         List<ActiveRegion> expectedRegions;
         int extension = 0;
         GenomeLoc regionStart = startLoc;
+        final ProfileType type;
 
-        public BasicActivityProfileTestProvider(final List<Double> probs, final List<ActiveRegion> expectedRegions) {
+        public BasicActivityProfileTestProvider(final ProfileType type, final List<Double> probs, boolean startActive, int ... startsAndStops) {
             super(BasicActivityProfileTestProvider.class);
-            this.probs = probs;
-            this.expectedRegions = expectedRegions;
-            setName(getName());
-        }
-
-        public BasicActivityProfileTestProvider(final List<Double> probs, boolean startActive, int ... startsAndStops) {
-            super(BasicActivityProfileTestProvider.class);
+            this.type = type;
             this.probs = probs;
             this.expectedRegions = toRegions(startActive, startsAndStops);
             setName(getName());
         }
 
         private String getName() {
-            return String.format("probs=%s expectedRegions=%s", Utils.join(",", probs), Utils.join(",", expectedRegions));
+            return String.format("type=%s probs=%s expectedRegions=%s", type, Utils.join(",", probs), Utils.join(",", expectedRegions));
+        }
+
+        public ActivityProfile makeProfile() {
+            switch ( type ) {
+                case Base: return new ActivityProfile(genomeLocParser);
+                case BandPass: return new BandPassActivityProfile(genomeLocParser);
+                default: throw new IllegalStateException(type.toString());
+            }
         }
 
         private List<ActiveRegion> toRegions(boolean isActive, int[] startsAndStops) {
@@ -103,27 +104,36 @@ public class ActivityProfileUnitTest extends BaseTest {
         }
     }
 
+    private enum ProfileType {
+        Base, BandPass
+    }
+
     @DataProvider(name = "BasicActivityProfileTestProvider")
     public Object[][] makeQualIntervalTestProvider() {
-        new BasicActivityProfileTestProvider(Arrays.asList(1.0), true, 0, 1);
-        new BasicActivityProfileTestProvider(Arrays.asList(1.0, 0.0), true, 0, 1, 2);
-        new BasicActivityProfileTestProvider(Arrays.asList(0.0, 1.0), false, 0, 1, 2);
-        new BasicActivityProfileTestProvider(Arrays.asList(1.0, 0.0, 1.0), true, 0, 1, 2, 3);
-        new BasicActivityProfileTestProvider(Arrays.asList(1.0, 1.0, 1.0), true, 0, 3);
+        for ( final ProfileType type : ProfileType.values() ) {
+            new BasicActivityProfileTestProvider(type, Arrays.asList(1.0), true, 0, 1);
+            new BasicActivityProfileTestProvider(type, Arrays.asList(1.0, 0.0), true, 0, 1, 2);
+            new BasicActivityProfileTestProvider(type, Arrays.asList(0.0, 1.0), false, 0, 1, 2);
+            new BasicActivityProfileTestProvider(type, Arrays.asList(1.0, 0.0, 1.0), true, 0, 1, 2, 3);
+            new BasicActivityProfileTestProvider(type, Arrays.asList(1.0, 1.0, 1.0), true, 0, 3);
+        }
 
         return BasicActivityProfileTestProvider.getTests(BasicActivityProfileTestProvider.class);
     }
 
     @Test(dataProvider = "BasicActivityProfileTestProvider")
     public void testBasicActivityProfile(BasicActivityProfileTestProvider cfg) {
-        ActivityProfile profile = new ActivityProfile(genomeLocParser, false);
+        ActivityProfile profile = cfg.makeProfile();
+
+        Assert.assertTrue(profile.isEmpty());
 
         Assert.assertEquals(profile.parser, genomeLocParser);
 
         for ( int i = 0; i < cfg.probs.size(); i++ ) {
             double p = cfg.probs.get(i);
             GenomeLoc loc = genomeLocParser.createGenomeLoc(cfg.regionStart.getContig(), cfg.regionStart.getStart() + i, cfg.regionStart.getStart() + i);
-            profile.add(new ActivityProfileResult(loc, p));
+            profile.add(new ActivityProfileState(loc, p));
+            Assert.assertFalse(profile.isEmpty());
         }
         Assert.assertEquals(profile.regionStartLoc, genomeLocParser.createGenomeLoc(cfg.regionStart.getContig(), cfg.regionStart.getStart(), cfg.regionStart.getStart() ));
 
@@ -131,6 +141,11 @@ public class ActivityProfileUnitTest extends BaseTest {
         assertProbsAreEqual(profile.isActiveList, cfg.probs);
 
         assertRegionsAreEqual(profile.createActiveRegions(0, 100), cfg.expectedRegions);
+
+        Assert.assertEquals(profile.createDerivedProfile(profile.isActiveList).getClass(), profile.getClass());
+
+        final List<ActivityProfileState> empty = new LinkedList<ActivityProfileState>();
+        Assert.assertEquals(profile.createDerivedProfile(empty).size(), 0);
     }
 
     private void assertRegionsAreEqual(List<ActiveRegion> actual, List<ActiveRegion> expected) {
@@ -140,7 +155,7 @@ public class ActivityProfileUnitTest extends BaseTest {
         }
     }
 
-    private void assertProbsAreEqual(List<ActivityProfileResult> actual, List<Double> expected) {
+    private void assertProbsAreEqual(List<ActivityProfileState> actual, List<Double> expected) {
         Assert.assertEquals(actual.size(), expected.size());
         for ( int i = 0; i < actual.size(); i++ ) {
             Assert.assertEquals(actual.get(i).isActiveProb, expected.get(i));

@@ -25,23 +25,17 @@
 
 package org.broadinstitute.sting.utils.activeregion;
 
-import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.sam.ArtificialBAMBuilder;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -52,7 +46,7 @@ import java.util.List;
  * Time: 2:30 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ActivityProfileResultTest {
+public class ActivityProfileStateUnitTest {
     private GenomeLocParser genomeLocParser;
 
     @BeforeClass
@@ -71,7 +65,7 @@ public class ActivityProfileResultTest {
                 genomeLocParser.createGenomeLoc(chr, 10, 10),
                 genomeLocParser.createGenomeLoc(chr, 100, 100) )) {
             for ( final double prob : Arrays.asList(0.0, 0.5, 1.0) ) {
-                for ( final ActivityProfileResult.ActivityProfileResultState state : ActivityProfileResult.ActivityProfileResultState.values() ) {
+                for ( final ActivityProfileState.Type state : ActivityProfileState.Type.values() ) {
                     for ( final Number value : Arrays.asList(1, 2, 4) ) {
                         tests.add(new Object[]{ loc, prob, state, value});
                     }
@@ -84,15 +78,15 @@ public class ActivityProfileResultTest {
     }
 
     @Test(dataProvider = "ActiveProfileResultProvider")
-    public void testActiveProfileResultProvider(GenomeLoc loc, final double prob, ActivityProfileResult.ActivityProfileResultState maybeState, final Number maybeNumber) {
-        final ActivityProfileResult apr = maybeState == null
-                ? new ActivityProfileResult(loc, prob)
-                : new ActivityProfileResult(loc, prob, maybeState, maybeNumber);
+    public void testActiveProfileResultProvider(GenomeLoc loc, final double prob, ActivityProfileState.Type maybeState, final Number maybeNumber) {
+        final ActivityProfileState apr = maybeState == null
+                ? new ActivityProfileState(loc, prob)
+                : new ActivityProfileState(loc, prob, maybeState, maybeNumber);
 
         Assert.assertEquals(apr.getLoc(), loc);
         Assert.assertNotNull(apr.toString());
         Assert.assertEquals(apr.isActiveProb, prob);
-        Assert.assertEquals(apr.resultState, maybeState == null ? ActivityProfileResult.ActivityProfileResultState.NONE : maybeState);
+        Assert.assertEquals(apr.resultState, maybeState == null ? ActivityProfileState.Type.NONE : maybeState);
         Assert.assertEquals(apr.resultValue, maybeState == null ? null : maybeNumber);
     }
 }
