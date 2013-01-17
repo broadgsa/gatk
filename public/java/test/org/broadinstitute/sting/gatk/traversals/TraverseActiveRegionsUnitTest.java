@@ -501,6 +501,12 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         return providers;
     }
 
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // Combinatorial tests to ensure reads are going into the right regions
+    //
+    // ---------------------------------------------------------------------------------------------------------
+
     @DataProvider(name = "CombinatorialARTTilingProvider")
     public Object[][] makeCombinatorialARTTilingProvider() {
         final List<Object[]> tests = new LinkedList<Object[]>();
@@ -582,7 +588,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
     }
 
 
-    @Test(enabled = true, dataProvider = "CombinatorialARTTilingProvider")
+    @Test(enabled = true && ! DEBUG, dataProvider = "CombinatorialARTTilingProvider")
     public void testARTReadsInActiveRegions(final int id, final GenomeLocSortedSet activeRegions, final EnumSet<ActiveRegionReadState> readStates, final ArtificialBAMBuilder bamBuilder) {
         logger.warn("Running testARTReadsInActiveRegions id=" + id + " locs " + activeRegions + " against bam " + bamBuilder);
         final List<GenomeLoc> intervals = Arrays.asList(
@@ -597,10 +603,10 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
 
         final Set<String> alreadySeenReads = new HashSet<String>(); // for use with the primary / non-primary
         for ( final ActiveRegion region : activeRegionsMap.values() ) {
+            final Set<String> readNamesInRegion = readNamesInRegion(region);
             int nReadsExpectedInRegion = 0;
             for ( final GATKSAMRecord read : bamBuilder.makeReads() ) {
                 final GenomeLoc readLoc = genomeLocParser.createGenomeLoc(read);
-                final Set<String> readNamesInRegion = readNamesInRegion(region);
 
                 boolean shouldBeInRegion = readStates.contains(ActiveRegionReadState.EXTENDED)
                         ? region.getExtendedLoc().overlapsP(readLoc)
@@ -628,5 +634,54 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         for ( final SAMRecord read : region.getReads() )
             readNames.add(read.getReadName());
         return readNames;
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // Make sure all insertion reads are properly included in the active regions
+    //
+    // ---------------------------------------------------------------------------------------------------------
+
+    @Test
+    public void ensureAllInsertionReadsAreInActiveRegions() {
+
+        final int readLength = 10;
+        final int start = 20;
+        final int nReadsPerLocus = 10;
+        final int nLoci = 3;
+
+        final ArtificialBAMBuilder bamBuilder = new ArtificialBAMBuilder(reference, nReadsPerLocus, nLoci);
+        bamBuilder.setReadLength(readLength);
+        bamBuilder.setAlignmentStart(start);
+
+        // note that the position must be +1 as the read's all I cigar puts the end 1 bp before start, leaving it out of the region
+        GATKSAMRecord allI = ArtificialSAMUtils.createArtificialRead(bamBuilder.getHeader(),"allI",0,start+1,readLength);
+        allI.setCigarString(readLength + "I");
+        allI.setReadGroup(new GATKSAMReadGroupRecord(bamBuilder.getHeader().getReadGroups().get(0)));
+
+        bamBuilder.addReads(allI);
+
+        final GenomeLocSortedSet activeRegions = new GenomeLocSortedSet(bamBuilder.getGenomeLocParser());
+        activeRegions.add(bamBuilder.getGenomeLocParser().createGenomeLoc("1", 10, 30));
+        final List<GenomeLoc> intervals = Arrays.asList(
+                genomeLocParser.createGenomeLoc("1", bamBuilder.getAlignmentStart(), bamBuilder.getAlignmentEnd())
+        );
+
+        final DummyActiveRegionWalker walker = new DummyActiveRegionWalker(activeRegions);
+
+        final TraverseActiveRegions traversal = new TraverseActiveRegions<Integer, Integer>();
+        final Map<GenomeLoc, ActiveRegion> activeRegionsMap = getActiveRegions(traversal, walker, intervals, bamBuilder.makeTemporarilyBAMFile().toString());
+
+        final ActiveRegion region = activeRegionsMap.values().iterator().next();
+        int nReadsExpectedInRegion = 0;
+
+        final Set<String> readNamesInRegion = readNamesInRegion(region);
+        for ( final GATKSAMRecord read : bamBuilder.makeReads() ) {
+            Assert.assertTrue(readNamesInRegion.contains(read.getReadName()),
+                    "Region " + region + " should contain read " + read + " with cigar " + read.getCigarString() + " but it wasn't");
+            nReadsExpectedInRegion++;
+        }
+
+        Assert.assertEquals(region.size(), nReadsExpectedInRegion, "There are more reads in active region " + region + "than expected");
     }
 }
