@@ -158,12 +158,18 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
             List<ArgumentField> fields = new ArrayList<ArgumentField>();
 
             String gatherClass;
+
+            // one can set the specific gatherer to use by adding @Gather before any output argument.
+            // For example (used to be part of UG):
+            //      @Gather(className = "org.broadinstitute.sting.queue.extensions.gatk.CatVariantsGatherer")
+            //      @Output(doc="File to which variants should be written",required=true)
+            //      protected VariantContextWriter writer = null;
             if (gatherer != null)
                 gatherClass = gatherer;
             else if (SAMFileWriter.class.isAssignableFrom(argumentDefinition.argumentType))
                 gatherClass = "BamGatherFunction";
             else if (VariantContextWriter.class.isAssignableFrom(argumentDefinition.argumentType))
-                gatherClass = "VcfGatherFunction";
+                gatherClass = "CatVariantsGatherer"; // used to be "VcfGatherFunction";
             else
                 gatherClass = "org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction";
 
