@@ -154,9 +154,9 @@ public class GenotypeLikelihoodsUnitTest {
 
     public void testGetQualFromLikelihoodsMultiAllelic() {
         GenotypeLikelihoods gl = GenotypeLikelihoods.fromLog10Likelihoods(triAllelic);
-        Allele ref = Allele.create(BaseUtils.A,true);
-        Allele alt1 = Allele.create(BaseUtils.C);
-        Allele alt2 = Allele.create(BaseUtils.T);
+        Allele ref = Allele.create(BaseUtils.Base.A.base,true);
+        Allele alt1 = Allele.create(BaseUtils.Base.C.base);
+        Allele alt2 = Allele.create(BaseUtils.Base.T.base);
         List<Allele> allAlleles = Arrays.asList(ref,alt1,alt2);
         List<Allele> gtAlleles = Arrays.asList(alt1,alt2);
         GenotypeBuilder gtBuilder = new GenotypeBuilder();

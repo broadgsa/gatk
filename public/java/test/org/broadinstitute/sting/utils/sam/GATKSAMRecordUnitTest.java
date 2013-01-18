@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -67,8 +68,8 @@ public class GATKSAMRecordUnitTest extends BaseTest {
 
     @Test
     public void testReducedReadPileupElement() {
-        PileupElement readp = new PileupElement(read, 0, false, false, false, false, false, false);
-        PileupElement reducedreadp = new PileupElement(reducedRead, 0, false, false, false, false, false, false);
+        PileupElement readp = LocusIteratorByState.createPileupForReadAndOffset(read, 0);
+        PileupElement reducedreadp = LocusIteratorByState.createPileupForReadAndOffset(reducedRead, 0);
 
         Assert.assertFalse(readp.getRead().isReducedRead());
 

@@ -132,7 +132,7 @@ public class TraverseReadsUnitTest extends BaseTest {
         countReadWalker = new CountReads();
         
         traversalEngine = new TraverseReadsNano(1);
-        traversalEngine.initialize(engine);
+        traversalEngine.initialize(engine, countReadWalker);
     }
 
     /** Test out that we can shard the file and iterate over every read */

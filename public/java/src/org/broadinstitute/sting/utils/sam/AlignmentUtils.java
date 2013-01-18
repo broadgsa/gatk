@@ -31,7 +31,6 @@ import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.variant.utils.BaseUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -297,7 +296,7 @@ public class AlignmentUtils {
     }
 
     public static int calcAlignmentByteArrayOffset(final Cigar cigar, final PileupElement pileupElement, final int alignmentStart, final int refLocus) {
-        return calcAlignmentByteArrayOffset( cigar, pileupElement.getOffset(), pileupElement.isInsertionAtBeginningOfRead(), pileupElement.isDeletion(), alignmentStart, refLocus );
+        return calcAlignmentByteArrayOffset( cigar, pileupElement.getOffset(), false, pileupElement.isDeletion(), alignmentStart, refLocus );
     }
 
     public static int calcAlignmentByteArrayOffset(final Cigar cigar, final int offset, final boolean isInsertionAtBeginningOfRead, final boolean isDeletion, final int alignmentStart, final int refLocus) {
@@ -402,13 +401,13 @@ public class AlignmentUtils {
             switch (ce.getOperator()) {
                 case I:
                     if (alignPos > 0) {
-                        if (alignment[alignPos - 1] == BaseUtils.A) {
+                        if (alignment[alignPos - 1] == BaseUtils.Base.A.base) {
                             alignment[alignPos - 1] = PileupElement.A_FOLLOWED_BY_INSERTION_BASE;
-                        } else if (alignment[alignPos - 1] == BaseUtils.C) {
+                        } else if (alignment[alignPos - 1] == BaseUtils.Base.C.base) {
                             alignment[alignPos - 1] = PileupElement.C_FOLLOWED_BY_INSERTION_BASE;
-                        } else if (alignment[alignPos - 1] == BaseUtils.T) {
+                        } else if (alignment[alignPos - 1] == BaseUtils.Base.T.base) {
                             alignment[alignPos - 1] = PileupElement.T_FOLLOWED_BY_INSERTION_BASE;
-                        } else if (alignment[alignPos - 1] == BaseUtils.G) {
+                        } else if (alignment[alignPos - 1] == BaseUtils.Base.G.base) {
                             alignment[alignPos - 1] = PileupElement.G_FOLLOWED_BY_INSERTION_BASE;
                         }
                     }

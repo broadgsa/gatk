@@ -26,23 +26,8 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
 import com.google.caliper.Param;
-import net.sf.picard.filter.FilteringIterator;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
-import org.broadinstitute.sting.gatk.ReadProperties;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.gatk.filters.ReadFilter;
-import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
-import org.broadinstitute.sting.gatk.iterators.LegacyLocusIteratorByState;
-import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.walkers.qc.CountLoci;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-
-import java.util.Collections;
-import java.util.Iterator;
 
 /**
  * Created by IntelliJ IDEA.
@@ -67,31 +52,32 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
     @Param
     private Downsampling downsampling;
 
-    public void timeDownsampling(int reps) {
-        for(int i = 0; i < reps; i++) {
-            SAMFileReader reader = new SAMFileReader(inputFile);
-            ReadProperties readProperties = new ReadProperties(Collections.<SAMReaderID>singletonList(new SAMReaderID(inputFile,new Tags())),
-                    reader.getFileHeader(),
-                    SAMFileHeader.SortOrder.coordinate,
-                    false,
-                    SAMFileReader.ValidationStringency.SILENT,
-                    downsampling.create(),
-                    new ValidationExclusion(Collections.singletonList(ValidationExclusion.TYPE.ALL)),
-                    Collections.<ReadFilter>emptyList(),
-                    Collections.<ReadTransformer>emptyList(),
-                    false,
-                    (byte)0);
-
-            GenomeLocParser genomeLocParser = new GenomeLocParser(reader.getFileHeader().getSequenceDictionary());
-            // Filter unmapped reads.  TODO: is this always strictly necessary?  Who in the GATK normally filters these out?
-            Iterator<SAMRecord> readIterator = new FilteringIterator(reader.iterator(),new UnmappedReadFilter());
-            LegacyLocusIteratorByState locusIteratorByState = new LegacyLocusIteratorByState(readIterator,readProperties,genomeLocParser, LegacyLocusIteratorByState.sampleListForSAMWithoutReadGroups());
-            while(locusIteratorByState.hasNext()) {
-                locusIteratorByState.next().getLocation();
-            }
-            reader.close();
-        }
-    }
+//    public void timeDownsampling(int reps) {
+//        for(int i = 0; i < reps; i++) {
+//            SAMFileReader reader = new SAMFileReader(inputFile);
+//            ReadProperties readProperties = new ReadProperties(Collections.<SAMReaderID>singletonList(new SAMReaderID(inputFile,new Tags())),
+//                    reader.getFileHeader(),
+//                    SAMFileHeader.SortOrder.coordinate,
+//                    false,
+//                    SAMFileReader.ValidationStringency.SILENT,
+//                    downsampling.create(),
+//                    new ValidationExclusion(Collections.singletonList(ValidationExclusion.TYPE.ALL)),
+//                    Collections.<ReadFilter>emptyList(),
+//                    Collections.<ReadTransformer>emptyList(),
+//                    false,
+//                    (byte)0,
+//                    false);
+//
+//            GenomeLocParser genomeLocParser = new GenomeLocParser(reader.getFileHeader().getSequenceDictionary());
+//            // Filter unmapped reads.  TODO: is this always strictly necessary?  Who in the GATK normally filters these out?
+//            Iterator<SAMRecord> readIterator = new FilteringIterator(reader.iterator(),new UnmappedReadFilter());
+//            LegacyLocusIteratorByState locusIteratorByState = new LegacyLocusIteratorByState(readIterator,readProperties,genomeLocParser, LegacyLocusIteratorByState.sampleListForSAMWithoutReadGroups());
+//            while(locusIteratorByState.hasNext()) {
+//                locusIteratorByState.next().getLocation();
+//            }
+//            reader.close();
+//        }
+//    }
 
     private enum Downsampling {
         NONE {

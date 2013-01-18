@@ -27,14 +27,14 @@ package org.broadinstitute.sting.utils.fragments;
 
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
-import com.google.caliper.runner.CaliperMain;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Caliper microbenchmark of fragment pileup
@@ -76,6 +76,6 @@ public class FragmentUtilsBenchmark extends SimpleBenchmark {
     }
 
     public static void main(String[] args) {
-        CaliperMain.main(FragmentUtilsBenchmark.class, args);
+        com.google.caliper.Runner.main(FragmentUtilsBenchmark.class, args);
     }
 }

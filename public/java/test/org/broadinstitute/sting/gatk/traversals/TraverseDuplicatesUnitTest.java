@@ -68,7 +68,7 @@ public class TraverseDuplicatesUnitTest extends BaseTest {
         engine.setReferenceDataSource(refFile);
         engine.setGenomeLocParser(genomeLocParser);
         
-        obj.initialize(engine);
+        obj.initialize(engine, null);
     }
 
     @Test

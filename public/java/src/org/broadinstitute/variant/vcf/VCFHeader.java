@@ -73,6 +73,10 @@ public class VCFHeader {
     public static final String REFERENCE_KEY = "reference";
     public static final String CONTIG_KEY = "contig";
     public static final String INTERVALS_KEY = "intervals";
+    public static final String EXCLUDE_INTERVALS_KEY = "excludeIntervals";
+    public static final String INTERVAL_MERGING_KEY = "interval_merging";
+    public static final String INTERVAL_SET_RULE_KEY = "interval_set_rule";
+    public static final String INTERVAL_PADDING_KEY = "interval_padding";
 
     // were the input samples sorted originally (or are we sorting them)?
     private boolean samplesWereAlreadySorted = true;

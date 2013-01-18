@@ -1,59 +1,58 @@
 /*
-* Copyright (c) 2012 The Broad Institute
-* 
-* Permission is hereby granted, free of charge, to any person
-* obtaining a copy of this software and associated documentation
-* files (the "Software"), to deal in the Software without
-* restriction, including without limitation the rights to use,
-* copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the
-* Software is furnished to do so, subject to the following
-* conditions:
-* 
-* The above copyright notice and this permission notice shall be
-* included in all copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
-* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+ * Copyright (c) 2012 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 
 package org.broadinstitute.sting.gatk.traversals;
 
 import com.google.java.contract.PreconditionError;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.commandline.Tags;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.*;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
+import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegionReadState;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.*;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.executive.WindowMaker;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
-import org.broadinstitute.sting.utils.activeregion.ActivityProfileResult;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 
@@ -71,56 +70,15 @@ import java.util.*;
  * http://iwww.broadinstitute.org/gsa/wiki/index.php/Active_Region_Traversal_Contract
  */
 public class TraverseActiveRegionsUnitTest extends BaseTest {
+    private final static boolean ENFORCE_CONTRACTS = false;
+    private final static boolean DEBUG = false;
 
-    private class DummyActiveRegionWalker extends ActiveRegionWalker<Integer, Integer> {
-        private final double prob;
-        private EnumSet<ActiveRegionReadState> states = super.desiredReadStates();
-
-        protected List<GenomeLoc> isActiveCalls = new ArrayList<GenomeLoc>();
-        protected Map<GenomeLoc, ActiveRegion> mappedActiveRegions = new HashMap<GenomeLoc, ActiveRegion>();
-
-        public DummyActiveRegionWalker() {
-            this.prob = 1.0;
-        }
-
-        public DummyActiveRegionWalker(double constProb) {
-            this.prob = constProb;
-        }
-
-        public DummyActiveRegionWalker(EnumSet<ActiveRegionReadState> wantStates) {
-            this.prob = 1.0;
-            this.states = wantStates;
-        }
-
-        @Override
-        public EnumSet<ActiveRegionReadState> desiredReadStates() {
-            return states;
-        }
-
-        @Override
-        public ActivityProfileResult isActive(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-            isActiveCalls.add(ref.getLocus());
-            return new ActivityProfileResult(ref.getLocus(), prob);
-        }
-
-        @Override
-        public Integer map(ActiveRegion activeRegion, RefMetaDataTracker metaDataTracker) {
-            mappedActiveRegions.put(activeRegion.getLocation(), activeRegion);
-            return 0;
-        }
-
-        @Override
-        public Integer reduceInit() {
-            return 0;
-        }
-
-        @Override
-        public Integer reduce(Integer value, Integer sum) {
-            return 0;
-        }
+    @DataProvider(name = "TraversalEngineProvider")
+    public Object[][] makeTraversals() {
+        final List<Object[]> traversals = new LinkedList<Object[]>();
+        traversals.add(new Object[]{new TraverseActiveRegions<Integer, Integer>()});
+        return traversals.toArray(new Object[][]{});
     }
-
-    private final TraverseActiveRegions<Integer, Integer> t = new TraverseActiveRegions<Integer, Integer>();
 
     private IndexedFastaSequenceFile reference;
     private SAMSequenceDictionary dictionary;
@@ -133,6 +91,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
 
     @BeforeClass
     private void init() throws FileNotFoundException {
+        //reference = new CachingIndexedFastaSequenceFile(new File("/Users/depristo/Desktop/broadLocal/localData/human_g1k_v37.fasta")); // hg19Reference));
         reference = new CachingIndexedFastaSequenceFile(new File(hg19Reference));
         dictionary = reference.getSequenceDictionary();
         genomeLocParser = new GenomeLocParser(dictionary);
@@ -187,18 +146,18 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         out.close();
     }
 
-    @Test
-    public void testAllBasesSeen() {
+    @Test(enabled = true && ! DEBUG, dataProvider = "TraversalEngineProvider")
+    public void testAllBasesSeen(TraverseActiveRegions t) {
         DummyActiveRegionWalker walker = new DummyActiveRegionWalker();
 
-        List<GenomeLoc> activeIntervals = getIsActiveIntervals(walker, intervals);
+        List<GenomeLoc> activeIntervals = getIsActiveIntervals(t, walker, intervals);
         // Contract: Every genome position in the analysis interval(s) is processed by the walker's isActive() call
         verifyEqualIntervals(intervals, activeIntervals);
     }
 
-    private List<GenomeLoc> getIsActiveIntervals(DummyActiveRegionWalker walker, List<GenomeLoc> intervals) {
+    private List<GenomeLoc> getIsActiveIntervals(final TraverseActiveRegions t, DummyActiveRegionWalker walker, List<GenomeLoc> intervals) {
         List<GenomeLoc> activeIntervals = new ArrayList<GenomeLoc>();
-        for (LocusShardDataProvider dataProvider : createDataProviders(intervals, testBAM)) {
+        for (LocusShardDataProvider dataProvider : createDataProviders(t, walker, intervals, testBAM)) {
             t.traverse(walker, dataProvider, 0);
             activeIntervals.addAll(walker.isActiveCalls);
         }
@@ -206,23 +165,23 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         return activeIntervals;
     }
 
-    @Test (expectedExceptions = PreconditionError.class)
-    public void testIsActiveRangeLow () {
+    @Test (enabled = ENFORCE_CONTRACTS, dataProvider = "TraversalEngineProvider", expectedExceptions = PreconditionError.class)
+    public void testIsActiveRangeLow (TraverseActiveRegions t) {
         DummyActiveRegionWalker walker = new DummyActiveRegionWalker(-0.1);
-        getActiveRegions(walker, intervals).values();
+        getActiveRegions(t, walker, intervals).values();
     }
 
-    @Test (expectedExceptions = PreconditionError.class)
-    public void testIsActiveRangeHigh () {
+    @Test (enabled = ENFORCE_CONTRACTS, dataProvider = "TraversalEngineProvider", expectedExceptions = PreconditionError.class)
+    public void testIsActiveRangeHigh (TraverseActiveRegions t) {
         DummyActiveRegionWalker walker = new DummyActiveRegionWalker(1.1);
-        getActiveRegions(walker, intervals).values();
+        getActiveRegions(t, walker, intervals).values();
     }
 
-    @Test
-    public void testActiveRegionCoverage() {
+    @Test(enabled = true && ! DEBUG, dataProvider = "TraversalEngineProvider")
+    public void testActiveRegionCoverage(TraverseActiveRegions t) {
         DummyActiveRegionWalker walker = new DummyActiveRegionWalker();
 
-        Collection<ActiveRegion> activeRegions = getActiveRegions(walker, intervals).values();
+        Collection<ActiveRegion> activeRegions = getActiveRegions(t, walker, intervals).values();
         verifyActiveRegionCoverage(intervals, activeRegions);
     }
 
@@ -268,11 +227,11 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         Assert.assertEquals(intervalStops.size(), 0, "Interval stop location does not match an active region stop location");
     }
 
-    @Test
-    public void testActiveRegionExtensionOnContig() {
+    @Test(enabled = true && ! DEBUG, dataProvider = "TraversalEngineProvider")
+    public void testActiveRegionExtensionOnContig(TraverseActiveRegions t) {
         DummyActiveRegionWalker walker = new DummyActiveRegionWalker();
 
-        Collection<ActiveRegion> activeRegions = getActiveRegions(walker, intervals).values();
+        Collection<ActiveRegion> activeRegions = getActiveRegions(t, walker, intervals).values();
         for (ActiveRegion activeRegion : activeRegions) {
             GenomeLoc loc = activeRegion.getExtendedLoc();
 
@@ -283,8 +242,8 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         }
     }
 
-    @Test
-    public void testPrimaryReadMapping() {
+    @Test(enabled = true, dataProvider = "TraversalEngineProvider")
+    public void testPrimaryReadMapping(TraverseActiveRegions t) {
         DummyActiveRegionWalker walker = new DummyActiveRegionWalker();
 
         // Contract: Each read has the Primary state in a single region (or none)
@@ -293,41 +252,41 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         // simple: Primary in 1:1-999
         // overlap_equal: Primary in 1:1-999
         // overlap_unequal: Primary in 1:1-999
-        // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
+        // boundary_equal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
         // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
         // boundary_1_pre: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
-        // boundary_1_post: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
-        // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
+        // boundary_1_post: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // extended_and_np: Primary in 1:1-999, Non-Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
         // shard_boundary_1_pre: Primary in 1:14908-16384, Non-Primary in 1:16385-16927
-        // shard_boundary_1_post: Non-Primary in 1:14908-16384, Primary in 1:16385-16927
-        // shard_boundary_equal: Non-Primary in 1:14908-16384, Primary in 1:16385-16927
+        // shard_boundary_1_post: Primary in 1:14908-16384, Non-Primary in 1:16385-16927
+        // shard_boundary_equal: Primary in 1:14908-16384, Non-Primary in 1:16385-16927
         // simple20: Primary in 20:10000-10100
 
-        Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(walker, intervals);
+        Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(t, walker, intervals);
         ActiveRegion region;
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1, 999));
-        verifyReadMapping(region, "simple", "overlap_equal", "overlap_unequal");
+        verifyReadMapping(region, "simple", "overlap_equal", "overlap_unequal", "extended_and_np");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1000, 1999));
-        verifyReadMapping(region, "boundary_unequal", "extended_and_np", "boundary_1_pre");
+        verifyReadMapping(region, "boundary_unequal", "boundary_1_pre", "boundary_equal", "boundary_1_post");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
-        verifyReadMapping(region, "boundary_equal", "boundary_1_post");
+        verifyReadMapping(region);
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 14908, 16384));
-        verifyReadMapping(region, "shard_boundary_1_pre");
+        verifyReadMapping(region, "shard_boundary_1_pre", "shard_boundary_1_post", "shard_boundary_equal");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 16385, 16927));
-        verifyReadMapping(region, "shard_boundary_1_post", "shard_boundary_equal");
+        verifyReadMapping(region);
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
         verifyReadMapping(region, "simple20");
     }
 
-    @Test
-    public void testNonPrimaryReadMapping() {
+    @Test(enabled = true && ! DEBUG, dataProvider = "TraversalEngineProvider")
+    public void testNonPrimaryReadMapping(TraverseActiveRegions t) {
         DummyActiveRegionWalker walker = new DummyActiveRegionWalker(
                 EnumSet.of(ActiveRegionReadState.PRIMARY, ActiveRegionReadState.NONPRIMARY));
 
@@ -339,18 +298,18 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         // simple: Primary in 1:1-999
         // overlap_equal: Primary in 1:1-999
         // overlap_unequal: Primary in 1:1-999
-        // boundary_equal: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
+        // boundary_equal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
         // boundary_unequal: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
         // boundary_1_pre: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
-        // boundary_1_post: Non-Primary in 1:1000-1999, Primary in 1:2000-2999
-        // extended_and_np: Non-Primary in 1:1-999, Primary in 1:1000-1999, Extended in 1:2000-2999
+        // boundary_1_post: Primary in 1:1000-1999, Non-Primary in 1:2000-2999
+        // extended_and_np: Primary in 1:1-999, Non-Primary in 1:1000-1999, Extended in 1:2000-2999
         // outside_intervals: none
         // shard_boundary_1_pre: Primary in 1:14908-16384, Non-Primary in 1:16385-16927
-        // shard_boundary_1_post: Non-Primary in 1:14908-16384, Primary in 1:16385-16927
-        // shard_boundary_equal: Non-Primary in 1:14908-16384, Primary in 1:16385-16927
+        // shard_boundary_1_post: Primary in 1:14908-16384, Non-Primary in 1:16385-16927
+        // shard_boundary_equal: Primary in 1:14908-16384, Non-Primary in 1:16385-16927
         // simple20: Primary in 20:10000-10100
 
-        Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(walker, intervals);
+        Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(t, walker, intervals);
         ActiveRegion region;
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1, 999));
@@ -372,8 +331,8 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         verifyReadMapping(region, "simple20");
     }
 
-    @Test
-    public void testExtendedReadMapping() {
+    @Test(enabled = true && ! DEBUG, dataProvider = "TraversalEngineProvider")
+    public void testExtendedReadMapping(TraverseActiveRegions t) {
         DummyActiveRegionWalker walker = new DummyActiveRegionWalker(
                 EnumSet.of(ActiveRegionReadState.PRIMARY, ActiveRegionReadState.NONPRIMARY, ActiveRegionReadState.EXTENDED));
 
@@ -397,7 +356,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         // shard_boundary_equal: Non-Primary in 1:14908-16384, Primary in 1:16385-16927
         // simple20: Primary in 20:10000-10100
 
-        Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(walker, intervals);
+        Map<GenomeLoc, ActiveRegion> activeRegions = getActiveRegions(t, walker, intervals);
         ActiveRegion region;
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 1, 999));
@@ -419,24 +378,34 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         verifyReadMapping(region, "simple20");
     }
 
-    @Test
-    public void testUnmappedReads() {
+    @Test(enabled = true && ! DEBUG, dataProvider = "TraversalEngineProvider")
+    public void testUnmappedReads(TraverseActiveRegions t) {
         // TODO
     }
 
     private void verifyReadMapping(ActiveRegion region, String... reads) {
+        final Set<String> regionReads = new HashSet<String>();
+        for (SAMRecord read : region.getReads()) {
+            Assert.assertFalse(regionReads.contains(read.getReadName()), "Duplicate reads detected in region " + region + " read " + read.getReadName());
+            regionReads.add(read.getReadName());
+        }
+
         Collection<String> wantReads = new ArrayList<String>(Arrays.asList(reads));
         for (SAMRecord read : region.getReads()) {
             String regionReadName = read.getReadName();
-            Assert.assertTrue(wantReads.contains(regionReadName), "Read " + regionReadName + " assigned to active region " + region);
+            Assert.assertTrue(wantReads.contains(regionReadName), "Read " + regionReadName + " incorrectly assigned to active region " + region);
             wantReads.remove(regionReadName);
         }
 
-        Assert.assertTrue(wantReads.isEmpty(), "Reads missing in active region " + region);
+        Assert.assertTrue(wantReads.isEmpty(), "Reads missing in active region " + region + ", wanted " + (wantReads.isEmpty() ? "" : wantReads.iterator().next()));
     }
 
-    private Map<GenomeLoc, ActiveRegion> getActiveRegions(DummyActiveRegionWalker walker, List<GenomeLoc> intervals) {
-        for (LocusShardDataProvider dataProvider : createDataProviders(intervals, testBAM))
+    private Map<GenomeLoc, ActiveRegion> getActiveRegions(TraverseActiveRegions t, DummyActiveRegionWalker walker, List<GenomeLoc> intervals) {
+        return getActiveRegions(t, walker, intervals, testBAM);
+    }
+
+    private Map<GenomeLoc, ActiveRegion> getActiveRegions(TraverseActiveRegions t, DummyActiveRegionWalker walker, List<GenomeLoc> intervals, final String bam) {
+        for (LocusShardDataProvider dataProvider : createDataProviders(t, walker, intervals, bam))
             t.traverse(walker, dataProvider, 0);
 
         t.endTraversal(walker, 0);
@@ -496,28 +465,223 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         record.setCigar(cigar);
         record.setReadString(new String(new char[len]).replace("\0", "A"));
         record.setBaseQualities(new byte[len]);
+        record.setReadGroup(new GATKSAMReadGroupRecord(header.getReadGroup("test")));
 
         return record;
     }
 
-    private List<LocusShardDataProvider> createDataProviders(List<GenomeLoc> intervals, String bamFile) {
+    private List<LocusShardDataProvider> createDataProviders(TraverseActiveRegions traverseActiveRegions, final Walker walker, List<GenomeLoc> intervals, String bamFile) {
         GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
         engine.setGenomeLocParser(genomeLocParser);
-        t.initialize(engine);
+        traverseActiveRegions.initialize(engine, walker);
 
         Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();
         SAMReaderID readerID = new SAMReaderID(new File(bamFile), new Tags());
         samFiles.add(readerID);
 
-        SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser);
+        SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser,
+                false,
+                SAMFileReader.ValidationStringency.STRICT,
+                null,
+                null,
+                new ValidationExclusion(),
+                new ArrayList<ReadFilter>(),
+                new ArrayList<ReadTransformer>(),
+                false, (byte)30, false, true);
+
+        final Set<String> samples = SampleUtils.getSAMFileSamples(dataSource.getHeader());
 
         List<LocusShardDataProvider> providers = new ArrayList<LocusShardDataProvider>();
         for (Shard shard : dataSource.createShardIteratorOverIntervals(new GenomeLocSortedSet(genomeLocParser, intervals), new LocusShardBalancer())) {
-            for (WindowMaker.WindowMakerIterator window : new WindowMaker(shard, genomeLocParser, dataSource.seek(shard), shard.getGenomeLocs())) {
+            for (WindowMaker.WindowMakerIterator window : new WindowMaker(shard, genomeLocParser, dataSource.seek(shard), shard.getGenomeLocs(), samples)) {
                 providers.add(new LocusShardDataProvider(shard, shard.getReadProperties(), genomeLocParser, window.getLocus(), window, reference, new ArrayList<ReferenceOrderedDataSource>()));
             }
         }
 
         return providers;
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // Combinatorial tests to ensure reads are going into the right regions
+    //
+    // ---------------------------------------------------------------------------------------------------------
+
+    @DataProvider(name = "CombinatorialARTTilingProvider")
+    public Object[][] makeCombinatorialARTTilingProvider() {
+        final List<Object[]> tests = new LinkedList<Object[]>();
+
+        final List<Integer> starts = Arrays.asList(
+                1, // very start of the chromosome
+                ArtificialBAMBuilder.BAM_SHARD_SIZE - 100, // right before the shard boundary
+                ArtificialBAMBuilder.BAM_SHARD_SIZE + 100 // right after the shard boundary
+        );
+
+        final List<EnumSet<ActiveRegionReadState>> allReadStates = Arrays.asList(
+                EnumSet.of(ActiveRegionReadState.PRIMARY),
+                EnumSet.of(ActiveRegionReadState.PRIMARY, ActiveRegionReadState.NONPRIMARY),
+                EnumSet.of(ActiveRegionReadState.PRIMARY, ActiveRegionReadState.NONPRIMARY, ActiveRegionReadState.EXTENDED)
+        );
+
+        final int maxTests = Integer.MAX_VALUE;
+        int nTests = 0;
+        for ( final int readLength : Arrays.asList(10, 100) ) {
+            for ( final int skips : Arrays.asList(0, 1, 10) ) {
+                for ( final int start : starts ) {
+                    for ( final int nReadsPerLocus : Arrays.asList(1, 2) ) {
+                        for ( final int nLoci : Arrays.asList(1, 1000) ) {
+                            for ( EnumSet<ActiveRegionReadState> readStates : allReadStates ) {
+                                final ArtificialBAMBuilder bamBuilder = new ArtificialBAMBuilder(reference, nReadsPerLocus, nLoci);
+                                bamBuilder.setReadLength(readLength);
+                                bamBuilder.setSkipNLoci(skips);
+                                bamBuilder.setAlignmentStart(start);
+
+                                for ( final GenomeLocSortedSet activeRegions : enumerateActiveRegions(bamBuilder.getAlignmentStart(), bamBuilder.getAlignmentEnd())) {
+                                    nTests++;
+                                    if ( nTests < maxTests ) // && nTests == 1238 )
+                                        tests.add(new Object[]{nTests, activeRegions, readStates, bamBuilder});
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    private Collection<GenomeLocSortedSet> enumerateActiveRegions(final int start, final int stop) {
+        // should basically cut up entire region into equal sized chunks, of
+        // size 10, 20, 50, 100, etc, alternating skipping pieces so they are inactive
+        // Need to make sure we include some edge cases:
+        final List<GenomeLocSortedSet> activeRegions = new LinkedList<GenomeLocSortedSet>();
+
+        for ( final int stepSize : Arrays.asList(11, 29, 53, 97) ) {
+            for ( final boolean startWithActive : Arrays.asList(true, false) ) {
+                activeRegions.add(makeActiveRegionMask(start, stop, stepSize,  startWithActive));
+            }
+        }
+
+        // active region is the whole interval
+        activeRegions.add(new GenomeLocSortedSet(genomeLocParser, genomeLocParser.createGenomeLoc("1", start, stop)));
+
+        // active region extends up to the end of the data, but doesn't include start
+        activeRegions.add(new GenomeLocSortedSet(genomeLocParser, genomeLocParser.createGenomeLoc("1", start+10, stop)));
+
+        return activeRegions;
+    }
+
+    private GenomeLocSortedSet makeActiveRegionMask(final int start, final int stop, final int stepSize, final boolean startWithActive) {
+        final GenomeLocSortedSet active = new GenomeLocSortedSet(genomeLocParser);
+
+        boolean includeRegion = startWithActive;
+        for ( int left = start; left < stop; left += stepSize) {
+            final int right = left + stepSize;
+            final GenomeLoc region = genomeLocParser.createGenomeLoc("1", left, right);
+            if ( includeRegion )
+                active.add(region);
+            includeRegion = ! includeRegion;
+        }
+
+        return active;
+    }
+
+
+    @Test(enabled = true && ! DEBUG, dataProvider = "CombinatorialARTTilingProvider")
+    public void testARTReadsInActiveRegions(final int id, final GenomeLocSortedSet activeRegions, final EnumSet<ActiveRegionReadState> readStates, final ArtificialBAMBuilder bamBuilder) {
+        logger.warn("Running testARTReadsInActiveRegions id=" + id + " locs " + activeRegions + " against bam " + bamBuilder);
+        final List<GenomeLoc> intervals = Arrays.asList(
+                genomeLocParser.createGenomeLoc("1", bamBuilder.getAlignmentStart(), bamBuilder.getAlignmentEnd())
+        );
+
+        final DummyActiveRegionWalker walker = new DummyActiveRegionWalker(activeRegions);
+        walker.setStates(readStates);
+
+        final TraverseActiveRegions traversal = new TraverseActiveRegions<Integer, Integer>();
+        final Map<GenomeLoc, ActiveRegion> activeRegionsMap = getActiveRegions(traversal, walker, intervals, bamBuilder.makeTemporarilyBAMFile().toString());
+
+        final Set<String> alreadySeenReads = new HashSet<String>(); // for use with the primary / non-primary
+        for ( final ActiveRegion region : activeRegionsMap.values() ) {
+            final Set<String> readNamesInRegion = readNamesInRegion(region);
+            int nReadsExpectedInRegion = 0;
+            for ( final GATKSAMRecord read : bamBuilder.makeReads() ) {
+                final GenomeLoc readLoc = genomeLocParser.createGenomeLoc(read);
+
+                boolean shouldBeInRegion = readStates.contains(ActiveRegionReadState.EXTENDED)
+                        ? region.getExtendedLoc().overlapsP(readLoc)
+                        : region.getLocation().overlapsP(readLoc);
+
+                if ( ! readStates.contains(ActiveRegionReadState.NONPRIMARY) ) {
+                    if ( alreadySeenReads.contains(read.getReadName()) )
+                        shouldBeInRegion = false;
+                    else if ( shouldBeInRegion )
+                        alreadySeenReads.add(read.getReadName());
+                }
+
+                Assert.assertEquals(readNamesInRegion.contains(read.getReadName()), shouldBeInRegion, "Region " + region +
+                        " failed contains read check: read " + read + " with span " + readLoc + " should be in region is " + shouldBeInRegion + " but I got the opposite");
+
+                nReadsExpectedInRegion += shouldBeInRegion ? 1 : 0;
+            }
+
+            Assert.assertEquals(region.size(), nReadsExpectedInRegion, "There are more reads in active region " + region + "than expected");
+        }
+    }
+
+    private Set<String> readNamesInRegion(final ActiveRegion region) {
+        final Set<String> readNames = new LinkedHashSet<String>(region.getReads().size());
+        for ( final SAMRecord read : region.getReads() )
+            readNames.add(read.getReadName());
+        return readNames;
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // Make sure all insertion reads are properly included in the active regions
+    //
+    // ---------------------------------------------------------------------------------------------------------
+
+    @Test
+    public void ensureAllInsertionReadsAreInActiveRegions() {
+
+        final int readLength = 10;
+        final int start = 20;
+        final int nReadsPerLocus = 10;
+        final int nLoci = 3;
+
+        final ArtificialBAMBuilder bamBuilder = new ArtificialBAMBuilder(reference, nReadsPerLocus, nLoci);
+        bamBuilder.setReadLength(readLength);
+        bamBuilder.setAlignmentStart(start);
+
+        // note that the position must be +1 as the read's all I cigar puts the end 1 bp before start, leaving it out of the region
+        GATKSAMRecord allI = ArtificialSAMUtils.createArtificialRead(bamBuilder.getHeader(),"allI",0,start+1,readLength);
+        allI.setCigarString(readLength + "I");
+        allI.setReadGroup(new GATKSAMReadGroupRecord(bamBuilder.getHeader().getReadGroups().get(0)));
+
+        bamBuilder.addReads(allI);
+
+        final GenomeLocSortedSet activeRegions = new GenomeLocSortedSet(bamBuilder.getGenomeLocParser());
+        activeRegions.add(bamBuilder.getGenomeLocParser().createGenomeLoc("1", 10, 30));
+        final List<GenomeLoc> intervals = Arrays.asList(
+                genomeLocParser.createGenomeLoc("1", bamBuilder.getAlignmentStart(), bamBuilder.getAlignmentEnd())
+        );
+
+        final DummyActiveRegionWalker walker = new DummyActiveRegionWalker(activeRegions);
+
+        final TraverseActiveRegions traversal = new TraverseActiveRegions<Integer, Integer>();
+        final Map<GenomeLoc, ActiveRegion> activeRegionsMap = getActiveRegions(traversal, walker, intervals, bamBuilder.makeTemporarilyBAMFile().toString());
+
+        final ActiveRegion region = activeRegionsMap.values().iterator().next();
+        int nReadsExpectedInRegion = 0;
+
+        final Set<String> readNamesInRegion = readNamesInRegion(region);
+        for ( final GATKSAMRecord read : bamBuilder.makeReads() ) {
+            Assert.assertTrue(readNamesInRegion.contains(read.getReadName()),
+                    "Region " + region + " should contain read " + read + " with cigar " + read.getCigarString() + " but it wasn't");
+            nReadsExpectedInRegion++;
+        }
+
+        Assert.assertEquals(region.size(), nReadsExpectedInRegion, "There are more reads in active region " + region + "than expected");
     }
 }

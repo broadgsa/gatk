@@ -95,7 +95,10 @@ public abstract class Shard implements HasGenomeLocation {
      */
     private final Map<SAMReaderID,SAMFileSpan> fileSpans;
 
-
+    /**
+     * Lazy-calculated span of all of the genome locs in this shard
+     */
+    private GenomeLoc spanningLocation = null;
 
     /**
      * Statistics about which reads in this shards were used and which were filtered away.
@@ -148,27 +151,34 @@ public abstract class Shard implements HasGenomeLocation {
 
     /**
      * Returns the span of the genomeLocs comprising this shard
-     * @param
-     * @return
+     * @return a GenomeLoc that starts as the first position in getGenomeLocs() and stops at the stop of the last
+     *    position in getGenomeLocs()
      */
     public GenomeLoc getLocation() {
-        if ( getGenomeLocs() == null )
-            return GenomeLoc.WHOLE_GENOME;
+        if ( spanningLocation == null ) {
+            if ( getGenomeLocs() == null )
+                spanningLocation = GenomeLoc.WHOLE_GENOME;
+            else if ( getGenomeLocs().size() == 0 ) {
+                spanningLocation = getGenomeLocs().get(0);
+            } else {
+                int start = Integer.MAX_VALUE;
+                int stop = Integer.MIN_VALUE;
+                String contig = null;
 
-        int start = Integer.MAX_VALUE;
-        int stop = Integer.MIN_VALUE;
-        String contig = null;
+                for ( GenomeLoc loc : getGenomeLocs() ) {
+                    if ( GenomeLoc.isUnmapped(loc) )
+                        // special case the unmapped region marker, just abort out
+                        return loc;
+                    contig = loc.getContig();
+                    if ( loc.getStart() < start ) start = loc.getStart();
+                    if ( loc.getStop() > stop ) stop = loc.getStop();
+                }
 
-        for ( GenomeLoc loc : getGenomeLocs() ) {
-            if ( GenomeLoc.isUnmapped(loc) )
-                // special case the unmapped region marker, just abort out
-                return loc;
-            contig = loc.getContig();
-            if ( loc.getStart() < start ) start = loc.getStart();
-            if ( loc.getStop() > stop ) stop = loc.getStop();
+                spanningLocation = parser.createGenomeLoc(contig, start, stop);
+            }
         }
 
-        return parser.createGenomeLoc(contig, start, stop);
+        return spanningLocation;
     }
 
 

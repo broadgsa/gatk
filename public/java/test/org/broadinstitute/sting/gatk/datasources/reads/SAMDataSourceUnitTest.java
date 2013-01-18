@@ -182,7 +182,8 @@ public class SAMDataSourceUnitTest extends BaseTest {
                 Collections.<ReadTransformer>emptyList(),
                 false,
                 (byte) -1,
-                removeProgramRecords);
+                removeProgramRecords,
+                false);
 
         List<SAMProgramRecord> dontRemoveProgramRecords = data.getHeader().getProgramRecords();
         assertEquals(dontRemoveProgramRecords, defaultProgramRecords, "testRemoveProgramRecords: default program records differ from removeProgramRecords = false");
@@ -201,7 +202,8 @@ public class SAMDataSourceUnitTest extends BaseTest {
                 Collections.<ReadTransformer>emptyList(),
                 false,
                 (byte) -1,
-                removeProgramRecords);
+                removeProgramRecords,
+                false);
 
         List<SAMProgramRecord> doRemoveProgramRecords = data.getHeader().getProgramRecords();
         assertTrue(doRemoveProgramRecords.isEmpty(), "testRemoveProgramRecords: program records not cleared when removeProgramRecords = true");
