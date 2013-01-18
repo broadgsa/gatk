@@ -73,9 +73,14 @@ public class Haplotype extends Allele {
 
     @Override
     public boolean equals( Object h ) {
-        return h instanceof Haplotype && super.equals(h);
+        return h instanceof Haplotype && Arrays.equals(getBases(), ((Haplotype) h).getBases());
     }
-    
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(getBases());
+    }
+
     public HashMap<Integer, VariantContext> getEventMap() {
         return eventMap;
     }
