@@ -35,7 +35,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
  * Date: 7/27/12
  */
 public class ActivityProfileState {
-    private GenomeLoc loc;
+    final private GenomeLoc loc;
     public double isActiveProb;
     public Type resultState;
     public Number resultValue;
@@ -74,6 +74,16 @@ public class ActivityProfileState {
         this.resultState = resultState;
         this.resultValue = resultValue;
     }
+
+    /**
+     * The offset of state w.r.t. our current region's start location
+     * @param regionStartLoc the start of the region, as a genome loc
+     * @return the position of this profile relative to the start of this region
+     */
+    public int getOffset(final GenomeLoc regionStartLoc) {
+        return getLoc().getStart() - regionStartLoc.getStart();
+    }
+
 
     /**
      * Get the genome loc associated with the ActivityProfileState

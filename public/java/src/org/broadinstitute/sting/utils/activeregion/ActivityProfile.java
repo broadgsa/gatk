@@ -61,7 +61,7 @@ public class ActivityProfile {
     }
 
     /**
-     * Create a profile of the same class as this object containing just the provided isActiveList
+     * Create a profile of the same class as this object containing just the provided stateList
      *
      * Used by clients to create derived activity profiles (such as ones without the starting X
      * sites because they've been removed in an ActiveRegion) of the same class.
