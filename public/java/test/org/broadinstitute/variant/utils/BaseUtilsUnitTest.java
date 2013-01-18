@@ -51,6 +51,21 @@ public class BaseUtilsUnitTest extends BaseTest {
     }
 
     @Test
+    public void testConvertIUPACtoN() {
+
+        checkBytesAreEqual(BaseUtils.convertIUPACtoN(new byte[]{'A', 'A', 'A'}, false, false), new byte[]{'A', 'A', 'A'});
+        checkBytesAreEqual(BaseUtils.convertIUPACtoN(new byte[]{'W', 'A', 'A'}, false, false), new byte[]{'N', 'A', 'A'});
+        checkBytesAreEqual(BaseUtils.convertIUPACtoN(new byte[]{'A', 'M', 'A'}, false, false), new byte[]{'A', 'N', 'A'});
+        checkBytesAreEqual(BaseUtils.convertIUPACtoN(new byte[]{'A', 'A', 'K'}, false, false), new byte[]{'A', 'A', 'N'});
+        checkBytesAreEqual(BaseUtils.convertIUPACtoN(new byte[]{'M', 'M', 'M'}, false, false), new byte[]{'N', 'N', 'N'});
+    }
+
+    private void checkBytesAreEqual(final byte[] b1, final byte[] b2) {
+        for ( int i = 0; i < b1.length; i++ )
+            Assert.assertEquals(b1[i], b2[i]);
+    }
+
+    @Test
     public void testTransitionTransversion() {
         logger.warn("Executing testTransitionTransversion");
 

@@ -55,7 +55,6 @@ import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -361,7 +360,6 @@ public class GenomeAnalysisEngine {
      * Returns a list of active, initialized read transformers
      *
      * @param walker the walker we need to apply read transformers too
-     * @return a non-null list of read transformers
      */
     public void initializeReadTransformers(final Walker walker) {
         final List<ReadTransformer> activeTransformers = new ArrayList<ReadTransformer>();
@@ -672,41 +670,7 @@ public class GenomeAnalysisEngine {
      * Setup the intervals to be processed
      */
     protected void initializeIntervals() {
-        // return if no interval arguments at all
-        if ( argCollection.intervals == null && argCollection.excludeIntervals == null )
-            return;
-
-        // Note that the use of '-L all' is no longer supported.
-
-        // if include argument isn't given, create new set of all possible intervals
-
-        final Pair<GenomeLocSortedSet, GenomeLocSortedSet> includeExcludePair = IntervalUtils.parseIntervalBindingsPair(
-                this.referenceDataSource,
-                argCollection.intervals,
-                argCollection.intervalSetRule, argCollection.intervalMerging, argCollection.intervalPadding,
-                argCollection.excludeIntervals);
-
-        final GenomeLocSortedSet includeSortedSet = includeExcludePair.getFirst();
-        final GenomeLocSortedSet excludeSortedSet = includeExcludePair.getSecond();
-
-        // if no exclude arguments, can return parseIntervalArguments directly
-        if ( excludeSortedSet == null )
-            intervals = includeSortedSet;
-
-        // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
-        else {
-            intervals = includeSortedSet.subtractRegions(excludeSortedSet);
-
-            // logging messages only printed when exclude (-XL) arguments are given
-            final long toPruneSize = includeSortedSet.coveredSize();
-            final long toExcludeSize = excludeSortedSet.coveredSize();
-            final long intervalSize = intervals.coveredSize();
-            logger.info(String.format("Initial include intervals span %d loci; exclude intervals span %d loci", toPruneSize, toExcludeSize));
-            logger.info(String.format("Excluding %d loci from original intervals (%.2f%% reduction)",
-                    toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
-        }
-
-        logger.info(String.format("Processing %d bp from intervals", intervals.coveredSize()));
+        intervals = IntervalUtils.parseIntervalArguments(this.referenceDataSource, argCollection.intervalArguments);
     }
 
     /**
@@ -842,7 +806,7 @@ public class GenomeAnalysisEngine {
         if (argCollection.keepProgramRecords)
             removeProgramRecords = false;
 
-        final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker && argCollection.newART;
+        final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker;
 
         return new SAMDataSource(
                 samReaderIDs,

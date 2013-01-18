@@ -27,7 +27,7 @@ package org.broadinstitute.sting.utils.locusiterator;
 
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
@@ -37,6 +37,7 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.ArtificialBAMBuilder;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -52,6 +53,32 @@ import java.util.*;
 public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     private static final boolean DEBUG = false;
     protected LocusIteratorByState li;
+
+    @Test(enabled = true)
+    public void testUnmappedAndAllIReadsPassThrough() {
+        final int readLength = 10;
+        GATKSAMRecord mapped1 = ArtificialSAMUtils.createArtificialRead(header,"mapped1",0,1,readLength);
+        GATKSAMRecord mapped2 = ArtificialSAMUtils.createArtificialRead(header,"mapped2",0,1,readLength);
+        GATKSAMRecord unmapped = ArtificialSAMUtils.createArtificialRead(header,"unmapped",0,1,readLength);
+        GATKSAMRecord allI = ArtificialSAMUtils.createArtificialRead(header,"allI",0,1,readLength);
+
+        unmapped.setReadUnmappedFlag(true);
+        unmapped.setCigarString("*");
+        allI.setCigarString(readLength + "I");
+
+        List<GATKSAMRecord> reads = Arrays.asList(mapped1, unmapped, allI, mapped2);
+
+        // create the iterator by state with the fake reads and fake records
+        li = makeLTBS(reads,createTestReadProperties(DownsamplingMethod.NONE, true));
+
+        Assert.assertTrue(li.hasNext());
+        AlignmentContext context = li.next();
+        ReadBackedPileup pileup = context.getBasePileup();
+        Assert.assertEquals(pileup.depthOfCoverage(), 2, "Should see only 2 reads in pileup, even with unmapped and all I reads");
+
+        final List<GATKSAMRecord> rawReads = li.transferReadsFromAllPreviousPileups();
+        Assert.assertEquals(rawReads, reads, "Input and transferred read lists should be the same, and include the unmapped and all I reads");
+    }
 
     @Test(enabled = true && ! DEBUG)
     public void testXandEQOperators() {
@@ -350,7 +377,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
 //                Arrays.asList(3));
     }
 
-    @Test(enabled = true, dataProvider = "LIBSTest")
+    @Test(enabled = true && ! DEBUG, dataProvider = "LIBSTest")
     public void testLIBS(LIBSTest params) {
         // create the iterator by state with the fake reads and fake records
         final GATKSAMRecord read = params.makeRead();
@@ -406,22 +433,25 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     //
     // ------------------------------------------------------------
 
-    @DataProvider(name = "LIBSKeepSubmittedReads")
-    public Object[][] makeLIBSKeepSubmittedReads() {
+    @DataProvider(name = "LIBS_ComplexPileupTests")
+    public Object[][] makeLIBS_ComplexPileupTests() {
         final List<Object[]> tests = new LinkedList<Object[]>();
 
-        for ( final boolean doSampling : Arrays.asList(true, false) ) {
-            for ( final int nReadsPerLocus : Arrays.asList(1, 10) ) {
+        for ( final int downsampleTo : Arrays.asList(-1, 1, 2, 5, 10, 30)) {
+            for ( final int nReadsPerLocus : Arrays.asList(1, 10, 60) ) {
                 for ( final int nLoci : Arrays.asList(1, 10, 25) ) {
                     for ( final int nSamples : Arrays.asList(1, 2, 10) ) {
                         for ( final boolean keepReads : Arrays.asList(true, false) ) {
                             for ( final boolean grabReadsAfterEachCycle : Arrays.asList(true, false) ) {
-//        for ( final int nReadsPerLocus : Arrays.asList(1) ) {
-//            for ( final int nLoci : Arrays.asList(1) ) {
-//                for ( final int nSamples : Arrays.asList(1) ) {
-//                    for ( final boolean keepReads : Arrays.asList(true) ) {
-//                        for ( final boolean grabReadsAfterEachCycle : Arrays.asList(true) ) {
-                                tests.add(new Object[]{nReadsPerLocus, nLoci, nSamples, keepReads, grabReadsAfterEachCycle, doSampling});
+//        for ( final int downsampleTo : Arrays.asList(1)) {
+//            for ( final int nReadsPerLocus : Arrays.asList(1) ) {
+//                for ( final int nLoci : Arrays.asList(1) ) {
+//                    for ( final int nSamples : Arrays.asList(1) ) {
+//                        for ( final boolean keepReads : Arrays.asList(true) ) {
+//                            for ( final boolean grabReadsAfterEachCycle : Arrays.asList(true) ) {
+                                tests.add(new Object[]{nReadsPerLocus, nLoci, nSamples,
+                                        keepReads, grabReadsAfterEachCycle,
+                                        downsampleTo});
                             }
                         }
                     }
@@ -432,37 +462,29 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(enabled = true && ! DEBUG, dataProvider = "LIBSKeepSubmittedReads")
-    public void testLIBSKeepSubmittedReads(final int nReadsPerLocus,
-                                           final int nLoci,
-                                           final int nSamples,
-                                           final boolean keepReads,
-                                           final boolean grabReadsAfterEachCycle,
-                                           final boolean downsample) {
-        logger.warn(String.format("testLIBSKeepSubmittedReads %d %d %d %b %b %b", nReadsPerLocus, nLoci, nSamples, keepReads, grabReadsAfterEachCycle, downsample));
+    @Test(enabled = true && ! DEBUG, dataProvider = "LIBS_ComplexPileupTests")
+    public void testLIBS_ComplexPileupTests(final int nReadsPerLocus,
+                                            final int nLoci,
+                                            final int nSamples,
+                                            final boolean keepReads,
+                                            final boolean grabReadsAfterEachCycle,
+                                            final int downsampleTo) {
+        //logger.warn(String.format("testLIBSKeepSubmittedReads %d %d %d %b %b %b", nReadsPerLocus, nLoci, nSamples, keepReads, grabReadsAfterEachCycle, downsample));
         final int readLength = 10;
 
-        final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 100000);
-        final List<String> samples = new ArrayList<String>(nSamples);
-        for ( int i = 0; i < nSamples; i++ ) {
-            final GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord("rg" + i);
-            final String sample = "sample" + i;
-            samples.add(sample);
-            rg.setSample(sample);
-            rg.setPlatform(NGSPlatform.ILLUMINA.getDefaultPlatform());
-            header.addReadGroup(rg);
-        }
-
-        final int maxCoveragePerSampleAtLocus = nReadsPerLocus * readLength / 2;
-        final int maxDownsampledCoverage = Math.max(maxCoveragePerSampleAtLocus / 2, 1);
+        final boolean downsample = downsampleTo != -1;
         final DownsamplingMethod downsampler = downsample
-                ? new DownsamplingMethod(DownsampleType.BY_SAMPLE, maxDownsampledCoverage, null, false)
+                ? new DownsamplingMethod(DownsampleType.BY_SAMPLE, downsampleTo, null, false)
                 : new DownsamplingMethod(DownsampleType.NONE, null, null, false);
-        final List<GATKSAMRecord> reads = ArtificialSAMUtils.createReadStream(nReadsPerLocus, nLoci, header, 1, readLength);
+
+        final ArtificialBAMBuilder bamBuilder = new ArtificialBAMBuilder(header.getSequenceDictionary(), nReadsPerLocus, nLoci);
+        bamBuilder.createAndSetHeader(nSamples).setReadLength(readLength).setAlignmentStart(1);
+
+        final List<GATKSAMRecord> reads = bamBuilder.makeReads();
         li = new LocusIteratorByState(new FakeCloseableIterator<GATKSAMRecord>(reads.iterator()),
                 createTestReadProperties(downsampler, keepReads),
                 genomeLocParser,
-                samples);
+                bamBuilder.getSamples());
 
         final Set<GATKSAMRecord> seenSoFar = new HashSet<GATKSAMRecord>();
         final Set<GATKSAMRecord> keptReads = new HashSet<GATKSAMRecord>();
@@ -472,6 +494,8 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
             final AlignmentContext alignmentContext = li.next();
             final ReadBackedPileup p = alignmentContext.getBasePileup();
 
+            AssertWellOrderedPileup(p);
+
             if ( downsample ) {
                 // just not a safe test
                 //Assert.assertTrue(p.getNumberOfElements() <= maxDownsampledCoverage * nSamples, "Too many reads at locus after downsampling");
@@ -480,22 +504,29 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
                 Assert.assertTrue(p.getNumberOfElements() >= minPileupSize);
             }
 
+            // the number of reads starting here
+            int nReadsStartingHere = 0;
+            for ( final GATKSAMRecord read : p.getReads() )
+                if ( read.getAlignmentStart() == alignmentContext.getPosition() )
+                    nReadsStartingHere++;
+
+            // we can have no more than maxDownsampledCoverage per sample
+            final int maxCoveragePerLocus = downsample ? downsampleTo : nReadsPerLocus;
+            Assert.assertTrue(nReadsStartingHere <= maxCoveragePerLocus * nSamples);
+
             seenSoFar.addAll(p.getReads());
             if ( keepReads && grabReadsAfterEachCycle ) {
                 final List<GATKSAMRecord> locusReads = li.transferReadsFromAllPreviousPileups();
 
-                // the number of reads starting here
-                int nReadsStartingHere = 0;
-                for ( final GATKSAMRecord read : p.getReads() )
-                    if ( read.getAlignmentStart() == alignmentContext.getPosition() )
-                        nReadsStartingHere++;
 
-                if ( downsample )
+                if ( downsample ) {
                     // with downsampling we might have some reads here that were downsampled away
-                    // in the pileup
+                    // in the pileup.  We want to ensure that no more than the max coverage per sample is added
                     Assert.assertTrue(locusReads.size() >= nReadsStartingHere);
-                else
+                    Assert.assertTrue(locusReads.size() <= maxCoveragePerLocus * nSamples);
+                } else {
                     Assert.assertEquals(locusReads.size(), nReadsStartingHere);
+                }
                 keptReads.addAll(locusReads);
 
                 // check that all reads we've seen so far are in our keptReads
@@ -543,6 +574,116 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
             for ( final GATKSAMRecord read : seenSoFar ) {
                 Assert.assertTrue(keptReads.contains(read), "A read that appeared in a pileup wasn't found in the kept reads: " + read);
             }
+
+            if ( ! downsample ) {
+                // check that every read in the list of keep reads occurred at least once in one of the pileups
+                for ( final GATKSAMRecord keptRead : keptReads ) {
+                    Assert.assertTrue(seenSoFar.contains(keptRead), "There's a read " + keptRead + " in our keptReads list that never appeared in any pileup");
+                }
+            }
+        }
+    }
+
+    private void AssertWellOrderedPileup(final ReadBackedPileup pileup) {
+        if ( ! pileup.isEmpty() ) {
+            int leftMostPos = -1;
+
+            for ( final PileupElement pe : pileup ) {
+                Assert.assertTrue(pileup.getLocation().getContig().equals(pe.getRead().getReferenceName()), "ReadBackedPileup contains an element " + pe + " that's on a different contig than the pileup itself");
+                Assert.assertTrue(pe.getRead().getAlignmentStart() >= leftMostPos,
+                        "ReadBackedPileup contains an element " + pe + " whose read's alignment start " + pe.getRead().getAlignmentStart()
+                                + " occurs before the leftmost position we've seen previously " + leftMostPos);
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // make sure that downsampling isn't holding onto a bazillion reads
+    //
+    @DataProvider(name = "LIBS_NotHoldingTooManyReads")
+    public Object[][] makeLIBS_NotHoldingTooManyReads() {
+        final List<Object[]> tests = new LinkedList<Object[]>();
+
+        for ( final int downsampleTo : Arrays.asList(1, 10)) {
+            for ( final int nReadsPerLocus : Arrays.asList(100, 1000, 10000, 100000) ) {
+                for ( final int payloadInBytes : Arrays.asList(0, 1024, 1024*1024) ) {
+                    tests.add(new Object[]{nReadsPerLocus, downsampleTo, payloadInBytes});
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(enabled = true && ! DEBUG, dataProvider = "LIBS_NotHoldingTooManyReads")
+//    @Test(enabled = true, dataProvider = "LIBS_NotHoldingTooManyReads", timeOut = 100000)
+    public void testLIBS_NotHoldingTooManyReads(final int nReadsPerLocus, final int downsampleTo, final int payloadInBytes) {
+        logger.warn(String.format("testLIBS_NotHoldingTooManyReads %d %d %d", nReadsPerLocus, downsampleTo, payloadInBytes));
+        final int readLength = 10;
+
+        final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 100000);
+        final int nSamples = 1;
+        final List<String> samples = new ArrayList<String>(nSamples);
+        for ( int i = 0; i < nSamples; i++ ) {
+            final GATKSAMReadGroupRecord rg = new GATKSAMReadGroupRecord("rg" + i);
+            final String sample = "sample" + i;
+            samples.add(sample);
+            rg.setSample(sample);
+            rg.setPlatform(NGSPlatform.ILLUMINA.getDefaultPlatform());
+            header.addReadGroup(rg);
+        }
+
+        final boolean downsample = downsampleTo != -1;
+        final DownsamplingMethod downsampler = downsample
+                ? new DownsamplingMethod(DownsampleType.BY_SAMPLE, downsampleTo, null, false)
+                : new DownsamplingMethod(DownsampleType.NONE, null, null, false);
+
+        // final List<GATKSAMRecord> reads = ArtificialSAMUtils.createReadStream(nReadsPerLocus, nLoci, header, 1, readLength);
+
+        final WeakReadTrackingIterator iterator = new WeakReadTrackingIterator(nReadsPerLocus, readLength, payloadInBytes, header);
+
+        li = new LocusIteratorByState(iterator,
+                createTestReadProperties(downsampler, false),
+                genomeLocParser,
+                samples);
+
+        while ( li.hasNext() ) {
+            final AlignmentContext next = li.next();
+            Assert.assertTrue(next.getBasePileup().getNumberOfElements() <= downsampleTo, "Too many elements in pileup " + next);
+            // TODO -- assert that there are <= X reads in memory after GC for some X
+        }
+    }
+
+    private static class WeakReadTrackingIterator implements Iterator<GATKSAMRecord> {
+        final int nReads, readLength, payloadInBytes;
+        int readI = 0;
+        final SAMFileHeader header;
+
+        private WeakReadTrackingIterator(int nReads, int readLength, final int payloadInBytes, final SAMFileHeader header) {
+            this.nReads = nReads;
+            this.readLength = readLength;
+            this.header = header;
+            this.payloadInBytes = payloadInBytes;
+        }
+
+        @Override public boolean hasNext() { return readI < nReads; }
+        @Override public void remove() { throw new UnsupportedOperationException("no remove"); }
+
+        @Override
+        public GATKSAMRecord next() {
+            readI++;
+            return makeRead();
+        }
+
+        private GATKSAMRecord makeRead() {
+            final SAMReadGroupRecord rg = header.getReadGroups().get(0);
+            final String readName = String.format("%s.%d.%s", "read", readI, rg.getId());
+            final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, readName, 0, 1, readLength);
+            read.setReadGroup(new GATKSAMReadGroupRecord(rg));
+            if ( payloadInBytes > 0 )
+                // add a payload byte array to push memory use per read even higher
+                read.setAttribute("PL", new byte[payloadInBytes]);
+            return read;
         }
     }
 }

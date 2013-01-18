@@ -77,13 +77,17 @@ public class ManagingReferenceOrderedView implements ReferenceOrderedView {
      * @return A tracker containing information about this locus.
      */
     public RefMetaDataTracker getReferenceOrderedDataAtLocus( GenomeLoc loc, ReferenceContext referenceContext ) {
-        List<RODRecordList> bindings = states.isEmpty() ? Collections.<RODRecordList>emptyList() : new ArrayList<RODRecordList>(states.size());
+        if ( states.isEmpty() )
+            return RefMetaDataTracker.EMPTY_TRACKER;
+        else {
+            List<RODRecordList> bindings = new ArrayList<RODRecordList>(states.size());
 
-        for ( ReferenceOrderedDataState state: states )
-            // todo -- warning, I removed the reference to the name from states
-            bindings.add( state.iterator.seekForward(loc) );
+            for ( ReferenceOrderedDataState state: states )
+                // todo -- warning, I removed the reference to the name from states
+                bindings.add( state.iterator.seekForward(loc) );
 
-        return new RefMetaDataTracker(bindings);
+            return new RefMetaDataTracker(bindings);
+        }
     }
 
     /**

@@ -29,9 +29,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * Reservoir Downsampler: Selects n reads out of a stream whose size is not known in advance, with
@@ -42,10 +40,25 @@ import java.util.List;
  * @author David Roazen
  */
 public class ReservoirDownsampler<T extends SAMRecord> implements ReadsDownsampler<T> {
+    private final int targetSampleSize;
 
-    private ArrayList<T> reservoir;
+    /**
+     * if true, this downsampler will be optimized for the case
+     * where most of the time we won't fill up anything like the
+     * targetSampleSize elements.  If this is false, we will allocate
+     * internal buffers to targetSampleSize initially, which minimizes
+     * the cost of allocation if we often use targetSampleSize or more
+     * elements.
+     */
+    private final boolean expectFewOverflows;
 
-    private int targetSampleSize;
+    /**
+     * At times this can be a linked list or an array list, depending on how we're accessing the
+     * data and whether or not we're expecting few overflows
+     */
+    private List<T> reservoir;
+
+    private boolean isLinkedList;
 
     private int totalReadsSeen;
 
@@ -56,16 +69,34 @@ public class ReservoirDownsampler<T extends SAMRecord> implements ReadsDownsampl
      *
      * @param targetSampleSize Size of the reservoir used by this downsampler. Number of items retained
      *                         after downsampling will be min(totalReads, targetSampleSize)
+     * @param expectFewOverflows if true, this downsampler will be optimized for the case
+     *                           where most of the time we won't fill up anything like the
+     *                           targetSampleSize elements.  If this is false, we will allocate
+     *                           internal buffers to targetSampleSize initially, which minimizes
+     *                           the cost of allocation if we often use targetSampleSize or more
+     *                           elements.
      */
-    public ReservoirDownsampler ( int targetSampleSize ) {
+    public ReservoirDownsampler ( final int targetSampleSize, final boolean expectFewOverflows) {
         if ( targetSampleSize <= 0 ) {
             throw new ReviewedStingException("Cannot do reservoir downsampling with a sample size <= 0");
         }
 
         this.targetSampleSize = targetSampleSize;
+        this.expectFewOverflows = expectFewOverflows;
         clear();
         reset();
     }
+
+    /**
+     * Construct a ReservoirDownsampler
+     *
+     * @param targetSampleSize Size of the reservoir used by this downsampler. Number of items retained
+     *                         after downsampling will be min(totalReads, targetSampleSize)
+     */
+    public ReservoirDownsampler ( int targetSampleSize ) {
+        this(targetSampleSize, false);
+    }
+
 
     public void submit ( T newRead ) {
         totalReadsSeen++;
@@ -74,7 +105,12 @@ public class ReservoirDownsampler<T extends SAMRecord> implements ReadsDownsampl
             reservoir.add(newRead);
         }
         else {
-            int randomSlot = GenomeAnalysisEngine.getRandomGenerator().nextInt(totalReadsSeen);
+            if ( isLinkedList ) {
+                reservoir = new ArrayList<T>(reservoir);
+                isLinkedList = false;
+            }
+
+            final int randomSlot = GenomeAnalysisEngine.getRandomGenerator().nextInt(totalReadsSeen);
             if ( randomSlot < targetSampleSize ) {
                 reservoir.set(randomSlot, newRead);
             }
@@ -93,10 +129,15 @@ public class ReservoirDownsampler<T extends SAMRecord> implements ReadsDownsampl
     }
 
     public List<T> consumeFinalizedItems() {
-        // pass by reference rather than make a copy, for speed
-        List<T> downsampledItems = reservoir;
-        clear();
-        return downsampledItems;
+        if ( reservoir.isEmpty() ) {
+            // if there's nothing here, don't both allocating a new list completely
+            return Collections.emptyList();
+        } else {
+            // pass by reference rather than make a copy, for speed
+            List<T> downsampledItems = reservoir;
+            clear();
+            return downsampledItems;
+        }
     }
 
     public boolean hasPendingItems() {
@@ -119,9 +160,18 @@ public class ReservoirDownsampler<T extends SAMRecord> implements ReadsDownsampl
         // NO-OP
     }
 
+    /**
+     * Clear the data structures used to hold information
+     */
     public void clear() {
-        reservoir = new ArrayList<T>(targetSampleSize);
-        totalReadsSeen = 0;    // an internal stat used by the downsampling process, so not cleared by reset() below
+        // if we aren't expecting many overflows, allocate a linked list not an arraylist
+        reservoir = expectFewOverflows ? new LinkedList<T>() : new ArrayList<T>(targetSampleSize);
+
+        // it's a linked list if we allocate one
+        isLinkedList = expectFewOverflows;
+
+        // an internal stat used by the downsampling process, so not cleared by reset() below
+        totalReadsSeen = 0;
     }
 
     public void reset() {

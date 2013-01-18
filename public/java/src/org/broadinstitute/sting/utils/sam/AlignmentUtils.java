@@ -31,7 +31,6 @@ import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.variant.utils.BaseUtils;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -402,13 +401,13 @@ public class AlignmentUtils {
             switch (ce.getOperator()) {
                 case I:
                     if (alignPos > 0) {
-                        if (alignment[alignPos - 1] == BaseUtils.A) {
+                        if (alignment[alignPos - 1] == BaseUtils.Base.A.base) {
                             alignment[alignPos - 1] = PileupElement.A_FOLLOWED_BY_INSERTION_BASE;
-                        } else if (alignment[alignPos - 1] == BaseUtils.C) {
+                        } else if (alignment[alignPos - 1] == BaseUtils.Base.C.base) {
                             alignment[alignPos - 1] = PileupElement.C_FOLLOWED_BY_INSERTION_BASE;
-                        } else if (alignment[alignPos - 1] == BaseUtils.T) {
+                        } else if (alignment[alignPos - 1] == BaseUtils.Base.T.base) {
                             alignment[alignPos - 1] = PileupElement.T_FOLLOWED_BY_INSERTION_BASE;
-                        } else if (alignment[alignPos - 1] == BaseUtils.G) {
+                        } else if (alignment[alignPos - 1] == BaseUtils.Base.G.base) {
                             alignment[alignPos - 1] = PileupElement.G_FOLLOWED_BY_INSERTION_BASE;
                         }
                     }

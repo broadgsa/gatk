@@ -27,8 +27,8 @@ package org.broadinstitute.sting.gatk.downsampling;
 
 import net.sf.samtools.SAMRecord;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -41,7 +41,7 @@ import java.util.List;
  */
 public class PassThroughDownsampler<T extends SAMRecord> implements ReadsDownsampler<T> {
 
-    private ArrayList<T> selectedReads;
+    private LinkedList<T> selectedReads;
 
     public PassThroughDownsampler() {
         clear();
@@ -59,9 +59,13 @@ public class PassThroughDownsampler<T extends SAMRecord> implements ReadsDownsam
     }
 
     public boolean hasFinalizedItems() {
-        return selectedReads.size() > 0;
+        return ! selectedReads.isEmpty();
     }
 
+    /**
+     * Note that this list is a linked list and so doesn't support fast random access
+     * @return
+     */
     public List<T> consumeFinalizedItems() {
         // pass by reference rather than make a copy, for speed
         List<T> downsampledItems = selectedReads;
@@ -74,7 +78,7 @@ public class PassThroughDownsampler<T extends SAMRecord> implements ReadsDownsam
     }
 
     public T peekFinalized() {
-        return selectedReads.isEmpty() ? null : selectedReads.get(0);
+        return selectedReads.isEmpty() ? null : selectedReads.getFirst();
     }
 
     public T peekPending() {
@@ -90,7 +94,7 @@ public class PassThroughDownsampler<T extends SAMRecord> implements ReadsDownsam
     }
 
     public void clear() {
-        selectedReads = new ArrayList<T>();
+        selectedReads = new LinkedList<T>();
     }
 
     public void reset() {

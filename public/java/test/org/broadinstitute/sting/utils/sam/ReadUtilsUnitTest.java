@@ -40,7 +40,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         final int mateStart = 1000;
         final int BEFORE = mateStart - 2;
         final int AFTER = mateStart + 2;
-        Integer myStart, boundary;
+        int myStart, boundary;
 
         GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(bases, quals, cigar);
         read.setMateAlignmentStart(mateStart);
@@ -51,43 +51,43 @@ public class ReadUtilsUnitTest extends BaseTest {
         read.setAlignmentStart(myStart);
         read.setReadNegativeStrandFlag(false);
         boundary = ReadUtils.getAdaptorBoundary(read);
-        Assert.assertEquals(boundary.intValue(), myStart + fragmentSize + 1);
+        Assert.assertEquals(boundary, myStart + fragmentSize + 1);
 
         // Test case 2: positive strand, second read
         myStart = AFTER;
         read.setAlignmentStart(myStart);
         read.setReadNegativeStrandFlag(false);
         boundary = ReadUtils.getAdaptorBoundary(read);
-        Assert.assertEquals(boundary.intValue(), myStart + fragmentSize + 1);
+        Assert.assertEquals(boundary, myStart + fragmentSize + 1);
 
         // Test case 3: negative strand, second read
         myStart = AFTER;
         read.setAlignmentStart(myStart);
         read.setReadNegativeStrandFlag(true);
         boundary = ReadUtils.getAdaptorBoundary(read);
-        Assert.assertEquals(boundary.intValue(), mateStart - 1);
+        Assert.assertEquals(boundary, mateStart - 1);
 
         // Test case 4: negative strand, first read
         myStart = BEFORE;
         read.setAlignmentStart(myStart);
         read.setReadNegativeStrandFlag(true);
         boundary = ReadUtils.getAdaptorBoundary(read);
-        Assert.assertEquals(boundary.intValue(), mateStart - 1);
+        Assert.assertEquals(boundary, mateStart - 1);
 
         // Test case 5: mate is mapped to another chromosome (test both strands)
         read.setInferredInsertSize(0);
         read.setReadNegativeStrandFlag(true);
         boundary = ReadUtils.getAdaptorBoundary(read);
-        Assert.assertNull(boundary);
+        Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
         read.setReadNegativeStrandFlag(false);
         boundary = ReadUtils.getAdaptorBoundary(read);
-        Assert.assertNull(boundary);
+        Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
         read.setInferredInsertSize(10);
 
         // Test case 6: read is unmapped
         read.setReadUnmappedFlag(true);
         boundary = ReadUtils.getAdaptorBoundary(read);
-        Assert.assertNull(boundary);
+        Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
         read.setReadUnmappedFlag(false);
 
         // Test case 7:  reads don't overlap and look like this:
@@ -99,7 +99,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         read.setInferredInsertSize(20);
         read.setReadNegativeStrandFlag(true);
         boundary = ReadUtils.getAdaptorBoundary(read);
-        Assert.assertNull(boundary);
+        Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
 
         // second read:
         myStart = 1000;
@@ -107,6 +107,6 @@ public class ReadUtilsUnitTest extends BaseTest {
         read.setMateAlignmentStart(980);
         read.setReadNegativeStrandFlag(false);
         boundary = ReadUtils.getAdaptorBoundary(read);
-        Assert.assertNull(boundary);
+        Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
     }
 }

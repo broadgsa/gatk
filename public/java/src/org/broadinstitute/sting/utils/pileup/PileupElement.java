@@ -31,7 +31,6 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import org.broadinstitute.variant.utils.BaseUtils;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -52,7 +51,7 @@ public class PileupElement implements Comparable<PileupElement> {
     private final static EnumSet<CigarOperator> ON_GENOME_OPERATORS =
             EnumSet.of(CigarOperator.M, CigarOperator.EQ, CigarOperator.X, CigarOperator.D);
 
-    public static final byte DELETION_BASE = BaseUtils.D;
+    public static final byte DELETION_BASE = BaseUtils.Base.D.base;
     public static final byte DELETION_QUAL = (byte) 16;
     public static final byte A_FOLLOWED_BY_INSERTION_BASE = (byte) 87;
     public static final byte C_FOLLOWED_BY_INSERTION_BASE = (byte) 88;

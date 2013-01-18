@@ -381,9 +381,9 @@ public class ReadClipper {
      * @return a new read without adaptor sequence
      */
     private GATKSAMRecord hardClipAdaptorSequence () {
-        final Integer adaptorBoundary = ReadUtils.getAdaptorBoundary(read);
+        final int adaptorBoundary = ReadUtils.getAdaptorBoundary(read);
 
-        if (adaptorBoundary == null || !ReadUtils.isInsideRead(read, adaptorBoundary))
+        if (adaptorBoundary == ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY || !ReadUtils.isInsideRead(read, adaptorBoundary))
             return read;
 
         return read.getReadNegativeStrandFlag() ? hardClipByReferenceCoordinatesLeftTail(adaptorBoundary) : hardClipByReferenceCoordinatesRightTail(adaptorBoundary);

@@ -38,11 +38,7 @@ import java.util.*;
 /**
  * testing of the new (non-legacy) version of LocusIteratorByState
  */
-public class ReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
-    ///////////////////////////////////////
-    // Read State Manager Tests          //
-    ///////////////////////////////////////
-
+public class PerSampleReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
     private class PerSampleReadStateManagerTest extends TestDataProvider {
         private List<Integer> readCountsPerAlignmentStart;
         private List<SAMRecord> reads;
@@ -63,15 +59,12 @@ public class ReadStateManagerUnitTest extends LocusIteratorByStateBaseTest {
         }
 
         public void run() {
-            final List<String> samples = LocusIteratorByState.sampleListForSAMWithoutReadGroups();
-            final Iterator<GATKSAMRecord> iterator = new LinkedList<GATKSAMRecord>().iterator();
-            ReadStateManager readStateManager = new ReadStateManager(iterator, samples, LIBSDownsamplingInfo.NO_DOWNSAMPLING, false);
-            ReadStateManager.PerSampleReadStateManager perSampleReadStateManager = readStateManager.new PerSampleReadStateManager(LIBSDownsamplingInfo.NO_DOWNSAMPLING);
+            PerSampleReadStateManager perSampleReadStateManager = new PerSampleReadStateManager(LIBSDownsamplingInfo.NO_DOWNSAMPLING);
 
             makeReads();
 
             for ( ArrayList<AlignmentStateMachine> stackRecordStates : recordStatesByAlignmentStart ) {
-                perSampleReadStateManager.addStatesAtNextAlignmentStart(stackRecordStates);
+                perSampleReadStateManager.addStatesAtNextAlignmentStart(new LinkedList<AlignmentStateMachine>(stackRecordStates));
             }
 
             // read state manager should have the right number of reads
