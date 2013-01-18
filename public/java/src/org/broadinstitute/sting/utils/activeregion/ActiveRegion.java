@@ -62,7 +62,7 @@ public class ActiveRegion implements HasGenomeLocation {
 
     @Override
     public String toString() {
-        return "ActiveRegion " + activeRegionLoc.toString();
+        return "ActiveRegion "  + activeRegionLoc.toString() + " active?=" + isActive + " nReads=" + reads.size() + " ";
     }
 
     // add each read to the bin and extend the reference genome activeRegionLoc if needed
@@ -126,19 +126,4 @@ public class ActiveRegion implements HasGenomeLocation {
         if ( extendedLoc.compareTo(other.extendedLoc) != 0 ) return false;
         return true;
     }
-
-    /**
-     * A comparator class which is used to sort ActiveRegions by their start location
-     */
-    /*
-    public static class ActiveRegionStartLocationComparator implements Comparator<ActiveRegion> {
-
-        public ActiveRegionStartLocationComparator() {}
-
-        @Override
-        public int compare(final ActiveRegion left, final ActiveRegion right) {
-            return left.getLocation().compareTo(right.getLocation());
-        }
-    }
-    */
 }

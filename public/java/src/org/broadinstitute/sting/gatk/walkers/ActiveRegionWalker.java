@@ -68,11 +68,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     @Input(fullName="activeRegionIn", shortName="AR", doc="Use this interval list file as the active regions to process", required = false)
     protected List<IntervalBinding<Feature>> activeRegionBindings = null;
 
-    public GenomeLocSortedSet presetActiveRegions = null;
-
-    public boolean hasPresetActiveRegions() {
-        return presetActiveRegions != null;
-    }
+    private GenomeLocSortedSet presetActiveRegions = null;
 
     @Override
     public void initialize() {
@@ -89,6 +85,22 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
         }
 
         presetActiveRegions = IntervalUtils.sortAndMergeIntervals(this.getToolkit().getGenomeLocParser(), allIntervals, IntervalMergingRule.ALL);
+    }
+
+    /**
+     * Does this walker want us to use a set of preset action regions instead of dynamically using the result of isActive?
+     * @return true if yes, false if no
+     */
+    public boolean hasPresetActiveRegions() {
+        return presetActiveRegions != null;
+    }
+
+    /**
+     * Get the set of preset active regions, or null if none were provided
+     * @return a set of genome locs specifying fixed active regions requested by the walker, or null if none exist
+     */
+    public GenomeLocSortedSet getPresetActiveRegions() {
+        return presetActiveRegions;
     }
 
     // Do we actually want to operate on the context?

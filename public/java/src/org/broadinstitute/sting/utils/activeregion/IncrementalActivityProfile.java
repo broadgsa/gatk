@@ -124,6 +124,24 @@ public class IncrementalActivityProfile {
     }
 
     /**
+     * Get the span of this activity profile, which is from the start of the first state to the stop of the last
+     * @return a potentially null GenomeLoc.  Will be null if this profile is empty
+     */
+    public GenomeLoc getSpan() {
+        return isEmpty() ? null : regionStartLoc.endpointSpan(regionStopLoc);
+    }
+
+    @Requires("! isEmpty()")
+    public int getContigIndex() {
+        return regionStartLoc.getContigIndex();
+    }
+
+    @Requires("! isEmpty()")
+    public int getStop() {
+        return regionStopLoc.getStop();
+    }
+
+    /**
      * Get the list of active profile results in this object
      * @return a non-null, ordered list of active profile results
      */

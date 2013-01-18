@@ -51,6 +51,7 @@ class DummyActiveRegionWalker extends ActiveRegionWalker<Integer, Integer> {
 
     protected List<GenomeLoc> isActiveCalls = new ArrayList<GenomeLoc>();
     protected Map<GenomeLoc, ActiveRegion> mappedActiveRegions = new LinkedHashMap<GenomeLoc, ActiveRegion>();
+    private boolean declareHavingPresetRegions = false;
 
     public DummyActiveRegionWalker() {
         this(1.0);
@@ -60,18 +61,29 @@ class DummyActiveRegionWalker extends ActiveRegionWalker<Integer, Integer> {
         this.prob = constProb;
     }
 
-    public DummyActiveRegionWalker(EnumSet<ActiveRegionReadState> wantStates) {
-        this(1.0);
+    public DummyActiveRegionWalker(GenomeLocSortedSet activeRegions, EnumSet<ActiveRegionReadState> wantStates, final boolean declareHavingPresetRegions) {
+        this(activeRegions, declareHavingPresetRegions);
         this.states = wantStates;
     }
 
-    public DummyActiveRegionWalker(GenomeLocSortedSet activeRegions) {
+    public DummyActiveRegionWalker(GenomeLocSortedSet activeRegions, final boolean declareHavingPresetRegions) {
         this(1.0);
         this.activeRegions = activeRegions;
+        this.declareHavingPresetRegions = declareHavingPresetRegions;
     }
 
     public void setStates(EnumSet<ActiveRegionReadState> states) {
         this.states = states;
+    }
+
+    @Override
+    public boolean hasPresetActiveRegions() {
+        return declareHavingPresetRegions;
+    }
+
+    @Override
+    public GenomeLocSortedSet getPresetActiveRegions() {
+        return declareHavingPresetRegions ? activeRegions : null;
     }
 
     @Override

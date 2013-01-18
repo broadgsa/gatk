@@ -32,17 +32,13 @@ import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.*;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ActiveRegionExtension;
 import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
-import org.broadinstitute.sting.utils.activeregion.ActivityProfile;
-import org.broadinstitute.sting.utils.activeregion.ActivityProfileState;
-import org.broadinstitute.sting.utils.activeregion.BandPassActivityProfile;
+import org.broadinstitute.sting.utils.activeregion.*;
 import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -70,6 +66,7 @@ import java.util.*;
 public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegionWalker<M,T>,LocusShardDataProvider> {
     protected final static Logger logger = Logger.getLogger(TraversalEngine.class);
     protected final static boolean DEBUG = false;
+    protected final static boolean LOG_READ_CARRYING = false;
 
     // set by the tranversal
     private boolean walkerHasPresetRegions = false;
@@ -80,6 +77,8 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
 
     private LinkedList<GATKSAMRecord> myReads = new LinkedList<GATKSAMRecord>();
     private GenomeLoc spanOfLastReadSeen = null;
+    private IncrementalActivityProfile activityProfile = null;
+    int maxReadsInMemory = 0;
 
     @Override
     public void initialize(GenomeAnalysisEngine engine, Walker walker, ProgressMeter progressMeter) {
@@ -94,6 +93,14 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         activeRegionExtension = walker.getClass().getAnnotation(ActiveRegionExtension.class).extension();
         maxRegionSize = walker.getClass().getAnnotation(ActiveRegionExtension.class).maxRegion();
         walkerHasPresetRegions = arWalker.hasPresetActiveRegions();
+
+        activityProfile = new IncrementalActivityProfile(engine.getGenomeLocParser());
+        if ( walkerHasPresetRegions ) {
+            // we load all of the preset locations into the
+            for ( final GenomeLoc loc : arWalker.getPresetActiveRegions()) {
+                workQueue.add(new ActiveRegion(loc, true, engine.getGenomeLocParser(), getActiveRegionExtension()));
+            }
+        }
     }
 
     // -------------------------------------------------------------------------------------
@@ -141,62 +148,6 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
 
     // -------------------------------------------------------------------------------------
     //
-    // Working with ActivityProfiles and Active Regions
-    //
-    // -------------------------------------------------------------------------------------
-
-    /**
-     * Take the individual isActive calls and integrate them into contiguous active regions and
-     * add these blocks of work to the work queue
-     * band-pass filter the list of isActive probabilities and turn into active regions
-     *
-     * @param profile
-     * @param activeRegions
-     * @return
-     */
-    protected ActivityProfile incorporateActiveRegions(final ActivityProfile profile,
-                                                       final List<ActiveRegion> activeRegions) {
-        if ( profile.isEmpty() )
-            throw new IllegalStateException("trying to incorporate an empty active profile " + profile);
-
-        final ActivityProfile finalizedProfile = profile.finalizeProfile();
-        activeRegions.addAll(finalizedProfile.createActiveRegions(getActiveRegionExtension(), getMaxRegionSize()));
-        return makeNewActivityProfile();
-    }
-
-    protected final ActivityProfileState walkerActiveProb(final ActiveRegionWalker<M, T> walker,
-                                                           final RefMetaDataTracker tracker, final ReferenceContext refContext,
-                                                           final AlignmentContext locus, final GenomeLoc location) {
-        if ( walkerHasPresetRegions ) {
-            return new ActivityProfileState(location, walker.presetActiveRegions.overlaps(location) ? 1.0 : 0.0);
-        } else {
-            return walker.isActive( tracker, refContext, locus );
-        }
-    }
-
-    private ActivityProfile makeNewActivityProfile() {
-        if ( walkerHasPresetRegions )
-            return new ActivityProfile(engine.getGenomeLocParser());
-        else
-            return new BandPassActivityProfile(engine.getGenomeLocParser());
-    }
-
-    /**
-     * Write out each active region to the walker activeRegionOutStream
-     *
-     * @param walker
-     */
-    protected void writeActiveRegionsToStream( final ActiveRegionWalker<M, T> walker ) {
-        // Just want to output the active regions to a file, not actually process them
-        for( final ActiveRegion activeRegion : workQueue ) {
-            if( activeRegion.isActive ) {
-                walker.activeRegionOutStream.println( activeRegion.getLocation() );
-            }
-        }
-    }
-
-    // -------------------------------------------------------------------------------------
-    //
     // Actual traverse function
     //
     // -------------------------------------------------------------------------------------
@@ -219,7 +170,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
      * @param read the read we want to test if it's already been seen in the last shard
      * @return true if read would have appeared in the last shard, false otherwise
      */
-    protected boolean appearedInLastShard(final GenomeLoc locOfLastReadAtTraversalStart, final GATKSAMRecord read) {
+    private boolean appearedInLastShard(final GenomeLoc locOfLastReadAtTraversalStart, final GATKSAMRecord read) {
         if ( locOfLastReadAtTraversalStart == null )
             // we're in the first shard, so obviously the answer is no
             return false;
@@ -232,39 +183,20 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
 
     }
 
-    /**
-     * Is the current shard on a new contig w.r.t. the previous shard?
-     * @param currentShard the current shard we are processing
-     * @return true if the last shard was on a different contig than the current shard
-     */
-    private boolean onNewContig(final Shard currentShard) {
-        return spanOfLastSeenRead() != null
-                && spanOfLastSeenRead().getContigIndex() != currentShard.getLocation().getContigIndex();
-    }
-
     @Override
     public T traverse( final ActiveRegionWalker<M,T> walker,
                        final LocusShardDataProvider dataProvider,
                        T sum) {
-        logger.debug(String.format("TraverseActiveRegions.traverse: Shard is %s", dataProvider));
+        if ( LOG_READ_CARRYING || logger.isDebugEnabled() )
+            logger.info(String.format("TraverseActiveRegions.traverse: Shard is %s", dataProvider));
 
         final LocusView locusView = new AllLocusView(dataProvider);
-
         final LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
-
-        final List<ActiveRegion> activeRegions = new LinkedList<ActiveRegion>();
-        ActivityProfile profile = makeNewActivityProfile();
-
-        ReferenceOrderedView referenceOrderedDataView = getReferenceOrderedView(walker, dataProvider, locusView);
+        final ReferenceOrderedView referenceOrderedDataView = getReferenceOrderedView(walker, dataProvider, locusView);
 
         // We keep processing while the next reference location is within the interval
         final GenomeLoc locOfLastReadAtTraversalStart = spanOfLastSeenRead();
 
-        // if we've moved onto a new contig, process all of the active regions
-        if ( onNewContig(dataProvider.getShard()) )
-            sum = processActiveRegions(walker, sum, true);
-
-        GenomeLoc prevLoc = null;
         while( locusView.hasNext() ) {
             final AlignmentContext locus = locusView.next();
             final GenomeLoc location = locus.getLocation();
@@ -273,9 +205,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             // provided we haven't seen them before
             final Collection<GATKSAMRecord> reads = locusView.getLIBS().transferReadsFromAllPreviousPileups();
             for( final GATKSAMRecord read : reads ) {
-                if ( appearedInLastShard(locOfLastReadAtTraversalStart, read) ) {
-                    if ( DEBUG ) logger.warn("Skipping duplicated " + read.getReadName());
-                } else {
+                if ( ! appearedInLastShard(locOfLastReadAtTraversalStart, read) ) {
                     if ( DEBUG ) logger.warn("Adding read " + read.getReadName() + " at " + engine.getGenomeLocParser().createGenomeLoc(read) + " from provider " + dataProvider);
                     rememberLastReadLocation(read);
                     myReads.add(read);
@@ -286,10 +216,11 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             if ( outsideEngineIntervals(location) )
                 continue;
 
-            if ( prevLoc != null && location.getStart() != prevLoc.getStop() + 1 ) {
-                // we've move across some interval boundary, restart profile
-                profile = incorporateActiveRegions(profile, activeRegions);
-            }
+            // we've move across some interval boundary, restart profile
+            final boolean flushProfile = ! activityProfile.isEmpty()
+                    && ( activityProfile.getContigIndex() != location.getContigIndex()
+                       || location.getStart() != activityProfile.getStop() + 1);
+            sum = processActiveRegions(walker, sum, flushProfile, false);
 
             dataProvider.getShard().getReadMetrics().incrementNumIterations();
 
@@ -301,37 +232,13 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation(), refContext);
 
             // Call the walkers isActive function for this locus and add them to the list to be integrated later
-            profile.add(walkerActiveProb(walker, tracker, refContext, locus, location));
+            addIsActiveResult(walker, tracker, refContext, locus);
 
-            prevLoc = location;
-
+            maxReadsInMemory = Math.max(myReads.size(), maxReadsInMemory);
             printProgress(locus.getLocation());
         }
 
         updateCumulativeMetrics(dataProvider.getShard());
-
-        if ( ! profile.isEmpty() )
-            incorporateActiveRegions(profile, activeRegions);
-
-        // add active regions to queue of regions to process
-        // first check if can merge active regions over shard boundaries
-        if( !activeRegions.isEmpty() ) {
-            if( !workQueue.isEmpty() ) {
-                final ActiveRegion last = workQueue.getLast();
-                final ActiveRegion first = activeRegions.get(0);
-                if( last.isActive == first.isActive && last.getLocation().contiguousP(first.getLocation()) && last.getLocation().size() + first.getLocation().size() <= getMaxRegionSize() ) {
-                    workQueue.removeLast();
-                    activeRegions.remove(first);
-                    workQueue.add( new ActiveRegion(last.getLocation().union(first.getLocation()), first.isActive, this.engine.getGenomeLocParser(), getActiveRegionExtension()) );
-                }
-            }
-            workQueue.addAll( activeRegions );
-        }
-
-        logger.debug("Integrated " + profile.size() + " isActive calls into " + activeRegions.size() + " regions." );
-
-        // now go and process all of the active regions
-        sum = processActiveRegions(walker, sum, false);
 
         return sum;
     }
@@ -341,7 +248,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
      * Ugly for now but will be cleaned up when we push this functionality more into the engine
      */
     public T endTraversal(final Walker<M, T> walker, T sum) {
-        return processActiveRegions((ActiveRegionWalker<M, T>)walker, sum, true);
+        return processActiveRegions((ActiveRegionWalker<M, T>)walker, sum, true, true);
     }
 
     // -------------------------------------------------------------------------------------
@@ -383,8 +290,15 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
      * @return true if the extended location of region is completely within the current dead zone, false otherwise
      */
     protected boolean regionCompletelyWithinDeadZone(final ActiveRegion region) {
-        return region.getExtendedLoc().getStop() < spanOfLastSeenRead().getStart()
-                || ! region.getExtendedLoc().onSameContig(spanOfLastSeenRead());
+        if ( spanOfLastSeenRead() == null )
+            return false;
+
+        final int contigCmp = region.getExtendedLoc().compareContigs(spanOfLastSeenRead());
+        if ( contigCmp > 0 )
+            throw new IllegalStateException("Active region " + region + " on a contig after last seen read " + spanOfLastSeenRead());
+        else {
+            return contigCmp < 0 || region.getExtendedLoc().getStop() < spanOfLastSeenRead().getStart();
+        }
     }
 
     /**
@@ -408,7 +322,9 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
      */
     @Requires({"read != null", "activeRegion != null"})
     private boolean readCannotOccurInAnyMoreActiveRegions(final GATKSAMRecord read, final ActiveRegion activeRegion) {
-        return read.getAlignmentEnd() + getActiveRegionExtension() < activeRegion.getLocation().getStop();
+        return read.getReferenceIndex() < activeRegion.getLocation().getContigIndex() ||
+                ( read.getReferenceIndex() == activeRegion.getLocation().getContigIndex()
+                        && read.getAlignmentEnd() + getActiveRegionExtension() < activeRegion.getLocation().getStop() );
     }
 
     // -------------------------------------------------------------------------------------
@@ -417,32 +333,71 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
     //
     // -------------------------------------------------------------------------------------
 
-    private T processActiveRegions(final ActiveRegionWalker<M, T> walker, T sum, final boolean forceRegionsToBeActive) {
-        if( walker.activeRegionOutStream != null ) {
+    /**
+     * Invoke the walker isActive function, and incorporate its result into the activity profile
+     *
+     * @param walker the walker we're running
+     * @param tracker the ref meta data tracker to pass on to the isActive function of walker
+     * @param refContext the refContext to pass on to the isActive function of walker
+     * @param locus the AlignmentContext to pass on to the isActive function of walker
+     */
+    private void addIsActiveResult(final ActiveRegionWalker<M, T> walker,
+                                   final RefMetaDataTracker tracker, final ReferenceContext refContext,
+                                   final AlignmentContext locus) {
+        // must be called, even if we won't use the result, to satisfy walker contract
+        final ActivityProfileState state = walker.isActive( tracker, refContext, locus );
+        if ( ! walkerHasPresetRegions ) {
+            activityProfile.add(state);
+        }
+    }
+
+    /**
+     * Write out each active region to the walker activeRegionOutStream
+     *
+     * @param walker
+     */
+    private void writeActiveRegionsToStream( final ActiveRegionWalker<M, T> walker ) {
+        // Just want to output the active regions to a file, not actually process them
+        for( final ActiveRegion activeRegion : workQueue ) {
+            if( activeRegion.isActive ) {
+                walker.activeRegionOutStream.println( activeRegion.getLocation() );
+            }
+        }
+    }
+
+    /**
+     * Take the individual isActive calls and integrate them into contiguous active regions and
+     * add these blocks of work to the work queue
+     * band-pass filter the list of isActive probabilities and turn into active regions
+     */
+    private T processActiveRegions(final ActiveRegionWalker<M, T> walker, T sum, final boolean flushActivityProfile, final boolean forceAllRegionsToBeActive) {
+        if ( ! walkerHasPresetRegions ) {
+            // We don't have preset regions, so we get our regions from the activity profile
+            final Collection<ActiveRegion> activeRegions = activityProfile.popReadyActiveRegions(getActiveRegionExtension(), getMaxRegionSize(), flushActivityProfile);
+            workQueue.addAll(activeRegions);
+            if ( logger.isDebugEnabled() ) logger.debug("Integrated " + activityProfile.size() + " isActive calls into " + activeRegions.size() + " regions." );
+        }
+
+        if ( walker.activeRegionOutStream != null ) {
             writeActiveRegionsToStream(walker);
             return sum;
         } else {
-            return callWalkerMapOnActiveRegions(walker, sum, forceRegionsToBeActive);
-        }
-    }
-
-    private T callWalkerMapOnActiveRegions(final ActiveRegionWalker<M, T> walker, T sum, final boolean forceRegionsToBeActive) {
-        // Since we've traversed sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
-        // TODO can implement parallel traversal here
-        while( workQueue.peek() != null ) {
-            final ActiveRegion activeRegion = workQueue.peek();
-            if ( forceRegionsToBeActive || regionCompletelyWithinDeadZone(activeRegion) ) {
-                if ( DEBUG ) logger.warn("Processing active region " + activeRegion + " dead zone " + spanOfLastSeenRead());
-                sum = processActiveRegion( workQueue.remove(), sum, walker );
-            } else {
-                break;
+            // Since we've traversed sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
+            while( workQueue.peek() != null ) {
+                final ActiveRegion activeRegion = workQueue.peek();
+                if ( forceAllRegionsToBeActive || regionCompletelyWithinDeadZone(activeRegion) ) {
+                    if ( DEBUG ) logger.warn("Processing active region " + activeRegion + " dead zone " + spanOfLastSeenRead());
+                    sum = processActiveRegion( workQueue.remove(), sum, walker );
+                } else {
+                    break;
+                }
             }
-        }
 
-        return sum;
+            return sum;
+        }
     }
 
-    protected T processActiveRegion(final ActiveRegion activeRegion, final T sum, final ActiveRegionWalker<M, T> walker) {
+    private T processActiveRegion(final ActiveRegion activeRegion, final T sum, final ActiveRegionWalker<M, T> walker) {
         final Iterator<GATKSAMRecord> liveReads = myReads.iterator();
         while ( liveReads.hasNext() ) {
             boolean killed = false;
@@ -468,6 +423,11 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         }
 
         logger.debug(">> Map call with " + activeRegion.getReads().size() + " " + (activeRegion.isActive ? "active" : "inactive") + " reads @ " + activeRegion.getLocation() + " with full extent: " + activeRegion.getReferenceLoc());
+
+        if ( LOG_READ_CARRYING )
+            logger.info(String.format("Processing region %20s span=%3d active?=%5b with %4d reads.  Overall max reads carried is %s",
+                    activeRegion.getLocation(), activeRegion.getLocation().size(), activeRegion.isActive, activeRegion.size(), maxReadsInMemory));
+
         final M x = walker.map(activeRegion, null);
         return walker.reduce( x, sum );
     }
