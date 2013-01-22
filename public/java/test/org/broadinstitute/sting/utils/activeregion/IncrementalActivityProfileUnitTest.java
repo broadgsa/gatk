@@ -85,7 +85,9 @@ public class IncrementalActivityProfileUnitTest extends BaseTest {
         public IncrementalActivityProfile makeProfile() {
             switch ( type ) {
                 case Base: return new IncrementalActivityProfile(genomeLocParser);
-                case BandPass: //return new BandPassActivityProfile(genomeLocParser);
+                case BandPass:
+                    // zero size => equivalent to IncrementalActivityProfile
+                    return new BandPassIncrementalActivityProfile(genomeLocParser, 0);
                 default: throw new IllegalStateException(type.toString());
             }
         }
@@ -111,13 +113,11 @@ public class IncrementalActivityProfileUnitTest extends BaseTest {
     @DataProvider(name = "BasicActivityProfileTestProvider")
     public Object[][] makeQualIntervalTestProvider() {
         for ( final ProfileType type : ProfileType.values() ) {
-            if ( type != ProfileType.BandPass ) { // todo -- re-enable
-                new BasicActivityProfileTestProvider(type, Arrays.asList(1.0), true, 0, 1);
-                new BasicActivityProfileTestProvider(type, Arrays.asList(1.0, 0.0), true, 0, 1, 2);
-                new BasicActivityProfileTestProvider(type, Arrays.asList(0.0, 1.0), false, 0, 1, 2);
-                new BasicActivityProfileTestProvider(type, Arrays.asList(1.0, 0.0, 1.0), true, 0, 1, 2, 3);
-                new BasicActivityProfileTestProvider(type, Arrays.asList(1.0, 1.0, 1.0), true, 0, 3);
-            }
+            new BasicActivityProfileTestProvider(type, Arrays.asList(1.0), true, 0, 1);
+            new BasicActivityProfileTestProvider(type, Arrays.asList(1.0, 0.0), true, 0, 1, 2);
+            new BasicActivityProfileTestProvider(type, Arrays.asList(0.0, 1.0), false, 0, 1, 2);
+            new BasicActivityProfileTestProvider(type, Arrays.asList(1.0, 0.0, 1.0), true, 0, 1, 2, 3);
+            new BasicActivityProfileTestProvider(type, Arrays.asList(1.0, 1.0, 1.0), true, 0, 3);
         }
 
         return BasicActivityProfileTestProvider.getTests(BasicActivityProfileTestProvider.class);
@@ -135,20 +135,15 @@ public class IncrementalActivityProfileUnitTest extends BaseTest {
             double p = cfg.probs.get(i);
             GenomeLoc loc = genomeLocParser.createGenomeLoc(cfg.regionStart.getContig(), cfg.regionStart.getStart() + i, cfg.regionStart.getStart() + i);
             profile.add(new ActivityProfileState(loc, p));
-            Assert.assertFalse(profile.isEmpty());
+            Assert.assertFalse(profile.isEmpty(), "Profile shouldn't be empty after adding a state");
         }
-        Assert.assertEquals(profile.regionStartLoc, genomeLocParser.createGenomeLoc(cfg.regionStart.getContig(), cfg.regionStart.getStart(), cfg.regionStart.getStart() ));
+        Assert.assertEquals(profile.regionStartLoc, genomeLocParser.createGenomeLoc(cfg.regionStart.getContig(), cfg.regionStart.getStart(), cfg.regionStart.getStart() ), "Start loc should be the start of the region");
 
-        Assert.assertEquals(profile.size(), cfg.probs.size());
+        Assert.assertEquals(profile.size(), cfg.probs.size(), "Should have exactly the number of states we expected to add");
         assertProbsAreEqual(profile.stateList, cfg.probs);
 
         // TODO -- reanble tests
         //assertRegionsAreEqual(profile.createActiveRegions(0, 100), cfg.expectedRegions);
-
-        Assert.assertEquals(profile.createDerivedProfile(profile.stateList).getClass(), profile.getClass());
-
-        final List<ActivityProfileState> empty = new LinkedList<ActivityProfileState>();
-        Assert.assertEquals(profile.createDerivedProfile(empty).size(), 0);
     }
 
     private void assertRegionsAreEqual(List<ActiveRegion> actual, List<ActiveRegion> expected) {

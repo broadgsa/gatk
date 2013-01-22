@@ -51,35 +51,13 @@ public class IncrementalActivityProfile {
 
     /**
      * Create a new empty IncrementalActivityProfile
-     * @param parser the parser we can use to create genome locs
+     * @param parser the parser we can use to create genome locs, cannot be null
      */
     public IncrementalActivityProfile(final GenomeLocParser parser) {
-        this(parser, new ArrayList<ActivityProfileState>(), null);
-    }
+        if ( parser == null ) throw new IllegalArgumentException("parser cannot be null");
 
-    /**
-     * Create a new IncrementalActivityProfile using state list (not copied) and starting at regionStartLoc
-     * @param parser the parser we can use to create genome locs
-     */
-    @Deprecated
-    protected IncrementalActivityProfile(final GenomeLocParser parser, final List<ActivityProfileState> stateList, final GenomeLoc regionStartLoc) {
         this.parser = parser;
-        this.stateList = stateList;
-        this.regionStartLoc = regionStartLoc;
-    }
-
-    /**
-     * Create a profile of the same class as this object containing just the provided stateList
-     *
-     * Used by clients to create derived activity profiles (such as ones without the starting X
-     * sites because they've been removed in an ActiveRegion) of the same class.
-     *
-     * @param isActiveList the active results list to use in the derived instance
-     * @return a freshly allocated data set
-     */
-    @Deprecated
-    protected IncrementalActivityProfile createDerivedProfile(final List<ActivityProfileState> isActiveList) {
-        return new IncrementalActivityProfile(parser, isActiveList, regionStartLoc);
+        this.stateList = new ArrayList<ActivityProfileState>();
     }
 
     @Override
@@ -148,6 +126,19 @@ public class IncrementalActivityProfile {
     @Ensures("result != null")
     protected List<ActivityProfileState> getStateList() {
         return stateList;
+    }
+
+    /**
+     * Get the probabilities of the states as a single linear array of doubles
+     * @return a non-null array
+     */
+    @Ensures("result != null")
+    protected double[] getProbabilitiesAsArray() {
+        final double[] probs = new double[getStateList().size()];
+        int i = 0;
+        for ( final ActivityProfileState state : getStateList() )
+            probs[i++] = state.isActiveProb;
+        return probs;
     }
 
     /**
