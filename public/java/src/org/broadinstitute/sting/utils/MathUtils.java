@@ -651,7 +651,7 @@ public class MathUtils {
 
         final double sum = sum(array);
         final double[] normalized = new double[array.length];
-        if ( sum < 0.0 || sum > 1.0 ) throw new IllegalArgumentException("Values in probability array sum to a negative number " + sum);
+        if ( sum < 0.0 ) throw new IllegalArgumentException("Values in probability array sum to a negative number " + sum);
         for ( int i = 0; i < array.length; i++ ) {
             normalized[i] = array[i] / sum;
         }

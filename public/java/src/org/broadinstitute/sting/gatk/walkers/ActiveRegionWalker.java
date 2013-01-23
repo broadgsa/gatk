@@ -28,9 +28,7 @@ package org.broadinstitute.sting.gatk.walkers;
 import com.google.java.contract.Ensures;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.Feature;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.IntervalBinding;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.*;
@@ -85,6 +83,22 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
 
     @Input(fullName="activeRegionIn", shortName="AR", doc="Use this interval list file as the active regions to process", required = false)
     protected List<IntervalBinding<Feature>> activeRegionBindings = null;
+
+    @Advanced
+    @Argument(fullName="activeRegionExtension", shortName="activeRegionExtension", doc="The active region extension; if not provided defaults to Walker annotated default", required = false)
+    public Integer activeRegionExtension = null;
+
+    @Advanced
+    @Argument(fullName="activeRegionMaxSize", shortName="activeRegionMaxSize", doc="The active region maximum size; if not provided defaults to Walker annotated default", required = false)
+    public Integer activeRegionMaxSize = null;
+
+    @Advanced
+    @Argument(fullName="bandPassFilterSize", shortName="bandPassFilterSize", doc="The filter size of band pass filter; if not provided defaults to Walker annotated default", required = false)
+    public Integer bandPassFilterSize = null;
+
+    @Advanced
+    @Argument(fullName="bandPassSigma", shortName="bandPassSigma", doc="The sigma of the band pass filter Gaussian kernel; if not provided defaults to Walker annotated default", required = false)
+    public Double bandPassSigma = null;
 
     private GenomeLocSortedSet presetActiveRegions = null;
 

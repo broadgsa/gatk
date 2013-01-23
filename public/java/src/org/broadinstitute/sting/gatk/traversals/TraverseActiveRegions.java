@@ -102,11 +102,14 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
                     "non-primary reads, an inconsistent state.  Please modify the walker");
         }
 
-        activeRegionExtension = walker.getClass().getAnnotation(ActiveRegionExtension.class).extension();
-        maxRegionSize = walker.getClass().getAnnotation(ActiveRegionExtension.class).maxRegion();
+        ActiveRegionExtension annotation = walker.getClass().getAnnotation(ActiveRegionExtension.class);
+        this.activeRegionExtension = this.walker.activeRegionExtension == null ? annotation.extension() : this.walker.activeRegionExtension;
+        this.maxRegionSize = this.walker.activeRegionMaxSize == null ? annotation.maxRegion() : this.walker.activeRegionMaxSize;
+        final int bandPassFilterSize = this.walker.bandPassFilterSize == null ? annotation.bandPassFilterSize() : this.walker.bandPassFilterSize;
+        final double bandPassSigma = this.walker.bandPassSigma == null ? annotation.bandPassSigma() : this.walker.bandPassSigma;
         walkerHasPresetRegions = this.walker.hasPresetActiveRegions();
 
-        activityProfile = new BandPassActivityProfile(engine.getGenomeLocParser());
+        activityProfile = new BandPassActivityProfile(engine.getGenomeLocParser(), bandPassFilterSize, bandPassSigma);
         if ( walkerHasPresetRegions ) {
             // we load all of the preset locations into the
             for ( final GenomeLoc loc : this.walker.getPresetActiveRegions()) {

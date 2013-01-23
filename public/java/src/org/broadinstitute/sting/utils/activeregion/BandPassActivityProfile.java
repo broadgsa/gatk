@@ -44,8 +44,10 @@ import java.util.LinkedList;
  */
 public class BandPassActivityProfile extends ActivityProfile {
     public static final int DEFAULT_FILTER_SIZE = 80;
+    public static final double DEFAULT_SIGMA = 55.0;
 
     private final int filterSize;
+    private final double sigma;
     private final double[] GaussianKernel;
 
     /**
@@ -53,7 +55,7 @@ public class BandPassActivityProfile extends ActivityProfile {
      * @param parser our genome loc parser
      */
     public BandPassActivityProfile(final GenomeLocParser parser) {
-        this(parser, DEFAULT_FILTER_SIZE);
+        this(parser, DEFAULT_FILTER_SIZE, DEFAULT_SIGMA);
     }
 
     /**
@@ -63,16 +65,18 @@ public class BandPassActivityProfile extends ActivityProfile {
      *                   side that are included in the band.  So a filter size of 1 implies that the actual band
      *                   is 3 bp, 1 for the center site and 1 on each size.  2 => 5, etc.
      */
-    public BandPassActivityProfile(final GenomeLocParser parser, final int filterSize) {
+    public BandPassActivityProfile(final GenomeLocParser parser, final int filterSize, final double sigma) {
         super(parser);
 
         if ( filterSize < 0 ) throw new IllegalArgumentException("Filter size must be greater than or equal to 0 but got " + filterSize);
+        if ( sigma < 0 ) throw new IllegalArgumentException("Sigma must be greater than or equal to 0 but got " + sigma);
 
         // setup the Gaussian kernel for the band pass filter
         this.filterSize = filterSize;
+        this.sigma = sigma;
         final double[] kernel = new double[getBandSize()];
         for( int iii = 0; iii < 2* filterSize + 1; iii++ ) {
-            kernel[iii] = MathUtils.NormalDistribution(filterSize, 55.0, iii);
+            kernel[iii] = MathUtils.NormalDistribution(filterSize, sigma, iii);
         }
         this.GaussianKernel = MathUtils.normalizeFromRealSpace(kernel);
     }
@@ -106,6 +110,15 @@ public class BandPassActivityProfile extends ActivityProfile {
     @Ensures("result >= 0")
     public int getFilteredSize() {
         return filterSize;
+    }
+
+    /**
+     * Get the Gaussian kernel sigma value
+     * @return a positive double
+     */
+    @Ensures("result >= 0")
+    public double getSigma() {
+        return sigma;
     }
 
     /**

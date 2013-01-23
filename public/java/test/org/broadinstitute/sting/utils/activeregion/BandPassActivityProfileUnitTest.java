@@ -64,11 +64,13 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
             for ( boolean precedingIsActive : Arrays.asList(true, false) ) {
                 for ( int precedingSites: Arrays.asList(0, 1, 10, 100) ) {
                     for ( int bandPassSize : Arrays.asList(0, 1, 10, 100) ) {
+                        for ( double sigma : Arrays.asList(1.0, 2.0, BandPassActivityProfile.DEFAULT_SIGMA) ) {
 //        for ( int start : Arrays.asList(10) ) {
 //            for ( boolean precedingIsActive : Arrays.asList(false) ) {
 //                for ( int precedingSites: Arrays.asList(0) ) {
 //                    for ( int bandPassSize : Arrays.asList(1) ) {
-                        tests.add(new Object[]{ start, precedingIsActive, precedingSites, bandPassSize });
+                            tests.add(new Object[]{ start, precedingIsActive, precedingSites, bandPassSize, sigma });
+                        }
                     }
                 }
             }
@@ -78,10 +80,12 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
     }
 
     @Test(dataProvider = "BandPassBasicTest")
-    public void testBandPass(final int start, final boolean precedingIsActive, final int nPrecedingSites, final int bandPassSize) {
-        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, bandPassSize);
+    public void testBandPass(final int start, final boolean precedingIsActive, final int nPrecedingSites, final int bandPassSize, final double sigma) {
+        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, bandPassSize, sigma);
 
         final int expectedBandSize = bandPassSize * 2 + 1;
+        Assert.assertEquals(profile.getFilteredSize(), bandPassSize, "Wrong filter size");
+        Assert.assertEquals(profile.getSigma(), sigma, "Wrong sigma");
         Assert.assertEquals(profile.getBandSize(), expectedBandSize, "Wrong expected band size");
 
         final String contig = genomeLocParser.getContigs().getSequences().get(0).getSequenceName();
@@ -132,7 +136,7 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
     @Test( dataProvider = "BandPassComposition")
     public void testBandPassComposition(final int bandPassSize, final int integrationLength) {
         final int start = 1;
-        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, bandPassSize);
+        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, bandPassSize, BandPassActivityProfile.DEFAULT_SIGMA);
         final double[] rawActiveProbs = new double[integrationLength + bandPassSize * 2];
 
         // add a buffer so that we can get all of the band pass values

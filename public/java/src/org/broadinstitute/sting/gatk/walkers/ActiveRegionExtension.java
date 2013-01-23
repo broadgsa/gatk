@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
+import org.broadinstitute.sting.utils.activeregion.BandPassActivityProfile;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
@@ -42,4 +44,18 @@ import java.lang.annotation.RetentionPolicy;
 public @interface ActiveRegionExtension {
     public int extension() default 0;
     public int maxRegion() default 1500;
+
+    /**
+     * The size of the band pass filter in bp.  The filter size describes how far
+     * from the current site the band pass extends.  So a value of 1 implies a total
+     * band size of 3 bp, the site bp and one on each side
+     * @return
+     */
+    public int bandPassFilterSize() default BandPassActivityProfile.DEFAULT_FILTER_SIZE;
+
+    /**
+     * The sigma value for the Gaussian kernel of the band pass filter
+     * @return
+     */
+    public double bandPassSigma() default BandPassActivityProfile.DEFAULT_SIGMA;
 }
