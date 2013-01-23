@@ -50,6 +50,12 @@ public class ActivityProfile {
     protected GenomeLoc regionStopLoc = null;
 
     /**
+     * A cached value of the regionStartLoc contig length, to make calls to
+     * getCurrentContigLength efficient
+     */
+    protected int contigLength = -1;
+
+    /**
      * Create a new empty ActivityProfile
      * @param parser the parser we can use to create genome locs, cannot be null
      */
@@ -155,7 +161,7 @@ public class ActivityProfile {
         if ( start < 0 || start > getCurrentContigLength() ) {
             return null;
         } else {
-            return parser.createGenomeLoc(regionStartLoc.getContig(), start);
+            return parser.createGenomeLoc(regionStartLoc.getContig(), regionStartLoc.getContigIndex(), start, start);
         }
     }
 
@@ -166,8 +172,7 @@ public class ActivityProfile {
     @Requires("regionStartLoc != null")
     @Ensures("result > 0")
     private int getCurrentContigLength() {
-        // TODO -- fix performance problem with getContigInfo
-        return parser.getContigInfo(regionStartLoc.getContig()).getSequenceLength();
+        return contigLength;
     }
 
     // --------------------------------------------------------------------------------
@@ -190,6 +195,7 @@ public class ActivityProfile {
         if ( regionStartLoc == null ) {
             regionStartLoc = loc;
             regionStopLoc = loc;
+            contigLength = parser.getContigInfo(regionStartLoc.getContig()).getSequenceLength();
         } else {
             // TODO -- need to figure out where to add loc as the regions will be popping off the front
             if ( regionStopLoc.getStart() != loc.getStart() - 1 )
