@@ -105,11 +105,10 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         ActiveRegionExtension annotation = walker.getClass().getAnnotation(ActiveRegionExtension.class);
         this.activeRegionExtension = this.walker.activeRegionExtension == null ? annotation.extension() : this.walker.activeRegionExtension;
         this.maxRegionSize = this.walker.activeRegionMaxSize == null ? annotation.maxRegion() : this.walker.activeRegionMaxSize;
-        final int bandPassFilterSize = this.walker.bandPassFilterSize == null ? annotation.bandPassFilterSize() : this.walker.bandPassFilterSize;
         final double bandPassSigma = this.walker.bandPassSigma == null ? annotation.bandPassSigma() : this.walker.bandPassSigma;
         walkerHasPresetRegions = this.walker.hasPresetActiveRegions();
 
-        activityProfile = new BandPassActivityProfile(engine.getGenomeLocParser(), bandPassFilterSize, bandPassSigma);
+        activityProfile = new BandPassActivityProfile(engine.getGenomeLocParser(), BandPassActivityProfile.MAX_FILTER_SIZE, bandPassSigma);
         if ( walkerHasPresetRegions ) {
             // we load all of the preset locations into the
             for ( final GenomeLoc loc : this.walker.getPresetActiveRegions()) {

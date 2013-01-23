@@ -87,7 +87,7 @@ public class ActivityProfileUnitTest extends BaseTest {
                 case Base: return new ActivityProfile(genomeLocParser);
                 case BandPass:
                     // zero size => equivalent to ActivityProfile
-                    return new BandPassActivityProfile(genomeLocParser, 0);
+                    return new BandPassActivityProfile(genomeLocParser, 0, 0.01, false);
                 default: throw new IllegalStateException(type.toString());
             }
         }
@@ -98,7 +98,7 @@ public class ActivityProfileUnitTest extends BaseTest {
                 int start = regionStart.getStart() + startsAndStops[i];
                 int end = regionStart.getStart() + startsAndStops[i+1] - 1;
                 GenomeLoc activeLoc = genomeLocParser.createGenomeLoc(regionStart.getContig(), start, end);
-                ActiveRegion r = new ActiveRegion(activeLoc, null, isActive, genomeLocParser, extension);
+                ActiveRegion r = new ActiveRegion(activeLoc, Collections.<ActivityProfileState>emptyList(), isActive, genomeLocParser, extension);
                 l.add(r);
                 isActive = ! isActive;
             }

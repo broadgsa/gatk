@@ -93,10 +93,6 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     public Integer activeRegionMaxSize = null;
 
     @Advanced
-    @Argument(fullName="bandPassFilterSize", shortName="bandPassFilterSize", doc="The filter size of band pass filter; if not provided defaults to Walker annotated default", required = false)
-    public Integer bandPassFilterSize = null;
-
-    @Advanced
     @Argument(fullName="bandPassSigma", shortName="bandPassSigma", doc="The sigma of the band pass filter Gaussian kernel; if not provided defaults to Walker annotated default", required = false)
     public Double bandPassSigma = null;
 

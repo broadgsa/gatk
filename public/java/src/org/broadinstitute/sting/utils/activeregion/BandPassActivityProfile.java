@@ -30,6 +30,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 
@@ -43,42 +44,55 @@ import java.util.LinkedList;
  * @since 2011
  */
 public class BandPassActivityProfile extends ActivityProfile {
-    public static final int DEFAULT_FILTER_SIZE = 80;
-    public static final double DEFAULT_SIGMA = 55.0;
+    public static final int MAX_FILTER_SIZE = 50;
+    private final static double MIN_PROB_TO_KEEP_IN_FILTER = 1e-5;
+    public static final double DEFAULT_SIGMA = 17.0;
 
     private final int filterSize;
     private final double sigma;
     private final double[] GaussianKernel;
 
     /**
-     * Create a band pass activity profile with the default band size
-     * @param parser our genome loc parser
-     */
-    public BandPassActivityProfile(final GenomeLocParser parser) {
-        this(parser, DEFAULT_FILTER_SIZE, DEFAULT_SIGMA);
-    }
-
-    /**
      * Create an activity profile that implements a band pass filter on the states
      * @param parser our genome loc parser
-     * @param filterSize the size (in bp) of the band pass filter.  The filter size is the number of bp to each
-     *                   side that are included in the band.  So a filter size of 1 implies that the actual band
-     *                   is 3 bp, 1 for the center site and 1 on each size.  2 => 5, etc.
+     * @param maxFilterSize the maximum size of the band pass filter we are allowed to create, regardless of sigma
+     * @param sigma the variance of the Gaussian kernel for this band pass filter
      */
-    public BandPassActivityProfile(final GenomeLocParser parser, final int filterSize, final double sigma) {
+    public BandPassActivityProfile(final GenomeLocParser parser, final int maxFilterSize, final double sigma) {
+        this(parser, maxFilterSize, sigma, true);
+    }
+
+    public BandPassActivityProfile(final GenomeLocParser parser, final int maxFilterSize, final double sigma, final boolean adaptiveFilterSize) {
         super(parser);
 
-        if ( filterSize < 0 ) throw new IllegalArgumentException("Filter size must be greater than or equal to 0 but got " + filterSize);
         if ( sigma < 0 ) throw new IllegalArgumentException("Sigma must be greater than or equal to 0 but got " + sigma);
 
         // setup the Gaussian kernel for the band pass filter
-        this.filterSize = filterSize;
         this.sigma = sigma;
-        final double[] kernel = new double[getBandSize()];
-        for( int iii = 0; iii < 2* filterSize + 1; iii++ ) {
+        final double[] fullKernel = makeKernel(maxFilterSize, sigma);
+        this.filterSize = adaptiveFilterSize ? determineFilterSize(fullKernel, MIN_PROB_TO_KEEP_IN_FILTER) : maxFilterSize;
+        this.GaussianKernel = makeKernel(this.filterSize, sigma);
+    }
+
+    protected static int determineFilterSize(final double[] kernel, final double minProbToKeepInFilter) {
+        final int middle = (kernel.length - 1) / 2;
+        int filterEnd = middle;
+        while ( filterEnd > 0 ) {
+            if ( kernel[filterEnd - 1] < minProbToKeepInFilter ) {
+                break;
+            }
+            filterEnd--;
+        }
+        return middle - filterEnd;
+    }
+
+    protected static double[] makeKernel(final int filterSize, final double sigma) {
+        final int bandSize = 2 * filterSize + 1;
+        final double[] kernel = new double[bandSize];
+        for( int iii = 0; iii < bandSize; iii++ ) {
             kernel[iii] = MathUtils.NormalDistribution(filterSize, sigma, iii);
         }
-        this.GaussianKernel = MathUtils.normalizeFromRealSpace(kernel);
+        return MathUtils.normalizeFromRealSpace(kernel);
     }
 
     /**
