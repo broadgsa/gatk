@@ -40,7 +40,7 @@ import java.util.*;
  * @since Date created
  */
 public class ActivityProfile {
-    private final static int MAX_PROB_PROPOGATION_DISTANCE = 10;
+    private final static int MAX_PROB_PROPOGATION_DISTANCE = 50;
     private final static double ACTIVE_PROB_THRESHOLD = 0.002; // TODO: needs to be set-able by the walker author
 
     protected final List<ActivityProfileState> stateList;
@@ -259,7 +259,8 @@ public class ActivityProfile {
         if ( justAddedState.resultState.equals(ActivityProfileState.Type.HIGH_QUALITY_SOFT_CLIPS) ) {
             // special code to deal with the problem that high quality soft clipped bases aren't added to pileups
             final List<ActivityProfileState> states = new LinkedList<ActivityProfileState>();
-            final int numHQClips = justAddedState.resultValue.intValue();
+            // add no more than the max prob propagation distance num HQ clips
+            final int numHQClips = Math.min(justAddedState.resultValue.intValue(), getMaxProbPropagationDistance());
             for( int jjj = - numHQClips; jjj <= numHQClips; jjj++ ) {
                 final GenomeLoc loc = getLocForOffset(justAddedState.getLoc(), jjj);
                 if ( loc != null )
