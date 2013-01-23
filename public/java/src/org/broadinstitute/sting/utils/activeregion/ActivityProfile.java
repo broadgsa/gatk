@@ -336,7 +336,9 @@ public class ActivityProfile {
             return null;
 
         // we need to create the active region, and clip out the states we're extracting from this profile
-        stateList.subList(0, offsetOfNextRegionEnd + 1).clear();
+        final List<ActivityProfileState> sub = stateList.subList(0, offsetOfNextRegionEnd + 1);
+        final List<ActivityProfileState> supportingStates = new ArrayList<ActivityProfileState>(sub);
+        sub.clear();
 
         // update the start and stop locations as necessary
         if ( stateList.isEmpty() ) {
@@ -345,7 +347,7 @@ public class ActivityProfile {
             regionStartLoc = stateList.get(0).getLoc();
         }
         final GenomeLoc regionLoc = parser.createGenomeLoc(first.getLoc().getContig(), first.getLoc().getStart(), first.getLoc().getStart() + offsetOfNextRegionEnd);
-        return new ActiveRegion(regionLoc, isActiveRegion, parser, activeRegionExtension);
+        return new ActiveRegion(regionLoc, supportingStates, isActiveRegion, parser, activeRegionExtension);
     }
 
     /**

@@ -61,10 +61,26 @@ import java.util.*;
 @ReadFilters({UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class, FailsVendorQualityCheckFilter.class, MappingQualityUnavailableFilter.class})
 @RemoveProgramRecords
 public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
-    @Output(fullName="activityProfileOut", shortName="APO", doc="Output the raw activity profile results bed file", required = false)
+    /**
+     * If provided, this walker will write out its activity profile (per bp probabilities of being active)
+     * to this file in the IGV formatted TAB deliminated output:
+     *
+     * http://www.broadinstitute.org/software/igv/IGV
+     *
+     * Intended to make debugging the activity profile calculations easier
+     */
+    @Output(fullName="activityProfileOut", shortName="APO", doc="Output the raw activity profile results in IGV format", required = false)
     public PrintStream activityProfileOutStream = null;
 
-    @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this interval list file", required = false)
+    /**
+     * If provided, this walker will write out its active and inactive regions
+     * to this file in the IGV formatted TAB deliminated output:
+     *
+     * http://www.broadinstitute.org/software/igv/IGV
+     *
+     * Intended to make debugging the active region calculations easier
+     */
+    @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this IGV formatted file", required = false)
     public PrintStream activeRegionOutStream = null;
 
     @Input(fullName="activeRegionIn", shortName="AR", doc="Use this interval list file as the active regions to process", required = false)

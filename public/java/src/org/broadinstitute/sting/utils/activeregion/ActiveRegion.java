@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -44,6 +45,7 @@ import java.util.ArrayList;
 public class ActiveRegion implements HasGenomeLocation {
 
     private final ArrayList<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
+    private final List<ActivityProfileState> supportingStates;
     private final GenomeLoc activeRegionLoc;
     private final GenomeLoc extendedLoc;
     private final int extension;
@@ -51,8 +53,9 @@ public class ActiveRegion implements HasGenomeLocation {
     private final GenomeLocParser genomeLocParser;
     public final boolean isActive;
 
-    public ActiveRegion( final GenomeLoc activeRegionLoc, final boolean isActive, final GenomeLocParser genomeLocParser, final int extension ) {
+    public ActiveRegion( final GenomeLoc activeRegionLoc, final List<ActivityProfileState> supportingStates, final boolean isActive, final GenomeLocParser genomeLocParser, final int extension ) {
         this.activeRegionLoc = activeRegionLoc;
+        this.supportingStates = new ArrayList<ActivityProfileState>(supportingStates);
         this.isActive = isActive;
         this.genomeLocParser = genomeLocParser;
         this.extension = extension;
@@ -111,6 +114,8 @@ public class ActiveRegion implements HasGenomeLocation {
     public GenomeLoc getLocation() { return activeRegionLoc; }
     public GenomeLoc getExtendedLoc() { return extendedLoc; }
     public GenomeLoc getReferenceLoc() { return fullExtentReferenceLoc; }
+
+    public List<ActivityProfileState> getSupportingStates() { return supportingStates; }
 
     public int getExtension() { return extension; }
     public int size() { return reads.size(); }

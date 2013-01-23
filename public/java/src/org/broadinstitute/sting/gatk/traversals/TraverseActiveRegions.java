@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.traversals;
 
+import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -38,10 +39,12 @@ import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.activeregion.*;
 import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -79,26 +82,35 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
     private GenomeLoc spanOfLastReadSeen = null;
     private ActivityProfile activityProfile = null;
     int maxReadsInMemory = 0;
+    ActiveRegionWalker walker;
+
+    /**
+     * Have the debugging output streams been initialized already?
+     *
+     * We have to do lazy initialization because when the initialize() function is called
+     * the streams aren't yet initialized in the GATK walker.
+     */
+    private boolean streamsInitialized = false;
 
     @Override
     public void initialize(GenomeAnalysisEngine engine, Walker walker, ProgressMeter progressMeter) {
         super.initialize(engine, walker, progressMeter);
 
-        final ActiveRegionWalker arWalker = (ActiveRegionWalker)walker;
-        if ( arWalker.wantsExtendedReads() && ! arWalker.wantsNonPrimaryReads() ) {
-            throw new IllegalArgumentException("Active region walker " + arWalker + " requested extended events but not " +
+        this.walker = (ActiveRegionWalker)walker;
+        if ( this.walker.wantsExtendedReads() && ! this.walker.wantsNonPrimaryReads() ) {
+            throw new IllegalArgumentException("Active region walker " + this.walker + " requested extended events but not " +
                     "non-primary reads, an inconsistent state.  Please modify the walker");
         }
 
         activeRegionExtension = walker.getClass().getAnnotation(ActiveRegionExtension.class).extension();
         maxRegionSize = walker.getClass().getAnnotation(ActiveRegionExtension.class).maxRegion();
-        walkerHasPresetRegions = arWalker.hasPresetActiveRegions();
+        walkerHasPresetRegions = this.walker.hasPresetActiveRegions();
 
         activityProfile = new BandPassActivityProfile(engine.getGenomeLocParser());
         if ( walkerHasPresetRegions ) {
             // we load all of the preset locations into the
-            for ( final GenomeLoc loc : arWalker.getPresetActiveRegions()) {
-                workQueue.add(new ActiveRegion(loc, true, engine.getGenomeLocParser(), getActiveRegionExtension()));
+            for ( final GenomeLoc loc : this.walker.getPresetActiveRegions()) {
+                workQueue.add(new ActiveRegion(loc, null, true, engine.getGenomeLocParser(), getActiveRegionExtension()));
             }
         }
     }
@@ -329,6 +341,104 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
 
     // -------------------------------------------------------------------------------------
     //
+    // Functions to write out activity profiles and active regions
+    //
+    // -------------------------------------------------------------------------------------
+
+    /**
+     * Initialize the debugging output streams (activity profile and active regions), if not done so already
+     */
+    @Ensures("streamsInitialized == true")
+    private void initializeOutputStreamsIfNecessary() {
+        if ( ! streamsInitialized ) {
+            streamsInitialized = true;
+            if ( walker.activityProfileOutStream != null ) {
+                printIGVFormatHeader(walker.activityProfileOutStream, "line", "ActivityProfile");
+            }
+
+            if ( walker.activeRegionOutStream != null ) {
+                printIGVFormatHeader(walker.activeRegionOutStream, "line", "ActiveRegions");
+            }
+        }
+    }
+
+    /**
+     * Helper function to write out a IGV formatted line to out, at loc, with values
+     *
+     * http://www.broadinstitute.org/software/igv/IGV
+     *
+     * @param out a non-null PrintStream where we'll write our line
+     * @param graphType the type of graph to show in IGV for this track
+     * @param columns the column names for this IGV track
+     */
+    @Requires({
+            "out != null",
+            "graphType != null",
+            "columns.length > 0"
+    })
+    private void printIGVFormatHeader(final PrintStream out, final String graphType, final String ... columns ) {
+        out.printf("#track graphType=%s%n", graphType);
+        out.printf("Chromosome\tStart\tEnd\tFeature\t%s%n", Utils.join("\t", columns));
+
+    }
+
+    /**
+     * Helper function to write out a IGV formatted line to out, at loc, with values
+     *
+     * http://www.broadinstitute.org/software/igv/IGV
+     *
+     * @param out a non-null PrintStream where we'll write our line
+     * @param loc the location of values
+     * @param featureName string name of this feature (see IGV format)
+     * @param values the floating point values to associate with loc and feature name in out
+     */
+    @Requires({
+            "out != null",
+            "loc != null",
+            "values.length > 0"
+    })
+    private void printIGVFormatRow(final PrintStream out, final GenomeLoc loc, final String featureName, final double ... values) {
+        // note that start and stop are 0 based, but the stop is exclusive so we don't subtract 1
+        out.printf("%s\t%d\t%d\t%s", loc.getContig(), loc.getStart() - 1, loc.getStop(), featureName);
+        for ( final double value : values )
+            out.print(String.format("\t%.3f", value));
+        out.println();
+    }
+
+    /**
+     * Write out activity profile information, if requested by the walker
+     *
+     * @param states the states in the current activity profile
+     */
+    @Requires("states != null")
+    private void writeActivityProfile(final List<ActivityProfileState> states) {
+        if ( walker.activityProfileOutStream != null ) {
+            initializeOutputStreamsIfNecessary();
+            for ( final ActivityProfileState state : states ) {
+                printIGVFormatRow(walker.activityProfileOutStream, state.getLoc(), "state", state.isActiveProb);
+            }
+        }
+    }
+
+    /**
+     * Write out each active region to the walker activeRegionOutStream
+     *
+     * @param region the region we're currently operating on
+     */
+    @Requires("region != null")
+    private void writeActiveRegion(final ActiveRegion region) {
+        if( walker.activeRegionOutStream != null ) {
+            initializeOutputStreamsIfNecessary();
+            printIGVFormatRow(walker.activeRegionOutStream, region.getLocation().getStartLocation(),
+                    "end-marker", 0.0);
+            printIGVFormatRow(walker.activeRegionOutStream, region.getLocation(),
+                    "size=" + region.getLocation().size(), region.isActive ? 1.0 : -1.0);
+        }
+    }
+
+
+    // -------------------------------------------------------------------------------------
+    //
     // Functions to process active regions that are ready for map / reduce calls
     //
     // -------------------------------------------------------------------------------------
@@ -349,26 +459,6 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         if ( ! walkerHasPresetRegions ) {
             activityProfile.add(state);
         }
-
-        if ( walker.activityProfileOutStream != null )
-            walker.activityProfileOutStream.printf("%s\t%d\t%d\t%.2f%n",
-                    locus.getLocation().getContig(), locus.getLocation().getStart(), locus.getLocation().getStart(),
-                    state.isActiveProb);
-
-    }
-
-    /**
-     * Write out each active region to the walker activeRegionOutStream
-     *
-     * @param walker
-     */
-    private void writeActiveRegionsToStream( final ActiveRegionWalker<M, T> walker ) {
-        // Just want to output the active regions to a file, not actually process them
-        for( final ActiveRegion activeRegion : workQueue ) {
-            if( activeRegion.isActive ) {
-                walker.activeRegionOutStream.println( activeRegion.getLocation() );
-            }
-        }
     }
 
     /**
@@ -384,23 +474,20 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             if ( ! activeRegions.isEmpty() && logger.isDebugEnabled() ) logger.debug("Integrated " + activityProfile.size() + " isActive calls into " + activeRegions.size() + " regions." );
         }
 
-        if ( walker.activeRegionOutStream != null ) {
-            writeActiveRegionsToStream(walker);
-            return sum;
-        } else {
-            // Since we've traversed sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
-            while( workQueue.peek() != null ) {
-                final ActiveRegion activeRegion = workQueue.peek();
-                if ( forceAllRegionsToBeActive || regionCompletelyWithinDeadZone(activeRegion) ) {
-                    if ( DEBUG ) logger.warn("Processing active region " + activeRegion + " dead zone " + spanOfLastSeenRead());
-                    sum = processActiveRegion( workQueue.remove(), sum, walker );
-                } else {
-                    break;
-                }
+        // Since we've traversed sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
+        while( workQueue.peek() != null ) {
+            final ActiveRegion activeRegion = workQueue.peek();
+            if ( forceAllRegionsToBeActive || regionCompletelyWithinDeadZone(activeRegion) ) {
+                if ( DEBUG ) logger.warn("Processing active region " + activeRegion + " dead zone " + spanOfLastSeenRead());
+                writeActivityProfile(activeRegion.getSupportingStates());
+                writeActiveRegion(activeRegion);
+                sum = processActiveRegion( workQueue.remove(), sum, walker );
+            } else {
+                break;
             }
-
-            return sum;
         }
+
+        return sum;
     }
 
     private T processActiveRegion(final ActiveRegion activeRegion, final T sum, final ActiveRegionWalker<M, T> walker) {
