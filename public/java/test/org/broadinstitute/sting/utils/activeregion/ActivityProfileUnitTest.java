@@ -98,7 +98,7 @@ public class ActivityProfileUnitTest extends BaseTest {
                 int start = regionStart.getStart() + startsAndStops[i];
                 int end = regionStart.getStart() + startsAndStops[i+1] - 1;
                 GenomeLoc activeLoc = genomeLocParser.createGenomeLoc(regionStart.getContig(), start, end);
-                ActiveRegion r = new ActiveRegion(activeLoc, isActive, genomeLocParser, extension);
+                ActiveRegion r = new ActiveRegion(activeLoc, null, isActive, genomeLocParser, extension);
                 l.add(r);
                 isActive = ! isActive;
             }
