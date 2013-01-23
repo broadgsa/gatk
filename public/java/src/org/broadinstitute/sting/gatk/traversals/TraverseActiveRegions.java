@@ -77,7 +77,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
 
     private LinkedList<GATKSAMRecord> myReads = new LinkedList<GATKSAMRecord>();
     private GenomeLoc spanOfLastReadSeen = null;
-    private IncrementalActivityProfile activityProfile = null;
+    private ActivityProfile activityProfile = null;
     int maxReadsInMemory = 0;
 
     @Override
@@ -94,7 +94,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         maxRegionSize = walker.getClass().getAnnotation(ActiveRegionExtension.class).maxRegion();
         walkerHasPresetRegions = arWalker.hasPresetActiveRegions();
 
-        activityProfile = new IncrementalActivityProfile(engine.getGenomeLocParser());
+        activityProfile = new BandPassActivityProfile(engine.getGenomeLocParser());
         if ( walkerHasPresetRegions ) {
             // we load all of the preset locations into the
             for ( final GenomeLoc loc : arWalker.getPresetActiveRegions()) {
@@ -349,6 +349,12 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         if ( ! walkerHasPresetRegions ) {
             activityProfile.add(state);
         }
+
+        if ( walker.activityProfileOutStream != null )
+            walker.activityProfileOutStream.printf("%s\t%d\t%d\t%.2f%n",
+                    locus.getLocation().getContig(), locus.getLocation().getStart(), locus.getLocation().getStart(),
+                    state.isActiveProb);
+
     }
 
     /**
@@ -375,7 +381,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             // We don't have preset regions, so we get our regions from the activity profile
             final Collection<ActiveRegion> activeRegions = activityProfile.popReadyActiveRegions(getActiveRegionExtension(), getMaxRegionSize(), flushActivityProfile);
             workQueue.addAll(activeRegions);
-            if ( logger.isDebugEnabled() ) logger.debug("Integrated " + activityProfile.size() + " isActive calls into " + activeRegions.size() + " regions." );
+            if ( ! activeRegions.isEmpty() && logger.isDebugEnabled() ) logger.debug("Integrated " + activityProfile.size() + " isActive calls into " + activeRegions.size() + " regions." );
         }
 
         if ( walker.activeRegionOutStream != null ) {

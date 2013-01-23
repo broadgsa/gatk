@@ -61,6 +61,8 @@ import java.util.*;
 @ReadFilters({UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class, FailsVendorQualityCheckFilter.class, MappingQualityUnavailableFilter.class})
 @RemoveProgramRecords
 public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
+    @Output(fullName="activityProfileOut", shortName="APO", doc="Output the raw activity profile results bed file", required = false)
+    public PrintStream activityProfileOutStream = null;
 
     @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this interval list file", required = false)
     public PrintStream activeRegionOutStream = null;

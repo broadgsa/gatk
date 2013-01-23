@@ -30,7 +30,8 @@ import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 /**
- * Created with IntelliJ IDEA.
+ * The state of an active region walker's isActive call at a specific locus in the genome
+ *
  * User: rpoplin
  * Date: 7/27/12
  */

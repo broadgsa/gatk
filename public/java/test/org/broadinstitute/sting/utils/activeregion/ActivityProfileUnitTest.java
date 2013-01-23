@@ -45,7 +45,7 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 
-public class IncrementalActivityProfileUnitTest extends BaseTest {
+public class ActivityProfileUnitTest extends BaseTest {
     private GenomeLocParser genomeLocParser;
     private GenomeLoc startLoc;
 
@@ -82,12 +82,12 @@ public class IncrementalActivityProfileUnitTest extends BaseTest {
             return String.format("type=%s probs=%s expectedRegions=%s", type, Utils.join(",", probs), Utils.join(",", expectedRegions));
         }
 
-        public IncrementalActivityProfile makeProfile() {
+        public ActivityProfile makeProfile() {
             switch ( type ) {
-                case Base: return new IncrementalActivityProfile(genomeLocParser);
+                case Base: return new ActivityProfile(genomeLocParser);
                 case BandPass:
-                    // zero size => equivalent to IncrementalActivityProfile
-                    return new BandPassIncrementalActivityProfile(genomeLocParser, 0);
+                    // zero size => equivalent to ActivityProfile
+                    return new BandPassActivityProfile(genomeLocParser, 0);
                 default: throw new IllegalStateException(type.toString());
             }
         }
@@ -125,7 +125,7 @@ public class IncrementalActivityProfileUnitTest extends BaseTest {
 
     @Test(dataProvider = "BasicActivityProfileTestProvider")
     public void testBasicActivityProfile(BasicActivityProfileTestProvider cfg) {
-        IncrementalActivityProfile profile = cfg.makeProfile();
+        ActivityProfile profile = cfg.makeProfile();
 
         Assert.assertTrue(profile.isEmpty());
 
@@ -228,7 +228,7 @@ public class IncrementalActivityProfileUnitTest extends BaseTest {
 
     @Test(enabled = true, dataProvider = "RegionCreationTests")
     public void testRegionCreation(final int start, final List<Boolean> probs, int maxRegionSize, final int nParts, final boolean forceConversion, final boolean waitUntilEnd) {
-        final IncrementalActivityProfile profile = new IncrementalActivityProfile(genomeLocParser);
+        final ActivityProfile profile = new ActivityProfile(genomeLocParser);
         Assert.assertNotNull(profile.toString());
 
         final String contig = genomeLocParser.getContigs().getSequences().get(0).getSequenceName();
@@ -253,7 +253,7 @@ public class IncrementalActivityProfileUnitTest extends BaseTest {
         }
 
         for ( int i = 0; i < probs.size(); i++ ) {
-            if ( forceConversion || (i + maxRegionSize + profile.getMaxProbPropogationDistance() < probs.size()))
+            if ( forceConversion || (i + maxRegionSize + profile.getMaxProbPropagationDistance() < probs.size()))
                 // only require a site to be seen if we are forcing conversion or the site is more than maxRegionSize from the end
                 Assert.assertTrue(seenSites.get(i), "Missed site " + i);
         }
@@ -314,7 +314,7 @@ public class IncrementalActivityProfileUnitTest extends BaseTest {
 
     @Test(dataProvider = "SoftClipsTest")
     public void testSoftClips(final int start, int nPrecedingSites, final int softClipSize) {
-        final IncrementalActivityProfile profile = new IncrementalActivityProfile(genomeLocParser);
+        final ActivityProfile profile = new ActivityProfile(genomeLocParser);
 
         final int contigLength = genomeLocParser.getContigs().getSequences().get(0).getSequenceLength();
         final String contig = genomeLocParser.getContigs().getSequences().get(0).getSequenceName();

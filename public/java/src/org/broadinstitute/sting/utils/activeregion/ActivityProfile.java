@@ -39,7 +39,7 @@ import java.util.*;
  * @author Mark DePristo
  * @since Date created
  */
-public class IncrementalActivityProfile {
+public class ActivityProfile {
     private final static int MAX_PROB_PROPOGATION_DISTANCE = 10;
     private final static double ACTIVE_PROB_THRESHOLD = 0.002; // TODO: needs to be set-able by the walker author
 
@@ -50,10 +50,10 @@ public class IncrementalActivityProfile {
     protected GenomeLoc regionStopLoc = null;
 
     /**
-     * Create a new empty IncrementalActivityProfile
+     * Create a new empty ActivityProfile
      * @param parser the parser we can use to create genome locs, cannot be null
      */
-    public IncrementalActivityProfile(final GenomeLocParser parser) {
+    public ActivityProfile(final GenomeLocParser parser) {
         if ( parser == null ) throw new IllegalArgumentException("parser cannot be null");
 
         this.parser = parser;
@@ -79,7 +79,7 @@ public class IncrementalActivityProfile {
      * @return a positive integer distance in bp
      */
     @Ensures("result >= 0")
-    public int getMaxProbPropogationDistance() {
+    public int getMaxProbPropagationDistance() {
         return MAX_PROB_PROPOGATION_DISTANCE;
     }
 
@@ -377,6 +377,6 @@ public class IncrementalActivityProfile {
         }
 
         // we're one past the end, so i must be decremented
-        return forceConversion || i + getMaxProbPropogationDistance() < stateList.size() ? i - 1 : -1;
+        return forceConversion || i + getMaxProbPropagationDistance() < stateList.size() ? i - 1 : -1;
     }
 }

@@ -42,7 +42,7 @@ import java.util.LinkedList;
  * @author Mark DePristo
  * @since 2011
  */
-public class BandPassIncrementalActivityProfile extends IncrementalActivityProfile {
+public class BandPassActivityProfile extends ActivityProfile {
     public static final int DEFAULT_FILTER_SIZE = 80;
 
     private final int filterSize;
@@ -52,7 +52,7 @@ public class BandPassIncrementalActivityProfile extends IncrementalActivityProfi
      * Create a band pass activity profile with the default band size
      * @param parser our genome loc parser
      */
-    public BandPassIncrementalActivityProfile(final GenomeLocParser parser) {
+    public BandPassActivityProfile(final GenomeLocParser parser) {
         this(parser, DEFAULT_FILTER_SIZE);
     }
 
@@ -63,7 +63,7 @@ public class BandPassIncrementalActivityProfile extends IncrementalActivityProfi
      *                   side that are included in the band.  So a filter size of 1 implies that the actual band
      *                   is 3 bp, 1 for the center site and 1 on each size.  2 => 5, etc.
      */
-    public BandPassIncrementalActivityProfile(final GenomeLocParser parser, final int filterSize) {
+    public BandPassActivityProfile(final GenomeLocParser parser, final int filterSize) {
         super(parser);
 
         if ( filterSize < 0 ) throw new IllegalArgumentException("Filter size must be greater than or equal to 0 but got " + filterSize);
@@ -75,6 +75,19 @@ public class BandPassIncrementalActivityProfile extends IncrementalActivityProfi
             kernel[iii] = MathUtils.NormalDistribution(filterSize, 55.0, iii);
         }
         this.GaussianKernel = MathUtils.normalizeFromRealSpace(kernel);
+    }
+
+    /**
+     * Our maximize propagation distance is whatever our parent's is, plus our filter size
+     *
+     * Stops the profile from interpreting sites that aren't yet fully determined due to
+     * propagation of the probabilities.
+     *
+     * @return the distance in bp we might move our probabilities around for some site i
+     */
+    @Override
+    public int getMaxProbPropagationDistance() {
+        return super.getMaxProbPropagationDistance() + filterSize;
     }
 
     /**
