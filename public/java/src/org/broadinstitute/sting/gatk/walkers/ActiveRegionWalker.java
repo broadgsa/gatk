@@ -40,7 +40,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
 import org.broadinstitute.sting.utils.activeregion.ActiveRegionReadState;
-import org.broadinstitute.sting.utils.activeregion.ActivityProfileResult;
+import org.broadinstitute.sting.utils.activeregion.ActivityProfileState;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -61,18 +61,32 @@ import java.util.*;
 @ReadFilters({UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class, FailsVendorQualityCheckFilter.class, MappingQualityUnavailableFilter.class})
 @RemoveProgramRecords
 public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
+    /**
+     * If provided, this walker will write out its activity profile (per bp probabilities of being active)
+     * to this file in the IGV formatted TAB deliminated output:
+     *
+     * http://www.broadinstitute.org/software/igv/IGV
+     *
+     * Intended to make debugging the activity profile calculations easier
+     */
+    @Output(fullName="activityProfileOut", shortName="APO", doc="Output the raw activity profile results in IGV format", required = false)
+    public PrintStream activityProfileOutStream = null;
 
-    @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this interval list file", required = false)
+    /**
+     * If provided, this walker will write out its active and inactive regions
+     * to this file in the IGV formatted TAB deliminated output:
+     *
+     * http://www.broadinstitute.org/software/igv/IGV
+     *
+     * Intended to make debugging the active region calculations easier
+     */
+    @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this IGV formatted file", required = false)
     public PrintStream activeRegionOutStream = null;
 
     @Input(fullName="activeRegionIn", shortName="AR", doc="Use this interval list file as the active regions to process", required = false)
     protected List<IntervalBinding<Feature>> activeRegionBindings = null;
 
-    public GenomeLocSortedSet presetActiveRegions = null;
-
-    public boolean hasPresetActiveRegions() {
-        return presetActiveRegions != null;
-    }
+    private GenomeLocSortedSet presetActiveRegions = null;
 
     @Override
     public void initialize() {
@@ -89,6 +103,22 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
         }
 
         presetActiveRegions = IntervalUtils.sortAndMergeIntervals(this.getToolkit().getGenomeLocParser(), allIntervals, IntervalMergingRule.ALL);
+    }
+
+    /**
+     * Does this walker want us to use a set of preset action regions instead of dynamically using the result of isActive?
+     * @return true if yes, false if no
+     */
+    public boolean hasPresetActiveRegions() {
+        return presetActiveRegions != null;
+    }
+
+    /**
+     * Get the set of preset active regions, or null if none were provided
+     * @return a set of genome locs specifying fixed active regions requested by the walker, or null if none exist
+     */
+    public GenomeLocSortedSet getPresetActiveRegions() {
+        return presetActiveRegions;
     }
 
     // Do we actually want to operate on the context?
@@ -114,7 +144,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
 
     // Determine probability of active status over the AlignmentContext
     @Ensures({"result.isActiveProb >= 0.0", "result.isActiveProb <= 1.0"})
-    public abstract ActivityProfileResult isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
+    public abstract ActivityProfileState isActive(final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context);
 
     // Map over the ActiveRegion
     public abstract MapType map(final ActiveRegion activeRegion, final RefMetaDataTracker metaDataTracker);
