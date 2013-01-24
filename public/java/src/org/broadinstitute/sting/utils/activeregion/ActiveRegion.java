@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -54,8 +55,12 @@ public class ActiveRegion implements HasGenomeLocation {
     public final boolean isActive;
 
     public ActiveRegion( final GenomeLoc activeRegionLoc, final List<ActivityProfileState> supportingStates, final boolean isActive, final GenomeLocParser genomeLocParser, final int extension ) {
+        if ( activeRegionLoc == null ) throw new IllegalArgumentException("activeRegionLoc cannot be null");
+        if ( genomeLocParser == null ) throw new IllegalArgumentException("genomeLocParser cannot be null");
+        if ( extension < 0 ) throw new IllegalArgumentException("extension cannot be < 0 but got " + extension);
+
         this.activeRegionLoc = activeRegionLoc;
-        this.supportingStates = new ArrayList<ActivityProfileState>(supportingStates);
+        this.supportingStates = supportingStates == null ? Collections.<ActivityProfileState>emptyList() : new ArrayList<ActivityProfileState>(supportingStates);
         this.isActive = isActive;
         this.genomeLocParser = genomeLocParser;
         this.extension = extension;
