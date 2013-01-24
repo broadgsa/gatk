@@ -467,19 +467,6 @@ public class ActivityProfileUnitTest extends BaseTest {
         return -1;
     }
 
-
-//    private int findCutSite(final List<Double> probs) {
-//        for ( int i = probs.size() - 2; i > 0; i-- ) {
-//            double prev = probs.get(i + 1);
-//            double next = probs.get(i-1);
-//            double cur = probs.get(i);
-//            if ( cur < next && cur < prev )
-//                return i + 1;
-//        }
-//
-//        return -1;
-//    }
-
     @Test(dataProvider = "ActiveRegionCutTests")
     public void testActiveRegionCutTests(final int minRegionSize, final int maxRegionSize, final int expectedRegionSize, final List<Double> probs) {
         final ActivityProfile profile = new ActivityProfile(genomeLocParser);

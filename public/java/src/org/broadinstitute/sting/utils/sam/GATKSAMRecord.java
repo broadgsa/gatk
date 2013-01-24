@@ -46,6 +46,10 @@ import java.util.Map;
  *   if they are ever modified externally then one must also invoke the
  *   setReadGroup() method here to ensure that the cache is kept up-to-date.
  *
+ * WARNING -- GATKSAMRecords cache several values (that are expensive to compute)
+ * that depending on the inferred insert size and alignment starts and stops of this read and its mate.
+ * Changing these values in any way will invalidate the cached value. However, we do not monitor those setter
+ * functions, so modifying a GATKSAMRecord in any way may result in stale cached values.
  */
 public class GATKSAMRecord extends BAMRecord {
     // ReduceReads specific attribute tags
@@ -70,6 +74,7 @@ public class GATKSAMRecord extends BAMRecord {
     private final static int UNINITIALIZED = -1;
     private int softStart = UNINITIALIZED;
     private int softEnd = UNINITIALIZED;
+    private Integer adapterBoundary = null;
 
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedReadGroup = false;
@@ -560,5 +565,23 @@ public class GATKSAMRecord extends BAMRecord {
                 clone.setTemporaryAttribute(attribute, temporaryAttributes.get(attribute));
         }
         return clone;
+    }
+
+    /**
+     * A caching version of ReadUtils.getAdaptorBoundary()
+     *
+     * @see ReadUtils.getAdaptorBoundary(SAMRecord) for more information about the meaning of this function
+     *
+     * WARNING -- this function caches a value depending on the inferred insert size and alignment starts
+     * and stops of this read and its mate.  Changing these values in any way will invalidate the cached value.
+     * However, we do not monitor those setter functions, so modifying a GATKSAMRecord in any way may
+     * result in stale cached values.
+     *
+     * @return the result of calling ReadUtils.getAdaptorBoundary on this read
+     */
+    public int getAdapterBoundary() {
+        if ( adapterBoundary == null )
+            adapterBoundary = ReadUtils.getAdaptorBoundary(this);
+        return adapterBoundary;
     }
 }

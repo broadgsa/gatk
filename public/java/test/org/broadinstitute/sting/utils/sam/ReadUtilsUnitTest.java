@@ -27,66 +27,99 @@ package org.broadinstitute.sting.utils.sam;
 
 import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+
+import java.util.LinkedList;
+import java.util.List;
 
 
 public class ReadUtilsUnitTest extends BaseTest {
-    @Test
-    public void testGetAdaptorBoundary() {
+    private interface GetAdaptorFunc {
+        public int getAdaptor(final GATKSAMRecord record);
+    }
+
+    @DataProvider(name = "AdaptorGetter")
+    public Object[][] makeActiveRegionCutTests() {
+        final List<Object[]> tests = new LinkedList<Object[]>();
+
+        tests.add( new Object[]{ new GetAdaptorFunc() {
+            @Override public int getAdaptor(final GATKSAMRecord record) { return ReadUtils.getAdaptorBoundary(record); }
+        }});
+
+        tests.add( new Object[]{ new GetAdaptorFunc() {
+            @Override public int getAdaptor(final GATKSAMRecord record) { return record.getAdapterBoundary(); }
+        }});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    private GATKSAMRecord makeRead(final int fragmentSize, final int mateStart) {
         final byte[] bases = {'A', 'C', 'G', 'T', 'A', 'C', 'G', 'T'};
         final byte[] quals = {30, 30, 30, 30, 30, 30, 30, 30};
         final String cigar = "8M";
+        GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(bases, quals, cigar);
+        read.setMateAlignmentStart(mateStart);
+        read.setInferredInsertSize(fragmentSize);
+        return read;
+    }
+
+    @Test(dataProvider = "AdaptorGetter")
+    public void testGetAdaptorBoundary(final GetAdaptorFunc get) {
         final int fragmentSize = 10;
         final int mateStart = 1000;
         final int BEFORE = mateStart - 2;
         final int AFTER = mateStart + 2;
         int myStart, boundary;
-
-        GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(bases, quals, cigar);
-        read.setMateAlignmentStart(mateStart);
-        read.setInferredInsertSize(fragmentSize);
+        GATKSAMRecord read;
 
         // Test case 1: positive strand, first read
+        read = makeRead(fragmentSize, mateStart);
         myStart = BEFORE;
         read.setAlignmentStart(myStart);
         read.setReadNegativeStrandFlag(false);
-        boundary = ReadUtils.getAdaptorBoundary(read);
+        boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, myStart + fragmentSize + 1);
 
         // Test case 2: positive strand, second read
+        read = makeRead(fragmentSize, mateStart);
         myStart = AFTER;
         read.setAlignmentStart(myStart);
         read.setReadNegativeStrandFlag(false);
-        boundary = ReadUtils.getAdaptorBoundary(read);
+        boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, myStart + fragmentSize + 1);
 
         // Test case 3: negative strand, second read
+        read = makeRead(fragmentSize, mateStart);
         myStart = AFTER;
         read.setAlignmentStart(myStart);
         read.setReadNegativeStrandFlag(true);
-        boundary = ReadUtils.getAdaptorBoundary(read);
+        boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, mateStart - 1);
 
         // Test case 4: negative strand, first read
+        read = makeRead(fragmentSize, mateStart);
         myStart = BEFORE;
         read.setAlignmentStart(myStart);
         read.setReadNegativeStrandFlag(true);
-        boundary = ReadUtils.getAdaptorBoundary(read);
+        boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, mateStart - 1);
 
         // Test case 5: mate is mapped to another chromosome (test both strands)
+        read = makeRead(fragmentSize, mateStart);
         read.setInferredInsertSize(0);
         read.setReadNegativeStrandFlag(true);
-        boundary = ReadUtils.getAdaptorBoundary(read);
+        boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
         read.setReadNegativeStrandFlag(false);
-        boundary = ReadUtils.getAdaptorBoundary(read);
+        boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
         read.setInferredInsertSize(10);
 
         // Test case 6: read is unmapped
+        read = makeRead(fragmentSize, mateStart);
         read.setReadUnmappedFlag(true);
-        boundary = ReadUtils.getAdaptorBoundary(read);
+        boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
         read.setReadUnmappedFlag(false);
 
@@ -94,19 +127,22 @@ public class ReadUtilsUnitTest extends BaseTest {
         //    <--------|
         //                 |------>
         // first read:
+        read = makeRead(fragmentSize, mateStart);
         myStart = 980;
         read.setAlignmentStart(myStart);
         read.setInferredInsertSize(20);
         read.setReadNegativeStrandFlag(true);
-        boundary = ReadUtils.getAdaptorBoundary(read);
+        boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
 
         // second read:
+        read = makeRead(fragmentSize, mateStart);
         myStart = 1000;
         read.setAlignmentStart(myStart);
+        read.setInferredInsertSize(20);
         read.setMateAlignmentStart(980);
         read.setReadNegativeStrandFlag(false);
-        boundary = ReadUtils.getAdaptorBoundary(read);
+        boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
     }
 }
