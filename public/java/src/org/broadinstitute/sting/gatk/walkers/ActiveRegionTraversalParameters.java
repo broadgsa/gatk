@@ -33,7 +33,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 /**
- * Describes the size of the buffer region that is added to each active region when pulling in covered reads.
+ * Describes the parameters that this walker requires of the active region traversal
+ *
  * User: rpoplin
  * Date: 1/18/12
  */
@@ -41,13 +42,40 @@ import java.lang.annotation.RetentionPolicy;
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
 
-public @interface ActiveRegionExtension {
+public @interface ActiveRegionTraversalParameters {
+    /**
+     * How far to either side of the active region itself should we include reads?
+     *
+     * That is, if the active region is 10 bp wide, and extension is 5, ART will provide
+     * the walker with active regions 10 bp, with 5 bp of extension on either side, and
+     * all reads that cover the 20 bp of the region + extension.
+     *
+     * @return the size of the active region extension we'd like
+     */
     public int extension() default 0;
+
+    /**
+     * The minimum number of bp for an active region, when we need to chop it up into pieces because
+     * it's become too big.  This only comes into effect when there's literally no good place to chop
+     * that does make the region smaller than this value.
+     *
+     * @return the min size in bp of regions
+     */
+    public int minRegion() default 50;
+
+    /**
+     * The maximum size in bp of active regions wanted by this walker
+     *
+     * Active regions larger than this value are automatically cut up by ART into smaller
+     * regions of size <= this value.
+     *
+     * @return the max size in bp of regions
+     */
     public int maxRegion() default 1500;
 
     /**
-     * The sigma value for the Gaussian kernel of the band pass filter
-     * @return
+     * The variance value for the Gaussian kernel of the band pass filter employed by ART
+     * @return the breadth of the band pass gaussian kernel we want for our traversal
      */
     public double bandPassSigma() default BandPassActivityProfile.DEFAULT_SIGMA;
 }

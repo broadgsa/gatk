@@ -41,7 +41,7 @@ import java.util.*;
  */
 public class ActivityProfile {
     private final static int MAX_PROB_PROPOGATION_DISTANCE = 50;
-    private final static double ACTIVE_PROB_THRESHOLD = 0.002; // TODO: needs to be set-able by the walker author
+    protected final static double ACTIVE_PROB_THRESHOLD = 0.002; // TODO: needs to be set-able by the walker author
 
     protected final List<ActivityProfileState> stateList;
     protected final GenomeLocParser parser;
@@ -197,7 +197,6 @@ public class ActivityProfile {
             regionStopLoc = loc;
             contigLength = parser.getContigInfo(regionStartLoc.getContig()).getSequenceLength();
         } else {
-            // TODO -- need to figure out where to add loc as the regions will be popping off the front
             if ( regionStopLoc.getStart() != loc.getStart() - 1 )
                 throw new IllegalArgumentException("Bad add call to ActivityProfile: loc " + loc + " not immediate after last loc " + regionStopLoc );
             regionStopLoc = loc;
@@ -294,6 +293,7 @@ public class ActivityProfile {
      * No returned region will be larger than maxRegionSize.
      *
      * @param activeRegionExtension the extension value to provide to the constructed regions
+     * @param minRegionSize the minimum region size, in the case where we have to cut up regions that are too large
      * @param maxRegionSize the maximize size of the returned region
      * @param forceConversion if true, we'll return a region whose end isn't sufficiently far from the end of the
      *                        stateList.  Used to close out the active region when we've hit some kind of end (such
@@ -301,14 +301,15 @@ public class ActivityProfile {
      * @return a non-null list of active regions
      */
     @Ensures("result != null")
-    public List<ActiveRegion> popReadyActiveRegions(final int activeRegionExtension, final int maxRegionSize, final boolean forceConversion) {
+    public List<ActiveRegion> popReadyActiveRegions(final int activeRegionExtension, final int minRegionSize, final int maxRegionSize, final boolean forceConversion) {
         if ( activeRegionExtension < 0 ) throw new IllegalArgumentException("activeRegionExtension must be >= 0 but got " + activeRegionExtension);
+        if ( minRegionSize < 1 ) throw new IllegalArgumentException("minRegionSize must be >= 1 but got " + minRegionSize);
         if ( maxRegionSize < 1 ) throw new IllegalArgumentException("maxRegionSize must be >= 1 but got " + maxRegionSize);
 
         final LinkedList<ActiveRegion> regions = new LinkedList<ActiveRegion>();
 
         while ( true ) {
-            final ActiveRegion nextRegion = popNextReadyActiveRegion(activeRegionExtension, maxRegionSize, forceConversion);
+            final ActiveRegion nextRegion = popNextReadyActiveRegion(activeRegionExtension, minRegionSize, maxRegionSize, forceConversion);
             if ( nextRegion == null )
                 return regions;
             else {
@@ -325,19 +326,20 @@ public class ActivityProfile {
      * are also updated.
      *
      * @param activeRegionExtension the extension value to provide to the constructed regions
+     * @param minRegionSize the minimum region size, in the case where we have to cut up regions that are too large
      * @param maxRegionSize the maximize size of the returned region
      * @param forceConversion if true, we'll return a region whose end isn't sufficiently far from the end of the
      *                        stateList.  Used to close out the active region when we've hit some kind of end (such
      *                        as the end of the contig)
      * @return a fully formed active region, or null if none can be made
      */
-    private ActiveRegion popNextReadyActiveRegion(final int activeRegionExtension, final int maxRegionSize, final boolean forceConversion) {
+    private ActiveRegion popNextReadyActiveRegion(final int activeRegionExtension, final int minRegionSize, final int maxRegionSize, final boolean forceConversion) {
         if ( stateList.isEmpty() )
             return null;
 
         final ActivityProfileState first = stateList.get(0);
         final boolean isActiveRegion = first.isActiveProb > ACTIVE_PROB_THRESHOLD;
-        final int offsetOfNextRegionEnd = findEndOfRegion(isActiveRegion, maxRegionSize, forceConversion);
+        final int offsetOfNextRegionEnd = findEndOfRegion(isActiveRegion, minRegionSize, maxRegionSize, forceConversion);
         if ( offsetOfNextRegionEnd == -1 )
             // couldn't find a valid ending offset, so we return null
             return null;
@@ -363,9 +365,14 @@ public class ActivityProfile {
      * The current region is defined from the start of the stateList, looking for elements that have the same isActiveRegion
      * flag (i.e., if isActiveRegion is true we are looking for states with isActiveProb > threshold, or alternatively
      * for states < threshold).  The maximize size of the returned region is maxRegionSize.  If forceConversion is
-     * true, then we'll return the region end even if this isn't safely beyond the max prob propogation distance.
+     * true, then we'll return the region end even if this isn't safely beyond the max prob propagation distance.
+     *
+     * Note that if isActiveRegion is true, and we can construct a active region > maxRegionSize in bp, we
+     * find the further local minimum within that max region, and cut the region there, under the constraint
+     * that the resulting region must be at least minRegionSize in bp.
      *
      * @param isActiveRegion is the region we're looking for an active region or inactive region?
+     * @param minRegionSize the minimum region size, in the case where we have to cut up regions that are too large
      * @param maxRegionSize the maximize size of the returned region
      * @param forceConversion if true, we'll return a region whose end isn't sufficiently far from the end of the
      *                        stateList.  Used to close out the active region when we've hit some kind of end (such
@@ -376,16 +383,65 @@ public class ActivityProfile {
             "result >= -1",
             "result == -1 || result < maxRegionSize",
             "! (result == -1 && forceConversion)"})
-    private int findEndOfRegion(final boolean isActiveRegion, final int maxRegionSize, final boolean forceConversion) {
-        int i = 0;
-        while ( i < stateList.size() && i < maxRegionSize ) {
-            if ( stateList.get(i).isActiveProb > ACTIVE_PROB_THRESHOLD != isActiveRegion ) {
+    private int findEndOfRegion(final boolean isActiveRegion, final int minRegionSize, final int maxRegionSize, final boolean forceConversion) {
+        final int nStates = stateList.size();
+        int endOfActiveRegion = 0;
+        while ( endOfActiveRegion < nStates && endOfActiveRegion < maxRegionSize ) {
+            if ( getProb(endOfActiveRegion) > ACTIVE_PROB_THRESHOLD != isActiveRegion ) {
                 break;
             }
-            i++;
+            endOfActiveRegion++;
+        }
+
+        if ( isActiveRegion && endOfActiveRegion == maxRegionSize ) {
+            // we've run to the end of the region, let's find a good place to cut
+            int minI = endOfActiveRegion - 1;
+            double minP = Double.MAX_VALUE;
+            for ( int i = minI; i >= minRegionSize - 1; i-- ) {
+                double cur = getProb(i);
+                if ( cur < minP && isMinimum(i) ) {
+                    minP = cur;
+                    minI = i;
+                }
+            }
+
+            endOfActiveRegion = minI + 1;
         }
 
         // we're one past the end, so i must be decremented
-        return forceConversion || i + getMaxProbPropagationDistance() < stateList.size() ? i - 1 : -1;
+        return forceConversion || endOfActiveRegion + getMaxProbPropagationDistance() < stateList.size() ? endOfActiveRegion - 1 : -1;
+    }
+
+    /**
+     * Helper function to get the probability of the state at offset index
+     * @param index a valid offset into the state list
+     * @return the isActiveProb of the state at index
+     */
+    @Requires({"index >= 0", "index < stateList.size()"})
+    private double getProb(final int index) {
+        return stateList.get(index).isActiveProb;
+    }
+
+    /**
+     * Is the probability at index in a local minimum?
+     *
+     * Checks that the probability at index is <= both the probabilities to either side.
+     * Returns false if index is at the end or the start of the state list.
+     *
+     * @param index the index of the state we want to test
+     * @return true if prob at state is a minimum, false otherwise
+     */
+    @Requires({"index >= 0", "index < stateList.size()"})
+    private boolean isMinimum(final int index) {
+        if ( index == stateList.size() - 1 )
+            // we cannot be at a minimum if the current position is the last in the state list
+            return false;
+        else if ( index < 1 )
+            // we cannot be at a minimum if the current position is the first or second
+            return false;
+        else {
+            final double indexP = getProb(index);
+            return indexP <= getProb(index+1) && indexP < getProb(index-1);
+        }
     }
 }

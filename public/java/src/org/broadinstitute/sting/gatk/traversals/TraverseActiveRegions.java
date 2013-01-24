@@ -34,7 +34,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.ActiveRegionExtension;
+import org.broadinstitute.sting.gatk.walkers.ActiveRegionTraversalParameters;
 import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -75,6 +75,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
     private boolean walkerHasPresetRegions = false;
     private int activeRegionExtension = -1;
     private int maxRegionSize = -1;
+    private int minRegionSize = -1;
 
     private final LinkedList<ActiveRegion> workQueue = new LinkedList<ActiveRegion>();
 
@@ -102,9 +103,10 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
                     "non-primary reads, an inconsistent state.  Please modify the walker");
         }
 
-        ActiveRegionExtension annotation = walker.getClass().getAnnotation(ActiveRegionExtension.class);
+        ActiveRegionTraversalParameters annotation = walker.getClass().getAnnotation(ActiveRegionTraversalParameters.class);
         this.activeRegionExtension = this.walker.activeRegionExtension == null ? annotation.extension() : this.walker.activeRegionExtension;
         this.maxRegionSize = this.walker.activeRegionMaxSize == null ? annotation.maxRegion() : this.walker.activeRegionMaxSize;
+        this.minRegionSize = annotation.minRegion();
         final double bandPassSigma = this.walker.bandPassSigma == null ? annotation.bandPassSigma() : this.walker.bandPassSigma;
         walkerHasPresetRegions = this.walker.hasPresetActiveRegions();
 
@@ -129,6 +131,10 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
 
     protected int getMaxRegionSize() {
         return maxRegionSize;
+    }
+
+    protected int getMinRegionSize() {
+        return minRegionSize;
     }
 
     @Override
@@ -417,7 +423,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         if ( walker.activityProfileOutStream != null ) {
             initializeOutputStreamsIfNecessary();
             for ( final ActivityProfileState state : states ) {
-                printIGVFormatRow(walker.activityProfileOutStream, state.getLoc(), "state", state.isActiveProb);
+                printIGVFormatRow(walker.activityProfileOutStream, state.getLoc(), "state", Math.min(state.isActiveProb, 1.0));
             }
         }
     }
@@ -471,7 +477,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
     private T processActiveRegions(final ActiveRegionWalker<M, T> walker, T sum, final boolean flushActivityProfile, final boolean forceAllRegionsToBeActive) {
         if ( ! walkerHasPresetRegions ) {
             // We don't have preset regions, so we get our regions from the activity profile
-            final Collection<ActiveRegion> activeRegions = activityProfile.popReadyActiveRegions(getActiveRegionExtension(), getMaxRegionSize(), flushActivityProfile);
+            final Collection<ActiveRegion> activeRegions = activityProfile.popReadyActiveRegions(getActiveRegionExtension(), getMinRegionSize(), getMaxRegionSize(), flushActivityProfile);
             workQueue.addAll(activeRegions);
             if ( ! activeRegions.isEmpty() && logger.isDebugEnabled() ) logger.debug("Integrated " + activityProfile.size() + " isActive calls into " + activeRegions.size() + " regions." );
         }

@@ -33,6 +33,7 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.testng.Assert;
@@ -46,6 +47,7 @@ import java.util.*;
 
 
 public class ActivityProfileUnitTest extends BaseTest {
+    private final static boolean DEBUG = false;
     private GenomeLocParser genomeLocParser;
     private GenomeLoc startLoc;
 
@@ -123,7 +125,7 @@ public class ActivityProfileUnitTest extends BaseTest {
         return BasicActivityProfileTestProvider.getTests(BasicActivityProfileTestProvider.class);
     }
 
-    @Test(dataProvider = "BasicActivityProfileTestProvider")
+    @Test(enabled = ! DEBUG, dataProvider = "BasicActivityProfileTestProvider")
     public void testBasicActivityProfile(BasicActivityProfileTestProvider cfg) {
         ActivityProfile profile = cfg.makeProfile();
 
@@ -226,7 +228,7 @@ public class ActivityProfileUnitTest extends BaseTest {
     }
 
 
-    @Test(enabled = true, dataProvider = "RegionCreationTests")
+    @Test(enabled = !DEBUG, dataProvider = "RegionCreationTests")
     public void testRegionCreation(final int start, final List<Boolean> probs, int maxRegionSize, final int nParts, final boolean forceConversion, final boolean waitUntilEnd) {
         final ActivityProfile profile = new ActivityProfile(genomeLocParser);
         Assert.assertNotNull(profile.toString());
@@ -242,13 +244,13 @@ public class ActivityProfileUnitTest extends BaseTest {
             Assert.assertNotNull(profile.toString());
 
             if ( ! waitUntilEnd ) {
-                final List<ActiveRegion> regions = profile.popReadyActiveRegions(0, maxRegionSize, false);
+                final List<ActiveRegion> regions = profile.popReadyActiveRegions(0, 1, maxRegionSize, false);
                 lastRegion = assertGoodRegions(start, regions, maxRegionSize, lastRegion, probs, seenSites);
             }
         }
 
         if ( waitUntilEnd || forceConversion ) {
-            final List<ActiveRegion> regions = profile.popReadyActiveRegions(0, maxRegionSize, forceConversion);
+            final List<ActiveRegion> regions = profile.popReadyActiveRegions(0, 1, maxRegionSize, forceConversion);
             lastRegion = assertGoodRegions(start, regions, maxRegionSize, lastRegion, probs, seenSites);
         }
 
@@ -312,7 +314,7 @@ public class ActivityProfileUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "SoftClipsTest")
+    @Test(enabled = ! DEBUG, dataProvider = "SoftClipsTest")
     public void testSoftClips(final int start, int nPrecedingSites, final int softClipSize) {
         final ActivityProfile profile = new ActivityProfile(genomeLocParser);
 
@@ -327,19 +329,173 @@ public class ActivityProfileUnitTest extends BaseTest {
         final GenomeLoc softClipLoc = genomeLocParser.createGenomeLoc(contig, nPrecedingSites + start);
         profile.add(new ActivityProfileState(softClipLoc, 1.0, ActivityProfileState.Type.HIGH_QUALITY_SOFT_CLIPS, softClipSize));
 
+        final int actualNumOfSoftClips = Math.min(softClipSize, profile.getMaxProbPropagationDistance());
         if ( nPrecedingSites == 0 ) {
-            final int profileSize = Math.min(start + softClipSize, contigLength) - start + 1;
+            final int profileSize = Math.min(start + actualNumOfSoftClips, contigLength) - start + 1;
             Assert.assertEquals(profile.size(), profileSize, "Wrong number of states in the profile");
         }
 
         for ( int i = 0; i < profile.size(); i++ ) {
             final ActivityProfileState state = profile.getStateList().get(i);
-            final boolean withinSCRange = state.getLoc().distance(softClipLoc) <= softClipSize;
+            final boolean withinSCRange = state.getLoc().distance(softClipLoc) <= actualNumOfSoftClips;
             if ( withinSCRange ) {
                 Assert.assertTrue(state.isActiveProb > 0.0, "active prob should be changed within soft clip size");
             } else {
                 Assert.assertEquals(state.isActiveProb, 0.0, "active prob shouldn't be changed outside of clip size");
             }
         }
+    }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // Tests to ensure we cut large active regions in the right place
+    //
+    // -------------------------------------------------------------------------------------
+
+    private void addProb(final List<Double> l, final double v) {
+        l.add(v);
+    }
+
+    @DataProvider(name = "ActiveRegionCutTests")
+    public Object[][] makeActiveRegionCutTests() {
+        final List<Object[]> tests = new LinkedList<Object[]>();
+
+//        for ( final int activeRegionSize : Arrays.asList(30) ) {
+//            for ( final int minRegionSize : Arrays.asList(5) ) {
+        for ( final int activeRegionSize : Arrays.asList(10, 12, 20, 30, 40) ) {
+            for ( final int minRegionSize : Arrays.asList(1, 5, 10) ) {
+                final int maxRegionSize = activeRegionSize * 2 / 3;
+                if ( minRegionSize >= maxRegionSize ) continue;
+                { // test flat activity profile
+                    final List<Double> probs = Collections.nCopies(activeRegionSize, 1.0);
+                    tests.add(new Object[]{minRegionSize, maxRegionSize, maxRegionSize, probs});
+                }
+
+                { // test point profile is properly handled
+                    for ( int end = 1; end < activeRegionSize; end++ ) {
+                        final List<Double> probs = Collections.nCopies(end, 1.0);
+                        tests.add(new Object[]{minRegionSize, maxRegionSize, Math.min(end, maxRegionSize), probs});
+                    }
+                }
+
+                { // test increasing activity profile
+                    final List<Double> probs = new ArrayList<Double>(activeRegionSize);
+                    for ( int i = 0; i < activeRegionSize; i++ ) {
+                        addProb(probs, (1.0*(i+1))/ activeRegionSize);
+                    }
+                    tests.add(new Object[]{minRegionSize, maxRegionSize, maxRegionSize, probs});
+                }
+
+                { // test decreasing activity profile
+                    final List<Double> probs = new ArrayList<Double>(activeRegionSize);
+                    for ( int i = 0; i < activeRegionSize; i++ ) {
+                        addProb(probs, 1 - (1.0*(i+1))/ activeRegionSize);
+                    }
+                    tests.add(new Object[]{minRegionSize, maxRegionSize, maxRegionSize, probs});
+                }
+
+                { // test two peaks
+//                    for ( final double rootSigma : Arrays.asList(2.0) ) {
+//                        int maxPeak1 = 9; {
+//                            int maxPeak2 = 16; {
+                    for ( final double rootSigma : Arrays.asList(1.0, 2.0, 3.0) ) {
+                        for ( int maxPeak1 = 0; maxPeak1 < activeRegionSize / 2; maxPeak1++ ) {
+                            for ( int maxPeak2 = activeRegionSize / 2 + 1; maxPeak2 < activeRegionSize; maxPeak2++ ) {
+                                final double[] gauss1 = makeGaussian(maxPeak1, activeRegionSize, rootSigma);
+                                final double[] gauss2 = makeGaussian(maxPeak2, activeRegionSize, rootSigma+1);
+                                final List<Double> probs = new ArrayList<Double>(activeRegionSize);
+                                for ( int i = 0; i < activeRegionSize; i++ ) {
+                                    addProb(probs, gauss1[i] + gauss2[i]);
+                                }
+                                final int cutSite = findCutSiteForTwoMaxPeaks(probs, minRegionSize);
+                                if ( cutSite != -1 && cutSite < maxRegionSize )
+                                    tests.add(new Object[]{minRegionSize, maxRegionSize, Math.max(cutSite, minRegionSize), probs});
+                            }
+                        }
+                    }
+                }
+
+                { // test that the lowest of two minima is taken
+                    // looks like a bunch of 1s, 0.5, some 1.0s, 0.75, some more 1s
+//                    int firstMin = 0; {
+//                    int secondMin = 4; {
+                    for ( int firstMin = 1; firstMin < activeRegionSize; firstMin++ ) {
+                        for ( int secondMin = firstMin + 1; secondMin < activeRegionSize; secondMin++ ) {
+                            final List<Double> probs = new ArrayList<Double>(Collections.nCopies(activeRegionSize, 1.0));
+                            probs.set(firstMin, 0.5);
+                            probs.set(secondMin, 0.75);
+                            final int expectedCut;
+                            if ( firstMin + 1 < minRegionSize ) {
+                                if ( firstMin == secondMin - 1 ) // edge case for non-min at minRegionSize
+                                    expectedCut = maxRegionSize;
+                                else
+                                    expectedCut = secondMin + 1 > maxRegionSize ? maxRegionSize : ( secondMin + 1 < minRegionSize ? maxRegionSize : secondMin + 1);
+                            } else if ( firstMin + 1 > maxRegionSize )
+                                expectedCut = maxRegionSize;
+                            else {
+                                expectedCut = firstMin + 1;
+                            }
+
+                            Math.min(firstMin + 1, maxRegionSize);
+                            tests.add(new Object[]{minRegionSize, maxRegionSize, expectedCut, probs});
+                        }
+                    }
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    private double[] makeGaussian(final int mean, final int range, final double sigma) {
+        final double[] gauss = new double[range];
+        for( int iii = 0; iii < range; iii++ ) {
+            gauss[iii] = MathUtils.NormalDistribution(mean, sigma, iii) + ActivityProfile.ACTIVE_PROB_THRESHOLD;
+        }
+        return gauss;
+    }
+
+    private int findCutSiteForTwoMaxPeaks(final List<Double> probs, final int minRegionSize) {
+        for ( int i = probs.size() - 2; i > minRegionSize; i-- ) {
+            double prev = probs.get(i - 1);
+            double next = probs.get(i + 1);
+            double cur = probs.get(i);
+            if ( cur < next && cur < prev )
+                return i + 1;
+        }
+
+        return -1;
+    }
+
+
+//    private int findCutSite(final List<Double> probs) {
+//        for ( int i = probs.size() - 2; i > 0; i-- ) {
+//            double prev = probs.get(i + 1);
+//            double next = probs.get(i-1);
+//            double cur = probs.get(i);
+//            if ( cur < next && cur < prev )
+//                return i + 1;
+//        }
+//
+//        return -1;
+//    }
+
+    @Test(dataProvider = "ActiveRegionCutTests")
+    public void testActiveRegionCutTests(final int minRegionSize, final int maxRegionSize, final int expectedRegionSize, final List<Double> probs) {
+        final ActivityProfile profile = new ActivityProfile(genomeLocParser);
+
+        final String contig = genomeLocParser.getContigs().getSequences().get(0).getSequenceName();
+        for ( int i = 0; i <= maxRegionSize + profile.getMaxProbPropagationDistance(); i++ ) {
+            final GenomeLoc loc = genomeLocParser.createGenomeLoc(contig, i + 1);
+            final double prob = i < probs.size() ? probs.get(i) : 0.0;
+            final ActivityProfileState state = new ActivityProfileState(loc, prob);
+            profile.add(state);
+        }
+
+        final List<ActiveRegion> regions = profile.popReadyActiveRegions(0, minRegionSize, maxRegionSize, false);
+        Assert.assertTrue(regions.size() >= 1, "Should only be one regions for this test");
+        final ActiveRegion region = regions.get(0);
+        Assert.assertEquals(region.getLocation().getStart(), 1, "Region should start at 1");
+        Assert.assertEquals(region.getLocation().size(), expectedRegionSize, "Incorrect region size; cut must have been incorrect");
     }
 }

@@ -55,7 +55,7 @@ import java.util.*;
 @By(DataSource.READS)
 @Requires({DataSource.READS, DataSource.REFERENCE})
 @PartitionBy(PartitionType.READ)
-@ActiveRegionExtension(extension=50,maxRegion=1500)
+@ActiveRegionTraversalParameters(extension=50,maxRegion=1500)
 @ReadFilters({UnmappedReadFilter.class, NotPrimaryAlignmentFilter.class, DuplicateReadFilter.class, FailsVendorQualityCheckFilter.class, MappingQualityUnavailableFilter.class})
 @RemoveProgramRecords
 public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
@@ -160,7 +160,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     public abstract MapType map(final ActiveRegion activeRegion, final RefMetaDataTracker metaDataTracker);
 
     public final GenomeLocSortedSet extendIntervals( final GenomeLocSortedSet intervals, final GenomeLocParser genomeLocParser, IndexedFastaSequenceFile reference ) {
-        final int activeRegionExtension = this.getClass().getAnnotation(ActiveRegionExtension.class).extension();
+        final int activeRegionExtension = this.getClass().getAnnotation(ActiveRegionTraversalParameters.class).extension();
         final List<GenomeLoc> allIntervals = new ArrayList<GenomeLoc>();
         for( final GenomeLoc interval : intervals.toList() ) {
             final int start = Math.max( 1, interval.getStart() - activeRegionExtension );
