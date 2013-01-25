@@ -214,7 +214,13 @@ public abstract class LocusView extends LocusIterator implements View {
         return locus.containsP(location);
     }
 
-    // TODO -- remove me
+    /**
+     * {@inheritDoc}
+     *
+     * Since this class has an actual LIBS, so this function will never throw an exception
+     *
+     * @return the LocusIteratorByState used by this view to get pileups
+     */
     @Override
     public LocusIteratorByState getLIBS() {
         return loci.getLIBS();

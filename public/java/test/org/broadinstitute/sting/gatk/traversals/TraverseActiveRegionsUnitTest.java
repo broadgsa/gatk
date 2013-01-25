@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2012 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.gatk.traversals;
 
@@ -179,7 +179,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
 
     @Test(enabled = true && ! DEBUG, dataProvider = "TraversalEngineProvider")
     public void testActiveRegionCoverage(TraverseActiveRegions t) {
-        DummyActiveRegionWalker walker = new DummyActiveRegionWalker();
+        DummyActiveRegionWalker walker = new DummyActiveRegionWalker(new GenomeLocSortedSet(genomeLocParser, intervals), true);
 
         Collection<ActiveRegion> activeRegions = getActiveRegions(t, walker, intervals).values();
         verifyActiveRegionCoverage(intervals, activeRegions);
@@ -242,9 +242,11 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         }
     }
 
-    @Test(enabled = true, dataProvider = "TraversalEngineProvider")
+    @Test(enabled = true && !DEBUG, dataProvider = "TraversalEngineProvider")
     public void testPrimaryReadMapping(TraverseActiveRegions t) {
-        DummyActiveRegionWalker walker = new DummyActiveRegionWalker();
+        DummyActiveRegionWalker walker = new DummyActiveRegionWalker(new GenomeLocSortedSet(genomeLocParser, intervals),
+                EnumSet.of(ActiveRegionReadState.PRIMARY),
+                true);
 
         // Contract: Each read has the Primary state in a single region (or none)
         // This is the region of maximum overlap for the read (earlier if tied)
@@ -275,11 +277,8 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
         verifyReadMapping(region);
 
-        region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 14908, 16384));
+        region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 10000, 20000));
         verifyReadMapping(region, "shard_boundary_1_pre", "shard_boundary_1_post", "shard_boundary_equal");
-
-        region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 16385, 16927));
-        verifyReadMapping(region);
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
         verifyReadMapping(region, "simple20");
@@ -287,8 +286,9 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
 
     @Test(enabled = true && ! DEBUG, dataProvider = "TraversalEngineProvider")
     public void testNonPrimaryReadMapping(TraverseActiveRegions t) {
-        DummyActiveRegionWalker walker = new DummyActiveRegionWalker(
-                EnumSet.of(ActiveRegionReadState.PRIMARY, ActiveRegionReadState.NONPRIMARY));
+        DummyActiveRegionWalker walker = new DummyActiveRegionWalker(new GenomeLocSortedSet(genomeLocParser, intervals),
+                EnumSet.of(ActiveRegionReadState.PRIMARY, ActiveRegionReadState.NONPRIMARY),
+                true);
 
         // Contract: Each read has the Primary state in a single region (or none)
         // This is the region of maximum overlap for the read (earlier if tied)
@@ -321,10 +321,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
         verifyReadMapping(region, "boundary_equal", "boundary_unequal", "boundary_1_pre", "boundary_1_post");
 
-        region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 14908, 16384));
-        verifyReadMapping(region, "shard_boundary_1_pre", "shard_boundary_1_post", "shard_boundary_equal");
-
-        region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 16385, 16927));
+        region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 10000, 20000));
         verifyReadMapping(region, "shard_boundary_1_pre", "shard_boundary_1_post", "shard_boundary_equal");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
@@ -333,8 +330,9 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
 
     @Test(enabled = true && ! DEBUG, dataProvider = "TraversalEngineProvider")
     public void testExtendedReadMapping(TraverseActiveRegions t) {
-        DummyActiveRegionWalker walker = new DummyActiveRegionWalker(
-                EnumSet.of(ActiveRegionReadState.PRIMARY, ActiveRegionReadState.NONPRIMARY, ActiveRegionReadState.EXTENDED));
+        DummyActiveRegionWalker walker = new DummyActiveRegionWalker(new GenomeLocSortedSet(genomeLocParser, intervals),
+                EnumSet.of(ActiveRegionReadState.PRIMARY, ActiveRegionReadState.NONPRIMARY, ActiveRegionReadState.EXTENDED),
+                true);
 
         // Contract: Each read has the Primary state in a single region (or none)
         // This is the region of maximum overlap for the read (earlier if tied)
@@ -368,10 +366,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 2000, 2999));
         verifyReadMapping(region, "boundary_equal", "boundary_unequal", "extended_and_np", "boundary_1_pre", "boundary_1_post");
 
-        region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 14908, 16384));
-        verifyReadMapping(region, "shard_boundary_1_pre", "shard_boundary_1_post", "shard_boundary_equal");
-
-        region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 16385, 16927));
+        region = activeRegions.get(genomeLocParser.createGenomeLoc("1", 10000, 20000));
         verifyReadMapping(region, "shard_boundary_1_pre", "shard_boundary_1_post", "shard_boundary_equal");
 
         region = activeRegions.get(genomeLocParser.createGenomeLoc("20", 10000, 10100));
@@ -384,6 +379,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
     }
 
     private void verifyReadMapping(ActiveRegion region, String... reads) {
+        Assert.assertNotNull(region, "Region was unexpectedly null");
         final Set<String> regionReads = new HashSet<String>();
         for (SAMRecord read : region.getReads()) {
             Assert.assertFalse(regionReads.contains(read.getReadName()), "Duplicate reads detected in region " + region + " read " + read.getReadName());
@@ -530,12 +526,11 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
                 for ( final int start : starts ) {
                     for ( final int nReadsPerLocus : Arrays.asList(1, 2) ) {
                         for ( final int nLoci : Arrays.asList(1, 1000) ) {
+                            final ArtificialBAMBuilder bamBuilder = new ArtificialBAMBuilder(reference, nReadsPerLocus, nLoci);
+                            bamBuilder.setReadLength(readLength);
+                            bamBuilder.setSkipNLoci(skips);
+                            bamBuilder.setAlignmentStart(start);
                             for ( EnumSet<ActiveRegionReadState> readStates : allReadStates ) {
-                                final ArtificialBAMBuilder bamBuilder = new ArtificialBAMBuilder(reference, nReadsPerLocus, nLoci);
-                                bamBuilder.setReadLength(readLength);
-                                bamBuilder.setSkipNLoci(skips);
-                                bamBuilder.setAlignmentStart(start);
-
                                 for ( final GenomeLocSortedSet activeRegions : enumerateActiveRegions(bamBuilder.getAlignmentStart(), bamBuilder.getAlignmentEnd())) {
                                     nTests++;
                                     if ( nTests < maxTests ) // && nTests == 1238 )
@@ -595,7 +590,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
                 genomeLocParser.createGenomeLoc("1", bamBuilder.getAlignmentStart(), bamBuilder.getAlignmentEnd())
         );
 
-        final DummyActiveRegionWalker walker = new DummyActiveRegionWalker(activeRegions);
+        final DummyActiveRegionWalker walker = new DummyActiveRegionWalker(activeRegions, false);
         walker.setStates(readStates);
 
         final TraverseActiveRegions traversal = new TraverseActiveRegions<Integer, Integer>();
@@ -619,8 +614,9 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
                         alreadySeenReads.add(read.getReadName());
                 }
 
-                Assert.assertEquals(readNamesInRegion.contains(read.getReadName()), shouldBeInRegion, "Region " + region +
-                        " failed contains read check: read " + read + " with span " + readLoc + " should be in region is " + shouldBeInRegion + " but I got the opposite");
+                String msg = readNamesInRegion.contains(read.getReadName()) == shouldBeInRegion ? "" : "Region " + region +
+                        " failed contains read check: read " + read + " with span " + readLoc + " should be in region is " + shouldBeInRegion + " but I got the opposite";
+                Assert.assertEquals(readNamesInRegion.contains(read.getReadName()), shouldBeInRegion, msg);
 
                 nReadsExpectedInRegion += shouldBeInRegion ? 1 : 0;
             }
@@ -642,7 +638,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    @Test
+    @Test(enabled = true && ! DEBUG)
     public void ensureAllInsertionReadsAreInActiveRegions() {
 
         final int readLength = 10;
@@ -667,7 +663,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
                 genomeLocParser.createGenomeLoc("1", bamBuilder.getAlignmentStart(), bamBuilder.getAlignmentEnd())
         );
 
-        final DummyActiveRegionWalker walker = new DummyActiveRegionWalker(activeRegions);
+        final DummyActiveRegionWalker walker = new DummyActiveRegionWalker(activeRegions, false);
 
         final TraverseActiveRegions traversal = new TraverseActiveRegions<Integer, Integer>();
         final Map<GenomeLoc, ActiveRegion> activeRegionsMap = getActiveRegions(traversal, walker, intervals, bamBuilder.makeTemporarilyBAMFile().toString());

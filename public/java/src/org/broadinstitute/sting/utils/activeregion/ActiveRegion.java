@@ -34,6 +34,8 @@ import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -44,6 +46,7 @@ import java.util.ArrayList;
 public class ActiveRegion implements HasGenomeLocation {
 
     private final ArrayList<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
+    private final List<ActivityProfileState> supportingStates;
     private final GenomeLoc activeRegionLoc;
     private final GenomeLoc extendedLoc;
     private final int extension;
@@ -51,8 +54,13 @@ public class ActiveRegion implements HasGenomeLocation {
     private final GenomeLocParser genomeLocParser;
     public final boolean isActive;
 
-    public ActiveRegion( final GenomeLoc activeRegionLoc, final boolean isActive, final GenomeLocParser genomeLocParser, final int extension ) {
+    public ActiveRegion( final GenomeLoc activeRegionLoc, final List<ActivityProfileState> supportingStates, final boolean isActive, final GenomeLocParser genomeLocParser, final int extension ) {
+        if ( activeRegionLoc == null ) throw new IllegalArgumentException("activeRegionLoc cannot be null");
+        if ( genomeLocParser == null ) throw new IllegalArgumentException("genomeLocParser cannot be null");
+        if ( extension < 0 ) throw new IllegalArgumentException("extension cannot be < 0 but got " + extension);
+
         this.activeRegionLoc = activeRegionLoc;
+        this.supportingStates = supportingStates == null ? Collections.<ActivityProfileState>emptyList() : new ArrayList<ActivityProfileState>(supportingStates);
         this.isActive = isActive;
         this.genomeLocParser = genomeLocParser;
         this.extension = extension;
@@ -62,7 +70,7 @@ public class ActiveRegion implements HasGenomeLocation {
 
     @Override
     public String toString() {
-        return "ActiveRegion " + activeRegionLoc.toString();
+        return "ActiveRegion "  + activeRegionLoc.toString() + " active?=" + isActive + " nReads=" + reads.size() + " ";
     }
 
     // add each read to the bin and extend the reference genome activeRegionLoc if needed
@@ -112,6 +120,8 @@ public class ActiveRegion implements HasGenomeLocation {
     public GenomeLoc getExtendedLoc() { return extendedLoc; }
     public GenomeLoc getReferenceLoc() { return fullExtentReferenceLoc; }
 
+    public List<ActivityProfileState> getSupportingStates() { return supportingStates; }
+
     public int getExtension() { return extension; }
     public int size() { return reads.size(); }
     public void clearReads() { reads.clear(); }
@@ -126,19 +136,4 @@ public class ActiveRegion implements HasGenomeLocation {
         if ( extendedLoc.compareTo(other.extendedLoc) != 0 ) return false;
         return true;
     }
-
-    /**
-     * A comparator class which is used to sort ActiveRegions by their start location
-     */
-    /*
-    public static class ActiveRegionStartLocationComparator implements Comparator<ActiveRegion> {
-
-        public ActiveRegionStartLocationComparator() {}
-
-        @Override
-        public int compare(final ActiveRegion left, final ActiveRegion right) {
-            return left.getLocation().compareTo(right.getLocation());
-        }
-    }
-    */
 }

@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2012 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils.sam;
 
@@ -62,6 +62,7 @@ public class ArtificialBAMBuilder {
     int alignmentStart = 1;
     int readLength = 10;
     private final ArrayList<String> samples = new ArrayList<String>();
+    private List<GATKSAMRecord> createdReads = null;
 
     private LinkedList<GATKSAMRecord> additionalReads = new LinkedList<GATKSAMRecord>();
 
@@ -102,6 +103,7 @@ public class ArtificialBAMBuilder {
     }
 
     public ArtificialBAMBuilder createAndSetHeader(final int nSamples) {
+        createdReads = null;
         this.header = new SAMFileHeader();
         header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
         header.setSequenceDictionary(parser.getContigs());
@@ -120,10 +122,12 @@ public class ArtificialBAMBuilder {
     }
 
     public void addReads(final GATKSAMRecord readToAdd) {
+        createdReads = null;
         additionalReads.add(readToAdd);
     }
 
     public void addReads(final Collection<GATKSAMRecord> readsToAdd) {
+        createdReads = null;
         additionalReads.addAll(readsToAdd);
     }
 
@@ -140,26 +144,34 @@ public class ArtificialBAMBuilder {
      * @return a ordered list of reads
      */
     public List<GATKSAMRecord> makeReads() {
-        final String baseName = "read";
-        List<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>(nReadsPerLocus*nLoci);
-        for ( int locusI = 0; locusI < nLoci; locusI++) {
-            final int locus = locusI * (skipNLoci + 1);
-            for ( int readI = 0; readI < nReadsPerLocus; readI++ ) {
-                for ( final SAMReadGroupRecord rg : header.getReadGroups() ) {
-                    final String readName = String.format("%s.%d.%d.%s", baseName, locus, readI, rg.getId());
-                    final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, readName, 0, alignmentStart + locus, readLength);
-                    read.setReadGroup(new GATKSAMReadGroupRecord(rg));
-                    reads.add(read);
+        if ( createdReads == null ) {
+            final String baseName = "read";
+            final LinkedList<GATKSAMReadGroupRecord> readGroups = new LinkedList<GATKSAMReadGroupRecord>();
+            for ( final SAMReadGroupRecord rg : header.getReadGroups())
+                readGroups.add(new GATKSAMReadGroupRecord(rg));
+
+            List<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>(nReadsPerLocus*nLoci);
+            for ( int locusI = 0; locusI < nLoci; locusI++) {
+                final int locus = locusI * (skipNLoci + 1);
+                for ( int readI = 0; readI < nReadsPerLocus; readI++ ) {
+                    for ( final GATKSAMReadGroupRecord rg : readGroups ) {
+                        final String readName = String.format("%s.%d.%d.%s", baseName, locus, readI, rg.getId());
+                        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, readName, 0, alignmentStart + locus, readLength);
+                        read.setReadGroup(rg);
+                        reads.add(read);
+                    }
                 }
             }
+
+            if ( ! additionalReads.isEmpty() ) {
+                reads.addAll(additionalReads);
+                Collections.sort(reads, new SAMRecordCoordinateComparator());
+            }
+
+            createdReads = new ArrayList<GATKSAMRecord>(reads);
         }
 
-        if ( ! additionalReads.isEmpty() ) {
-            reads.addAll(additionalReads);
-            Collections.sort(reads, new SAMRecordCoordinateComparator());
-        }
-
-        return reads;
+        return createdReads;
     }
 
     /**
@@ -192,13 +204,13 @@ public class ArtificialBAMBuilder {
     public int getnReadsPerLocus() { return nReadsPerLocus; }
     public int getnLoci() { return nLoci; }
     public int getSkipNLoci() { return skipNLoci; }
-    public ArtificialBAMBuilder setSkipNLoci(int skipNLoci) { this.skipNLoci = skipNLoci; return this; }
+    public ArtificialBAMBuilder setSkipNLoci(int skipNLoci) { this.skipNLoci = skipNLoci; createdReads = null; return this; }
     public int getAlignmentStart() { return alignmentStart; }
-    public ArtificialBAMBuilder setAlignmentStart(int alignmentStart) { this.alignmentStart = alignmentStart; return this; }
+    public ArtificialBAMBuilder setAlignmentStart(int alignmentStart) { this.alignmentStart = alignmentStart; createdReads = null; return this; }
     public int getReadLength() { return readLength; }
-    public ArtificialBAMBuilder setReadLength(int readLength) { this.readLength = readLength; return this; }
+    public ArtificialBAMBuilder setReadLength(int readLength) { this.readLength = readLength; createdReads = null; return this; }
     public SAMFileHeader getHeader() { return header; }
-    public ArtificialBAMBuilder setHeader(SAMFileHeader header) { this.header = header; return this; }
+    public ArtificialBAMBuilder setHeader(SAMFileHeader header) { this.header = header; createdReads = null; return this; }
 
     public int getAlignmentEnd() {
         return alignmentStart + nLoci * (skipNLoci + 1) + readLength;
