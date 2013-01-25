@@ -68,7 +68,6 @@ import java.util.*;
  */
 public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegionWalker<M,T>,LocusShardDataProvider> {
     protected final static Logger logger = Logger.getLogger(TraversalEngine.class);
-    protected final static boolean DEBUG = false;
     protected final static boolean LOG_READ_CARRYING = false;
 
     // set by the tranversal
@@ -221,12 +220,13 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             final AlignmentContext locus = locusView.next();
             final GenomeLoc location = locus.getLocation();
 
+            rememberLastLocusLocation(location);
+
             // get all of the new reads that appear in the current pileup, and them to our list of reads
             // provided we haven't seen them before
             final Collection<GATKSAMRecord> reads = locusView.getLIBS().transferReadsFromAllPreviousPileups();
             for( final GATKSAMRecord read : reads ) {
                 if ( ! appearedInLastShard(locOfLastReadAtTraversalStart, read) ) {
-                    if ( DEBUG ) logger.warn("Adding read " + read.getReadName() + " at " + engine.getGenomeLocParser().createGenomeLoc(read) + " from provider " + dataProvider);
                     rememberLastReadLocation(read);
                     myReads.add(read);
                 }
@@ -294,6 +294,26 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             spanOfLastReadSeen = currentLocation;
         }
     }
+
+    /**
+     * Update the live region to reflect that we've reached locus
+     *
+     * This function is complementary to #rememberLastReadLocation, but if we don't have any reads for a long
+     * time (e.g., there's no coverage) we will keep active regions around far longer than necessary.
+     *
+     * Only updates the span if it's beyond the last seen
+     *
+     * @param currentLocation the current location we've processed on the genome
+     */
+    protected void rememberLastLocusLocation(final GenomeLoc currentLocation) {
+        if ( spanOfLastReadSeen == null )
+            spanOfLastReadSeen = currentLocation;
+        else {
+            if ( currentLocation.isPast(spanOfLastReadSeen) )
+                spanOfLastReadSeen = currentLocation;
+        }
+    }
+
 
     /**
      * Get a GenomeLoc indicating the start (heading to the right) of the live ART region.
@@ -486,7 +506,6 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         while( workQueue.peek() != null ) {
             final ActiveRegion activeRegion = workQueue.peek();
             if ( forceAllRegionsToBeActive || regionCompletelyWithinDeadZone(activeRegion) ) {
-                if ( DEBUG ) logger.warn("Processing active region " + activeRegion + " dead zone " + spanOfLastSeenRead());
                 writeActivityProfile(activeRegion.getSupportingStates());
                 writeActiveRegion(activeRegion);
                 sum = processActiveRegion( workQueue.remove(), sum, walker );
@@ -509,7 +528,6 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
                 activeRegion.add(read);
 
                 if ( ! walker.wantsNonPrimaryReads() ) {
-                    if ( DEBUG ) logger.warn("Removing read " + read.getReadName() + " at " + readLoc + " with dead zone start " + spanOfLastSeenRead());
                     liveReads.remove();
                     killed = true;
                 }
@@ -518,12 +536,13 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             }
 
             if ( ! killed && readCannotOccurInAnyMoreActiveRegions(read, activeRegion) ) {
-                if ( DEBUG ) logger.warn("Removing read " + read.getReadName() + " at " + readLoc + " with dead zone start " + spanOfLastSeenRead());
                 liveReads.remove();
             }
         }
 
-        logger.debug(">> Map call with " + activeRegion.getReads().size() + " " + (activeRegion.isActive ? "active" : "inactive") + " reads @ " + activeRegion.getLocation() + " with full extent: " + activeRegion.getReferenceLoc());
+        if ( logger.isDebugEnabled() ) {
+            logger.debug(">> Map call with " + activeRegion.getReads().size() + " " + (activeRegion.isActive ? "active" : "inactive") + " reads @ " + activeRegion.getLocation() + " with full extent: " + activeRegion.getReferenceLoc());
+        }
 
         if ( LOG_READ_CARRYING )
             logger.info(String.format("Processing region %20s span=%3d active?=%5b with %4d reads.  Overall max reads carried is %s",
