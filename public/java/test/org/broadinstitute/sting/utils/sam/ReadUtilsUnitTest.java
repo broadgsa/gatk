@@ -48,7 +48,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         }});
 
         tests.add( new Object[]{ new GetAdaptorFunc() {
-            @Override public int getAdaptor(final GATKSAMRecord record) { return record.getAdapterBoundary(); }
+            @Override public int getAdaptor(final GATKSAMRecord record) { return record.getAdaptorBoundary(); }
         }});
 
         return tests.toArray(new Object[][]{});

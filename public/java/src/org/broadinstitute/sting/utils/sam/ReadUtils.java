@@ -169,7 +169,7 @@ public class ReadUtils {
      * @return whether or not the base is in the adaptor
      */
     public static boolean isBaseInsideAdaptor(final GATKSAMRecord read, long basePos) {
-        final int adaptorBoundary = read.getAdapterBoundary();
+        final int adaptorBoundary = read.getAdaptorBoundary();
         if (adaptorBoundary == CANNOT_COMPUTE_ADAPTOR_BOUNDARY || read.getInferredInsertSize() > DEFAULT_ADAPTOR_SIZE)
             return false;
 

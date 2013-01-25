@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils.sam;
 
+import com.google.java.contract.Ensures;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -579,7 +580,8 @@ public class GATKSAMRecord extends BAMRecord {
      *
      * @return the result of calling ReadUtils.getAdaptorBoundary on this read
      */
-    public int getAdapterBoundary() {
+    @Ensures("result == ReadUtils.getAdaptorBoundary(this)")
+    public int getAdaptorBoundary() {
         if ( adapterBoundary == null )
             adapterBoundary = ReadUtils.getAdaptorBoundary(this);
         return adapterBoundary;
