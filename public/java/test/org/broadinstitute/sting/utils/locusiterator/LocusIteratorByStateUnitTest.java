@@ -51,7 +51,7 @@ import java.util.*;
  * testing of the new (non-legacy) version of LocusIteratorByState
  */
 public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
     protected LocusIteratorByState li;
 
     @Test(enabled = true)
@@ -685,5 +685,85 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
                 read.setAttribute("PL", new byte[payloadInBytes]);
             return read;
         }
+    }
+
+    // ---------------------------------------------------------------------------
+    //
+    // make sure that adapter clipping is working properly in LIBS
+    //
+    // ---------------------------------------------------------------------------
+    @DataProvider(name = "AdapterClippingTest")
+    public Object[][] makeAdapterClippingTest() {
+        final List<Object[]> tests = new LinkedList<Object[]>();
+
+        final int start = 10;
+//        for ( final int goodBases : Arrays.asList(10) ) {
+//            for ( final int nClipsOnTheRight : Arrays.asList(0)) {
+        for ( final int goodBases : Arrays.asList(10, 20, 30) ) {
+            for ( final int nClips : Arrays.asList(0, 1, 2, 10)) {
+                for ( final boolean onLeft : Arrays.asList(true, false) ) {
+                    final int readLength = nClips + goodBases;
+                    GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read1" , 0, start, readLength);
+                    read.setReadBases(Utils.dupBytes((byte) 'A', readLength));
+                    read.setBaseQualities(Utils.dupBytes((byte) '@', readLength));
+                    read.setCigarString(readLength + "M");
+
+                    if ( onLeft ) {
+                        read.setReadNegativeStrandFlag(true);
+                        read.setMateAlignmentStart(start + nClips);
+                        read.setInferredInsertSize(readLength);
+                        tests.add(new Object[]{nClips, goodBases, 0, read});
+                    } else {
+                        read.setReadNegativeStrandFlag(false);
+                        read.setMateAlignmentStart(start - 1);
+                        read.setInferredInsertSize(goodBases - 1);
+                        tests.add(new Object[]{0, goodBases, nClips, read});
+                    }
+                }
+            }
+        }
+
+//            for ( final int nClipsOnTheLeft : Arrays.asList(0, 1, 2, 10)) {
+//                final int readLength = nClipsOnTheLeft + goodBases;
+//                GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read1" , 0, start, readLength);
+//                read.setReadBases(Utils.dupBytes((byte) 'A', readLength));
+//                read.setBaseQualities(Utils.dupBytes((byte) '@', readLength));
+//                read.setCigarString(readLength + "M");
+//                read.setReadNegativeStrandFlag(true);
+//
+//                read.setMateAlignmentStart(start + nClipsOnTheLeft);
+//                read.setInferredInsertSize(readLength);
+//
+//                tests.add(new Object[]{nClipsOnTheLeft, goodBases, 0, read});
+//            }
+//        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(enabled = true, dataProvider = "AdapterClippingTest")
+//    @Test(enabled = true, dataProvider = "LIBS_NotHoldingTooManyReads", timeOut = 100000)
+    public void testAdapterClipping(final int nClipsOnLeft, final int nReadContainingPileups, final int nClipsOnRight, final GATKSAMRecord read) {
+
+        li = new LocusIteratorByState(new FakeCloseableIterator<GATKSAMRecord>(Collections.singletonList(read).iterator()),
+                createTestReadProperties(DownsamplingMethod.NONE, false),
+                genomeLocParser,
+                LocusIteratorByState.sampleListForSAMWithoutReadGroups());
+
+        int expectedPos = read.getAlignmentStart() + nClipsOnLeft;
+        int nPileups = 0;
+        while ( li.hasNext() ) {
+            final AlignmentContext next = li.next();
+            Assert.assertEquals(next.getLocation().getStart(), expectedPos);
+//            if ( nPileups < nClipsOnLeft || nPileups > (nClipsOnLeft + nReadContainingPileups) )
+//                Assert.assertEquals(next.getBasePileup().getNumberOfElements(), 0, "Expected empty pileups when the read is in the adapter clipping zone at " + nPileups);
+//            else
+//                Assert.assertEquals(next.getBasePileup().getNumberOfElements(), 1, "Expected a pileups with 1 element when the read is within the good part of the read at " + nPileups);
+            nPileups++;
+            expectedPos++;
+        }
+
+        final int nExpectedPileups = nReadContainingPileups;
+        Assert.assertEquals(nPileups, nExpectedPileups, "Wrong number of pileups seen");
     }
 }

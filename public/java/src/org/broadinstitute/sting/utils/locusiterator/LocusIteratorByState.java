@@ -328,7 +328,7 @@ public final class LocusIteratorByState extends LocusIterator {
      * @return true if the read should be excluded from the pileup, false otherwise
      */
     @Requires({"rec != null", "pos > 0"})
-    private boolean dontIncludeReadInPileup(GATKSAMRecord rec, long pos) {
+    private boolean dontIncludeReadInPileup(final GATKSAMRecord rec, final long pos) {
         return ReadUtils.isBaseInsideAdaptor(rec, pos);
     }
 
