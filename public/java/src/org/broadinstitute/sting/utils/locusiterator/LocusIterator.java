@@ -34,11 +34,6 @@ import java.util.Iterator;
  * Iterator that traverses a SAM File, accumulating information on a per-locus basis
  */
 public abstract class LocusIterator implements Iterable<AlignmentContext>, CloseableIterator<AlignmentContext> {
-    // -----------------------------------------------------------------------------------------------------------------
-    //
-    // constructors and other basic operations
-    //
-    // -----------------------------------------------------------------------------------------------------------------
     public Iterator<AlignmentContext> iterator() {
         return this;
     }
@@ -50,9 +45,15 @@ public abstract class LocusIterator implements Iterable<AlignmentContext>, Close
     public abstract boolean hasNext();
     public abstract AlignmentContext next();
 
-    // TODO -- remove me when ART testing is done
+    /**
+     * Get, if possible, the underlying LocusIteratorByState from this LocusIterator.
+     *
+     * @throws UnsupportedOperationException if we don't support this operation
+     *
+     * @return a non-null locus iterator by state
+     */
     public LocusIteratorByState getLIBS() {
-        return null;
+        throw new UnsupportedOperationException("This locus iterator does not support getting the underlying LocusIteratorByState");
     }
 
     public void remove() {
