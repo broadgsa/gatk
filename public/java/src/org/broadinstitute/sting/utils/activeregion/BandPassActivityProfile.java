@@ -153,12 +153,16 @@ public class BandPassActivityProfile extends ActivityProfile {
         final Collection<ActivityProfileState> states = new LinkedList<ActivityProfileState>();
 
         for ( final ActivityProfileState superState : super.processState(justAddedState) ) {
-            for( int jjj = -filterSize; jjj <= filterSize; jjj++ ) {
-                final GenomeLoc loc = getLocForOffset(justAddedState.getLoc(), jjj);
-                if ( loc != null ) {
-                    final double newProb = superState.isActiveProb * GaussianKernel[jjj + filterSize];
-                    states.add(new ActivityProfileState(loc, newProb));
+            if ( superState.isActiveProb > 0.0 ) {
+                for( int jjj = -filterSize; jjj <= filterSize; jjj++ ) {
+                    final GenomeLoc loc = getLocForOffset(justAddedState.getLoc(), jjj);
+                    if ( loc != null ) {
+                        final double newProb = superState.isActiveProb * GaussianKernel[jjj + filterSize];
+                        states.add(new ActivityProfileState(loc, newProb));
+                    }
                 }
+            } else {
+                states.add(justAddedState);
             }
         }
 
