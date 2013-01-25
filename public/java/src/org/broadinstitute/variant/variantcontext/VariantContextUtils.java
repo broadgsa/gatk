@@ -878,6 +878,7 @@ public class VariantContextUtils {
     }
 
     private static void mergeGenotypes(GenotypesContext mergedGenotypes, VariantContext oneVC, AlleleMapper alleleMapping, boolean uniqifySamples) {
+        //TODO: should we add a check for cases when the genotypeMergeOption is REQUIRE_UNIQUE
         for ( Genotype g : oneVC.getGenotypes() ) {
             String name = mergedSampleName(oneVC.getSource(), g.getSampleName(), uniqifySamples);
             if ( ! mergedGenotypes.containsSample(name) ) {
