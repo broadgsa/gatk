@@ -450,7 +450,9 @@ public class VariantContextUtils {
     /**
      * Merges VariantContexts into a single hybrid.  Takes genotypes for common samples in priority order, if provided.
      * If uniquifySamples is true, the priority order is ignored and names are created by concatenating the VC name with
-     * the sample name
+     * the sample name.
+     * simpleMerge does not verify any more unique sample names EVEN if genotypeMergeOptions == GenotypeMergeType.REQUIRE_UNIQUE. One should use
+     * SampleUtils.verifyUniqueSamplesNames to check that before using sempleMerge.
      *
      * @param unsortedVCs               collection of unsorted VCs
      * @param priorityListOfVCs         priority list detailing the order in which we should grab the VCs
@@ -482,9 +484,6 @@ public class VariantContextUtils {
 
         if ( annotateOrigin && priorityListOfVCs == null && originalNumOfVCs == 0)
             throw new IllegalArgumentException("Cannot merge calls and annotate their origins without a complete priority list of VariantContexts or the number of original VariantContexts");
-
-        if ( genotypeMergeOptions == GenotypeMergeType.REQUIRE_UNIQUE )
-            verifyUniqueSampleNames(unsortedVCs);
 
         final List<VariantContext> preFilteredVCs = sortVariantContextsByPriority(unsortedVCs, priorityListOfVCs, genotypeMergeOptions);
         // Make sure all variant contexts are padded with reference base in case of indels if necessary
@@ -774,18 +773,19 @@ public class VariantContextUtils {
         }
     }
 
-    static private void verifyUniqueSampleNames(Collection<VariantContext> unsortedVCs) {
-        Set<String> names = new HashSet<String>();
-        for ( VariantContext vc : unsortedVCs ) {
-            for ( String name : vc.getSampleNames() ) {
-                //System.out.printf("Checking %s %b%n", name, names.contains(name));
-                if ( names.contains(name) )
-                    throw new IllegalStateException("REQUIRE_UNIQUE sample names is true but duplicate names were discovered " + name);
-            }
-
-            names.addAll(vc.getSampleNames());
-        }
-    }
+//    TODO: remove that after testing
+//    static private void verifyUniqueSampleNames(Collection<VariantContext> unsortedVCs) {
+//        Set<String> names = new HashSet<String>();
+//        for ( VariantContext vc : unsortedVCs ) {
+//            for ( String name : vc.getSampleNames() ) {
+//                //System.out.printf("Checking %s %b%n", name, names.contains(name));
+//                if ( names.contains(name) )
+//                    throw new IllegalStateException("REQUIRE_UNIQUE sample names is true but duplicate names were discovered " + name);
+//            }
+//
+//            names.addAll(vc.getSampleNames());
+//        }
+//    }
 
 
     static private Allele determineReferenceAllele(List<VariantContext> VCs) {

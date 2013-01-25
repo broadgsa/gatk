@@ -208,6 +208,10 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             logger.info("Priority string is not provided, using arbitrary genotyping order: "+priority);
         }
 
+        if (genotypeMergeOption == VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE &&
+                !SampleUtils.verifyUniqueSamplesNames(vcfRods))
+            throw new IllegalStateException("REQUIRE_UNIQUE sample names is true but duplicate names were discovered.");
+
         samples = sitesOnlyVCF ? Collections.<String>emptySet() : SampleUtils.getSampleList(vcfRods, genotypeMergeOption);
 
         if ( SET_KEY.toLowerCase().equals("null") )
@@ -222,6 +226,8 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         vcfHeader.setWriteCommandLine(!SUPPRESS_COMMAND_LINE_HEADER);
         vcfWriter.writeHeader(vcfHeader);
     }
+
+
 
     private void validateAnnotateUnionArguments() {
         Set<String> rodNames = SampleUtils.getRodNamesWithVCFHeader(getToolkit(), null);

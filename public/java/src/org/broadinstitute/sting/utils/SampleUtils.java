@@ -132,6 +132,25 @@ public class SampleUtils {
         return samples;
     }
 
+
+    /**
+     *
+     * @param VCF_Headers
+     * @return false if there are names duplication between the samples names in the VCF headers
+     */
+    public static boolean verifyUniqueSamplesNames(Map<String, VCFHeader> VCF_Headers) {
+        Set<String> samples = new HashSet<String>();
+        for ( Map.Entry<String, VCFHeader> val : VCF_Headers.entrySet() ) {
+            VCFHeader header = val.getValue();
+            for ( String sample : header.getGenotypeSamples() ) {
+                if (samples.add(sample))
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
     /**
      * Gets the sample names from all VCF rods input by the user and uniquifies them if there is overlap
      * (e.g. sampleX.1, sampleX.2, ...)
