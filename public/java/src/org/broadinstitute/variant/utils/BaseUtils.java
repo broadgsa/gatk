@@ -26,6 +26,7 @@
 package org.broadinstitute.variant.utils;
 
 import net.sf.samtools.util.StringUtil;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Arrays;
@@ -496,5 +497,27 @@ public class BaseUtils {
         }
 
         return randomBaseIndex;
+    }
+
+    public static byte getComplement(byte base) {
+        switch(base) {
+            case 'a':
+            case 'A':
+                return 'T';
+            case 'c':
+            case 'C':
+                return 'G';
+            case 'g':
+            case 'G':
+                return 'C';
+            case 't':
+            case 'T':
+                return 'A';
+            case 'n':
+            case 'N':
+                return 'N';
+            default:
+                throw new ReviewedStingException("base must be A, C, G or T. " + (char) base + " is not a valid base.");
+        }
     }
 }

@@ -26,12 +26,15 @@
 package org.broadinstitute.sting.utils.sam;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.variant.utils.BaseUtils;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 
 public class ReadUtilsUnitTest extends BaseTest {
@@ -144,5 +147,22 @@ public class ReadUtilsUnitTest extends BaseTest {
         read.setReadNegativeStrandFlag(false);
         boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
+    }
+
+    @Test (enabled = true)
+    public void testGetBasesReverseComplement() {
+        int iterations = 1000;
+        Random random = GenomeAnalysisEngine.getRandomGenerator();
+        while(iterations-- > 0) {
+            final int l = random.nextInt(1000);
+            GATKSAMRecord read = GATKSAMRecord.createRandomRead(l);
+            byte [] original = read.getReadBases();
+            byte [] reconverted = new byte[l];
+            String revComp = ReadUtils.getBasesReverseComplement(read);
+            for (int i=0; i<l; i++) {
+                reconverted[l-1-i] = BaseUtils.getComplement((byte) revComp.charAt(i));
+            }
+            Assert.assertEquals(reconverted, original);
+        }
     }
 }

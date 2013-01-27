@@ -31,10 +31,7 @@ import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.recalibration.EventType;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author ebanks, depristo
@@ -135,6 +132,13 @@ public class GATKSAMRecord extends BAMRecord {
                          final byte[] variableLengthBlock) {
         super(header, referenceSequenceIndex, alignmentStart, readNameLength, mappingQuality, indexingBin, cigarLen,
                 flags, readLen, mateReferenceSequenceIndex, mateAlignmentStart, insertSize, variableLengthBlock);
+    }
+
+    public static GATKSAMRecord createRandomRead(int length) {
+        List<CigarElement> cigarElements = new LinkedList<CigarElement>();
+        cigarElements.add(new CigarElement(length, CigarOperator.M));
+        Cigar cigar = new Cigar(cigarElements);
+        return ArtificialSAMUtils.createArtificialRead(cigar);
     }
 
     ///////////////////////////////////////////////////////////////////////////////

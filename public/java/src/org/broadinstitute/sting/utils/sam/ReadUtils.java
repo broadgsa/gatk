@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.variant.utils.BaseUtils;
 
 import java.io.File;
 import java.util.*;
@@ -848,6 +849,68 @@ public class ReadUtils {
             }
         }
         return events;
+    }
+
+    /**
+     * Given a read, outputs the read bases in a string format
+     *
+     * @param read the read
+     * @return a string representation of the read bases
+     */
+    public static String convertReadBasesToString(GATKSAMRecord read) {
+        String bases = "";
+        for (byte b : read.getReadBases()) {
+            bases += (char) b;
+        }
+        return bases.toUpperCase();
+    }
+
+    /**
+     * Given a read, outputs the base qualities in a string format
+     *
+     * @param quals the read qualities
+     * @return a string representation of the base qualities
+     */
+    public static String convertReadQualToString(byte[] quals) {
+        String result = "";
+        for (byte b : quals) {
+            result += (char) (33 + b);
+        }
+        return result;
+    }
+
+    /**
+     * Given a read, outputs the base qualities in a string format
+     *
+     * @param read the read
+     * @return a string representation of the base qualities
+     */
+    public static String convertReadQualToString(GATKSAMRecord read) {
+        return convertReadQualToString(read.getBaseQualities());
+    }
+
+    /**
+     * Returns the reverse complement of the read bases
+     *
+     * @param bases the read bases
+     * @return the reverse complement of the read bases
+     */
+    public static String getBasesReverseComplement(byte[] bases) {
+        String reverse = "";
+        for (int i = bases.length-1; i >=0; i--) {
+            reverse += (char) BaseUtils.getComplement(bases[i]);
+        }
+        return reverse;
+    }
+
+    /**
+     * Returns the reverse complement of the read bases
+     *
+     * @param read the read
+     * @return the reverse complement of the read bases
+     */
+    public static String getBasesReverseComplement(GATKSAMRecord read) {
+        return getBasesReverseComplement(read.getReadBases());
     }
 
 }
