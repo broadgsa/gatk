@@ -50,14 +50,6 @@ public class ActivityProfile {
     protected GenomeLoc regionStopLoc = null;
 
     /**
-     * Optimization variable.  Keeps track of the right-most state we looked at in our
-     * last unsuccessful call to findEndOfRegion.  This variable allows us to
-     * avoid an O(N^2) algorithm to find the end of the current region in the profile.  It
-     * must be reset to 0 when a region is popped off the stack.
-     */
-    int startSearchForEndOfRegionHere = 0;
-
-    /**
      * A cached value of the regionStartLoc contig length, to make calls to
      * getCurrentContigLength efficient
      */
@@ -352,9 +344,6 @@ public class ActivityProfile {
             // couldn't find a valid ending offset, so we return null
             return null;
 
-        // reset the start site of findEndOfRegion to the first element
-        startSearchForEndOfRegionHere = 0;
-
         // we need to create the active region, and clip out the states we're extracting from this profile
         final List<ActivityProfileState> sub = stateList.subList(0, offsetOfNextRegionEnd + 1);
         final List<ActivityProfileState> supportingStates = new ArrayList<ActivityProfileState>(sub);
@@ -401,9 +390,7 @@ public class ActivityProfile {
             return -1;
         }
 
-        // TODO -- don't need startSearchForEndOfRegionHere with the above check
-        int endOfActiveRegion = findFirstActivityBoundary(isActiveRegion, maxRegionSize, startSearchForEndOfRegionHere);
-        startSearchForEndOfRegionHere = Math.max(endOfActiveRegion - getMaxProbPropagationDistance(), 0);
+        int endOfActiveRegion = findFirstActivityBoundary(isActiveRegion, maxRegionSize);
 
         if ( isActiveRegion && endOfActiveRegion == maxRegionSize )
             // we've run to the end of the region, let's find a good place to cut
@@ -446,25 +433,20 @@ public class ActivityProfile {
      *
      * Note that each state has a probability of being active, and this function thresholds that
      * value on ACTIVE_PROB_THRESHOLD, coloring each state as active or inactive.  Finds the
-     * largest contiguous stretch of states starting at startSearchAt with the same isActive
+     * largest contiguous stretch of states starting at the first state (index 0) with the same isActive
      * state as isActiveRegion.  If the entire state list has the same isActive value, then returns
      * maxRegionSize
      *
      * @param isActiveRegion are we looking for a stretch of active states, or inactive ones?
      * @param maxRegionSize don't look for a boundary that would yield a region of size > maxRegionSize
-     * @param startSearchAt start looking not at 0 but rather at this offset into the state list.  This
-     *                      parameter allows us to remember where we looked before across calls, so that
-     *                      we don't keep searching from 0 -> 1, then 0 -> 2, then 0 -> 3 on each subsequent
-     *                      call to this function.  Use with caution, as an incorrect value could result in
-     *                      skipping a true boundary
      * @return the index of the first state in the state list with isActive value != isActiveRegion, or maxRegionSize
      *         if no such element exists
      */
-    @Requires({"maxRegionSize > 0", "startSearchAt >= 0", "startSearchAt <= maxRegionSize", "startSearchAt <= stateList.size()"})
+    @Requires({"maxRegionSize > 0"})
     @Ensures({"result >= 0", "result <= stateList.size()"})
-    private int findFirstActivityBoundary(final boolean isActiveRegion, final int maxRegionSize, final int startSearchAt) {
+    private int findFirstActivityBoundary(final boolean isActiveRegion, final int maxRegionSize) {
         final int nStates = stateList.size();
-        int endOfActiveRegion = startSearchAt;
+        int endOfActiveRegion = 0;
 
         while ( endOfActiveRegion < nStates && endOfActiveRegion < maxRegionSize ) {
             if ( getProb(endOfActiveRegion) > ACTIVE_PROB_THRESHOLD != isActiveRegion ) {

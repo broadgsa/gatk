@@ -125,7 +125,6 @@ public class ActiveRegion implements HasGenomeLocation {
     public int getExtension() { return extension; }
     public int size() { return reads.size(); }
     public void clearReads() { reads.clear(); }
-    public void remove( final GATKSAMRecord read ) { reads.remove( read ); }
     public void removeAll( final ArrayList<GATKSAMRecord> readsToRemove ) { reads.removeAll( readsToRemove ); }
 
     public boolean equalExceptReads(final ActiveRegion other) {
