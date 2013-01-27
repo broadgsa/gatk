@@ -72,6 +72,8 @@ public class ActivityProfileState {
         // make sure the location of that activity profile is 1
         if ( loc.size() != 1 )
             throw new IllegalArgumentException("Location for an ActivityProfileState must have to size 1 bp but saw " + loc);
+        if ( resultValue != null && resultValue.doubleValue() < 0 )
+            throw new IllegalArgumentException("Result value isn't null and its < 0, which is illegal: " + resultValue);
 
         this.loc = loc;
         this.isActiveProb = isActiveProb;

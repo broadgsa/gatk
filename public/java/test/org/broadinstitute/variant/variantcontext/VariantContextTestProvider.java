@@ -688,7 +688,7 @@ public class VariantContextTestProvider {
      * @return
      * @throws IOException
      */
-    private final static Pair<VCFHeader, Iterable<VariantContext>> readAllVCs( final File source, final FeatureCodec<VariantContext> codec ) throws IOException {
+    public final static Pair<VCFHeader, Iterable<VariantContext>> readAllVCs( final File source, final FeatureCodec<VariantContext> codec ) throws IOException {
         // read in the features
         PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(source));
         FeatureCodecHeader header = codec.readHeader(pbs);
@@ -701,7 +701,7 @@ public class VariantContextTestProvider {
         return new Pair<VCFHeader, Iterable<VariantContext>>(vcfHeader, new VCIterable(pbs, codec, vcfHeader));
     }
 
-    private static class VCIterable implements Iterable<VariantContext>, Iterator<VariantContext> {
+    public static class VCIterable implements Iterable<VariantContext>, Iterator<VariantContext> {
         final PositionalBufferedStream pbs;
         final FeatureCodec<VariantContext> codec;
         final VCFHeader header;

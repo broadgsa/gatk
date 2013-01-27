@@ -53,6 +53,14 @@ public class BandPassActivityProfile extends ActivityProfile {
     private final double[] GaussianKernel;
 
     /**
+     * Create a new BandPassActivityProfile with default sigma and file sizes
+     * @param parser our genome loc parser
+     */
+    public BandPassActivityProfile(final GenomeLocParser parser) {
+        this(parser, MAX_FILTER_SIZE, DEFAULT_SIGMA, true);
+    }
+
+    /**
      * Create an activity profile that implements a band pass filter on the states
      * @param parser our genome loc parser
      * @param maxFilterSize the maximum size of the band pass filter we are allowed to create, regardless of sigma

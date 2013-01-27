@@ -395,6 +395,13 @@ public class ActivityProfile {
             "result == -1 || result < maxRegionSize",
             "! (result == -1 && forceConversion)"})
     private int findEndOfRegion(final boolean isActiveRegion, final int minRegionSize, final int maxRegionSize, final boolean forceConversion) {
+        if ( ! forceConversion && stateList.size() < maxRegionSize + getMaxProbPropagationDistance() ) {
+            // we really haven't finalized at the probability mass that might affect our decision, so keep
+            // waiting until we do before we try to make any decisions
+            return -1;
+        }
+
+        // TODO -- don't need startSearchForEndOfRegionHere with the above check
         int endOfActiveRegion = findFirstActivityBoundary(isActiveRegion, maxRegionSize, startSearchForEndOfRegionHere);
         startSearchForEndOfRegionHere = Math.max(endOfActiveRegion - getMaxProbPropagationDistance(), 0);
 
@@ -403,9 +410,7 @@ public class ActivityProfile {
             endOfActiveRegion = findBestCutSite(endOfActiveRegion, minRegionSize);
 
         // we're one past the end, so i must be decremented
-        return forceConversion || endOfActiveRegion + getMaxProbPropagationDistance() < stateList.size()
-                ? endOfActiveRegion - 1
-                : -1;
+        return endOfActiveRegion - 1;
     }
 
     /**
