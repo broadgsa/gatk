@@ -873,20 +873,12 @@
         <property name="executable" value="GenomeAnalysisTK" />
     </target>
 
-    <target name="init.executable.gatklite" depends="init.build.publiconly, init.javaonly">
-        <property name="executable" value="GenomeAnalysisTKLite" />
-    </target>
-
     <target name="init.executable.queueall" depends="init.build.all, init.javaandscala">
         <property name="executable" value="Queue" />
     </target>
 
     <target name="init.executable.queuefull" depends="init.build.publicprotectedonly, init.javaandscala">
         <property name="executable" value="Queue" />
-    </target>
-
-    <target name="init.executable.queuelite" depends="init.build.publiconly, init.javaandscala">
-        <property name="executable" value="QueueLite" />
     </target>
 
     <target name="require.executable">
@@ -939,14 +931,9 @@
     <!-- Package specific versions of the GATK/Queue. ALWAYS do an ant clean before invoking these! -->
     <target name="package.gatk.full" depends="init.executable.gatkfull,package" />
 
-    <target name="package.gatk.lite" depends="init.executable.gatklite,package" />
-
     <target name="package.queue.all" depends="init.executable.queueall,package" />
 
     <target name="package.queue.full" depends="init.executable.queuefull,package" />
-
-    <target name="package.queue.lite" depends="init.executable.queuelite,package" />
-
 
     <!-- Release a build. Don't call this target directly. Call one of the specific release targets below -->
     <target name="release" depends="require.executable" description="release a build, putting each file in a location specified by the package">
@@ -956,12 +943,7 @@
     <!-- Release specific versions of the GATK/Queue. ALWAYS do an ant clean before invoking these! -->
     <target name="release.gatk.full" depends="package.gatk.full,release" />
 
-    <target name="release.gatk.lite" depends="package.gatk.lite,release" />
-
     <target name="release.queue.full" depends="package.queue.full,release" />
-
-    <target name="release.queue.lite" depends="package.queue.lite,release" />
-
 
     <!-- Build a subset of picard with only those classes we need by completely abusing the packaging system -->
     <!-- TODO: Reuse as much as possible of the 'stage' and 'package' targets -->
@@ -1006,13 +988,9 @@
     <!-- Maven install specific versions of the GATK/Queue. ALWAYS do an ant clean before invoking these! -->
     <target name="mvninstall.gatk.full" depends="package.gatk.full,mvninstall" />
 
-    <target name="mvninstall.gatk.lite" depends="package.gatk.lite,mvninstall" />
-
     <target name="mvninstall.queue.all" depends="package.queue.all,mvninstall" />
 
     <target name="mvninstall.queue.full" depends="package.queue.full,mvninstall" />
-
-    <target name="mvninstall.queue.lite" depends="package.queue.lite,mvninstall" />
 
     <!-- ******************************************************************************** -->
     <!-- Clean                                                                            -->
@@ -1363,12 +1341,7 @@
     <!-- Order of the dependencies is significant in the *.release.tests targets -->
     <target name="gatkfull.binary.release.tests" depends="init.usecontracts,package.gatk.full,init.testgatkjar,unittest,integrationtest" />
 
-    <target name="gatklite.binary.release.tests" depends="init.usecontracts,package.gatk.lite,init.testgatkjar,unittest,integrationtest" />
-
     <target name="queuefull.binary.release.tests" depends="init.usecontracts,package.queue.full,init.testqueuejar,pipelinetest" />
-
-    <target name="queuelite.binary.release.tests" depends="init.usecontracts,package.queue.lite,init.testqueuejar,pipelinetest" />
-
 
     <!-- Our four different test types: UnitTest, IntegrationTest, LargeScaleTest, PipelineTest -->
     <target name="unittest" depends="test.compile,test.init" description="Run unit tests">
