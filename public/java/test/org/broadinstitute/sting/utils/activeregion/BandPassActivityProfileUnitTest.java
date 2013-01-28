@@ -309,8 +309,8 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
             lastPosSeen = region.getLocation().getStop();
 
             for ( final ActivityProfileState state : region.getSupportingStates() ) {
-                Assert.assertEquals(state.isActiveProb > ActivityProfile.ACTIVE_PROB_THRESHOLD, region.isActive,
-                        "Region is active=" + region.isActive + " but contains a state " + state + " with prob "
+                Assert.assertEquals(state.isActiveProb > ActivityProfile.ACTIVE_PROB_THRESHOLD, region.isActive(),
+                        "Region is active=" + region.isActive() + " but contains a state " + state + " with prob "
                                 + state.isActiveProb + " not within expected values given threshold for activity of "
                                 + ActivityProfile.ACTIVE_PROB_THRESHOLD);
             }

@@ -460,7 +460,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             printIGVFormatRow(walker.activeRegionOutStream, region.getLocation().getStartLocation(),
                     "end-marker", 0.0);
             printIGVFormatRow(walker.activeRegionOutStream, region.getLocation(),
-                    "size=" + region.getLocation().size(), region.isActive ? 1.0 : -1.0);
+                    "size=" + region.getLocation().size(), region.isActive() ? 1.0 : -1.0);
         }
     }
 
@@ -541,12 +541,12 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         }
 
         if ( logger.isDebugEnabled() ) {
-            logger.debug(">> Map call with " + activeRegion.getReads().size() + " " + (activeRegion.isActive ? "active" : "inactive") + " reads @ " + activeRegion.getLocation() + " with full extent: " + activeRegion.getReferenceLoc());
+            logger.debug(">> Map call with " + activeRegion.getReads().size() + " " + (activeRegion.isActive() ? "active" : "inactive") + " reads @ " + activeRegion.getLocation() + " with full extent: " + activeRegion.getReadSpanLoc());
         }
 
         if ( LOG_READ_CARRYING )
             logger.info(String.format("Processing region %20s span=%3d active?=%5b with %4d reads.  Overall max reads carried is %s",
-                    activeRegion.getLocation(), activeRegion.getLocation().size(), activeRegion.isActive, activeRegion.size(), maxReadsInMemory));
+                    activeRegion.getLocation(), activeRegion.getLocation().size(), activeRegion.isActive(), activeRegion.size(), maxReadsInMemory));
 
         final M x = walker.map(activeRegion, null);
         return walker.reduce( x, sum );
