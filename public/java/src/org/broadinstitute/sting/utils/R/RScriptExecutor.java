@@ -110,15 +110,17 @@ public class RScriptExecutor {
 
         List<File> tempFiles = new ArrayList<File>();
         try {
-            File tempLibDir = IOUtils.tempDir("Rlib.", "");
-            tempFiles.add(tempLibDir);
+            File tempLibSourceDir  = IOUtils.tempDir("RlibSources.", "");
+            File tempLibInstallationDir = IOUtils.tempDir("Rlib.", "");
+            tempFiles.add(tempLibSourceDir);
+            tempFiles.add(tempLibInstallationDir);
 
-            StringBuilder expression = new StringBuilder("tempLibDir = '").append(tempLibDir).append("';");
+            StringBuilder expression = new StringBuilder("tempLibDir = '").append(tempLibInstallationDir).append("';");
 
             if (this.libraries.size() > 0) {
                 List<String> tempLibraryPaths = new ArrayList<String>();
                 for (RScriptLibrary library: this.libraries) {
-                    File tempLibrary = library.writeTemp();
+                    File tempLibrary = library.writeLibrary(tempLibSourceDir);
                     tempFiles.add(tempLibrary);
                     tempLibraryPaths.add(tempLibrary.getAbsolutePath());
                 }
