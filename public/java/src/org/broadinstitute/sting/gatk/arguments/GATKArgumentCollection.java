@@ -241,6 +241,9 @@ public class GATKArgumentCollection {
     @Argument(fullName = "preserve_qscores_less_than", shortName = "preserveQ", doc = "Bases with quality scores less than this threshold won't be recalibrated (with -BQSR)", required = false)
     public int PRESERVE_QSCORES_LESS_THAN = QualityUtils.MIN_USABLE_Q_SCORE;
 
+    @Argument(fullName = "qlobalQScorePrior", shortName = "qlobalQScorePrior", doc = "The global Qscore Bayesian prior to use in the BQSR. If specified, this value will be used as the prior for all mismatch quality scores instead of the actual reported quality score", required = false)
+    public double globalQScorePrior = -1.0;
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // Other utility arguments
