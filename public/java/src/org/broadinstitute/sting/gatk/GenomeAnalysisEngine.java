@@ -434,12 +434,9 @@ public class GenomeAnalysisEngine {
     protected DownsamplingMethod getDownsamplingMethod() {
         GATKArgumentCollection argCollection = this.getArguments();
 
-        // Legacy downsampler can only be selected via the command line, not via walker annotations
-        boolean useLegacyDownsampler = argCollection.useLegacyDownsampler;
-
         DownsamplingMethod commandLineMethod = argCollection.getDownsamplingMethod();
-        DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker, useLegacyDownsampler);
-        DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker, useLegacyDownsampler);
+        DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker);
+        DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker);
 
         DownsamplingMethod method = commandLineMethod != null ? commandLineMethod : (walkerMethod != null ? walkerMethod : defaultMethod);
         method.checkCompatibilityWithWalker(walker);
@@ -572,15 +569,10 @@ public class GenomeAnalysisEngine {
                         throw new UserException.CommandLineException("Pairs traversal cannot be used in conjunction with intervals.");
                 }
 
-                // Use the legacy ReadShardBalancer if legacy downsampling is enabled
-                ShardBalancer readShardBalancer = downsamplingMethod != null && downsamplingMethod.useLegacyDownsampler ?
-                                                  new LegacyReadShardBalancer() :
-                                                  new ReadShardBalancer();
-
                 if(intervals == null)
-                    return readsDataSource.createShardIteratorOverAllReads(readShardBalancer);
+                    return readsDataSource.createShardIteratorOverAllReads(new ReadShardBalancer());
                 else
-                    return readsDataSource.createShardIteratorOverIntervals(intervals, readShardBalancer);
+                    return readsDataSource.createShardIteratorOverIntervals(intervals, new ReadShardBalancer());
             }
             else
                 throw new ReviewedStingException("Unable to determine walker type for walker " + walker.getClass().getName());
@@ -793,7 +785,7 @@ public class GenomeAnalysisEngine {
         DownsamplingMethod downsamplingMethod = getDownsamplingMethod();
 
         // Synchronize the method back into the collection so that it shows up when
-        // interrogating for the downsample method during command line recreation.
+        // interrogating for the downsampling method during command line recreation.
         setDownsamplingMethod(downsamplingMethod);
 
         logger.info(downsamplingMethod);
