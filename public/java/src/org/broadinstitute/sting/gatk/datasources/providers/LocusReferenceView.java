@@ -123,36 +123,8 @@ public class LocusReferenceView extends ReferenceView {
         if(bounds != null) {
             int expandedStart = getWindowStart( bounds );
             int expandedStop  = getWindowStop( bounds );
-            initializeReferenceSequence(genomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
+            initializeReferenceSequence(genomeLocParser.createGenomeLoc(bounds.getContig(), bounds.getContigIndex(), expandedStart, expandedStop));
         }
-    }
-
-    /** Returns true if the specified location is fully within the bounds of the reference window loaded into
-     *  this LocusReferenceView object.
-     */
-    public boolean isLocationWithinBounds(GenomeLoc loc) {
-        return bounds.containsP(loc);
-    }
-
-    /** Ensures that specified location is within the bounds of the reference window loaded into this
-     * LocusReferenceView object. If the location loc is within the current bounds (or if it is null), then nothing is done.
-     * Otherwise, the bounds are expanded on either side, as needed, to accomodate the location, and the reference seuqence for the
-     * new bounds is reloaded (can be costly!). If loc spans beyond the current contig, the expansion is performed
-     * to the start/stop of that contig only.
-     * @param loc
-     */
-    public void expandBoundsToAccomodateLoc(GenomeLoc loc) {
-        if ( bounds==null || loc==null) return; // can bounds be null actually???
-        if ( isLocationWithinBounds(loc) ) return;
-        if ( loc.getContigIndex() != bounds.getContigIndex() )
-            throw new ReviewedStingException("Illegal attempt to expand reference view bounds to accommodate location on a different contig.");
-
-        bounds = genomeLocParser.createGenomeLoc(bounds.getContig(),
-                                                 Math.min(bounds.getStart(),loc.getStart()),
-                                                 Math.max(bounds.getStop(),loc.getStop()));
-        int expandedStart = getWindowStart( bounds );
-        int expandedStop  = getWindowStop( bounds );
-        initializeReferenceSequence(genomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
     }
 
     /**
@@ -210,7 +182,8 @@ public class LocusReferenceView extends ReferenceView {
     public ReferenceContext getReferenceContext( GenomeLoc genomeLoc ) {
         //validateLocation( genomeLoc );
 
-        GenomeLoc window = genomeLocParser.createGenomeLoc( genomeLoc.getContig(), getWindowStart(genomeLoc), getWindowStop(genomeLoc) );
+        GenomeLoc window = genomeLocParser.createGenomeLoc( genomeLoc.getContig(), bounds.getContigIndex(),
+                getWindowStart(genomeLoc), getWindowStop(genomeLoc) );
 
         int refStart = -1;
         if (bounds != null) {
@@ -235,16 +208,6 @@ public class LocusReferenceView extends ReferenceView {
      */
     public byte[] getReferenceBases( GenomeLoc genomeLoc ) {
         return super.getReferenceBases(genomeLoc);
-    }
-
-    /**
-     * Validates that the genomeLoc is one base wide and is in the reference sequence.
-     * @param genomeLoc location to verify.
-     */
-    private void validateLocation( GenomeLoc genomeLoc ) throws InvalidPositionException {
-        if( bounds != null && !bounds.containsP(genomeLoc) )
-            throw new InvalidPositionException(
-                    String.format("Requested position %s not within interval %s", genomeLoc, bounds));
     }
 
     /**

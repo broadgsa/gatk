@@ -28,7 +28,7 @@ package org.broadinstitute.variant.variantcontext;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.broad.tribble.TribbleException;
-import org.broadinstitute.variant.utils.Utils;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.broadinstitute.variant.vcf.VCFConstants;
 
 import java.util.Arrays;
@@ -155,7 +155,7 @@ public class GenotypeLikelihoods {
     //Returns null in case of missing likelihoods
     public EnumMap<GenotypeType,Double> getAsMap(boolean normalizeFromLog10){
         //Make sure that the log10likelihoods are set
-        double[] likelihoods = normalizeFromLog10 ? Utils.normalizeFromLog10(getAsVector()) : getAsVector();
+        double[] likelihoods = normalizeFromLog10 ? GeneralUtils.normalizeFromLog10(getAsVector()) : getAsVector();
         if(likelihoods == null)
             return null;
         EnumMap<GenotypeType,Double> likelihoodsMap = new EnumMap<GenotypeType, Double>(GenotypeType.class);
@@ -215,7 +215,7 @@ public class GenotypeLikelihoods {
         if (qual < 0) {
             // QUAL can be negative if the chosen genotype is not the most likely one individually.
             // In this case, we compute the actual genotype probability and QUAL is the likelihood of it not being the chosen one
-            double[] normalized = Utils.normalizeFromLog10(likelihoods);
+            double[] normalized = GeneralUtils.normalizeFromLog10(likelihoods);
             double chosenGenotype = normalized[iOfChoosenGenotype];
             return Math.log10(1.0 - chosenGenotype);
         } else {

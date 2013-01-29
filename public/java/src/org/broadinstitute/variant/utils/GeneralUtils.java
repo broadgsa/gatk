@@ -25,10 +25,18 @@
 
 package org.broadinstitute.variant.utils;
 
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.*;
 
-public class Utils {
+/**
+ * Constants and utility methods used throughout the VCF/BCF/VariantContext classes
+ */
+public class GeneralUtils {
+
+    /**
+     * Setting this to true causes the VCF/BCF/VariantContext classes to emit debugging information
+     * to standard error
+     */
+    public static final boolean DEBUG_MODE_ENABLED = false;
 
     /**
      * The smallest log10 value we'll emit from normalizeFromLog10 and other functions
@@ -65,7 +73,6 @@ public class Utils {
             }
         }
     }
-
 
     /**
      * normalizes the log10-based array.  ASSUMES THAT ALL ARRAY ENTRIES ARE <= 0 (<= 1 IN REAL-SPACE).
@@ -134,8 +141,19 @@ public class Utils {
         return normalized;
     }
 
+    public static double sum(double[] values) {
+        double s = 0.0;
+        for (double v : values)
+            s += v;
+        return s;
+    }
+
     public static double arrayMax(final double[] array) {
         return array[maxElementIndex(array, array.length)];
+    }
+
+    public static int maxElementIndex(final double[] array) {
+        return maxElementIndex(array, array.length);
     }
 
     public static int maxElementIndex(final double[] array, final int endIndex) {
@@ -149,6 +167,82 @@ public class Utils {
         }
 
         return maxI;
+    }
+
+    public static <T> List<T> cons(final T elt, final List<T> l) {
+        List<T> l2 = new ArrayList<T>();
+        l2.add(elt);
+        if (l != null) l2.addAll(l);
+        return l2;
+    }
+
+    /**
+     * Make all combinations of N size of objects
+     *
+     * if objects = [A, B, C]
+     * if N = 1 => [[A], [B], [C]]
+     * if N = 2 => [[A, A], [B, A], [C, A], [A, B], [B, B], [C, B], [A, C], [B, C], [C, C]]
+     *
+     * @param objects
+     * @param n
+     * @param <T>
+     * @param withReplacement if false, the resulting permutations will only contain unique objects from objects
+     * @return
+     */
+    public static <T> List<List<T>> makePermutations(final List<T> objects, final int n, final boolean withReplacement) {
+        final List<List<T>> combinations = new ArrayList<List<T>>();
+
+        if ( n <= 0 )
+            ;
+        else if ( n == 1 ) {
+            for ( final T o : objects )
+                combinations.add(Collections.singletonList(o));
+        } else {
+            final List<List<T>> sub = makePermutations(objects, n - 1, withReplacement);
+            for ( List<T> subI : sub ) {
+                for ( final T a : objects ) {
+                    if ( withReplacement || ! subI.contains(a) )
+                        combinations.add(cons(a, subI));
+                }
+            }
+        }
+
+        return combinations;
+    }
+
+    /**
+     * Compares double values for equality (within 1e-6), or inequality.
+     *
+     * @param a the first double value
+     * @param b the second double value
+     * @return -1 if a is greater than b, 0 if a is equal to be within 1e-6, 1 if b is greater than a.
+     */
+    public static byte compareDoubles(double a, double b) {
+        return compareDoubles(a, b, 1e-6);
+    }
+
+    /**
+     * Compares double values for equality (within epsilon), or inequality.
+     *
+     * @param a       the first double value
+     * @param b       the second double value
+     * @param epsilon the precision within which two double values will be considered equal
+     * @return -1 if a is greater than b, 0 if a is equal to be within epsilon, 1 if b is greater than a.
+     */
+    public static byte compareDoubles(double a, double b, double epsilon) {
+        if (Math.abs(a - b) < epsilon) {
+            return 0;
+        }
+        if (a > b) {
+            return -1;
+        }
+        return 1;
+    }
+
+    static public final <T> List<T> reverse(final List<T> l) {
+        final List<T> newL = new ArrayList<T>(l);
+        Collections.reverse(newL);
+        return newL;
     }
 }
 

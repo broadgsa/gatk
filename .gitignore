@@ -12,6 +12,7 @@
 *.ipr
 *.iws
 *.iml
+*.pyc
 .DS_Store
 queueScatterGather
 /foo*

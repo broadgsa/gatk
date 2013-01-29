@@ -29,13 +29,13 @@ package org.broadinstitute.variant.variantcontext;
 // the imports for unit testing.
 
 
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.variant.VariantBaseTest;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
 
-public class GenotypeUnitTest extends BaseTest {
+public class GenotypeUnitTest extends VariantBaseTest {
     Allele A, Aref, T;
 
     @BeforeSuite

@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2012 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils.activeregion;
 
@@ -36,6 +36,11 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.variant.utils.Pair;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContextTestProvider;
+import org.broadinstitute.variant.vcf.VCFCodec;
+import org.broadinstitute.variant.vcf.VCFHeader;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -47,12 +52,13 @@ import java.util.*;
 
 
 public class BandPassActivityProfileUnitTest extends BaseTest {
+    private final static boolean DEBUG = false;
     private GenomeLocParser genomeLocParser;
 
     @BeforeClass
     public void init() throws FileNotFoundException {
         // sequence
-        ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(hg18Reference));
+        ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
         genomeLocParser = new GenomeLocParser(seq);
     }
 
@@ -79,7 +85,7 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "BandPassBasicTest")
+    @Test(enabled = ! DEBUG, dataProvider = "BandPassBasicTest")
     public void testBandPass(final int start, final boolean precedingIsActive, final int nPrecedingSites, final int bandPassSize, final double sigma) {
         final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, bandPassSize, sigma, false);
 
@@ -133,7 +139,7 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test( dataProvider = "BandPassComposition")
+    @Test( enabled = ! DEBUG, dataProvider = "BandPassComposition")
     public void testBandPassComposition(final int bandPassSize, final int integrationLength) {
         final int start = 1;
         final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, bandPassSize, BandPassActivityProfile.DEFAULT_SIGMA);
@@ -207,7 +213,7 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test( dataProvider = "KernelCreation")
+    @Test( enabled = ! DEBUG, dataProvider = "KernelCreation")
     public void testKernelCreation(final double sigma, final int maxSize, final double[] expectedKernel) {
         final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, maxSize, sigma, true);
 
@@ -215,5 +221,101 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
         Assert.assertEquals(kernel.length, expectedKernel.length);
         for ( int i = 0; i < kernel.length; i++ )
             Assert.assertEquals(kernel[i], expectedKernel[i], 1e-3, "Kernels not equal at " + i);
+    }
+
+    // ------------------------------------------------------------------------------------
+    //
+    // Large-scale test, reading in 1000G Phase I chr20 calls and making sure that
+    // the regions returned are the same if you run on the entire profile vs. doing it
+    // incremental
+    //
+    // ------------------------------------------------------------------------------------
+
+    @DataProvider(name = "VCFProfile")
+    public Object[][] makeVCFProfile() {
+        final List<Object[]> tests = new LinkedList<Object[]>();
+
+        //tests.add(new Object[]{ privateTestDir + "ALL.chr20.phase1_release_v3.20101123.snps_indels_svs.sites.vcf", "20", 60470, 61000});
+        //tests.add(new Object[]{ privateTestDir + "ALL.chr20.phase1_release_v3.20101123.snps_indels_svs.sites.vcf", "20", 60470, 100000});
+        //tests.add(new Object[]{ privateTestDir + "ALL.chr20.phase1_release_v3.20101123.snps_indels_svs.sites.vcf", "20", 60470, 1000000});
+        tests.add(new Object[]{ privateTestDir + "ALL.chr20.phase1_release_v3.20101123.snps_indels_svs.sites.vcf", "20", 60470, 1000000});
+        tests.add(new Object[]{ privateTestDir + "NA12878.WGS.b37.chr20.firstMB.vcf", "20", 1, 1000000});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test( dataProvider = "VCFProfile")
+    public void testVCFProfile(final String path, final String contig, final int start, final int end) throws Exception {
+        final int extension = 50;
+        final int minRegionSize = 50;
+        final int maxRegionSize = 300;
+
+        final File file = new File(path);
+        final VCFCodec codec = new VCFCodec();
+        final Pair<VCFHeader, Iterable<VariantContext>> reader = VariantContextTestProvider.readAllVCs(file, codec);
+
+        final List<ActiveRegion> incRegions = new ArrayList<ActiveRegion>();
+        final BandPassActivityProfile incProfile = new BandPassActivityProfile(genomeLocParser);
+        final BandPassActivityProfile fullProfile = new BandPassActivityProfile(genomeLocParser);
+        int pos = start;
+        for ( final VariantContext vc : reader.getSecond() ) {
+            if ( vc == null ) continue;
+            while ( pos < vc.getStart() ) {
+                final GenomeLoc loc = genomeLocParser.createGenomeLoc(contig, pos);
+                //logger.warn("Adding 0.0 at " + loc + " because vc.getStart is " + vc.getStart());
+                incProfile.add(new ActivityProfileState(loc, 0.0));
+                fullProfile.add(new ActivityProfileState(loc, 0.0));
+                pos++;
+            }
+            if ( vc.getStart() >= start && vc.getEnd() <= end ) {
+                final GenomeLoc loc = genomeLocParser.createGenomeLoc(contig, pos);
+                //logger.warn("Adding 1.0 at " + loc);
+                ActivityProfileState.Type type = ActivityProfileState.Type.NONE;
+                Number value = null;
+                if ( vc.isBiallelic() && vc.isIndel() ) {
+                    type = ActivityProfileState.Type.HIGH_QUALITY_SOFT_CLIPS;
+                    value = Math.abs(vc.getIndelLengths().get(0));
+                }
+                final ActivityProfileState state = new ActivityProfileState(loc, 1.0, type, value);
+                incProfile.add(state);
+                fullProfile.add(state);
+                pos++;
+            }
+
+            incRegions.addAll(incProfile.popReadyActiveRegions(extension, minRegionSize, maxRegionSize, false));
+
+            if ( vc.getStart() > end )
+                break;
+        }
+
+        incRegions.addAll(incProfile.popReadyActiveRegions(extension, minRegionSize, maxRegionSize, true));
+
+        final List<ActiveRegion> fullRegions = fullProfile.popReadyActiveRegions(extension, minRegionSize, maxRegionSize, true);
+        assertGoodRegions(fullRegions, start, end, maxRegionSize);
+        assertGoodRegions(incRegions, start, end, maxRegionSize);
+
+        Assert.assertEquals(incRegions.size(),  fullRegions.size(), "incremental and full region sizes aren't the same");
+        for ( int i = 0; i < fullRegions.size(); i++ ) {
+            final ActiveRegion incRegion = incRegions.get(i);
+            final ActiveRegion fullRegion = fullRegions.get(i);
+            Assert.assertTrue(incRegion.equalExceptReads(fullRegion), "Full and incremental regions are not equal: full = " + fullRegion + " inc = " + incRegion);
+        }
+    }
+
+    private void assertGoodRegions(final List<ActiveRegion> regions, final int start, final int end, final int maxRegionSize) {
+        int lastPosSeen = start - 1;
+        for ( int regionI = 0; regionI < regions.size(); regionI++ ) {
+            final ActiveRegion region = regions.get(regionI);
+            Assert.assertEquals(region.getLocation().getStart(), lastPosSeen + 1, "discontinuous with previous region.  lastPosSeen " + lastPosSeen + " but region is " + region);
+            Assert.assertTrue(region.getLocation().size() <= maxRegionSize, "Region is too big: " + region);
+            lastPosSeen = region.getLocation().getStop();
+
+            for ( final ActivityProfileState state : region.getSupportingStates() ) {
+                Assert.assertEquals(state.isActiveProb > ActivityProfile.ACTIVE_PROB_THRESHOLD, region.isActive,
+                        "Region is active=" + region.isActive + " but contains a state " + state + " with prob "
+                                + state.isActiveProb + " not within expected values given threshold for activity of "
+                                + ActivityProfile.ACTIVE_PROB_THRESHOLD);
+            }
+        }
     }
 }

@@ -474,8 +474,8 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
 
         final boolean downsample = downsampleTo != -1;
         final DownsamplingMethod downsampler = downsample
-                ? new DownsamplingMethod(DownsampleType.BY_SAMPLE, downsampleTo, null, false)
-                : new DownsamplingMethod(DownsampleType.NONE, null, null, false);
+                ? new DownsamplingMethod(DownsampleType.BY_SAMPLE, downsampleTo, null)
+                : new DownsamplingMethod(DownsampleType.NONE, null, null);
 
         final ArtificialBAMBuilder bamBuilder = new ArtificialBAMBuilder(header.getSequenceDictionary(), nReadsPerLocus, nLoci);
         bamBuilder.createAndSetHeader(nSamples).setReadLength(readLength).setAlignmentStart(1);
@@ -635,8 +635,8 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
 
         final boolean downsample = downsampleTo != -1;
         final DownsamplingMethod downsampler = downsample
-                ? new DownsamplingMethod(DownsampleType.BY_SAMPLE, downsampleTo, null, false)
-                : new DownsamplingMethod(DownsampleType.NONE, null, null, false);
+                ? new DownsamplingMethod(DownsampleType.BY_SAMPLE, downsampleTo, null)
+                : new DownsamplingMethod(DownsampleType.NONE, null, null);
 
         // final List<GATKSAMRecord> reads = ArtificialSAMUtils.createReadStream(nReadsPerLocus, nLoci, header, 1, readLength);
 

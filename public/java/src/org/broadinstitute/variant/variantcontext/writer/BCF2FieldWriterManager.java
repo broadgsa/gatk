@@ -27,7 +27,7 @@ package org.broadinstitute.variant.variantcontext.writer;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.apache.log4j.Logger;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.broadinstitute.variant.vcf.*;
 
 import java.util.HashMap;
@@ -40,7 +40,6 @@ import java.util.Map;
  * @since 06/12
  */
 public class BCF2FieldWriterManager {
-    final protected static Logger logger = Logger.getLogger(BCF2FieldWriterManager.class);
     final Map<String, BCF2FieldWriter.SiteWriter> siteWriters = new HashMap<String, BCF2FieldWriter.SiteWriter>();
     final Map<String, BCF2FieldWriter.GenotypesWriter> genotypesWriters = new HashMap<String, BCF2FieldWriter.GenotypesWriter>();
     final IntGenotypeFieldAccessors intGenotypeFieldAccessors = new IntGenotypeFieldAccessors();
@@ -98,8 +97,8 @@ public class BCF2FieldWriterManager {
                                                 final boolean createGenotypesEncoders ) {
 
         if ( createGenotypesEncoders && intGenotypeFieldAccessors.getAccessor(line.getID()) != null ) {
-            if ( line.getType() != VCFHeaderLineType.Integer )
-                logger.warn("Warning: field " + line.getID() + " expected to encode an integer but saw " + line.getType() + " for record " + line);
+            if ( GeneralUtils.DEBUG_MODE_ENABLED && line.getType() != VCFHeaderLineType.Integer )
+                System.err.println("Warning: field " + line.getID() + " expected to encode an integer but saw " + line.getType() + " for record " + line);
             return new BCF2FieldEncoder.IntArray(line, dict);
         } else if ( createGenotypesEncoders && line.getID().equals(VCFConstants.GENOTYPE_KEY) ) {
             return new BCF2FieldEncoder.GenericInts(line, dict);

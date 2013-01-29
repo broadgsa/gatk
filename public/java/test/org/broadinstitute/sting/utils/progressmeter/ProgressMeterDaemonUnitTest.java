@@ -84,7 +84,7 @@ public class ProgressMeterDaemonUnitTest extends BaseTest {
     }
 
     @Test(dataProvider = "PollingData", invocationCount = 10, successPercentage = 90)
-    public void testMe(final long poll, final int ticks) throws InterruptedException {
+    public void testProgressMeterDaemon(final long poll, final int ticks) throws InterruptedException {
         final TestingProgressMeter meter = new TestingProgressMeter(poll);
         final ProgressMeterDaemon daemon = meter.getProgressMeterDaemon();
         Assert.assertTrue(daemon.isDaemon());
@@ -95,6 +95,9 @@ public class ProgressMeterDaemonUnitTest extends BaseTest {
 
         daemon.done();
         Assert.assertTrue(daemon.isDone());
+
+        // wait for the thread to actually finish
+        daemon.join();
 
         Assert.assertTrue(meter.progressCalls.size() >= 1,
                 "Expected at least one progress update call from daemon thread, but only got " + meter.progressCalls.size() + " with exact calls " + meter.progressCalls);

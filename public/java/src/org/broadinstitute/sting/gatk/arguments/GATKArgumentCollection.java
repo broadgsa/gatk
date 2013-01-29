@@ -126,9 +126,6 @@ public class GATKArgumentCollection {
     @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to at any given locus; note that downsampled reads are randomly selected from all possible reads at a locus. For non-locus-based traversals (eg., ReadWalkers), this sets the maximum number of reads at each alignment start position.", required = false)
     public Integer downsampleCoverage = null;
 
-    @Argument(fullName = "use_legacy_downsampler", shortName = "use_legacy_downsampler", doc = "Use the legacy downsampling implementation instead of the newer, less-tested implementation", required = false)
-    public boolean useLegacyDownsampler = false;
-
     /**
      * Gets the downsampling method explicitly specified by the user.  If the user didn't specify
      * a default downsampling mechanism, return the default.
@@ -138,7 +135,7 @@ public class GATKArgumentCollection {
         if ( downsamplingType == null && downsampleFraction == null && downsampleCoverage == null )
             return null;
 
-        return new DownsamplingMethod(downsamplingType, downsampleCoverage, downsampleFraction, useLegacyDownsampler);
+        return new DownsamplingMethod(downsamplingType, downsampleCoverage, downsampleFraction);
     }
 
     /**
@@ -152,7 +149,6 @@ public class GATKArgumentCollection {
         downsamplingType = method.type;
         downsampleCoverage = method.toCoverage;
         downsampleFraction = method.toFraction;
-        useLegacyDownsampler = method.useLegacyDownsampler;
     }
 
     // --------------------------------------------------------------------------------------------------------------

@@ -26,7 +26,6 @@
 package org.broadinstitute.variant.bcf2;
 
 import com.google.java.contract.Requires;
-import org.apache.log4j.Logger;
 import org.broad.tribble.TribbleException;
 import org.broadinstitute.variant.variantcontext.*;
 
@@ -40,8 +39,6 @@ import java.util.*;
  * @since 5/12
  */
 public class BCF2LazyGenotypesDecoder implements LazyGenotypesContext.LazyParser {
-    final protected static Logger logger = Logger.getLogger(BCF2LazyGenotypesDecoder.class);
-
     // the essential information for us to use to decode the genotypes data
     // initialized when this lazy decoder is created, as we know all of this from the BCF2Codec
     // and its stored here again for code cleanliness
@@ -63,8 +60,6 @@ public class BCF2LazyGenotypesDecoder implements LazyGenotypesContext.LazyParser
 
     @Override
     public LazyGenotypesContext.LazyData parse(final Object data) {
-//        if ( logger.isDebugEnabled() )
-//            logger.debug("Decoding BCF genotypes for " + nSamples + " samples with " + nFields + " fields each");
         try {
 
             // load our byte[] data into the decoder

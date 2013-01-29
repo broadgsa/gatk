@@ -23,13 +23,13 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.variant.variantcontext;
+package org.broadinstitute.sting.utils.variant;
 
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.variant.variantcontext.*;
 import org.broadinstitute.variant.vcf.VCFCodec;
 
 import java.util.ArrayList;
@@ -72,8 +72,6 @@ public class VariantContextBenchmark extends SimpleBenchmark {
         CALC_GENOTYPE_COUNTS,
         MERGE
     }
-
-    private GenomeLocParser b37GenomeLocParser;
 
     @Override protected void setUp() {
         // TODO -- update for new tribble interface

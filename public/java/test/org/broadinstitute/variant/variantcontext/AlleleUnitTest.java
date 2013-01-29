@@ -28,6 +28,7 @@ package org.broadinstitute.variant.variantcontext;
 
 // the imports for unit testing.
 
+import org.broadinstitute.variant.VariantBaseTest;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
@@ -44,7 +45,7 @@ import org.testng.annotations.Test;
 /**
  * Basic unit test for RecalData
  */
-public class AlleleUnitTest {
+public class AlleleUnitTest extends VariantBaseTest {
     Allele ARef, A, T, ATIns, ATCIns, NoCall;
     
     @BeforeSuite

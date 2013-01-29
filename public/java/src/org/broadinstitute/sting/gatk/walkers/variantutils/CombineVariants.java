@@ -217,7 +217,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         if ( SET_KEY.toLowerCase().equals("null") )
             SET_KEY = null;
 
-        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
+        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), true);
         if ( SET_KEY != null )
             headerLines.add(new VCFInfoHeaderLine(SET_KEY, 1, VCFHeaderLineType.String, "Source VCF for the merged record in CombineVariants"));
         if ( !ASSUME_IDENTICAL_SAMPLES )

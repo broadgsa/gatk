@@ -27,9 +27,8 @@ package org.broadinstitute.variant.vcf;
 
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.variant.VariantBaseTest;
 import org.testng.Assert;
-import org.broadinstitute.sting.BaseTest;
 
 import org.testng.annotations.Test;
 
@@ -45,7 +44,7 @@ import java.security.NoSuchAlgorithmException;
  * Time: 3:32:08 PM
  * To change this template use File | Settings | File Templates.
  */
-public class VCFHeaderUnitTest extends BaseTest {
+public class VCFHeaderUnitTest extends VariantBaseTest {
 
     private VCFHeader createHeader(String headerStr) {
         VCFCodec codec = new VCFCodec();
@@ -80,13 +79,13 @@ public class VCFHeaderUnitTest extends BaseTest {
         try {
             digest = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
-            throw new ReviewedStingException("Unable to find MD5 digest");
+            throw new RuntimeException("Unable to find MD5 digest");
         }
         InputStream is;
         try {
             is = new FileInputStream(file);
         } catch (FileNotFoundException e) {
-            throw new ReviewedStingException("Unable to open file " + file);
+            throw new RuntimeException("Unable to open file " + file);
         }
         byte[] buffer = new byte[8192];
         int read;
@@ -100,14 +99,14 @@ public class VCFHeaderUnitTest extends BaseTest {
 
         }
         catch (IOException e) {
-            throw new ReviewedStingException("Unable to process file for MD5", e);
+            throw new RuntimeException("Unable to process file for MD5", e);
         }
         finally {
             try {
                 is.close();
             }
             catch (IOException e) {
-                throw new ReviewedStingException("Unable to close input stream for MD5 calculation", e);
+                throw new RuntimeException("Unable to close input stream for MD5 calculation", e);
             }
         }
     }

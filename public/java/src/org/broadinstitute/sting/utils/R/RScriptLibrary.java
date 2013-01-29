@@ -57,4 +57,10 @@ public enum RScriptLibrary {
     public File writeTemp() {
         return IOUtils.writeTempResource(new Resource(getResourcePath(), RScriptLibrary.class));
     }
+
+    public File writeLibrary(File tempDir) {
+        File libraryFile = new File(tempDir, getLibraryName());
+        IOUtils.writeResource(new Resource(getResourcePath(), RScriptLibrary.class), libraryFile);
+        return libraryFile;
+    }
 }

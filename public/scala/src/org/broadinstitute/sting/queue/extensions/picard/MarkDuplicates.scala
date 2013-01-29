@@ -48,7 +48,7 @@ class MarkDuplicates extends org.broadinstitute.sting.queue.function.JavaCommand
   @Output(doc="The output bam index", shortName = "out_index", fullName = "output_bam_index_file", required = false)
   var outputIndex: File = _
 
-  @Output(doc="File to write duplication metrics to", shortName = "out_metrics", fullName = "output_metrics_file", required = false)
+  @Output(doc="File to write duplication metrics to", shortName = "out_metrics", fullName = "output_metrics_file", required = true)
   var metrics: File = new File(output + ".metrics")
 
   @Argument(doc="If true do not write duplicates to the output file instead of writing them with appropriate flags set.", shortName = "remdup", fullName = "remove_duplicates", required = false)

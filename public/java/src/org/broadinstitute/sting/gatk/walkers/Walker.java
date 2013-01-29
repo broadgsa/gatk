@@ -35,7 +35,7 @@ import org.broadinstitute.sting.gatk.samples.Sample;
 import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.variant.utils.Pair;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.recalibration.BQSRMode;
 

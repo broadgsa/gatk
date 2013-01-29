@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2012 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils.activeregion;
 
@@ -77,10 +77,10 @@ public class ActivityProfile {
     /**
      * How far away can probability mass be moved around in this profile?
      *
-     * This distance puts an upper limit on how far, in bp, we will ever propogate probability max around
+     * This distance puts an upper limit on how far, in bp, we will ever propagate probability max around
      * when adding a new ActivityProfileState.  For example, if the value of this function is
      * 10, and you are looking at a state at bp 5, and we know that no states beyond 5 + 10 will have
-     * their probability propograted back to that state.
+     * their probability propagated back to that state.
      *
      * @return a positive integer distance in bp
      */
@@ -384,8 +384,70 @@ public class ActivityProfile {
             "result == -1 || result < maxRegionSize",
             "! (result == -1 && forceConversion)"})
     private int findEndOfRegion(final boolean isActiveRegion, final int minRegionSize, final int maxRegionSize, final boolean forceConversion) {
+        if ( ! forceConversion && stateList.size() < maxRegionSize + getMaxProbPropagationDistance() ) {
+            // we really haven't finalized at the probability mass that might affect our decision, so keep
+            // waiting until we do before we try to make any decisions
+            return -1;
+        }
+
+        int endOfActiveRegion = findFirstActivityBoundary(isActiveRegion, maxRegionSize);
+
+        if ( isActiveRegion && endOfActiveRegion == maxRegionSize )
+            // we've run to the end of the region, let's find a good place to cut
+            endOfActiveRegion = findBestCutSite(endOfActiveRegion, minRegionSize);
+
+        // we're one past the end, so i must be decremented
+        return endOfActiveRegion - 1;
+    }
+
+    /**
+     * Find the the local minimum within 0 - endOfActiveRegion where we should divide region
+     *
+     * This algorithm finds the global minimum probability state within the region [minRegionSize, endOfActiveRegion)
+     * (exclusive of endOfActiveRegion), and returns the state index of that state.
+     * that it
+     *
+     * @param endOfActiveRegion the last state of the current active region (exclusive)
+     * @param minRegionSize the minimum of the left-most region, after cutting
+     * @return the index of state after the cut site (just like endOfActiveRegion)
+     */
+    @Requires({"endOfActiveRegion >= minRegionSize", "minRegionSize >= 0"})
+    @Ensures({"result >= minRegionSize", "result <= endOfActiveRegion"})
+    private int findBestCutSite(final int endOfActiveRegion, final int minRegionSize) {
+        int minI = endOfActiveRegion - 1;
+        double minP = Double.MAX_VALUE;
+
+        for ( int i = minI; i >= minRegionSize - 1; i-- ) {
+            double cur = getProb(i);
+            if ( cur < minP && isMinimum(i) ) {
+                minP = cur;
+                minI = i;
+            }
+        }
+
+        return minI + 1;
+    }
+
+    /**
+     * Find the first index into the state list where the state is considered ! isActiveRegion
+     *
+     * Note that each state has a probability of being active, and this function thresholds that
+     * value on ACTIVE_PROB_THRESHOLD, coloring each state as active or inactive.  Finds the
+     * largest contiguous stretch of states starting at the first state (index 0) with the same isActive
+     * state as isActiveRegion.  If the entire state list has the same isActive value, then returns
+     * maxRegionSize
+     *
+     * @param isActiveRegion are we looking for a stretch of active states, or inactive ones?
+     * @param maxRegionSize don't look for a boundary that would yield a region of size > maxRegionSize
+     * @return the index of the first state in the state list with isActive value != isActiveRegion, or maxRegionSize
+     *         if no such element exists
+     */
+    @Requires({"maxRegionSize > 0"})
+    @Ensures({"result >= 0", "result <= stateList.size()"})
+    private int findFirstActivityBoundary(final boolean isActiveRegion, final int maxRegionSize) {
         final int nStates = stateList.size();
         int endOfActiveRegion = 0;
+
         while ( endOfActiveRegion < nStates && endOfActiveRegion < maxRegionSize ) {
             if ( getProb(endOfActiveRegion) > ACTIVE_PROB_THRESHOLD != isActiveRegion ) {
                 break;
@@ -393,23 +455,7 @@ public class ActivityProfile {
             endOfActiveRegion++;
         }
 
-        if ( isActiveRegion && endOfActiveRegion == maxRegionSize ) {
-            // we've run to the end of the region, let's find a good place to cut
-            int minI = endOfActiveRegion - 1;
-            double minP = Double.MAX_VALUE;
-            for ( int i = minI; i >= minRegionSize - 1; i-- ) {
-                double cur = getProb(i);
-                if ( cur < minP && isMinimum(i) ) {
-                    minP = cur;
-                    minI = i;
-                }
-            }
-
-            endOfActiveRegion = minI + 1;
-        }
-
-        // we're one past the end, so i must be decremented
-        return forceConversion || endOfActiveRegion + getMaxProbPropagationDistance() < stateList.size() ? endOfActiveRegion - 1 : -1;
+        return endOfActiveRegion;
     }
 
     /**

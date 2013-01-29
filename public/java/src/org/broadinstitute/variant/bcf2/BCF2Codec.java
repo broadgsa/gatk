@@ -27,13 +27,13 @@ package org.broadinstitute.variant.bcf2;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.PositionalBufferedStream;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.variant.variantcontext.*;
 
@@ -50,8 +50,6 @@ import java.util.Map;
  * Decode BCF2 files
  */
 public final class BCF2Codec implements FeatureCodec<VariantContext> {
-    final protected static Logger logger = Logger.getLogger(BCF2Codec.class);
-
     private final static int ALLOWED_MAJOR_VERSION = 2;
     private final static int MIN_MINOR_VERSION = 1;
 
@@ -149,7 +147,9 @@ public final class BCF2Codec implements FeatureCodec<VariantContext> {
             if ( bcfVersion.getMinorVersion() < MIN_MINOR_VERSION )
                 error("BCF2Codec can only process BCF2 files with minor version >= " + MIN_MINOR_VERSION + " but this file has minor version " + bcfVersion.getMinorVersion());
 
-            logger.debug("Parsing data stream with BCF version " + bcfVersion);
+            if ( GeneralUtils.DEBUG_MODE_ENABLED ) {
+                System.err.println("Parsing data stream with BCF version " + bcfVersion);
+            }
 
             final int headerSizeInBytes = BCF2Type.INT32.read(inputStream);
 

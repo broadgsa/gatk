@@ -30,8 +30,8 @@ package org.broadinstitute.variant.variantcontext;
 
 
 import org.broad.tribble.util.ParsingUtils;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.variant.VariantBaseTest;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
@@ -40,7 +40,7 @@ import org.testng.annotations.Test;
 import java.util.*;
 
 
-public class GenotypesContextUnitTest extends BaseTest {
+public class GenotypesContextUnitTest extends VariantBaseTest {
     Allele Aref, C, T;
     Genotype AA, AT, TT, AC, CT, CC, MISSING;
     List<Genotype> allGenotypes;
@@ -128,7 +128,7 @@ public class GenotypesContextUnitTest extends BaseTest {
                 // sorted
                 new GenotypesContextProvider(maker, samples);
                 // unsorted
-                new GenotypesContextProvider(maker, Utils.reverse(samples));
+                new GenotypesContextProvider(maker, GeneralUtils.reverse(samples));
             }
         }
 

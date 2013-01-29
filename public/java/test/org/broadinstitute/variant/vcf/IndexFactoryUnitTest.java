@@ -25,15 +25,14 @@
 
 package org.broadinstitute.variant.vcf;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.AbstractFeatureReader;
 import org.broad.tribble.CloseableTribbleIterator;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.variant.VariantBaseTest;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.writer.Options;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
@@ -50,10 +49,10 @@ import java.util.EnumSet;
 /**
  * tests out the various functions in the index factory class
  */
-public class IndexFactoryUnitTest extends BaseTest {
+public class IndexFactoryUnitTest extends VariantBaseTest {
 
-    File inputFile = new File(privateTestDir + "HiSeq.10000.vcf");
-    File outputFile = new File(privateTestDir + "onTheFlyOutputTest.vcf");
+    File inputFile = new File(variantTestDataRoot + "HiSeq.10000.vcf");
+    File outputFile = new File(variantTestDataRoot + "onTheFlyOutputTest.vcf");
     File outputFileIndex = Tribble.indexFile(outputFile);
 
     private SAMSequenceDictionary dict;
@@ -61,10 +60,10 @@ public class IndexFactoryUnitTest extends BaseTest {
     @BeforeTest
     public void setup() {
         try {
-            dict = new CachingIndexedFastaSequenceFile(new File(b37KGReference)).getSequenceDictionary();
+            dict = new IndexedFastaSequenceFile(new File(b37KGReference)).getSequenceDictionary();
         }
         catch(FileNotFoundException ex) {
-            throw new UserException.CouldNotReadInputFile(b37KGReference,ex);
+            throw new RuntimeException(b37KGReference,ex);
         }
     }
 

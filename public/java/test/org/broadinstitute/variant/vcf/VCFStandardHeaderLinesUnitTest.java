@@ -25,7 +25,7 @@
 
 package org.broadinstitute.variant.vcf;
 
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.variant.VariantBaseTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.testng.Assert;
@@ -41,7 +41,7 @@ import java.util.List;
  * Time: 3:32:08 PM
  * To change this template use File | Settings | File Templates.
  */
-public class VCFStandardHeaderLinesUnitTest extends BaseTest {
+public class VCFStandardHeaderLinesUnitTest extends VariantBaseTest {
     @DataProvider(name = "getStandardLines")
     public Object[][] makeGetStandardLines() {
         List<Object[]> tests = new ArrayList<Object[]>();
