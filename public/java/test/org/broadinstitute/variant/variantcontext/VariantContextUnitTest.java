@@ -499,11 +499,11 @@ public class VariantContextUnitTest extends VariantBaseTest {
         Pair<List<Integer>,byte[]> result;
         byte[] refBytes = "TATCATCATCGGA".getBytes();
 
-        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("ATG".getBytes(), "ATGATGATGATG".getBytes()),4);
-        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("G".getBytes(), "ATGATGATGATG".getBytes()),0);
-        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("T".getBytes(), "T".getBytes()),1);
-        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("AT".getBytes(), "ATGATGATCATG".getBytes()),1);
-        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("CCC".getBytes(), "CCCCCCCC".getBytes()),2);
+        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("ATG".getBytes(), "ATGATGATGATG".getBytes(), true),4);
+        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("G".getBytes(), "ATGATGATGATG".getBytes(), true),0);
+        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("T".getBytes(), "T".getBytes(), true),1);
+        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("AT".getBytes(), "ATGATGATCATG".getBytes(), true),1);
+        Assert.assertEquals(VariantContextUtils.findNumberofRepetitions("CCC".getBytes(), "CCCCCCCC".getBytes(), true),2);
 
         Assert.assertEquals(VariantContextUtils.findRepeatedSubstring("ATG".getBytes()),3);
         Assert.assertEquals(VariantContextUtils.findRepeatedSubstring("AAA".getBytes()),1);
