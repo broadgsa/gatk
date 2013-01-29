@@ -143,8 +143,11 @@ public class SampleUtils {
         for ( Map.Entry<String, VCFHeader> val : VCF_Headers.entrySet() ) {
             VCFHeader header = val.getValue();
             for ( String sample : header.getGenotypeSamples() ) {
-                if (samples.add(sample))
+                if (samples.contains(sample)){
+
                     return false;
+                }
+                samples.add(sample);
             }
         }
 

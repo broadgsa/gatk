@@ -266,9 +266,9 @@ public class VariantContextUtils {
         return new Pair<List<Integer>, byte[]>(lengths,repeatUnit);
     }
 
-    protected static Pair<int[],byte[]> getNumTandemRepeatUnits(final byte[] refBases, final byte[] altBases, final byte[] remainingRefContext) {
+    public static Pair<int[],byte[]> getNumTandemRepeatUnits(final byte[] refBases, final byte[] altBases, final byte[] remainingRefContext) {
          /* we can't exactly apply same logic as in basesAreRepeated() to compute tandem unit and number of repeated units.
-           Consider case where ref =ATATAT and we have an insertion of ATAT. Natural description is (AT)3 -> (AT)5.
+           Consider case where ref =ATATAT and we have an insertion of ATAT. Natural description is (AT)3 -> (AT)2.
          */
 
         byte[] longB;
@@ -284,11 +284,10 @@ public class VariantContextUtils {
         final byte[] repeatUnit = Arrays.copyOf(longB, repeatUnitLength);
 
         final int[] repetitionCount = new int[2];
-//        repetitionCount[0] = findNumberofRepetitions(repeatUnit, ArrayUtils.addAll(refBases, remainingRefContext));
-//        repetitionCount[1] = findNumberofRepetitions(repeatUnit, ArrayUtils.addAll(altBases, remainingRefContext));
-        int repetitionsInRef = findNumberofRepetitions(repeatUnit,refBases);
-        repetitionCount[0] = findNumberofRepetitions(repeatUnit, ArrayUtils.addAll(refBases, remainingRefContext))-repetitionsInRef;
-        repetitionCount[1] = findNumberofRepetitions(repeatUnit, ArrayUtils.addAll(altBases, remainingRefContext))-repetitionsInRef;
+        // look for repetitions forward on the ref bases (i.e. starting at beginning of ref bases)
+        int repetitionsInRef = findNumberofRepetitions(repeatUnit,refBases, true);
+        repetitionCount[0] = findNumberofRepetitions(repeatUnit, ArrayUtils.addAll(refBases, remainingRefContext), true)-repetitionsInRef;
+        repetitionCount[1] = findNumberofRepetitions(repeatUnit, ArrayUtils.addAll(altBases, remainingRefContext), true)-repetitionsInRef;
 
         return new Pair<int[], byte[]>(repetitionCount, repeatUnit);
 
@@ -329,17 +328,33 @@ public class VariantContextUtils {
      * For example, for string ATAT and repeat unit AT, number of repetitions = 2
      * @param repeatUnit             Substring
      * @param testString             String to test
+     * @oaram lookForward            Look for repetitions forward (at beginning of string) or backward (at end of string)
      * @return                       Number of repetitions (0 if testString is not a concatenation of n repeatUnit's
      */
-    public static int findNumberofRepetitions(byte[] repeatUnit, byte[] testString) {
+    public static int findNumberofRepetitions(byte[] repeatUnit, byte[] testString, boolean lookForward) {
         int numRepeats = 0;
-        for (int start = 0; start < testString.length; start += repeatUnit.length) {
+        if (lookForward) {
+            // look forward on the test string
+            for (int start = 0; start < testString.length; start += repeatUnit.length) {
+                int end = start + repeatUnit.length;
+                byte[] unit = Arrays.copyOfRange(testString,start, end);
+                if(Arrays.equals(unit,repeatUnit))
+                    numRepeats++;
+                else
+                    break;
+            }
+            return numRepeats;
+        }
+
+        // look backward. For example, if repeatUnit = AT and testString = GATAT, number of repeat units is still 2
+        // look forward on the test string
+        for (int start = testString.length - repeatUnit.length; start >= 0; start -= repeatUnit.length) {
             int end = start + repeatUnit.length;
             byte[] unit = Arrays.copyOfRange(testString,start, end);
             if(Arrays.equals(unit,repeatUnit))
                 numRepeats++;
             else
-                return numRepeats;
+                break;
         }
         return numRepeats;
     }
@@ -369,7 +384,7 @@ public class VariantContextUtils {
             final int start = i * potentialRepeat.length();
             final int end = (i+1) * potentialRepeat.length();
             if ( ref.length() < end )
-                 return false; // we ran out of bases to test
+                return false; // we ran out of bases to test
             final String refSub = ref.substring(start, end);
             if ( ! refSub.equals(potentialRepeat) )
                 return false; // repeat didn't match, fail
