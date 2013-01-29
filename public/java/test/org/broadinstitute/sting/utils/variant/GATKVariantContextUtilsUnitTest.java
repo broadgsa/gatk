@@ -1,6 +1,6 @@
 /*
 * Copyright (c) 2012 The Broad Institute
-* 
+*
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
 * files (the "Software"), to deal in the Software without
@@ -9,10 +9,10 @@
 * copies of the Software, and to permit persons to whom the
 * Software is furnished to do so, subject to the following
 * conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be
 * included in all copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -23,33 +23,25 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.variant.variantcontext;
+package org.broadinstitute.sting.utils.variant;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.variant.VariantBaseTest;
-import org.broadinstitute.variant.utils.GeneralUtils;
+import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.variant.variantcontext.*;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.*;
 
-public class VariantContextUtilsUnitTest extends VariantBaseTest {
+public class GATKVariantContextUtilsUnitTest extends BaseTest {
+
     Allele Aref, T, C, G, Cref, ATC, ATCATC;
 
     @BeforeSuite
     public void setup() {
-        final File referenceFile = new File(b37KGReference);
-        try {
-            IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(referenceFile);
-        }
-        catch(FileNotFoundException ex) {
-            throw new RuntimeException(referenceFile.getAbsolutePath(),ex);
-        }
-
         // alleles
         Aref = Allele.create("A", true);
         Cref = Allele.create("C", true);
@@ -186,10 +178,10 @@ public class VariantContextUtilsUnitTest extends VariantBaseTest {
 
         final List<String> priority = vcs2priority(inputs);
 
-        final VariantContext merged = VariantContextUtils.simpleMerge(
+        final VariantContext merged = GATKVariantContextUtils.simpleMerge(
                 inputs, priority,
-                VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                VariantContextUtils.GenotypeMergeType.PRIORITIZE, false, false, "set", false, false);
+                GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
+                GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, false, false, "set", false, false);
 
         Assert.assertEquals(merged.getAlleles(), cfg.expected);
     }
@@ -244,10 +236,10 @@ public class VariantContextUtilsUnitTest extends VariantBaseTest {
             inputs.add(new VariantContextBuilder(snpVC1).id(id).make());
         }
 
-        final VariantContext merged = VariantContextUtils.simpleMerge(
+        final VariantContext merged = GATKVariantContextUtils.simpleMerge(
                 inputs, null,
-                VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                VariantContextUtils.GenotypeMergeType.UNSORTED, false, false, "set", false, false);
+                GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
+                GATKVariantContextUtils.GenotypeMergeType.UNSORTED, false, false, "set", false, false);
         Assert.assertEquals(merged.getID(), cfg.expected);
     }
 
@@ -261,14 +253,14 @@ public class VariantContextUtilsUnitTest extends VariantBaseTest {
         List<VariantContext> inputs;
         VariantContext expected;
         String setExpected;
-        VariantContextUtils.FilteredRecordMergeType type;
+        GATKVariantContextUtils.FilteredRecordMergeType type;
 
 
         private MergeFilteredTest(String name, VariantContext input1, VariantContext input2, VariantContext expected, String setExpected) {
-            this(name, input1, input2, expected, VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED, setExpected);
+            this(name, input1, input2, expected, GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED, setExpected);
         }
 
-        private MergeFilteredTest(String name, VariantContext input1, VariantContext input2, VariantContext expected, VariantContextUtils.FilteredRecordMergeType type, String setExpected) {
+        private MergeFilteredTest(String name, VariantContext input1, VariantContext input2, VariantContext expected, GATKVariantContextUtils.FilteredRecordMergeType type, String setExpected) {
             super(MergeFilteredTest.class, name);
             LinkedList<VariantContext> all = new LinkedList<VariantContext>(Arrays.asList(input1, input2));
             this.expected = expected;
@@ -288,66 +280,66 @@ public class VariantContextUtilsUnitTest extends VariantBaseTest {
                 makeVC("1", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
                 makeVC("2", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
                 makeVC("3", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
-                VariantContextUtils.MERGE_INTERSECTION);
+                GATKVariantContextUtils.MERGE_INTERSECTION);
 
         new MergeFilteredTest("noFilters",
                 makeVC("1", Arrays.asList(Aref, T), "."),
                 makeVC("2", Arrays.asList(Aref, T), "."),
                 makeVC("3", Arrays.asList(Aref, T), "."),
-                VariantContextUtils.MERGE_INTERSECTION);
+                GATKVariantContextUtils.MERGE_INTERSECTION);
 
         new MergeFilteredTest("oneFiltered",
                 makeVC("1", Arrays.asList(Aref, T), "."),
                 makeVC("2", Arrays.asList(Aref, T), "FAIL"),
                 makeVC("3", Arrays.asList(Aref, T), "."),
-                String.format("1-%s2", VariantContextUtils.MERGE_FILTER_PREFIX));
+                String.format("1-%s2", GATKVariantContextUtils.MERGE_FILTER_PREFIX));
 
         new MergeFilteredTest("onePassOneFail",
                 makeVC("1", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
                 makeVC("2", Arrays.asList(Aref, T), "FAIL"),
                 makeVC("3", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
-                String.format("1-%s2", VariantContextUtils.MERGE_FILTER_PREFIX));
+                String.format("1-%s2", GATKVariantContextUtils.MERGE_FILTER_PREFIX));
 
         new MergeFilteredTest("AllFiltered",
                 makeVC("1", Arrays.asList(Aref, T), "FAIL"),
                 makeVC("2", Arrays.asList(Aref, T), "FAIL"),
                 makeVC("3", Arrays.asList(Aref, T), "FAIL"),
-                VariantContextUtils.MERGE_FILTER_IN_ALL);
+                GATKVariantContextUtils.MERGE_FILTER_IN_ALL);
 
         // test ALL vs. ANY
         new MergeFilteredTest("FailOneUnfiltered",
                 makeVC("1", Arrays.asList(Aref, T), "FAIL"),
                 makeVC("2", Arrays.asList(Aref, T), "."),
                 makeVC("3", Arrays.asList(Aref, T), "."),
-                VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                String.format("%s1-2", VariantContextUtils.MERGE_FILTER_PREFIX));
+                GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
+                String.format("%s1-2", GATKVariantContextUtils.MERGE_FILTER_PREFIX));
 
         new MergeFilteredTest("OneFailAllUnfilteredArg",
                 makeVC("1", Arrays.asList(Aref, T), "FAIL"),
                 makeVC("2", Arrays.asList(Aref, T), "."),
                 makeVC("3", Arrays.asList(Aref, T), "FAIL"),
-                VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ALL_UNFILTERED,
-                String.format("%s1-2", VariantContextUtils.MERGE_FILTER_PREFIX));
+                GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ALL_UNFILTERED,
+                String.format("%s1-2", GATKVariantContextUtils.MERGE_FILTER_PREFIX));
 
         // test excluding allele in filtered record
         new MergeFilteredTest("DontIncludeAlleleOfFilteredRecords",
                 makeVC("1", Arrays.asList(Aref, T), "."),
                 makeVC("2", Arrays.asList(Aref, T), "FAIL"),
                 makeVC("3", Arrays.asList(Aref, T), "."),
-                String.format("1-%s2", VariantContextUtils.MERGE_FILTER_PREFIX));
+                String.format("1-%s2", GATKVariantContextUtils.MERGE_FILTER_PREFIX));
 
         // promotion of site from unfiltered to PASSES
         new MergeFilteredTest("UnfilteredPlusPassIsPass",
                 makeVC("1", Arrays.asList(Aref, T), "."),
                 makeVC("2", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
                 makeVC("3", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS),
-                VariantContextUtils.MERGE_INTERSECTION);
+                GATKVariantContextUtils.MERGE_INTERSECTION);
 
         new MergeFilteredTest("RefInAll",
                 makeVC("1", Arrays.asList(Aref), VariantContext.PASSES_FILTERS),
                 makeVC("2", Arrays.asList(Aref), VariantContext.PASSES_FILTERS),
                 makeVC("3", Arrays.asList(Aref), VariantContext.PASSES_FILTERS),
-                VariantContextUtils.MERGE_REF_IN_ALL);
+                GATKVariantContextUtils.MERGE_REF_IN_ALL);
 
         new MergeFilteredTest("RefInOne",
                 makeVC("1", Arrays.asList(Aref), VariantContext.PASSES_FILTERS),
@@ -361,8 +353,8 @@ public class VariantContextUtilsUnitTest extends VariantBaseTest {
     @Test(dataProvider = "mergeFiltered")
     public void testMergeFiltered(MergeFilteredTest cfg) {
         final List<String> priority = vcs2priority(cfg.inputs);
-        final VariantContext merged = VariantContextUtils.simpleMerge(
-                cfg.inputs, priority, cfg.type, VariantContextUtils.GenotypeMergeType.PRIORITIZE, true, false, "set", false, false);
+        final VariantContext merged = GATKVariantContextUtils.simpleMerge(
+                cfg.inputs, priority, cfg.type, GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, true, false, "set", false, false);
 
         // test alleles are equal
         Assert.assertEquals(merged.getAlleles(), cfg.expected.getAlleles());
@@ -487,9 +479,9 @@ public class VariantContextUtilsUnitTest extends VariantBaseTest {
 
     @Test(dataProvider = "mergeGenotypes")
     public void testMergeGenotypes(MergeGenotypesTest cfg) {
-        final VariantContext merged = VariantContextUtils.simpleMerge(
-                cfg.inputs, cfg.priority, VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                VariantContextUtils.GenotypeMergeType.PRIORITIZE, true, false, "set", false, false);
+        final VariantContext merged = GATKVariantContextUtils.simpleMerge(
+                cfg.inputs, cfg.priority, GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
+                GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, true, false, "set", false, false);
 
         // test alleles are equal
         Assert.assertEquals(merged.getAlleles(), cfg.expected.getAlleles());
@@ -528,9 +520,9 @@ public class VariantContextUtilsUnitTest extends VariantBaseTest {
         final VariantContext vc1 = makeVC("1", Arrays.asList(Aref, T), makeG("s1", Aref, T, -1));
         final VariantContext vc2 = makeVC("2", Arrays.asList(Aref, T), makeG("s1", Aref, T, -2));
 
-        final VariantContext merged = VariantContextUtils.simpleMerge(
-                Arrays.asList(vc1, vc2), null, VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                VariantContextUtils.GenotypeMergeType.UNIQUIFY, false, false, "set", false, false);
+        final VariantContext merged = GATKVariantContextUtils.simpleMerge(
+                Arrays.asList(vc1, vc2), null, GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
+                GATKVariantContextUtils.GenotypeMergeType.UNIQUIFY, false, false, "set", false, false);
 
         // test genotypes
         Assert.assertEquals(merged.getSampleNames(), new HashSet<String>(Arrays.asList("s1.1", "s1.2")));
@@ -561,12 +553,12 @@ public class VariantContextUtilsUnitTest extends VariantBaseTest {
                 VariantContext vc1 = makeVC("1", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS);
                 VariantContext vc2 = makeVC("2", Arrays.asList(Aref, T), VariantContext.PASSES_FILTERS);
 
-                final VariantContext merged = VariantContextUtils.simpleMerge(
-                        Arrays.asList(vc1, vc2), priority, VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                        VariantContextUtils.GenotypeMergeType.PRIORITIZE, annotate, false, set, false, false);
+                final VariantContext merged = GATKVariantContextUtils.simpleMerge(
+                        Arrays.asList(vc1, vc2), priority, GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
+                        GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, annotate, false, set, false, false);
 
                 if ( annotate )
-                    Assert.assertEquals(merged.getAttribute(set), VariantContextUtils.MERGE_INTERSECTION);
+                    Assert.assertEquals(merged.getAttribute(set), GATKVariantContextUtils.MERGE_INTERSECTION);
                 else
                     Assert.assertFalse(merged.hasAttribute(set));
             }
@@ -581,78 +573,6 @@ public class VariantContextUtilsUnitTest extends VariantBaseTest {
         }
 
         return priority;
-    }
-
-
-    // --------------------------------------------------------------------------------
-    //
-    // Test repeats
-    //
-    // --------------------------------------------------------------------------------
-
-    private class RepeatDetectorTest extends TestDataProvider {
-        String ref;
-        boolean isTrueRepeat;
-        VariantContext vc;
-
-        private RepeatDetectorTest(boolean isTrueRepeat, String ref, String refAlleleString, String ... altAlleleStrings) {
-            super(RepeatDetectorTest.class);
-            this.isTrueRepeat = isTrueRepeat;
-            this.ref = ref;
-
-            List<Allele> alleles = new LinkedList<Allele>();
-            final Allele refAllele = Allele.create(refAlleleString, true);
-            alleles.add(refAllele);
-            for ( final String altString: altAlleleStrings) {
-                final Allele alt = Allele.create(altString, false);
-                alleles.add(alt);
-            }
-
-            VariantContextBuilder builder = new VariantContextBuilder("test", "chr1", 1, refAllele.length(), alleles);
-            this.vc = builder.make();
-        }
-
-        public String toString() {
-            return String.format("%s refBases=%s trueRepeat=%b vc=%s", super.toString(), ref, isTrueRepeat, vc);
-        }
-    }
-
-    @DataProvider(name = "RepeatDetectorTest")
-    public Object[][] makeRepeatDetectorTest() {
-        new RepeatDetectorTest(true,  "NAAC", "N", "NA");
-        new RepeatDetectorTest(true,  "NAAC", "NA", "N");
-        new RepeatDetectorTest(false, "NAAC", "NAA", "N");
-        new RepeatDetectorTest(false, "NAAC", "N", "NC");
-        new RepeatDetectorTest(false, "AAC", "A", "C");
-
-        // running out of ref bases => false
-        new RepeatDetectorTest(false, "NAAC", "N", "NCAGTA");
-
-        // complex repeats
-        new RepeatDetectorTest(true,  "NATATATC", "N", "NAT");
-        new RepeatDetectorTest(true,  "NATATATC", "N", "NATA");
-        new RepeatDetectorTest(true,  "NATATATC", "N", "NATAT");
-        new RepeatDetectorTest(true,  "NATATATC", "NAT", "N");
-        new RepeatDetectorTest(false, "NATATATC", "NATA", "N");
-        new RepeatDetectorTest(false, "NATATATC", "NATAT", "N");
-
-        // multi-allelic
-        new RepeatDetectorTest(true,  "NATATATC", "N", "NAT", "NATAT");
-        new RepeatDetectorTest(true,  "NATATATC", "N", "NAT", "NATA");
-        new RepeatDetectorTest(true,  "NATATATC", "NAT", "N", "NATAT");
-        new RepeatDetectorTest(true,  "NATATATC", "NAT", "N", "NATA"); // two As
-        new RepeatDetectorTest(false, "NATATATC", "NAT", "N", "NATC"); // false
-        new RepeatDetectorTest(false, "NATATATC", "NAT", "N", "NCC"); // false
-        new RepeatDetectorTest(false, "NATATATC", "NAT", "NATAT", "NCC"); // false
-
-        return RepeatDetectorTest.getTests(RepeatDetectorTest.class);
-    }
-
-    @Test(dataProvider = "RepeatDetectorTest")
-    public void testRepeatDetectorTest(RepeatDetectorTest cfg) {
-
-         // test alleles are equal
-        Assert.assertEquals(VariantContextUtils.isTandemRepeat(cfg.vc, cfg.ref.getBytes()), cfg.isTrueRepeat);
     }
 
     // --------------------------------------------------------------------------------
@@ -698,9 +618,10 @@ public class VariantContextUtilsUnitTest extends VariantBaseTest {
 
     @Test(dataProvider = "ReverseClippingPositionTestProvider")
     public void testReverseClippingPositionTestProvider(ReverseClippingPositionTestProvider cfg) {
-        int result = VariantContextUtils.computeReverseClipping(cfg.alleles, cfg.ref.getBytes(), 0, false);
+        int result = GATKVariantContextUtils.computeReverseClipping(cfg.alleles, cfg.ref.getBytes(), 0, false);
         Assert.assertEquals(result, cfg.expectedClip);
     }
+
 
     // --------------------------------------------------------------------------------
     //
@@ -776,7 +697,7 @@ public class VariantContextUtilsUnitTest extends VariantBaseTest {
 
     @Test(dataProvider = "SplitBiallelics")
     public void testSplitBiallelicsNoGenotypes(final VariantContext vc, final List<VariantContext> expectedBiallelics) {
-        final List<VariantContext> biallelics = VariantContextUtils.splitVariantContextToBiallelics(vc);
+        final List<VariantContext> biallelics = GATKVariantContextUtils.splitVariantContextToBiallelics(vc);
         Assert.assertEquals(biallelics.size(), expectedBiallelics.size());
         for ( int i = 0; i < biallelics.size(); i++ ) {
             final VariantContext actual = biallelics.get(i);
@@ -790,14 +711,14 @@ public class VariantContextUtilsUnitTest extends VariantBaseTest {
         final List<Genotype> genotypes = new ArrayList<Genotype>();
 
         int sampleI = 0;
-        for ( final List<Allele> alleles : GeneralUtils.makePermutations(vc.getAlleles(), 2, true) ) {
+        for ( final List<Allele> alleles : Utils.makePermutations(vc.getAlleles(), 2, true) ) {
             genotypes.add(GenotypeBuilder.create("sample" + sampleI++, alleles));
         }
         genotypes.add(GenotypeBuilder.createMissing("missing", 2));
 
         final VariantContext vcWithGenotypes = new VariantContextBuilder(vc).genotypes(genotypes).make();
 
-        final List<VariantContext> biallelics = VariantContextUtils.splitVariantContextToBiallelics(vcWithGenotypes);
+        final List<VariantContext> biallelics = GATKVariantContextUtils.splitVariantContextToBiallelics(vcWithGenotypes);
         for ( int i = 0; i < biallelics.size(); i++ ) {
             final VariantContext actual = biallelics.get(i);
             Assert.assertEquals(actual.getNSamples(), vcWithGenotypes.getNSamples()); // not dropping any samples
@@ -811,5 +732,160 @@ public class VariantContextUtilsUnitTest extends VariantBaseTest {
                     Assert.assertTrue(actualGenotype.isNoCall());
             }
         }
+    }
+
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test repeats
+    //
+    // --------------------------------------------------------------------------------
+
+    private class RepeatDetectorTest extends TestDataProvider {
+        String ref;
+        boolean isTrueRepeat;
+        VariantContext vc;
+
+        private RepeatDetectorTest(boolean isTrueRepeat, String ref, String refAlleleString, String ... altAlleleStrings) {
+            super(RepeatDetectorTest.class);
+            this.isTrueRepeat = isTrueRepeat;
+            this.ref = ref;
+
+            List<Allele> alleles = new LinkedList<Allele>();
+            final Allele refAllele = Allele.create(refAlleleString, true);
+            alleles.add(refAllele);
+            for ( final String altString: altAlleleStrings) {
+                final Allele alt = Allele.create(altString, false);
+                alleles.add(alt);
+            }
+
+            VariantContextBuilder builder = new VariantContextBuilder("test", "chr1", 1, refAllele.length(), alleles);
+            this.vc = builder.make();
+        }
+
+        public String toString() {
+            return String.format("%s refBases=%s trueRepeat=%b vc=%s", super.toString(), ref, isTrueRepeat, vc);
+        }
+    }
+
+    @DataProvider(name = "RepeatDetectorTest")
+    public Object[][] makeRepeatDetectorTest() {
+        new RepeatDetectorTest(true,  "NAAC", "N", "NA");
+        new RepeatDetectorTest(true,  "NAAC", "NA", "N");
+        new RepeatDetectorTest(false, "NAAC", "NAA", "N");
+        new RepeatDetectorTest(false, "NAAC", "N", "NC");
+        new RepeatDetectorTest(false, "AAC", "A", "C");
+
+        // running out of ref bases => false
+        new RepeatDetectorTest(false, "NAAC", "N", "NCAGTA");
+
+        // complex repeats
+        new RepeatDetectorTest(true,  "NATATATC", "N", "NAT");
+        new RepeatDetectorTest(true,  "NATATATC", "N", "NATA");
+        new RepeatDetectorTest(true,  "NATATATC", "N", "NATAT");
+        new RepeatDetectorTest(true,  "NATATATC", "NAT", "N");
+        new RepeatDetectorTest(false, "NATATATC", "NATA", "N");
+        new RepeatDetectorTest(false, "NATATATC", "NATAT", "N");
+
+        // multi-allelic
+        new RepeatDetectorTest(true,  "NATATATC", "N", "NAT", "NATAT");
+        new RepeatDetectorTest(true,  "NATATATC", "N", "NAT", "NATA");
+        new RepeatDetectorTest(true,  "NATATATC", "NAT", "N", "NATAT");
+        new RepeatDetectorTest(true,  "NATATATC", "NAT", "N", "NATA"); // two As
+        new RepeatDetectorTest(false, "NATATATC", "NAT", "N", "NATC"); // false
+        new RepeatDetectorTest(false, "NATATATC", "NAT", "N", "NCC"); // false
+        new RepeatDetectorTest(false, "NATATATC", "NAT", "NATAT", "NCC"); // false
+
+        return RepeatDetectorTest.getTests(RepeatDetectorTest.class);
+    }
+
+    @Test(dataProvider = "RepeatDetectorTest")
+    public void testRepeatDetectorTest(RepeatDetectorTest cfg) {
+
+        // test alleles are equal
+        Assert.assertEquals(GATKVariantContextUtils.isTandemRepeat(cfg.vc, cfg.ref.getBytes()), cfg.isTrueRepeat);
+    }
+
+    @Test
+    public void testRepeatAllele() {
+        Allele nullR = Allele.create("A", true);
+        Allele nullA = Allele.create("A", false);
+        Allele atc   = Allele.create("AATC", false);
+        Allele atcatc   = Allele.create("AATCATC", false);
+        Allele ccccR = Allele.create("ACCCC", true);
+        Allele cc   = Allele.create("ACC", false);
+        Allele cccccc   = Allele.create("ACCCCCC", false);
+        Allele gagaR   = Allele.create("AGAGA", true);
+        Allele gagagaga   = Allele.create("AGAGAGAGA", false);
+
+        // - / ATC [ref] from 20-22
+        String delLoc = "chr1";
+        int delLocStart = 20;
+        int delLocStop = 22;
+
+        // - [ref] / ATC from 20-20
+        String insLoc = "chr1";
+        int insLocStart = 20;
+        int insLocStop = 20;
+
+        Pair<List<Integer>,byte[]> result;
+        byte[] refBytes = "TATCATCATCGGA".getBytes();
+
+        Assert.assertEquals(GATKVariantContextUtils.findNumberofRepetitions("ATG".getBytes(), "ATGATGATGATG".getBytes(), true),4);
+        Assert.assertEquals(GATKVariantContextUtils.findNumberofRepetitions("G".getBytes(), "ATGATGATGATG".getBytes(), true),0);
+        Assert.assertEquals(GATKVariantContextUtils.findNumberofRepetitions("T".getBytes(), "T".getBytes(), true),1);
+        Assert.assertEquals(GATKVariantContextUtils.findNumberofRepetitions("AT".getBytes(), "ATGATGATCATG".getBytes(), true),1);
+        Assert.assertEquals(GATKVariantContextUtils.findNumberofRepetitions("CCC".getBytes(), "CCCCCCCC".getBytes(), true),2);
+
+        Assert.assertEquals(GATKVariantContextUtils.findRepeatedSubstring("ATG".getBytes()),3);
+        Assert.assertEquals(GATKVariantContextUtils.findRepeatedSubstring("AAA".getBytes()),1);
+        Assert.assertEquals(GATKVariantContextUtils.findRepeatedSubstring("CACACAC".getBytes()),7);
+        Assert.assertEquals(GATKVariantContextUtils.findRepeatedSubstring("CACACA".getBytes()),2);
+        Assert.assertEquals(GATKVariantContextUtils.findRepeatedSubstring("CATGCATG".getBytes()),4);
+        Assert.assertEquals(GATKVariantContextUtils.findRepeatedSubstring("AATAATA".getBytes()),7);
+
+
+        // A*,ATC, context = ATC ATC ATC : (ATC)3 -> (ATC)4
+        VariantContext vc = new VariantContextBuilder("foo", insLoc, insLocStart, insLocStop, Arrays.asList(nullR,atc)).make();
+        result = GATKVariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
+        Assert.assertEquals(result.getFirst().toArray()[0],3);
+        Assert.assertEquals(result.getFirst().toArray()[1],4);
+        Assert.assertEquals(result.getSecond().length,3);
+
+        // ATC*,A,ATCATC
+        vc = new VariantContextBuilder("foo", insLoc, insLocStart, insLocStart+3, Arrays.asList(Allele.create("AATC", true),nullA,atcatc)).make();
+        result = GATKVariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
+        Assert.assertEquals(result.getFirst().toArray()[0],3);
+        Assert.assertEquals(result.getFirst().toArray()[1],2);
+        Assert.assertEquals(result.getFirst().toArray()[2],4);
+        Assert.assertEquals(result.getSecond().length,3);
+
+        // simple non-tandem deletion: CCCC*, -
+        refBytes = "TCCCCCCCCATG".getBytes();
+        vc = new VariantContextBuilder("foo", delLoc, 10, 14, Arrays.asList(ccccR,nullA)).make();
+        result = GATKVariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
+        Assert.assertEquals(result.getFirst().toArray()[0],8);
+        Assert.assertEquals(result.getFirst().toArray()[1],4);
+        Assert.assertEquals(result.getSecond().length,1);
+
+        // CCCC*,CC,-,CCCCCC, context = CCC: (C)7 -> (C)5,(C)3,(C)9
+        refBytes = "TCCCCCCCAGAGAGAG".getBytes();
+        vc = new VariantContextBuilder("foo", insLoc, insLocStart, insLocStart+4, Arrays.asList(ccccR,cc, nullA,cccccc)).make();
+        result = GATKVariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
+        Assert.assertEquals(result.getFirst().toArray()[0],7);
+        Assert.assertEquals(result.getFirst().toArray()[1],5);
+        Assert.assertEquals(result.getFirst().toArray()[2],3);
+        Assert.assertEquals(result.getFirst().toArray()[3],9);
+        Assert.assertEquals(result.getSecond().length,1);
+
+        // GAGA*,-,GAGAGAGA
+        refBytes = "TGAGAGAGAGATTT".getBytes();
+        vc = new VariantContextBuilder("foo", insLoc, insLocStart, insLocStart+4, Arrays.asList(gagaR, nullA,gagagaga)).make();
+        result = GATKVariantContextUtils.getNumTandemRepeatUnits(vc, refBytes);
+        Assert.assertEquals(result.getFirst().toArray()[0],5);
+        Assert.assertEquals(result.getFirst().toArray()[1],3);
+        Assert.assertEquals(result.getFirst().toArray()[2],7);
+        Assert.assertEquals(result.getSecond().length,2);
+
     }
 }

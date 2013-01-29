@@ -231,9 +231,9 @@ public class VariantContextBenchmark extends SimpleBenchmark {
                             toMerge.add(new VariantContextBuilder(vc).genotypes(gc).make());
                         }
 
-                        VariantContextUtils.simpleMerge(toMerge, null,
-                                VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                                VariantContextUtils.GenotypeMergeType.UNSORTED,
+                        GATKVariantContextUtils.simpleMerge(toMerge, null,
+                                GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
+                                GATKVariantContextUtils.GenotypeMergeType.UNSORTED,
                                 true, false, "set", false, true);
                     }
                 };

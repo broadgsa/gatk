@@ -49,6 +49,7 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.VariantEvalUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -197,7 +198,7 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
     protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 50;
 
     @Argument(shortName="ploidy", fullName="samplePloidy", doc="Per-sample ploidy (number of chromosomes per sample)", required=false)
-    protected int ploidy = VariantContextUtils.DEFAULT_PLOIDY;
+    protected int ploidy = GATKVariantContextUtils.DEFAULT_PLOIDY;
 
     @Argument(fullName="ancestralAlignments", shortName="aa", doc="Fasta file with ancestral alleles", required=false)
     private File ancestralAlignmentsFile = null;
@@ -285,7 +286,7 @@ public class VariantEval extends RodWalker<Integer, Integer> implements TreeRedu
 
         // Now that we have all the rods categorized, determine the sample list from the eval rods.
         Map<String, VCFHeader> vcfRods = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), evals);
-        Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
+        Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, GATKVariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
 
         // Load the sample list, using an intermediate tree set to sort the samples
         final Set<String> allSampleNames = SampleUtils.getSamplesFromCommandLineInput(vcfSamples);

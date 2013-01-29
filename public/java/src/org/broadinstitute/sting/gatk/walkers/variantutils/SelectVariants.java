@@ -39,6 +39,7 @@ import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
@@ -337,7 +338,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         List<String> rodNames = Arrays.asList(variantCollection.variants.getName());
 
         vcfRods = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
-        TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
+        TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, GATKVariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
 
         Collection<String> samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFiles);
         Collection<String> samplesFromExpressions = SampleUtils.matchSamplesExpressions(vcfSamples, sampleExpressions);
@@ -661,7 +662,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs and AD (because they are no longer accurate)
         if ( vc.getAlleles().size() != sub.getAlleles().size() )
-            newGC = VariantContextUtils.stripPLsAndAD(sub.getGenotypes());
+            newGC = GATKVariantContextUtils.stripPLsAndAD(sub.getGenotypes());
 
         // if we have fewer samples in the selected VC than in the original VC, we need to strip out the MLE tags
         if ( vc.getNSamples() != sub.getNSamples() ) {

@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.variant.variantcontext.*;
@@ -249,7 +250,7 @@ public class VariantAnnotatorEngine {
     private VariantContext annotateDBs(final RefMetaDataTracker tracker, final GenomeLoc loc, VariantContext vc, final Map<String, Object> infoAnnotations) {
         for ( Map.Entry<RodBinding<VariantContext>, String> dbSet : dbAnnotations.entrySet() ) {
             if ( dbSet.getValue().equals(VCFConstants.DBSNP_KEY) ) {
-                final String rsID = VCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), loc), vc.getType());
+                final String rsID = GATKVCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), loc), vc.getType());
                 
                 // add the ID if appropriate
                 if ( rsID != null ) {

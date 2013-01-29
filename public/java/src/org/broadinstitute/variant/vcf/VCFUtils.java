@@ -28,15 +28,9 @@ package org.broadinstitute.variant.vcf;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.commons.io.FilenameUtils;
-import org.broad.tribble.FeatureCodecHeader;
-import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.variant.utils.GeneralUtils;
-import org.broadinstitute.variant.utils.Pair;
-import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.*;
 
 public class VCFUtils {
@@ -104,21 +98,6 @@ public class VCFUtils {
         }
 
         return new HashSet<VCFHeaderLine>(map.values());
-    }
-
-    public static String rsIDOfFirstRealVariant(List<VariantContext> VCs, VariantContext.Type type) {
-        if ( VCs == null )
-            return null;
-
-        String rsID = null;
-        for ( VariantContext vc : VCs ) {
-            if ( vc.getType() == type ) {
-                rsID = vc.getID();
-                break;
-            }
-        }
-
-        return rsID;
     }
 
     /**
@@ -196,35 +175,6 @@ public class VCFUtils {
         else if (refPath.contains("hg19"))
             assembly = "hg19";
         return assembly;
-    }
-
-    /**
-     * Read all of the VCF records from source into memory, returning the header and the VariantContexts
-     *
-     * @param source the file to read, must be in VCF4 format
-     * @return
-     * @throws java.io.IOException
-     */
-    public static Pair<VCFHeader, List<VariantContext>> readVCF(final File source) throws IOException {
-        // read in the features
-        final List<VariantContext> vcs = new ArrayList<VariantContext>();
-        final VCFCodec codec = new VCFCodec();
-        PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(source));
-        FeatureCodecHeader header = codec.readHeader(pbs);
-        pbs.close();
-
-        pbs = new PositionalBufferedStream(new FileInputStream(source));
-        pbs.skip(header.getHeaderEnd());
-
-        final VCFHeader vcfHeader = (VCFHeader)header.getHeaderValue();
-
-        while ( ! pbs.isDone() ) {
-            final VariantContext vc = codec.decode(pbs);
-            if ( vc != null )
-                vcs.add(vc);
-        }
-
-        return new Pair<VCFHeader, List<VariantContext>>(vcfHeader, vcs);
     }
 
     /** Only displays a warning if warnings are enabled and an identical warning hasn't been already issued */

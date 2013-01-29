@@ -35,13 +35,13 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.variant.variantcontext.Allele;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
-import org.broadinstitute.variant.variantcontext.VariantContextUtils;
 
 import java.util.*;
 
@@ -256,7 +256,7 @@ public class VariantValidationAssessor extends RodWalker<VariantContext,Integer>
         //if ( popFile != null ) {
         //    throw new StingException("We still need to implement this!");
         //} else {
-        return VariantContextUtils.computeHardyWeinbergPvalue(vc);
+        return GATKVariantContextUtils.computeHardyWeinbergPvalue(vc);
         //}
     }
 

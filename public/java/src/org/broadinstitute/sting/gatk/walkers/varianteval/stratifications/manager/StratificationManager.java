@@ -28,7 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.manage
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.variant.utils.Pair;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;

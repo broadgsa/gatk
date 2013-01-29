@@ -29,11 +29,11 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
-import org.broadinstitute.variant.utils.Pair;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.text.ListFileUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.variant.variantcontext.VariantContextUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -117,15 +117,15 @@ public class SampleUtils {
     }
 
     public static Set<String> getSampleList(Map<String, VCFHeader> headers) {
-        return getSampleList(headers, VariantContextUtils.GenotypeMergeType.PRIORITIZE);
+        return getSampleList(headers, GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE);
     }
 
-    public static Set<String> getSampleList(Map<String, VCFHeader> headers, VariantContextUtils.GenotypeMergeType mergeOption) {
+    public static Set<String> getSampleList(Map<String, VCFHeader> headers, GATKVariantContextUtils.GenotypeMergeType mergeOption) {
         Set<String> samples = new TreeSet<String>();
         for ( Map.Entry<String, VCFHeader> val : headers.entrySet() ) {
             VCFHeader header = val.getValue();
             for ( String sample : header.getGenotypeSamples() ) {
-                samples.add(VariantContextUtils.mergedSampleName(val.getKey(), sample, mergeOption == VariantContextUtils.GenotypeMergeType.UNIQUIFY));
+                samples.add(GATKVariantContextUtils.mergedSampleName(val.getKey(), sample, mergeOption == GATKVariantContextUtils.GenotypeMergeType.UNIQUIFY));
             }
         }
 

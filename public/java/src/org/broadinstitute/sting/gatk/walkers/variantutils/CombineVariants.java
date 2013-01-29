@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCountConstants;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
@@ -135,14 +136,14 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
     protected VariantContextWriter vcfWriter = null;
 
     @Argument(shortName="genotypeMergeOptions", doc="Determines how we should merge genotype records for samples shared across the ROD files", required=false)
-    public VariantContextUtils.GenotypeMergeType genotypeMergeOption = null;
+    public GATKVariantContextUtils.GenotypeMergeType genotypeMergeOption = null;
 
     @Argument(shortName="filteredRecordsMergeType", doc="Determines how we should handle records seen at the same site in the VCF, but with different FILTER fields", required=false)
-    public VariantContextUtils.FilteredRecordMergeType filteredRecordsMergeType = VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED;
+    public GATKVariantContextUtils.FilteredRecordMergeType filteredRecordsMergeType = GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED;
 
     @Hidden
     @Argument(shortName="multipleAllelesMergeType", doc="Determines how we should handle records seen at the same site in the VCF, but with different allele types (for example, SNP vs. indel)", required=false)
-    public VariantContextUtils.MultipleAllelesMergeType multipleAllelesMergeType = VariantContextUtils.MultipleAllelesMergeType.BY_TYPE;
+    public GATKVariantContextUtils.MultipleAllelesMergeType multipleAllelesMergeType = GATKVariantContextUtils.MultipleAllelesMergeType.BY_TYPE;
 
     /**
      * Used when taking the union of variants that contain genotypes.  A complete priority list MUST be provided.
@@ -203,12 +204,12 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
 
         validateAnnotateUnionArguments();
         if ( PRIORITY_STRING == null && genotypeMergeOption == null) {
-            genotypeMergeOption = VariantContextUtils.GenotypeMergeType.UNSORTED;
+            genotypeMergeOption = GATKVariantContextUtils.GenotypeMergeType.UNSORTED;
             //PRIORITY_STRING = Utils.join(",", vcfRods.keySet());  Deleted by Ami (7/10/12)
             logger.info("Priority string is not provided, using arbitrary genotyping order: "+priority);
         }
 
-        if (genotypeMergeOption == VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE &&
+        if (genotypeMergeOption == GATKVariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE &&
                 !SampleUtils.verifyUniqueSamplesNames(vcfRods))
             throw new IllegalStateException("REQUIRE_UNIQUE sample names is true but duplicate names were discovered.");
 
@@ -232,7 +233,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
     private void validateAnnotateUnionArguments() {
         Set<String> rodNames = SampleUtils.getRodNamesWithVCFHeader(getToolkit(), null);
 
-        if ( genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE && PRIORITY_STRING == null )
+        if ( genotypeMergeOption == GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE && PRIORITY_STRING == null )
             throw new UserException.MissingArgument("rod_priority_list", "Priority string must be provided if you want to prioritize genotypes");
 
         if ( PRIORITY_STRING != null){
@@ -278,7 +279,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
 
         List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
 
-        if (multipleAllelesMergeType == VariantContextUtils.MultipleAllelesMergeType.BY_TYPE) {
+        if (multipleAllelesMergeType == GATKVariantContextUtils.MultipleAllelesMergeType.BY_TYPE) {
             Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
 
             // TODO -- clean this up in a refactoring
@@ -296,13 +297,13 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             // iterate over the types so that it's deterministic
             for (VariantContext.Type type : VariantContext.Type.values()) {
                 if (VCsByType.containsKey(type))
-                    mergedVCs.add(VariantContextUtils.simpleMerge(VCsByType.get(type),
-                            priority, rodNames.size() , filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                    mergedVCs.add(GATKVariantContextUtils.simpleMerge(VCsByType.get(type),
+                            priority, rodNames.size(), filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
                             SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
             }
         }
-        else if (multipleAllelesMergeType == VariantContextUtils.MultipleAllelesMergeType.MIX_TYPES) {
-            mergedVCs.add(VariantContextUtils.simpleMerge(vcs,
+        else if (multipleAllelesMergeType == GATKVariantContextUtils.MultipleAllelesMergeType.MIX_TYPES) {
+            mergedVCs.add(GATKVariantContextUtils.simpleMerge(vcs,
                     priority, rodNames.size(), filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
                     SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
         }

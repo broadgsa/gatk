@@ -26,8 +26,6 @@
 package org.broadinstitute.variant.utils;
 
 import net.sf.samtools.util.StringUtil;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -176,7 +174,7 @@ public class BaseUtils {
             if ( baseIndex == Base.N.ordinal() ) {
                 bases[i] = 'N';
             } else if ( errorOnBadReferenceBase && baseIndex == -1 ) {
-                throw new UserException.BadInput("We encountered a non-standard non-IUPAC base in the provided reference: '" + bases[i] + "'");
+                throw new IllegalStateException("We encountered a non-standard non-IUPAC base in the provided reference: '" + bases[i] + "'");
             }
         }
         return bases;
@@ -517,7 +515,7 @@ public class BaseUtils {
             case 'N':
                 return 'N';
             default:
-                throw new ReviewedStingException("base must be A, C, G or T. " + (char) base + " is not a valid base.");
+                throw new IllegalArgumentException("base must be A, C, G or T. " + (char) base + " is not a valid base.");
         }
     }
 }
