@@ -51,7 +51,7 @@ import java.util.*;
 
 /**
  *
- * Usage: java -cp dist/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.AppendVariants <reference> <input VCF or BCF files> <outputFile> [sorted (optional)]");
+ * Usage: java -cp dist/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.CatVariants <reference> <input VCF or BCF files> <outputFile> [sorted (optional)]");
  * The input files can be of type: VCF (ends in .vcf or .VCF)");
  *                                 BCF2 (ends in .bcf or .BCF)");
  * Output file must be vcf or bcf file (.vcf or .bcf)");
