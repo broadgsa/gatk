@@ -530,4 +530,55 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
         final int cmp = this.compareTo(other);
         return cmp == -1 ? other : this;
     }
+
+    /**
+     * create a new genome loc from an existing loc, with a new start position
+     * Note that this function will NOT explicitly check the ending offset, in case someone wants to
+     * set the start of a new GenomeLoc pertaining to a read that goes off the end of the contig.
+     *
+     * @param loc   the old location
+     * @param start a new start position
+     *
+     * @return a newly allocated GenomeLoc as loc but with start == start
+     */
+    public GenomeLoc setStart(GenomeLoc loc, int start) {
+        return new GenomeLoc(loc.getContig(), loc.getContigIndex(), start, loc.getStop());
+    }
+
+    /**
+     * create a new genome loc from an existing loc, with a new stop position
+     * Note that this function will NOT explicitly check the ending offset, in case someone wants to
+     * set the stop of a new GenomeLoc pertaining to a read that goes off the end of the contig.
+     *
+     * @param loc  the old location
+     * @param stop a new stop position
+     *
+     * @return a newly allocated GenomeLoc as loc but with stop == stop
+     */
+    public GenomeLoc setStop(GenomeLoc loc, int stop) {
+        return new GenomeLoc(loc.getContig(), loc.getContigIndex(), loc.start, stop);
+    }
+
+    /**
+     * return a new genome loc, with an incremented position
+     *
+     * @param loc the old location
+     *
+     * @return a newly allocated GenomeLoc as loc but with start == loc.getStart() + 1
+     */
+    public GenomeLoc incPos(GenomeLoc loc) {
+        return incPos(loc, 1);
+    }
+
+    /**
+     * return a new genome loc, with an incremented position
+     *
+     * @param loc the old location
+     * @param by  how much to move the start and stop by
+     *
+     * @return a newly allocated GenomeLoc as loc but with start == loc.getStart() + by
+     */
+    public GenomeLoc incPos(GenomeLoc loc, int by) {
+        return new GenomeLoc(loc.getContig(), loc.getContigIndex(), loc.start + by, loc.stop + by);
+    }
 }

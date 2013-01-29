@@ -77,7 +77,7 @@ public class IntervalStratification extends VariantStratifier {
 
     public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         if (eval != null) {
-            final GenomeLoc loc = getVariantEvalWalker().getToolkit().getGenomeLocParser().createGenomeLoc(eval, true);
+            final GenomeLoc loc = getVariantEvalWalker().getToolkit().getGenomeLocParser().createGenomeLoc(eval);
             IntervalTree<GenomeLoc> intervalTree = intervalTreeByContig.get(loc.getContig());
             IntervalTree.Node<GenomeLoc> node = intervalTree.minOverlapper(loc.getStart(), loc.getStop());
             //logger.info(String.format("Overlap %s found %s", loc, node));
