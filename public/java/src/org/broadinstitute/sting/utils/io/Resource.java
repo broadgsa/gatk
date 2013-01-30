@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.utils.io;
 
 import java.io.File;
+import java.io.InputStream;
 
 /**
  * Stores a resource by path and a relative class.
@@ -63,5 +64,28 @@ public class Resource {
                 relativeClass.getPackage().getName().replace('.', File.separatorChar),
                 File.separator,
                 path);
+    }
+
+    /**
+     * Get the contents of this resource as an InputStream
+     * @throws IllegalArgumentException if resource cannot be read
+     * @return an input stream that will read the contents of this resource
+     */
+    public InputStream getResourceContentsAsStream() {
+        final Class<?> clazz = getRelativeClass();
+
+        final InputStream inputStream;
+        if (clazz == null) {
+            inputStream = ClassLoader.getSystemResourceAsStream(path);
+            if (inputStream == null)
+                throw new IllegalArgumentException("Resource not found: " + path);
+        } else {
+            inputStream = clazz.getResourceAsStream(path);
+            if (inputStream == null)
+                throw new IllegalArgumentException("Resource not found relative to " + clazz + ": " + path);
+
+        }
+
+        return inputStream;
     }
 }

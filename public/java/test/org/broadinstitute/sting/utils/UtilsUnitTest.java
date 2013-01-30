@@ -25,10 +25,13 @@
 
 package org.broadinstitute.sting.utils;
 
+import org.apache.commons.io.FileUtils;
+import org.broadinstitute.sting.utils.io.IOUtils;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -134,5 +137,17 @@ public class UtilsUnitTest extends BaseTest {
         Assert.assertEquals(actual, expected);
         actual = Utils.escapeExpressions("  one  two  'three four'  ");
         Assert.assertEquals(actual, expected);
+    }
+
+    @Test
+    public void testCalcMD5() throws Exception {
+        final File source = new File(publicTestDir + "exampleFASTA.fasta");
+        final String sourceMD5 = "36880691cf9e4178216f7b52e8d85fbe";
+
+        final byte[] sourceBytes = IOUtils.readFileIntoByteArray(source);
+        Assert.assertEquals(Utils.calcMD5(sourceBytes), sourceMD5);
+
+        final String sourceString = FileUtils.readFileToString(source);
+        Assert.assertEquals(Utils.calcMD5(sourceString), sourceMD5);
     }
 }
