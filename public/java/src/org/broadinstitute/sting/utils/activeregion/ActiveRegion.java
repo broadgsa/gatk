@@ -67,7 +67,7 @@ public class ActiveRegion implements HasGenomeLocation {
      * The reads included in this active region.  May be empty upon creation, and expand / contract
      * as reads are added or removed from this region.
      */
-    private final ArrayList<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
+    private final List<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
 
     /**
      * An ordered list (by genomic coordinate) of the ActivityProfileStates that went
@@ -355,7 +355,7 @@ public class ActiveRegion implements HasGenomeLocation {
      * read coordinates.
      */
     public void hardClipToActiveRegion() {
-        final ArrayList<GATKSAMRecord> clippedReads = ReadClipper.hardClipToRegion( reads, extendedLoc.getStart(), extendedLoc.getStop() );
+        final List<GATKSAMRecord> clippedReads = ReadClipper.hardClipToRegion( reads, extendedLoc.getStart(), extendedLoc.getStop() );
         ReadUtils.sortReadsByCoordinate(clippedReads);
         clearReads();
         addAll(clippedReads);
