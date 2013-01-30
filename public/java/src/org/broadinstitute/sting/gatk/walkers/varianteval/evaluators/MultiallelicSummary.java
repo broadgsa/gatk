@@ -32,9 +32,9 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.variantcontext.Allele;
 import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.VariantContextUtils;
 
 @Analysis(description = "Evaluation summary for multi-allelic variants")
 public class MultiallelicSummary extends VariantEvaluator implements StandardEval {
@@ -122,7 +122,7 @@ public class MultiallelicSummary extends VariantEvaluator implements StandardEva
 
     private void calculatePairwiseTiTv(VariantContext vc) {
         for ( Allele alt : vc.getAlternateAlleles() ) {
-            if ( VariantContextUtils.isTransition(vc.getReference(), alt) )
+            if ( GATKVariantContextUtils.isTransition(vc.getReference(), alt) )
                 nTi++;
             else
                 nTv++;

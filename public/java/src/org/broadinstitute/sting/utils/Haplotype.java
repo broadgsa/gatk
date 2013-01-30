@@ -40,7 +40,7 @@ import java.util.*;
 public class Haplotype extends Allele {
 
     private GenomeLoc genomeLocation = null;
-    private HashMap<Integer, VariantContext> eventMap = null;
+    private Map<Integer, VariantContext> eventMap = null;
     private Cigar cigar;
     private int alignmentStartHapwrtRef;
     public int leftBreakPoint = 0;
@@ -81,11 +81,11 @@ public class Haplotype extends Allele {
         return Arrays.hashCode(getBases());
     }
 
-    public HashMap<Integer, VariantContext> getEventMap() {
+    public Map<Integer, VariantContext> getEventMap() {
         return eventMap;
     }
 
-    public void setEventMap( final HashMap<Integer, VariantContext> eventMap ) {
+    public void setEventMap( final Map<Integer, VariantContext> eventMap ) {
         this.eventMap = eventMap;
     }
 

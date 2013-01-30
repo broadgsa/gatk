@@ -362,8 +362,8 @@ public class ReadClipper {
             return GATKSAMRecord.emptyRead(read);
 
     }
-    public static ArrayList<GATKSAMRecord> hardClipToRegion( final ArrayList<GATKSAMRecord> reads, final int refStart, final int refStop ) {
-        final ArrayList<GATKSAMRecord> returnList = new ArrayList<GATKSAMRecord>( reads.size() );
+    public static List<GATKSAMRecord> hardClipToRegion( final List<GATKSAMRecord> reads, final int refStart, final int refStop ) {
+        final List<GATKSAMRecord> returnList = new ArrayList<GATKSAMRecord>( reads.size() );
         for( final GATKSAMRecord read : reads ) {
             final GATKSAMRecord clippedRead = hardClipToRegion( read, refStart, refStop );
             if( !clippedRead.isEmpty() ) {

@@ -31,8 +31,11 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.crypt.CryptUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.io.IOUtils;
+import org.broadinstitute.sting.utils.io.Resource;
 import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
@@ -48,6 +51,7 @@ import org.simpleframework.xml.stream.HyphenStyle;
 
 import java.io.*;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -309,6 +313,51 @@ public class GATKRunReport {
         }
     }
 
+    /**
+     * Decrypts encrypted AWS key from encryptedKeySource
+     * @param encryptedKeySource a file containing an encrypted AWS key
+     * @return a decrypted AWS key as a String
+     */
+    public static String decryptAWSKey(final File encryptedKeySource) throws FileNotFoundException {
+        return decryptAWSKey(new FileInputStream(encryptedKeySource));
+    }
+
+    /**
+     * @see #decryptAWSKey(java.io.File) but with input from an inputstream
+     */
+    private static String decryptAWSKey(final InputStream encryptedKeySource) {
+        final PublicKey key = CryptUtils.loadGATKDistributedPublicKey();
+        final byte[] fromDisk = IOUtils.readStreamIntoByteArray(encryptedKeySource);
+        final byte[] decrypted = CryptUtils.decryptData(fromDisk, key);
+        return new String(decrypted);
+    }
+
+    /**
+     * Get the decrypted AWS key sorted in the resource directories of name
+     * @param name the name of the file containing the needed AWS key
+     * @return a non-null GATK
+     */
+    private static String getAWSKey(final String name) {
+        final Resource resource = new Resource(name, GATKRunReport.class);
+        return decryptAWSKey(resource.getResourceContentsAsStream());
+    }
+
+    /**
+     * Get the AWS access key for the GATK user
+     * @return a non-null AWS access key for the GATK user
+     */
+    protected static String getAWSAccessKey() {
+        return getAWSKey("GATK_AWS_access.key");
+    }
+
+    /**
+     * Get the AWS secret key for the GATK user
+     * @return a non-null AWS secret key for the GATK user
+     */
+    protected static String getAWSSecretKey() {
+        return getAWSKey("GATK_AWS_secret.key");
+    }
+
     private class S3PutRunnable implements Runnable {
 
         public AtomicBoolean isSuccess;
@@ -331,17 +380,17 @@ public class GATKRunReport {
                 // are stored in an AWSCredentials object:
 
                 // IAM GATK user credentials -- only right is to PutObject into GATK_Run_Report bucket
-                String awsAccessKey = "AKIAJXU7VIHBPDW4TDSQ"; // GATK AWS user
-                String awsSecretKey = "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"; // GATK AWS user
-                AWSCredentials awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
+                final String awsAccessKey = getAWSAccessKey(); // GATK AWS user
+                final String awsSecretKey = getAWSSecretKey(); // GATK AWS user
+                final AWSCredentials awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
 
                 // To communicate with S3, create a class that implements an S3Service. We will use the REST/HTTP
                 // implementation based on HttpClient, as this is the most robust implementation provided with JetS3t.
-                S3Service s3Service = new RestS3Service(awsCredentials);
+                final S3Service s3Service = new RestS3Service(awsCredentials);
 
                 // Create an S3Object based on a file, with Content-Length set automatically and
                 // Content-Type set based on the file's extension (using the Mimetypes utility class)
-                S3Object fileObject = new S3Object(key, report);
+                final S3Object fileObject = new S3Object(key, report);
                 //logger.info("Created S3Object" + fileObject);
                 //logger.info("Uploading " + localFile + " to AWS bucket");
                 s3Object = s3Service.putObject(REPORT_BUCKET_NAME, fileObject);

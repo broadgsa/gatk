@@ -31,7 +31,6 @@ package org.broadinstitute.variant.variantcontext;
 
 import org.broad.tribble.TribbleException;
 import org.broadinstitute.variant.VariantBaseTest;
-import org.broadinstitute.variant.utils.BaseUtils;
 import org.broadinstitute.variant.utils.GeneralUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -154,9 +153,9 @@ public class GenotypeLikelihoodsUnitTest extends VariantBaseTest {
 
     public void testGetQualFromLikelihoodsMultiAllelic() {
         GenotypeLikelihoods gl = GenotypeLikelihoods.fromLog10Likelihoods(triAllelic);
-        Allele ref = Allele.create(BaseUtils.Base.A.base,true);
-        Allele alt1 = Allele.create(BaseUtils.Base.C.base);
-        Allele alt2 = Allele.create(BaseUtils.Base.T.base);
+        Allele ref = Allele.create((byte)'A',true);
+        Allele alt1 = Allele.create((byte)'C');
+        Allele alt2 = Allele.create((byte)'T');
         List<Allele> allAlleles = Arrays.asList(ref,alt1,alt2);
         List<Allele> gtAlleles = Arrays.asList(alt1,alt2);
         GenotypeBuilder gtBuilder = new GenotypeBuilder();

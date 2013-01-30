@@ -625,6 +625,10 @@ public class VariantContext implements Feature { // to enable tribble integratio
     public double getAttributeAsDouble(String key, double  defaultValue)  { return commonInfo.getAttributeAsDouble(key, defaultValue); }
     public boolean getAttributeAsBoolean(String key, boolean  defaultValue)  { return commonInfo.getAttributeAsBoolean(key, defaultValue); }
 
+    public CommonInfo getCommonInfo() {
+        return commonInfo;
+    }
+
     // ---------------------------------------------------------------------------------------------------------
     //
     // Working with alleles

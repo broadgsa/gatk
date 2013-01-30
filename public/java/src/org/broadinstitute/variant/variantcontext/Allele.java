@@ -25,7 +25,7 @@
 
 package org.broadinstitute.variant.variantcontext;
 
-import org.broadinstitute.variant.utils.BaseUtils;
+import net.sf.samtools.util.StringUtil;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -130,7 +130,7 @@ public class Allele implements Comparable<Allele> {
             if ( isRef ) throw new IllegalArgumentException("Cannot tag a symbolic allele as the reference allele");
         }
         else {
-            BaseUtils.convertToUpperCase(bases);
+            StringUtil.toUpperCase(bases);
         }
 
         this.isRef = isRef;

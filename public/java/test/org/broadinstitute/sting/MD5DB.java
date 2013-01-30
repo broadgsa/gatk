@@ -28,11 +28,10 @@ package org.broadinstitute.sting;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.walkers.diffengine.DiffEngine;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.*;
-import java.math.BigInteger;
-import java.security.MessageDigest;
 import java.util.Arrays;
 
 /**
@@ -252,11 +251,7 @@ public class MD5DB {
      */
     public String testFileMD5(final String name, final File resultsFile, final String expectedMD5, final boolean parameterize) {
         try {
-            byte[] bytesOfMessage = getBytesFromFile(resultsFile);
-            byte[] thedigest = MessageDigest.getInstance("MD5").digest(bytesOfMessage);
-            BigInteger bigInt = new BigInteger(1, thedigest);
-            String filemd5sum = bigInt.toString(16);
-            while (filemd5sum.length() < 32) filemd5sum = "0" + filemd5sum; // pad to length 32
+            final String filemd5sum = Utils.calcMD5(getBytesFromFile(resultsFile));
 
             //
             // copy md5 to integrationtests

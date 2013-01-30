@@ -23,20 +23,22 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.variant.utils;
+package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.variant.VariantBaseTest;
+import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.testng.annotations.BeforeClass;
 
 
-public class BaseUtilsUnitTest extends VariantBaseTest {
+public class BaseUtilsUnitTest extends BaseTest {
     @BeforeClass
     public void init() { }
 
     @Test
     public void testMostFrequentBaseFraction() {
+        logger.warn("Executing testMostFrequentBaseFraction");
+
         compareFrequentBaseFractionToExpected("AAAAA", 1.0);
         compareFrequentBaseFractionToExpected("ACCG", 0.5);
         compareFrequentBaseFractionToExpected("ACCCCTTTTG", 4.0/10.0);
@@ -44,7 +46,7 @@ public class BaseUtilsUnitTest extends VariantBaseTest {
 
     private void compareFrequentBaseFractionToExpected(String sequence, double expected) {
         double fraction = BaseUtils.mostFrequentBaseFraction(sequence.getBytes());
-        Assert.assertTrue(GeneralUtils.compareDoubles(fraction, expected) == 0);
+        Assert.assertTrue(MathUtils.compareDoubles(fraction, expected) == 0);
     }
 
     @Test
@@ -64,6 +66,8 @@ public class BaseUtilsUnitTest extends VariantBaseTest {
 
     @Test
     public void testTransitionTransversion() {
+        logger.warn("Executing testTransitionTransversion");
+
         Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'A', (byte)'T' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
         Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'A', (byte)'C' ) == BaseUtils.BaseSubstitutionType.TRANSVERSION );
         Assert.assertTrue( BaseUtils.SNPSubstitutionType( (byte)'A', (byte)'G' ) == BaseUtils.BaseSubstitutionType.TRANSITION );
@@ -89,6 +93,8 @@ public class BaseUtilsUnitTest extends VariantBaseTest {
 
     @Test
     public void testReverseComplementString() {
+        logger.warn("Executing testReverseComplementString");
+
         compareRCStringToExpected("ACGGT", "ACCGT");
         compareRCStringToExpected("TCGTATATCTCGCTATATATATATAGCTCTAGTATA", "TATACTAGAGCTATATATATATAGCGAGATATACGA");
         compareRCStringToExpected("AAAN", "NTTT");
