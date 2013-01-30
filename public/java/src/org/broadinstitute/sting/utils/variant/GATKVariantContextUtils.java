@@ -50,6 +50,7 @@ public class GATKVariantContextUtils {
     public final static String MERGE_FILTER_IN_ALL = "FilteredInAll";
     public final static String MERGE_INTERSECTION = "Intersection";
 
+
     public enum GenotypeMergeType {
         /**
          * Make all sample genotypes unique by file. Each sample shared across RODs gets named sample.ROD.
@@ -1012,6 +1013,124 @@ public class GATKVariantContextUtils {
             currentBase = null;
         }
     }
+
+    private final static Map<String, Object> subsetAttributes(final CommonInfo igc, final Collection<String> keysToPreserve) {
+        Map<String, Object> attributes = new HashMap<String, Object>(keysToPreserve.size());
+        for ( final String key : keysToPreserve  ) {
+            if ( igc.hasAttribute(key) )
+                attributes.put(key, igc.getAttribute(key));
+        }
+        return attributes;
+    }
+
+    /**
+     * @deprecated use variant context builder version instead
+     * @param vc                  the variant context
+     * @param keysToPreserve      the keys to preserve
+     * @return a pruned version of the original variant context
+     */
+    @Deprecated
+    public static VariantContext pruneVariantContext(final VariantContext vc, Collection<String> keysToPreserve ) {
+        return pruneVariantContext(new VariantContextBuilder(vc), keysToPreserve).make();
+    }
+
+    public static VariantContextBuilder pruneVariantContext(final VariantContextBuilder builder, Collection<String> keysToPreserve ) {
+        final VariantContext vc = builder.make();
+        if ( keysToPreserve == null ) keysToPreserve = Collections.emptyList();
+
+        // VC info
+        final Map<String, Object> attributes = subsetAttributes(vc.getCommonInfo(), keysToPreserve);
+
+        // Genotypes
+        final GenotypesContext genotypes = GenotypesContext.create(vc.getNSamples());
+        for ( final Genotype g : vc.getGenotypes() ) {
+            final GenotypeBuilder gb = new GenotypeBuilder(g);
+            // remove AD, DP, PL, and all extended attributes, keeping just GT and GQ
+            gb.noAD().noDP().noPL().noAttributes();
+            genotypes.add(gb.make());
+        }
+
+        return builder.genotypes(genotypes).attributes(attributes);
+    }
+
+    public static boolean allelesAreSubset(VariantContext vc1, VariantContext vc2) {
+        // if all alleles of vc1 are a contained in alleles of vc2, return true
+        if (!vc1.getReference().equals(vc2.getReference()))
+            return false;
+
+        for (Allele a :vc1.getAlternateAlleles()) {
+            if (!vc2.getAlternateAlleles().contains(a))
+                return false;
+        }
+
+        return true;
+    }
+
+    public static Map<VariantContext.Type, List<VariantContext>> separateVariantContextsByType(Collection<VariantContext> VCs) {
+        HashMap<VariantContext.Type, List<VariantContext>> mappedVCs = new HashMap<VariantContext.Type, List<VariantContext>>();
+        for ( VariantContext vc : VCs ) {
+
+            // look at previous variant contexts of different type. If:
+            // a) otherVC has alleles which are subset of vc, remove otherVC from its list and add otherVC to vc's list
+            // b) vc has alleles which are subset of otherVC. Then, add vc to otherVC's type list (rather, do nothing since vc will be added automatically to its list)
+            // c) neither: do nothing, just add vc to its own list
+            boolean addtoOwnList = true;
+            for (VariantContext.Type type : VariantContext.Type.values()) {
+                if (type.equals(vc.getType()))
+                    continue;
+
+                if (!mappedVCs.containsKey(type))
+                    continue;
+
+                List<VariantContext> vcList = mappedVCs.get(type);
+                for (int k=0; k <  vcList.size(); k++) {
+                    VariantContext otherVC = vcList.get(k);
+                    if (allelesAreSubset(otherVC,vc)) {
+                        // otherVC has a type different than vc and its alleles are a subset of vc: remove otherVC from its list and add it to vc's type list
+                        vcList.remove(k);
+                        // avoid having empty lists
+                        if (vcList.size() == 0)
+                            mappedVCs.remove(type);
+                        if ( !mappedVCs.containsKey(vc.getType()) )
+                            mappedVCs.put(vc.getType(), new ArrayList<VariantContext>());
+                        mappedVCs.get(vc.getType()).add(otherVC);
+                        break;
+                    }
+                    else if (allelesAreSubset(vc,otherVC)) {
+                        // vc has a type different than otherVC and its alleles are a subset of VC: add vc to otherVC's type list and don't add to its own
+                        mappedVCs.get(type).add(vc);
+                        addtoOwnList = false;
+                        break;
+                    }
+                }
+            }
+            if (addtoOwnList) {
+                if ( !mappedVCs.containsKey(vc.getType()) )
+                    mappedVCs.put(vc.getType(), new ArrayList<VariantContext>());
+                mappedVCs.get(vc.getType()).add(vc);
+            }
+        }
+
+        return mappedVCs;
+    }
+
+    public static VariantContext purgeUnallowedGenotypeAttributes(VariantContext vc, Set<String> allowedAttributes) {
+        if ( allowedAttributes == null )
+            return vc;
+
+        GenotypesContext newGenotypes = GenotypesContext.create(vc.getNSamples());
+        for ( final Genotype genotype : vc.getGenotypes() ) {
+            Map<String, Object> attrs = new HashMap<String, Object>();
+            for ( Map.Entry<String, Object> attr : genotype.getExtendedAttributes().entrySet() ) {
+                if ( allowedAttributes.contains(attr.getKey()) )
+                    attrs.put(attr.getKey(), attr.getValue());
+            }
+            newGenotypes.add(new GenotypeBuilder(genotype).attributes(attrs).make());
+        }
+
+        return new VariantContextBuilder(vc).genotypes(newGenotypes).make();
+    }
+
 
     private static class AlleleMapper {
         private VariantContext vc = null;

@@ -25,11 +25,9 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import com.google.java.contract.Ensures;
-import com.google.java.contract.Invariant;
 import com.google.java.contract.Requires;
-import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.variantcontext.*;
 import org.broadinstitute.variant.vcf.VCFHeader;
 
@@ -277,8 +275,8 @@ public class ConcordanceMetrics {
             if ( truth.isMonomorphicInSamples() )
                 return EVAL_ONLY;
 
-            boolean evalSubsetTruth = VariantContextUtils.allelesAreSubset(eval,truth);
-            boolean truthSubsetEval = VariantContextUtils.allelesAreSubset(truth,eval);
+            boolean evalSubsetTruth = GATKVariantContextUtils.allelesAreSubset(eval, truth);
+            boolean truthSubsetEval = GATKVariantContextUtils.allelesAreSubset(truth, eval);
 
             if ( evalSubsetTruth && truthSubsetEval )
                 return ALLELES_MATCH;

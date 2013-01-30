@@ -280,7 +280,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
 
         if (multipleAllelesMergeType == GATKVariantContextUtils.MultipleAllelesMergeType.BY_TYPE) {
-            Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
+            Map<VariantContext.Type, List<VariantContext>> VCsByType = GATKVariantContextUtils.separateVariantContextsByType(vcs);
 
             // TODO -- clean this up in a refactoring
             // merge NO_VARIATION into another type of variant (based on the ordering in VariantContext.Type)
@@ -320,7 +320,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             // re-compute chromosome counts
             VariantContextUtils.calculateChromosomeCounts(builder, false);
             if ( minimalVCF )
-                VariantContextUtils.pruneVariantContext(builder, Arrays.asList(SET_KEY));
+                GATKVariantContextUtils.pruneVariantContext(builder, Arrays.asList(SET_KEY));
             vcfWriter.add(builder.make());
         }
 
