@@ -252,7 +252,7 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
         Assert.assertEquals(changingNs, preservingNs + 4);
     }
 
-    @Test(enabled = true, expectedExceptions = {IllegalStateException.class})
+    @Test(enabled = true, expectedExceptions = {UserException.class})
     public void testFailOnBadBase() throws FileNotFoundException, InterruptedException {
         final String testFasta = privateTestDir + "problematicFASTA.fasta";
         final CachingIndexedFastaSequenceFile fasta = new CachingIndexedFastaSequenceFile(new File(testFasta));

@@ -30,10 +30,7 @@ import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -580,5 +577,50 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
      */
     public GenomeLoc incPos(GenomeLoc loc, int by) {
         return new GenomeLoc(loc.getContig(), loc.getContigIndex(), loc.start + by, loc.stop + by);
+    }
+
+    /**
+     * Merges 2 *contiguous* locs into 1
+     *
+     * @param a   GenomeLoc #1
+     * @param b   GenomeLoc #2
+     * @return one merged loc
+     */
+    @Requires("a != null && b != null")
+    public static <T extends GenomeLoc> GenomeLoc merge(final T a, final T b) {
+        if ( isUnmapped(a) || isUnmapped(b) ) {
+            throw new ReviewedStingException("Tried to merge unmapped genome locs");
+        }
+
+        if ( !(a.contiguousP(b)) ) {
+            throw new ReviewedStingException("The two genome locs need to be contiguous");
+        }
+
+        return new GenomeLoc(a.getContig(), a.contigIndex, Math.min(a.getStart(), b.getStart()), Math.max(a.getStop(), b.getStop()));
+    }
+
+    /**
+     * Merges a list of *sorted* *contiguous* locs into 1
+     *
+     * @param sortedLocs a sorted list of contiguous locs
+     * @return one merged loc
+     */
+    @Requires("sortedLocs != null")
+    public static <T extends GenomeLoc> GenomeLoc merge(final SortedSet<T> sortedLocs) {
+        GenomeLoc result = null;
+
+        for ( GenomeLoc loc : sortedLocs ) {
+            if ( loc.isUnmapped() )
+                throw new ReviewedStingException("Tried to merge unmapped genome locs");
+
+            if ( result == null )
+                result = loc;
+            else if ( !result.contiguousP(loc) )
+                throw new ReviewedStingException("The genome locs need to be contiguous");
+            else
+                result = merge(result, loc);
+        }
+
+        return result;
     }
 }

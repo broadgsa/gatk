@@ -35,11 +35,11 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.variant.variantcontext.Genotype;
 import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.VariantContextUtils;
 
 import java.util.*;
 
@@ -226,7 +226,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
 
         // type specific calculations
         if ( type == Type.SNP && eval.isBiallelic() ) {
-            titvTable = VariantContextUtils.isTransition(eval) ? transitionsPerSample : transversionsPerSample;
+            titvTable = GATKVariantContextUtils.isTransition(eval) ? transitionsPerSample : transversionsPerSample;
             titvTable.inc(type, ALL);
         }
 

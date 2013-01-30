@@ -41,7 +41,6 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.variant.variantcontext.VariantContextUtils;
 
 import java.io.PrintStream;
 import java.lang.reflect.Array;
@@ -432,7 +431,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("QUAL", new Getter() { public String get(VariantContext vc) { return Double.toString(vc.getPhredScaledQual()); } });
         getters.put("TRANSITION", new Getter() { public String get(VariantContext vc) {
             if ( vc.isSNP() && vc.isBiallelic() )
-                return VariantContextUtils.isTransition(vc) ? "1" : "0";
+                return GATKVariantContextUtils.isTransition(vc) ? "1" : "0";
             else
                 return "-1";
         }});

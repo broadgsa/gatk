@@ -29,6 +29,7 @@ package org.broadinstitute.sting.utils;
 // the imports for unit testing.
 
 
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.testng.Assert;
@@ -40,10 +41,7 @@ import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
@@ -291,4 +289,58 @@ public class GenomeLocUnitTest extends BaseTest {
         if ( expected == ComparisonResult.EQUALS )
             Assert.assertEquals(g1.hashCode(), g2.hashCode(), "Equal genome locs don't have the same hash code");
     }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // testing merging functionality
+    //
+    // -------------------------------------------------------------------------------------
+
+    private static final GenomeLoc loc1 = new GenomeLoc("1", 0, 10, 20);
+    private static final GenomeLoc loc2 = new GenomeLoc("1", 0, 21, 30);
+    private static final GenomeLoc loc3 = new GenomeLoc("1", 0, 31, 40);
+
+    private class MergeTest {
+        public List<GenomeLoc> locs;
+
+        private MergeTest(final List<GenomeLoc> locs) {
+            this.locs = locs;
+        }
+    }
+
+    @DataProvider(name = "SGLtest")
+    public Object[][] createFindVariantRegionsData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        tests.add(new Object[]{new MergeTest(Arrays.<GenomeLoc>asList(loc1))});
+        tests.add(new Object[]{new MergeTest(Arrays.<GenomeLoc>asList(loc1, loc2))});
+        tests.add(new Object[]{new MergeTest(Arrays.<GenomeLoc>asList(loc1, loc2, loc3))});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "SGLtest", enabled = true)
+    public void testSimpleGenomeLoc(MergeTest test) {
+        testMerge(test.locs);
+    }
+
+    @Test(expectedExceptions = ReviewedStingException.class)
+    public void testNotContiguousLocs() {
+        final List<GenomeLoc> locs = new ArrayList<GenomeLoc>(1);
+        locs.add(loc1);
+        locs.add(loc3);
+        testMerge(locs);
+    }
+
+    private void testMerge(final List<GenomeLoc> locs) {
+        GenomeLoc result1 = locs.get(0);
+        for ( int i = 1; i < locs.size(); i++ )
+            result1 = GenomeLoc.merge(result1, locs.get(i));
+
+        GenomeLoc result2 = GenomeLoc.merge(new TreeSet<GenomeLoc>(locs));
+        Assert.assertEquals(result1, result2);
+        Assert.assertEquals(result1.getStart(), locs.get(0).getStart());
+        Assert.assertEquals(result1.getStop(), locs.get(locs.size() - 1).getStop());
+    }
+
 }
