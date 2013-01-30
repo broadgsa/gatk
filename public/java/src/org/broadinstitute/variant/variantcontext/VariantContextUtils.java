@@ -30,7 +30,6 @@ import com.google.java.contract.Requires;
 import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
 import org.broad.tribble.TribbleException;
-import org.broadinstitute.variant.utils.BaseUtils;
 import org.broadinstitute.variant.utils.GeneralUtils;
 import org.broadinstitute.variant.vcf.*;
 
@@ -432,40 +431,6 @@ public class VariantContextUtils {
 //    }
 
 
-    /**
-     * Returns a context identical to this with the REF and ALT alleles reverse complemented.
-     *
-     * @param vc        variant context
-     * @return new vc
-     */
-    public static VariantContext reverseComplement(VariantContext vc) {
-        // create a mapping from original allele to reverse complemented allele
-        HashMap<Allele, Allele> alleleMap = new HashMap<Allele, Allele>(vc.getAlleles().size());
-        for ( Allele originalAllele : vc.getAlleles() ) {
-            Allele newAllele;
-            if ( originalAllele.isNoCall() )
-                newAllele = originalAllele;
-            else
-                newAllele = Allele.create(BaseUtils.simpleReverseComplement(originalAllele.getBases()), originalAllele.isReference());
-            alleleMap.put(originalAllele, newAllele);
-        }
-
-        // create new Genotype objects
-        GenotypesContext newGenotypes = GenotypesContext.create(vc.getNSamples());
-        for ( final Genotype genotype : vc.getGenotypes() ) {
-            List<Allele> newAlleles = new ArrayList<Allele>();
-            for ( Allele allele : genotype.getAlleles() ) {
-                Allele newAllele = alleleMap.get(allele);
-                if ( newAllele == null )
-                    newAllele = Allele.NO_CALL;
-                newAlleles.add(newAllele);
-            }
-            newGenotypes.add(new GenotypeBuilder(genotype).alleles(newAlleles).make());
-        }
-
-        return new VariantContextBuilder(vc).alleles(alleleMap.values()).genotypes(newGenotypes).make();
-    }
-
     public static VariantContext purgeUnallowedGenotypeAttributes(VariantContext vc, Set<String> allowedAttributes) {
         if ( allowedAttributes == null )
             return vc;
@@ -481,34 +446,6 @@ public class VariantContextUtils {
         }
 
         return new VariantContextBuilder(vc).genotypes(newGenotypes).make();
-    }
-
-    public static BaseUtils.BaseSubstitutionType getSNPSubstitutionType(VariantContext context) {
-        if (!context.isSNP() || !context.isBiallelic())
-            throw new IllegalStateException("Requested SNP substitution type for bialleic non-SNP " + context);
-        return BaseUtils.SNPSubstitutionType(context.getReference().getBases()[0], context.getAlternateAllele(0).getBases()[0]);
-    }
-
-    /**
-     * If this is a BiAlleic SNP, is it a transition?
-     */
-    public static boolean isTransition(VariantContext context) {
-        return getSNPSubstitutionType(context) == BaseUtils.BaseSubstitutionType.TRANSITION;
-    }
-
-    /**
-     * If this is a BiAlleic SNP, is it a transversion?
-     */
-    public static boolean isTransversion(VariantContext context) {
-        return getSNPSubstitutionType(context) == BaseUtils.BaseSubstitutionType.TRANSVERSION;
-    }
-
-    public static boolean isTransition(Allele ref, Allele alt) {
-        return BaseUtils.SNPSubstitutionType(ref.getBases()[0], alt.getBases()[0]) == BaseUtils.BaseSubstitutionType.TRANSITION;
-    }
-
-    public static boolean isTransversion(Allele ref, Allele alt) {
-        return BaseUtils.SNPSubstitutionType(ref.getBases()[0], alt.getBases()[0]) == BaseUtils.BaseSubstitutionType.TRANSVERSION;
     }
 
     public static int getSize( VariantContext vc ) {

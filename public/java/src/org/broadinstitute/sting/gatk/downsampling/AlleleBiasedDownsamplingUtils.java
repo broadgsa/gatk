@@ -29,7 +29,7 @@ import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.variant.utils.BaseUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.variant.variantcontext.Allele;
 
 import java.io.PrintStream;

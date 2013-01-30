@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.duplicates;
 
-import org.broadinstitute.variant.utils.BaseUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.QualityUtils;

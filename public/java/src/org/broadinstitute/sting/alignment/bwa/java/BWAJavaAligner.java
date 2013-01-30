@@ -31,7 +31,7 @@ import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.alignment.bwa.BWAAligner;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.reference.bwt.*;
-import org.broadinstitute.variant.utils.BaseUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.io.File;

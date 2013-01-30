@@ -32,7 +32,7 @@ import org.broadinstitute.sting.utils.fragments.FragmentCollection;
 import org.broadinstitute.sting.utils.fragments.FragmentUtils;
 import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.variant.utils.BaseUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.util.*;
 

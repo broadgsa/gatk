@@ -40,12 +40,12 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
-import org.broadinstitute.variant.variantcontext.VariantContextUtils;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
 
@@ -122,7 +122,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         if ( toInterval != null ) {
             // check whether the strand flips, and if so reverse complement everything
             if ( fromInterval.isPositiveStrand() != toInterval.isPositiveStrand() && vc.isPointEvent() ) {
-                vc = VariantContextUtils.reverseComplement(vc);
+                vc = GATKVariantContextUtils.reverseComplement(vc);
             }
 
             vc = new VariantContextBuilder(vc).loc(toInterval.getSequence(), toInterval.getStart(), toInterval.getStart() + length).make();
@@ -133,7 +133,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
                         .attribute("OriginalStart", fromInterval.getStart()).make();
             }
 
-            if ( originalVC.isSNP() && originalVC.isBiallelic() && VariantContextUtils.getSNPSubstitutionType(originalVC) != VariantContextUtils.getSNPSubstitutionType(vc) ) {
+            if ( originalVC.isSNP() && originalVC.isBiallelic() && GATKVariantContextUtils.getSNPSubstitutionType(originalVC) != GATKVariantContextUtils.getSNPSubstitutionType(vc) ) {
                 logger.warn(String.format("VCF at %s / %d => %s / %d is switching substitution type %s/%s to %s/%s",
                         originalVC.getChr(), originalVC.getStart(), vc.getChr(), vc.getStart(),
                         originalVC.getReference(), originalVC.getAlternateAllele(0), vc.getReference(), vc.getAlternateAllele(0)));

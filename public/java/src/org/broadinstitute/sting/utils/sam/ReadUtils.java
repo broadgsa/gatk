@@ -34,7 +34,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.variant.utils.BaseUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.io.File;
 import java.util.*;

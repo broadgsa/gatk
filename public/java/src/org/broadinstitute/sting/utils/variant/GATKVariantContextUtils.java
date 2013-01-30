@@ -30,10 +30,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.variant.variantcontext.*;
 import org.broadinstitute.variant.vcf.VCFConstants;
@@ -106,6 +103,68 @@ public class GATKVariantContextUtils {
      */
     public static final GenomeLoc getLocation(GenomeLocParser genomeLocParser,VariantContext vc) {
         return genomeLocParser.createGenomeLoc(vc.getChr(), vc.getStart(), vc.getEnd(), true);
+    }
+
+    public static BaseUtils.BaseSubstitutionType getSNPSubstitutionType(VariantContext context) {
+        if (!context.isSNP() || !context.isBiallelic())
+            throw new IllegalStateException("Requested SNP substitution type for bialleic non-SNP " + context);
+        return BaseUtils.SNPSubstitutionType(context.getReference().getBases()[0], context.getAlternateAllele(0).getBases()[0]);
+    }
+
+    /**
+     * If this is a BiAlleic SNP, is it a transition?
+     */
+    public static boolean isTransition(VariantContext context) {
+        return getSNPSubstitutionType(context) == BaseUtils.BaseSubstitutionType.TRANSITION;
+    }
+
+    /**
+     * If this is a BiAlleic SNP, is it a transversion?
+     */
+    public static boolean isTransversion(VariantContext context) {
+        return getSNPSubstitutionType(context) == BaseUtils.BaseSubstitutionType.TRANSVERSION;
+    }
+
+    public static boolean isTransition(Allele ref, Allele alt) {
+        return BaseUtils.SNPSubstitutionType(ref.getBases()[0], alt.getBases()[0]) == BaseUtils.BaseSubstitutionType.TRANSITION;
+    }
+
+    public static boolean isTransversion(Allele ref, Allele alt) {
+        return BaseUtils.SNPSubstitutionType(ref.getBases()[0], alt.getBases()[0]) == BaseUtils.BaseSubstitutionType.TRANSVERSION;
+    }
+
+    /**
+     * Returns a context identical to this with the REF and ALT alleles reverse complemented.
+     *
+     * @param vc        variant context
+     * @return new vc
+     */
+    public static VariantContext reverseComplement(VariantContext vc) {
+        // create a mapping from original allele to reverse complemented allele
+        HashMap<Allele, Allele> alleleMap = new HashMap<Allele, Allele>(vc.getAlleles().size());
+        for ( Allele originalAllele : vc.getAlleles() ) {
+            Allele newAllele;
+            if ( originalAllele.isNoCall() )
+                newAllele = originalAllele;
+            else
+                newAllele = Allele.create(BaseUtils.simpleReverseComplement(originalAllele.getBases()), originalAllele.isReference());
+            alleleMap.put(originalAllele, newAllele);
+        }
+
+        // create new Genotype objects
+        GenotypesContext newGenotypes = GenotypesContext.create(vc.getNSamples());
+        for ( final Genotype genotype : vc.getGenotypes() ) {
+            List<Allele> newAlleles = new ArrayList<Allele>();
+            for ( Allele allele : genotype.getAlleles() ) {
+                Allele newAllele = alleleMap.get(allele);
+                if ( newAllele == null )
+                    newAllele = Allele.NO_CALL;
+                newAlleles.add(newAllele);
+            }
+            newGenotypes.add(new GenotypeBuilder(genotype).alleles(newAlleles).make());
+        }
+
+        return new VariantContextBuilder(vc).alleles(alleleMap.values()).genotypes(newGenotypes).make();
     }
 
     /**

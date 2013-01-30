@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.genotyper;
 
-import org.broadinstitute.variant.utils.BaseUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 public enum DiploidGenotype {
     AA ('A', 'A'),

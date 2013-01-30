@@ -33,7 +33,7 @@ import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.StringUtil;
 import org.apache.log4j.Priority;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.variant.utils.BaseUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;

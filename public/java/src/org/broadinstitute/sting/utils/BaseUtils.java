@@ -23,12 +23,14 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.variant.utils;
+package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.util.StringUtil;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Arrays;
-import java.util.Random;
 
 /**
  * BaseUtils contains some basic utilities for manipulating nucleotides.
@@ -94,9 +96,6 @@ public class BaseUtils {
         baseIndexWithIupacMap['V'] = Base.N.ordinal();
         baseIndexWithIupacMap['v'] = Base.N.ordinal();
     }
-
-    // Use a fixed random seed to allow for deterministic results when using random bases
-    private static final Random randomNumberGen = new Random(47382911L);
 
     /// In genetics, a transition is a mutation changing a purine to another purine nucleotide (A <-> G) or
     // a pyrimidine to another pyrimidine nucleotide (C <-> T).
@@ -174,7 +173,7 @@ public class BaseUtils {
             if ( baseIndex == Base.N.ordinal() ) {
                 bases[i] = 'N';
             } else if ( errorOnBadReferenceBase && baseIndex == -1 ) {
-                throw new IllegalStateException("We encountered a non-standard non-IUPAC base in the provided reference: '" + bases[i] + "'");
+                throw new UserException.BadInput("We encountered a non-standard non-IUPAC base in the provided reference: '" + bases[i] + "'");
             }
         }
         return bases;
@@ -251,7 +250,7 @@ public class BaseUtils {
      */
     static public int simpleBaseToBaseIndex(final byte base) {
         if ( base < 0 || base >= 256 )
-            throw new IllegalArgumentException("Non-standard bases were encountered in either the input reference or BAM file(s)");
+            throw new UserException.BadInput("Non-standard bases were encountered in either the input reference or BAM file(s)");
         return baseIndexMap[base];
     }
 
@@ -491,7 +490,7 @@ public class BaseUtils {
         int randomBaseIndex = excludeBaseIndex;
 
         while (randomBaseIndex == excludeBaseIndex) {
-            randomBaseIndex = randomNumberGen.nextInt(4);
+            randomBaseIndex = GenomeAnalysisEngine.getRandomGenerator().nextInt(4);
         }
 
         return randomBaseIndex;
@@ -515,7 +514,7 @@ public class BaseUtils {
             case 'N':
                 return 'N';
             default:
-                throw new IllegalArgumentException("base must be A, C, G or T. " + (char) base + " is not a valid base.");
+                throw new ReviewedStingException("base must be A, C, G or T. " + (char) base + " is not a valid base.");
         }
     }
 }

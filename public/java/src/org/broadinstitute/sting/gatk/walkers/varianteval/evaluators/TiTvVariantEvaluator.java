@@ -30,9 +30,9 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
-import org.broadinstitute.variant.utils.BaseUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.VariantContextUtils;
 
 @Analysis(description = "Ti/Tv Variant Evaluator")
 public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEval {
@@ -61,7 +61,7 @@ public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEv
 
     public void updateTiTv(VariantContext vc, boolean updateStandard) {
         if (vc != null && vc.isSNP() && vc.isBiallelic() && vc.isPolymorphicInSamples()) {
-            if (VariantContextUtils.isTransition(vc)) {
+            if ( GATKVariantContextUtils.isTransition(vc)) {
                 if (updateStandard) nTiInComp++;
                 else nTi++;
             } else {                                
