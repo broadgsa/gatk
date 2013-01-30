@@ -359,19 +359,9 @@ public class IOUtils {
      */
     public static void writeResource(Resource resource, File file) {
         String path = resource.getPath();
-        Class<?> clazz = resource.getRelativeClass();
-        InputStream inputStream = null;
+        InputStream inputStream = resource.getResourceContentsAsStream();
         OutputStream outputStream = null;
         try {
-            if (clazz == null) {
-                inputStream = ClassLoader.getSystemResourceAsStream(path);
-                if (inputStream == null)
-                    throw new IllegalArgumentException("Resource not found: " + path);
-            } else {
-                inputStream = clazz.getResourceAsStream(path);
-                if (inputStream == null)
-                    throw new IllegalArgumentException("Resource not found relative to " + clazz + ": " + path);
-            }
             outputStream = FileUtils.openOutputStream(file);
             org.apache.commons.io.IOUtils.copy(inputStream, outputStream);
         } catch (IOException e) {
