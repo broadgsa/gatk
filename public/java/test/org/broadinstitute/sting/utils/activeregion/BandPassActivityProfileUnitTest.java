@@ -36,11 +36,9 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.variant.utils.Pair;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.VariantContextTestProvider;
 import org.broadinstitute.variant.vcf.VCFCodec;
-import org.broadinstitute.variant.vcf.VCFHeader;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -252,13 +250,13 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
 
         final File file = new File(path);
         final VCFCodec codec = new VCFCodec();
-        final Pair<VCFHeader, Iterable<VariantContext>> reader = VariantContextTestProvider.readAllVCs(file, codec);
+        final VariantContextTestProvider.VariantContextContainer reader = VariantContextTestProvider.readAllVCs(file, codec);
 
         final List<ActiveRegion> incRegions = new ArrayList<ActiveRegion>();
         final BandPassActivityProfile incProfile = new BandPassActivityProfile(genomeLocParser);
         final BandPassActivityProfile fullProfile = new BandPassActivityProfile(genomeLocParser);
         int pos = start;
-        for ( final VariantContext vc : reader.getSecond() ) {
+        for ( final VariantContext vc : reader.getVCs() ) {
             if ( vc == null ) continue;
             while ( pos < vc.getStart() ) {
                 final GenomeLoc loc = genomeLocParser.createGenomeLoc(contig, pos);
@@ -311,8 +309,8 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
             lastPosSeen = region.getLocation().getStop();
 
             for ( final ActivityProfileState state : region.getSupportingStates() ) {
-                Assert.assertEquals(state.isActiveProb > ActivityProfile.ACTIVE_PROB_THRESHOLD, region.isActive,
-                        "Region is active=" + region.isActive + " but contains a state " + state + " with prob "
+                Assert.assertEquals(state.isActiveProb > ActivityProfile.ACTIVE_PROB_THRESHOLD, region.isActive(),
+                        "Region is active=" + region.isActive() + " but contains a state " + state + " with prob "
                                 + state.isActiveProb + " not within expected values given threshold for activity of "
                                 + ActivityProfile.ACTIVE_PROB_THRESHOLD);
             }

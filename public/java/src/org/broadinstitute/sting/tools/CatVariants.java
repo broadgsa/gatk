@@ -36,7 +36,7 @@ import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.variant.bcf2.BCF2Codec;
-import org.broadinstitute.variant.utils.Pair;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.variant.vcf.VCFCodec;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -51,7 +51,7 @@ import java.util.*;
 
 /**
  *
- * Usage: java -cp dist/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.AppendVariants <reference> <input VCF or BCF files> <outputFile> [sorted (optional)]");
+ * Usage: java -cp dist/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.CatVariants <reference> <input VCF or BCF files> <outputFile> [sorted (optional)]");
  * The input files can be of type: VCF (ends in .vcf or .VCF)");
  *                                 BCF2 (ends in .bcf or .BCF)");
  * Output file must be vcf or bcf file (.vcf or .bcf)");

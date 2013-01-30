@@ -276,7 +276,7 @@ public class ActivityProfileUnitTest extends BaseTest {
             Assert.assertTrue(regionOffset >= 0 && regionOffset < probs.size(), "Region " + region + " has a bad offset w.r.t. start");
             for ( int j = 0; j < region.getLocation().size(); j++ ) {
                 final int siteOffset = j + regionOffset;
-                Assert.assertEquals(region.isActive, probs.get(siteOffset).booleanValue());
+                Assert.assertEquals(region.isActive(), probs.get(siteOffset).booleanValue());
                 Assert.assertFalse(seenSites.get(siteOffset), "Site " + j + " in " + region + " was seen already");
                 seenSites.set(siteOffset, true);
             }

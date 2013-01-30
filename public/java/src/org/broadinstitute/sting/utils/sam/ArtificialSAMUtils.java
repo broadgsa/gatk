@@ -116,6 +116,19 @@ public class ArtificialSAMUtils {
     }
 
     /**
+     * Creates an artificial sam header based on the sequence dictionary dict
+     *
+     * @return
+     */
+    public static SAMFileHeader createArtificialSamHeader(final SAMSequenceDictionary dict) {
+        SAMFileHeader header = new SAMFileHeader();
+        header.setSortOrder(net.sf.samtools.SAMFileHeader.SortOrder.coordinate);
+        header.setSequenceDictionary(dict);
+        return header;
+    }
+
+
+    /**
      * setup a default read group for a SAMFileHeader
      *
      * @param header      the header to set

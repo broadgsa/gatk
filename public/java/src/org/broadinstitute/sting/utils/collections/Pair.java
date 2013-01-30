@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.variant.utils;
+package org.broadinstitute.sting.utils.collections;
 
 
 public class Pair<X,Y> {

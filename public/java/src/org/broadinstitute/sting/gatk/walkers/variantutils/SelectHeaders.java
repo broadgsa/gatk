@@ -39,12 +39,12 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.text.ListFileUtils;
 import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.VariantContextUtils;
 
 import java.io.File;
 import java.util.*;
@@ -204,7 +204,7 @@ public class SelectHeaders extends RodWalker<Integer, Integer> implements TreeRe
             }
         }
 
-        TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
+        TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, GATKVariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
         VCFHeader vcfHeader = new VCFHeader(headerLines, vcfSamples);
         vcfHeader.setWriteEngineHeaders(includeEngineHeaders);
         vcfWriter.writeHeader(vcfHeader);

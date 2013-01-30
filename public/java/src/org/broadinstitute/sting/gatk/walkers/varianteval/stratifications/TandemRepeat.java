@@ -27,8 +27,8 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.VariantContextUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -51,7 +51,7 @@ public class TandemRepeat extends VariantStratifier {
     public List<Object> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         if ( eval == null || ! eval.isIndel() )
             return ALL;
-        else if ( VariantContextUtils.isTandemRepeat(eval, ref.getForwardBases()) ) {
+        else if ( GATKVariantContextUtils.isTandemRepeat(eval, ref.getForwardBases()) ) {
             print("REPEAT", eval, ref);
             return REPEAT;
         } else {

@@ -119,7 +119,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )
             return 0;
 
-        String rsID = dbsnp == null ? null : VCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbsnp.dbsnp, context.getLocation()), VariantContext.Type.SNP);
+        String rsID = dbsnp == null ? null : GATKVCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbsnp.dbsnp, context.getLocation()), VariantContext.Type.SNP);
 
         Collection<VariantContext> contexts = getVariantContexts(tracker, ref);
 

@@ -29,6 +29,7 @@ import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.vcf.VCFConstants;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
@@ -180,7 +181,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
         if ( !genotypeFieldsToTake.isEmpty() ) {
             Map<String, VCFHeader> vcfRods = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), variants);
-            TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
+            TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, GATKVariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
             samples.addAll(vcfSamples);
 
             // optimization: if there are no samples, we don't have to worry about any genotype fields

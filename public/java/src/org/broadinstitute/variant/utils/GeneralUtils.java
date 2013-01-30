@@ -141,13 +141,6 @@ public class GeneralUtils {
         return normalized;
     }
 
-    public static double sum(double[] values) {
-        double s = 0.0;
-        for (double v : values)
-            s += v;
-        return s;
-    }
-
     public static double arrayMax(final double[] array) {
         return array[maxElementIndex(array, array.length)];
     }

@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.variant.utils.Pair;
+import org.broadinstitute.sting.utils.collections.Pair;
 
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;

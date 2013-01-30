@@ -193,7 +193,7 @@ public class VariantSummary extends VariantEvaluator implements StandardEval {
 
     private boolean overlapsKnownCNV(VariantContext cnv) {
         if ( knownCNVs != null ) {
-            final GenomeLoc loc = getWalker().getToolkit().getGenomeLocParser().createGenomeLoc(cnv, true);
+            final GenomeLoc loc = getWalker().getToolkit().getGenomeLocParser().createGenomeLoc(cnv);
             IntervalTree<GenomeLoc> intervalTree = knownCNVs.get(loc.getContig());
 
             final Iterator<IntervalTree.Node<GenomeLoc>> nodeIt = intervalTree.overlappers(loc.getStart(), loc.getStop());
