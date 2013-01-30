@@ -23,8 +23,9 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting;
+package org.broadinstitute.sting.utils;
 
+import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.AutoFormattingTime;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
