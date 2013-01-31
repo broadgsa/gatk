@@ -708,9 +708,6 @@
                 <include name="**/sting/gatk/**/*.R"/>
                 <include name="**/sting/alignment/**/*.R"/>
             </fileset>
-            <fileset dir="${java.public.source.dir}">
-                <include name="**/phonehome/*.key"/>
-            </fileset>
             <fileset dir="${key.dir}">
                 <include name="**/*.key"/>
             </fileset>

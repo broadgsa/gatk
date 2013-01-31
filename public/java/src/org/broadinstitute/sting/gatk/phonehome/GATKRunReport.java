@@ -350,7 +350,7 @@ public class GATKRunReport {
      * @return a non-null AWS access key for the GATK user
      */
     protected static String getAWSAccessKey() {
-        return getAWSKey("GATK_AWS_access.key");
+        return getAWSKey("resources/GATK_AWS_access.key");
     }
 
     /**
@@ -358,7 +358,7 @@ public class GATKRunReport {
      * @return a non-null AWS secret key for the GATK user
      */
     protected static String getAWSSecretKey() {
-        return getAWSKey("GATK_AWS_secret.key");
+        return getAWSKey("resources/GATK_AWS_secret.key");
     }
 
     /**
