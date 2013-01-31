@@ -673,7 +673,9 @@ public class BAQ {
         } else if ( excludeReadFromBAQ(read) ) {
             ; // just fall through
         } else {
-            if ( calculationType == CalculationMode.RECALCULATE || ! hasBAQTag(read) ) {
+            final boolean readHasBAQTag = hasBAQTag(read);
+
+            if ( calculationType == CalculationMode.RECALCULATE || ! readHasBAQTag ) {
                 if ( DEBUG ) System.out.printf("  Calculating BAQ on the fly%n");
                 BAQCalculationResult hmmResult = calcBAQFromHMM(read, refReader);
                 if ( hmmResult != null ) {
@@ -683,6 +685,9 @@ public class BAQ {
                         case DONT_MODIFY:     BAQQuals = hmmResult.bq; break;
                         default:              throw new ReviewedStingException("BUG: unexpected qmode " + qmode);
                     }
+                } else if ( readHasBAQTag ) {
+                    // remove the BAQ tag if it's there because we cannot trust it
+                    read.setAttribute(BAQ_TAG, null);
                 }
             } else if ( qmode == QualityMode.OVERWRITE_QUALS ) { // only makes sense if we are overwriting quals
                 if ( DEBUG ) System.out.printf("  Taking BAQ from tag%n");
