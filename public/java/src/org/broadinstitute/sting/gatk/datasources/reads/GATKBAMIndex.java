@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import org.broad.tribble.util.SeekableBufferedStream;
-import org.broad.tribble.util.SeekableFileStream;
+import net.sf.samtools.seekablestream.SeekableBufferedStream;
+import net.sf.samtools.seekablestream.SeekableFileStream;
 
 import net.sf.samtools.*;
 
