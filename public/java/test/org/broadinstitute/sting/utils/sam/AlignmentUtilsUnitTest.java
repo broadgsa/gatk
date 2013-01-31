@@ -26,11 +26,13 @@
 package org.broadinstitute.sting.utils.sam;
 
 import junit.framework.Assert;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
+import net.sf.samtools.*;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class AlignmentUtilsUnitTest {
     private SAMFileHeader header;
@@ -120,5 +122,43 @@ public class AlignmentUtilsUnitTest {
                 0,
                 start,
                 ArtificialSAMUtils.DEFAULT_READ_LENGTH);
+    }
+
+    @Test
+    public void testConsolidateCigar() {
+        {
+            //1M1M1M1D2M1M --> 3M1D3M
+            List<CigarElement> list = new ArrayList<CigarElement>();
+            list.add( new CigarElement(1, CigarOperator.M));
+            list.add( new CigarElement(1, CigarOperator.M));
+            list.add( new CigarElement(1, CigarOperator.M));
+            list.add( new CigarElement(1, CigarOperator.D));
+            list.add( new CigarElement(2, CigarOperator.M));
+            list.add( new CigarElement(1, CigarOperator.M));
+            Cigar unconsolidatedCigar = new Cigar(list);
+
+            list.clear();
+            list.add( new CigarElement(3, CigarOperator.M));
+            list.add( new CigarElement(1, CigarOperator.D));
+            list.add( new CigarElement(3, CigarOperator.M));
+            Cigar consolidatedCigar = new Cigar(list);
+
+            Assert.assertEquals(consolidatedCigar.toString(), AlignmentUtils.consolidateCigar(unconsolidatedCigar).toString());
+        }
+
+        {
+            //6M6M6M --> 18M
+            List<CigarElement> list = new ArrayList<CigarElement>();
+            list.add( new CigarElement(6, CigarOperator.M));
+            list.add( new CigarElement(6, CigarOperator.M));
+            list.add( new CigarElement(6, CigarOperator.M));
+            Cigar unconsolidatedCigar = new Cigar(list);
+
+            list.clear();
+            list.add( new CigarElement(18, CigarOperator.M));
+            Cigar consolidatedCigar = new Cigar(list);
+
+            Assert.assertEquals(consolidatedCigar.toString(), AlignmentUtils.consolidateCigar(unconsolidatedCigar).toString());
+        }
     }
 }

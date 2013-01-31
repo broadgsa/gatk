@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.utils.sam;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
@@ -497,6 +499,29 @@ public class AlignmentUtils {
                 || r.getMateReferenceName() != null && !r.getMateReferenceName().equals(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME))
                 && r.getMateAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) return false;
         return true;
+    }
+
+    /**
+     * Need a well-formed, consolidated Cigar string so that the left aligning code works properly.
+     * For example, 1M1M1M1D2M1M --> 3M1D3M
+     * If the given cigar is empty then the returned cigar will also be empty
+     * @param c the cigar to consolidate
+     * @return  a cigar with consecutive matching operators merged into single operators.
+     */
+    @Requires({"c != null"})
+    @Ensures({"result != null"})
+    public static Cigar consolidateCigar( final Cigar c ) {
+        if( c.isEmpty() ) { return c; }
+        final Cigar returnCigar = new Cigar();
+        int sumLength = 0;
+        for( int iii = 0; iii < c.numCigarElements(); iii++ ) {
+            sumLength += c.getCigarElement(iii).getLength();
+            if( iii == c.numCigarElements() - 1 || !c.getCigarElement(iii).getOperator().equals(c.getCigarElement(iii+1).getOperator())) { // at the end so finish the current element
+                returnCigar.add(new CigarElement(sumLength, c.getCigarElement(iii).getOperator()));
+                sumLength = 0;
+            }
+        }
+        return returnCigar;
     }
 
     /**
