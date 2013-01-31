@@ -261,16 +261,23 @@ public class AlignmentUtils {
         return n;
     }
 
+    /**
+     * Calculate the number of bases that are soft clipped in read with quality score greater than threshold
+     *
+     * @param read a non-null GATKSAMRecord
+     * @param qualThreshold consider bases with quals > this value as high quality.  Must be >= 0
+     * @return positive integer
+     */
+    @Ensures("result >= 0")
     public static int calcNumHighQualitySoftClips( final GATKSAMRecord read, final byte qualThreshold ) {
+        if ( read == null ) throw new IllegalArgumentException("Read cannot be null");
+        if ( qualThreshold < 0 ) throw new IllegalArgumentException("Expected qualThreshold to be a positive byte but saw " + qualThreshold);
+
+        final byte[] qual = read.getBaseQualities( EventType.BASE_SUBSTITUTION );
 
         int numHQSoftClips = 0;
         int alignPos = 0;
-        final Cigar cigar = read.getCigar();
-        final byte[] qual = read.getBaseQualities( EventType.BASE_SUBSTITUTION );
-
-        for( int iii = 0; iii < cigar.numCigarElements(); iii++ ) {
-
-            final CigarElement ce = cigar.getCigarElement(iii);
+        for ( final CigarElement ce : read.getCigar().getCigarElements() ) {
             final int elementLength = ce.getLength();
 
             switch( ce.getOperator() ) {
@@ -279,21 +286,16 @@ public class AlignmentUtils {
                         if( qual[alignPos++] > qualThreshold ) { numHQSoftClips++; }
                     }
                     break;
-                case M:
-                case I:
-                case EQ:
-                case X:
+                case M: case I: case EQ: case X:
                     alignPos += elementLength;
                     break;
-                case H:
-                case P:
-                case D:
-                case N:
+                case H: case P: case D: case N:
                     break;
                 default:
-                    throw new ReviewedStingException("Unsupported cigar operator: " + ce.getOperator());
+                    throw new IllegalStateException("Unsupported cigar operator: " + ce.getOperator());
             }
         }
+
         return numHQSoftClips;
     }
 

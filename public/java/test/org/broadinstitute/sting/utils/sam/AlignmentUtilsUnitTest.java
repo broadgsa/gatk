@@ -25,13 +25,16 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import junit.framework.Assert;
 import net.sf.samtools.*;
+import org.apache.commons.lang.ArrayUtils;
+import org.broadinstitute.sting.utils.Utils;
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class AlignmentUtilsUnitTest {
@@ -160,5 +163,60 @@ public class AlignmentUtilsUnitTest {
 
             Assert.assertEquals(consolidatedCigar.toString(), AlignmentUtils.consolidateCigar(unconsolidatedCigar).toString());
         }
+    }
+
+    @DataProvider(name = "SoftClipsDataProvider")
+    public Object[][] makeSoftClipsDataProvider() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        // this functionality can be adapted to provide input data for whatever you might want in your data
+        for ( final int lengthOfLeftClip : Arrays.asList(0, 1, 10) ) {
+            for ( final int lengthOfRightClip : Arrays.asList(0, 1, 10) ) {
+                for ( final int qualThres : Arrays.asList(10, 20, 30) ) {
+                    for ( final String middleOp : Arrays.asList("M", "D") ) {
+                        for ( final int matchSize : Arrays.asList(0, 1, 10) ) {
+                            final byte[] left = makeQualArray(lengthOfLeftClip, qualThres);
+                            final byte[] right = makeQualArray(lengthOfRightClip, qualThres);
+                            int n = 0;
+                            for ( int i = 0; i < left.length; i++ ) n += left[i] > qualThres ? 1 : 0;
+                            for ( int i = 0; i < right.length; i++ ) n += right[i] > qualThres ? 1 : 0;
+                            tests.add(new Object[]{left, matchSize, middleOp, right, qualThres, n});
+                        }
+                    }
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    private byte[] makeQualArray(final int length, final int qualThreshold) {
+        final byte[] array = new byte[length];
+        for ( int i = 0; i < array.length; i++ )
+            array[i] = (byte)(qualThreshold + ( i % 2 == 0 ? 1 : - 1 ));
+        return array;
+    }
+
+    @Test(dataProvider = "SoftClipsDataProvider")
+    public void testSoftClipsData(final byte[] qualsOfSoftClipsOnLeft, final int middleSize, final String middleOp, final byte[] qualOfSoftClipsOnRight, final int qualThreshold, final int numExpected) {
+        final int readLength = (middleOp.equals("D") ? 0 : middleSize) + qualOfSoftClipsOnRight.length + qualsOfSoftClipsOnLeft.length;
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 1, readLength);
+        final byte[] bases = Utils.dupBytes((byte) 'A', readLength);
+        final byte[] matchBytes = middleOp.equals("D") ? new byte[]{} : Utils.dupBytes((byte)30, middleSize);
+        final byte[] quals = ArrayUtils.addAll(ArrayUtils.addAll(qualsOfSoftClipsOnLeft, matchBytes), qualOfSoftClipsOnRight);
+
+        // set the read's bases and quals
+        read.setReadBases(bases);
+        read.setBaseQualities(quals);
+
+        final StringBuilder cigar = new StringBuilder();
+        if (qualsOfSoftClipsOnLeft.length > 0 ) cigar.append(qualsOfSoftClipsOnLeft.length + "S");
+        if (middleSize > 0 ) cigar.append(middleSize + middleOp);
+        if (qualOfSoftClipsOnRight.length > 0 ) cigar.append(qualOfSoftClipsOnRight.length + "S");
+
+        read.setCigarString(cigar.toString());
+
+        final int actual = AlignmentUtils.calcNumHighQualitySoftClips(read, (byte) qualThreshold);
+        Assert.assertEquals(actual, numExpected, "Wrong number of soft clips detected for read " + read.getSAMString());
     }
 }
