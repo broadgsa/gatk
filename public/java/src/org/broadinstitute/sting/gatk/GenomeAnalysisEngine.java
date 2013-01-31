@@ -47,6 +47,7 @@ import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformersMode;
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
@@ -222,6 +223,9 @@ public class GenomeAnalysisEngine {
      * @return the value of this traversal.
      */
     public Object execute() {
+        // first thing is to make sure the AWS keys can be decrypted
+        GATKRunReport.checkAWSAreValid();
+
         //HeapSizeMonitor monitor = new HeapSizeMonitor();
         //monitor.start();
         setStartTime(new java.util.Date());

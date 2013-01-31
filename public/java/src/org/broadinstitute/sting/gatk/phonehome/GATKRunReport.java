@@ -73,6 +73,9 @@ import java.util.zip.GZIPOutputStream;
  * GATK run report database.
  */
 public class GATKRunReport {
+    protected final static String AWS_ACCESS_KEY_MD5 = "c0f0afa1ff5ba41d9bf216cfcdbf26bf";
+    protected final static String AWS_SECRET_KEY_MD5 = "db2f13b3a7c98ad24e28783733ec4a62";
+
     /**
      * The root file system directory where we keep common report data
      */
@@ -356,6 +359,28 @@ public class GATKRunReport {
      */
     protected static String getAWSSecretKey() {
         return getAWSKey("GATK_AWS_secret.key");
+    }
+
+    /**
+     * Check that the AWS keys can be decrypted and are what we expect them to be
+     *
+     * @throws ReviewedStingException if anything goes wrong
+     */
+    public static void checkAWSAreValid() {
+        try {
+            final String accessKeyMD5 = Utils.calcMD5(getAWSAccessKey());
+            final String secretKeyMD5 = Utils.calcMD5(getAWSSecretKey());
+
+            if ( ! AWS_ACCESS_KEY_MD5.equals(accessKeyMD5) ) {
+                throw new ReviewedStingException("Invalid AWS access key found, expected MD5 " + AWS_ACCESS_KEY_MD5 + " but got " + accessKeyMD5);
+            }
+            if ( ! AWS_SECRET_KEY_MD5.equals(secretKeyMD5) ) {
+                throw new ReviewedStingException("Invalid AWS secret key found, expected MD5 " + AWS_SECRET_KEY_MD5 + " but got " + secretKeyMD5);
+            }
+
+        } catch ( Exception e ) {
+            throw new ReviewedStingException("Couldn't decrypt AWS keys, something is wrong with the GATK distribution");
+        }
     }
 
     private class S3PutRunnable implements Runnable {

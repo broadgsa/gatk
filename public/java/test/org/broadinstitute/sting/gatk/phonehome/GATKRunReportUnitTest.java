@@ -36,12 +36,12 @@ import java.security.NoSuchAlgorithmException;
 public class GATKRunReportUnitTest extends BaseTest {
     @Test
     public void testAccessKey() throws Exception {
-        testAWSKey(GATKRunReport.getAWSAccessKey(), "c0f0afa1ff5ba41d9bf216cfcdbf26bf");
+        testAWSKey(GATKRunReport.getAWSAccessKey(), GATKRunReport.AWS_ACCESS_KEY_MD5);
     }
 
     @Test
     public void testSecretKey() throws Exception {
-        testAWSKey(GATKRunReport.getAWSSecretKey(), "db2f13b3a7c98ad24e28783733ec4a62");
+        testAWSKey(GATKRunReport.getAWSSecretKey(), GATKRunReport.AWS_SECRET_KEY_MD5);
     }
 
     private void testAWSKey(final String accessKey, final String expectedMD5) throws Exception {
