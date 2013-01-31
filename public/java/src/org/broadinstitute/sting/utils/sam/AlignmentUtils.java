@@ -508,12 +508,13 @@ public class AlignmentUtils {
      * For example, 1M1M1M1D2M1M --> 3M1D3M
      * If the given cigar is empty then the returned cigar will also be empty
      * @param c the cigar to consolidate
-     * @return  a cigar with consecutive matching operators merged into single operators.
+     * @return  a non-null cigar with consecutive matching operators merged into single operators.
      */
-    @Requires({"c != null"})
     @Ensures({"result != null"})
     public static Cigar consolidateCigar( final Cigar c ) {
+        if( c == null ) { throw new IllegalArgumentException("Cigar cannot be null"); }
         if( c.isEmpty() ) { return c; }
+
         final Cigar returnCigar = new Cigar();
         int sumLength = 0;
         for( int iii = 0; iii < c.numCigarElements(); iii++ ) {
