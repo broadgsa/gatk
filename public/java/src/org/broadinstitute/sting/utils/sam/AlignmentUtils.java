@@ -40,9 +40,16 @@ import org.broadinstitute.sting.utils.recalibration.EventType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.List;
 
 
-public class AlignmentUtils {
+public final class AlignmentUtils {
+    private final static EnumSet<CigarOperator> ALIGNED_TO_GENOME_OPERATORS = EnumSet.of(CigarOperator.M, CigarOperator.EQ, CigarOperator.X);
+    private final static EnumSet<CigarOperator> ALIGNED_TO_GENOME_PLUS_SOFTCLIPS = EnumSet.of(CigarOperator.M, CigarOperator.EQ, CigarOperator.X, CigarOperator.S);
+
+    // cannot be instantiated
+    private AlignmentUtils() { }
 
     public static class MismatchCount {
         public int numMismatches = 0;
@@ -119,103 +126,6 @@ public class AlignmentUtils {
     }
 
     /**
-     * Returns the number of mismatches in the pileup within the given reference context.
-     *
-     * @param pileup           the pileup with reads
-     * @param ref              the reference context
-     * @param ignoreTargetSite if true, ignore mismatches at the target locus (i.e. the center of the window)
-     * @return the number of mismatches
-     */
-    public static int mismatchesInRefWindow(ReadBackedPileup pileup, ReferenceContext ref, boolean ignoreTargetSite) {
-        int mismatches = 0;
-        for (PileupElement p : pileup)
-            mismatches += mismatchesInRefWindow(p, ref, ignoreTargetSite);
-        return mismatches;
-    }
-
-    /**
-     * Returns the number of mismatches in the pileup element within the given reference context.
-     *
-     * @param p                the pileup element
-     * @param ref              the reference context
-     * @param ignoreTargetSite if true, ignore mismatches at the target locus (i.e. the center of the window)
-     * @return the number of mismatches
-     */
-    public static int mismatchesInRefWindow(PileupElement p, ReferenceContext ref, boolean ignoreTargetSite) {
-        return mismatchesInRefWindow(p, ref, ignoreTargetSite, false);
-    }
-
-    /**
-     * Returns the number of mismatches in the pileup element within the given reference context.
-     *
-     * @param p                the pileup element
-     * @param ref              the reference context
-     * @param ignoreTargetSite if true, ignore mismatches at the target locus (i.e. the center of the window)
-     * @param qualitySumInsteadOfMismatchCount
-     *                         if true, return the quality score sum of the mismatches rather than the count
-     * @return the number of mismatches
-     */
-    public static int mismatchesInRefWindow(PileupElement p, ReferenceContext ref, boolean ignoreTargetSite, boolean qualitySumInsteadOfMismatchCount) {
-        int sum = 0;
-
-        int windowStart = ref.getWindow().getStart();
-        int windowStop = ref.getWindow().getStop();
-        byte[] refBases = ref.getBases();
-        byte[] readBases = p.getRead().getReadBases();
-        byte[] readQualities = p.getRead().getBaseQualities();
-        Cigar c = p.getRead().getCigar();
-
-        int readIndex = 0;
-        int currentPos = p.getRead().getAlignmentStart();
-        int refIndex = Math.max(0, currentPos - windowStart);
-
-        for (int i = 0; i < c.numCigarElements(); i++) {
-            CigarElement ce = c.getCigarElement(i);
-            int cigarElementLength = ce.getLength();
-            switch (ce.getOperator()) {
-                case EQ:
-                case X:
-                case M:
-                    for (int j = 0; j < cigarElementLength; j++, readIndex++, currentPos++) {
-                        // are we past the ref window?
-                        if (currentPos > windowStop)
-                            break;
-
-                        // are we before the ref window?
-                        if (currentPos < windowStart)
-                            continue;
-
-                        byte refChr = refBases[refIndex++];
-
-                        // do we need to skip the target site?
-                        if (ignoreTargetSite && ref.getLocus().getStart() == currentPos)
-                            continue;
-
-                        byte readChr = readBases[readIndex];
-                        if (readChr != refChr)
-                            sum += (qualitySumInsteadOfMismatchCount) ? readQualities[readIndex] : 1;
-                    }
-                    break;
-                case I:
-                case S:
-                    readIndex += cigarElementLength;
-                    break;
-                case D:
-                case N:
-                    currentPos += cigarElementLength;
-                    if (currentPos > windowStart)
-                        refIndex += Math.min(cigarElementLength, currentPos - windowStart);
-                    break;
-                case H:
-                case P:
-                    break;
-            }
-        }
-
-        return sum;
-    }
-
-    /**
      * Returns number of alignment blocks (continuous stretches of aligned bases) in the specified alignment.
      * This method follows closely the SAMRecord::getAlignmentBlocks() implemented in samtools library, but
      * it only counts blocks without actually allocating and filling the list of blocks themselves. Hence, this method is
@@ -225,31 +135,54 @@ public class AlignmentUtils {
      * @param r alignment
      * @return number of continuous alignment blocks (i.e. 'M' elements of the cigar; all indel and clipping elements are ignored).
      */
+    @Ensures("result >= 0")
     public static int getNumAlignmentBlocks(final SAMRecord r) {
-        int n = 0;
+        if ( r == null ) throw new IllegalArgumentException("read cannot be null");
         final Cigar cigar = r.getCigar();
         if (cigar == null) return 0;
 
+        int n = 0;
         for (final CigarElement e : cigar.getCigarElements()) {
-            if (e.getOperator() == CigarOperator.M) n++;
+            if (ALIGNED_TO_GENOME_OPERATORS.contains(e.getOperator()))
+                n++;
         }
 
         return n;
     }
 
-    public static int getNumAlignedBasesCountingSoftClips(final SAMRecord r) {
+
+    /**
+     * Get the number of bases aligned to the genome, including soft clips
+     *
+     * If read is not mapped (i.e., doesn't have a cigar) returns 0
+     *
+     * @param r a non-null GATKSAMRecord
+     * @return the number of bases aligned to the genome in R, including soft clipped bases
+     */
+    public static int getNumAlignedBasesCountingSoftClips(final GATKSAMRecord r) {
         int n = 0;
         final Cigar cigar = r.getCigar();
         if (cigar == null) return 0;
 
         for (final CigarElement e : cigar.getCigarElements())
-            if (e.getOperator() == CigarOperator.M || e.getOperator() == CigarOperator.S)
+            if (ALIGNED_TO_GENOME_PLUS_SOFTCLIPS.contains(e.getOperator()))
                 n += e.getLength();
 
         return n;
     }
 
+    /**
+     * Count the number of bases hard clipped from read
+     *
+     * If read's cigar is null, return 0
+     *
+     * @param r a non-null read
+     * @return a positive integer
+     */
+    @Ensures("result >= 0")
     public static int getNumHardClippedBases(final SAMRecord r) {
+        if ( r == null ) throw new IllegalArgumentException("Read cannot be null");
+
         int n = 0;
         final Cigar cigar = r.getCigar();
         if (cigar == null) return 0;
@@ -264,7 +197,9 @@ public class AlignmentUtils {
     /**
      * Calculate the number of bases that are soft clipped in read with quality score greater than threshold
      *
-     * @param read a non-null GATKSAMRecord
+     * Handles the case where the cigar is null (i.e., the read is unmapped), returning 0
+     *
+     * @param read a non-null GATKSAMRecord.
      * @param qualThreshold consider bases with quals > this value as high quality.  Must be >= 0
      * @return positive integer
      */
@@ -272,6 +207,9 @@ public class AlignmentUtils {
     public static int calcNumHighQualitySoftClips( final GATKSAMRecord read, final byte qualThreshold ) {
         if ( read == null ) throw new IllegalArgumentException("Read cannot be null");
         if ( qualThreshold < 0 ) throw new IllegalArgumentException("Expected qualThreshold to be a positive byte but saw " + qualThreshold);
+
+        if ( read.getCigar() == null ) // the read is unmapped
+            return 0;
 
         final byte[] qual = read.getBaseQualities( EventType.BASE_SUBSTITUTION );
 
@@ -300,15 +238,11 @@ public class AlignmentUtils {
     }
 
     public static int calcAlignmentByteArrayOffset(final Cigar cigar, final PileupElement pileupElement, final int alignmentStart, final int refLocus) {
-        return calcAlignmentByteArrayOffset( cigar, pileupElement.getOffset(), false, pileupElement.isDeletion(), alignmentStart, refLocus );
+        return calcAlignmentByteArrayOffset( cigar, pileupElement.getOffset(), pileupElement.isDeletion(), alignmentStart, refLocus );
     }
 
-    public static int calcAlignmentByteArrayOffset(final Cigar cigar, final int offset, final boolean isInsertionAtBeginningOfRead, final boolean isDeletion, final int alignmentStart, final int refLocus) {
+    public static int calcAlignmentByteArrayOffset(final Cigar cigar, final int offset, final boolean isDeletion, final int alignmentStart, final int refLocus) {
         int pileupOffset = offset;
-
-        // Special case for reads starting with insertion
-        if (isInsertionAtBeginningOfRead)
-            return 0;
 
         // Reassign the offset if we are in the middle of a deletion because of the modified representation of the read bases
         if (isDeletion) {
@@ -462,44 +396,24 @@ public class AlignmentUtils {
      * specification, one may need this convenience shortcut. Checks both 'read unmapped' flag and
      * alignment reference index/start.
      *
-     * @param r record
+     * Our life would be so much easier if all sam files followed the specs. In reality,
+     * sam files (including those generated by maq or bwa) miss headers altogether. When
+     * reading such a SAM file, reference name is set, but since there is no sequence dictionary,
+     * null is always returned for referenceIndex. Let's be paranoid here, and make sure that
+     * we do not call the read "unmapped" when it has only reference name set with ref. index missing
+     * or vice versa.
+     *
+     * @param r a non-null record
      * @return true if read is unmapped
      */
     public static boolean isReadUnmapped(final SAMRecord r) {
+        if ( r == null ) throw new IllegalArgumentException("Read cannot be null");
+
         if (r.getReadUnmappedFlag()) return true;
 
-        // our life would be so much easier if all sam files followed the specs. In reality,
-        // sam files (including those generated by maq or bwa) miss headers altogether. When
-        // reading such a SAM file, reference name is set, but since there is no sequence dictionary,
-        // null is always returned for referenceIndex. Let's be paranoid here, and make sure that
-        // we do not call the read "unmapped" when it has only reference name set with ref. index missing
-        // or vice versa.
         if ((r.getReferenceIndex() != null && r.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX
                 || r.getReferenceName() != null && !r.getReferenceName().equals(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME))
                 && r.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) return false;
-        return true;
-    }
-
-    /**
-     * Due to (unfortunate) multiple ways to indicate that read/mate is unmapped allowed by SAM format
-     * specification, one may need this convenience shortcut. Checks both 'mate unmapped' flag and
-     * alignment reference index/start of the mate.
-     *
-     * @param r sam record for the read
-     * @return true if read's mate is unmapped
-     */
-    public static boolean isMateUnmapped(final SAMRecord r) {
-        if (r.getMateUnmappedFlag()) return true;
-
-        // our life would be so much easier if all sam files followed the specs. In reality,
-        // sam files (including those generated by maq or bwa) miss headers altogether. When
-        // reading such a SAM file, reference name is set, but since there is no sequence dictionary,
-        // null is always returned for referenceIndex. Let's be paranoid here, and make sure that
-        // we do not call the read "unmapped" when it has only reference name set with ref. index missing
-        // or vice versa.
-        if ((r.getMateReferenceIndex() != null && r.getMateReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX
-                || r.getMateReferenceName() != null && !r.getMateReferenceName().equals(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME))
-                && r.getMateAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) return false;
         return true;
     }
 
@@ -593,22 +507,41 @@ public class AlignmentUtils {
         return cigar;
     }
 
-    private static boolean cigarHasZeroSizeElement(Cigar c) {
-        for (CigarElement ce : c.getCigarElements()) {
+    /**
+     * Does one of the elements in cigar have a 0 length?
+     *
+     * @param c a non-null cigar
+     * @return true if any element has 0 size
+     */
+    @Requires("c != null")
+    protected static boolean cigarHasZeroSizeElement(final Cigar c) {
+        for (final CigarElement ce : c.getCigarElements()) {
             if (ce.getLength() == 0)
                 return true;
         }
         return false;
     }
 
-    private static Cigar cleanUpCigar(Cigar c) {
-        ArrayList<CigarElement> elements = new ArrayList<CigarElement>(c.numCigarElements() - 1);
-        for (CigarElement ce : c.getCigarElements()) {
-            if (ce.getLength() != 0 &&
-                    (elements.size() != 0 || ce.getOperator() != CigarOperator.D)) {
+    /**
+     * Clean up the incoming cigar
+     *
+     * Removes elements with zero size
+     * Clips away beginning deletion operators
+     *
+     * @param c the cigar string we want to clean up
+     * @return a newly allocated, cleaned up Cigar
+     */
+    @Requires("c != null")
+    @Ensures("result != null")
+    private static Cigar cleanUpCigar(final Cigar c) {
+        final List<CigarElement> elements = new ArrayList<CigarElement>(c.numCigarElements() - 1);
+
+        for (final CigarElement ce : c.getCigarElements()) {
+            if (ce.getLength() != 0 && (! elements.isEmpty() || ce.getOperator() != CigarOperator.D)) {
                 elements.add(ce);
             }
         }
+
         return new Cigar(elements);
     }
 
