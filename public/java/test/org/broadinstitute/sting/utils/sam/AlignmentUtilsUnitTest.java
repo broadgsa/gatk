@@ -33,9 +33,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class AlignmentUtilsUnitTest {
     private SAMFileHeader header;
@@ -125,6 +123,114 @@ public class AlignmentUtilsUnitTest {
                 0,
                 start,
                 ArtificialSAMUtils.DEFAULT_READ_LENGTH);
+    }
+
+    private final List<List<CigarElement>> makeCigarElementCombinations() {
+        // this functionality can be adapted to provide input data for whatever you might want in your data
+        final List<CigarElement> cigarElements = new LinkedList<CigarElement>();
+        for ( final int size : Arrays.asList(0, 10) ) {
+            for ( final CigarOperator op : CigarOperator.values() ) {
+                cigarElements.add(new CigarElement(size, op));
+            }
+        }
+
+        final List<List<CigarElement>> combinations = new LinkedList<List<CigarElement>>();
+        for ( final int nElements : Arrays.asList(1, 2, 3) ) {
+            combinations.addAll(Utils.makePermutations(cigarElements, nElements, true));
+        }
+
+        return combinations;
+    }
+
+
+    @DataProvider(name = "NumAlignedBasesCountingSoftClips")
+    public Object[][] makeNumAlignedBasesCountingSoftClips() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final EnumSet<CigarOperator> alignedToGenome = EnumSet.of(CigarOperator.M, CigarOperator.EQ, CigarOperator.X, CigarOperator.S);
+        for ( final List<CigarElement> elements : makeCigarElementCombinations() ) {
+            int n = 0;
+            for ( final CigarElement elt : elements ) n += alignedToGenome.contains(elt.getOperator()) ? elt.getLength() : 0;
+            tests.add(new Object[]{new Cigar(elements), n});
+        }
+
+        tests.add(new Object[]{null, 0});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "NumAlignedBasesCountingSoftClips")
+    public void testNumAlignedBasesCountingSoftClips(final Cigar cigar, final int expected) {
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 1, cigar == null ? 10 : cigar.getReadLength());
+        read.setCigar(cigar);
+        Assert.assertEquals(AlignmentUtils.getNumAlignedBasesCountingSoftClips(read), expected, "Cigar " + cigar + " failed NumAlignedBasesCountingSoftClips");
+    }
+
+    @DataProvider(name = "CigarHasZeroElement")
+    public Object[][] makeCigarHasZeroElement() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        for ( final List<CigarElement> elements : makeCigarElementCombinations() ) {
+            boolean hasZero = false;
+            for ( final CigarElement elt : elements ) hasZero = hasZero || elt.getLength() == 0;
+            tests.add(new Object[]{new Cigar(elements), hasZero});
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "CigarHasZeroElement")
+    public void testCigarHasZeroSize(final Cigar cigar, final boolean hasZero) {
+        Assert.assertEquals(AlignmentUtils.cigarHasZeroSizeElement(cigar), hasZero, "Cigar " + cigar.toString() + " failed cigarHasZeroSizeElement");
+    }
+
+    @DataProvider(name = "NumHardClipped")
+    public Object[][] makeNumHardClipped() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        for ( final List<CigarElement> elements : makeCigarElementCombinations() ) {
+            int n = 0;
+            for ( final CigarElement elt : elements ) n += elt.getOperator() == CigarOperator.H ? elt.getLength() : 0;
+            tests.add(new Object[]{new Cigar(elements), n});
+        }
+
+        tests.add(new Object[]{null, 0});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "NumHardClipped")
+    public void testNumHardClipped(final Cigar cigar, final int expected) {
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 1, cigar == null ? 10 : cigar.getReadLength());
+        read.setCigar(cigar);
+        Assert.assertEquals(AlignmentUtils.getNumHardClippedBases(read), expected, "Cigar " + cigar + " failed num hard clips");
+    }
+
+    @DataProvider(name = "NumAlignedBlocks")
+    public Object[][] makeNumAlignedBlocks() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        for ( final List<CigarElement> elements : makeCigarElementCombinations() ) {
+            int n = 0;
+            for ( final CigarElement elt : elements ) {
+                switch ( elt.getOperator() ) {
+                    case M:case X:case EQ: n++; break;
+                    default: break;
+                }
+            }
+            tests.add(new Object[]{new Cigar(elements), n});
+        }
+
+        tests.add(new Object[]{null, 0});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "NumAlignedBlocks")
+    public void testNumAlignedBlocks(final Cigar cigar, final int expected) {
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 1, cigar == null ? 10 : cigar.getReadLength());
+        read.setCigar(cigar);
+        Assert.assertEquals(AlignmentUtils.getNumAlignmentBlocks(read), expected, "Cigar " + cigar + " failed NumAlignedBlocks");
     }
 
     @Test
