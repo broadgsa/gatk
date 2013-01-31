@@ -30,7 +30,7 @@ import org.broad.tribble.Feature;
 import org.broad.tribble.NameAwareCodec;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
-import org.broad.tribble.util.BlockCompressedInputStream;
+import net.sf.samtools.util.BlockCompressedInputStream;
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.variant.utils.GeneralUtils;
 import org.broadinstitute.variant.variantcontext.*;
