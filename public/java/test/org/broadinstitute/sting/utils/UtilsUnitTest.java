@@ -32,8 +32,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Testing framework for general purpose utilities class.
@@ -43,6 +42,25 @@ import java.util.Map;
  */
 
 public class UtilsUnitTest extends BaseTest {
+    @Test
+    public void testAppend() {
+        for ( int leftSize : Arrays.asList(0, 1, 2, 3) ) {
+            for ( final int rightSize : Arrays.asList(0, 1, 2) ) {
+                final List<Integer> left = new LinkedList<Integer>();
+                for ( int i = 0; i < leftSize; i++ ) left.add(i);
+                final List<Integer> total = new LinkedList<Integer>();
+                for ( int i = 0; i < leftSize + rightSize; i++ ) total.add(i);
+
+                if ( rightSize == 0 )
+                    Assert.assertEquals(Utils.append(left), total);
+                if ( rightSize == 1 )
+                    Assert.assertEquals(Utils.append(left, leftSize), total);
+                if ( rightSize == 2 )
+                    Assert.assertEquals(Utils.append(left, leftSize, leftSize + 1), total);
+            }
+        }
+
+    }
 
     @Test
     public void testDupStringNoChars() {
