@@ -43,13 +43,13 @@ public class BAQIntegrationTest extends WalkerTest {
     // --------------------------------------------------------------------------------------------------------------
     @Test
     public void testPrintReadsNoBAQ() {
-        WalkerTestSpec spec = new WalkerTestSpec( baseCommand +" -baq OFF",  1, Arrays.asList("d97340a2bba2c6320d1ebeb86024a27c"));
+        WalkerTestSpec spec = new WalkerTestSpec( baseCommand +" -baq OFF",  1, Arrays.asList("11af64ba020262d06b490bae2c5e08f8"));
         executeTest(String.format("testPrintReadsNoBAQ"), spec);
     }
 
     @Test
     public void testPrintReadsRecalBAQ() {
-        WalkerTestSpec spec = new WalkerTestSpec( baseCommand +" -baq RECALCULATE",  1, Arrays.asList("4ac691bde1ba1301a59857694fda6ae2"));
+        WalkerTestSpec spec = new WalkerTestSpec( baseCommand +" -baq RECALCULATE",  1, Arrays.asList("96ec97cf92f1f660bd5244c6b44539b3"));
         executeTest(String.format("testPrintReadsRecalBAQ"), spec);
     }
 }

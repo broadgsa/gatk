@@ -38,7 +38,7 @@ public class GATKKeyIntegrationTest extends WalkerTest {
     public static final String BASE_COMMAND = String.format("-T PrintReads -R %s -I %s -o %%s",
                                                             publicTestDir + "exampleFASTA.fasta",
                                                             publicTestDir + "exampleBAM.bam");
-    public static final String MD5_UPON_SUCCESSFUL_RUN = "b9dc5bf6753ca2819e70b056eaf61258";
+    public static final String MD5_UPON_SUCCESSFUL_RUN = "e7b4a5b62f9d4badef1cd07040011b2b";
 
 
     private void runGATKKeyTest ( String testName, String etArg, String keyArg, Class expectedException, String md5 ) {
