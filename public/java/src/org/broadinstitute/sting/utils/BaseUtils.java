@@ -38,17 +38,17 @@ import java.util.Arrays;
 public class BaseUtils {
 
     public enum Base {
-        A ((byte)'A'),
-        C ((byte)'C'),
-        G ((byte)'G'),
-        T ((byte)'T'),
-        N ((byte)'N'),
-        D ((byte)'D');
+        A ('A'),
+        C ('C'),
+        G ('G'),
+        T ('T'),
+        N ('N'),
+        D ('D');
 
         public byte base;
 
-        private Base(final byte base) {
-            this.base = base;
+        private Base(final char base) {
+            this.base = (byte)base;
         }
     }
 
