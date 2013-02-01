@@ -47,22 +47,22 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
     }
 
     final static String Q10ClipOutput = "b29c5bc1cb9006ed9306d826a11d444f";
-    @Test public void testQClip0() { testClipper("clipQSum0", "-QT 0", "117a4760b54308f81789c39b1c9de578", "33e781084379aae538954e30919e8fd3"); }
-    @Test public void testQClip2() { testClipper("clipQSum2", "-QT 2", Q10ClipOutput, "57c05b6241db7110148a91fde2d431d0"); }
-    @Test public void testQClip10() { testClipper("clipQSum10", "-QT 10", "b29c5bc1cb9006ed9306d826a11d444f", "57c05b6241db7110148a91fde2d431d0"); }
-    @Test public void testQClip20() { testClipper("clipQSum20", "-QT 20", "6c3434dce66ae5c9eeea502f10fb9bee", "67263a39d5127f2660a5b638ff32056a"); }
+    @Test public void testQClip0() { testClipper("clipQSum0", "-QT 0", "117a4760b54308f81789c39b1c9de578", "12be03c817d94bab88457e5afe74256a"); }
+    @Test public void testQClip2() { testClipper("clipQSum2", "-QT 2", Q10ClipOutput, "1cfc9da4867765c1e5b5bd6326984634"); }
+    @Test public void testQClip10() { testClipper("clipQSum10", "-QT 10", "b29c5bc1cb9006ed9306d826a11d444f", "1cfc9da4867765c1e5b5bd6326984634"); }
+    @Test public void testQClip20() { testClipper("clipQSum20", "-QT 20", "6c3434dce66ae5c9eeea502f10fb9bee", "0bcfd177fe4be422898eda8e161ebd6c"); }
 
-    @Test public void testClipRange1() { testClipper("clipRange1", "-CT 1-5", "b5acd753226e25b1e088838c1aab9117", "764846d0592f346a33525af674fd7a10"); }
-    @Test public void testClipRange2() { testClipper("clipRange2", "-CT 1-5,11-15", "be4fcad5b666a5540028b774169cbad7", "3061cf742f9e5526a61130128ae761a3"); }
+    @Test public void testClipRange1() { testClipper("clipRange1", "-CT 1-5", "b5acd753226e25b1e088838c1aab9117", "aed836c97c6383dd80e39a093cc25e08"); }
+    @Test public void testClipRange2() { testClipper("clipRange2", "-CT 1-5,11-15", "be4fcad5b666a5540028b774169cbad7", "5f6e08bd44d6faf5b85cde5d4ec1a36f"); }
 
-    @Test public void testClipSeq() { testClipper("clipSeqX", "-X CCCCC", "db199bd06561c9f2122f6ffb07941fbc", "b89459f373e40f0b835c1faff2208839"); }
-    @Test public void testClipSeqFile() { testClipper("clipSeqXF", "-XF " + privateTestDir + "seqsToClip.fasta", "d011a3152b31822475afbe0281491f8d", "24e19116ef16a37a6d095ed5c22c2466"); }
+    @Test public void testClipSeq() { testClipper("clipSeqX", "-X CCCCC", "db199bd06561c9f2122f6ffb07941fbc", "f3cb42759428df80d06e9789f9f9f762"); }
+    @Test public void testClipSeqFile() { testClipper("clipSeqXF", "-XF " + privateTestDir + "seqsToClip.fasta", "d011a3152b31822475afbe0281491f8d", "44658c018378467f809b443d047d5778"); }
 
-    @Test public void testClipMulti() { testClipper("clipSeqMulti", "-QT 10 -CT 1-5 -XF " + privateTestDir + "seqsToClip.fasta -X CCCCC", "a23187bd9bfb06557f799706d98441de", "ad8d30300cb43d5e300fcc4d2450da8e"); }
+    @Test public void testClipMulti() { testClipper("clipSeqMulti", "-QT 10 -CT 1-5 -XF " + privateTestDir + "seqsToClip.fasta -X CCCCC", "a23187bd9bfb06557f799706d98441de", "bae38f83eb9b63857f5e6e3c6e62f80c"); }
 
-    @Test public void testClipNs() { testClipper("testClipNs", "-QT 10 -CR WRITE_NS", Q10ClipOutput, "57c05b6241db7110148a91fde2d431d0"); }
-    @Test public void testClipQ0s() { testClipper("testClipQs", "-QT 10 -CR WRITE_Q0S", Q10ClipOutput, "2a1a3153e0942ab355fd8a6e082b30e0"); }
-    @Test public void testClipSoft() { testClipper("testClipSoft", "-QT 10 -CR SOFTCLIP_BASES", Q10ClipOutput, "50d43d63d8e39f67a87a6359963c6f52"); }
+    @Test public void testClipNs() { testClipper("testClipNs", "-QT 10 -CR WRITE_NS", Q10ClipOutput, "1cfc9da4867765c1e5b5bd6326984634"); }
+    @Test public void testClipQ0s() { testClipper("testClipQs", "-QT 10 -CR WRITE_Q0S", Q10ClipOutput, "3b32da2eaab7a2d4729fdb486cedbb2f"); }
+    @Test public void testClipSoft() { testClipper("testClipSoft", "-QT 10 -CR SOFTCLIP_BASES", Q10ClipOutput, "9d355b0f6d2076178e92bd7fcd8f5adb"); }
 
     @Test
     public void testUseOriginalQuals() {
@@ -74,7 +74,7 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
                         " -OQ -QT 4 -CR WRITE_Q0S" +
                         " -o %s -os %s",
                 2,
-                Arrays.asList("22db22749f811d30216215e047461621", "55c01ccc2e84481b22d3632cdb06c8ba"));
+                Arrays.asList("c83b4e2ade8654a2818fe9d405f07662", "55c01ccc2e84481b22d3632cdb06c8ba"));
         executeTest("clipOriginalQuals", spec);
     }
 }

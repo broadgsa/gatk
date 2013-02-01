@@ -78,7 +78,7 @@ public class IntervalIntegrationTest extends WalkerTest {
         // our base file
         File baseOutputFile = createTempFile("testUnmappedReadInclusion",".bam");
         spec.setOutputFileLocation(baseOutputFile);
-        spec.addAuxFile("748a38ed5eb0a043dfc7b82f0d1e8063",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
+        spec.addAuxFile("95e98192e5b90cf80eaa87a4ace263da",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
         spec.addAuxFile("fadcdf88597b9609c5f2a17f4c6eb455", createTempFileFromBase(baseOutputFile.getAbsolutePath().substring(0,baseOutputFile.getAbsolutePath().indexOf(".bam"))+".bai"));
 
         executeTest("testUnmappedReadInclusion",spec);
@@ -99,7 +99,7 @@ public class IntervalIntegrationTest extends WalkerTest {
         // our base file
         File baseOutputFile = createTempFile("testUnmappedReadInclusion",".bam");
         spec.setOutputFileLocation(baseOutputFile);
-        spec.addAuxFile("083ef1e9ded868e0d12c05a1354c0319",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
+        spec.addAuxFile("3944b5a6bfc06277ed3afb928a20d588",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
         spec.addAuxFile("fa90ff91ac0cc689c71a3460a3530b8b", createTempFileFromBase(baseOutputFile.getAbsolutePath().substring(0,baseOutputFile.getAbsolutePath().indexOf(".bam"))+".bai"));
 
         executeTest("testUnmappedReadInclusion",spec);
