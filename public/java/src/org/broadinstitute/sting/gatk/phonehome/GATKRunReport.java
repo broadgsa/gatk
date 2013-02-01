@@ -73,8 +73,8 @@ import java.util.zip.GZIPOutputStream;
  * GATK run report database.
  */
 public class GATKRunReport {
-    protected final static String AWS_ACCESS_KEY_MD5 = "c0f0afa1ff5ba41d9bf216cfcdbf26bf";
-    protected final static String AWS_SECRET_KEY_MD5 = "db2f13b3a7c98ad24e28783733ec4a62";
+    protected final static String AWS_ACCESS_KEY_MD5 = "43433e5488d60788042ed5de3dcf9b0a";
+    protected final static String AWS_SECRET_KEY_MD5 = "0aa28b227ecacbdc9d2d5e8d82b10d32";
 
     /**
      * The root file system directory where we keep common report data
