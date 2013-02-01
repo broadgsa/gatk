@@ -388,6 +388,15 @@ public class Utils {
        return C;
     }
 
+    /**
+     * Appends String(s) B to array A.
+     * @param A First array.
+     * @param B Strings to append.
+     * @return A with B(s) appended.
+     */
+    public static String[] appendArray(String[] A, String... B) {
+        return concatArrays(A, B);
+    }
 
     public static <T extends Comparable<T>> List<T> sorted(Collection<T> c) {
         return sorted(c, false);
