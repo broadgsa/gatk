@@ -31,9 +31,6 @@ import org.testng.annotations.Test;
 import java.util.Arrays;
 
 public class PileupWalkerIntegrationTest extends WalkerTest {
-    String gatkSpeedupArgs="-T Pileup -I " + validationDataLocation + "NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam "
-            + "-R " + hg19Reference + " -o %s ";
-
     @Test
     public void testGnarleyFHSPileup() {
         String gatk_args = "-T Pileup -I " + validationDataLocation + "FHS_Pileup_Test.bam "
@@ -66,32 +63,5 @@ public class PileupWalkerIntegrationTest extends WalkerTest {
                 + " -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 1, Arrays.asList(SingleReadAligningOffChromosome1MD5));
         executeTest("Testing single read spanning off chromosome 1 unindexed", spec);
-    }
-
-    /************************/
-
-    //testing speedup to GATKBAMIndex
-
-
-    @Test
-    public void  testPileupOnLargeBamChr20(){
-        WalkerTestSpec spec = new WalkerTestSpec(gatkSpeedupArgs + "-L 20:1-76,050", 1, Arrays.asList("8702701350de11a6d28204acefdc4775"));
-        executeTest("Testing single on big BAM at start of chromosome 20", spec);
-    }
-    @Test
-    public void  testPileupOnLargeBamMid20(){
-        WalkerTestSpec spec = new WalkerTestSpec(gatkSpeedupArgs + "-L 20:10,000,000-10,001,100", 1, Arrays.asList("818cf5a8229efe6f89fc1cd8145ccbe3"));
-        executeTest("Testing single on big BAM somewhere in chromosome 20", spec);
-    }
-    @Test
-    public void  testPileupOnLargeBamEnd20(){
-        WalkerTestSpec spec = new WalkerTestSpec(gatkSpeedupArgs + "-L 20:62,954,114-63,025,520", 1, Arrays.asList("22471ea4a12e5139aef62bf8ff2a5b63"));
-        executeTest("Testing single at end of chromosome 20", spec);
-    }
-    @Test
-    public void  testPileupOnLargeBam20Many(){
-        WalkerTestSpec spec = new WalkerTestSpec(gatkSpeedupArgs + "-L 20:1-76,050 -L 20:20,000,000-20,000,100 -L 20:40,000,000-40,000,100 -L 20:30,000,000-30,000,100 -L 20:50,000,000-50,000,100 -L 20:62,954,114-63,025,520 ",
-                1, Arrays.asList("08d899ed7c5a76ef3947bf67338acda1"));
-        executeTest("Testing single on big BAM many places", spec);
     }
 }
