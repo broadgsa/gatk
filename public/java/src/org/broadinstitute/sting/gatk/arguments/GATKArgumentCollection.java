@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -68,10 +69,10 @@ public class GATKArgumentCollection {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate? STANDARD is the default, can be NO_ET so nothing is posted to the run repository. Please see " + GATKRunReport.PHONE_HOME_DOCS_URL + " for details.", required = false)
+    @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate? STANDARD is the default, can be NO_ET so nothing is posted to the run repository. Please see " + UserException.PHONE_HOME_DOCS_URL + " for details.", required = false)
     public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.STANDARD;
 
-    @Argument(fullName = "gatk_key", shortName = "K", doc="GATK Key file. Required if running with -et NO_ET. Please see " + GATKRunReport.PHONE_HOME_DOCS_URL + " for details.", required = false)
+    @Argument(fullName = "gatk_key", shortName = "K", doc="GATK Key file. Required if running with -et NO_ET. Please see " + UserException.PHONE_HOME_DOCS_URL + " for details.", required = false)
     public File gatkKeyFile = null;
 
     /**

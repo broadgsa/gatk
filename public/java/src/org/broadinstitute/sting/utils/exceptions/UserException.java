@@ -28,7 +28,6 @@ package org.broadinstitute.sting.utils.exceptions;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
-import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.help.HelpConstants;
@@ -50,6 +49,11 @@ import java.io.File;
         groupName = "User exceptions",
         summary = "Exceptions caused by incorrect user behavior, such as bad files, bad arguments, etc." )
 public class UserException extends ReviewedStingException {
+    /**
+     * The URL where people can get help messages.  Printed when an error occurs
+     */
+    public static final String PHONE_HOME_DOCS_URL = "http://gatkforums.broadinstitute.org/discussion/1250/what-is-phone-home-and-how-does-it-affect-me#latest";
+
     public UserException(String msg) { super(msg); }
     public UserException(String msg, Throwable e) { super(msg, e); }
     private UserException(Throwable e) { super("", e); } // cannot be called, private access
@@ -407,7 +411,7 @@ public class UserException extends ReviewedStingException {
         public UnreadableKeyException ( File f, Exception e ) {
             super(String.format("Key file %s cannot be read (possibly the key file is corrupt?). Error was: %s. " +
                                 "Please see %s for help.",
-                                f.getAbsolutePath(), getMessage(e), GATKRunReport.PHONE_HOME_DOCS_URL));
+                                f.getAbsolutePath(), getMessage(e), PHONE_HOME_DOCS_URL));
         }
 
         public UnreadableKeyException ( String message, Exception e ) {
@@ -417,7 +421,7 @@ public class UserException extends ReviewedStingException {
         public UnreadableKeyException ( String message ) {
             super(String.format("Key file cannot be read (possibly the key file is corrupt?): %s. " +
                                 "Please see %s for help.",
-                                message, GATKRunReport.PHONE_HOME_DOCS_URL));
+                                message, PHONE_HOME_DOCS_URL));
         }
     }
 
@@ -426,7 +430,7 @@ public class UserException extends ReviewedStingException {
             super(String.format("The signature in key file %s failed cryptographic verification. " +
                                 "If this key was valid in the past, it's likely been revoked. " +
                                 "Please see %s for help.",
-                                f.getAbsolutePath(), GATKRunReport.PHONE_HOME_DOCS_URL));
+                                f.getAbsolutePath(), PHONE_HOME_DOCS_URL));
         }
     }
 }
