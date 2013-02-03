@@ -165,6 +165,11 @@ public class GATKRunReport {
     @Element(required = true, name = "percent-time-waiting-for-io")
     private String percentTimeWaitingForIO;
 
+    /** The error message, if one occurred, or null if none did */
+    public String errorMessage = null;
+    /** The error that occurred, if one did, or null if none did */
+    public Throwable errorThrown = null;
+
     /**
      * How should the GATK report its usage?
      */
@@ -542,11 +547,7 @@ public class GATKRunReport {
         private final byte[] contents;
 
         /** The s3Object that we created to upload, or null if it failed */
-        public S3Object s3Object;
-        /** The error message, if one occurred, or null if none did */
-        public String errorMsg = null;
-        /** The error that occurred, if one did, or null if none did */
-        public Throwable errorThrow;
+        public S3Object s3Object = null;
 
         @Requires({"filename != null", "contents != null"})
         public S3PutRunnable(final String filename, final byte[] contents){
@@ -583,23 +584,14 @@ public class GATKRunReport {
                         throw new IllegalStateException("Unexpected AWS exception");
                 }
             } catch ( S3ServiceException e ) {
-                setException("S3 exception occurred", e);
+                exceptDuringRunReport("S3 exception occurred", e);
             } catch ( NoSuchAlgorithmException e ) {
-                setException("Couldn't calculate MD5", e);
+                exceptDuringRunReport("Couldn't calculate MD5", e);
             } catch ( IOException e ) {
-                setException("Couldn't read report file", e);
+                exceptDuringRunReport("Couldn't read report file", e);
+            } catch ( Exception e ) {
+                exceptDuringRunReport("An unexpected exception occurred during posting", e);
             }
-        }
-
-        /**
-         * Set the error message and thrown exception, if one did occurred
-         *
-         * @param msg the error message
-         * @param e the exception that occurred
-         */
-        private void setException(final String msg, final Throwable e){
-            errorMsg=msg;
-            errorThrow=e;
         }
     }
 
@@ -643,11 +635,7 @@ public class GATKRunReport {
                 logger.debug("Uploaded to AWS: " + s3run.s3Object);
                 return s3run.s3Object;
             } else {
-                if((s3run.errorMsg != null) && (s3run.errorThrow != null)){
-                    exceptDuringRunReport(s3run.errorMsg,s3run.errorThrow);
-                } else {
-                    exceptDuringRunReport("Run statistics report upload to AWS S3 failed");
-                }
+                // an exception occurred, the thread should have already invoked the exceptDuringRunReport function
             }
         } catch ( IOException e ) {
             exceptDuringRunReport("Couldn't read report file", e);
@@ -658,12 +646,21 @@ public class GATKRunReport {
         return null;
     }
 
+    // ---------------------------------------------------------------------------
+    //
+    // Error handling code
+    //
+    // ---------------------------------------------------------------------------
+
     /**
      * Note that an exception occurred during creating or writing this report
      * @param msg the message to print
      * @param e the exception that occurred
      */
-    private void exceptDuringRunReport(String msg, Throwable e) {
+    @Ensures("exceptionOccurredDuringPost()")
+    private void exceptDuringRunReport(final String msg, final Throwable e) {
+        this.errorMessage = msg;
+        this.errorThrown = e;
         logger.debug("A problem occurred during GATK run reporting [*** everything is fine, but no report could be generated; please do not post this to the support forum ***].  Message is: " + msg + ".  Error message is: " + e.getMessage());
     }
 
@@ -671,8 +668,50 @@ public class GATKRunReport {
      * Note that an exception occurred during creating or writing this report
      * @param msg the message to print
      */
-    private void exceptDuringRunReport(String msg) {
+    @Ensures("exceptionOccurredDuringPost()")
+    private void exceptDuringRunReport(final String msg) {
+        this.errorMessage = msg;
         logger.debug("A problem occurred during GATK run reporting [*** everything is fine, but no report could be generated; please do not post this to the support forum ***].  Message is " + msg);
+    }
+
+    /**
+     * Did an error occur during the posting of this run report?
+     * @return true if so, false if not
+     */
+    public boolean exceptionOccurredDuringPost() {
+        return getErrorMessage() != null;
+    }
+
+    /**
+     * If an error occurred during posting of this report, retrieve the message of the error that occurred, or null if
+     * no error occurred
+     * @return a string describing the error that occurred, or null if none did
+     */
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    /**
+     * Get the throwable that caused the exception during posting of this message, or null if none was available
+     *
+     * Note that getting a null valuable from this function doesn't not imply that no error occurred.  Some
+     * errors that occurred many not have generated a throwable.
+     *
+     * @return the Throwable that caused the error, or null if no error occurred or was not caused by a throwable
+     */
+    public Throwable getErrorThrown() {
+        return errorThrown;
+    }
+
+    /**
+     * Helper method to format the exception that occurred during posting, or a string saying none occurred
+     * @return a non-null string
+     */
+    @Ensures("result != null")
+    protected String formatError() {
+        return exceptionOccurredDuringPost()
+                ? String.format("Exception message=%s with cause=%s", getErrorMessage(), getErrorThrown())
+                : "No exception occurred";
     }
 
     // ---------------------------------------------------------------------------
