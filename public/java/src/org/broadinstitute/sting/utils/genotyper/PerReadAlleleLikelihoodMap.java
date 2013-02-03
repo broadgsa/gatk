@@ -131,7 +131,6 @@ public class PerReadAlleleLikelihoodMap {
      * @param p                 Pileup element
      * @return
      */
-    @Ensures("result != null")
     public boolean containsPileupElement(PileupElement p) {
         if (p==null )
            throw new IllegalArgumentException("Invalid pileup element");
