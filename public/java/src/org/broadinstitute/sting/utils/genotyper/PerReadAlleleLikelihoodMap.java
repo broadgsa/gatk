@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.utils.genotyper;
 
 
+import com.google.java.contract.Ensures;
 import org.broadinstitute.sting.gatk.downsampling.AlleleBiasedDownsamplingUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -35,7 +36,12 @@ import org.broadinstitute.variant.variantcontext.Allele;
 import java.io.PrintStream;
 import java.util.*;
 
+/**
+ *   Wrapper class that holds a set of maps of the form (Read -> Map(Allele->Double))
+ *   For each read, this holds underlying alleles represented by an aligned read, and corresponding relative likelihood.
+ */
 public class PerReadAlleleLikelihoodMap {
+
 
     public static final double INFORMATIVE_LIKELIHOOD_THRESHOLD = 0.2;
 
@@ -47,6 +53,12 @@ public class PerReadAlleleLikelihoodMap {
         alleles = new ArrayList<Allele>();
     }
 
+    /**
+     * Adds a read, allele and corresponding likelihood to map
+     * @param read                       SAM record to add
+     * @param a                          corresponding allele
+     * @param likelihood                 corresponding likelihood
+     */
     public void add(GATKSAMRecord read, Allele a, Double likelihood) {
         Map<Allele,Double> likelihoodMap;
         if (likelihoodReadMap.containsKey(read)){
@@ -97,15 +109,33 @@ public class PerReadAlleleLikelihoodMap {
             likelihoodReadMap.remove(read);
     }
 
+    @Ensures("result >=0")
     public int size() {
         return likelihoodReadMap.size();
     }
 
+    /**
+     * Helper function to add the read underneath a pileup element to the map
+     * @param p                              Pileup element
+     * @param a                              Corresponding allele
+     * @param likelihood                     Allele likelihood
+     */
     public void add(PileupElement p, Allele a, Double likelihood) {
+        if (p==null || p.getRead()==null || a == null )
+            throw new IllegalArgumentException("Invalid parameters passed to PerReadAlleleLikelihoodMap.add");
         add(p.getRead(), a, likelihood);
     }
 
+    /**
+     * Does the current map contain the key associated with a particular SAM record in pileup?
+     * @param p                 Pileup element
+     * @return
+     */
+    @Ensures("result != null")
     public boolean containsPileupElement(PileupElement p) {
+        if (p==null )
+           throw new IllegalArgumentException("Invalid pileup element");
+
         return likelihoodReadMap.containsKey(p.getRead());
     }
 
@@ -140,10 +170,20 @@ public class PerReadAlleleLikelihoodMap {
         return likelihoodReadMap.get(p.getRead());
     }
 
+
+    /**
+     * For a given alleleMap, return most likely allele, i.e. the one with highest associated likelihood
+     * @param alleleMap          Underlying allele map
+     * @return                   Most likely allele. If all alleles are equally likely, returns a no-call allele.
+     */
+    @Ensures("result != null")
     public static Allele getMostLikelyAllele( final Map<Allele,Double> alleleMap ) {
         double maxLike = Double.NEGATIVE_INFINITY;
         double prevMaxLike = Double.NEGATIVE_INFINITY;
         Allele mostLikelyAllele = Allele.NO_CALL;
+
+        if (alleleMap==null)
+            throw new IllegalArgumentException("alleleMap in getMostLikelyAllele() method can't be null");
 
         for (final Map.Entry<Allele,Double> el : alleleMap.entrySet()) {
             if (el.getValue() > maxLike) {
