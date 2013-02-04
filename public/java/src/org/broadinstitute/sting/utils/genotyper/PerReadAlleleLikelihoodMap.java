@@ -54,12 +54,16 @@ public class PerReadAlleleLikelihoodMap {
     }
 
     /**
-     * Adds a read, allele and corresponding likelihood to map
-     * @param read                       SAM record to add
-     * @param a                          corresponding allele
-     * @param likelihood                 corresponding likelihood
+     * Add a new entry into the Read -> ( Allele -> Likelihood ) map of maps.
+     * @param read - the GATKSAMRecord that was evaluated
+     * @param a - the Allele against which the GATKSAMRecord was evaluated
+     * @param likelihood - the likelihood score resulting from the evaluation of "read" against "a"
      */
-    public void add(GATKSAMRecord read, Allele a, Double likelihood) {
+    public void add(final GATKSAMRecord read, final Allele a, final Double likelihood) {
+        if ( read == null ) throw new IllegalArgumentException("Cannot add a null read to the allele likelihood map");
+        if ( a == null ) throw new IllegalArgumentException("Cannot add a null allele to the allele likelihood map");
+        if ( likelihood == null ) throw new IllegalArgumentException("Likelihood cannot be null");
+        if ( likelihood > 0.0 ) throw new IllegalArgumentException("Likelihood must be negative (L = log(p))");
         Map<Allele,Double> likelihoodMap;
         if (likelihoodReadMap.containsKey(read)){
             // seen pileup element before
@@ -80,6 +84,12 @@ public class PerReadAlleleLikelihoodMap {
         return AlleleBiasedDownsamplingUtils.createAlleleBiasedBasePileup(pileup, downsamplingFraction, log);
     }
 
+    /**
+     * For each allele "a" , identify those reads whose most likely allele is "a", and remove a "downsamplingFraction" proportion
+     * of those reads from the "likelihoodReadMap". This is used for e.g. sample contamination
+     * @param downsamplingFraction - the fraction of supporting reads to remove from each allele. If <=0 all reads kept, if >=1 all reads tossed.
+     * @param log - a PrintStream to log the removed reads to (passed through to the utility function)
+     */
     public void performPerAlleleDownsampling(final double downsamplingFraction, final PrintStream log) {
         // special case removal of all or no reads
         if ( downsamplingFraction <= 0.0 )
@@ -90,11 +100,25 @@ public class PerReadAlleleLikelihoodMap {
         }
 
         // start by stratifying the reads by the alleles they represent at this position
+        final Map<Allele, List<GATKSAMRecord>> alleleReadMap = getAlleleStratifiedReadMap();
+
+        // compute the reads to remove and actually remove them
+        final List<GATKSAMRecord> readsToRemove = AlleleBiasedDownsamplingUtils.selectAlleleBiasedReads(alleleReadMap, downsamplingFraction, log);
+        for ( final GATKSAMRecord read : readsToRemove )
+            likelihoodReadMap.remove(read);
+    }
+
+    /**
+     * Convert the @likelihoodReadMap to a map of alleles to reads, where each read is mapped uniquely to the allele
+     * for which it has the greatest associated likelihood
+     * @return a map from each allele to a list of reads that 'support' the allele
+     */
+    protected Map<Allele,List<GATKSAMRecord>> getAlleleStratifiedReadMap() {
         final Map<Allele, List<GATKSAMRecord>> alleleReadMap = new HashMap<Allele, List<GATKSAMRecord>>(alleles.size());
-        for ( Allele allele : alleles )
+        for ( final Allele allele : alleles )
             alleleReadMap.put(allele, new ArrayList<GATKSAMRecord>());
 
-        for ( Map.Entry<GATKSAMRecord, Map<Allele, Double>> entry : likelihoodReadMap.entrySet() ) {
+        for ( final Map.Entry<GATKSAMRecord, Map<Allele, Double>> entry : likelihoodReadMap.entrySet() ) {
             // do not remove reduced reads!
             if ( !entry.getKey().isReducedRead() ) {
                 final Allele bestAllele = getMostLikelyAllele(entry.getValue());
@@ -103,10 +127,7 @@ public class PerReadAlleleLikelihoodMap {
             }
         }
 
-        // compute the reads to remove and actually remove them
-        final List<GATKSAMRecord> readsToRemove = AlleleBiasedDownsamplingUtils.selectAlleleBiasedReads(alleleReadMap, downsamplingFraction, log);
-        for ( final GATKSAMRecord read : readsToRemove )
-            likelihoodReadMap.remove(read);
+        return alleleReadMap;
     }
 
     @Ensures("result >=0")
@@ -121,20 +142,22 @@ public class PerReadAlleleLikelihoodMap {
      * @param likelihood                     Allele likelihood
      */
     public void add(PileupElement p, Allele a, Double likelihood) {
-        if (p==null || p.getRead()==null || a == null )
-            throw new IllegalArgumentException("Invalid parameters passed to PerReadAlleleLikelihoodMap.add");
+        if (p==null)
+            throw new IllegalArgumentException("Pileup element cannot be null");
+        if ( p.getRead()==null )
+           throw new IllegalArgumentException("Read underlying pileup element cannot be null");
+        if ( a == null )
+           throw new IllegalArgumentException("Allele for add() cannot be null");
+
         add(p.getRead(), a, likelihood);
     }
 
-    /**
+     /**
      * Does the current map contain the key associated with a particular SAM record in pileup?
      * @param p                 Pileup element
      * @return
      */
-    public boolean containsPileupElement(PileupElement p) {
-        if (p==null )
-           throw new IllegalArgumentException("Invalid pileup element");
-
+    public boolean containsPileupElement(final PileupElement p) {
         return likelihoodReadMap.containsKey(p.getRead());
     }
 
@@ -145,6 +168,7 @@ public class PerReadAlleleLikelihoodMap {
     public Map<GATKSAMRecord,Map<Allele,Double>> getLikelihoodReadMap() {
         return likelihoodReadMap;
     }
+
     public void clear() {
         alleles.clear();
         likelihoodReadMap.clear();
@@ -162,7 +186,7 @@ public class PerReadAlleleLikelihoodMap {
         return likelihoodReadMap.size();
     }
 
-    public Map<Allele,Double> getLikelihoodsAssociatedWithPileupElement(PileupElement p) {
+    public Map<Allele,Double> getLikelihoodsAssociatedWithPileupElement(final PileupElement p) {
         if (!likelihoodReadMap.containsKey(p.getRead()))
             return null;
 
@@ -171,18 +195,20 @@ public class PerReadAlleleLikelihoodMap {
 
 
     /**
-     * For a given alleleMap, return most likely allele, i.e. the one with highest associated likelihood
-     * @param alleleMap          Underlying allele map
-     * @return                   Most likely allele. If all alleles are equally likely, returns a no-call allele.
+     * Given a map from alleles to likelihoods, find the allele with the largest likelihood.
+     * If the difference between the most-likely allele and the next-most-likely allele is < INFORMATIVE_LIKELIHOOD_THRESHOLD
+     * then the most likely allele is set to "no call"
+     * @param alleleMap - a map from alleles to likelihoods
+     * @return - the most likely allele, or NO_CALL if two or more alleles have likelihoods within INFORMATIVE_LIKELIHOOD_THRESHOLD
+     * of one another. By default empty allele maps will return NO_CALL, and allele maps with a single entry will return the
+     * corresponding key
      */
     @Ensures("result != null")
     public static Allele getMostLikelyAllele( final Map<Allele,Double> alleleMap ) {
+        if ( alleleMap == null ) throw new IllegalArgumentException("The allele to likelihood map cannot be null");
         double maxLike = Double.NEGATIVE_INFINITY;
         double prevMaxLike = Double.NEGATIVE_INFINITY;
         Allele mostLikelyAllele = Allele.NO_CALL;
-
-        if (alleleMap==null)
-            throw new IllegalArgumentException("alleleMap in getMostLikelyAllele() method can't be null");
 
         for (final Map.Entry<Allele,Double> el : alleleMap.entrySet()) {
             if (el.getValue() > maxLike) {
