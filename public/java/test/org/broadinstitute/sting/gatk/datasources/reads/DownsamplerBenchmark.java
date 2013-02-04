@@ -86,7 +86,7 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
         },
         PER_SAMPLE {
             @Override
-            DownsamplingMethod create() { return DownsamplingMethod.getDefaultDownsamplingMethod(new CountLoci(), false); }
+            DownsamplingMethod create() { return DownsamplingMethod.getDefaultDownsamplingMethod(new CountLoci()); }
         };
         abstract DownsamplingMethod create();
     }

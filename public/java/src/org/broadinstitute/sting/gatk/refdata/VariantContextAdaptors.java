@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.codecs.hapmap.RawHapMapFeature;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.variantcontext.*;
 
 import java.util.*;
@@ -194,17 +195,18 @@ public class VariantContextAdaptors {
                 return null; // we weren't given enough reference context to create the VariantContext
 
             final byte refBaseForIndel = ref.getBases()[index];
+            final boolean refBaseIsDash = dbsnp.getNCBIRefBase().equals("-");
 
             boolean addPaddingBase;
             if ( isSNP(dbsnp) || isMNP(dbsnp) )
                 addPaddingBase = false;
             else if ( isIndel(dbsnp) || dbsnp.getVariantType().contains("mixed") )
-                addPaddingBase = VariantContextUtils.requiresPaddingBase(stripNullDashes(getAlleleList(dbsnp)));
+                addPaddingBase = refBaseIsDash || GATKVariantContextUtils.requiresPaddingBase(stripNullDashes(getAlleleList(dbsnp)));
             else
                 return null; // can't handle anything else
 
             Allele refAllele;
-            if ( dbsnp.getNCBIRefBase().equals("-") )
+            if ( refBaseIsDash )
                 refAllele = Allele.create(refBaseForIndel, true);
             else if ( ! Allele.acceptableAlleleBases(dbsnp.getNCBIRefBase()) )
                 return null;

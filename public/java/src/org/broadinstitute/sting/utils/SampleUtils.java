@@ -29,11 +29,11 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
-import org.broadinstitute.variant.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.text.ListFileUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.variant.variantcontext.VariantContextUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -117,19 +117,41 @@ public class SampleUtils {
     }
 
     public static Set<String> getSampleList(Map<String, VCFHeader> headers) {
-        return getSampleList(headers, VariantContextUtils.GenotypeMergeType.PRIORITIZE);
+        return getSampleList(headers, GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE);
     }
 
-    public static Set<String> getSampleList(Map<String, VCFHeader> headers, VariantContextUtils.GenotypeMergeType mergeOption) {
+    public static Set<String> getSampleList(Map<String, VCFHeader> headers, GATKVariantContextUtils.GenotypeMergeType mergeOption) {
         Set<String> samples = new TreeSet<String>();
         for ( Map.Entry<String, VCFHeader> val : headers.entrySet() ) {
             VCFHeader header = val.getValue();
             for ( String sample : header.getGenotypeSamples() ) {
-                samples.add(VariantContextUtils.mergedSampleName(val.getKey(), sample, mergeOption == VariantContextUtils.GenotypeMergeType.UNIQUIFY));
+                samples.add(GATKVariantContextUtils.mergedSampleName(val.getKey(), sample, mergeOption == GATKVariantContextUtils.GenotypeMergeType.UNIQUIFY));
             }
         }
 
         return samples;
+    }
+
+
+    /**
+     *
+     * @param VCF_Headers
+     * @return false if there are names duplication between the samples names in the VCF headers
+     */
+    public static boolean verifyUniqueSamplesNames(Map<String, VCFHeader> VCF_Headers) {
+        Set<String> samples = new HashSet<String>();
+        for ( Map.Entry<String, VCFHeader> val : VCF_Headers.entrySet() ) {
+            VCFHeader header = val.getValue();
+            for ( String sample : header.getGenotypeSamples() ) {
+                if (samples.contains(sample)){
+
+                    return false;
+                }
+                samples.add(sample);
+            }
+        }
+
+        return true;
     }
 
     /**

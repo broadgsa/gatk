@@ -634,6 +634,30 @@ public class MathUtils {
         return normalizeFromLog10(array, false);
     }
 
+    /**
+     * normalizes the real-space probability array.
+     *
+     * Does not assume anything about the values in the array, beyond that no elements are below 0.  It's ok
+     * to have values in the array of > 1, or have the sum go above 0.
+     *
+     * @param array the array to be normalized
+     * @return a newly allocated array corresponding the normalized values in array
+     */
+    @Requires("array != null")
+    @Ensures({"result != null"})
+    public static double[] normalizeFromRealSpace(final double[] array) {
+        if ( array.length == 0 )
+            return array;
+
+        final double sum = sum(array);
+        final double[] normalized = new double[array.length];
+        if ( sum < 0.0 ) throw new IllegalArgumentException("Values in probability array sum to a negative number " + sum);
+        for ( int i = 0; i < array.length; i++ ) {
+            normalized[i] = array[i] / sum;
+        }
+        return normalized;
+    }
+
     public static int maxElementIndex(final double[] array) {
         return maxElementIndex(array, array.length);
     }

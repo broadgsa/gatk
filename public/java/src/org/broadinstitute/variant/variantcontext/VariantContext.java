@@ -25,10 +25,10 @@
 
 package org.broadinstitute.variant.variantcontext;
 
-import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.broadinstitute.variant.vcf.*;
 
 import java.util.*;
@@ -202,7 +202,6 @@ import java.util.*;
 public class VariantContext implements Feature { // to enable tribble integration
     private final static boolean WARN_ABOUT_BAD_END = true;
     private final static int MAX_ALLELE_SIZE_FOR_NON_SV = 150;
-    final protected static Logger logger = Logger.getLogger(VariantContext.class);
     private boolean fullyDecoded = false;
     protected CommonInfo commonInfo = null;
     public final static double NO_LOG10_PERROR = CommonInfo.NO_LOG10_PERROR;
@@ -625,6 +624,10 @@ public class VariantContext implements Feature { // to enable tribble integratio
     public int getAttributeAsInt(String key, int defaultValue)            { return commonInfo.getAttributeAsInt(key, defaultValue); }
     public double getAttributeAsDouble(String key, double  defaultValue)  { return commonInfo.getAttributeAsDouble(key, defaultValue); }
     public boolean getAttributeAsBoolean(String key, boolean  defaultValue)  { return commonInfo.getAttributeAsBoolean(key, defaultValue); }
+
+    public CommonInfo getCommonInfo() {
+        return commonInfo;
+    }
 
     // ---------------------------------------------------------------------------------------------------------
     //
@@ -1176,10 +1179,12 @@ public class VariantContext implements Feature { // to enable tribble integratio
                 final String message = "Badly formed variant context at location " + getChr() + ":"
                         + getStart() + "; getEnd() was " + getEnd()
                         + " but this VariantContext contains an END key with value " + end;
-                if ( WARN_ABOUT_BAD_END )
-                    logger.warn(message);
-                else
+                if ( GeneralUtils.DEBUG_MODE_ENABLED && WARN_ABOUT_BAD_END ) {
+                    System.err.println(message);
+                }
+                else {
                     throw new TribbleException(message);
+                }
             }
         } else {
             final long length = (stop - start) + 1;

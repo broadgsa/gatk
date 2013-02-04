@@ -130,7 +130,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
              getArgumentCollection().phoneHomeType == GATKRunReport.PhoneHomeOption.STDOUT ) {
             if ( getArgumentCollection().gatkKeyFile == null ) {
                 throw new UserException("Running with the -et NO_ET or -et STDOUT option requires a GATK Key file. " +
-                                        "Please see " + GATKRunReport.PHONE_HOME_DOCS_URL +
+                                        "Please see " + UserException.PHONE_HOME_DOCS_URL +
                                         " for more information and instructions on how to obtain a key.");
             }
             else {

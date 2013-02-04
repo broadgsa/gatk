@@ -2,26 +2,9 @@
 <package name="picard-private-parts">
   <executable name="picard-private-parts">
     <dependencies>
-      <class name="edu.mit.broad.picard.genotype.DiploidGenotype" />
-      <class name="edu.mit.broad.picard.genotype.geli.GeliFileReader" />
-      <class name="edu.mit.broad.picard.genotype.geli.GeliFileWriter" />
-      <class name="edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods" />
-      <class name="edu.mit.broad.picard.util.PasteParser" />
       <class name="edu.mit.broad.picard.util.PicardAggregationFsUtil" />
-      <class name="edu.mit.broad.picard.util.PicardFileSystemUtil" />
-      <class name="edu.mit.broad.picard.variation.KnownVariantCodecV2" />
-      <class name="edu.mit.broad.picard.variation.KnownVariantCodec" />
-      <class name="edu.mit.broad.picard.variation.KnownVariantFileHeader" />
-      <class name="edu.mit.broad.picard.variation.VariantType" />
-      <class name="edu.mit.broad.picard.variation.ObsoleteKnownVariantCodecV1" />
-      <class name="edu.mit.broad.picard.variation.AbstractKnownVariantCodec" />
-      <class name="edu.mit.broad.picard.variation.KnownVariantIterator" />
-      <class name="edu.mit.broad.picard.variation.KnownVariantCodecFactory" />
-      <class name="edu.mit.broad.picard.variation.KnownVariant" />
-      <class name="net.sf.picard.util.IlluminaUtil" />
       <class name="edu.mit.broad.picard.genotype.fingerprint.v2.FingerprintingSummaryMetrics" />
       <class name="edu.mit.broad.picard.genotype.concordance.DbSnpMatchMetrics" />
     </dependencies>
-
   </executable>
 </package>

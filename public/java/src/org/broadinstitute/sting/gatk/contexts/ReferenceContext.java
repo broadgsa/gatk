@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.contexts;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import org.broadinstitute.variant.utils.BaseUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 

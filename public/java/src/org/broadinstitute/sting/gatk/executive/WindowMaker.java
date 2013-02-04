@@ -111,9 +111,6 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
         this.sourceInfo = shard.getReadProperties();
         this.readIterator = new GATKSAMIterator(iterator);
 
-        // Use the legacy version of LocusIteratorByState if legacy downsampling was requested:
-        if ( sourceInfo.getDownsamplingMethod().useLegacyDownsampler )
-            throw new IllegalArgumentException("legacy downsampler no longer supported in the window maker");
         this.libs = new LocusIteratorByState(readIterator,sourceInfo,genomeLocParser,sampleNames);
         this.sourceIterator = new PeekableIterator<AlignmentContext>(libs);
 

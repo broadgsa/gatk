@@ -12,6 +12,7 @@
 *.ipr
 *.iws
 *.iml
+*.pyc
 .DS_Store
 queueScatterGather
 /foo*
@@ -23,3 +24,4 @@ dist/
 dump/
 lib/
 out/
+/atlassian-ide-plugin.xml

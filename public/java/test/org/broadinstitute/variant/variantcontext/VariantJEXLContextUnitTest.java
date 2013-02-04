@@ -25,13 +25,8 @@
 
 package org.broadinstitute.variant.variantcontext;
 
-import net.sf.samtools.SAMFileHeader;
+import org.broadinstitute.variant.VariantBaseTest;
 import org.testng.Assert;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -49,8 +44,7 @@ import java.util.Map;
  *
  * Test out parts of the VariantJEXLContext
  */
-public class VariantJEXLContextUnitTest extends BaseTest {
-
+public class VariantJEXLContextUnitTest extends VariantBaseTest {
 
     private static String expression = "QUAL > 500.0";
     private static VariantContextUtils.JexlVCMatchExp exp;
@@ -60,27 +54,15 @@ public class VariantJEXLContextUnitTest extends BaseTest {
     Allele ATC, ATCref;
     // A [ref] / T at 10
 
-    GenomeLoc snpLoc;
     // - / ATC [ref] from 20-23
-
-    private static int startingChr = 1;
-    private static int endingChr = 2;
-    private static int readCount = 100;
-    private static int DEFAULT_READ_LENGTH = ArtificialSAMUtils.DEFAULT_READ_LENGTH;
-    static SAMFileHeader header;
-
-    private static GenomeLocParser genomeLocParser;
 
     @BeforeClass
     public void beforeClass() {
-        header = ArtificialSAMUtils.createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
-        genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
         try {
             exp = new VariantContextUtils.JexlVCMatchExp("name", VariantContextUtils.engine.createExpression(expression));
         } catch (Exception e) {
             Assert.fail("Unable to create expression" + e.getMessage());
         }
-        snpLoc = genomeLocParser.createGenomeLoc("chr1", 10, 10, true);
     }
 
     @BeforeMethod
@@ -142,9 +124,7 @@ public class VariantJEXLContextUnitTest extends BaseTest {
     private JEXLMap getVarContext() {
         List<Allele> alleles = Arrays.asList(Aref, T);
 
-        VariantContext vc = new VariantContextBuilder("test", snpLoc.getContig(), snpLoc.getStart(), snpLoc.getStop(), alleles).make();
+        VariantContext vc = new VariantContextBuilder("test", "chr1", 10, 10, alleles).make();
         return new JEXLMap(Arrays.asList(exp),vc);
     }
-
-
 }

@@ -37,12 +37,10 @@ import org.broadinstitute.variant.variantcontext.VariantContext;
 import java.io.Serializable;
 import java.util.*;
 
-public class Haplotype {
-    protected final byte[] bases;
-    protected final double[] quals;
+public class Haplotype extends Allele {
+
     private GenomeLoc genomeLocation = null;
-    private HashMap<Integer, VariantContext> eventMap = null;
-    private boolean isRef = false;
+    private Map<Integer, VariantContext> eventMap = null;
     private Cigar cigar;
     private int alignmentStartHapwrtRef;
     public int leftBreakPoint = 0;
@@ -50,80 +48,54 @@ public class Haplotype {
     private Event artificialEvent = null;
 
     /**
-     * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
+     * Main constructor
      *
      * @param bases bases
-     * @param qual  qual
+     * @param isRef is reference allele?
      */
-    public Haplotype( final byte[] bases, final int qual ) {
-        this.bases = bases.clone();
-        quals = new double[bases.length];
-        Arrays.fill(quals, (double)qual);
-    }
-
-    public Haplotype( final byte[] bases, final double[] quals ) {
-        this.bases = bases.clone();
-        this.quals = quals.clone();
+    public Haplotype( final byte[] bases, final boolean isRef ) {
+        super(bases.clone(), isRef);
     }
 
     public Haplotype( final byte[] bases ) {
-        this(bases, 0);
+        this(bases, false);
     }
 
     protected Haplotype( final byte[] bases, final Event artificialEvent ) {
-        this(bases, 0);
+        this(bases, false);
         this.artificialEvent = artificialEvent;
     }
 
     public Haplotype( final byte[] bases, final GenomeLoc loc ) {
-        this(bases);
+        this(bases, false);
         this.genomeLocation = loc;
     }
 
     @Override
     public boolean equals( Object h ) {
-        return h instanceof Haplotype && Arrays.equals(bases, ((Haplotype) h).bases);
-    }
-    
-    @Override
-    public int hashCode() {
-        return Arrays.hashCode(bases);
+        return h instanceof Haplotype && Arrays.equals(getBases(), ((Haplotype) h).getBases());
     }
 
-    public HashMap<Integer, VariantContext> getEventMap() {
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(getBases());
+    }
+
+    public Map<Integer, VariantContext> getEventMap() {
         return eventMap;
     }
 
-    public void setEventMap( final HashMap<Integer, VariantContext> eventMap ) {
+    public void setEventMap( final Map<Integer, VariantContext> eventMap ) {
         this.eventMap = eventMap;
-    }
-
-    public boolean isReference() {
-        return isRef;
-    }
-
-    public void setIsReference( boolean isRef ) {
-        this.isRef = isRef;
-    }
-
-    public double getQualitySum() {
-        double s = 0;
-        for (int k=0; k < bases.length; k++) {
-            s += quals[k];
-        }
-        return s;
     }
 
     @Override
     public String toString() {
-        return new String(bases);
+        return getDisplayString();
     }
 
-    public double[] getQuals() {
-        return quals.clone();
-    }
     public byte[] getBases() {
-        return bases.clone();
+        return super.getBases().clone();
     }
 
     public long getStartPosition() {
@@ -178,19 +150,23 @@ public class Haplotype {
     public Haplotype insertAllele( final Allele refAllele, final Allele altAllele, final int refInsertLocation, final int genomicInsertLocation ) {
         // refInsertLocation is in ref haplotype offset coordinates NOT genomic coordinates
         final int haplotypeInsertLocation = ReadUtils.getReadCoordinateForReferenceCoordinate(alignmentStartHapwrtRef, cigar, refInsertLocation, ReadUtils.ClippingTail.RIGHT_TAIL, true);
-        if( haplotypeInsertLocation == -1 || haplotypeInsertLocation + refAllele.length() >= bases.length ) { // desired change falls inside deletion so don't bother creating a new haplotype
+        if( haplotypeInsertLocation == -1 || haplotypeInsertLocation + refAllele.length() >= getBases().length ) { // desired change falls inside deletion so don't bother creating a new haplotype
             return null;
         }
         byte[] newHaplotypeBases = new byte[]{};
-        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, 0, haplotypeInsertLocation)); // bases before the variant
+        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(getBases(), 0, haplotypeInsertLocation)); // bases before the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, altAllele.getBases()); // the alt allele of the variant
-        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, haplotypeInsertLocation + refAllele.length(), bases.length)); // bases after the variant
+        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(getBases(), haplotypeInsertLocation + refAllele.length(), getBases().length)); // bases after the variant
         return new Haplotype(newHaplotypeBases, new Event(refAllele, altAllele, genomicInsertLocation));
     }
 
     public static class HaplotypeBaseComparator implements Comparator<Haplotype>, Serializable {
         @Override
         public int compare( final Haplotype hap1, final Haplotype hap2 ) {
+            return compareHaplotypeBases(hap1, hap2);
+        }
+
+        public static int compareHaplotypeBases(final Haplotype hap1, final Haplotype hap2) {
             final byte[] arr1 = hap1.getBases();
             final byte[] arr2 = hap2.getBases();
             // compares byte arrays using lexical ordering

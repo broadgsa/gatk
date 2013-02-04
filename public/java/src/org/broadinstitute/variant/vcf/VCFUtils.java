@@ -28,17 +28,16 @@ package org.broadinstitute.variant.vcf;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.log4j.Logger;
-import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.utils.GeneralUtils;
 
 import java.io.File;
 import java.util.*;
 
 public class VCFUtils {
 
-    public static Set<VCFHeaderLine> smartMergeHeaders(Collection<VCFHeader> headers, Logger logger) throws IllegalStateException {
+    public static Set<VCFHeaderLine> smartMergeHeaders(Collection<VCFHeader> headers, boolean emitWarnings) throws IllegalStateException {
         HashMap<String, VCFHeaderLine> map = new HashMap<String, VCFHeaderLine>(); // from KEY.NAME -> line
-        HeaderConflictWarner conflictWarner = new HeaderConflictWarner(logger);
+        HeaderConflictWarner conflictWarner = new HeaderConflictWarner(emitWarnings);
 
         // todo -- needs to remove all version headers from sources and add its own VCF version line
         for ( VCFHeader source : headers ) {
@@ -99,21 +98,6 @@ public class VCFUtils {
         }
 
         return new HashSet<VCFHeaderLine>(map.values());
-    }
-
-    public static String rsIDOfFirstRealVariant(List<VariantContext> VCs, VariantContext.Type type) {
-        if ( VCs == null )
-            return null;
-
-        String rsID = null;
-        for ( VariantContext vc : VCs ) {
-            if ( vc.getType() == type ) {
-                rsID = vc.getID();
-                break;
-            }
-        }
-
-        return rsID;
     }
 
     /**
@@ -193,19 +177,19 @@ public class VCFUtils {
         return assembly;
     }
 
-    /** Only displays a warning if a logger is provided and an identical warning hasn't been already issued */
+    /** Only displays a warning if warnings are enabled and an identical warning hasn't been already issued */
     private static final class HeaderConflictWarner {
-        Logger logger;
+        boolean emitWarnings;
         Set<String> alreadyIssued = new HashSet<String>();
 
-        private HeaderConflictWarner(final Logger logger) {
-            this.logger = logger;
+        private HeaderConflictWarner( final boolean emitWarnings ) {
+            this.emitWarnings = emitWarnings;
         }
 
         public void warn(final VCFHeaderLine line, final String msg) {
-            if ( logger != null && ! alreadyIssued.contains(line.getKey()) ) {
+            if ( GeneralUtils.DEBUG_MODE_ENABLED && emitWarnings && ! alreadyIssued.contains(line.getKey()) ) {
                 alreadyIssued.add(line.getKey());
-                logger.warn(msg);
+                System.err.println(msg);
             }
         }
     }

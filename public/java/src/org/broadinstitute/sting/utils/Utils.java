@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils;
 
+import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMProgramRecord;
@@ -34,7 +35,10 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
+import java.math.BigInteger;
 import java.net.InetAddress;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 /**
@@ -236,6 +240,13 @@ public class Utils {
         }
     }
 
+    /**
+     * Create a new list that contains the elements of left along with elements elts
+     * @param left a non-null list of elements
+     * @param elts a varargs vector for elts to append in order to left
+     * @param <T>
+     * @return A newly allocated linked list containing left followed by elts
+     */
     public static <T> List<T> append(final List<T> left, T ... elts) {
         final List<T> l = new LinkedList<T>(left);
         l.addAll(Arrays.asList(elts));
@@ -325,15 +336,6 @@ public class Utils {
         return str.substring(start, end+1);
     }
 
-    public static byte listMaxByte(List<Byte> quals) {
-        if (quals.size() == 0) return 0;
-        byte m = quals.get(0);
-        for (byte b : quals) {
-            m = b > m ? b : m;
-        }
-        return m;
-    }
-
     /**
      * Splits expressions in command args by spaces and returns the array of expressions.
      * Expressions may use single or double quotes to group any individual expression, but not both.
@@ -396,173 +398,6 @@ public class Utils {
         return concatArrays(A, B);
     }
 
-    /**
-     * Returns indices of all occurrences of the specified symbol in the string
-     * @param s Search string
-     * @param ch Character to search for
-     * @return Indices of all occurrences of the specified symbol
-     */
-    public static int[] indexOfAll(String s, int ch) {
-        int[] pos = new int[64];
-        int z = 0;
-
-        for (int i = 0; i < s.length(); i++) {
-            if (s.charAt(i) == ch) pos[z++] = i;
-        }
-        return reallocate(pos, z);
-    }
-
-    public static int countSetBits(boolean[] array) {
-        int counter = 0;
-        for ( int i = 0; i < array.length; i++ ) {
-            if ( array[i] )
-                counter++;
-        }
-        return counter;
-    }
-
-    /**
-     * Returns new (reallocated) integer array of the specified size, with content
-     * of the original array <code>orig</code> copied into it. If <code>newSize</code> is
-     * less than the size of the original array, only first <code>newSize</code> elements will be copied.
-     * If new size is greater than the size of the original array, the content of the original array will be padded
-     * with zeros up to the new size. Finally, if new size is the same as original size, no memory reallocation
-     * will be performed and the original array will be returned instead.
-     *
-     * @param orig Original size.
-     * @param newSize New Size.
-     *
-     * @return New array with length equal to newSize.
-     */
-    public static int[] reallocate(int[] orig, int newSize) {
-        if (orig.length == newSize) return orig;
-        int[] new_array = new int[newSize];
-        int L = (newSize > orig.length ? orig.length : newSize);
-        for (int i = 0; i < L; i++) new_array[i] = orig[i];
-        return new_array;
-    }
-
-
-    /**
-     * Returns a copy of array a, extended with additional n elements to the right (if n > 0 ) or -n elements to the
-     * left (if n<0), copying the values form the original array. Newly added elements are filled with value v. Note that
-     * if array a is being padded to the left, first (-n) elements of the returned array are v's, followed by the content of
-     * array a.
-     * @param a original array
-     * @param n number of (v-filled) elements to append to a on the right (n>0) or on the left (n<0)
-     * @param v element value
-     * @return the extended copy of array a with additional n elements
-     */
-    public static byte [] extend(final byte[] a, int n, byte v) {
-
-        byte [] newA;
-
-        if ( n > 0 ) {
-            newA = Arrays.copyOf(a, a.length+n);
-            if ( v != 0) { // java pads with 0's for us, so there is nothing to do if v==0
-                for ( int i = a.length; i < newA.length ; i++ ) newA[i] = v;
-            }
-            return newA;
-        }
-
-        // we are here only if n < 0:
-        n = (-n);
-        newA = new byte[ a.length + n ];
-        int i;
-        if ( v!= 0 ) {
-            i = 0;
-            for( ; i < n; i++ ) newA[i] = v;
-        } else {
-            i = n;
-        }
-        for ( int j = 0 ; j < a.length ; i++, j++) newA[i]=a[j];
-        return newA;
-    }
-
-
-    /**
-     * Returns a copy of array a, extended with additional n elements to the right (if n > 0 ) or -n elements to the
-     * left (if n<0), copying the values form the original array. Newly added elements are filled with value v. Note that
-     * if array a is padded to the left, first (-n) elements of the returned array are v's, followed by the content of
-     * array a.
-     * @param a original array
-     * @param n number of (v-filled) elements to append to a on the right (n>0) or on the left (n<0)
-     * @param v element value
-     * @return the extended copy of array a with additional n elements
-     */
-    public static short [] extend(final short[] a, int n, short v) {
-
-        short [] newA;
-
-        if ( n > 0 ) {
-            newA = Arrays.copyOf(a, a.length+n);
-            if ( v != 0) { // java pads with 0's for us, so there is nothing to do if v==0
-                for ( int i = a.length; i < newA.length ; i++ ) newA[i] = v;
-            }
-            return newA;
-        }
-
-        // we are here only if n < 0:
-        n = (-n);
-        newA = new short[ a.length + n ];
-        int i;
-        if ( v!= 0 ) {
-            i = 0;
-            for( ; i < n; i++ ) newA[i] = v;
-        } else {
-            i = n;
-        }
-        for ( int j = 0 ; j < a.length ; i++, j++) newA[i]=a[j];
-        return newA;
-    }
-
-    /* TEST ME
-        public static void main(String[] argv) {
-            List<Integer> l1 = new LinkedList<Integer>();
-            List<Integer> l2 = new ArrayList<Integer>();
-
-            l1.add(1);
-            l1.add(5);
-            l1.add(3);
-            l1.add(10);
-            l1.add(4);
-            l1.add(2);
-            l2.add(1);
-            l2.add(5);
-            l2.add(3);
-            l2.add(10);
-            l2.add(4);
-            l2.add(2);
-
-            Predicate<Integer> p = new Predicate<Integer>() {
-                public boolean apply(Integer i) {
-                    return i > 2;
-                }
-            };
-            filterInPlace(p, l1);
-            filterInPlace(p, l2);
-
-            for ( int i = 0 ; i < l1.size(); i++ ) System.out.print(" "+l1.get(i));
-            System.out.println();
-            for ( int i = 0 ; i < l2.size(); i++ ) System.out.print(" " + l2.get(i));
-            System.out.println();
-
-        }
-
-    */
-
-    /**
-     * a helper method. Turns a single character string into a char.
-     *
-     * @param str the string
-     *
-     * @return a char
-     */
-    public static char stringToChar(String str) {
-        if (str.length() != 1) throw new IllegalArgumentException("String length must be one");
-        return str.charAt(0);
-    }
-
     public static <T extends Comparable<T>> List<T> sorted(Collection<T> c) {
         return sorted(c, false);
     }
@@ -588,18 +423,6 @@ public class Utils {
             l.add(c.get(k));
         }
         return l;
-    }
-
-    public static <T extends Comparable<T>, V> String sortedString(Map<T,V> c) {
-        List<T> t = new ArrayList<T>(c.keySet());
-        Collections.sort(t);
-
-        List<String> pairs = new ArrayList<String>();
-        for ( T k : t ) {
-            pairs.add(k + "=" + c.get(k));
-        }
-
-        return "{" + join(", ", pairs) + "}";
     }
 
     /**
@@ -648,14 +471,6 @@ public class Utils {
      */
     static public String reverse(String bases) {
         return new String( reverse( bases.getBytes() )) ;
-    }
-
-    public static byte[] charSeq2byteSeq(char[] seqIn) {
-        byte[] seqOut = new byte[seqIn.length];
-        for ( int i = 0; i < seqIn.length; i++ ) {
-            seqOut[i] = (byte)seqIn[i];
-        }
-        return seqOut;
     }
 
     public static boolean isFlagSet(int value, int flag) {
@@ -911,4 +726,28 @@ public class Utils {
         return subLists;
     }
 
+    /**
+     * @see #calcMD5(byte[])
+     */
+    public static String calcMD5(final String s) throws NoSuchAlgorithmException {
+        return calcMD5(s.getBytes());
+    }
+
+    /**
+     * Calculate the md5 for bytes, and return the result as a 32 character string
+     *
+     * @param bytes the bytes to calculate the md5 of
+     * @return the md5 of bytes, as a 32-character long string
+     * @throws NoSuchAlgorithmException
+     */
+    @Ensures({"result != null", "result.length() == 32"})
+    public static String calcMD5(final byte[] bytes) throws NoSuchAlgorithmException {
+        if ( bytes == null ) throw new IllegalArgumentException("bytes cannot be null");
+        final byte[] thedigest = MessageDigest.getInstance("MD5").digest(bytes);
+        final BigInteger bigInt = new BigInteger(1, thedigest);
+
+        String md5String = bigInt.toString(16);
+        while (md5String.length() < 32) md5String = "0" + md5String; // pad to length 32
+        return md5String;
+    }
 }

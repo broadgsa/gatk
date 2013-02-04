@@ -25,11 +25,9 @@
 
 package org.broadinstitute.sting.utils;
 
-import cern.jet.math.Arithmetic;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.collections.Pair;
 
-import org.jgrapht.alg.StrongConnectivityInspector;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.testng.Assert;

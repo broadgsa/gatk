@@ -36,7 +36,7 @@ import java.util.*;
  *
  * @author depristo
  */
-final class CommonInfo {
+public final class CommonInfo {
     public static final double NO_LOG10_PERROR = 1.0;
 
     private static Set<String> NO_FILTERS = Collections.emptySet();

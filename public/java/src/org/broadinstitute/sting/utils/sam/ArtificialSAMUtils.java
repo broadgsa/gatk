@@ -116,6 +116,19 @@ public class ArtificialSAMUtils {
     }
 
     /**
+     * Creates an artificial sam header based on the sequence dictionary dict
+     *
+     * @return
+     */
+    public static SAMFileHeader createArtificialSamHeader(final SAMSequenceDictionary dict) {
+        SAMFileHeader header = new SAMFileHeader();
+        header.setSortOrder(net.sf.samtools.SAMFileHeader.SortOrder.coordinate);
+        header.setSequenceDictionary(dict);
+        return header;
+    }
+
+
+    /**
      * setup a default read group for a SAMFileHeader
      *
      * @param header      the header to set
@@ -325,35 +338,6 @@ public class ArtificialSAMUtils {
             stack.add(createArtificialRead(header, name, refIndex, alignmentStart, length));
         }
         return stack;
-    }
-
-    /**
-     * Create a read stream based on the parameters.  The cigar string for each
-     * read will be *M, where * is the length of the read.
-     *
-     * Useful for testing things like LocusIteratorBystate
-     *
-     * @return a collection of stackSize reads all sharing the above properties
-     */
-    public static List<GATKSAMRecord> createReadStream( final int nReadsPerLocus,
-                                                    final int nLoci,
-                                                    final SAMFileHeader header,
-                                                    final int alignmentStart,
-                                                    final int length ) {
-        final String baseName = "read";
-        List<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>(nReadsPerLocus*nLoci);
-        for ( int locus = 0; locus < nLoci; locus++ ) {
-            for ( int readI = 0; readI < nReadsPerLocus; readI++ ) {
-                for ( final SAMReadGroupRecord rg : header.getReadGroups() ) {
-                    final String readName = String.format("%s.%d.%d.%s", baseName, locus, readI, rg.getId());
-                    final GATKSAMRecord read = createArtificialRead(header, readName, 0, alignmentStart + locus, length);
-                    read.setReadGroup(new GATKSAMReadGroupRecord(rg));
-                    reads.add(read);
-                }
-            }
-        }
-
-        return reads;
     }
 
     /**

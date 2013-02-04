@@ -147,8 +147,25 @@ public class GATKVCFUtils {
         return VCFUtils.withUpdatedContigs(header, engine.getArguments().referenceFile, engine.getMasterSequenceDictionary());
     }
 
+    public static String rsIDOfFirstRealVariant(List<VariantContext> VCs, VariantContext.Type type) {
+        if ( VCs == null )
+            return null;
+
+        String rsID = null;
+        for ( VariantContext vc : VCs ) {
+            if ( vc.getType() == type ) {
+                rsID = vc.getID();
+                break;
+            }
+        }
+
+        return rsID;
+    }
+
     /**
      * Read all of the VCF records from source into memory, returning the header and the VariantContexts
+     *
+     * SHOULD ONLY BE USED FOR UNIT/INTEGRATION TESTING PURPOSES!
      *
      * @param source the file to read, must be in VCF4 format
      * @return

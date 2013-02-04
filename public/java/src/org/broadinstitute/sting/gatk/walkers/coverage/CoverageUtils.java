@@ -28,7 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.coverage;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.variant.utils.BaseUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fragments.FragmentCollection;
@@ -217,9 +217,9 @@ public class CoverageUtils {
 
     private static void updateCounts(int[] counts, PileupElement e) {
         if ( e.isDeletion() ) {
-            counts[BaseUtils.DELETION_INDEX] += e.getRepresentativeCount();
-        } else if ( BaseUtils.basesAreEqual((byte) 'N', e.getBase()) ) {
-            counts[BaseUtils.NO_CALL_INDEX] += e.getRepresentativeCount();
+            counts[BaseUtils.Base.D.ordinal()] += e.getRepresentativeCount();
+        } else if ( BaseUtils.basesAreEqual(BaseUtils.Base.N.base, e.getBase()) ) {
+            counts[BaseUtils.Base.N.ordinal()] += e.getRepresentativeCount();
         } else {
             try {
                 counts[BaseUtils.simpleBaseToBaseIndex(e.getBase())] += e.getRepresentativeCount();

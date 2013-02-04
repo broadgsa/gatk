@@ -25,15 +25,13 @@
 
 package org.broadinstitute.variant.variantcontext;
 
-import org.apache.log4j.Logger;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.PositionalBufferedStream;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.variant.VariantBaseTest;
 import org.broadinstitute.variant.bcf2.BCF2Codec;
+import org.broadinstitute.variant.utils.GeneralUtils;
 import org.broadinstitute.variant.vcf.*;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.variant.variantcontext.writer.Options;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.testng.Assert;
@@ -50,8 +48,6 @@ import java.util.*;
  * @since Date created
  */
 public class VariantContextTestProvider {
-    final protected static Logger logger = Logger.getLogger(VariantContextTestProvider.class);
-
     final private static boolean ENABLE_GENOTYPE_TESTS = true;
     final private static boolean ENABLE_A_AND_G_TESTS = true;
     final private static boolean ENABLE_VARARRAY_TESTS = true;
@@ -68,12 +64,30 @@ public class VariantContextTestProvider {
 
     private final static List<File> testSourceVCFs = new ArrayList<File>();
     static {
-        testSourceVCFs.add(new File(BaseTest.privateTestDir + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"));
-        testSourceVCFs.add(new File(BaseTest.privateTestDir + "ex2.vcf"));
-        testSourceVCFs.add(new File(BaseTest.privateTestDir + "dbsnp_135.b37.1000.vcf"));
+        testSourceVCFs.add(new File(VariantBaseTest.variantTestDataRoot + "ILLUMINA.wex.broad_phase2_baseline.20111114.both.exome.genotypes.1000.vcf"));
+        testSourceVCFs.add(new File(VariantBaseTest.variantTestDataRoot + "ex2.vcf"));
+        testSourceVCFs.add(new File(VariantBaseTest.variantTestDataRoot + "dbsnp_135.b37.1000.vcf"));
         if ( ENABLE_SYMBOLIC_ALLELE_TESTS ) {
-            testSourceVCFs.add(new File(BaseTest.privateTestDir + "diagnosis_targets_testfile.vcf"));
-            testSourceVCFs.add(new File(BaseTest.privateTestDir + "VQSR.mixedTest.recal"));
+            testSourceVCFs.add(new File(VariantBaseTest.variantTestDataRoot + "diagnosis_targets_testfile.vcf"));
+            testSourceVCFs.add(new File(VariantBaseTest.variantTestDataRoot + "VQSR.mixedTest.recal"));
+        }
+    }
+
+    public static class VariantContextContainer {
+        private VCFHeader header;
+        private Iterable<VariantContext> vcs;
+
+        public VariantContextContainer( VCFHeader header, Iterable<VariantContext> vcs ) {
+            this.header = header;
+            this.vcs = vcs;
+        }
+
+        public VCFHeader getHeader() {
+            return header;
+        }
+
+        public Iterable<VariantContext> getVCs() {
+            return vcs;
         }
     }
 
@@ -153,17 +167,15 @@ public class VariantContextTestProvider {
         if ( ENABLE_SOURCE_VCF_TESTS ) {
             for ( final File file : testSourceVCFs ) {
                 VCFCodec codec = new VCFCodec();
-                Pair<VCFHeader, Iterable<VariantContext>> x = readAllVCs( file, codec );
+                VariantContextContainer x = readAllVCs( file, codec );
                 List<VariantContext> fullyDecoded = new ArrayList<VariantContext>();
 
-                logger.warn("Reading records from " + file);
-                for ( final VariantContext raw : x.getSecond() ) {
+                for ( final VariantContext raw : x.getVCs() ) {
                     if ( raw != null )
-                        fullyDecoded.add(raw.fullyDecode(x.getFirst(), false));
+                        fullyDecoded.add(raw.fullyDecode(x.getHeader(), false));
                 }
-                logger.warn("Done reading " + file);
 
-                TEST_DATAs.add(new VariantContextTestData(x.getFirst(), fullyDecoded));
+                TEST_DATAs.add(new VariantContextTestData(x.getHeader(), fullyDecoded));
             }
         }
     }
@@ -621,8 +633,8 @@ public class VariantContextTestProvider {
             writeVCsToFile(writer, header, data.vcs);
 
             // ensure writing of expected == actual
-            final Pair<VCFHeader, Iterable<VariantContext>> p = readAllVCs(tmpFile, tester.makeCodec());
-            final Iterable<VariantContext> actual = p.getSecond();
+            final VariantContextContainer p = readAllVCs(tmpFile, tester.makeCodec());
+            final Iterable<VariantContext> actual = p.getVCs();
 
             int i = 0;
             for ( final VariantContext readVC : actual ) {
@@ -660,14 +672,14 @@ public class VariantContextTestProvider {
         writeVCsToFile(writer, header, vcs);
 
         // ensure writing of expected == actual
-        final Pair<VCFHeader, Iterable<VariantContext>> p = readAllVCs(tmpFile, tester.makeCodec());
-        final Iterable<VariantContext> actual = p.getSecond();
+        final VariantContextContainer p = readAllVCs(tmpFile, tester.makeCodec());
+        final Iterable<VariantContext> actual = p.getVCs();
         assertEquals(actual, expected);
 
         if ( recurse ) {
             // if we are doing a recursive test, grab a fresh iterator over the written values
-            final Iterable<VariantContext> read = readAllVCs(tmpFile, tester.makeCodec()).getSecond();
-            testReaderWriter(tester, p.getFirst(), expected, read, false);
+            final Iterable<VariantContext> read = readAllVCs(tmpFile, tester.makeCodec()).getVCs();
+            testReaderWriter(tester, p.getHeader(), expected, read, false);
         }
     }
 
@@ -688,7 +700,7 @@ public class VariantContextTestProvider {
      * @return
      * @throws IOException
      */
-    private final static Pair<VCFHeader, Iterable<VariantContext>> readAllVCs( final File source, final FeatureCodec<VariantContext> codec ) throws IOException {
+    public final static VariantContextContainer readAllVCs( final File source, final FeatureCodec<VariantContext> codec ) throws IOException {
         // read in the features
         PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(source));
         FeatureCodecHeader header = codec.readHeader(pbs);
@@ -698,10 +710,10 @@ public class VariantContextTestProvider {
         pbs.skip(header.getHeaderEnd());
 
         final VCFHeader vcfHeader = (VCFHeader)header.getHeaderValue();
-        return new Pair<VCFHeader, Iterable<VariantContext>>(vcfHeader, new VCIterable(pbs, codec, vcfHeader));
+        return new VariantContextContainer(vcfHeader, new VCIterable(pbs, codec, vcfHeader));
     }
 
-    private static class VCIterable implements Iterable<VariantContext>, Iterator<VariantContext> {
+    public static class VCIterable implements Iterable<VariantContext>, Iterator<VariantContext> {
         final PositionalBufferedStream pbs;
         final FeatureCodec<VariantContext> codec;
         final VCFHeader header;
@@ -743,10 +755,10 @@ public class VariantContextTestProvider {
     }
 
     public static void assertVCFandBCFFilesAreTheSame(final File vcfFile, final File bcfFile) throws IOException {
-        final Pair<VCFHeader, Iterable<VariantContext>> vcfData = readAllVCs(vcfFile, new VCFCodec());
-        final Pair<VCFHeader, Iterable<VariantContext>> bcfData = readAllVCs(bcfFile, new BCF2Codec());
-        assertEquals(bcfData.getFirst(), vcfData.getFirst());
-        assertEquals(bcfData.getSecond(), vcfData.getSecond());
+        final VariantContextContainer vcfData = readAllVCs(vcfFile, new VCFCodec());
+        final VariantContextContainer bcfData = readAllVCs(bcfFile, new BCF2Codec());
+        assertEquals(bcfData.getHeader(), vcfData.getHeader());
+        assertEquals(bcfData.getVCs(), vcfData.getVCs());
     }
 
     public static void assertEquals(final Iterable<VariantContext> actual, final Iterable<VariantContext> expected) {
@@ -788,12 +800,12 @@ public class VariantContextTestProvider {
         assertAttributesEquals(actual.getAttributes(), expected.getAttributes());
         Assert.assertEquals(actual.filtersWereApplied(), expected.filtersWereApplied(), "filtersWereApplied");
         Assert.assertEquals(actual.isFiltered(), expected.isFiltered(), "isFiltered");
-        BaseTest.assertEqualsSet(actual.getFilters(), expected.getFilters(), "filters");
-        BaseTest.assertEqualsDoubleSmart(actual.getPhredScaledQual(), expected.getPhredScaledQual());
+        VariantBaseTest.assertEqualsSet(actual.getFilters(), expected.getFilters(), "filters");
+        VariantBaseTest.assertEqualsDoubleSmart(actual.getPhredScaledQual(), expected.getPhredScaledQual());
 
         Assert.assertEquals(actual.hasGenotypes(), expected.hasGenotypes(), "hasGenotypes");
         if ( expected.hasGenotypes() ) {
-            BaseTest.assertEqualsSet(actual.getSampleNames(), expected.getSampleNames(), "sample names set");
+            VariantBaseTest.assertEqualsSet(actual.getSampleNames(), expected.getSampleNames(), "sample names set");
             Assert.assertEquals(actual.getSampleNamesOrderedByName(), expected.getSampleNamesOrderedByName(), "sample names");
             final Set<String> samples = expected.getSampleNames();
             for ( final String sample : samples ) {
@@ -879,7 +891,7 @@ public class VariantContextTestProvider {
     private static void assertAttributeEquals(final String key, final Object actual, final Object expected) {
         if ( expected instanceof Double ) {
             // must be very tolerant because doubles are being rounded to 2 sig figs
-            BaseTest.assertEqualsDoubleSmart(actual, (Double)expected, 1e-2);
+            VariantBaseTest.assertEqualsDoubleSmart(actual, (Double)expected, 1e-2);
         } else
             Assert.assertEquals(actual, expected, "Attribute " + key);
     }
@@ -935,7 +947,7 @@ public class VariantContextTestProvider {
     }
 
     private static List<List<Allele>> makeAllGenotypes(final List<Allele> alleles, final int highestPloidy) {
-        return Utils.makePermutations(alleles, highestPloidy, true);
+        return GeneralUtils.makePermutations(alleles, highestPloidy, true);
     }
 
     public static void assertEquals(final VCFHeader actual, final VCFHeader expected) {

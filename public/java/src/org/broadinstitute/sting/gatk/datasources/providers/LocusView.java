@@ -162,14 +162,6 @@ public abstract class LocusView extends LocusIterator implements View {
         // Cache the current and apply filtering.
         AlignmentContext current = nextLocus;
 
-        // The old ALL_READS downsampling implementation -- use only if legacy downsampling was requested:
-        if ( sourceInfo.getDownsamplingMethod().useLegacyDownsampler &&
-             sourceInfo.getDownsamplingMethod().type == DownsampleType.ALL_READS &&
-             sourceInfo.getDownsamplingMethod().toCoverage != null ) {
-
-            current.downsampleToCoverage(sourceInfo.getDownsamplingMethod().toCoverage);
-        }
-
         // Indicate that the next operation will need to advance.
         nextLocus = null;
         
@@ -214,7 +206,13 @@ public abstract class LocusView extends LocusIterator implements View {
         return locus.containsP(location);
     }
 
-    // TODO -- remove me
+    /**
+     * {@inheritDoc}
+     *
+     * Since this class has an actual LIBS, so this function will never throw an exception
+     *
+     * @return the LocusIteratorByState used by this view to get pileups
+     */
     @Override
     public LocusIteratorByState getLIBS() {
         return loci.getLIBS();

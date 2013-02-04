@@ -362,8 +362,8 @@ public class ReadClipper {
             return GATKSAMRecord.emptyRead(read);
 
     }
-    public static ArrayList<GATKSAMRecord> hardClipToRegion( final ArrayList<GATKSAMRecord> reads, final int refStart, final int refStop ) {
-        final ArrayList<GATKSAMRecord> returnList = new ArrayList<GATKSAMRecord>( reads.size() );
+    public static List<GATKSAMRecord> hardClipToRegion( final List<GATKSAMRecord> reads, final int refStart, final int refStop ) {
+        final List<GATKSAMRecord> returnList = new ArrayList<GATKSAMRecord>( reads.size() );
         for( final GATKSAMRecord read : reads ) {
             final GATKSAMRecord clippedRead = hardClipToRegion( read, refStart, refStop );
             if( !clippedRead.isEmpty() ) {
@@ -381,9 +381,9 @@ public class ReadClipper {
      * @return a new read without adaptor sequence
      */
     private GATKSAMRecord hardClipAdaptorSequence () {
-        final Integer adaptorBoundary = ReadUtils.getAdaptorBoundary(read);
+        final int adaptorBoundary = ReadUtils.getAdaptorBoundary(read);
 
-        if (adaptorBoundary == null || !ReadUtils.isInsideRead(read, adaptorBoundary))
+        if (adaptorBoundary == ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY || !ReadUtils.isInsideRead(read, adaptorBoundary))
             return read;
 
         return read.getReadNegativeStrandFlag() ? hardClipByReferenceCoordinatesLeftTail(adaptorBoundary) : hardClipByReferenceCoordinatesRightTail(adaptorBoundary);

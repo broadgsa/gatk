@@ -25,12 +25,14 @@
 
 package org.broadinstitute.sting.utils;
 
+import org.apache.commons.io.FileUtils;
+import org.broadinstitute.sting.utils.io.IOUtils;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.testng.annotations.Test;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.io.File;
+import java.util.*;
 
 /**
  * Testing framework for general purpose utilities class.
@@ -40,6 +42,25 @@ import java.util.Map;
  */
 
 public class UtilsUnitTest extends BaseTest {
+    @Test
+    public void testAppend() {
+        for ( int leftSize : Arrays.asList(0, 1, 2, 3) ) {
+            for ( final int rightSize : Arrays.asList(0, 1, 2) ) {
+                final List<Integer> left = new LinkedList<Integer>();
+                for ( int i = 0; i < leftSize; i++ ) left.add(i);
+                final List<Integer> total = new LinkedList<Integer>();
+                for ( int i = 0; i < leftSize + rightSize; i++ ) total.add(i);
+
+                if ( rightSize == 0 )
+                    Assert.assertEquals(Utils.append(left), total);
+                if ( rightSize == 1 )
+                    Assert.assertEquals(Utils.append(left, leftSize), total);
+                if ( rightSize == 2 )
+                    Assert.assertEquals(Utils.append(left, leftSize, leftSize + 1), total);
+            }
+        }
+
+    }
 
     @Test
     public void testDupStringNoChars() {
@@ -134,5 +155,17 @@ public class UtilsUnitTest extends BaseTest {
         Assert.assertEquals(actual, expected);
         actual = Utils.escapeExpressions("  one  two  'three four'  ");
         Assert.assertEquals(actual, expected);
+    }
+
+    @Test
+    public void testCalcMD5() throws Exception {
+        final File source = new File(publicTestDir + "exampleFASTA.fasta");
+        final String sourceMD5 = "36880691cf9e4178216f7b52e8d85fbe";
+
+        final byte[] sourceBytes = IOUtils.readFileIntoByteArray(source);
+        Assert.assertEquals(Utils.calcMD5(sourceBytes), sourceMD5);
+
+        final String sourceString = FileUtils.readFileToString(source);
+        Assert.assertEquals(Utils.calcMD5(sourceString), sourceMD5);
     }
 }

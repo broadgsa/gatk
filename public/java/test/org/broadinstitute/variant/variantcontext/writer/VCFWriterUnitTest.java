@@ -29,16 +29,11 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.AbstractFeatureReader;
 import org.broad.tribble.FeatureReader;
 import org.broad.tribble.Tribble;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.variant.VariantBaseTest;
 import org.broadinstitute.variant.vcf.VCFCodec;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.variant.vcf.VCFHeaderLine;
 import org.broadinstitute.variant.vcf.VCFHeaderVersion;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.variant.variantcontext.*;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -58,22 +53,20 @@ import java.util.*;
  *         <p/>
  *         This class tests out the ability of the VCF writer to correctly write VCF files
  */
-public class VCFWriterUnitTest extends BaseTest {
+public class VCFWriterUnitTest extends VariantBaseTest {
     private Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
     private Set<String> additionalColumns = new HashSet<String>();
     private File fakeVCFFile = new File("FAKEVCFFILEFORTESTING.vcf");
-    private GenomeLocParser genomeLocParser;
     private IndexedFastaSequenceFile seq;
 
     @BeforeClass
     public void beforeTests() {
-        File referenceFile = new File(hg18Reference);
+        File referenceFile = new File(hg19Reference);
         try {
-            seq = new CachingIndexedFastaSequenceFile(referenceFile);
-            genomeLocParser = new GenomeLocParser(seq);
+            seq = new IndexedFastaSequenceFile(referenceFile);
         }
         catch(FileNotFoundException ex) {
-            throw new UserException.CouldNotReadInputFile(referenceFile,ex);
+            throw new RuntimeException(referenceFile.getAbsolutePath(), ex);
         }
     }
 
@@ -108,7 +101,7 @@ public class VCFWriterUnitTest extends BaseTest {
             fakeVCFFile.delete();
         }
         catch (IOException e ) {
-            throw new ReviewedStingException(e.getMessage());
+            throw new RuntimeException(e.getMessage());
         }
 
     }
@@ -133,8 +126,6 @@ public class VCFWriterUnitTest extends BaseTest {
      * @return a VCFRecord
      */
     private VariantContext createVC(VCFHeader header) {
-
-        GenomeLoc loc = genomeLocParser.createGenomeLoc("chr1",1);
         List<Allele> alleles = new ArrayList<Allele>();
         Set<String> filters = null;
         Map<String, Object> attributes = new HashMap<String,Object>();
@@ -148,7 +139,7 @@ public class VCFWriterUnitTest extends BaseTest {
             Genotype gt = new GenotypeBuilder(name,alleles.subList(1,2)).GQ(0).attribute("BB", "1").phased(true).make();
             genotypes.add(gt);
         }
-        return new VariantContextBuilder("RANDOM", loc.getContig(), loc.getStart(), loc.getStop(), alleles)
+        return new VariantContextBuilder("RANDOM", "chr1", 1, 1, alleles)
                 .genotypes(genotypes).attributes(attributes).make();
     }
 

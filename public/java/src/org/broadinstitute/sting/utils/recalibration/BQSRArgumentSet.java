@@ -36,6 +36,7 @@ public class BQSRArgumentSet {
     private boolean disableIndelQuals;
     private boolean emitOriginalQuals;
     private int PRESERVE_QSCORES_LESS_THAN;
+    private double globalQScorePrior;
 
     public BQSRArgumentSet(final GATKArgumentCollection args) {
         this.BQSR_RECAL_FILE = args.BQSR_RECAL_FILE;
@@ -43,6 +44,7 @@ public class BQSRArgumentSet {
         this.disableIndelQuals = args.disableIndelQuals;
         this.emitOriginalQuals = args.emitOriginalQuals;
         this.PRESERVE_QSCORES_LESS_THAN = args.PRESERVE_QSCORES_LESS_THAN;
+        this.globalQScorePrior = args.globalQScorePrior;
     }
 
     public File getRecalFile() { return BQSR_RECAL_FILE; }
@@ -54,6 +56,8 @@ public class BQSRArgumentSet {
     public boolean shouldEmitOriginalQuals() { return emitOriginalQuals; }
 
     public int getPreserveQscoresLessThan() { return PRESERVE_QSCORES_LESS_THAN; }
+
+    public double getGlobalQScorePrior() { return globalQScorePrior; }
 
     public void setRecalFile(final File BQSR_RECAL_FILE) {
         this.BQSR_RECAL_FILE = BQSR_RECAL_FILE;
@@ -73,5 +77,9 @@ public class BQSRArgumentSet {
 
     public void setPreserveQscoresLessThan(final int PRESERVE_QSCORES_LESS_THAN) {
         this.PRESERVE_QSCORES_LESS_THAN = PRESERVE_QSCORES_LESS_THAN;
+    }
+
+    public void setGlobalQScorePrior(final double globalQScorePrior) {
+        this.globalQScorePrior = globalQScorePrior;
     }
 }

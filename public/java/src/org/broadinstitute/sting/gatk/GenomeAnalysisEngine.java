@@ -47,6 +47,7 @@ import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformersMode;
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
@@ -55,7 +56,6 @@ import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -223,6 +223,9 @@ public class GenomeAnalysisEngine {
      * @return the value of this traversal.
      */
     public Object execute() {
+        // first thing is to make sure the AWS keys can be decrypted
+        GATKRunReport.checkAWSAreValid();
+
         //HeapSizeMonitor monitor = new HeapSizeMonitor();
         //monitor.start();
         setStartTime(new java.util.Date());
@@ -361,7 +364,6 @@ public class GenomeAnalysisEngine {
      * Returns a list of active, initialized read transformers
      *
      * @param walker the walker we need to apply read transformers too
-     * @return a non-null list of read transformers
      */
     public void initializeReadTransformers(final Walker walker) {
         final List<ReadTransformer> activeTransformers = new ArrayList<ReadTransformer>();
@@ -436,12 +438,9 @@ public class GenomeAnalysisEngine {
     protected DownsamplingMethod getDownsamplingMethod() {
         GATKArgumentCollection argCollection = this.getArguments();
 
-        // Legacy downsampler can only be selected via the command line, not via walker annotations
-        boolean useLegacyDownsampler = argCollection.useLegacyDownsampler;
-
         DownsamplingMethod commandLineMethod = argCollection.getDownsamplingMethod();
-        DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker, useLegacyDownsampler);
-        DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker, useLegacyDownsampler);
+        DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker);
+        DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker);
 
         DownsamplingMethod method = commandLineMethod != null ? commandLineMethod : (walkerMethod != null ? walkerMethod : defaultMethod);
         method.checkCompatibilityWithWalker(walker);
@@ -574,15 +573,10 @@ public class GenomeAnalysisEngine {
                         throw new UserException.CommandLineException("Pairs traversal cannot be used in conjunction with intervals.");
                 }
 
-                // Use the legacy ReadShardBalancer if legacy downsampling is enabled
-                ShardBalancer readShardBalancer = downsamplingMethod != null && downsamplingMethod.useLegacyDownsampler ?
-                                                  new LegacyReadShardBalancer() :
-                                                  new ReadShardBalancer();
-
                 if(intervals == null)
-                    return readsDataSource.createShardIteratorOverAllReads(readShardBalancer);
+                    return readsDataSource.createShardIteratorOverAllReads(new ReadShardBalancer());
                 else
-                    return readsDataSource.createShardIteratorOverIntervals(intervals, readShardBalancer);
+                    return readsDataSource.createShardIteratorOverIntervals(intervals, new ReadShardBalancer());
             }
             else
                 throw new ReviewedStingException("Unable to determine walker type for walker " + walker.getClass().getName());
@@ -672,41 +666,7 @@ public class GenomeAnalysisEngine {
      * Setup the intervals to be processed
      */
     protected void initializeIntervals() {
-        // return if no interval arguments at all
-        if ( argCollection.intervals == null && argCollection.excludeIntervals == null )
-            return;
-
-        // Note that the use of '-L all' is no longer supported.
-
-        // if include argument isn't given, create new set of all possible intervals
-
-        final Pair<GenomeLocSortedSet, GenomeLocSortedSet> includeExcludePair = IntervalUtils.parseIntervalBindingsPair(
-                this.referenceDataSource,
-                argCollection.intervals,
-                argCollection.intervalSetRule, argCollection.intervalMerging, argCollection.intervalPadding,
-                argCollection.excludeIntervals);
-
-        final GenomeLocSortedSet includeSortedSet = includeExcludePair.getFirst();
-        final GenomeLocSortedSet excludeSortedSet = includeExcludePair.getSecond();
-
-        // if no exclude arguments, can return parseIntervalArguments directly
-        if ( excludeSortedSet == null )
-            intervals = includeSortedSet;
-
-        // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
-        else {
-            intervals = includeSortedSet.subtractRegions(excludeSortedSet);
-
-            // logging messages only printed when exclude (-XL) arguments are given
-            final long toPruneSize = includeSortedSet.coveredSize();
-            final long toExcludeSize = excludeSortedSet.coveredSize();
-            final long intervalSize = intervals.coveredSize();
-            logger.info(String.format("Initial include intervals span %d loci; exclude intervals span %d loci", toPruneSize, toExcludeSize));
-            logger.info(String.format("Excluding %d loci from original intervals (%.2f%% reduction)",
-                    toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
-        }
-
-        logger.info(String.format("Processing %d bp from intervals", intervals.coveredSize()));
+        intervals = IntervalUtils.parseIntervalArguments(this.referenceDataSource, argCollection.intervalArguments);
     }
 
     /**
@@ -829,7 +789,7 @@ public class GenomeAnalysisEngine {
         DownsamplingMethod downsamplingMethod = getDownsamplingMethod();
 
         // Synchronize the method back into the collection so that it shows up when
-        // interrogating for the downsample method during command line recreation.
+        // interrogating for the downsampling method during command line recreation.
         setDownsamplingMethod(downsamplingMethod);
 
         logger.info(downsamplingMethod);
@@ -842,7 +802,7 @@ public class GenomeAnalysisEngine {
         if (argCollection.keepProgramRecords)
             removeProgramRecords = false;
 
-        final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker && argCollection.newART;
+        final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker;
 
         return new SAMDataSource(
                 samReaderIDs,

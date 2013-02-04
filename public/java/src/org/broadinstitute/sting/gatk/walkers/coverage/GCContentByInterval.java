@@ -31,7 +31,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.variant.utils.BaseUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
@@ -86,7 +86,7 @@ public class GCContentByInterval extends LocusWalker<Long, Long> {
         if (tracker == null)
             return null;
         int baseIndex = ref.getBaseIndex();
-        return (baseIndex == BaseUtils.gIndex || baseIndex == BaseUtils.cIndex) ? 1L : 0L;
+        return (baseIndex == BaseUtils.Base.G.ordinal() || baseIndex == BaseUtils.Base.C.ordinal()) ? 1L : 0L;
     }
 
     public Long reduce(Long toAdd, Long runningCount) {

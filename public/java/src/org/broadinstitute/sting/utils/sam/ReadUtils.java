@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.io.File;
 import java.util.*;
@@ -169,8 +170,8 @@ public class ReadUtils {
      * @return whether or not the base is in the adaptor
      */
     public static boolean isBaseInsideAdaptor(final GATKSAMRecord read, long basePos) {
-        Integer adaptorBoundary = getAdaptorBoundary(read);
-        if (adaptorBoundary == null || read.getInferredInsertSize() > DEFAULT_ADAPTOR_SIZE)
+        final int adaptorBoundary = read.getAdaptorBoundary();
+        if (adaptorBoundary == CANNOT_COMPUTE_ADAPTOR_BOUNDARY || read.getInferredInsertSize() > DEFAULT_ADAPTOR_SIZE)
             return false;
 
         return read.getReadNegativeStrandFlag() ? basePos <= adaptorBoundary : basePos >= adaptorBoundary;
@@ -199,26 +200,28 @@ public class ReadUtils {
      *   in these cases the adaptor boundary is at the start of the read plus the inferred insert size (plus one)
      *
      * @param read the read being tested for the adaptor boundary
-     * @return the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read. NULL if the read is unmapped or the mate is mapped to another contig.
+     * @return the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read.
+     * CANNOT_COMPUTE_ADAPTOR_BOUNDARY if the read is unmapped or the mate is mapped to another contig.
      */
-    public static Integer getAdaptorBoundary(final SAMRecord read) {
+    public static int getAdaptorBoundary(final SAMRecord read) {
         final int MAXIMUM_ADAPTOR_LENGTH = 8;
         final int insertSize = Math.abs(read.getInferredInsertSize());    // the inferred insert size can be negative if the mate is mapped before the read (so we take the absolute value)
 
         if (insertSize == 0 || read.getReadUnmappedFlag())                // no adaptors in reads with mates in another chromosome or unmapped pairs
-            return null;                                                  
+            return CANNOT_COMPUTE_ADAPTOR_BOUNDARY;
         
-        Integer adaptorBoundary;                                          // the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read)
+        int adaptorBoundary;                                          // the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read)
         if (read.getReadNegativeStrandFlag())
             adaptorBoundary = read.getMateAlignmentStart() - 1;           // case 1 (see header)
         else
             adaptorBoundary = read.getAlignmentStart() + insertSize + 1;  // case 2 (see header)
 
         if ( (adaptorBoundary < read.getAlignmentStart() - MAXIMUM_ADAPTOR_LENGTH) || (adaptorBoundary > read.getAlignmentEnd() + MAXIMUM_ADAPTOR_LENGTH) )
-            adaptorBoundary = null;                                       // we are being conservative by not allowing the adaptor boundary to go beyond what we belive is the maximum size of an adaptor
+            adaptorBoundary = CANNOT_COMPUTE_ADAPTOR_BOUNDARY;                                       // we are being conservative by not allowing the adaptor boundary to go beyond what we belive is the maximum size of an adaptor
         
         return adaptorBoundary;
     }
+    public static int CANNOT_COMPUTE_ADAPTOR_BOUNDARY = Integer.MIN_VALUE;
 
     /**
      * is the read a 454 read?
@@ -390,6 +393,11 @@ public class ReadUtils {
     @Ensures({"result >= 0", "result < read.getReadLength()"})
     public static int getReadCoordinateForReferenceCoordinate(GATKSAMRecord read, int refCoord, ClippingTail tail) {
         return getReadCoordinateForReferenceCoordinate(read.getSoftStart(), read.getCigar(), refCoord, tail, false);
+    }
+
+    public static int getReadCoordinateForReferenceCoordinateUpToEndOfRead(GATKSAMRecord read, int refCoord, ClippingTail tail) {
+        final int leftmostSafeVariantPosition = Math.max(read.getSoftStart(), refCoord);
+        return getReadCoordinateForReferenceCoordinate(read.getSoftStart(), read.getCigar(), leftmostSafeVariantPosition, tail, false);
     }
 
     public static int getReadCoordinateForReferenceCoordinate(final int alignmentStart, final Cigar cigar, final int refCoord, final ClippingTail tail, final boolean allowGoalNotReached) {
@@ -841,6 +849,68 @@ public class ReadUtils {
             }
         }
         return events;
+    }
+
+    /**
+     * Given a read, outputs the read bases in a string format
+     *
+     * @param read the read
+     * @return a string representation of the read bases
+     */
+    public static String convertReadBasesToString(GATKSAMRecord read) {
+        String bases = "";
+        for (byte b : read.getReadBases()) {
+            bases += (char) b;
+        }
+        return bases.toUpperCase();
+    }
+
+    /**
+     * Given a read, outputs the base qualities in a string format
+     *
+     * @param quals the read qualities
+     * @return a string representation of the base qualities
+     */
+    public static String convertReadQualToString(byte[] quals) {
+        String result = "";
+        for (byte b : quals) {
+            result += (char) (33 + b);
+        }
+        return result;
+    }
+
+    /**
+     * Given a read, outputs the base qualities in a string format
+     *
+     * @param read the read
+     * @return a string representation of the base qualities
+     */
+    public static String convertReadQualToString(GATKSAMRecord read) {
+        return convertReadQualToString(read.getBaseQualities());
+    }
+
+    /**
+     * Returns the reverse complement of the read bases
+     *
+     * @param bases the read bases
+     * @return the reverse complement of the read bases
+     */
+    public static String getBasesReverseComplement(byte[] bases) {
+        String reverse = "";
+        for (int i = bases.length-1; i >=0; i--) {
+            reverse += (char) BaseUtils.getComplement(bases[i]);
+        }
+        return reverse;
+    }
+
+    /**
+     * Returns the reverse complement of the read bases
+     *
+     * @param read the read
+     * @return the reverse complement of the read bases
+     */
+    public static String getBasesReverseComplement(GATKSAMRecord read) {
+        return getBasesReverseComplement(read.getReadBases());
     }
 
 }

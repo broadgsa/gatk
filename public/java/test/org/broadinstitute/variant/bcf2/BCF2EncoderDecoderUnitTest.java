@@ -25,12 +25,9 @@
 
 package org.broadinstitute.variant.bcf2;
 
-
 // the imports for unit testing.
-
-
 import org.apache.commons.lang.ArrayUtils;
-import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.variant.VariantBaseTest;
 import org.broadinstitute.variant.variantcontext.writer.BCF2Encoder;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
@@ -47,7 +44,7 @@ import java.util.Collections;
 import java.util.List;
 
 
-public class BCF2EncoderDecoderUnitTest extends BaseTest {
+public class BCF2EncoderDecoderUnitTest extends VariantBaseTest {
     private final double FLOAT_TOLERANCE = 1e-6;
     final List<BCF2TypedValue> primitives = new ArrayList<BCF2TypedValue>();
     final List<BCF2TypedValue> basicTypes = new ArrayList<BCF2TypedValue>();
@@ -561,7 +558,7 @@ public class BCF2EncoderDecoderUnitTest extends BaseTest {
             final double valueFloat = (Double)tv.value;
             final double decodedFloat = (Double)decoded;
 
-            BaseTest.assertEqualsDoubleSmart(decodedFloat, valueFloat, FLOAT_TOLERANCE);
+            VariantBaseTest.assertEqualsDoubleSmart(decodedFloat, valueFloat, FLOAT_TOLERANCE);
         } else
             Assert.assertEquals(decoded, tv.value);
     }
