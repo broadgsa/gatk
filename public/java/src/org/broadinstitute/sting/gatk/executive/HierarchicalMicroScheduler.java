@@ -139,6 +139,8 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
     }
 
     public Object execute( Walker walker, Iterable<Shard> shardStrategy ) {
+        super.startingExecution();
+
         // Fast fail for walkers not supporting TreeReducible interface.
         if (!( walker instanceof TreeReducible ))
             throw new IllegalArgumentException("The GATK can currently run in parallel only with TreeReducible walkers");

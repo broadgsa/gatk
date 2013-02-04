@@ -301,6 +301,17 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
     public abstract Object execute(Walker walker, Iterable<Shard> shardStrategy);
 
     /**
+     * Tells this MicroScheduler that the execution of one of the subclass of this object as started
+     *
+     * Must be called when the implementation of execute actually starts up
+     *
+     * Currently only starts the progress meter timer running, but other start up activities could be incorporated
+     */
+    protected void startingExecution() {
+        progressMeter.start();
+    }
+
+    /**
      * Retrieves the object responsible for tracking and managing output.
      * @return An output tracker, for loading data in and extracting results.  Will not be null.
      */
