@@ -43,8 +43,6 @@ public class Haplotype extends Allele {
     private Map<Integer, VariantContext> eventMap = null;
     private Cigar cigar;
     private int alignmentStartHapwrtRef;
-    public int leftBreakPoint = 0;
-    public int rightBreakPoint = 0;
     private Event artificialEvent = null;
 
     /**

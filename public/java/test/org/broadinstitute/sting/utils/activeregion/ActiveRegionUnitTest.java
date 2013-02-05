@@ -189,14 +189,6 @@ public class ActiveRegionUnitTest extends BaseTest {
         Assert.assertEquals(region.getExtendedLoc(), loc);
         Assert.assertEquals(region.getReadSpanLoc(), loc);
         Assert.assertTrue(region.equalExceptReads(region2));
-
-        region.add(read);
-        region.hardClipToActiveRegion();
-        Assert.assertEquals(region.size(), 1);
-        Assert.assertEquals(region.getExtendedLoc(), loc);
-        Assert.assertEquals(region.getReadSpanLoc(), loc);
-        Assert.assertTrue(region.getReads().get(0).getAlignmentStart() >= region.getExtendedLoc().getStart());
-        Assert.assertTrue(region.getReads().get(0).getAlignmentEnd() <= region.getExtendedLoc().getStop());
     }
 
     // -----------------------------------------------------------------------------------------------
