@@ -49,6 +49,8 @@ public class MisencodedBaseQualityUnitTest extends BaseTest {
 
     @BeforeMethod
     public void before() {
+        // reset the read counter so that we are deterministic
+        MisencodedBaseQualityReadTransformer.currentReadCounter = 0;
         header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
     }
 

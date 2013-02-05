@@ -44,7 +44,7 @@ public class MisencodedBaseQualityReadTransformer extends ReadTransformer {
 
     private boolean disabled;
     private boolean fixQuals;
-    private static int currentReadCounter = 0;
+    protected static int currentReadCounter = 0;
 
     @Override
     public ApplicationTime initializeSub(final GenomeAnalysisEngine engine, final Walker walker) {
