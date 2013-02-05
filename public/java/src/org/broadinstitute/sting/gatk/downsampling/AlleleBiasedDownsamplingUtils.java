@@ -27,13 +27,21 @@ package org.broadinstitute.sting.gatk.downsampling;
 
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.collections.DefaultHashMap;
+import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.variant.variantcontext.Allele;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
+
+import org.apache.log4j.Logger;
 
 public class AlleleBiasedDownsamplingUtils {
 
@@ -256,5 +264,91 @@ public class AlleleBiasedDownsamplingUtils {
             final SAMReadGroupRecord readGroup = read.getReadGroup();
             log.println(String.format("%s\t%s\t%s\t%s", read.getReadName(), readGroup.getSample(), readGroup.getLibrary(), readGroup.getPlatformUnit()));
         }
+    }
+
+
+    /**
+     * Create sample-contamination maps from file
+     *
+     * @param ContaminationFractionFile   Filename containing two columns: SampleID and Contamination
+     * @param AvailableSampleIDs          Set of Samples of interest (no reason to include every sample in file) or null to turn off checking
+     * @param logger                      for logging output
+     * @return sample-contamination Map
+     */
+
+    public static DefaultHashMap<String, Double> loadContaminationFile(File ContaminationFractionFile, final Double defaultContaminationFraction, final Set<String> AvailableSampleIDs, Logger logger) throws StingException {
+        DefaultHashMap<String, Double> sampleContamination = new DefaultHashMap<String, Double>(defaultContaminationFraction);
+        Set<String> nonSamplesInContaminationFile = new HashSet<String>(sampleContamination.keySet());
+        try {
+
+            XReadLines reader = new XReadLines(ContaminationFractionFile, true);
+            for (String line : reader) {
+
+                if (line.length() == 0) {
+                    continue;
+                }
+
+                StringTokenizer st = new StringTokenizer(line);
+
+                String fields[] = new String[2];
+                try {
+                    fields[0] = st.nextToken();
+                    fields[1] = st.nextToken();
+                } catch(NoSuchElementException e){
+                    throw new UserException.MalformedFile("Contamination file must have exactly two columns. Offending line:\n" + line);
+                }
+                if(st.hasMoreTokens()) {
+                    throw new UserException.MalformedFile("Contamination file must have exactly two columns. Offending line:\n" + line);
+                }
+
+                if (fields[0].length() == 0 || fields[1].length() == 0) {
+                    throw new UserException.MalformedFile("Contamination file can not have empty strings in either column. Offending line:\n" + line);
+                }
+
+                if (sampleContamination.containsKey(fields[0])) {
+                    throw new UserException.MalformedFile("Contamination file contains duplicate entries for input name " + fields[0]);
+                }
+
+                try {
+                    final Double contamination = Double.valueOf(fields[1]);
+                    if (contamination < 0 || contamination > 1){
+                        throw new UserException.MalformedFile("Contamination file contains unacceptable contamination value (must be 0<=x<=1): " + line);
+                    }
+                    if (AvailableSampleIDs==null || AvailableSampleIDs.contains(fields[0])) {// only add samples if they are in the sampleSet (or if it is null)
+                        sampleContamination.put(fields[0], contamination);
+                    }
+                    else {
+                        nonSamplesInContaminationFile.add(fields[0]);
+                    }
+                } catch (NumberFormatException e) {
+                    throw new UserException.MalformedFile("Contamination file contains unparsable double in the second field. Offending line: " + line);
+                }
+            }
+
+
+            //output to the user info lines telling which samples are in the Contamination File
+            if (sampleContamination.size() > 0) {
+                logger.info(String.format("The following samples were found in the Contamination file and will be processed at the contamination level therein: %s", sampleContamination.keySet().toString()));
+
+                //output to the user info lines telling which samples are NOT in the Contamination File
+                if(AvailableSampleIDs!=null){
+                    Set<String> samplesNotInContaminationFile = new HashSet<String>(AvailableSampleIDs);
+                    samplesNotInContaminationFile.removeAll(sampleContamination.keySet());
+                    if (samplesNotInContaminationFile.size() > 0)
+                        logger.info(String.format("The following samples were NOT found in the Contamination file and will be processed at the default contamination level: %s", samplesNotInContaminationFile.toString()));
+                }
+            }
+
+            //output to the user Samples that do not have lines in the Contamination File
+            if (nonSamplesInContaminationFile.size() > 0) {
+                logger.info(String.format("The following entries were found in the Contamination file but were not SAMPLEIDs. They will be ignored: %s", nonSamplesInContaminationFile.toString()));
+            }
+
+            return sampleContamination;
+
+        } catch (IOException e) {
+            throw new StingException("I/O Error while reading sample-contamination file " + ContaminationFractionFile.getName() + ": " + e.getMessage());
+        }
+
     }
 }
