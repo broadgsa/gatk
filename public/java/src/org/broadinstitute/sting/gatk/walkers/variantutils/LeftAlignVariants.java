@@ -163,7 +163,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         Cigar originalCigar = new Cigar(elements);
 
         // left align the CIGAR
-        Cigar newCigar = AlignmentUtils.leftAlignIndel(originalCigar, refSeq, originalIndel, 0, 0);
+        Cigar newCigar = AlignmentUtils.leftAlignIndel(originalCigar, refSeq, originalIndel, 0, 0, true);
 
         // update if necessary and write
         if ( !newCigar.equals(originalCigar) && newCigar.numCigarElements() > 1 ) {
