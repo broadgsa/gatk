@@ -35,10 +35,12 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.VariantContextTestProvider;
 import org.broadinstitute.variant.vcf.VCFCodec;
+import org.broadinstitute.variant.vcf.VCFHeader;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -250,13 +252,13 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
 
         final File file = new File(path);
         final VCFCodec codec = new VCFCodec();
-        final VariantContextTestProvider.VariantContextContainer reader = VariantContextTestProvider.readAllVCs(file, codec);
+        final Pair<VCFHeader, GATKVCFUtils.VCIterable> reader = GATKVCFUtils.readAllVCs(file, codec);
 
         final List<ActiveRegion> incRegions = new ArrayList<ActiveRegion>();
         final BandPassActivityProfile incProfile = new BandPassActivityProfile(genomeLocParser);
         final BandPassActivityProfile fullProfile = new BandPassActivityProfile(genomeLocParser);
         int pos = start;
-        for ( final VariantContext vc : reader.getVCs() ) {
+        for ( final VariantContext vc : reader.getSecond() ) {
             if ( vc == null ) continue;
             while ( pos < vc.getStart() ) {
                 final GenomeLoc loc = genomeLocParser.createGenomeLoc(contig, pos);

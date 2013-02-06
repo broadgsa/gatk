@@ -702,7 +702,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         for ( int i = 0; i < biallelics.size(); i++ ) {
             final VariantContext actual = biallelics.get(i);
             final VariantContext expected = expectedBiallelics.get(i);
-            VariantContextTestProvider.assertEquals(actual, expected);
+            assertVariantContextsAreEqual(actual, expected);
         }
     }
 

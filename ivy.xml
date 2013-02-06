@@ -35,6 +35,9 @@
         <!-- Tribble -->
         <dependency org="org.broad" name="tribble" rev="latest.integration"/>
 
+        <!-- Variant -->
+        <dependency org="org.broadinstitute" name="variant" rev="latest.integration"/>
+
         <dependency org="log4j" name="log4j" rev="1.2.15"/>
         <dependency org="javax.mail" name="mail" rev="1.4.4"/>
         <dependency org="colt" name="colt" rev="1.2.0"/>
