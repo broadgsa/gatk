@@ -176,7 +176,7 @@ public class GATKArgumentCollection {
     @Argument(fullName = "fix_misencoded_quality_scores", shortName="fixMisencodedQuals", doc="Fix mis-encoded base quality scores", required = false)
     public boolean FIX_MISENCODED_QUALS = false;
 
-    @Argument(fullName = "allow_potentially_misencoded_quality_scores", shortName="allowPotentiallyMisencodedQuals", doc="Do not fail when encountered base qualities that are too high and seemingly indicate a problem with the base quality encoding of the BAM file", required = false)
+    @Argument(fullName = "allow_potentially_misencoded_quality_scores", shortName="allowPotentiallyMisencodedQuals", doc="Do not fail when encountering base qualities that are too high and that seemingly indicate a problem with the base quality encoding of the BAM file", required = false)
     public boolean ALLOW_POTENTIALLY_MISENCODED_QUALS = false;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -244,6 +244,14 @@ public class GATKArgumentCollection {
 
     @Argument(fullName = "globalQScorePrior", shortName = "globalQScorePrior", doc = "The global Qscore Bayesian prior to use in the BQSR. If specified, this value will be used as the prior for all mismatch quality scores instead of the actual reported quality score", required = false)
     public double globalQScorePrior = -1.0;
+
+    /**
+     * For the sake of your data, please only use this option if you know what you are doing.  It is absolutely not recommended practice
+     * to run base quality score recalibration on reduced BAM files.
+     */
+    @Advanced
+    @Argument(fullName = "allow_bqsr_on_reduced_bams_despite_repeated_warnings", shortName="allowBqsrOnReducedBams", doc="Do not fail when running base quality score recalibration on a reduced BAM file even though we highly recommend against it", required = false)
+    public boolean ALLOW_BQSR_ON_REDUCED_BAMS = false;
 
     // --------------------------------------------------------------------------------------------------------------
     //

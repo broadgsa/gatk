@@ -884,10 +884,10 @@ public class GenomeAnalysisEngine {
     /**
      * Returns the unmerged SAM file header for an individual reader.
      * @param reader The reader.
-     * @return Header for that reader.
+     * @return Header for that reader or null if not available.
      */
     public SAMFileHeader getSAMFileHeader(SAMReaderID reader) {
-        return readsDataSource.getHeader(reader);
+        return readsDataSource == null ? null : readsDataSource.getHeader(reader);
     }
 
     /**
