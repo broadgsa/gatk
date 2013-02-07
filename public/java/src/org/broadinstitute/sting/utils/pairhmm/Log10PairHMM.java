@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.utils.pairhmm;
 
-import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -39,6 +38,9 @@ import java.util.Arrays;
  * Date: 3/1/12
  */
 public class Log10PairHMM extends PairHMM {
+    /**
+     * Should we use exact log10 calculation (true), or an approximation (false)?
+     */
     private final boolean doExactLog10;
 
     /**
@@ -58,29 +60,35 @@ public class Log10PairHMM extends PairHMM {
         return doExactLog10;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void initialize( final int READ_MAX_LENGTH, final int HAPLOTYPE_MAX_LENGTH ) {
-        super.initialize(READ_MAX_LENGTH, HAPLOTYPE_MAX_LENGTH);
+    public void initialize( final int readMaxLength, final int haplotypeMaxLength) {
+        super.initialize(readMaxLength, haplotypeMaxLength);
 
-        for( int iii=0; iii < X_METRIC_LENGTH; iii++ ) {
+        for( int iii=0; iii < X_METRIC_MAX_LENGTH; iii++ ) {
             Arrays.fill(matchMetricArray[iii], Double.NEGATIVE_INFINITY);
             Arrays.fill(XMetricArray[iii], Double.NEGATIVE_INFINITY);
             Arrays.fill(YMetricArray[iii], Double.NEGATIVE_INFINITY);
         }
-
-        // the initial condition
-        matchMetricArray[1][1] = 0.0; //Math.log10(1.0 / nPotentialXStarts);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public double computeReadLikelihoodGivenHaplotypeLog10( final byte[] haplotypeBases,
-                                                            final byte[] readBases,
-                                                            final byte[] readQuals,
-                                                            final byte[] insertionGOP,
-                                                            final byte[] deletionGOP,
-                                                            final byte[] overallGCP,
-                                                            final int hapStartIndex,
-                                                            final boolean recacheReadValues ) {
+    public double subComputeReadLikelihoodGivenHaplotypeLog10( final byte[] haplotypeBases,
+                                                               final byte[] readBases,
+                                                               final byte[] readQuals,
+                                                               final byte[] insertionGOP,
+                                                               final byte[] deletionGOP,
+                                                               final byte[] overallGCP,
+                                                               final int hapStartIndex,
+                                                               final boolean recacheReadValues ) {
+        // the initial condition -- must be in subComputeReadLikelihoodGivenHaplotypeLog10 because it needs that actual
+        // read and haplotypes, not the maximum
+        matchMetricArray[1][1] = getNPotentialXStartsLikelihoodPenaltyLog10(haplotypeBases.length, readBases.length);
 
         // M, X, and Y arrays are of size read and haplotype + 1 because of an extra column for initial conditions and + 1 to consider the final base in a non-global alignment
         final int X_METRIC_LENGTH = readBases.length + 2;
@@ -106,13 +114,22 @@ public class Log10PairHMM extends PairHMM {
         return myLog10SumLog10(new double[]{matchMetricArray[endI][endJ], XMetricArray[endI][endJ], YMetricArray[endI][endJ]});
     }
 
+    /**
+     * Compute the log10SumLog10 of the values
+     *
+     * NOTE NOTE NOTE
+     *
+     * Log10PairHMM depends critically on this function tolerating values that are all -Infinity
+     * and the sum returning -Infinity.  Note good.  Needs to be fixed.
+     *
+     * NOTE NOTE NOTE
+     *
+     * @param values an array of log10 probabilities that need to be summed
+     * @return the log10 of the sum of the probabilities
+     */
     @Requires("values != null")
-    @Ensures("MathUtils.goodLog10Probability(result)")
     private double myLog10SumLog10(final double[] values) {
-        if ( doExactLog10 )
-            return MathUtils.log10sumLog10(values);
-        else
-            return MathUtils.approximateLog10SumLog10(values);
+        return doExactLog10 ? MathUtils.log10sumLog10(values) : MathUtils.approximateLog10SumLog10(values);
     }
 
     private void updateCell( final int indI, final int indJ, final byte[] haplotypeBases, final byte[] readBases,
