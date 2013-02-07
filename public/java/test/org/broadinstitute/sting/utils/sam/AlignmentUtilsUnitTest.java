@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.sam;
 import net.sf.samtools.*;
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -324,5 +325,319 @@ public class AlignmentUtilsUnitTest {
 
         final int actual = AlignmentUtils.calcNumHighQualitySoftClips(read, (byte) qualThreshold);
         Assert.assertEquals(actual, numExpected, "Wrong number of soft clips detected for read " + read.getSAMString());
+    }
+
+    ////////////////////////////////////////////
+    // Test AlignmentUtils.getMismatchCount() //
+    ////////////////////////////////////////////
+
+    @DataProvider(name = "MismatchCountDataProvider")
+    public Object[][] makeMismatchCountDataProvider() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final int readLength = 20;
+        final int lengthOfIndel = 2;
+        final int locationOnReference = 10;
+        final byte[] reference = Utils.dupBytes((byte)'A', readLength);
+        final byte[] quals = Utils.dupBytes((byte)'A', readLength);
+
+
+        for ( int startOnRead = 0; startOnRead <= readLength; startOnRead++ ) {
+            for ( int basesToRead = 0; basesToRead <= readLength; basesToRead++ ) {
+                for ( final int lengthOfSoftClip : Arrays.asList(0, 1, 10) ) {
+                    for ( final int lengthOfFirstM : Arrays.asList(0, 3) ) {
+                        for ( final char middleOp : Arrays.asList('M', 'D', 'I') ) {
+                            for ( final int mismatchLocation : Arrays.asList(-1, 0, 5, 10, 15, 19) ) {
+
+                                final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, locationOnReference, readLength);
+
+                                // set the read's bases and quals
+                                final byte[] readBases = reference.clone();
+                                // create the mismatch if requested
+                                if ( mismatchLocation != -1 )
+                                    readBases[mismatchLocation] = (byte)'C';
+                                read.setReadBases(readBases);
+                                read.setBaseQualities(quals);
+
+                                // create the CIGAR string
+                                read.setCigarString(buildTestCigarString(middleOp, lengthOfSoftClip, lengthOfFirstM, lengthOfIndel, readLength));
+
+                                // now, determine whether or not there's a mismatch
+                                final boolean isMismatch;
+                                if ( mismatchLocation < startOnRead || mismatchLocation >= startOnRead + basesToRead || mismatchLocation < lengthOfSoftClip ) {
+                                    isMismatch = false;
+                                } else if ( middleOp == 'M' || middleOp == 'D' || mismatchLocation < lengthOfSoftClip + lengthOfFirstM || mismatchLocation >= lengthOfSoftClip + lengthOfFirstM + lengthOfIndel ) {
+                                    isMismatch = true;
+                                } else {
+                                    isMismatch = false;
+                                }
+
+                                tests.add(new Object[]{read, locationOnReference, startOnRead, basesToRead, isMismatch});
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "MismatchCountDataProvider")
+    public void testMismatchCountData(final GATKSAMRecord read, final int refIndex, final int startOnRead, final int basesToRead, final boolean isMismatch) {
+        final byte[] reference = Utils.dupBytes((byte)'A', 100);
+        final int actual = AlignmentUtils.getMismatchCount(read, reference, refIndex, startOnRead, basesToRead).numMismatches;
+        Assert.assertEquals(actual, isMismatch ? 1 : 0, "Wrong number of mismatches detected for read " + read.getSAMString());
+    }
+
+    private static String buildTestCigarString(final char middleOp, final int lengthOfSoftClip, final int lengthOfFirstM, final int lengthOfIndel, final int readLength) {
+        final StringBuilder cigar = new StringBuilder();
+        int remainingLength = readLength;
+        if ( lengthOfSoftClip > 0 ) {
+            cigar.append(lengthOfSoftClip + "S");
+            remainingLength -= lengthOfSoftClip;
+        }
+
+        if ( middleOp == 'M' ) {
+            cigar.append(remainingLength + "M");
+        } else {
+            if ( lengthOfFirstM > 0 ) {
+                cigar.append(lengthOfFirstM + "M");
+                remainingLength -= lengthOfFirstM;
+            }
+
+            if ( middleOp == 'D' ) {
+                cigar.append(lengthOfIndel + "D");
+            } else {
+                cigar.append(lengthOfIndel + "I");
+                remainingLength -= lengthOfIndel;
+            }
+            cigar.append(remainingLength + "M");
+        }
+
+        return cigar.toString();
+    }
+
+    ////////////////////////////////////////////////////////
+    // Test AlignmentUtils.calcAlignmentByteArrayOffset() //
+    ////////////////////////////////////////////////////////
+
+    @DataProvider(name = "AlignmentByteArrayOffsetDataProvider")
+    public Object[][] makeAlignmentByteArrayOffsetDataProvider() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final int readLength = 20;
+        final int lengthOfIndel = 2;
+        final int locationOnReference = 20;
+
+        for ( int offset = 0; offset < readLength; offset++ ) {
+            for ( final int lengthOfSoftClip : Arrays.asList(0, 1, 10) ) {
+                for ( final int lengthOfFirstM : Arrays.asList(0, 3) ) {
+                    for ( final char middleOp : Arrays.asList('M', 'D', 'I') ) {
+
+                        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, locationOnReference, readLength);
+                        // create the CIGAR string
+                        read.setCigarString(buildTestCigarString(middleOp, lengthOfSoftClip, lengthOfFirstM, lengthOfIndel, readLength));
+
+                        // now, determine the expected alignment offset
+                        final int expected;
+                        boolean isDeletion = false;
+                        if ( offset < lengthOfSoftClip ) {
+                            expected = 0;
+                        } else if ( middleOp == 'M' || offset < lengthOfSoftClip + lengthOfFirstM ) {
+                            expected = offset - lengthOfSoftClip;
+                        } else if ( offset < lengthOfSoftClip + lengthOfFirstM + lengthOfIndel ) {
+                            if ( middleOp == 'D' ) {
+                                isDeletion = true;
+                                expected = offset - lengthOfSoftClip;
+                            } else {
+                                expected = lengthOfFirstM;
+                            }
+                        } else {
+                            expected = offset - lengthOfSoftClip - (middleOp == 'I' ? lengthOfIndel : -lengthOfIndel);
+                        }
+
+                        tests.add(new Object[]{read.getCigar(), offset, expected, isDeletion, lengthOfSoftClip});
+                    }
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "AlignmentByteArrayOffsetDataProvider")
+    public void testAlignmentByteArrayOffsetData(final Cigar cigar, final int offset, final int expectedResult, final boolean isDeletion, final int lengthOfSoftClip) {
+        final int actual = AlignmentUtils.calcAlignmentByteArrayOffset(cigar, isDeletion ? -1 : offset, isDeletion, 20, 20 + offset - lengthOfSoftClip);
+        Assert.assertEquals(actual, expectedResult, "Wrong alignment offset detected for cigar " + cigar.toString());
+    }
+
+    ////////////////////////////////////////////////////
+    // Test AlignmentUtils.readToAlignmentByteArray() //
+    ////////////////////////////////////////////////////
+
+    @DataProvider(name = "ReadToAlignmentByteArrayDataProvider")
+    public Object[][] makeReadToAlignmentByteArrayDataProvider() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final int readLength = 20;
+        final int lengthOfIndel = 2;
+        final int locationOnReference = 20;
+
+        for ( final int lengthOfSoftClip : Arrays.asList(0, 1, 10) ) {
+            for ( final int lengthOfFirstM : Arrays.asList(0, 3) ) {
+                for ( final char middleOp : Arrays.asList('M', 'D', 'I') ) {
+
+                    final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, locationOnReference, readLength);
+                    // create the CIGAR string
+                    read.setCigarString(buildTestCigarString(middleOp, lengthOfSoftClip, lengthOfFirstM, lengthOfIndel, readLength));
+
+                    // now, determine the byte array size
+                    final int expected = readLength - lengthOfSoftClip - (middleOp == 'I' ? lengthOfIndel : (middleOp == 'D' ? -lengthOfIndel : 0));
+                    final int indelBasesStart = middleOp != 'M' ? lengthOfFirstM : -1;
+
+                    tests.add(new Object[]{read.getCigar(), expected, middleOp, indelBasesStart, lengthOfIndel});
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "ReadToAlignmentByteArrayDataProvider")
+    public void testReadToAlignmentByteArrayData(final Cigar cigar, final int expectedLength, final char middleOp, final int startOfIndelBases, final int lengthOfDeletion) {
+        final byte[] read = Utils.dupBytes((byte)'A', cigar.getReadLength());
+        final byte[] alignment = AlignmentUtils.readToAlignmentByteArray(cigar, read);
+
+        Assert.assertEquals(alignment.length, expectedLength, "Wrong alignment length detected for cigar " + cigar.toString());
+
+        for ( int i = 0; i < alignment.length; i++ ) {
+            final byte expectedBase;
+            if ( middleOp == 'D' && i >= startOfIndelBases && i < startOfIndelBases + lengthOfDeletion )
+                expectedBase = PileupElement.DELETION_BASE;
+            else if ( middleOp == 'I' && i == startOfIndelBases - 1 )
+                expectedBase = PileupElement.A_FOLLOWED_BY_INSERTION_BASE;
+            else
+                expectedBase = (byte)'A';
+            Assert.assertEquals(alignment[i], expectedBase, "Wrong base detected at position " + i);
+        }
+    }
+
+    //////////////////////////////////////////
+    // Test AlignmentUtils.leftAlignIndel() //
+    //////////////////////////////////////////
+
+    @DataProvider(name = "LeftAlignIndelDataProvider")
+    public Object[][] makeLeftAlignIndelDataProvider() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final byte[] repeat1Reference = "ABCDEFGHIJKLMNOPXXXXXXXXXXABCDEFGHIJKLMNOP".getBytes();
+        final byte[] repeat2Reference = "ABCDEFGHIJKLMNOPXYXYXYXYXYABCDEFGHIJKLMNOP".getBytes();
+        final byte[] repeat3Reference = "ABCDEFGHIJKLMNOPXYZXYZXYZXYZABCDEFGHIJKLMN".getBytes();
+        final int referenceLength = repeat1Reference.length;
+
+        for ( int indelStart = 0; indelStart < repeat1Reference.length; indelStart++ ) {
+            for ( final int indelSize : Arrays.asList(0, 1, 2, 3, 4) ) {
+                for ( final char indelOp : Arrays.asList('D', 'I') ) {
+
+                    if ( indelOp == 'D' && indelStart + indelSize >= repeat1Reference.length )
+                        continue;
+
+                    final int readLength = referenceLength - (indelOp == 'D' ? indelSize : -indelSize);
+
+                    // create the original CIGAR string
+                    final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 1, readLength);
+                    read.setCigarString(buildTestCigarString(indelSize == 0 ? 'M' : indelOp, 0, indelStart, indelSize, readLength));
+                    final Cigar originalCigar = read.getCigar();
+
+                    final Cigar expectedCigar1 = makeExpectedCigar1(originalCigar, indelOp, indelStart, indelSize, readLength);
+                    final byte[] readString1 = makeReadString(repeat1Reference, indelOp, indelStart, indelSize, readLength, 1);
+                    tests.add(new Object[]{originalCigar, expectedCigar1, repeat1Reference, readString1, 1});
+
+                    final Cigar expectedCigar2 = makeExpectedCigar2(originalCigar, indelOp, indelStart, indelSize, readLength);
+                    final byte[] readString2 = makeReadString(repeat2Reference, indelOp, indelStart, indelSize, readLength, 2);
+                    tests.add(new Object[]{originalCigar, expectedCigar2, repeat2Reference, readString2, 2});
+
+                    final Cigar expectedCigar3 = makeExpectedCigar3(originalCigar, indelOp, indelStart, indelSize, readLength);
+                    final byte[] readString3 = makeReadString(repeat3Reference, indelOp, indelStart, indelSize, readLength, 3);
+                    tests.add(new Object[]{originalCigar, expectedCigar3, repeat3Reference, readString3, 3});
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    private Cigar makeExpectedCigar1(final Cigar originalCigar, final char indelOp, final int indelStart, final int indelSize, final int readLength) {
+        if ( indelSize == 0 || indelStart < 17 || indelStart > (26 - (indelOp == 'D' ? indelSize : 0)) )
+            return originalCigar;
+
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 1, readLength);
+        read.setCigarString(buildTestCigarString(indelOp, 0, 16, indelSize, readLength));
+        return read.getCigar();
+    }
+
+    private Cigar makeExpectedCigar2(final Cigar originalCigar, final char indelOp, final int indelStart, final int indelSize, final int readLength) {
+        if ( indelStart < 17 || indelStart > (26 - (indelOp == 'D' ? indelSize : 0)) )
+            return originalCigar;
+
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 1, readLength);
+
+        if ( indelOp == 'I' && (indelSize == 1 || indelSize == 3) && indelStart % 2 == 1 )
+            read.setCigarString(buildTestCigarString(indelOp, 0, Math.max(indelStart - indelSize, 16), indelSize, readLength));
+        else if ( (indelSize == 2 || indelSize == 4) && (indelOp == 'D' || indelStart % 2 == 0) )
+            read.setCigarString(buildTestCigarString(indelOp, 0, 16, indelSize, readLength));
+        else
+            return originalCigar;
+
+        return read.getCigar();
+    }
+
+    private Cigar makeExpectedCigar3(final Cigar originalCigar, final char indelOp, final int indelStart, final int indelSize, final int readLength) {
+        if ( indelStart < 17 || indelStart > (28 - (indelOp == 'D' ? indelSize : 0)) )
+            return originalCigar;
+
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 1, readLength);
+
+        if ( indelSize == 3 && (indelOp == 'D' || indelStart % 3 == 1) )
+            read.setCigarString(buildTestCigarString(indelOp, 0, 16, indelSize, readLength));
+        else if ( (indelOp == 'I' && indelSize == 4 && indelStart % 3 == 2) ||
+                (indelOp == 'I' && indelSize == 2 && indelStart % 3 == 0) ||
+                (indelOp == 'I' && indelSize == 1 && indelStart < 28 && indelStart % 3 == 2) )
+            read.setCigarString(buildTestCigarString(indelOp, 0, Math.max(indelStart - indelSize, 16), indelSize, readLength));
+        else
+            return originalCigar;
+
+        return read.getCigar();
+    }
+
+    private static byte[] makeReadString(final byte[] reference, final char indelOp, final int indelStart, final int indelSize, final int readLength, final int repeatLength) {
+        final byte[] readString = new byte[readLength];
+
+        if ( indelOp == 'D' && indelSize > 0 ) {
+            System.arraycopy(reference, 0, readString, 0, indelStart);
+            System.arraycopy(reference, indelStart + indelSize, readString, indelStart, readLength - indelStart);
+        } else if ( indelOp == 'I' && indelSize > 0 ) {
+            System.arraycopy(reference, 0, readString, 0, indelStart);
+            for ( int i = 0; i < indelSize; i++ ) {
+                if ( i % repeatLength == 0 )
+                    readString[indelStart + i] = 'X';
+                else if ( i % repeatLength == 1 )
+                    readString[indelStart + i] = 'Y';
+                else
+                    readString[indelStart + i] = 'Z';
+            }
+            System.arraycopy(reference, indelStart, readString, indelStart + indelSize, readLength - indelStart - indelSize);
+        } else {
+            System.arraycopy(reference, 0, readString, 0, readLength);
+        }
+
+        return readString;
+    }
+
+    @Test(dataProvider = "LeftAlignIndelDataProvider", enabled = true)
+    public void testLeftAlignIndelData(final Cigar originalCigar, final Cigar expectedCigar, final byte[] reference, final byte[] read, final int repeatLength) {
+        final Cigar actualCigar = AlignmentUtils.leftAlignIndel(originalCigar, reference, read, 0, 0, true);
+        Assert.assertTrue(expectedCigar.equals(actualCigar), "Wrong left alignment detected for cigar " + originalCigar.toString() + " to " + actualCigar.toString() + " but expected " + expectedCigar.toString() + " with repeat length " + repeatLength);
     }
 }
