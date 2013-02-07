@@ -50,6 +50,14 @@ public class Log10PairHMM extends PairHMM {
         this.doExactLog10 = doExactLog10;
     }
 
+    /**
+     * Is this HMM using exact log10 calculations?
+     * @return true if exact, false if approximate
+     */
+    public boolean isDoingExactLog10Calculations() {
+        return doExactLog10;
+    }
+
     @Override
     public void initialize( final int READ_MAX_LENGTH, final int HAPLOTYPE_MAX_LENGTH ) {
         super.initialize(READ_MAX_LENGTH, HAPLOTYPE_MAX_LENGTH);
