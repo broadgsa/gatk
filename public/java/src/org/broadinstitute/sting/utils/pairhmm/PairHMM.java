@@ -43,8 +43,6 @@ public abstract class PairHMM {
         EXACT, // TODO -- merge with original, using boolean parameter to determine accuracy of HMM
         /* PairHMM as implemented for the UnifiedGenotyper. Uses log10 sum functions accurate to only 1E-4 */
         ORIGINAL,
-        /* Optimized version of the PairHMM which caches per-read computations */
-        CACHING, // TODO -- delete me
         /* Optimized version of the PairHMM which caches per-read computations and operations in real space to avoid costly sums of log10'ed likelihoods */
         LOGLESS_CACHING
     }
