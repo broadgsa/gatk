@@ -81,7 +81,7 @@ public class GATKRunReport {
     /**
      * number of milliseconds before the S3 put operation is timed-out:
      */
-    private static final long S3_PUT_TIME_OUT = 10 * 1000;
+    private static final long S3_PUT_TIME_OUT = 30 * 1000;
 
     /**
      * The root file system directory where we keep common report data
