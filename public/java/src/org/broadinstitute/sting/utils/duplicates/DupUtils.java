@@ -94,8 +94,7 @@ public class DupUtils {
 
         Arrays.sort(probs);
         double normalizedP = Math.pow(10, bestProb) / sumProbs;
-        double eps = Math.pow(10, -maxQScore/10.0);
-        byte qual = QualityUtils.probToQual(normalizedP, eps);
+        byte qual = QualityUtils.trueProbToQual(normalizedP, maxQScore);
 //        if ( false ) {
 //            System.out.printf("Best base is %s %.8f%n", bestBase, bestProb);
 //            System.out.printf("2nd  base is %.8f%n", probs[1]);

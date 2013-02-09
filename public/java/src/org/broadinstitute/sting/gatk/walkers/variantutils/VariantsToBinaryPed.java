@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -408,7 +409,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
             return genotype.getGQ() >= minGenotypeQuality;
         } else if ( genotype.hasLikelihoods() ) {
             double log10gq = GenotypeLikelihoods.getGQLog10FromLikelihoods(genotype.getType().ordinal()-1,genotype.getLikelihoods().getAsVector());
-            return MathUtils.log10ProbabilityToPhredScale(log10gq) >= minGenotypeQuality;
+            return QualityUtils.phredScaleLog10ErrorRate(log10gq) >= minGenotypeQuality;
         }
 
         return minGenotypeQuality <= 0;

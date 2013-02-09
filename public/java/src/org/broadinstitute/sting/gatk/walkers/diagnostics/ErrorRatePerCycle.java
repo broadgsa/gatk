@@ -200,7 +200,7 @@ public class ErrorRatePerCycle extends LocusWalker<Integer, Integer> {
             final int mismatches = (Integer)table.get(key, "mismatches");
             final int count = (Integer)table.get(key, "counts");
             final double errorRate = (mismatches + 1) / (1.0*(count + 1));
-            final int qual = QualityUtils.probToQual(1-errorRate, 0.0);
+            final int qual = QualityUtils.errorProbToQual(errorRate);
             table.set(key, "qual", qual);
             table.set(key, "errorrate", errorRate);
         }
