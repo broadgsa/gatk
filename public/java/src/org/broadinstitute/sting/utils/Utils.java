@@ -308,6 +308,22 @@ public class Utils {
         return join(separator, Arrays.asList(objects));
     }
 
+    /**
+     * Create a new string thats a n duplicate copies of s
+     * @param s the string to duplicate
+     * @param nCopies how many copies?
+     * @return a string
+     */
+    public static String dupString(final String s, int nCopies) {
+        if ( s == null || s.equals("") ) throw new IllegalArgumentException("Bad s " + s);
+        if ( nCopies < 1 ) throw new IllegalArgumentException("nCopies must be >= 1 but got " + nCopies);
+
+        final StringBuilder b = new StringBuilder();
+        for ( int i = 0; i < nCopies; i++ )
+            b.append(s);
+        return b.toString();
+    }
+
     public static String dupString(char c, int nCopies) {
         char[] chars = new char[nCopies];
         Arrays.fill(chars, c);
