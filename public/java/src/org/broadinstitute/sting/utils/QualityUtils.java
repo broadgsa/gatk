@@ -312,6 +312,21 @@ public class QualityUtils {
     }
 
     /**
+     * Convert a log10 probability of being right to a phred-scaled quality score of being wrong as a double
+     *
+     * This is a very generic method, that simply computes a phred-scaled double quality
+     * score given an error rate.  It has the same precision as a normal double operation
+     *
+     * @param trueRateLog10 the probability of being right (0.0-1.0)
+     * @return a phred-scaled version of the error rate implied by trueRate
+     */
+    @Requires("MathUtils.goodLog10Probability(trueRateLog10)")
+    @Ensures("result >= 0.0")
+    public static double phredScaleLog10CorrectRate(final double trueRateLog10) {
+        return phredScaleCorrectRate(Math.pow(10.0, trueRateLog10));
+    }
+
+    /**
      * Convert a probability of being wrong to a phred-scaled quality score of being wrong as a double
      *
      * This is a very generic method, that simply computes a phred-scaled double quality
@@ -337,7 +352,8 @@ public class QualityUtils {
      */
     @Ensures("result >= 0.0")
     public static double phredScaleLog10ErrorRate(final double errorRateLog10) {
-        return -10.0 * Math.max(errorRateLog10, RAW_MIN_PHRED_SCALED_QUAL);
+        // abs is necessary for edge base with errorRateLog10 = 0 producing -0.0 doubles
+        return Math.abs(-10.0 * Math.max(errorRateLog10, RAW_MIN_PHRED_SCALED_QUAL));
     }
 
     // ----------------------------------------------------------------------
