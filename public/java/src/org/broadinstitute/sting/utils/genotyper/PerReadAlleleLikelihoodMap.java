@@ -64,15 +64,13 @@ public class PerReadAlleleLikelihoodMap {
         if ( a == null ) throw new IllegalArgumentException("Cannot add a null allele to the allele likelihood map");
         if ( likelihood == null ) throw new IllegalArgumentException("Likelihood cannot be null");
         if ( likelihood > 0.0 ) throw new IllegalArgumentException("Likelihood must be negative (L = log(p))");
-        Map<Allele,Double> likelihoodMap;
-        if (likelihoodReadMap.containsKey(read)){
-            // seen pileup element before
-            likelihoodMap = likelihoodReadMap.get(read);
+        Map<Allele,Double> likelihoodMap = likelihoodReadMap.get(read);
+        if (likelihoodMap == null){
+            // LinkedHashMap will ensure iterating through alleles will be in consistent order
+            likelihoodMap = new LinkedHashMap<Allele, Double>();
         }
-        else {
-            likelihoodMap = new HashMap<Allele, Double>();
-            likelihoodReadMap.put(read,likelihoodMap);
-        }
+        likelihoodReadMap.put(read,likelihoodMap);
+
         likelihoodMap.put(a,likelihood);
 
         if (!alleles.contains(a))
@@ -220,5 +218,28 @@ public class PerReadAlleleLikelihoodMap {
             }
         }
         return (maxLike - prevMaxLike > INFORMATIVE_LIKELIHOOD_THRESHOLD ? mostLikelyAllele : Allele.NO_CALL );
+    }
+
+
+    /**
+     * Debug method to dump contents of object into string for display
+     */
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("Alelles in map:");
+        for (Allele a:alleles) {
+            sb.append(a.getDisplayString()+",");
+
+        }
+        sb.append("\n");
+        for (Map.Entry <GATKSAMRecord, Map<Allele, Double>> el : getLikelihoodReadMap().entrySet() ) {
+            for (Map.Entry<Allele,Double> eli : el.getValue().entrySet()) {
+                sb.append("Read "+el.getKey().getReadName()+". Allele:"+eli.getKey().getDisplayString()+" has likelihood="+Double.toString(eli.getValue())+"\n");
+            }
+
+        }
+        return sb.toString();
     }
 }
