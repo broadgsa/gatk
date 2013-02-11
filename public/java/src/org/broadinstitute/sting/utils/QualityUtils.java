@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.utils;
 
 import com.google.java.contract.Ensures;
-import com.google.java.contract.Requires;
 import net.sf.samtools.SAMUtils;
 
 /**
@@ -110,9 +109,9 @@ public class QualityUtils {
      * @param qual a phred-scaled quality score encoded as a double.  Can be non-integer values (30.5)
      * @return a probability (0.0-1.0)
      */
-    @Requires("qual >= 0.0")
     @Ensures("result >= 0.0 && result <= 1.0")
     public static double qualToProb(final double qual) {
+        if ( qual < 0.0 ) throw new IllegalArgumentException("qual must be >= 0.0 but got " + qual);
         return 1.0 - qualToErrorProb(qual);
     }
 
@@ -144,9 +143,9 @@ public class QualityUtils {
      * @param qual a phred-scaled quality score encoded as a double.  Can be non-integer values (30.5)
      * @return a probability (0.0-1.0)
      */
-    @Requires("qual >= 0.0")
     @Ensures("result >= 0.0 && result <= 1.0")
     public static double qualToErrorProb(final double qual) {
+        if ( qual < 0.0 ) throw new IllegalArgumentException("qual must be >= 0.0 but got " + qual);
         return Math.pow(10.0, qual / -10.0);
     }
 
@@ -199,6 +198,7 @@ public class QualityUtils {
      */
     @Ensures("result <= 0.0")
     public static double qualToErrorProbLog10(final double qual) {
+        if ( qual < 0.0 ) throw new IllegalArgumentException("qual must be >= 0.0 but got " + qual);
         return qual / -10.0;
     }
 
@@ -217,7 +217,6 @@ public class QualityUtils {
      * @param errorRate a probability (0.0-1.0) of being wrong (i.e., 0.01 is 1% change of being wrong)
      * @return a quality score (0-MAX_SAM_QUAL_SCORE)
      */
-    @Requires("errorRate >= 0.0 && errorRate <= 1.0")
     public static byte errorProbToQual(final double errorRate) {
         return errorProbToQual(errorRate, MAX_SAM_QUAL_SCORE);
     }
@@ -234,8 +233,8 @@ public class QualityUtils {
      * @param errorRate a probability (0.0-1.0) of being wrong (i.e., 0.01 is 1% change of being wrong)
      * @return a quality score (0-maxQual)
      */
-    @Requires("errorRate >= 0.0 && errorRate <= 1.0")
     public static byte errorProbToQual(final double errorRate, final byte maxQual) {
+        if ( ! MathUtils.goodProbability(errorRate) ) throw new IllegalArgumentException("errorRate must be good probability but got " + errorRate);
         final double d = Math.round(-10.0*Math.log10(errorRate));
         return boundQual((int)d, maxQual);
     }
@@ -243,8 +242,8 @@ public class QualityUtils {
     /**
      * @see #errorProbToQual(double, byte) with proper conversion of maxQual integer to a byte
      */
-    @Requires("maxQual >= 0 && maxQual < 255")
     public static byte errorProbToQual(final double prob, final int maxQual) {
+        if ( maxQual < 0 || maxQual > 255 ) throw new IllegalArgumentException("maxQual must be between 0-255 but got " + maxQual);
         return errorProbToQual(prob, (byte)(maxQual & 0xFF));
     }
 
@@ -257,7 +256,6 @@ public class QualityUtils {
      * @param prob a probability (0.0-1.0) of being right
      * @return a quality score (0-MAX_SAM_QUAL_SCORE)
      */
-    @Requires("prob >= 0.0 && prob <= 1.0")
     public static byte trueProbToQual(final double prob) {
         return trueProbToQual(prob, MAX_SAM_QUAL_SCORE);
     }
@@ -275,24 +273,22 @@ public class QualityUtils {
      * WARNING -- because this function takes a byte for maxQual, you must be careful in converting
      * integers to byte.  The appropriate way to do this is ((byte)(myInt & 0xFF))
      *
-     * @param prob a probability (0.0-1.0) of being right
+     * @param trueProb a probability (0.0-1.0) of being right
      * @param maxQual the maximum quality score we are allowed to emit here, regardless of the error rate
      * @return a phred-scaled quality score (0-maxQualScore) as a byte
      */
-    @Requires({
-            "prob >= 0.0 && prob <= 1.0"
-    })
     @Ensures("(result & 0xFF) >= 1 && (result & 0xFF) <= (maxQual & 0xFF)")
-    public static byte trueProbToQual(final double prob, final byte maxQual) {
-        final double lp = Math.round(-10.0*MathUtils.log10OneMinusX(prob));
+    public static byte trueProbToQual(final double trueProb, final byte maxQual) {
+        if ( ! MathUtils.goodProbability(trueProb) ) throw new IllegalArgumentException("trueProb must be good probability but got " + trueProb);
+        final double lp = Math.round(-10.0*MathUtils.log10OneMinusX(trueProb));
         return boundQual((int)lp, maxQual);
     }
 
     /**
      * @see #trueProbToQual(double, byte) with proper conversion of maxQual to a byte
      */
-    @Requires("maxQual >= 0 && maxQual < 255")
     public static byte trueProbToQual(final double prob, final int maxQual) {
+        if ( maxQual < 0 || maxQual > 255 ) throw new IllegalArgumentException("maxQual must be between 0-255 but got " + maxQual);
         return trueProbToQual(prob, (byte)(maxQual & 0xFF));
     }
 
@@ -305,7 +301,6 @@ public class QualityUtils {
      * @param trueRate the probability of being right (0.0-1.0)
      * @return a phred-scaled version of the error rate implied by trueRate
      */
-    @Requires("MathUtils.goodProbability(trueRate)")
     @Ensures("result >= 0.0")
     public static double phredScaleCorrectRate(final double trueRate) {
         return phredScaleLog10ErrorRate(MathUtils.log10OneMinusX(trueRate));
@@ -320,7 +315,6 @@ public class QualityUtils {
      * @param trueRateLog10 the probability of being right (0.0-1.0)
      * @return a phred-scaled version of the error rate implied by trueRate
      */
-    @Requires("MathUtils.goodLog10Probability(trueRateLog10)")
     @Ensures("result >= 0.0")
     public static double phredScaleLog10CorrectRate(final double trueRateLog10) {
         return phredScaleCorrectRate(Math.pow(10.0, trueRateLog10));
@@ -335,7 +329,6 @@ public class QualityUtils {
      * @param errorRate the probability of being wrong (0.0-1.0)
      * @return a phred-scaled version of the error rate
      */
-    @Requires("MathUtils.goodProbability(errorRate)")
     @Ensures("result >= 0.0")
     public static double phredScaleErrorRate(final double errorRate) {
         return phredScaleLog10ErrorRate(Math.log10(errorRate));
@@ -352,6 +345,7 @@ public class QualityUtils {
      */
     @Ensures("result >= 0.0")
     public static double phredScaleLog10ErrorRate(final double errorRateLog10) {
+        if ( ! MathUtils.goodLog10Probability(errorRateLog10) ) throw new IllegalArgumentException("errorRateLog10 must be good probability but got " + errorRateLog10);
         // abs is necessary for edge base with errorRateLog10 = 0 producing -0.0 doubles
         return Math.abs(-10.0 * Math.max(errorRateLog10, RAW_MIN_PHRED_SCALED_QUAL));
     }
@@ -368,7 +362,6 @@ public class QualityUtils {
      * @param qual the uncapped quality score as an integer
      * @return the bounded quality score
      */
-    @Requires("qual >= 0")
     @Ensures("(result & 0xFF) >= 1 && (result & 0xFF) <= (MAX_SAM_QUAL_SCORE & 0xFF)")
     public static byte boundQual(int qual) {
         return boundQual(qual, MAX_SAM_QUAL_SCORE);
@@ -384,9 +377,9 @@ public class QualityUtils {
      * @param maxQual the maximum quality score, must be less < 255
      * @return the bounded quality score
      */
-    @Requires({"qual >= 0"})
     @Ensures("(result & 0xFF) >= 1 && (result & 0xFF) <= (maxQual & 0xFF)")
     public static byte boundQual(final int qual, final byte maxQual) {
+        if ( qual < 0 ) throw new IllegalArgumentException("qual must be >= 0 " + qual);
         return (byte) (Math.max(Math.min(qual, maxQual & 0xFF), 1) & 0xFF);
     }
 }
