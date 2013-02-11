@@ -312,7 +312,8 @@ public class QualityUtils {
      * This is a very generic method, that simply computes a phred-scaled double quality
      * score given an error rate.  It has the same precision as a normal double operation
      *
-     * @param trueRateLog10 the probability of being right (0.0-1.0)
+     * @param trueRateLog10 the log10 probability of being right (0.0-1.0).  Can be -Infinity to indicate
+     *                      that the result is impossible in which MIN_PHRED_SCALED_QUAL is returned
      * @return a phred-scaled version of the error rate implied by trueRate
      */
     @Ensures("result >= 0.0")
@@ -340,7 +341,8 @@ public class QualityUtils {
      * This is a very generic method, that simply computes a phred-scaled double quality
      * score given an error rate.  It has the same precision as a normal double operation
      *
-     * @param errorRateLog10 the log10 probability of being wrong (0.0-1.0)
+     * @param errorRateLog10 the log10 probability of being wrong (0.0-1.0).  Can be -Infinity, in which case
+     *                       the result is MIN_PHRED_SCALED_QUAL
      * @return a phred-scaled version of the error rate
      */
     @Ensures("result >= 0.0")

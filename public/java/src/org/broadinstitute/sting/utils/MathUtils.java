@@ -1244,11 +1244,23 @@ public class MathUtils {
     /**
      * Checks that the result is a well-formed log10 probability
      *
-     * @param result a supposedly well-formed log10 probability value
+     * @param result a supposedly well-formed log10 probability value.  By default allows
+     *               -Infinity values, as log10(0.0) == -Infinity.
      * @return true if result is really well formed
      */
     public static boolean goodLog10Probability(final double result) {
-        return result <= 0.0 && ! Double.isInfinite(result) && ! Double.isNaN(result);
+        return goodLog10Probability(result, true);
+    }
+
+    /**
+     * Checks that the result is a well-formed log10 probability
+     *
+     * @param result a supposedly well-formed log10 probability value
+     * @param allowNegativeInfinity should we consider a -Infinity value ok?
+     * @return true if result is really well formed
+     */
+    public static boolean goodLog10Probability(final double result, final boolean allowNegativeInfinity) {
+        return result <= 0.0 && result != Double.POSITIVE_INFINITY && (allowNegativeInfinity || result != Double.NEGATIVE_INFINITY) && ! Double.isNaN(result);
     }
 
     /**
@@ -1779,7 +1791,9 @@ public class MathUtils {
             return Double.NEGATIVE_INFINITY;
         else if ( x == 0.0 )
             return 0.0;
-        else
-            return Math.log10(1 / x - 1) + Math.log10(x);
+        else {
+            final double d = Math.log10(1 / x - 1) + Math.log10(x);
+            return Double.isInfinite(d) || d > 0.0 ? 0.0 : d;
+        }
     }
 }

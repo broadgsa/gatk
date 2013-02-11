@@ -102,6 +102,18 @@ public class QualityUtilsUnitTest extends BaseTest {
     }
 
     @Test
+    public void testTrueProbWithMinDouble() {
+        final byte actual = QualityUtils.trueProbToQual(Double.MIN_VALUE);
+        Assert.assertEquals(actual, 1, "Failed to convert true prob of min double to 1 qual");
+    }
+
+    @Test
+    public void testTrueProbWithVerySmallValue() {
+        final byte actual = QualityUtils.trueProbToQual(1.7857786272673852E-19);
+        Assert.assertEquals(actual, 1, "Failed to convert true prob of very small value 1.7857786272673852E-19 to 1 qual");
+    }
+
+    @Test
     public void testQualCaches() {
         Assert.assertEquals(QualityUtils.qualToErrorProb((byte) 20), 0.01, 1e-6);
         Assert.assertEquals(QualityUtils.qualToErrorProbLog10((byte) 20), -2.0, 1e-6);
