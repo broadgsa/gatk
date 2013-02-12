@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.walkers.NanoSchedulable;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
@@ -63,7 +64,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountReads extends ReadWalker<Integer, Integer> implements NanoSchedulable {
     public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {

@@ -51,8 +51,8 @@ import java.util.*;
  * <p/>
  * This document has the following workflow:
  * <p/>
- * 1 -- walk the javadoc heirarchy, looking for class that have the
- * DocumentedGATKFeature annotation or are in the type heirarchy in the
+ * 1 -- walk the javadoc hierarchy, looking for class that have the
+ * DocumentedGATKFeature annotation or are in the type hierarchy in the
  * static list of things to document, and are to be documented
  * 2 -- construct for each a GATKDocWorkUnit, resulting in the complete
  * set of things to document
@@ -117,7 +117,7 @@ public class GATKDoclet {
 
     static {
         STATIC_DOCS.add(new DocumentedGATKFeatureObject(FeatureCodec.class,
-                "ROD Codecs",
+                HelpConstants.DOCS_CAT_RODCODECS,
                 "Tribble codecs for reading reference ordered data (ROD) files such as VCF or BED"));
     }
 
@@ -411,6 +411,8 @@ public class GATKDoclet {
             }
         }
 
+        //System.out.printf(groups.toString());
+
         root.put("data", data);
         root.put("groups", groups);
         root.put("timestamp", buildTimestamp);
@@ -421,6 +423,7 @@ public class GATKDoclet {
 
     /**
      * Trivial helper routine that returns the map of name and summary given the annotation
+     * AND adds a super-category so that we can custom-order the categories in the index
      *
      * @param annotation
      * @return
@@ -430,6 +433,23 @@ public class GATKDoclet {
         root.put("id", annotation.groupName().replaceAll("\\W", ""));
         root.put("name", annotation.groupName());
         root.put("summary", annotation.summary());
+
+        /**
+         * Add-on super-category definitions. The assignments depend on parsing the names
+         * defined in HelpConstants.java so be careful of changing anything.
+         * Also, the super-category value strings need to be the same as used in the
+         * Freemarker template. This is all fairly clunky but the best I could do without
+         * making major changes to the DocumentedGATKFeatureObject. Doesn't help that
+         * Freemarker makes any scripting horribly awkward.
+         */
+        final String supercatValue;
+        if (annotation.groupName().endsWith(" Tools")) supercatValue = "tools";
+        else if (annotation.groupName().endsWith(" Utilities")) supercatValue = "utilities";
+        else if (annotation.groupName().startsWith("Engine ")) supercatValue = "engine";
+        else supercatValue = "other";
+
+        root.put("supercat", supercatValue);
+
         return root;
     }
 

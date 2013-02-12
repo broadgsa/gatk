@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
@@ -52,13 +53,12 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
  *   -T CountBases \
- *   -o output.txt \
  *   -I input.bam \
  *   [-L input.intervals]
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountBases extends ReadWalker<Integer, Long> {
     public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {

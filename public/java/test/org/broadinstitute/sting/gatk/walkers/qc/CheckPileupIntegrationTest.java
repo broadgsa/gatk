@@ -36,11 +36,11 @@ import java.util.Collections;
  * @author mhanna
  * @version 0.1
  */
-public class ValidatingPileupIntegrationTest extends WalkerTest {
+public class CheckPileupIntegrationTest extends WalkerTest {
     @Test(enabled = true)
     public void testEcoliThreaded() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T ValidatingPileup" +
+                "-T CheckPileup" +
                 " -I " + validationDataLocation + "MV1994.selected.bam" +
                 " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
                 " --pileup:SAMPileup "+ validationDataLocation + "MV1994.selected.pileup" +

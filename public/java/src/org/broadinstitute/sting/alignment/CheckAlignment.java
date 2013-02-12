@@ -36,6 +36,7 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Iterator;
@@ -48,8 +49,8 @@ import java.util.Iterator;
  * @author mhanna
  * @version 0.1
  */
-@DocumentedGATKFeature( groupName = "Validation Utilities", extraDocs = {CommandLineGATK.class} )
-public class AlignmentValidation extends ReadWalker<Integer,Integer> {
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
+public class CheckAlignment extends ReadWalker<Integer,Integer> {
     /**
      * The supporting BWT index generated using BWT. 
      */

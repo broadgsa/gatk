@@ -47,6 +47,7 @@ import org.broadinstitute.sting.utils.clipping.ClippingRepresentation;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
@@ -153,7 +154,7 @@ import java.util.regex.Pattern;
  * @author Mark DePristo
  * @since 2010
  */
-@DocumentedGATKFeature( groupName = "BAM Processing Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_DATA, extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS})
 public class ClipReads extends ReadWalker<ClipReads.ReadClipperWithData, ClipReads.ClippingData> {
     /**

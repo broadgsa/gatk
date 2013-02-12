@@ -38,12 +38,13 @@ import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 
 /**
  * a walker that simply throws errors.  Allows us to test that the engine is behaving as expected with error handling
  */
 @Hidden
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_TEST, extraDocs = {CommandLineGATK.class} )
 public class ErrorThrowing extends RefWalker<Integer,Integer> implements TreeReducible<Integer>, NanoSchedulable {
     @Input(fullName="exception", shortName = "E", doc="Java class of exception to throw", required=true)
     public String exceptionToThrow;

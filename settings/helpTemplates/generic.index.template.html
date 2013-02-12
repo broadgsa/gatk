@@ -53,15 +53,20 @@
     </div>
 </#macro>
 
-<@makeHeader title="GATK documentation index" isIndex=true />
-<h1>GATK documentation index
+<@makeHeader title="Technical Documentation Index" isIndex=true />
+<h1>Technical Documentation Index
     <small>${version}</small>
 </h1>
-<hr>
 <div class="accordion" id="index">
-    <#list groups?sort_by("name") as group>
-        <@emitGroup group=group/>
-    </#list>
+    <#assign seq = ["engine", "tools", "utilities", "other"]>
+	<#list seq as supercat>
+		<hr>
+		<#list groups?sort_by("name") as group>
+			<#if group.supercat == supercat>
+				<@emitGroup group=group/>
+			</#if>
+		</#list>
+	</#list>
 </div>
 
 <@footerInfo />
