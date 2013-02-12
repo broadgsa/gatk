@@ -46,7 +46,7 @@ import java.util.List;
 /**
  * Test routine for new VariantContext object
  */
-@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
 public class CompareCallableLoci extends RodWalker<List<CallableLoci.CallableBaseState>, long[][]> {
     @Output
     protected PrintStream out;

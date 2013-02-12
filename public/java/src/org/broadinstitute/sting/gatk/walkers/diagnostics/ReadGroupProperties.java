@@ -97,7 +97,7 @@ import java.util.Map;
  *
  * @author Mark DePristo
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
 public class ReadGroupProperties extends ReadWalker<Integer, Integer> {
     @Output
     public PrintStream out;

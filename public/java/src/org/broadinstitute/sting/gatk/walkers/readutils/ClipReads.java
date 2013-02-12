@@ -153,7 +153,7 @@ import java.util.regex.Pattern;
  * @author Mark DePristo
  * @since 2010
  */
-@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "BAM Processing Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS})
 public class ClipReads extends ReadWalker<ClipReads.ReadClipperWithData, ClipReads.ClippingData> {
     /**

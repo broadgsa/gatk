@@ -32,7 +32,7 @@ import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import java.util.List;
 import java.util.Set;
 
-@DocumentedGATKFeature(enable = true, groupName = "VariantAnnotator annotations", summary = "VariantAnnotator annotations")
+@DocumentedGATKFeature(enable = true, groupName = "Variant Annotations", summary = "Annotations available to VariantAnnotator and the variant callers (some restrictions apply)")
 public abstract class VariantAnnotatorAnnotation {
     // return the INFO keys
     public abstract List<String> getKeyNames();

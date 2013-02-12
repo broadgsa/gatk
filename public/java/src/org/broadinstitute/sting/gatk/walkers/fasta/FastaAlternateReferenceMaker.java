@@ -81,7 +81,7 @@ import java.util.List;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Companion Utilities", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Reference Utilities", extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-1,stop=50))
 @Requires(value={DataSource.REFERENCE})
 public class FastaAlternateReferenceMaker extends FastaReferenceMaker {

@@ -65,7 +65,7 @@ import java.util.List;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
 public class CountRODsByRef extends RefWalker<CountRODs.Datum, Pair<ExpandingArrayList<Long>, Long>> {
 
     /**

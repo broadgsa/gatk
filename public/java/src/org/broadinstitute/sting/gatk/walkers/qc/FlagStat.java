@@ -72,7 +72,7 @@ import java.text.NumberFormat;
  * reads with QC failure flag set, number of duplicates, percentage mapped, etc.
  * @author aaron
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS})
 public class FlagStat extends ReadWalker<FlagStat.FlagStatus, FlagStat.FlagStatus> implements NanoSchedulable {
     @Output

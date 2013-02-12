@@ -56,7 +56,7 @@ import java.util.Arrays;
  * Walks over the input reads, printing out statistics about the read length, number of clipping events, and length
  * of the clipping to the output stream.
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS})
 public class ReadClippingStats extends ReadWalker<ReadClippingStats.ReadClippingInfo,Integer> {
     @Output

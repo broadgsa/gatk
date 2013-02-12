@@ -48,7 +48,7 @@ import java.util.Iterator;
  * @author mhanna
  * @version 0.1
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Validation Utilities", extraDocs = {CommandLineGATK.class} )
 public class AlignmentValidation extends ReadWalker<Integer,Integer> {
     /**
      * The supporting BWT index generated using BWT. 
