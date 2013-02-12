@@ -51,7 +51,7 @@ import java.util.Map;
  * Divides the input data set into separate BAM files, one for each sample in the input data set.  The split
  * files are named concatenating the sample name to the end of the provided outputRoot command-line argument.
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "BAM Processing Tools", extraDocs = {CommandLineGATK.class} )
 @WalkerName("SplitSamFile")
 @Requires({DataSource.READS})
 public class SplitSamFile extends ReadWalker<SAMRecord, Map<String, SAMFileWriter>> {

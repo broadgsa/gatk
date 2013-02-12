@@ -93,7 +93,7 @@ import java.io.PrintStream;
  *
  * @author Kiran Garimella, Mark DePristo
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
 public class ErrorRatePerCycle extends LocusWalker<Integer, Integer> {
     @Output PrintStream out;
     @Argument(fullName="min_base_quality_score", shortName="mbq", doc="Minimum base quality required to consider a base for calling", required=false)

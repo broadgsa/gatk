@@ -134,7 +134,7 @@ import java.util.List;
  * @author Mark DePristo
  * @since 7/4/11
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
 public class DiffObjects extends RodWalker<Integer, Integer> {
     /**
      * Writes out a file of the DiffEngine format:

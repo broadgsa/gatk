@@ -48,7 +48,7 @@ import java.util.List;
  * very useful since overlapping intervals get merged, so you can count the number of intervals the GATK merges down to.
  * This was its very first use.
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
 public class CountIntervals extends RefWalker<Long, Long> {
     @Output
     PrintStream out;

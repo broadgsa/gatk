@@ -61,7 +61,7 @@ import java.io.PrintStream;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
 public class QCRef extends RefWalker<Integer, Integer> {
     @Output
     public PrintStream out;

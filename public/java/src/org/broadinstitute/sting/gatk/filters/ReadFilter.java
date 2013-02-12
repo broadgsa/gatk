@@ -34,7 +34,7 @@ import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
  * A SamRecordFilter that also depends on the header.
  */
 @DocumentedGATKFeature(
-        groupName = "Read filters",
+        groupName = "Read Filters",
         summary = "GATK Engine arguments that filter or transfer incoming SAM/BAM data files" )
 public abstract class ReadFilter implements SamRecordFilter {
     /**

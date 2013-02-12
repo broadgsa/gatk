@@ -117,8 +117,8 @@ public class GATKDoclet {
 
     static {
         STATIC_DOCS.add(new DocumentedGATKFeatureObject(FeatureCodec.class,
-                "Reference ordered data (ROD) codecs",
-                "Tribble codecs for reading reference ordered data such as VCF or BED files"));
+                "ROD Codecs",
+                "Tribble codecs for reading reference ordered data (ROD) files such as VCF or BED"));
     }
 
 

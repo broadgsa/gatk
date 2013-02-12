@@ -123,7 +123,7 @@ import java.io.PrintStream;
  * @author Mark DePristo
  * @since May 7, 2010
  */
-@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
 @By(DataSource.REFERENCE)
 public class CallableLoci extends LocusWalker<CallableLoci.CallableBaseState, CallableLoci.Integrator> {
     @Output

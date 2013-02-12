@@ -31,11 +31,11 @@ public class GATKDocUtils {
      */
     public final static String URL_ROOT_FOR_RELEASE_GATKDOCS = HelpConstants.GATK_DOCS_URL;
     /**
-     * The URL root for STABLE GATKDOC units
+     * The URL root for STABLE GATKDOC units             //TODO: do sthing with this or remove -- URL goes nowhere
      */
     public final static String URL_ROOT_FOR_STABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/stable/";
     /**
-     * The URL root for UNSTABLE GATKDOC units
+     * The URL root for UNSTABLE GATKDOC units           //TODO: do sthing with this or remove -- URL goes nowhere
      */
     public final static String URL_ROOT_FOR_UNSTABLE_GATKDOCS = "http://iwww.broadinstitute.org/gsa/gatkdocs/unstable/";
 
@@ -55,7 +55,7 @@ public class GATKDocUtils {
 
     /**
      * Returns a full URL http://etc/ linking to the documentation for class (assuming it
-     * exists).  Currently points to the RELEASE doc path only.
+     * exists).  Currently points to the RELEASE doc path only.     //TODO: do sthing with other paths or remove ?
      *
      * @param c
      * @return

@@ -45,7 +45,7 @@ import java.util.Map;
 /**
  * Computes the coverage per sample for every position (use with -L argument!).
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
 public class CoverageBySample extends LocusWalker<Integer, Integer> {
     @Output
     protected PrintStream out;    

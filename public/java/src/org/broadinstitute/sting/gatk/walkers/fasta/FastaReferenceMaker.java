@@ -67,7 +67,7 @@ import java.io.PrintStream;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Companion Utilities", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Reference Utilities", extraDocs = {CommandLineGATK.class} )
 public class FastaReferenceMaker extends RefWalker<Pair<GenomeLoc, String>, GenomeLoc> {
 
     @Output PrintStream out;

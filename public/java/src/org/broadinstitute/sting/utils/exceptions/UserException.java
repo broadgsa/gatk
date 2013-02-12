@@ -46,8 +46,8 @@ import java.io.File;
  * Time: 2:24:09 PM
  */
 @DocumentedGATKFeature(
-        groupName = "User exceptions",
-        summary = "Exceptions caused by incorrect user behavior, such as bad files, bad arguments, etc." )
+        groupName = "User Exceptions",
+        summary = "Errors caused by incorrect user behavior, such as bad files, bad arguments, etc." )
 public class UserException extends ReviewedStingException {
     /**
      * The URL where people can get help messages.  Printed when an error occurs

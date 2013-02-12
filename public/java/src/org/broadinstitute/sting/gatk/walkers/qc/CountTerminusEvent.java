@@ -63,7 +63,7 @@ import java.util.List;
  *   [-L input.intervals]
  * </pre>
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountTerminusEvent extends ReadWalker<Pair<Long, Long>, Pair<Long, Long>> {
     public Pair<Long, Long> map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {

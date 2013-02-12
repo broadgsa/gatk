@@ -73,7 +73,7 @@ import java.util.*;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
 public class CountRODs extends RodWalker<CountRODs.Datum, Pair<ExpandingArrayList<Long>, Long>> implements TreeReducible<Pair<ExpandingArrayList<Long>, Long>>, NanoSchedulable {
     @Output
     public PrintStream out;
