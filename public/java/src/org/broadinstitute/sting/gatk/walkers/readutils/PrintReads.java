@@ -28,15 +28,19 @@ package org.broadinstitute.sting.gatk.walkers.readutils;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformersMode;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -97,7 +101,7 @@ import java.util.*;
 public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> implements NanoSchedulable {
 
     @Output(doc="Write output to this BAM filename instead of STDOUT", required = true)
-    SAMFileWriter out;
+    StingSAMFileWriter out;
 
     @Argument(fullName = "readGroup", shortName = "readGroup", doc="Exclude all reads with this read group from the output", required = false)
     String readGroup = null;
@@ -137,18 +141,27 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
      */
     @Argument(fullName="simplify", shortName="s", doc="Simplify all reads.", required=false)
     public boolean simplifyReads = false;
-    
+
+    @Hidden
+    @Argument(fullName = "no_pg_tag", shortName = "npt", doc ="", required = false)
+    private boolean NO_PG_TAG = false;
 
     List<ReadTransformer> readTransformers = Collections.emptyList();
     private TreeSet<String> samplesToChoose = new TreeSet<String>();
     private boolean SAMPLES_SPECIFIED = false;
+
+    public static final String PROGRAM_RECORD_NAME = "GATK PrintReads";   // The name that will go in the @PG tag
     
     Random random;
+
 
     /**
      * The initialize function.
      */
     public void initialize() {
+        final boolean keep_records = true;
+        final GenomeAnalysisEngine toolkit = getToolkit();
+
         if  ( platform != null )
             platform = platform.toUpperCase();
 
@@ -167,8 +180,13 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
         if(!samplesToChoose.isEmpty()) {
             SAMPLES_SPECIFIED = true;
         }
-        
+
         random = GenomeAnalysisEngine.getRandomGenerator();
+
+        final boolean preSorted = true;
+        if (getToolkit() != null && getToolkit().getArguments().BQSR_RECAL_FILE != null && !NO_PG_TAG ) {
+            Utils.setupWriter(out, toolkit, toolkit.getSAMFileHeader(), !preSorted, keep_records, this, PROGRAM_RECORD_NAME);
+        }
 
     }
 

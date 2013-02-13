@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.sam;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,12 +62,12 @@ import java.util.List;
 /**
  * @author aaron
  *         <p/>
- *         Class ArtificialSAMFileWriter
+ *         Class ArtificialStingSAMFileWriter
  *         <p/>
  * generates a fake samwriter, that you can get the output reads
  * from when you're done.  
  */
-public class ArtificialSAMFileWriter implements SAMFileWriter {
+public class ArtificialStingSAMFileWriter implements StingSAMFileWriter {
 
     // are we closed
     private boolean closed = false;
@@ -105,5 +106,17 @@ public class ArtificialSAMFileWriter implements SAMFileWriter {
      */
     public List<SAMRecord> getRecords() {
         return records;
+    }
+
+    @Override
+    public void writeHeader(SAMFileHeader header) {
+    }
+
+    @Override
+    public void setPresorted(boolean presorted) {
+    }
+
+    @Override
+    public void setMaxRecordsInRam(int maxRecordsInRam) {
     }
 }

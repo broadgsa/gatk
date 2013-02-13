@@ -65,14 +65,14 @@ import java.util.List;
 /**
  * @author aaron
  *         <p/>
- *         Class ArtificialSAMFileWriter
+ *         Class ArtificialStingSAMFileWriter
  *         <p/>
- *         Test out the ArtificialSAMFileWriter class
+ *         Test out the ArtificialStingSAMFileWriter class
  */
 public class ArtificialSAMFileWriterUnitTest extends BaseTest {
 
     /** the artificial sam writer */
-    private ArtificialSAMFileWriter writer;
+    private ArtificialStingSAMFileWriter writer;
     private SAMFileHeader header;
     private final int startChr = 1;
     private final int numChr = 2;
@@ -80,7 +80,7 @@ public class ArtificialSAMFileWriterUnitTest extends BaseTest {
 
     @BeforeMethod
     public void before() {
-        writer = new ArtificialSAMFileWriter();
+        writer = new ArtificialStingSAMFileWriter();
         header = ArtificialSAMUtils.createArtificialSamHeader(numChr, startChr, chrSize);
     }
 
