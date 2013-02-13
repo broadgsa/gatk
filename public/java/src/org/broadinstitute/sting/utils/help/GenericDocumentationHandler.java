@@ -35,6 +35,7 @@ import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
+import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -42,6 +43,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -91,6 +93,9 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         addRelatedBindings(root);
         root.put("group", toProcess.group);
 
+        // Adding in retrieval of peripheral info (rf annotations etc)
+        getClazzAnnotations(toProcess.clazz, root);
+
         toProcess.setHandlerContent((String) root.get("summary"), root);
     }
 
@@ -135,7 +140,6 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                         put("filename", otherUnit.filename);
                         put("name", otherUnit.name);
                     }});
-
         }
         root.put("extradocs", extraDocsData);
     }
@@ -271,6 +275,66 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     }
 
     /**
+     * Umbrella function that groups the collection of values for specific annotations applied to an
+     * instance of class c. Lists of collected values are added directly to the "toProcess" object.
+     * Requires being able to instantiate the class.
+     *
+     * @param classToProcess the object to instantiate and query for the annotation
+     * @param root the root of the document handler, to which we'll store collected annotations
+     */
+    private void getClazzAnnotations(Class classToProcess, Map<String, Object> root) {
+        //
+        // attempt to instantiate the class
+        final Object instance = makeInstanceIfPossible(classToProcess);
+        if (instance != null) {
+            final Class myClass = instance.getClass();
+            // TODO: get top relevant superclass (last before object? abstract?)
+            // TODO: get parallelism options (TreeReducible or Nanoschedulable)
+            // Get read filter annotations (ReadFilters)
+            final HashSet<HashMap<String, Object>> bucket= new HashSet<HashMap<String, Object>>();
+            bucket.addAll(getReadFilters(myClass, bucket));
+            root.put("readfilters", bucket);
+            // TODO: get annotators (AnnotatorCompatible)
+            // anything else?
+        } else {
+            root.put("readfilters", new ArrayList<HashMap<String, Object>>());  // put empty list to avoid blowups
+        }
+    }
+
+
+    /**
+     * Utility function that finds the values of ReadFilters annotation applied to an instance of class c.
+     *
+     * @param myClass the class to query for the annotation
+     * @param bucket a container in which we store the annotations collected
+     * @return a list of values, otherwise null
+     */
+    private HashSet<HashMap<String, Object>> getReadFilters(Class myClass, HashSet<HashMap<String, Object>> bucket) {
+        //
+        // Retrieve annotation
+        if (myClass.isAnnotationPresent(ReadFilters.class)) {
+            final Annotation thisAnnotation = myClass.getAnnotation(ReadFilters.class);
+            if(thisAnnotation instanceof ReadFilters) {
+                final ReadFilters rfAnnotation = (ReadFilters) thisAnnotation;
+                for (Class<?> filter : rfAnnotation.value()) {
+                    // make hashmap of simplename and url
+                    final HashMap<String, Object> nugget = new HashMap<String, Object>();
+                    nugget.put("name", filter.getSimpleName());
+                    nugget.put("filename", GATKDocUtils.htmlFilenameForClass(filter));
+                    bucket.add(nugget);
+                }
+            }
+        }
+        // Look up superclasses recursively
+        final Class mySuperClass = myClass.getSuperclass();
+        if (mySuperClass.getSimpleName().equals("Object")) {
+            return bucket;
+        }
+        return getReadFilters(mySuperClass, bucket);
+    }
+
+
+    /**
      * Utility function that finds the value of fieldName in any fields of ArgumentCollection fields in
      * instance of class c.
      *
@@ -287,6 +351,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         // @ArgumentCollection
         // protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
         //
+
         for (Field field : JVMUtils.getAllFields(instance.getClass())) {
             if (field.isAnnotationPresent(ArgumentCollection.class)) {
                 //System.out.printf("Searching for %s in argument collection field %s%n", fieldName, field);
