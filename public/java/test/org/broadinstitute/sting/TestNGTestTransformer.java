@@ -44,7 +44,7 @@ import java.lang.reflect.Method;
  * @version 0.1
  */
 public class TestNGTestTransformer implements IAnnotationTransformer {
-    public static final long DEFAULT_TIMEOUT = 1000 * 60 * 10; // 10 minutes max per test
+    public static final long DEFAULT_TIMEOUT = 1000 * 60 * 20; // 20 minutes max per test
 
     final static Logger logger = Logger.getLogger(TestNGTestTransformer.class);
 
