@@ -89,7 +89,7 @@ public class ActivityProfileUnitTest extends BaseTest {
                 case Base: return new ActivityProfile(genomeLocParser);
                 case BandPass:
                     // zero size => equivalent to ActivityProfile
-                    return new BandPassActivityProfile(genomeLocParser, 0, 0.01, false);
+                    return new BandPassActivityProfile(genomeLocParser, null, 0, 0.01, false);
                 default: throw new IllegalStateException(type.toString());
             }
         }

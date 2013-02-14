@@ -29,28 +29,12 @@ import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
+import org.broadinstitute.sting.utils.interval.IntervalUtils;
 
 import java.util.*;
 
 /**
- *
- * User: aaron
- * Date: May 22, 2009
- * Time: 10:54:40 AM
- *
- * The Broad Institute
- * SOFTWARE COPYRIGHT NOTICE AGREEMENT 
- * This software and its documentation are copyright 2009 by the
- * Broad Institute/Massachusetts Institute of Technology. All rights are reserved.
- *
- * This software is supplied without any warranty or guaranteed support whatsoever. Neither
- * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
- *
- */
-
-
-/**
- * @author aaron
  *         <p/>
  *         Class GenomeLocCollection
  *         <p/>
@@ -59,6 +43,10 @@ import java.util.*;
  *         will also remove a region from the list, if the region to remove is a
  *         partial interval of a region in the collection it will remove the region from
  *         that element.
+ *
+ * @author aaron
+ * Date: May 22, 2009
+ * Time: 10:54:40 AM
  */
 public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     private static Logger logger = Logger.getLogger(GenomeLocSortedSet.class);
@@ -66,26 +54,47 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     private GenomeLocParser genomeLocParser;
 
     // our private storage for the GenomeLoc's
-    private List<GenomeLoc> mArray = new ArrayList<GenomeLoc>();
+    private final List<GenomeLoc> mArray = new ArrayList<GenomeLoc>();
 
     // cache this to make overlap checking much more efficient
     private int previousOverlapSearchIndex = -1;
 
-    /** default constructor */
-    public GenomeLocSortedSet(GenomeLocParser parser) {
+    /**
+     * Create a new, empty GenomeLocSortedSet
+     *
+     * @param parser a non-null the parser we use to create genome locs
+     */
+    public GenomeLocSortedSet(final GenomeLocParser parser) {
+        if ( parser == null ) throw new IllegalArgumentException("parser cannot be null");
         this.genomeLocParser = parser;
     }
 
-    public GenomeLocSortedSet(GenomeLocParser parser,GenomeLoc e) {
+    /**
+     * Create a new GenomeLocSortedSet containing location e
+     *
+     * @param parser a non-null the parser we use to create genome locs
+     * @param e a single genome locs to add to this set
+     */
+    public GenomeLocSortedSet(final GenomeLocParser parser, final GenomeLoc e) {
         this(parser);
         add(e);
     }
 
-    public GenomeLocSortedSet(GenomeLocParser parser,Collection<GenomeLoc> l) {
+    /**
+     * Create a new GenomeLocSortedSet containing locations l
+     *
+     * The elements in l can be in any order, and can be overlapping.  They will be sorted first and
+     * overlapping (but not contiguous) elements will be merged
+     *
+     * @param parser a non-null the parser we use to create genome locs
+     * @param l a collection of genome locs to add to this set
+     */
+    public GenomeLocSortedSet(final GenomeLocParser parser, final Collection<GenomeLoc> l) {
         this(parser);
 
-        for ( GenomeLoc e : l )
-            add(e);
+        final ArrayList<GenomeLoc> sorted = new ArrayList<GenomeLoc>(l);
+        Collections.sort(sorted);
+        mArray.addAll(IntervalUtils.mergeIntervalLocations(sorted, IntervalMergingRule.OVERLAPPING_ONLY));
     }
 
     /**
@@ -199,7 +208,70 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     }
 
     /**
+     * Return a list of intervals overlapping loc
+     *
+     * @param loc the location we want overlapping intervals
+     * @return a non-null list of locations that overlap loc
+     */
+    public List<GenomeLoc> getOverlapping(final GenomeLoc loc) {
+        // the max ensures that if loc would be the first element, that we start searching at the first element
+        final int index = Collections.binarySearch(mArray, loc);
+        if ( index >= 0 )
+            // we can safely return a singleton because overlapping regions are merged and loc is exactly in
+            // the set already
+            return Collections.singletonList(loc);
+
+        // if loc isn't in the list index is (-(insertion point) - 1). The insertion point is defined as the point at
+        // which the key would be inserted into the list: the index of the first element greater than the key, or list.size()
+        // -ins - 1 = index => -ins = index + 1 => ins = -(index + 1)
+        // Note that we look one before the index in this case, as loc might occur after the previous overlapping interval
+        final int start = Math.max(-(index + 1) - 1, 0);
+        final int size = mArray.size();
+
+        final List<GenomeLoc> overlapping = new LinkedList<GenomeLoc>();
+        for ( int i = start; i < size; i++ ) {
+            final GenomeLoc myLoc = mArray.get(i);
+            if ( loc.overlapsP(myLoc) )
+                overlapping.add(myLoc);
+            else if ( myLoc.isPast(loc) )
+                // since mArray is ordered, if myLoc is past loc that means all future
+                // intervals cannot overlap loc either.  So we can safely abort the search
+                // note that we need to be a bit conservative on our tests since index needs to start
+                // at -1 the position of index, so it's possible that myLoc and loc don't overlap but the next
+                // position might
+                break;
+        }
+
+        return overlapping;
+    }
+
+    /**
+     * Return a list of intervals overlapping loc by enumerating all locs and testing for overlap
+     *
+     * Purely for testing purposes -- this is way to slow for any production code
+     *
+     * @param loc the location we want overlapping intervals
+     * @return a non-null list of locations that overlap loc
+     */
+    protected List<GenomeLoc> getOverlappingFullSearch(final GenomeLoc loc) {
+        final List<GenomeLoc> overlapping = new LinkedList<GenomeLoc>();
+
+        // super slow, but definitely works
+        for ( final GenomeLoc myLoc : mArray ) {
+            if ( loc.overlapsP(myLoc) )
+                overlapping.add(myLoc);
+        }
+
+        return overlapping;
+    }
+
+    /**
      * add a genomeLoc to the collection, simply inserting in order into the set
+     *
+     * TODO -- this may break the contract of the GenomeLocSortedSet if e overlaps or
+     * TODO -- other locations already in the set.  This code should check to see if
+     * TODO -- e is overlapping with its nearby elements and merge them or alternatively
+     * TODO -- throw an exception
      *
      * @param e the GenomeLoc to add
      *
@@ -224,6 +296,11 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     /**
      * Adds a GenomeLoc to the collection, merging it if it overlaps another region.
      * If it's not overlapping then we add it in sorted order.
+     *
+     * TODO TODO TODO -- this function is buggy and will not properly create a sorted
+     * TODO TODO TODO -- genome loc is addRegion is called sequentially where the second
+     * TODO TODO TODO -- loc added is actually before the first.  So when creating
+     * TODO TODO TODO -- sets make sure to sort the input locations first!
      *
      * @param e the GenomeLoc to add to the collection
      *
@@ -380,31 +457,4 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
 
         return s.toString();
     }
-
-     /**
-     * Check to see whether two genomeLocSortedSets are equal.
-     * Note that this implementation ignores the contigInfo object.
-     *
-     */  /*
-    @Override
-    public boolean equals(Object other) {
-        if(other == null)
-            return false;
-        if(other instanceof GenomeLocSortedSet) {
-            // send to a list, so we can ensure order correct
-            List otherList = ((GenomeLocSortedSet)other).toList();
-            List thisList = this.toList();
-            if (otherList.size() != this.size())
-                return false;
-
-            for (Integer i=0;i<thisList.size();i++) {
-                if (otherList.get(i).equals(thisList.get(i)))
-                    return false;
-            }
-            return true;
-        }
-        return false;
-
-    }   */
-
 }
