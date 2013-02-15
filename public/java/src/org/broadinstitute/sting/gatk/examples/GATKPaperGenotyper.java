@@ -36,6 +36,7 @@ import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.genotyper.DiploidGenotype;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.io.PrintStream;
@@ -47,7 +48,7 @@ import java.io.PrintStream;
  *
  * @author aaron
  */
-@DocumentedGATKFeature( groupName = "Variant Discovery Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARDISC, extraDocs = {CommandLineGATK.class} )
 public class GATKPaperGenotyper extends LocusWalker<Integer,Long> implements TreeReducible<Long> {
 
     public static final double HUMAN_SNP_HETEROZYGOSITY = 1e-3;

@@ -50,7 +50,7 @@ import java.util.*;
  * gatk all the parsed out information.  Pretty much anything dealing with the underlying system should go here,
  * the gatk engine should  deal with any data related information.
  */
-@DocumentedGATKFeature(groupName = "GATK Engine (parameters available to all tools)")
+@DocumentedGATKFeature(groupName = HelpConstants.DOCS_CAT_ENGINE)
 public class CommandLineGATK extends CommandLineExecutable {
     @Argument(fullName = "analysis_type", shortName = "T", doc = "Type of analysis to run")
     private String analysisName = null;

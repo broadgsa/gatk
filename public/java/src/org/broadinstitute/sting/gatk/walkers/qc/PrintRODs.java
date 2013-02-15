@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 
 import java.io.PrintStream;
 
@@ -42,7 +43,7 @@ import java.io.PrintStream;
  * Prints out all of the RODs in the input data set. Data is rendered using the toString() method
  * of the given ROD.
  */
-@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 public class PrintRODs extends RodWalker<Integer, Integer> {
     @Input(fullName="input", shortName = "input", doc="The input ROD which should be printed out.", required=true)
     public RodBinding<Feature> input;

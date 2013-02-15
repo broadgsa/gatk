@@ -29,7 +29,8 @@
         -->
 
     <#global siteRoot = "http://www.broadinstitute.org/gatk/" />
-    <#global forum = "http://gatk.vanillaforums.com/" />
+    <#global guideIndex = "http://www.broadinstitute.org/gatk/guide/" />
+    <#global forum = "http://gatkforums.broadinstitute.org/" />
 
     <#macro makeHeader title isIndex>
         <?php ob_start(); ?>
@@ -57,7 +58,7 @@
         <div class="navbar navbar-fixed-top">
             <div class="navbar-inner">
                 <div class="container-fluid">
-                    <a class="brand" href="index.html">GATK Documentation</a>
+                    <a class="brand" href="index.html">GATK | Technical Documentation</a>
                 </div>
             </div>
         </div>
@@ -79,9 +80,11 @@
 
     <#macro footerInfo>
         <hr>
-        <p class="see-also">See also <a href="index.html">Documentation index</a> | <a
-                href="${siteRoot}">GATK Site</a> | <a
-                href="${forum}">GATK support forum</a></p>
+        <p class="see-also">See also 
+        	<a href="${guideIndex}">Guide Index</a> | 
+        	<a href="index.html">Technical Documentation Index</a> | 
+        	<a href="${forum}">Support Forum</a>
+        </p>
 
         <p class="version">GATK version ${version} built at ${timestamp}.</p>
     </#macro>
@@ -106,22 +109,27 @@
             }
         </style>
         <ul class="nav nav-pills nav-stacked" id="sidenav">
-            <#list groups?sort_by("name") as group>
-                <li><a data-toggle="collapse" data-parent="#sidenav" href="#${group.id}">${group.name}</a>
-
-                    <div id="${group.id}"
-                    <?php echo ($group == '${group.name}')? 'class="accordion-body collapse in"'.chr(62) : 'class="accordion-body collapse"'.chr(62);?>
-                    <ul>
-                        <#list data as datum>
-                            <#if datum.group == group.name>
-                                <li>
-                                    <a href="${datum.filename}">${datum.name}</a>
-                                </li>
-                            </#if>
-                        </#list>
-                    </ul>
-                    </div>
-                </li>
-            </#list>
+        	<#assign seq = ["engine", "tools", "utilities", "other"]>
+        	<#list seq as supercat>
+        		<hr>
+        		<#list groups?sort_by("name") as group>
+        			<#if group.supercat == supercat>
+						<li><a data-toggle="collapse" data-parent="#sidenav" href="#${group.id}">${group.name}</a>
+							<div id="${group.id}"
+								<?php echo ($group == '${group.name}')? 'class="accordion-body collapse in"'.chr(62) : 'class="accordion-body collapse"'.chr(62);?>
+								<ul>
+									<#list data as datum>
+										<#if datum.group == group.name>
+											<li>
+												<a href="${datum.filename}">${datum.name}</a>
+											</li>
+										</#if>
+									</#list>
+								</ul>
+							</div>
+						</li>
+        			</#if>
+        		</#list>
+        	</#list>
         </ul>
     </#macro>

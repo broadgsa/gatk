@@ -36,6 +36,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
@@ -104,7 +105,7 @@ import java.util.*;
  * </pre>
  */
 @SuppressWarnings("unused")
-@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class SelectHeaders extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();

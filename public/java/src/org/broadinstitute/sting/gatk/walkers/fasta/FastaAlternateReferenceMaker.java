@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.util.Collections;
@@ -81,7 +82,7 @@ import java.util.List;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Reference Utilities", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_REFUTILS, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-1,stop=50))
 @Requires(value={DataSource.REFERENCE})
 public class FastaAlternateReferenceMaker extends FastaReferenceMaker {

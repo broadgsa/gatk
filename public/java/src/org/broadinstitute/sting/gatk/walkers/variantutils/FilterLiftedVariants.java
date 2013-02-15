@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.variant.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
@@ -46,7 +47,7 @@ import java.util.*;
 /**
  * Filters a lifted-over VCF file for ref bases that have been changed.
  */
-@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=0,stop=100))
 public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
 

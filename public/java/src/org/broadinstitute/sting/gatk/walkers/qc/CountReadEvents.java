@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
@@ -66,7 +67,7 @@ import java.util.Map;
  * </pre>
  */
 
-@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountReadEvents extends ReadWalker<Map<CigarOperator, ArrayList<Integer>> , Map<Integer, Map<CigarOperator, Long>>> {
     @Output (doc = "GATKReport table output")

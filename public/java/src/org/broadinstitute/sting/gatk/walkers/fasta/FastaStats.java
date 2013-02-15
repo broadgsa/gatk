@@ -33,13 +33,14 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 
 import java.io.PrintStream;
 
 /**
  * Calculates basic statistics about the reference sequence itself
  */
-@DocumentedGATKFeature( groupName = "Diagnostics and Quality Control Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 public class FastaStats extends RefWalker<Byte, FastaStats.FastaStatistics> {
     @Output PrintStream out;
 

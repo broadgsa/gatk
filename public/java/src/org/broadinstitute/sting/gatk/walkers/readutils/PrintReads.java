@@ -39,6 +39,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.File;
@@ -90,7 +91,7 @@ import java.util.*;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "BAM Processing Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_DATA, extraDocs = {CommandLineGATK.class} )
 @ReadTransformersMode(ApplicationTime = ReadTransformer.ApplicationTime.HANDLED_IN_WALKER)
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = ReadTransformer.ApplicationTime.HANDLED_IN_WALKER)
 @Requires({DataSource.READS, DataSource.REFERENCE})
