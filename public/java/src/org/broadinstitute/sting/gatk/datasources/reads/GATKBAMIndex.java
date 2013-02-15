@@ -25,17 +25,18 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
+import net.sf.samtools.seekablestream.SeekableBufferedStream;
+import net.sf.samtools.seekablestream.SeekableFileStream;
+
 import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
+
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -70,6 +71,9 @@ public class GATKBAMIndex {
 
     private final File mFile;
 
+    //TODO: figure out a good value for this buffer size
+    private final int BUFFERED_STREAM_BUFFER_SIZE = 8192;
+
     /**
      * Number of sequences stored in this index.
      */
@@ -80,8 +84,8 @@ public class GATKBAMIndex {
      */
     private final long[] sequenceStartCache;
 
-    private FileInputStream fileStream;
-    private FileChannel fileChannel;
+    private SeekableFileStream fileStream;
+    private SeekableBufferedStream bufferedStream;
 
     public GATKBAMIndex(final File file) {
         mFile = file;
@@ -264,7 +268,7 @@ public class GATKBAMIndex {
      */
     protected int getMaxAddressibleGenomicLocation() {
         return BIN_GENOMIC_SPAN;
-    }    
+    }
 
     protected void skipToSequence(final int referenceSequence) {
         // Find the offset in the file of the last sequence whose position has been determined.  Start here
@@ -279,7 +283,6 @@ public class GATKBAMIndex {
 
         for (int i = sequenceIndex; i < referenceSequence; i++) {
             sequenceStartCache[i] = position();
-
             // System.out.println("# Sequence TID: " + i);
             final int nBins = readInteger();
             // System.out.println("# nBins: " + nBins);
@@ -292,15 +295,18 @@ public class GATKBAMIndex {
             final int nLinearBins = readInteger();
             // System.out.println("# nLinearBins: " + nLinearBins);
             skipBytes(8 * nLinearBins);
+
         }
 
         sequenceStartCache[referenceSequence] = position();
     }
 
+
+
     private void openIndexFile() {
         try {
-            fileStream = new FileInputStream(mFile);
-            fileChannel = fileStream.getChannel();
+            fileStream = new SeekableFileStream(mFile);
+            bufferedStream = new SeekableBufferedStream(fileStream,BUFFERED_STREAM_BUFFER_SIZE);
         }
         catch (IOException exc) {
             throw new ReviewedStingException("Unable to open index file (" + exc.getMessage() +")" + mFile, exc);
@@ -309,7 +315,7 @@ public class GATKBAMIndex {
 
     private void closeIndexFile() {
         try {
-            fileChannel.close();
+            bufferedStream.close();
             fileStream.close();
         }
         catch (IOException exc) {
@@ -352,19 +358,45 @@ public class GATKBAMIndex {
     }
 
     private void read(final ByteBuffer buffer) {
+        final int bytesRequested = buffer.limit();
+
         try {
-            int bytesExpected = buffer.limit();
-            int bytesRead = fileChannel.read(buffer);
+
+           //BufferedInputStream cannot read directly into a byte buffer, so we read into an array
+            //and put the result into the bytebuffer after the if statement.
 
             // We have a rigid expectation here to read in exactly the number of bytes we've limited
-            // our buffer to -- if we read in fewer bytes than this, or encounter EOF (-1), the index
+            // our buffer to -- if there isn't enough data in the file, the index
             // must be truncated or otherwise corrupt:
-            if ( bytesRead < bytesExpected ) {
+            if(bytesRequested > bufferedStream.length() - bufferedStream.position()){
+                throw new UserException.MalformedFile(mFile, String.format("Premature end-of-file while reading BAM index file %s. " +
+                        "It's likely that this file is truncated or corrupt -- " +
+                        "Please try re-indexing the corresponding BAM file.",
+                        mFile));
+            }
+
+            int totalBytesRead = 0;
+            // This while loop must terminate since we demand that we read at least one byte from the file at each iteration
+           while (totalBytesRead < bytesRequested) {
+                //  bufferedStream.read may return less than the requested amount of byte despite
+                // not reaching the end of the file, hence the loop.
+                int bytesRead = bufferedStream.read(byteArray, totalBytesRead, bytesRequested-totalBytesRead);
+
+                // We have a rigid expectation here to read in exactly the number of bytes we've limited
+                // our buffer to -- if we encounter EOF (-1), the index
+                // must be truncated or otherwise corrupt:
+                if (bytesRead <= 0) {
                 throw new UserException.MalformedFile(mFile, String.format("Premature end-of-file while reading BAM index file %s. " +
                                                                            "It's likely that this file is truncated or corrupt -- " +
                                                                            "Please try re-indexing the corresponding BAM file.",
                                                                            mFile));
+                }
+                totalBytesRead += bytesRead;
             }
+            if(totalBytesRead != bytesRequested)
+                throw new RuntimeException("Read amount different from requested amount. This should not happen.");
+
+            buffer.put(byteArray, 0, bytesRequested);
         }
         catch(IOException ex) {
             throw new ReviewedStingException("Index: unable to read bytes from index file " + mFile);
@@ -378,10 +410,13 @@ public class GATKBAMIndex {
      */
     private ByteBuffer buffer = null;
 
+    //BufferedStream don't read into ByteBuffers, so we need this temporary array
+    private byte[] byteArray=null;
     private ByteBuffer getBuffer(final int size) {
         if(buffer == null || buffer.capacity() < size) {
             // Allocate a new byte buffer.  For now, make it indirect to make sure it winds up on the heap for easier debugging.
             buffer = ByteBuffer.allocate(size);
+            byteArray = new byte[size];
             buffer.order(ByteOrder.LITTLE_ENDIAN);
         }
         buffer.clear();
@@ -391,7 +426,13 @@ public class GATKBAMIndex {
 
     private void skipBytes(final int count) {
         try {
-            fileChannel.position(fileChannel.position() + count);
+
+            //try to skip forward the requested amount.
+            long skipped =  bufferedStream.skip(count);
+
+            if( skipped != count ) { //if not managed to skip the requested amount
+		throw new ReviewedStingException("Index: unable to reposition file channel of index file " + mFile);
+            }
         }
         catch(IOException ex) {
             throw new ReviewedStingException("Index: unable to reposition file channel of index file " + mFile);
@@ -400,7 +441,8 @@ public class GATKBAMIndex {
 
     private void seek(final long position) {
         try {
-            fileChannel.position(position);
+            //to seek a new position, move the fileChannel, and reposition the bufferedStream
+            bufferedStream.seek(position);
         }
         catch(IOException ex) {
             throw new ReviewedStingException("Index: unable to reposition of file channel of index file " + mFile);
@@ -413,10 +455,10 @@ public class GATKBAMIndex {
      */
     private long position() {
         try {
-            return fileChannel.position();
+            return bufferedStream.position();
         }
         catch (IOException exc) {
             throw new ReviewedStingException("Unable to read position from index file " + mFile, exc);
         }
-    }    
+    }
 }
