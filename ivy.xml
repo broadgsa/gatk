@@ -84,9 +84,10 @@
         <dependency org="org.scala-lang" name="scala-library" rev="2.9.2"/>
 
         <!-- testing and evaluation dependencies -->
-        <dependency org="org.testng" name="testng" rev="5.14.1"/>
+        <dependency org="org.testng" name="testng" rev="6.8"/>
         <dependency org="org.uncommons" name="reportng" rev="1.1.2"/>
         <dependency org="com.google.caliper" name="caliper" rev="0.5-rc1"/>
+		<dependency org="com.google.inject" name="guice" rev="3.0"/>
 
         <!-- Contracts for Java and dependencies -->
         <dependency org="com.google.code.cofoja" name="cofoja" rev="1.0-r139"/>
