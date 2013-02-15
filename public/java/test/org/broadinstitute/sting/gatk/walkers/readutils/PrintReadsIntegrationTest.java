@@ -75,6 +75,7 @@ public class PrintReadsIntegrationTest extends WalkerTest {
                         " -R " + params.reference +
                         " -I " + privateTestDir + params.bam +
                         params.args +
+                        " --no_pg_tag" +
                         " -o %s",
                 Arrays.asList(params.md5));
         executeTest("testPrintReads-"+params.args, spec).getFirst();

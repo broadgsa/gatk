@@ -30,7 +30,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.sam.ArtificialReadsTraversal;
-import org.broadinstitute.sting.utils.sam.ArtificialSAMFileWriter;
+import org.broadinstitute.sting.utils.sam.ArtificialStingSAMFileWriter;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.annotations.BeforeMethod;
@@ -85,7 +85,7 @@ public class PrintReadsUnitTest extends BaseTest {
     //private ReferenceContext ref = new ReferenceContext()
 
     org.broadinstitute.sting.gatk.walkers.readutils.PrintReads walker;
-    ArtificialSAMFileWriter writer;
+    ArtificialStingSAMFileWriter writer;
 
     @BeforeMethod
     public void before() {
@@ -93,8 +93,7 @@ public class PrintReadsUnitTest extends BaseTest {
         readTotal = ( ( trav.endingChr - trav.startingChr ) + 1 ) * trav.readsPerChr + trav.unMappedReads;
 
         walker = new org.broadinstitute.sting.gatk.walkers.readutils.PrintReads();
-        writer = new ArtificialSAMFileWriter();
-        walker.out = writer;
+        writer = new ArtificialStingSAMFileWriter();
         walker.initialize();
     }
 
@@ -121,7 +120,4 @@ public class PrintReadsUnitTest extends BaseTest {
         assertTrue(ret == rec);
         assertTrue(ret.getReadName().equals(rec.getReadName()));
     }
-
-
-    
 }
