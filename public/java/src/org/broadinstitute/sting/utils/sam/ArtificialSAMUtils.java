@@ -118,7 +118,7 @@ public class ArtificialSAMUtils {
     /**
      * Creates an artificial sam header based on the sequence dictionary dict
      *
-     * @return
+     * @return a new sam header
      */
     public static SAMFileHeader createArtificialSamHeader(final SAMSequenceDictionary dict) {
         SAMFileHeader header = new SAMFileHeader();
@@ -127,6 +127,14 @@ public class ArtificialSAMUtils {
         return header;
     }
 
+    /**
+     * Creates an artificial sam header with standard test parameters
+     *
+     * @return the sam header
+     */
+    public static SAMFileHeader createArtificialSamHeader() {
+        return createArtificialSamHeader(1, 1, 1000000);
+    }
 
     /**
      * setup a default read group for a SAMFileHeader
@@ -270,7 +278,7 @@ public class ArtificialSAMUtils {
      * @return the artificial read
      */
     public static GATKSAMRecord createArtificialRead(byte[] bases, byte[] qual, String cigar) {
-        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000000);
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader();
         return ArtificialSAMUtils.createArtificialRead(header, "default_read", 0, 10000, bases, qual, cigar);
     }
 
@@ -280,7 +288,7 @@ public class ArtificialSAMUtils {
         byte [] qual = {30};
         byte [] bases = Utils.arrayFromArrayWithLength(base, length);
         byte [] quals = Utils.arrayFromArrayWithLength(qual, length);
-        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000000);
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader();
         return ArtificialSAMUtils.createArtificialRead(header, "default_read", 0, 10000, bases, quals, cigar.toString());
     }
 

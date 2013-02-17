@@ -54,11 +54,11 @@ public final class AlignmentUtils {
         public long mismatchQualities = 0;
     }
 
-    public static long mismatchingQualities(SAMRecord r, byte[] refSeq, int refIndex) {
+    public static long mismatchingQualities(GATKSAMRecord r, byte[] refSeq, int refIndex) {
         return getMismatchCount(r, refSeq, refIndex).mismatchQualities;
     }
 
-    public static MismatchCount getMismatchCount(SAMRecord r, byte[] refSeq, int refIndex) {
+    public static MismatchCount getMismatchCount(GATKSAMRecord r, byte[] refSeq, int refIndex) {
         return getMismatchCount(r, refSeq, refIndex, 0, r.getReadLength());
     }
 
@@ -70,38 +70,39 @@ public final class AlignmentUtils {
      *
      * @param r                   the sam record to check against
      * @param refSeq              the byte array representing the reference sequence
-     * @param refIndex            the index in the reference byte array of the read's first base
+     * @param refIndex            the index in the reference byte array of the read's first base (the reference index is matching the alignment start, there may be tons of soft-clipped bases before/after that so it's wrong to compare with getReadLength() here.)
      * @param startOnRead         the index in the read's bases from which we start counting
      * @param nReadBases          the number of bases after (but including) startOnRead that we check
      * @return non-null object representing the mismatch count
      */
     @Ensures("result != null")
-    public static MismatchCount getMismatchCount(SAMRecord r, byte[] refSeq, int refIndex, int startOnRead, int nReadBases) {
+    public static MismatchCount getMismatchCount(GATKSAMRecord r, byte[] refSeq, int refIndex, int startOnRead, int nReadBases) {
         if ( r == null ) throw new IllegalArgumentException("attempting to calculate the mismatch count from a read that is null");
         if ( refSeq == null ) throw new IllegalArgumentException("attempting to calculate the mismatch count with a reference sequence that is null");
         if ( refIndex < 0 ) throw new IllegalArgumentException("attempting to calculate the mismatch count with a reference index that is negative");
         if ( startOnRead < 0 ) throw new IllegalArgumentException("attempting to calculate the mismatch count with a read start that is negative");
         if ( nReadBases < 0 ) throw new IllegalArgumentException("attempting to calculate the mismatch count for a negative number of read bases");
-        if ( refSeq.length - refIndex < r.getReadLength() )
+        if ( refSeq.length - refIndex < (r.getAlignmentEnd() - r.getAlignmentStart()) )
             throw new IllegalArgumentException("attempting to calculate the mismatch count against a reference string that is smaller than the read");
 
         MismatchCount mc = new MismatchCount();
 
         int readIdx = 0;
-        int endOnRead = startOnRead + nReadBases - 1; // index of the last base on read we want to count
-        byte[] readSeq = r.getReadBases();
-        Cigar c = r.getCigar();
-        for (int i = 0; i < c.numCigarElements(); i++) {
+        final int endOnRead = startOnRead + nReadBases - 1; // index of the last base on read we want to count (note we are including soft-clipped bases with this math)
+        final byte[] readSeq = r.getReadBases();
+        final Cigar c = r.getCigar();
+        final byte[] readQuals = r.getBaseQualities();
+        for (final CigarElement ce : c.getCigarElements()) {
 
-            if (readIdx > endOnRead) break;
+            if (readIdx > endOnRead)
+                break;
 
-            CigarElement ce = c.getCigarElement(i);
             final int elementLength = ce.getLength();
             switch (ce.getOperator()) {
                 case X:
                     mc.numMismatches += elementLength;
                     for (int j = 0; j < elementLength; j++)
-                        mc.mismatchQualities += r.getBaseQualities()[readIdx+j];
+                        mc.mismatchQualities += readQuals[readIdx+j];
                 case EQ:
                     refIndex += elementLength;
                     readIdx += elementLength;
@@ -109,7 +110,7 @@ public final class AlignmentUtils {
                 case M:
                     for (int j = 0; j < elementLength; j++, refIndex++, readIdx++) {
                         if (refIndex >= refSeq.length)
-                            continue;
+                            continue;                      // TODO : It should never happen, we should throw exception here
                         if (readIdx < startOnRead) continue;
                         if (readIdx > endOnRead) break;
                         byte refChr = refSeq[refIndex];
@@ -120,7 +121,7 @@ public final class AlignmentUtils {
                         //    continue; // do not count Ns/Xs/etc ?
                         if (readChr != refChr) {
                             mc.numMismatches++;
-                            mc.mismatchQualities += r.getBaseQualities()[readIdx];
+                            mc.mismatchQualities += readQuals[readIdx];
                         }
                     }
                     break;
@@ -425,14 +426,14 @@ public final class AlignmentUtils {
      * @return true if read is unmapped
      */
     public static boolean isReadUnmapped(final SAMRecord r) {
-        if ( r == null ) throw new IllegalArgumentException("Read cannot be null");
+        if ( r == null )
+            throw new IllegalArgumentException("Read cannot be null");
 
-        if (r.getReadUnmappedFlag()) return true;
+        return r.getReadUnmappedFlag() ||
+               !((r.getReferenceIndex() != null && r.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX ||
+                  r.getReferenceName() != null && !r.getReferenceName().equals(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME)) &&
+                 r.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START);
 
-        if ((r.getReferenceIndex() != null && r.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX
-                || r.getReferenceName() != null && !r.getReferenceName().equals(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME))
-                && r.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) return false;
-        return true;
     }
 
     /**

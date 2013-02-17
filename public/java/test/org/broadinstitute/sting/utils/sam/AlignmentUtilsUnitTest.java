@@ -380,6 +380,14 @@ public class AlignmentUtilsUnitTest {
             }
         }
 
+        // Adding test to make sure soft-clipped reads go through the exceptions thrown at the beginning of the getMismatchCount method
+        // todo: incorporate cigars with right-tail soft-clips in the systematic tests above.
+        GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 10, 20);
+        read.setReadBases(reference);
+        read.setBaseQualities(quals);
+        read.setCigarString("10S5M5S");
+        tests.add(new Object[]{read, 10, read.getAlignmentStart(), read.getReadLength(), false});
+
         return tests.toArray(new Object[][]{});
     }
 
@@ -393,26 +401,28 @@ public class AlignmentUtilsUnitTest {
     private static String buildTestCigarString(final char middleOp, final int lengthOfSoftClip, final int lengthOfFirstM, final int lengthOfIndel, final int readLength) {
         final StringBuilder cigar = new StringBuilder();
         int remainingLength = readLength;
-        if ( lengthOfSoftClip > 0 ) {
-            cigar.append(lengthOfSoftClip + "S");
+
+        // add soft clips to the beginning of the read
+        if (lengthOfSoftClip > 0 ) {
+            cigar.append(lengthOfSoftClip).append("S");
             remainingLength -= lengthOfSoftClip;
         }
 
         if ( middleOp == 'M' ) {
-            cigar.append(remainingLength + "M");
+            cigar.append(remainingLength).append("M");
         } else {
             if ( lengthOfFirstM > 0 ) {
-                cigar.append(lengthOfFirstM + "M");
+                cigar.append(lengthOfFirstM).append("M");
                 remainingLength -= lengthOfFirstM;
             }
 
             if ( middleOp == 'D' ) {
-                cigar.append(lengthOfIndel + "D");
+                cigar.append(lengthOfIndel).append("D");
             } else {
-                cigar.append(lengthOfIndel + "I");
+                cigar.append(lengthOfIndel).append("I");
                 remainingLength -= lengthOfIndel;
             }
-            cigar.append(remainingLength + "M");
+            cigar.append(remainingLength).append("M");
         }
 
         return cigar.toString();
