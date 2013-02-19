@@ -618,7 +618,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
     @Test(dataProvider = "ReverseClippingPositionTestProvider")
     public void testReverseClippingPositionTestProvider(ReverseClippingPositionTestProvider cfg) {
-        int result = GATKVariantContextUtils.computeReverseClipping(cfg.alleles, cfg.ref.getBytes(), 0, false);
+        int result = GATKVariantContextUtils.computeReverseClipping(cfg.alleles, cfg.ref.getBytes());
         Assert.assertEquals(result, cfg.expectedClip);
     }
 
@@ -887,5 +887,102 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         Assert.assertEquals(result.getFirst().toArray()[2],7);
         Assert.assertEquals(result.getSecond().length,2);
 
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // test forward clipping
+    //
+    // --------------------------------------------------------------------------------
+
+    @DataProvider(name = "ForwardClippingData")
+    public Object[][] makeForwardClippingData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        // this functionality can be adapted to provide input data for whatever you might want in your data
+        tests.add(new Object[]{Arrays.asList("A"), -1});
+        tests.add(new Object[]{Arrays.asList("<DEL>"), -1});
+        tests.add(new Object[]{Arrays.asList("A", "C"), -1});
+        tests.add(new Object[]{Arrays.asList("AC", "C"), -1});
+        tests.add(new Object[]{Arrays.asList("A", "G"), -1});
+        tests.add(new Object[]{Arrays.asList("A", "T"), -1});
+        tests.add(new Object[]{Arrays.asList("GT", "CA"), -1});
+        tests.add(new Object[]{Arrays.asList("GT", "CT"), -1});
+        tests.add(new Object[]{Arrays.asList("ACC", "AC"), 0});
+        tests.add(new Object[]{Arrays.asList("ACGC", "ACG"), 1});
+        tests.add(new Object[]{Arrays.asList("ACGC", "ACG"), 1});
+        tests.add(new Object[]{Arrays.asList("ACGC", "ACGA"), 2});
+        tests.add(new Object[]{Arrays.asList("ACGC", "AGC"), 0});
+        tests.add(new Object[]{Arrays.asList("A", "<DEL>"), -1});
+        for ( int len = 0; len < 50; len++ )
+            tests.add(new Object[]{Arrays.asList("A" + new String(Utils.dupBytes((byte)'C', len)), "C"), -1});
+
+        tests.add(new Object[]{Arrays.asList("A", "T", "C"), -1});
+        tests.add(new Object[]{Arrays.asList("AT", "AC", "AG"), 0});
+        tests.add(new Object[]{Arrays.asList("AT", "AC", "A"), -1});
+        tests.add(new Object[]{Arrays.asList("AT", "AC", "ACG"), 0});
+        tests.add(new Object[]{Arrays.asList("AC", "AC", "ACG"), 0});
+        tests.add(new Object[]{Arrays.asList("AC", "ACT", "ACG"), 0});
+        tests.add(new Object[]{Arrays.asList("ACG", "ACGT", "ACGTA"), 1});
+        tests.add(new Object[]{Arrays.asList("ACG", "ACGT", "ACGCA"), 1});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "ForwardClippingData")
+    public void testForwardClipping(final List<String> alleleStrings, final int expectedClip) {
+        final List<Allele> alleles = new LinkedList<Allele>();
+        for ( final String alleleString : alleleStrings )
+            alleles.add(Allele.create(alleleString));
+
+        for ( final List<Allele> myAlleles : Utils.makePermutations(alleles, alleles.size(), false)) {
+            final int actual = GATKVariantContextUtils.computeForwardClipping(myAlleles);
+            Assert.assertEquals(actual, expectedClip);
+        }
+    }
+
+    @DataProvider(name = "ClipAlleleTest")
+    public Object[][] makeClipAlleleTest() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        // this functionality can be adapted to provide input data for whatever you might want in your data
+        tests.add(new Object[]{Arrays.asList("ACC", "AC"), Arrays.asList("AC", "A"), 0});
+        tests.add(new Object[]{Arrays.asList("ACGC", "ACG"), Arrays.asList("GC", "G"), 2});
+        tests.add(new Object[]{Arrays.asList("ACGC", "ACGA"), Arrays.asList("C", "A"), 3});
+        tests.add(new Object[]{Arrays.asList("ACGC", "AGC"), Arrays.asList("AC", "A"), 0});
+        tests.add(new Object[]{Arrays.asList("AT", "AC", "AG"), Arrays.asList("T", "C", "G"), 1});
+        tests.add(new Object[]{Arrays.asList("AT", "AC", "ACG"), Arrays.asList("T", "C", "CG"), 1});
+        tests.add(new Object[]{Arrays.asList("AC", "ACT", "ACG"), Arrays.asList("C", "CT", "CG"), 1});
+        tests.add(new Object[]{Arrays.asList("ACG", "ACGT", "ACGTA"), Arrays.asList("G", "GT", "GTA"), 2});
+        tests.add(new Object[]{Arrays.asList("ACG", "ACGT", "ACGCA"), Arrays.asList("G", "GT", "GCA"), 2});
+
+        // trims from left and right
+        tests.add(new Object[]{Arrays.asList("ACGTT", "ACCTT"), Arrays.asList("G", "C"), 2});
+        tests.add(new Object[]{Arrays.asList("ACGTT", "ACCCTT"), Arrays.asList("G", "CC"), 2});
+        tests.add(new Object[]{Arrays.asList("ACGTT", "ACGCTT"), Arrays.asList("G", "GC"), 2});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "ClipAlleleTest")
+    public void testClipAlleles(final List<String> alleleStrings, final List<String> expected, final int numLeftClipped) {
+        final List<Allele> alleles = new LinkedList<Allele>();
+        final int length = alleleStrings.get(0).length();
+        boolean first = true;
+        for ( final String alleleString : alleleStrings ) {
+            alleles.add(Allele.create(alleleString, first));
+            first = false;
+        }
+
+        final int start = 10;
+        final VariantContextBuilder builder = new VariantContextBuilder("test", "20", start, start+length-1, alleles);
+        final VariantContext unclipped = builder.make();
+        final VariantContext clipped = GATKVariantContextUtils.trimAlleles(unclipped, true, true);
+
+        Assert.assertEquals(clipped.getStart(), unclipped.getStart() + numLeftClipped);
+        for ( int i = 0; i < alleles.size(); i++ ) {
+            final Allele trimmed = clipped.getAlleles().get(i);
+            Assert.assertEquals(trimmed.getBaseString(), expected.get(i));
+        }
     }
 }
