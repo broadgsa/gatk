@@ -29,6 +29,7 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
 import java.util.*;
 
@@ -45,6 +46,7 @@ public class ActivityProfile {
 
     protected final List<ActivityProfileState> stateList;
     protected final GenomeLocParser parser;
+    protected final GenomeLocSortedSet restrictToIntervals;
 
     protected GenomeLoc regionStartLoc = null;
     protected GenomeLoc regionStopLoc = null;
@@ -60,10 +62,20 @@ public class ActivityProfile {
      * @param parser the parser we can use to create genome locs, cannot be null
      */
     public ActivityProfile(final GenomeLocParser parser) {
+        this(parser, null);
+    }
+
+    /**
+     * Create a empty ActivityProfile, restricting output to profiles overlapping intervals, if not null
+     * @param parser the parser we can use to create genome locs, cannot be null
+     * @param intervals only include states that are within these intervals, if not null
+     */
+    public ActivityProfile(final GenomeLocParser parser, final GenomeLocSortedSet intervals) {
         if ( parser == null ) throw new IllegalArgumentException("parser cannot be null");
 
         this.parser = parser;
         this.stateList = new ArrayList<ActivityProfileState>();
+        this.restrictToIntervals = intervals;
     }
 
     @Override
@@ -224,7 +236,7 @@ public class ActivityProfile {
 
         if ( position > size() )
             // should we allow this?  probably not
-            throw new IllegalArgumentException("Must add state contiguous to existing states");
+            throw new IllegalArgumentException("Must add state contiguous to existing states: adding " + stateToAdd);
 
         if ( position >= 0 ) {
             // ignore states starting before this regions start
@@ -313,7 +325,10 @@ public class ActivityProfile {
             if ( nextRegion == null )
                 return regions;
             else {
-                regions.add(nextRegion);
+                if ( restrictToIntervals == null )
+                    regions.add(nextRegion);
+                else
+                    regions.addAll(nextRegion.splitAndTrimToIntervals(restrictToIntervals));
             }
         }
     }

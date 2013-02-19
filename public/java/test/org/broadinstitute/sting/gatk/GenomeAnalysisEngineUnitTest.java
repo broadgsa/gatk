@@ -30,7 +30,9 @@ import org.broadinstitute.sting.commandline.ArgumentException;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.walkers.readutils.PrintReads;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -70,10 +72,12 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
 
     @Test
     public void testEmptyIntervalSetHandling() throws Exception {
+        GenomeLocParser genomeLocParser = new GenomeLocParser(ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000).getSequenceDictionary());
+
         GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
 
         testEngine.setWalker(new PrintReads());
-        testEngine.setIntervals(new GenomeLocSortedSet(null));
+        testEngine.setIntervals(new GenomeLocSortedSet(genomeLocParser));
 
         testEngine.validateSuppliedIntervals();
     }
