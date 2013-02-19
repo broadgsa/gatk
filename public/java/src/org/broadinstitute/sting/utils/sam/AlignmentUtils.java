@@ -297,7 +297,7 @@ public final class AlignmentUtils {
 
             switch (ce.getOperator()) {
                 case I:
-                case S:
+                case S: // TODO -- I don't think that soft clips should be treated the same as inserted bases here. Investigation needed.
                     pos += elementLength;
                     if (pos >= pileupOffset) {
                         return alignmentPos;
