@@ -589,6 +589,8 @@ public class GATKVariantContextUtils {
      * simpleMerge does not verify any more unique sample names EVEN if genotypeMergeOptions == GenotypeMergeType.REQUIRE_UNIQUE. One should use
      * SampleUtils.verifyUniqueSamplesNames to check that before using sempleMerge.
      *
+     * For more information on this method see: http://www.thedistractionnetwork.com/programmer-problem/
+     *
      * @param unsortedVCs               collection of unsorted VCs
      * @param priorityListOfVCs         priority list detailing the order in which we should grab the VCs
      * @param filteredRecordMergeType   merge type for filtered records
@@ -1291,5 +1293,30 @@ public class GATKVariantContextUtils {
         public int compare(VariantContext vc1, VariantContext vc2) {
             return Integer.valueOf(getIndex(vc1)).compareTo(getIndex(vc2));
         }
+    }
+
+    /**
+     * For testing purposes only.  Create a site-only VariantContext at contig:start containing alleles
+     *
+     * @param name the name of the VC
+     * @param contig the contig for the VC
+     * @param start the start of the VC
+     * @param alleleStrings a non-null, non-empty list of strings for the alleles.  The first will be the ref allele, and others the
+     *                      alt.  Will compute the stop of the VC from the length of the reference allele
+     * @return a non-null VariantContext
+     */
+    public static VariantContext makeFromAlleles(final String name, final String contig, final int start, final List<String> alleleStrings) {
+        if ( alleleStrings == null || alleleStrings.isEmpty() )
+            throw new IllegalArgumentException("alleleStrings must be non-empty, non-null list");
+
+        final List<Allele> alleles = new LinkedList<Allele>();
+        final int length = alleleStrings.get(0).length();
+
+        boolean first = true;
+        for ( final String alleleString : alleleStrings ) {
+            alleles.add(Allele.create(alleleString, first));
+            first = false;
+        }
+      return new VariantContextBuilder(name, contig, start, start+length-1, alleles).make();
     }
 }

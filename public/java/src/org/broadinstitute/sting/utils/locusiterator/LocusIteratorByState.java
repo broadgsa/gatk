@@ -28,13 +28,18 @@ package org.broadinstitute.sting.utils.locusiterator;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.CigarOperator;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecordIterator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
+import org.broadinstitute.sting.gatk.iterators.GATKSAMIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.pileup.*;
+import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
@@ -137,6 +142,25 @@ public final class LocusIteratorByState extends LocusIterator {
     }
 
     /**
+     * Create a new LocusIteratorByState based on a SAMFileReader using reads in an iterator it
+     *
+     * Simple constructor that uses the samples in the reader, doesn't do any downsampling,
+     * and makes a new GenomeLocParser using the reader.  This constructor will be slow(ish)
+     * if you continually invoke this constructor, but it's easy to make.
+     *
+     * @param reader a non-null reader
+     * @param it an iterator from reader that has the reads we want to use to create ReadBackPileups
+     */
+    public LocusIteratorByState(final SAMFileReader reader, final SAMRecordIterator it) {
+        this(new GATKSAMIterator(it),
+                new LIBSDownsamplingInfo(false, 0),
+                true,
+                new GenomeLocParser(reader.getFileHeader().getSequenceDictionary()),
+                SampleUtils.getSAMFileSamples(reader.getFileHeader()),
+                false);
+    }
+
+    /**
      * Create a new LocusIteratorByState
      *
      * @param samIterator the iterator of reads to process into pileups.  Reads must be ordered
@@ -149,7 +173,8 @@ public final class LocusIteratorByState extends LocusIterator {
      *                be mapped to this null sample
      * @param maintainUniqueReadsList if true, we will keep the unique reads from off the samIterator and make them
      *                                available via the transferReadsFromAllPreviousPileups interface
-     */    protected LocusIteratorByState(final Iterator<GATKSAMRecord> samIterator,
+     */
+    protected LocusIteratorByState(final Iterator<GATKSAMRecord> samIterator,
                                    final LIBSDownsamplingInfo downsamplingInfo,
                                    final boolean includeReadsWithDeletionAtLoci,
                                    final GenomeLocParser genomeLocParser,
@@ -219,6 +244,29 @@ public final class LocusIteratorByState extends LocusIterator {
         AlignmentContext currentAlignmentContext = nextAlignmentContext;
         nextAlignmentContext = null;
         return currentAlignmentContext;
+    }
+
+    /**
+     * Move this LIBS until we are over position
+     *
+     * Will return null if cannot reach position (because we run out of data in the locus)
+     *
+     * @param position the start position of the AlignmentContext we want back
+     * @return a AlignmentContext at position, or null if this isn't possible
+     */
+    public AlignmentContext advanceToLocus(final int position) {
+        while ( hasNext() ) {
+            final AlignmentContext context = next();
+
+            if ( context == null )
+                // we ran out of data
+                return null;
+
+            if ( context.getPosition() == position)
+                return context;
+        }
+
+        return null;
     }
 
     /**

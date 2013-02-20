@@ -1,6 +1,6 @@
 /*
 * Copyright (c) 2012 The Broad Institute
-*
+* 
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
 * files (the "Software"), to deal in the Software without
@@ -9,10 +9,10 @@
 * copies of the Software, and to permit persons to whom the
 * Software is furnished to do so, subject to the following
 * conditions:
-*
+* 
 * The above copyright notice and this permission notice shall be
 * included in all copies or substantial portions of the Software.
-*
+* 
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -966,21 +966,12 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
     @Test(dataProvider = "ClipAlleleTest")
     public void testClipAlleles(final List<String> alleleStrings, final List<String> expected, final int numLeftClipped) {
-        final List<Allele> alleles = new LinkedList<Allele>();
-        final int length = alleleStrings.get(0).length();
-        boolean first = true;
-        for ( final String alleleString : alleleStrings ) {
-            alleles.add(Allele.create(alleleString, first));
-            first = false;
-        }
-
         final int start = 10;
-        final VariantContextBuilder builder = new VariantContextBuilder("test", "20", start, start+length-1, alleles);
-        final VariantContext unclipped = builder.make();
+        final VariantContext unclipped = GATKVariantContextUtils.makeFromAlleles("test", "20", start, alleleStrings);
         final VariantContext clipped = GATKVariantContextUtils.trimAlleles(unclipped, true, true);
 
         Assert.assertEquals(clipped.getStart(), unclipped.getStart() + numLeftClipped);
-        for ( int i = 0; i < alleles.size(); i++ ) {
+        for ( int i = 0; i < unclipped.getAlleles().size(); i++ ) {
             final Allele trimmed = clipped.getAlleles().get(i);
             Assert.assertEquals(trimmed.getBaseString(), expected.get(i));
         }
