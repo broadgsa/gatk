@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.utils.classloader;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
@@ -299,11 +301,14 @@ public class PluginManager<PluginType> {
      * @return The plugin object if created; null otherwise.
      */
     public PluginType createByType(Class<? extends PluginType> pluginType) {
+        Logger logger = Logger.getLogger(PluginManager.class);
+        logger.setLevel(Level.ERROR);
         try {
             Constructor<? extends PluginType> noArgsConstructor = pluginType.getDeclaredConstructor((Class[])null);
             noArgsConstructor.setAccessible(true);
             return noArgsConstructor.newInstance();
         } catch (Exception e) {
+            logger.error("Couldn't initialize the plugin. Typically this is because of wrong global class variable initializations.");
             throw new DynamicClassResolutionException(pluginType, e);
         }
     }
