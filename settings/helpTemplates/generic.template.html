@@ -71,7 +71,6 @@
         </#if>
     </p>
 </#macro>
-
 <#macro relatedByType name type>
     <#list relatedDocs as relatedDoc>
         <#if relatedDoc.relation == type>
@@ -143,12 +142,27 @@
         </#if>
 
         <#-- Create references to additional capabilities if appropriate -->
+        	<#if readfilters?size != 0>
+        		<hr>
+        		<h3>Read Filters</h3>
+        		<#if readfilters?size = 1>
+        			<p>This Read Filter is automatically applied to the data by the Engine before processing by ${name}.</p>
+        		</#if>
+        		<#if (readfilters?size > 1) >
+        			<p>These Read Filters are automatically applied to the data by the Engine before processing by ${name}.</p>
+        		</#if>
+        		<ul>
+					<#list readfilters as filter>
+						<li><a href="${filter.filename}">${filter.name}</a></li>	
+					</#list>
+        		</ul>
+        	</#if>
             <#if extradocs?size != 0>
                 <hr>
                 <h2>Additional capabilities</h2>
-                The arguments described in the entries below can be supplied to this tool to modify
+                <p>The arguments described in the entries below can be supplied to this tool to modify
                 its behavior. For example, the -L argument directs the GATK engine restricts processing
-                to specific genomic intervals. This capability is available to all GATK walkers.
+                to specific genomic intervals (this is an Engine capability and is therefore available to all GATK walkers).</p>
                 <ul>
                     <#list extradocs as extradoc>
                         <li><a href="${extradoc.filename}">${extradoc.name}</a></li>

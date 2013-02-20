@@ -224,7 +224,7 @@ public class GATKDoclet {
             File forumKeyFile = new File(FORUM_KEY_FILE);
             if (forumKeyFile.exists()) {
                 String forumKey = null;
-                // Read ing a one-line file so we can do a for loop
+                // Read in a one-line file so we can do a for loop
                 for (String line : new XReadLines(forumKeyFile))
                     forumKey = line;
                 updateForum(myWorkUnits, forumKey);
@@ -283,7 +283,7 @@ public class GATKDoclet {
             DocumentedGATKFeatureObject feature = getFeatureForClassDoc(doc);
             DocumentedGATKFeatureHandler handler = createHandler(doc, feature);
             if (handler != null && handler.includeInDocs(doc)) {
-                logger.info("Generating documentation for class " + doc);
+                //logger.info("Generating documentation for class " + doc);
                 String filename = handler.getDestinationFilename(doc, clazz);
                 GATKDocWorkUnit unit = new GATKDocWorkUnit(doc.name(),
                         filename, feature.groupName(), feature, handler, doc, clazz,
