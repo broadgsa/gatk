@@ -33,6 +33,13 @@ public class HelpConstants {
     public final static String GATK_FORUM_API_URL = "https://gatkforums.broadinstitute.org/api/v1/";
 
     /**
+     * Arguments for parallelism options
+     */
+    public final static String ARG_TREEREDUCIBLE = "-nt";
+    public final static String ARG_NANOSCHEDULABLE = "-nct";
+    public final static String CMDLINE_GATK_URL = GATK_DOCS_URL + "org_broadinstitute_sting_gatk_CommandLineGATK.html";
+
+    /**
      * Definition of the group names / categories of tools.
      * The names get parsed to make supercategories in the doc index,
      * so be careful when making big changes -- see GATKDoclet.java toMap()
