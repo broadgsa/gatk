@@ -61,6 +61,15 @@ public class Haplotype extends Allele {
         this(bases, false);
     }
 
+    /**
+     * Copy constructor.  Note the ref state of the provided allele is ignored!
+     *
+     * @param allele allele to copy
+     */
+    public Haplotype( final Allele allele ) {
+        super(allele, true);
+    }
+
     protected Haplotype( final byte[] bases, final Event artificialEvent ) {
         this(bases, false);
         this.artificialEvent = artificialEvent;
@@ -92,10 +101,6 @@ public class Haplotype extends Allele {
     @Override
     public String toString() {
         return getDisplayString();
-    }
-
-    public byte[] getBases() {
-        return super.getBases().clone();
     }
 
     public long getStartPosition() {
@@ -150,13 +155,15 @@ public class Haplotype extends Allele {
     public Haplotype insertAllele( final Allele refAllele, final Allele altAllele, final int refInsertLocation, final int genomicInsertLocation ) {
         // refInsertLocation is in ref haplotype offset coordinates NOT genomic coordinates
         final int haplotypeInsertLocation = ReadUtils.getReadCoordinateForReferenceCoordinate(alignmentStartHapwrtRef, cigar, refInsertLocation, ReadUtils.ClippingTail.RIGHT_TAIL, true);
-        if( haplotypeInsertLocation == -1 || haplotypeInsertLocation + refAllele.length() >= getBases().length ) { // desired change falls inside deletion so don't bother creating a new haplotype
+        final byte[] myBases = this.getBases();
+        if( haplotypeInsertLocation == -1 || haplotypeInsertLocation + refAllele.length() >= myBases.length ) { // desired change falls inside deletion so don't bother creating a new haplotype
             return null;
         }
+
         byte[] newHaplotypeBases = new byte[]{};
-        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(getBases(), 0, haplotypeInsertLocation)); // bases before the variant
+        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(myBases, 0, haplotypeInsertLocation)); // bases before the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, altAllele.getBases()); // the alt allele of the variant
-        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(getBases(), haplotypeInsertLocation + refAllele.length(), getBases().length)); // bases after the variant
+        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(myBases, haplotypeInsertLocation + refAllele.length(), myBases.length)); // bases after the variant
         return new Haplotype(newHaplotypeBases, new Event(refAllele, altAllele, genomicInsertLocation));
     }
 
@@ -199,7 +206,7 @@ public class Haplotype extends Allele {
         if (refAllele == null)
             throw new ReviewedStingException("BUG: no ref alleles in input to makeHaplotypeListfrom Alleles at loc: "+ startPos);
 
-        byte[] refBases = ref.getBases();
+        final byte[] refBases = ref.getBases();
 
         final int startIdxInReference = 1 + startPos - numPrefBases - ref.getWindow().getStart();
         final String basesBeforeVariant = new String(Arrays.copyOfRange(refBases, startIdxInReference, startIdxInReference + numPrefBases));
