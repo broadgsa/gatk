@@ -375,13 +375,14 @@ public class QualityUtils {
      * WARNING -- because this function takes a byte for maxQual, you must be careful in converting
      * integers to byte.  The appropriate way to do this is ((byte)(myInt & 0xFF))
      *
-     * @param qual the uncapped quality score as an integer
+     * @param qual the uncapped quality score as an integer.  Can be < 0 (which may indicate an error in the
+     *             client code), which will be brought back to 1, but this isn't an error, as some
+     *             routines may use this functionality (BaseRecalibrator, for example)
      * @param maxQual the maximum quality score, must be less < 255
      * @return the bounded quality score
      */
     @Ensures("(result & 0xFF) >= 1 && (result & 0xFF) <= (maxQual & 0xFF)")
     public static byte boundQual(final int qual, final byte maxQual) {
-        if ( qual < 0 ) throw new IllegalArgumentException("qual must be >= 0 " + qual);
         return (byte) (Math.max(Math.min(qual, maxQual & 0xFF), 1) & 0xFF);
     }
 }
