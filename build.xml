@@ -1073,7 +1073,7 @@
     <property name="report" value="${build.dir}/report"/>
     <property name="iwww.report.dir" value="${user.home}/private_html/report"/>
     <property name="test.output" value="${dist.dir}/test"/>
-    <property name="testng.jar" value="${lib.dir}/testng-5.14.1.jar"/>
+    <property name="testng.jar" value="${lib.dir}/testng-6.8.jar"/>
 
     <path id="java.test.source.path">
         <dirset dir="${basedir}">
