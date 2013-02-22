@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils.variant;
 
+import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
@@ -509,6 +510,25 @@ public class GATKVariantContextUtils {
      * @return a list of bi-allelic (or monomorphic) variant context
      */
     public static List<VariantContext> splitVariantContextToBiallelics(final VariantContext vc) {
+        return splitVariantContextToBiallelics(vc, false);
+    }
+
+    /**
+     * Split variant context into its biallelic components if there are more than 2 alleles
+     *
+     * For VC has A/B/C alleles, returns A/B and A/C contexts.
+     * Genotypes are all no-calls now (it's not possible to fix them easily)
+     * Alleles are right trimmed to satisfy VCF conventions
+     *
+     * If vc is biallelic or non-variant it is just returned
+     *
+     * Chromosome counts are updated (but they are by definition 0)
+     *
+     * @param vc a potentially multi-allelic variant context
+     * @param trimLeft if true, we will also left trim alleles, potentially moving the resulting vcs forward on the genome
+     * @return a list of bi-allelic (or monomorphic) variant context
+     */
+    public static List<VariantContext> splitVariantContextToBiallelics(final VariantContext vc, final boolean trimLeft) {
         if ( ! vc.isVariant() || vc.isBiallelic() )
             // non variant or biallelics already satisfy the contract
             return Collections.singletonList(vc);
@@ -521,7 +541,8 @@ public class GATKVariantContextUtils {
                 builder.alleles(alleles);
                 builder.genotypes(subsetDiploidAlleles(vc, alleles, false));
                 VariantContextUtils.calculateChromosomeCounts(builder, true);
-                biallelics.add(reverseTrimAlleles(builder.make()));
+                final VariantContext trimmed = trimAlleles(builder.make(), trimLeft, true);
+                biallelics.add(trimmed);
             }
 
             return biallelics;
@@ -558,7 +579,7 @@ public class GATKVariantContextUtils {
                                              final boolean filteredAreUncalled,
                                              final boolean mergeInfoWithMaxAC ) {
         int originalNumOfVCs = priorityListOfVCs == null ? 0 : priorityListOfVCs.size();
-        return simpleMerge(unsortedVCs,priorityListOfVCs,originalNumOfVCs,filteredRecordMergeType,genotypeMergeOptions,annotateOrigin,printMessages,setKey,filteredAreUncalled,mergeInfoWithMaxAC);
+        return simpleMerge(unsortedVCs, priorityListOfVCs, originalNumOfVCs, filteredRecordMergeType, genotypeMergeOptions, annotateOrigin, printMessages, setKey, filteredAreUncalled, mergeInfoWithMaxAC);
     }
 
     /**
@@ -567,6 +588,8 @@ public class GATKVariantContextUtils {
      * the sample name.
      * simpleMerge does not verify any more unique sample names EVEN if genotypeMergeOptions == GenotypeMergeType.REQUIRE_UNIQUE. One should use
      * SampleUtils.verifyUniqueSamplesNames to check that before using sempleMerge.
+     *
+     * For more information on this method see: http://www.thedistractionnetwork.com/programmer-problem/
      *
      * @param unsortedVCs               collection of unsorted VCs
      * @param priorityListOfVCs         priority list detailing the order in which we should grab the VCs
@@ -902,14 +925,66 @@ public class GATKVariantContextUtils {
         return uniqify ? sampleName + "." + trackName : sampleName;
     }
 
+    /**
+     * Trim the alleles in inputVC from the reverse direction
+     *
+     * @param inputVC a non-null input VC whose alleles might need a haircut
+     * @return a non-null VariantContext (may be == to inputVC) with alleles trimmed up
+     */
     public static VariantContext reverseTrimAlleles( final VariantContext inputVC ) {
+        return trimAlleles(inputVC, false, true);
+    }
 
-        // see whether we need to trim common reference base from all alleles
-        final int trimExtent = computeReverseClipping(inputVC.getAlleles(), inputVC.getReference().getDisplayString().getBytes(), 0, false);
-        if ( trimExtent <= 0 || inputVC.getAlleles().size() <= 1 )
+    /**
+     * Trim the alleles in inputVC from the forward direction
+     *
+     * @param inputVC a non-null input VC whose alleles might need a haircut
+     * @return a non-null VariantContext (may be == to inputVC) with alleles trimmed up
+     */
+    public static VariantContext forwardTrimAlleles( final VariantContext inputVC ) {
+        return trimAlleles(inputVC, true, false);
+    }
+
+    /**
+     * Trim the alleles in inputVC forward and reverse, as requested
+     *
+     * @param inputVC a non-null input VC whose alleles might need a haircut
+     * @param trimForward should we trim up the alleles from the foward direction?
+     * @param trimReverse shold we trim up the alleles from the reverse direction?
+     * @return a non-null VariantContext (may be == to inputVC) with trimmed up alleles
+     */
+    @Ensures("result != null")
+    public static VariantContext trimAlleles(final VariantContext inputVC, final boolean trimForward, final boolean trimReverse) {
+        if ( inputVC == null ) throw new IllegalArgumentException("inputVC cannot be null");
+
+        if ( inputVC.getNAlleles() <= 1 )
             return inputVC;
 
-        final List<Allele> alleles = new ArrayList<Allele>();
+        // see whether we need to trim common reference base from all alleles
+        final int revTrim = trimReverse ? computeReverseClipping(inputVC.getAlleles(), inputVC.getReference().getDisplayString().getBytes()) : 0;
+        final VariantContext revTrimVC = trimAlleles(inputVC, -1, revTrim);
+        final int fwdTrim = trimForward ? computeForwardClipping(revTrimVC.getAlleles()) : -1;
+        return trimAlleles(revTrimVC, fwdTrim, 0);
+    }
+
+    /**
+     * Trim up alleles in inputVC, cutting out all bases up to fwdTrimEnd inclusive and
+     * the last revTrim bases from the end
+     *
+     * @param inputVC a non-null input VC
+     * @param fwdTrimEnd bases up to this index (can be -1) will be removed from the start of all alleles
+     * @param revTrim the last revTrim bases of each allele will be clipped off as well
+     * @return a non-null VariantContext (may be == to inputVC) with trimmed up alleles
+     */
+    @Requires({"inputVC != null"})
+    @Ensures("result != null")
+    protected static VariantContext trimAlleles(final VariantContext inputVC,
+                                                final int fwdTrimEnd,
+                                                final int revTrim) {
+        if( fwdTrimEnd == -1 && revTrim == 0 ) // nothing to do, so just return inputVC unmodified
+            return inputVC;
+
+        final List<Allele> alleles = new LinkedList<Allele>();
         final GenotypesContext genotypes = GenotypesContext.create();
         final Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
 
@@ -919,7 +994,7 @@ public class GATKVariantContextUtils {
                 originalToTrimmedAlleleMap.put(a, a);
             } else {
                 // get bases for current allele and create a new one with trimmed bases
-                final byte[] newBases = Arrays.copyOfRange(a.getBases(), 0, a.length()-trimExtent);
+                final byte[] newBases = Arrays.copyOfRange(a.getBases(), fwdTrimEnd+1, a.length()-revTrim);
                 final Allele trimmedAllele = Allele.create(newBases, a.isReference());
                 alleles.add(trimmedAllele);
                 originalToTrimmedAlleleMap.put(a, trimmedAllele);
@@ -939,13 +1014,16 @@ public class GATKVariantContextUtils {
             genotypes.add(new GenotypeBuilder(genotype).alleles(trimmedAlleles).make());
         }
 
-        return new VariantContextBuilder(inputVC).stop(inputVC.getStart() + alleles.get(0).length() - 1).alleles(alleles).genotypes(genotypes).make();
+        final int start = inputVC.getStart() + (fwdTrimEnd + 1);
+        final VariantContextBuilder builder = new VariantContextBuilder(inputVC);
+        builder.start(start);
+        builder.stop(start + alleles.get(0).length() - 1);
+        builder.alleles(alleles);
+        builder.genotypes(genotypes);
+        return builder.make();
     }
 
-    public static int computeReverseClipping(final List<Allele> unclippedAlleles,
-                                             final byte[] ref,
-                                             final int forwardClipping,
-                                             final boolean allowFullClip) {
+    public static int computeReverseClipping(final List<Allele> unclippedAlleles, final byte[] ref) {
         int clipping = 0;
         boolean stillClipping = true;
 
@@ -957,16 +1035,13 @@ public class GATKVariantContextUtils {
                 // we need to ensure that we don't reverse clip out all of the bases from an allele because we then will have the wrong
                 // position set for the VariantContext (although it's okay to forward clip it all out, because the position will be fine).
                 if ( a.length() - clipping == 0 )
-                    return clipping - (allowFullClip ? 0 : 1);
+                    return clipping - 1;
 
-                if ( a.length() - clipping <= forwardClipping || a.length() - forwardClipping == 0 ) {
+                if ( a.length() - clipping <= 0 || a.length() == 0 ) {
                     stillClipping = false;
                 }
                 else if ( ref.length == clipping ) {
-                    if ( allowFullClip )
-                        stillClipping = false;
-                    else
-                        return -1;
+                    return -1;
                 }
                 else if ( a.getBases()[a.length()-clipping-1] != ref[ref.length-clipping-1] ) {
                     stillClipping = false;
@@ -977,6 +1052,58 @@ public class GATKVariantContextUtils {
         }
 
         return clipping;
+    }
+
+    /**
+     * Clip out any unnecessary bases off the front of the alleles
+     *
+     * The VCF spec represents alleles as block substitutions, replacing AC with A for a
+     * 1 bp deletion of the C.  However, it's possible that we'd end up with alleles that
+     * contain extra bases on the left, such as GAC/GA to represent the same 1 bp deletion.
+     * This routine finds an offset among all alleles that can be safely trimmed
+     * off the left of each allele and still represent the same block substitution.
+     *
+     * A/C => A/C
+     * AC/A => AC/A
+     * ACC/AC => CC/C
+     * AGT/CAT => AGT/CAT
+     * <DEL>/C => <DEL>/C
+     *
+     * @param unclippedAlleles a non-null list of alleles that we want to clip
+     * @return the offset into the alleles where we can safely clip, inclusive, or
+     *   -1 if no clipping is tolerated.  So, if the result is 0, then we can remove
+     *   the first base of every allele.  If the result is 1, we can remove the
+     *   second base.
+     */
+    public static int computeForwardClipping(final List<Allele> unclippedAlleles) {
+        // cannot clip unless there's at least 1 alt allele
+        if ( unclippedAlleles.size() <= 1 )
+            return -1;
+
+        // we cannot forward clip any set of alleles containing a symbolic allele
+        int minAlleleLength = Integer.MAX_VALUE;
+        for ( final Allele a : unclippedAlleles ) {
+            if ( a.isSymbolic() )
+                return -1;
+            minAlleleLength = Math.min(minAlleleLength, a.length());
+        }
+
+        final byte[] firstAlleleBases = unclippedAlleles.get(0).getBases();
+        int indexOflastSharedBase = -1;
+
+        // the -1 to the stop is that we can never clip off the right most base
+        for ( int i = 0; i < minAlleleLength - 1; i++) {
+            final byte base = firstAlleleBases[i];
+
+            for ( final Allele allele : unclippedAlleles ) {
+                if ( allele.getBases()[i] != base )
+                    return indexOflastSharedBase;
+            }
+
+            indexOflastSharedBase = i;
+        }
+
+        return indexOflastSharedBase;
     }
 
     public static double computeHardyWeinbergPvalue(VariantContext vc) {
@@ -1166,5 +1293,30 @@ public class GATKVariantContextUtils {
         public int compare(VariantContext vc1, VariantContext vc2) {
             return Integer.valueOf(getIndex(vc1)).compareTo(getIndex(vc2));
         }
+    }
+
+    /**
+     * For testing purposes only.  Create a site-only VariantContext at contig:start containing alleles
+     *
+     * @param name the name of the VC
+     * @param contig the contig for the VC
+     * @param start the start of the VC
+     * @param alleleStrings a non-null, non-empty list of strings for the alleles.  The first will be the ref allele, and others the
+     *                      alt.  Will compute the stop of the VC from the length of the reference allele
+     * @return a non-null VariantContext
+     */
+    public static VariantContext makeFromAlleles(final String name, final String contig, final int start, final List<String> alleleStrings) {
+        if ( alleleStrings == null || alleleStrings.isEmpty() )
+            throw new IllegalArgumentException("alleleStrings must be non-empty, non-null list");
+
+        final List<Allele> alleles = new LinkedList<Allele>();
+        final int length = alleleStrings.get(0).length();
+
+        boolean first = true;
+        for ( final String alleleString : alleleStrings ) {
+            alleles.add(Allele.create(alleleString, first));
+            first = false;
+        }
+      return new VariantContextBuilder(name, contig, start, start+length-1, alleles).make();
     }
 }
