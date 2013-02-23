@@ -41,6 +41,8 @@
         <dependency org="log4j" name="log4j" rev="1.2.15"/>
         <dependency org="javax.mail" name="mail" rev="1.4.4"/>
         <dependency org="colt" name="colt" rev="1.2.0"/>
+        <dependency org="it.unimi.dsi" name="fastutil" rev="6.5.3" />
+
         <!-- <dependency org="jboss" name="javassist" rev="3.7.ga"/> -->
         <dependency org="org.simpleframework" name="simple-xml" rev="2.0.4"/>
         <dependency org="org.apache.bcel" name="bcel" rev="5.2"/>
