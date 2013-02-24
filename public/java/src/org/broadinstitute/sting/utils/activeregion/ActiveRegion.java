@@ -347,19 +347,6 @@ public class ActiveRegion implements HasGenomeLocation {
     }
 
     /**
-     * Clips all of the reads in this active region so that none extend beyond the active region extended loc
-     *
-     * This function may change the getReadSpanLoc, as it updates the read span based on the new clipped
-     * read coordinates.
-     */
-    public void hardClipToActiveRegion() {
-        final List<GATKSAMRecord> clippedReads = ReadClipper.hardClipToRegion( reads, extendedLoc.getStart(), extendedLoc.getStop() );
-        ReadUtils.sortReadsByCoordinate(clippedReads);
-        clearReads();
-        addAll(clippedReads);
-    }
-
-    /**
      * Is this region equal to other, excluding any reads in either region in the comparison
      * @param other the other active region we want to test
      * @return true if this region is equal, excluding any reads and derived values, to other
