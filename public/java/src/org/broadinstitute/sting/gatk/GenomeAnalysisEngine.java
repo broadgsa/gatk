@@ -48,6 +48,7 @@ import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformersMode;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
+import org.broadinstitute.sting.gatk.refdata.tracks.IndexDictionaryUtils;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
@@ -254,12 +255,15 @@ public class GenomeAnalysisEngine {
         // Prepare the data for traversal.
         initializeDataSources();
 
-        // initialize sampleDB
-        initializeSampleDB();
-
         // initialize and validate the interval list
         initializeIntervals();
         validateSuppliedIntervals();
+
+        // check to make sure that all sequence dictionaries are compatible with the reference's sequence dictionary
+        validateDataSourcesAgainstReference(readsDataSource, referenceDataSource.getReference(), rodDataSources);
+
+        // initialize sampleDB
+        initializeSampleDB();
 
         // our microscheduler, which is in charge of running everything
         MicroScheduler microScheduler = createMicroscheduler();
@@ -753,9 +757,8 @@ public class GenomeAnalysisEngine {
      * @param reads     Reads data source.
      * @param reference Reference data source.
      * @param rods    a collection of the reference ordered data tracks
-     * @param manager manager
      */
-    private void validateSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, RMDTrackBuilder manager) {
+    private void validateDataSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
         if ((reads.isEmpty() && (rods == null || rods.isEmpty())) || reference == null )
             return;
 
@@ -772,11 +775,12 @@ public class GenomeAnalysisEngine {
             }
 
             // compare the reads to the reference
-            SequenceDictionaryUtils.validateDictionaries(logger, getArguments().unsafe, "reads", readsDictionary, "reference", referenceDictionary);
+            SequenceDictionaryUtils.validateDictionaries(logger, getArguments().unsafe, "reads", readsDictionary,
+                                                         "reference", referenceDictionary, true, intervals);
         }
 
         for (ReferenceOrderedDataSource rod : rods)
-            manager.validateTrackSequenceDictionary(rod.getName(),rod.getSequenceDictionary(),referenceDictionary);
+            IndexDictionaryUtils.validateTrackSequenceDictionary(rod.getName(), rod.getSequenceDictionary(), referenceDictionary, getArguments().unsafe);
     }
 
     /**
@@ -857,9 +861,6 @@ public class GenomeAnalysisEngine {
                                                            sequenceDictionary,
                                                            genomeLocParser,
                                                            flashbackData()));
-
-        // validation: check to make sure everything the walker needs is present, and that all sequence dictionaries match.
-        validateSourcesAgainstReference(readsDataSource, referenceDataSource.getReference(), dataSources, builder);
 
         return dataSources;
     }

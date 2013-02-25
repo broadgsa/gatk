@@ -101,7 +101,7 @@ public class IndexDictionaryUtils {
             Set<String> trackSequences = new TreeSet<String>();
             for (SAMSequenceRecord dictionaryEntry : trackDict.getSequences())
                 trackSequences.add(dictionaryEntry.getSequenceName());
-            SequenceDictionaryUtils.validateDictionaries(logger, validationExclusionType, trackName, trackDict, "reference", referenceDict);
+            SequenceDictionaryUtils.validateDictionaries(logger, validationExclusionType, trackName, trackDict, "reference", referenceDict, false, null);
         }
     }
 }
