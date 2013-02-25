@@ -61,10 +61,10 @@ public abstract class PairHMM {
 
     /**
      * Initialize this PairHMM, making it suitable to run against a read and haplotype with given lengths
-     * @param readMaxLength the max length of reads we want to use with this PairHMM
      * @param haplotypeMaxLength the max length of haplotypes we want to use with this PairHMM
+     * @param readMaxLength the max length of reads we want to use with this PairHMM
      */
-    public void initialize( final int readMaxLength, final int haplotypeMaxLength ) {
+    public void initialize( final int haplotypeMaxLength, final int readMaxLength ) {
         if ( readMaxLength <= 0 ) throw new IllegalArgumentException("READ_MAX_LENGTH must be > 0 but got " + readMaxLength);
         if ( haplotypeMaxLength <= 0 ) throw new IllegalArgumentException("HAPLOTYPE_MAX_LENGTH must be > 0 but got " + haplotypeMaxLength);
 

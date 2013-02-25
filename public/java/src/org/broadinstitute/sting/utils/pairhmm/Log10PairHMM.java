@@ -64,8 +64,8 @@ public class Log10PairHMM extends PairHMM {
      * {@inheritDoc}
      */
     @Override
-    public void initialize( final int readMaxLength, final int haplotypeMaxLength) {
-        super.initialize(readMaxLength, haplotypeMaxLength);
+    public void initialize( final int haplotypeMaxLength, final int readMaxLength) {
+        super.initialize(haplotypeMaxLength, readMaxLength);
 
         for( int iii=0; iii < X_METRIC_MAX_LENGTH; iii++ ) {
             Arrays.fill(matchMetricArray[iii], Double.NEGATIVE_INFINITY);
