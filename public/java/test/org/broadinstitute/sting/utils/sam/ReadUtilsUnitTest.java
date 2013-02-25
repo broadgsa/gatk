@@ -32,9 +32,7 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 
 public class ReadUtilsUnitTest extends BaseTest {
@@ -164,5 +162,21 @@ public class ReadUtilsUnitTest extends BaseTest {
             }
             Assert.assertEquals(reconverted, original);
         }
+    }
+
+    @Test (enabled = true)
+    public void testGetMaxReadLength() {
+        for( final int minLength : Arrays.asList( 5, 30, 50 ) ) {
+            for( final int maxLength : Arrays.asList( 50, 75, 100 ) ) {
+                final List<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
+                for( int readLength = minLength; readLength <= maxLength; readLength++ ) {
+                    reads.add( ReadUtils.createRandomRead( readLength ) );
+                }
+                Assert.assertEquals(ReadUtils.getMaxReadLength(reads), maxLength, "max length does not match");
+            }
+        }
+
+        final List<GATKSAMRecord> reads = new LinkedList<GATKSAMRecord>();
+        Assert.assertEquals(ReadUtils.getMaxReadLength(reads), 0, "Empty list should have max length of zero");
     }
 }
