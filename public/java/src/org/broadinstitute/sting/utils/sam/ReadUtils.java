@@ -913,4 +913,19 @@ public class ReadUtils {
         return getBasesReverseComplement(read.getReadBases());
     }
 
+    /**
+     * Calculate the maximum read length from the given list of reads.
+     * @param reads list of reads
+     * @return      non-negative integer
+     */
+    @Ensures({"result >= 0"})
+    public static int getMaxReadLength( final List<GATKSAMRecord> reads ) {
+        if( reads == null ) { throw new IllegalArgumentException("Attempting to check a null list of reads."); }
+
+        int maxReadLength = 0;
+        for( final GATKSAMRecord read : reads ) {
+            maxReadLength = Math.max(maxReadLength, read.getReadLength());
+        }
+        return maxReadLength;
+    }
 }
