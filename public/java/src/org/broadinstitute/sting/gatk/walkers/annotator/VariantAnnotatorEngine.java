@@ -1,40 +1,44 @@
 /*
- * Copyright (c) 2010 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.variant.variantcontext.*;
 
 import java.util.*;
 
@@ -193,10 +197,10 @@ public class VariantAnnotatorEngine {
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
 
         // annotate db occurrences
-        vc = annotateDBs(tracker, ref, vc, infoAnnotations);
+        vc = annotateDBs(tracker, ref.getLocus(), vc, infoAnnotations);
 
         // annotate expressions where available
-        annotateExpressions(tracker, ref, infoAnnotations);
+        annotateExpressions(tracker, ref.getLocus(), infoAnnotations);
 
         // go through all the requested info annotationTypes
         for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
@@ -233,10 +237,43 @@ public class VariantAnnotatorEngine {
         return builder.genotypes(annotateGenotypes(null, null, null, vc, perReadAlleleLikelihoodMap)).make();
     }
 
-    private VariantContext annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {
+    /**
+     * Annotate the ID field and other DBs for the given Variant Context
+     *
+     * @param tracker  ref meta data tracker (cannot be null)
+     * @param loc      location of the vc
+     * @param vc       variant context to annotate
+     * @return non-null annotated version of vc
+     */
+    @Requires({"tracker != null && loc != null && vc != null"})
+    @Ensures("result != null")
+    public VariantContext annotateDBs(final RefMetaDataTracker tracker, final GenomeLoc loc, VariantContext vc) {
+        final Map<String, Object> newInfoAnnotations = new HashMap<String, Object>(0);
+        vc = annotateDBs(tracker, loc, vc, newInfoAnnotations);
+
+        if ( !newInfoAnnotations.isEmpty() ) {
+            final VariantContextBuilder builder = new VariantContextBuilder(vc).attributes(newInfoAnnotations);
+            vc = builder.make();
+        }
+
+        return vc;
+    }
+
+    /**
+     * Annotate the ID field and other DBs for the given Variant Context
+     *
+     * @param tracker  ref meta data tracker (cannot be null)
+     * @param loc      location of the vc
+     * @param vc       variant context to annotate
+     * @param infoAnnotations  info annotation map to populate
+     * @return non-null annotated version of vc
+     */
+    @Requires({"tracker != null && loc != null && vc != null && infoAnnotations != null"})
+    @Ensures("result != null")
+    private VariantContext annotateDBs(final RefMetaDataTracker tracker, final GenomeLoc loc, VariantContext vc, final Map<String, Object> infoAnnotations) {
         for ( Map.Entry<RodBinding<VariantContext>, String> dbSet : dbAnnotations.entrySet() ) {
             if ( dbSet.getValue().equals(VCFConstants.DBSNP_KEY) ) {
-                final String rsID = VCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), ref.getLocus()), vc.getType());
+                final String rsID = GATKVCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), loc), vc.getType());
                 
                 // add the ID if appropriate
                 if ( rsID != null ) {
@@ -252,7 +289,7 @@ public class VariantAnnotatorEngine {
                 }
             } else {
                 boolean overlapsComp = false;
-                for ( VariantContext comp : tracker.getValues(dbSet.getKey(), ref.getLocus()) ) {
+                for ( VariantContext comp : tracker.getValues(dbSet.getKey(), loc) ) {
                     if ( !comp.isFiltered() && ( !requireStrictAlleleMatch || comp.getAlleles().equals(vc.getAlleles()) ) ) {
                         overlapsComp = true;
                         break;
@@ -266,9 +303,9 @@ public class VariantAnnotatorEngine {
         return vc;
     }
 
-    private void annotateExpressions(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, Object> infoAnnotations) {
+    private void annotateExpressions(final RefMetaDataTracker tracker, final GenomeLoc loc, final Map<String, Object> infoAnnotations) {
         for ( VAExpression expression : requestedExpressions ) {
-            Collection<VariantContext> VCs = tracker.getValues(expression.binding, ref.getLocus());
+            Collection<VariantContext> VCs = tracker.getValues(expression.binding, loc);
             if ( VCs.size() == 0 )
                 continue;
 

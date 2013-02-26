@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 2012, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.gatk.report;
 
@@ -46,7 +47,7 @@ public class GATKReportTable {
     private final String tableName;
     private final String tableDescription;
 
-    private final boolean sortByRowID;
+    private final TableSortingWay sortingWay;
 
     private List<Object[]> underlyingData;
     private final List<GATKReportColumn> columnInfo;
@@ -70,6 +71,12 @@ public class GATKReportTable {
         private final int index;
         TableDataHeaderFields(int index) { this.index = index; }
         public int index() { return index; }
+    }
+
+    public enum TableSortingWay {
+        SORT_BY_ROW,
+        SORT_BY_COLUMN,
+        DO_NOT_SORT
     }
 
     protected enum TableNameHeaderFields {
@@ -106,7 +113,7 @@ public class GATKReportTable {
                 tableDescription = (tableNameData.length <= TableNameHeaderFields.DESCRIPTION.index()) ? "" : tableNameData[TableNameHeaderFields.DESCRIPTION.index()];                                           // table may have no description! (and that's okay)
 
                 // when reading from a file, we do not re-sort the rows
-                sortByRowID = false;
+                sortingWay = TableSortingWay.DO_NOT_SORT;
 
                 // initialize the data
                 final int nColumns = Integer.parseInt(tableData[TableDataHeaderFields.COLS.index()]);
@@ -177,7 +184,7 @@ public class GATKReportTable {
      * @param numColumns       the number of columns in this table
      */
     public GATKReportTable(final String tableName, final String tableDescription, final int numColumns) {
-        this(tableName, tableDescription, numColumns, true);
+        this(tableName, tableDescription, numColumns, TableSortingWay.SORT_BY_ROW);
     }
 
     /**
@@ -186,9 +193,9 @@ public class GATKReportTable {
      * @param tableName          the name of the table
      * @param tableDescription   the description of the table
      * @param numColumns         the number of columns in this table
-     * @param sortByRowID        whether to sort rows by the row ID (instead of the order in which they were added)
+     * @param sortingWay         in what way to sort rows (instead of the order in which they were added)
      */
-    public GATKReportTable(final String tableName, final String tableDescription, final int numColumns, final boolean sortByRowID) {
+    public GATKReportTable(final String tableName, final String tableDescription, final int numColumns, final TableSortingWay sortingWay) {
         if ( !isValidName(tableName) ) {
             throw new ReviewedStingException("Attempted to set a GATKReportTable name of '" + tableName + "'.  GATKReportTable names must be purely alphanumeric - no spaces or special characters are allowed.");
         }
@@ -199,7 +206,7 @@ public class GATKReportTable {
 
         this.tableName = tableName;
         this.tableDescription = tableDescription;
-        this.sortByRowID = sortByRowID;
+        this.sortingWay = sortingWay;
 
         underlyingData = new ArrayList<Object[]>(INITITAL_ARRAY_SIZE);
         columnInfo = new ArrayList<GATKReportColumn>(numColumns);
@@ -212,7 +219,7 @@ public class GATKReportTable {
      * @param tableToCopy
      */
     public GATKReportTable(final GATKReportTable tableToCopy, final boolean copyData) {
-        this(tableToCopy.getTableName(), tableToCopy.getTableDescription(), tableToCopy.getNumColumns(), tableToCopy.sortByRowID);
+        this(tableToCopy.getTableName(), tableToCopy.getTableDescription(), tableToCopy.getNumColumns(), tableToCopy.sortingWay);
         for ( final GATKReportColumn column : tableToCopy.getColumnInfo() )
             addColumn(column.getColumnName(), column.getFormat());
         if ( copyData )
@@ -559,30 +566,59 @@ public class GATKReportTable {
              needsPadding = true;
 
              out.printf(column.getColumnFormat().getNameFormat(), column.getColumnName());
-        }
-        out.println();
+         }
+         out.println();
 
-        // write the table body
-        if ( sortByRowID ) {
-            // make sure that there are exactly the correct number of ID mappings
-            if ( rowIdToIndex.size() != underlyingData.size() )
-                throw new ReviewedStingException("There isn't a 1-to-1 mapping from row ID to index; this can happen when rows are not created consistently");
+         // write the table body
+         switch (sortingWay) {
+             case SORT_BY_COLUMN:
+                 Collections.sort(underlyingData, new Comparator<Object[]>() {
+                     //INVARIANT the two arrays are of the same length and corresponding elements are of the same type
+                     @Override
+                     public int compare(Object[] objectArr1, Object[] objectArr2) {
+                         final int EQUAL = 0;
 
-            final TreeMap<Object, Integer> sortedMap;
-            try {
-                sortedMap = new TreeMap<Object, Integer>(rowIdToIndex);
-            } catch (ClassCastException e) {
-                throw new ReviewedStingException("Unable to sort the rows based on the row IDs because the ID Objects are of different types");
-            }
-            for ( final Map.Entry<Object, Integer> rowKey : sortedMap.entrySet() )
-                writeRow(out, underlyingData.get(rowKey.getValue()));
-        } else {
-            for ( final Object[] row : underlyingData )
-                writeRow(out, row);
-        }
+                         int result = EQUAL;
 
-        out.println();
-    }
+                         int l = objectArr1.length;
+                         for (int x = 0; x < l; x++) {
+                             if (objectArr1[x] instanceof Integer) {
+                                 result = ((Integer)objectArr1[x]).compareTo((Integer)objectArr2[x]);
+                             } else if (objectArr1[x] instanceof Double) {
+                                 result = ((Double)objectArr1[x]).compareTo((Double)objectArr2[x]);
+                             } else { // default uses String comparison
+                                 result = objectArr1[x].toString().compareTo(objectArr2[x].toString());
+                             }
+                             if( result  != EQUAL) {
+                                 return result;
+                             }
+                         }
+                         return result;
+                     }
+                 });
+                 for ( final Object[] row : underlyingData )
+                     writeRow(out, row);
+                 break;
+             case SORT_BY_ROW:
+                 // make sure that there are exactly the correct number of ID mappings
+                 if ( rowIdToIndex.size() != underlyingData.size() )
+                     throw new ReviewedStingException("There isn't a 1-to-1 mapping from row ID to index; this can happen when rows are not created consistently");
+
+                 final TreeMap<Object, Integer> sortedMap;
+                 try {
+                     sortedMap = new TreeMap<Object, Integer>(rowIdToIndex);
+                 } catch (ClassCastException e) {
+                     throw new ReviewedStingException("Unable to sort the rows based on the row IDs because the ID Objects are of different types");
+                 }
+                 for ( final Map.Entry<Object, Integer> rowKey : sortedMap.entrySet() )
+                     writeRow(out, underlyingData.get(rowKey.getValue()));
+                 break;
+             case DO_NOT_SORT:
+                 for ( final Object[] row : underlyingData )
+                     writeRow(out, row);
+         }
+         out.println();
+     }
 
     private void writeRow(final PrintStream out, final Object[] row) {
         boolean needsPadding = false;
@@ -697,20 +733,47 @@ public class GATKReportTable {
     }
 
     private List<Object[]> getOrderedRows() {
-        if ( !sortByRowID )
-            return underlyingData;
 
-        final TreeMap<Object, Integer> sortedMap;
-        try {
-            sortedMap = new TreeMap<Object, Integer>(rowIdToIndex);
-        } catch (ClassCastException e) {
-            return underlyingData;
+        switch (sortingWay) {
+            case SORT_BY_COLUMN:
+                Collections.sort(underlyingData, new Comparator<Object[]>() {
+                    //INVARIANT the two arrays are of the same length and corresponding elements are of the same type
+                    @Override
+                    public int compare(Object[] objectArr1, Object[] objectArr2) {
+                        final int EQUAL = 0;
+                        int result = EQUAL;
+                        int l = objectArr1.length;
+                            for (int x = 0; x < l; x++) {
+                                if (objectArr1[x] instanceof Integer) {
+                                    result = ((Integer)objectArr1[x]).compareTo((Integer)objectArr2[x]);
+                                } else if (objectArr1[x] instanceof Double) {
+                                    result = ((Double)objectArr1[x]).compareTo((Double)objectArr2[x]);
+                                } else  { // default uses String comparison
+                                    result = objectArr1[x].toString().compareTo(objectArr2[x].toString());
+                                }
+                                if( result != EQUAL) {
+                                    return result;
+                                }
+                            }
+                            return result;
+                    }
+                });
+                return underlyingData;
+            case SORT_BY_ROW:
+                final TreeMap<Object, Integer> sortedMap;
+                try {
+                    sortedMap = new TreeMap<Object, Integer>(rowIdToIndex);
+                } catch (ClassCastException e) {
+                    return underlyingData;
+                }
+
+                final List<Object[]> orderedData = new ArrayList<Object[]>(underlyingData.size());
+                for ( final int rowKey : sortedMap.values() )
+                    orderedData.add(underlyingData.get(rowKey));
+
+                return orderedData;
+            default:
+                return underlyingData;
         }
-
-        final List<Object[]> orderedData = new ArrayList<Object[]>(underlyingData.size());
-        for ( final int rowKey : sortedMap.values() )
-            orderedData.add(underlyingData.get(rowKey));
-
-        return orderedData;
     }
 }

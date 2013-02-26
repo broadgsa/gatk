@@ -1,27 +1,28 @@
 /*
- * Copyright (c) 2009 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.gatk.traversals;
 
 import net.sf.samtools.SAMRecord;
@@ -33,14 +34,14 @@ import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.nanoScheduler.NSMapFunction;
+import org.broadinstitute.sting.utils.nanoScheduler.NSProgressFunction;
 import org.broadinstitute.sting.utils.nanoScheduler.NSReduceFunction;
 import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 
 /**
  * A nano-scheduling version of TraverseReads.
@@ -54,12 +55,21 @@ import java.util.List;
  */
 public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,ReadShardDataProvider> {
     /** our log, which we want to capture anything from this class */
+    private final static boolean PRE_READ_ALL_MAP_DATA = true;
     protected static final Logger logger = Logger.getLogger(TraverseReadsNano.class);
     private static final boolean DEBUG = false;
     final NanoScheduler<MapData, MapResult, T> nanoScheduler;
 
     public TraverseReadsNano(int nThreads) {
         nanoScheduler = new NanoScheduler<MapData, MapResult, T>(nThreads);
+        nanoScheduler.setProgressFunction(new NSProgressFunction<MapData>() {
+            @Override
+            public void progress(MapData lastProcessedMap) {
+                if ( lastProcessedMap.refContext != null )
+                    // note, need to use getStopLocation so we don't give an interval to ProgressMeterDaemon
+                    printProgress(lastProcessedMap.refContext.getLocus().getStopLocation());
+            }
+        });
     }
 
     @Override
@@ -78,7 +88,8 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
     public T traverse(ReadWalker<M,T> walker,
                       ReadShardDataProvider dataProvider,
                       T sum) {
-        logger.debug(String.format("TraverseReadsNano.traverse Covered dataset is %s", dataProvider));
+        if ( logger.isDebugEnabled() )
+            logger.debug(String.format("TraverseReadsNano.traverse Covered dataset is %s", dataProvider));
 
         if( !dataProvider.hasReads() )
             throw new IllegalArgumentException("Unable to traverse reads; no read data is available.");
@@ -87,14 +98,10 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
         final TraverseReadsMap myMap = new TraverseReadsMap(walker);
         final TraverseReadsReduce myReduce = new TraverseReadsReduce(walker);
 
-        final List<MapData> aggregatedInputs = aggregateMapData(dataProvider);
-        final T result = nanoScheduler.execute(aggregatedInputs.iterator(), myMap, sum, myReduce);
-
-        final GATKSAMRecord lastRead = aggregatedInputs.get(aggregatedInputs.size() - 1).read;
-        final GenomeLoc locus = engine.getGenomeLocParser().createGenomeLoc(lastRead);
+        final Iterator<MapData> aggregatedInputs = aggregateMapData(dataProvider);
+        final T result = nanoScheduler.execute(aggregatedInputs, myMap, sum, myReduce);
 
         updateCumulativeMetrics(dataProvider.getShard());
-        printProgress(locus);
 
         return result;
     }
@@ -107,29 +114,49 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
      * @return a linked list of MapData objects holding the read, ref, and ROD info for every map/reduce
      *          should execute
      */
-    private List<MapData> aggregateMapData(final ReadShardDataProvider dataProvider) {
-        final ReadView reads = new ReadView(dataProvider);
-        final ReadReferenceView reference = new ReadReferenceView(dataProvider);
-        final ReadBasedReferenceOrderedView rodView = new ReadBasedReferenceOrderedView(dataProvider);
-
-        final List<MapData> mapData = new LinkedList<MapData>();
-        for ( final SAMRecord read : reads ) {
-            final ReferenceContext refContext = ! read.getReadUnmappedFlag()
-                    ? reference.getReferenceContext(read)
-                    : null;
-
-            // if the read is mapped, create a metadata tracker
-            final RefMetaDataTracker tracker = read.getReferenceIndex() >= 0
-                    ? rodView.getReferenceOrderedDataForRead(read)
-                    : null;
-
-            // update the number of reads we've seen
-            dataProvider.getShard().getReadMetrics().incrementNumIterations();
-
-            mapData.add(new MapData((GATKSAMRecord)read, refContext, tracker));
+    private Iterator<MapData> aggregateMapData(final ReadShardDataProvider dataProvider) {
+        final Iterator<MapData> it = makeDataIterator(dataProvider);
+        if ( PRE_READ_ALL_MAP_DATA ) {
+            final LinkedList<MapData> l = new LinkedList<MapData>();
+            while ( it.hasNext() ) l.add(it.next());
+            return l.iterator();
+        } else {
+            return it;
         }
+    }
 
-        return mapData;
+
+    private Iterator<MapData> makeDataIterator(final ReadShardDataProvider dataProvider) {
+        return new Iterator<MapData> ()  {
+            final ReadView reads = new ReadView(dataProvider);
+            final ReadReferenceView reference = new ReadReferenceView(dataProvider);
+            final ReadBasedReferenceOrderedView rodView = new ReadBasedReferenceOrderedView(dataProvider);
+            final Iterator<SAMRecord> readIterator = reads.iterator();
+
+            @Override public boolean hasNext() { return readIterator.hasNext(); }
+
+            @Override
+            public MapData next() {
+                final SAMRecord read = readIterator.next();
+                final ReferenceContext refContext = ! read.getReadUnmappedFlag()
+                        ? reference.getReferenceContext(read)
+                        : null;
+
+                // if the read is mapped, create a metadata tracker
+                final RefMetaDataTracker tracker = read.getReferenceIndex() >= 0
+                        ? rodView.getReferenceOrderedDataForRead(read)
+                        : null;
+
+                // update the number of reads we've seen
+                dataProvider.getShard().getReadMetrics().incrementNumIterations();
+
+                return new MapData((GATKSAMRecord)read, refContext, tracker);
+            }
+
+            @Override public void remove() {
+                throw new UnsupportedOperationException("Remove not supported");
+            }
+        };
     }
 
     @Override

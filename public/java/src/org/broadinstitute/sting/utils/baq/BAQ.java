@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.utils.baq;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
@@ -6,6 +31,7 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMUtils;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -37,6 +63,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
    state[i] being wrong.
  */
 public class BAQ {
+    private final static Logger logger = Logger.getLogger(BAQ.class);
     private final static boolean DEBUG = false;
 
     public enum CalculationMode {
@@ -179,8 +206,7 @@ public class BAQ {
 
         /*** initialization ***/
 		// change coordinates
-		int l_ref = ref.length;
-
+		final int l_ref = ref.length;
 
 		// set band width
 		int bw2, bw = l_ref > l_query? l_ref : l_query;
@@ -266,26 +292,6 @@ public class BAQ {
 			s[l_query+1] = sum; // the last scaling factor
 		}
 
-        //gdbebug+
-/*
-        double cac=0.;
-        // undo scaling of forward probabilities to obtain plain probability of observation given model
-        double[] su = new double[f[l_query].length];
-        {
-            double sum = 0.;
-            double[] logs = new double[s.length];
-            for (k=0; k < logs.length; k++) {
-                logs[k] = Math.log10(s[k]);
-                sum += logs[k];
-            }
-            for (k=0; k < f[l_query].length; k++)
-                su[k]= Math.log10(f[l_query][k])+ sum;
-
-            cac = MathUtils.softMax(su);
-        }                             
-        System.out.format("s:%f\n",cac);
-        // gdebug-
-       */
 		/*** backward ***/
 		// b[l_query] (b[l_query+1][0]=1 and thus \tilde{b}[][]=1/s[l_query+1]; this is where s[l_query+1] comes from)
 		for (k = 1; k <= l_ref; ++k) {
@@ -305,8 +311,8 @@ public class BAQ {
 			for (k = end; k >= beg; --k) {
 				int u, v11, v01, v10;
 				u = set_u(bw, i, k); v11 = set_u(bw, i+1, k+1); v10 = set_u(bw, i+1, k); v01 = set_u(bw, i, k+1);
-                double e = (k >= l_ref? 0 : calcEpsilon(ref[k], qyi1, _iqual[qstart+i])) * bi1[v11];
-                bi[u+0] = e * m[0] + EI * m[1] * bi1[v10+1] + m[2] * bi[v01+2]; // bi1[v11] has been foled into e.
+                final double e = (k >= l_ref? 0 : calcEpsilon(ref[k], qyi1, _iqual[qstart+i])) * bi1[v11];
+                bi[u+0] = e * m[0] + EI * m[1] * bi1[v10+1] + m[2] * bi[v01+2]; // bi1[v11] has been folded into e.
 				bi[u+1] = e * m[3] + EI * m[4] * bi1[v10+1];
 				bi[u+2] = (e * m[6] + m[8] * bi[v01+2]) * y;
 			}
@@ -332,12 +338,12 @@ public class BAQ {
 		/*** MAP ***/
 		for (i = 1; i <= l_query; ++i) {
 			double sum = 0., max = 0.;
-			double[] fi = f[i], bi = b[i];
+			final double[] fi = f[i], bi = b[i];
 			int beg = 1, end = l_ref, x, max_k = -1;
 			x = i - bw; beg = beg > x? beg : x;
 			x = i + bw; end = end < x? end : x;
 			for (k = beg; k <= end; ++k) {
-				int u = set_u(bw, i, k);
+				final int u = set_u(bw, i, k);
 				double z;
 				sum += (z = fi[u+0] * bi[u+0]); if (z > max) { max = z; max_k = (k-1)<<2 | 0; }
 				sum += (z = fi[u+1] * bi[u+1]); if (z > max) { max = z; max_k = (k-1)<<2 | 1; }
@@ -531,7 +537,11 @@ public class BAQ {
         }
     }
 
+//    final SimpleTimer total = new SimpleTimer();
+//    final SimpleTimer local = new SimpleTimer();
+//    int n = 0;
     public BAQCalculationResult calcBAQFromHMM(byte[] ref, byte[] query, byte[] quals, int queryStart, int queryEnd ) {
+//        total.restart();
         if ( queryStart < 0 ) throw new ReviewedStingException("BUG: queryStart < 0: " + queryStart);
         if ( queryEnd < 0 ) throw new ReviewedStingException("BUG: queryEnd < 0: " + queryEnd);
         if ( queryEnd < queryStart ) throw new ReviewedStingException("BUG: queryStart < queryEnd : " + queryStart + " end =" + queryEnd);
@@ -539,7 +549,12 @@ public class BAQ {
         // note -- assumes ref is offset from the *CLIPPED* start
         BAQCalculationResult baqResult = new BAQCalculationResult(query, quals, ref);
         int queryLen = queryEnd - queryStart;
+//        local.restart();
         hmm_glocal(baqResult.refBases, baqResult.readBases, queryStart, queryLen, baqResult.rawQuals, baqResult.state, baqResult.bq);
+//        local.stop();
+//        total.stop();
+//        if ( n++ % 100000 == 0 )
+//            logger.info("n = " + n + ": Total " + total.getElapsedTimeNano() + " local " + local.getElapsedTimeNano());
         return baqResult;
     }
 
@@ -658,7 +673,9 @@ public class BAQ {
         } else if ( excludeReadFromBAQ(read) ) {
             ; // just fall through
         } else {
-            if ( calculationType == CalculationMode.RECALCULATE || ! hasBAQTag(read) ) {
+            final boolean readHasBAQTag = hasBAQTag(read);
+
+            if ( calculationType == CalculationMode.RECALCULATE || ! readHasBAQTag ) {
                 if ( DEBUG ) System.out.printf("  Calculating BAQ on the fly%n");
                 BAQCalculationResult hmmResult = calcBAQFromHMM(read, refReader);
                 if ( hmmResult != null ) {
@@ -668,6 +685,9 @@ public class BAQ {
                         case DONT_MODIFY:     BAQQuals = hmmResult.bq; break;
                         default:              throw new ReviewedStingException("BUG: unexpected qmode " + qmode);
                     }
+                } else if ( readHasBAQTag ) {
+                    // remove the BAQ tag if it's there because we cannot trust it
+                    read.setAttribute(BAQ_TAG, null);
                 }
             } else if ( qmode == QualityMode.OVERWRITE_QUALS ) { // only makes sense if we are overwriting quals
                 if ( DEBUG ) System.out.printf("  Taking BAQ from tag%n");

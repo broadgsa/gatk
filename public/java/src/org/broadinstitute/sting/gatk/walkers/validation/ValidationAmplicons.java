@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.gatk.walkers.validation;
 
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
@@ -20,7 +45,8 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -91,7 +117,7 @@ import java.util.List;
  * @author chartl
  * @since July 2011
  */
-@DocumentedGATKFeature( groupName = "Validation Utilities", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VALIDATION, extraDocs = {CommandLineGATK.class} )
 @Requires(value={DataSource.REFERENCE})
 public class ValidationAmplicons extends RodWalker<Integer,Integer> {
     /**
@@ -330,7 +356,7 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
                 if ( lowerCaseSNPs ) {
                     sequence.append(Character.toLowerCase((char) ref.getBase()));
                 } else {
-                    sequence.append((char) BaseUtils.N);
+                    sequence.append((char) BaseUtils.Base.N.base);
                 }
 
                 rawSequence.append(Character.toUpperCase((char) ref.getBase()));

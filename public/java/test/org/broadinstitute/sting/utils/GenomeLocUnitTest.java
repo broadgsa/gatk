@@ -1,28 +1,50 @@
-// our package
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.utils;
 
 
 // the imports for unit testing.
 
 
+import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.samtools.SAMFileHeader;
+import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import net.sf.picard.reference.ReferenceSequenceFile;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
+import java.util.*;
 
 /**
  * Basic unit test for GenomeLoc
@@ -267,4 +289,98 @@ public class GenomeLocUnitTest extends BaseTest {
         if ( expected == ComparisonResult.EQUALS )
             Assert.assertEquals(g1.hashCode(), g2.hashCode(), "Equal genome locs don't have the same hash code");
     }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // testing merging functionality
+    //
+    // -------------------------------------------------------------------------------------
+
+    private static final GenomeLoc loc1 = new GenomeLoc("1", 0, 10, 20);
+    private static final GenomeLoc loc2 = new GenomeLoc("1", 0, 21, 30);
+    private static final GenomeLoc loc3 = new GenomeLoc("1", 0, 31, 40);
+
+    private class MergeTest {
+        public List<GenomeLoc> locs;
+
+        private MergeTest(final List<GenomeLoc> locs) {
+            this.locs = locs;
+        }
+    }
+
+    @DataProvider(name = "SGLtest")
+    public Object[][] createFindVariantRegionsData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        tests.add(new Object[]{new MergeTest(Arrays.<GenomeLoc>asList(loc1))});
+        tests.add(new Object[]{new MergeTest(Arrays.<GenomeLoc>asList(loc1, loc2))});
+        tests.add(new Object[]{new MergeTest(Arrays.<GenomeLoc>asList(loc1, loc2, loc3))});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "SGLtest", enabled = true)
+    public void testSimpleGenomeLoc(MergeTest test) {
+        testMerge(test.locs);
+    }
+
+    @Test(expectedExceptions = ReviewedStingException.class)
+    public void testNotContiguousLocs() {
+        final List<GenomeLoc> locs = new ArrayList<GenomeLoc>(1);
+        locs.add(loc1);
+        locs.add(loc3);
+        testMerge(locs);
+    }
+
+    private void testMerge(final List<GenomeLoc> locs) {
+        GenomeLoc result1 = locs.get(0);
+        for ( int i = 1; i < locs.size(); i++ )
+            result1 = GenomeLoc.merge(result1, locs.get(i));
+
+        GenomeLoc result2 = GenomeLoc.merge(new TreeSet<GenomeLoc>(locs));
+        Assert.assertEquals(result1, result2);
+        Assert.assertEquals(result1.getStart(), locs.get(0).getStart());
+        Assert.assertEquals(result1.getStop(), locs.get(locs.size() - 1).getStop());
+    }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // testing distance functionality
+    //
+    // -------------------------------------------------------------------------------------
+
+    @Test(enabled=true)
+    public void testDistanceAcrossContigs() {
+        final int chrSize = 1000;
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(10, 0, chrSize);
+        GenomeLocParser parser = new GenomeLocParser(header.getSequenceDictionary());
+        GenomeLoc loc1 = parser.createGenomeLoc("chr3", 500);  // to check regular case
+        GenomeLoc loc2 = parser.createGenomeLoc("chr7", 200);  // to check regular case
+        GenomeLoc loc3 = parser.createGenomeLoc("chr0", 1);    // to check corner case
+        GenomeLoc loc4 = parser.createGenomeLoc("chr9", 1000);// to check corner case
+        GenomeLoc loc5 = parser.createGenomeLoc("chr7", 500);  // to make sure it does the right thing when in the same chromosome
+
+        GenomeLoc loc6 = parser.createGenomeLoc("chr7", 200, 300);
+        GenomeLoc loc7 = parser.createGenomeLoc("chr7", 500, 600);
+        GenomeLoc loc8 = parser.createGenomeLoc("chr9", 500, 600);
+
+        // Locus comparisons
+        Assert.assertEquals(loc1.distanceAcrossContigs(loc2, header), 3*chrSize + chrSize-loc1.getStop() + loc2.getStart()); // simple case, smaller first
+        Assert.assertEquals(loc2.distanceAcrossContigs(loc1, header), 3*chrSize + chrSize-loc1.getStop() + loc2.getStart()); // simple case, bigger first
+
+        Assert.assertEquals(loc3.distanceAcrossContigs(loc4, header), 10*chrSize - 1); // corner case, smaller first
+        Assert.assertEquals(loc4.distanceAcrossContigs(loc3, header), 10*chrSize - 1); // corner case, bigger first
+
+        Assert.assertEquals(loc2.distanceAcrossContigs(loc5, header), 300); // same contig, smaller first
+        Assert.assertEquals(loc5.distanceAcrossContigs(loc2, header), 300); // same contig, bigger first
+
+        // Interval comparisons
+        Assert.assertEquals(loc6.distanceAcrossContigs(loc7, header), 200); // same contig, smaller first
+        Assert.assertEquals(loc7.distanceAcrossContigs(loc6, header), 200); // same contig, bigger first
+
+        Assert.assertEquals(loc7.distanceAcrossContigs(loc8, header), chrSize + chrSize-loc7.stop + loc8.getStart()); // across contigs, smaller first
+        Assert.assertEquals(loc8.distanceAcrossContigs(loc7, header), chrSize + chrSize-loc7.stop + loc8.getStart()); // across congits, bigger first
+
+    }
+
 }

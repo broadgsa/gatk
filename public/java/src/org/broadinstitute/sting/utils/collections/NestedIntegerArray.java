@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2010 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils.collections;
 
@@ -58,13 +58,20 @@ public class NestedIntegerArray<T> {
 
         int dimensionsToPreallocate = Math.min(dimensions.length, NUM_DIMENSIONS_TO_PREALLOCATE);
 
-        logger.info(String.format("Creating NestedIntegerArray with dimensions %s", Arrays.toString(dimensions)));
-        logger.info(String.format("Pre-allocating first %d dimensions", dimensionsToPreallocate));
+        if ( logger.isDebugEnabled() ) logger.debug(String.format("Creating NestedIntegerArray with dimensions %s", Arrays.toString(dimensions)));
+        if ( logger.isDebugEnabled() ) logger.debug(String.format("Pre-allocating first %d dimensions", dimensionsToPreallocate));
 
         data = new Object[dimensions[0]];
         preallocateArray(data, 0, dimensionsToPreallocate);
 
-        logger.info(String.format("Done pre-allocating first %d dimensions", dimensionsToPreallocate));
+        if ( logger.isDebugEnabled() ) logger.debug(String.format("Done pre-allocating first %d dimensions", dimensionsToPreallocate));
+    }
+
+    /**
+     * @return the dimensions of this nested integer array.  DO NOT MODIFY
+     */
+    public int[] getDimensions() {
+        return dimensions;
     }
 
     /**
@@ -174,23 +181,23 @@ public class NestedIntegerArray<T> {
         }
     }
 
-    public static class Leaf {
+    public static class Leaf<T> {
         public final int[] keys;
-        public final Object value;
+        public final T value;
 
-        public Leaf(final int[] keys, final Object value) {
+        public Leaf(final int[] keys, final T value) {
             this.keys = keys;
             this.value = value;
         }
     }
 
-    public List<Leaf> getAllLeaves() {
-        final List<Leaf> result = new ArrayList<Leaf>();
+    public List<Leaf<T>> getAllLeaves() {
+        final List<Leaf<T>> result = new ArrayList<Leaf<T>>();
         fillAllLeaves(data, new int[0], result);
         return result;
     }
 
-    private void fillAllLeaves(final Object[] array, final int[] path, final List<Leaf> result) {
+    private void fillAllLeaves(final Object[] array, final int[] path, final List<Leaf<T>> result) {
         for ( int key = 0; key < array.length; key++ ) {
             final Object value = array[key];
             if ( value == null )
@@ -199,7 +206,7 @@ public class NestedIntegerArray<T> {
             if ( value instanceof Object[] ) {
                 fillAllLeaves((Object[]) value, newPath, result);
             } else {
-                result.add(new Leaf(newPath, value));
+                result.add(new Leaf<T>(newPath, (T)value));
             }
         }
     }

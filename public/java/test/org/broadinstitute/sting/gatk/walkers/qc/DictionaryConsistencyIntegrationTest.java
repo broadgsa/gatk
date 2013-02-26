@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 2010, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.gatk.walkers.qc;
 
@@ -63,22 +64,18 @@ public class DictionaryConsistencyIntegrationTest extends WalkerTest {
 
     }
 
-    @Test public void failBAM1() { executeTest("b36bam-v-b37", testBAM(b37KGReference, b36BAM)); }
-    @Test public void failBAM2() { executeTest("b36bam-v-hg18", testBAM(hg18Reference, b36BAM)); }
-    @Test public void failBAM3() { executeTest("b36bam-v-hg19", testBAM(hg19Reference, b36BAM)); }
-    @Test public void failBAM4() { executeTest("b36bam-v-lexhg18", testBAM(lexHG18, b36BAM, UserException.LexicographicallySortedSequenceDictionary.class)); }
+    @Test public void failBAM1() { executeTest("b36bam-v-b37",     testBAM(b37KGReference, b36BAM, "1",    UserException.IncompatibleSequenceDictionaries.class)); }
+    @Test public void failBAM2() { executeTest("b36bam-v-hg18",    testBAM(hg18Reference,  b36BAM, "chr1", UserException.IncompatibleSequenceDictionaries.class)); }
+    @Test public void failBAM3() { executeTest("b36bam-v-hg19",    testBAM(hg19Reference,  b36BAM, "1",    UserException.IncompatibleSequenceDictionaries.class)); }
+    @Test public void failBAM4() { executeTest("b36bam-v-lexhg18", testBAM(lexHG18,        b36BAM, "chr1", UserException.LexicographicallySortedSequenceDictionary.class)); }
 
-    @Test public void failBAM5() { executeTest("hg18bam-v-b36", testBAM(b36KGReference, hg18BAM)); }
-    @Test public void failBAM6() { executeTest("hg18bam-v-b37", testBAM(b37KGReference, hg18BAM)); }
-    @Test public void failBAM7() { executeTest("hg18bam-v-hg19", testBAM(hg19Reference, hg18BAM)); }
-    @Test public void failBAM8() { executeTest("hg18bam-v-lexhg18", testBAM(lexHG18, hg18BAM, UserException.LexicographicallySortedSequenceDictionary.class)); }
+    @Test public void failBAM5() { executeTest("hg18bam-v-b36",     testBAM(b36KGReference, hg18BAM, "1",    UserException.IncompatibleSequenceDictionaries.class)); }
+    @Test public void failBAM6() { executeTest("hg18bam-v-b37",     testBAM(b37KGReference, hg18BAM, "1",    UserException.IncompatibleSequenceDictionaries.class)); }
+    @Test public void failBAM7() { executeTest("hg18bam-v-hg19",    testBAM(hg19Reference,  hg18BAM, "1",    UserException.IncompatibleSequenceDictionaries.class)); }
+    @Test public void failBAM8() { executeTest("hg18bam-v-lexhg18", testBAM(lexHG18,        hg18BAM, "chr1", UserException.LexicographicallySortedSequenceDictionary.class)); }
 
-    private WalkerTest.WalkerTestSpec testBAM(String ref, String bam) {
-        return testBAM(ref, bam, UserException.IncompatibleSequenceDictionaries.class);
-    }
-
-    private WalkerTest.WalkerTestSpec testBAM(String ref, String bam, Class c) {
-        return new WalkerTest.WalkerTestSpec("-T UnifiedGenotyper -I " + bam + " -R " + ref +  " -L 1:10,000,000-11,000,000 -o %s",
+    private WalkerTest.WalkerTestSpec testBAM(String ref, String bam, String contig, Class c) {
+        return new WalkerTest.WalkerTestSpec("-T UnifiedGenotyper -I " + bam + " -R " + ref +  " -L " + contig + ":10,000,000-11,000,000 -o %s",
                 1, c);
 
     }

@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.queue.qscripts
 
 import org.broadinstitute.sting.queue.QScript
@@ -44,7 +69,7 @@ class GATKResourcesBundle extends QScript {
   var exampleFASTA: Reference = _
   var refs: List[Reference] = _
 
-  class Resource(val file: File, val name: String, val ref: Reference, val useName: Boolean = true, val makeSites: Boolean = true ) {
+  class Resource(val file: File, val name: String, val ref: Reference, val useName: Boolean = true, val makeSites: Boolean = true, val makeCallsIfBam: Boolean = true ) {
     def destname(target: Reference): String = {
       if ( useName )
         return name + "." + target.name + "." + getExtension(file)
@@ -68,6 +93,7 @@ class GATKResourcesBundle extends QScript {
 
   def isVCF(file: File) = file.getName.endsWith(".vcf")
   def isBAM(file: File) = file.getName.endsWith(".bam")
+  def isOUT(file: File) = file.getName.endsWith(".out")
   def isFASTA(file: File) = file.getName.endsWith(".fasta")
 
   var RESOURCES: List[Resource] = Nil
@@ -94,7 +120,7 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource(DATAROOT + "dbsnp_132_b37.vcf", "dbsnp_132", b37, true, false))
 
     addResource(new Resource(exampleFASTA.file, "exampleFASTA", exampleFASTA, false))
-    addResource(new Resource("public/testdata/exampleBAM.bam", "exampleBAM", exampleFASTA, false))
+    addResource(new Resource("public/testdata/exampleBAM.bam", "exampleBAM", exampleFASTA, false, false, false))
   }
 
   def initializeStandardDataFiles() = {
@@ -172,7 +198,7 @@ class GATKResourcesBundle extends QScript {
     // exampleFASTA file
     //
     addResource(new Resource(exampleFASTA.file, "exampleFASTA", exampleFASTA, false))
-    addResource(new Resource("public/testdata/exampleBAM.bam", "exampleBAM", exampleFASTA, false))
+    addResource(new Resource("public/testdata/exampleBAM.bam", "exampleBAM", exampleFASTA, false, false, false))
   }
 
   def createBundleDirectories(dir: File) = {
@@ -182,6 +208,15 @@ class GATKResourcesBundle extends QScript {
       val refDir = new File(dir + "/" + ref.name)
       if ( ! refDir.exists ) refDir.mkdirs()
     }
+  }
+
+  def createCurrentLink(bundleDir: File) = {
+
+    val currentLink = new File(BUNDLE_ROOT + "/current")
+
+    if ( currentLink.exists ) currentLink.delete()
+
+    add(new linkFile(bundleDir, currentLink))
   }
 
   def script = {
@@ -201,8 +236,10 @@ class GATKResourcesBundle extends QScript {
         } else if ( isBAM(resource.file) ) {
           val f = copyBundleFile(resource, resource.ref)
           add(new IndexBAM(f))
-          @Output val outvcf: File = swapExt(f.getParent, f, ".bam", ".vcf")
-          add(new UG(resource.file, resource.ref.file, outvcf))
+	  if ( resource.makeCallsIfBam ) {
+            @Output val outvcf: File = swapExt(f.getParent, f, ".bam", ".vcf")
+            add(new UG(resource.file, resource.ref.file, outvcf))
+	  }
         } else if ( isVCF(resource.file) ) {
           for ( destRef <- refs ) {
             val out = destFile(BUNDLE_DIR, destRef, resource.destname(destRef))
@@ -240,6 +277,9 @@ class GATKResourcesBundle extends QScript {
           //throw new ReviewedStingException("Unknown file type: " + resource)
         }
       }
+
+      createCurrentLink(BUNDLE_DIR)
+
     } else {
       createBundleDirectories(DOWNLOAD_DIR)
       createDownloadsFromBundle(BUNDLE_DIR, DOWNLOAD_DIR)
@@ -249,7 +289,6 @@ class GATKResourcesBundle extends QScript {
 
   def createDownloadsFromBundle(in: File, out: File) {
     Console.printf("Visiting %s%n", in)
-    // todo -- ignore some of the other files too (e.g. *.out); will test next time we make a bundle
     if (! in.getName.startsWith(".")) {
       if ( in.isDirectory ) {
         out.mkdirs
@@ -261,7 +300,7 @@ class GATKResourcesBundle extends QScript {
         if ( isBAM(in) ) {
           add(new cpFile(in, out))
           add(new md5sum(out))
-        } else {
+        } else if ( !isOUT(in) ) {
           add(new GzipFile(in, out + ".gz"))
           add(new md5sum(out + ".gz"))
         }
@@ -297,6 +336,10 @@ class GATKResourcesBundle extends QScript {
 
   class cpFile(@Input val in: File, @Output val out: File) extends CommandLineFunction {
     def commandLine = "cp %s %s".format(in.getAbsolutePath, out.getAbsolutePath)
+  }
+
+  class linkFile(@Input val in: File, @Output val out: File) extends CommandLineFunction {
+    def commandLine = "ln -s %s %s".format(in.getAbsolutePath, out.getAbsolutePath)
   }
 
   class md5sum(@Input val in: File) extends CommandLineFunction {

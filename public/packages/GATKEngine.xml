@@ -30,6 +30,8 @@
       <package name="org.broadinstitute.sting.**" />
       <!-- Tribble codecs -->
       <package name="org.broad.tribble.**" />
+      <!-- The variant package (VCF, BCF, and VariantContext) -->
+      <package name="org.broadinstitute.variant.**" />
       <!-- Workaround - depend on the logger impl required by JEXL -->
       <package name="org.apache.commons.logging.impl" />
       <!-- R packages -->
@@ -51,11 +53,10 @@
     <file name="public/testdata/exampleFASTA.fasta.fai" />
     <file name="public/testdata/exampleFASTA.dict" />
     <!-- GATK sample code and build scripts -->
-    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/coverage/DepthOfCoverage.java" />
-    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/Pileup.java" />
-    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/PrintReads.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/Pileup.java" />
     <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CountLoci.java" />
     <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CountReads.java" />
-    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/ValidatingPileup.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CheckPileup.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/readutils/PrintReads.java" />
   </resources>
 </package>

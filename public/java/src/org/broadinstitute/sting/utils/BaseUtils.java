@@ -1,7 +1,33 @@
+/*
+ * Copyright (c) 2012 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Arrays;
@@ -10,42 +36,66 @@ import java.util.Arrays;
  * BaseUtils contains some basic utilities for manipulating nucleotides.
  */
 public class BaseUtils {
-    public final static byte A = (byte) 'A';
-    public final static byte C = (byte) 'C';
-    public final static byte G = (byte) 'G';
-    public final static byte T = (byte) 'T';
 
-    public final static byte N = (byte) 'N';
-    public final static byte D = (byte) 'D';
+    public enum Base {
+        A ('A'),
+        C ('C'),
+        G ('G'),
+        T ('T'),
+        N ('N'),
+        D ('D');
 
-    //
-    // todo -- we need a generalized base abstraction using the Base enum.
-    //
+        public byte base;
+
+        private Base(final char base) {
+            this.base = (byte)base;
+        }
+    }
+
+    // todo -- add this to the generalized base abstraction using the Base enum.
     public final static byte[] BASES = {'A', 'C', 'G', 'T'};
     public final static byte[] EXTENDED_BASES = {'A', 'C', 'G', 'T', 'N', 'D'};
 
     static private final int[] baseIndexMap = new int[256];
     static {
         Arrays.fill(baseIndexMap, -1);
-        baseIndexMap['A'] = 0;
-        baseIndexMap['a'] = 0;
-        baseIndexMap['*'] = 0;    // the wildcard character counts as an A
-        baseIndexMap['C'] = 1;
-        baseIndexMap['c'] = 1;
-        baseIndexMap['G'] = 2;
-        baseIndexMap['g'] = 2;
-        baseIndexMap['T'] = 3;
-        baseIndexMap['t'] = 3;
+        baseIndexMap['A'] = Base.A.ordinal();
+        baseIndexMap['a'] = Base.A.ordinal();
+        baseIndexMap['*'] = Base.A.ordinal();    // the wildcard character counts as an A
+        baseIndexMap['C'] = Base.C.ordinal();
+        baseIndexMap['c'] = Base.C.ordinal();
+        baseIndexMap['G'] = Base.G.ordinal();
+        baseIndexMap['g'] = Base.G.ordinal();
+        baseIndexMap['T'] = Base.T.ordinal();
+        baseIndexMap['t'] = Base.T.ordinal();
     }
 
-    // todo -- fix me (enums?)
-    public static final byte DELETION_INDEX = 4;
-    public static final byte NO_CALL_INDEX = 5; // (this is 'N')
-
-    public static final int aIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'A');
-    public static final int cIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'C');
-    public static final int gIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'G');
-    public static final int tIndex = BaseUtils.simpleBaseToBaseIndex((byte) 'T');
+    static private final int[] baseIndexWithIupacMap = baseIndexMap.clone();
+    static {
+        baseIndexWithIupacMap['*'] = -1;    // the wildcard character is bad
+        baseIndexWithIupacMap['N'] = Base.N.ordinal();
+        baseIndexWithIupacMap['n'] = Base.N.ordinal();
+        baseIndexWithIupacMap['R'] = Base.N.ordinal();
+        baseIndexWithIupacMap['r'] = Base.N.ordinal();
+        baseIndexWithIupacMap['Y'] = Base.N.ordinal();
+        baseIndexWithIupacMap['y'] = Base.N.ordinal();
+        baseIndexWithIupacMap['M'] = Base.N.ordinal();
+        baseIndexWithIupacMap['m'] = Base.N.ordinal();
+        baseIndexWithIupacMap['K'] = Base.N.ordinal();
+        baseIndexWithIupacMap['k'] = Base.N.ordinal();
+        baseIndexWithIupacMap['W'] = Base.N.ordinal();
+        baseIndexWithIupacMap['w'] = Base.N.ordinal();
+        baseIndexWithIupacMap['S'] = Base.N.ordinal();
+        baseIndexWithIupacMap['s'] = Base.N.ordinal();
+        baseIndexWithIupacMap['B'] = Base.N.ordinal();
+        baseIndexWithIupacMap['b'] = Base.N.ordinal();
+        baseIndexWithIupacMap['D'] = Base.N.ordinal();
+        baseIndexWithIupacMap['d'] = Base.N.ordinal();
+        baseIndexWithIupacMap['H'] = Base.N.ordinal();
+        baseIndexWithIupacMap['h'] = Base.N.ordinal();
+        baseIndexWithIupacMap['V'] = Base.N.ordinal();
+        baseIndexWithIupacMap['v'] = Base.N.ordinal();
+    }
 
     /// In genetics, a transition is a mutation changing a purine to another purine nucleotide (A <-> G) or
     // a pyrimidine to another pyrimidine nucleotide (C <-> T).
@@ -69,10 +119,10 @@ public class BaseUtils {
     }
 
     public static boolean isTransition(byte base1, byte base2) {
-        int b1 = simpleBaseToBaseIndex(base1);
-        int b2 = simpleBaseToBaseIndex(base2);
-        return b1 == 0 && b2 == 2 || b1 == 2 && b2 == 0 ||
-                b1 == 1 && b2 == 3 || b1 == 3 && b2 == 1;
+        final int b1 = simpleBaseToBaseIndex(base1);
+        final int b2 = simpleBaseToBaseIndex(base2);
+        return b1 == Base.A.ordinal() && b2 == Base.G.ordinal() || b1 == Base.G.ordinal() && b2 == Base.A.ordinal() ||
+                b1 == Base.C.ordinal() && b2 == Base.T.ordinal() || b1 == Base.T.ordinal() && b2 == Base.C.ordinal();
     }
 
     public static boolean isTransversion(byte base1, byte base2) {
@@ -112,6 +162,21 @@ public class BaseUtils {
 
     public static boolean isUpperCase(final byte base) {
         return base >= 'A' && base <= 'Z';
+    }
+
+    public static byte[] convertIUPACtoN(final byte[] bases, final boolean errorOnBadReferenceBase, final boolean ignoreConversionOfFirstByte) {
+        final int length = bases.length;
+        final int start = ignoreConversionOfFirstByte ? 1 : 0;
+
+        for ( int i = start; i < length; i++ ) {
+            final int baseIndex = baseIndexWithIupacMap[bases[i]];
+            if ( baseIndex == Base.N.ordinal() ) {
+                bases[i] = 'N';
+            } else if ( errorOnBadReferenceBase && baseIndex == -1 ) {
+                throw new UserException.BadInput("We encountered a non-standard non-IUPAC base in the provided reference: '" + bases[i] + "'");
+            }
+        }
+        return bases;
     }
 
     /**
@@ -204,10 +269,10 @@ public class BaseUtils {
         switch (base) {
             case 'd':
             case 'D':
-                return DELETION_INDEX;
+                return Base.D.ordinal();
             case 'n':
             case 'N':
-                return NO_CALL_INDEX;
+                return Base.N.ordinal();
 
             default:
                 return simpleBaseToBaseIndex(base);
@@ -429,5 +494,27 @@ public class BaseUtils {
         }
 
         return randomBaseIndex;
+    }
+
+    public static byte getComplement(byte base) {
+        switch(base) {
+            case 'a':
+            case 'A':
+                return 'T';
+            case 'c':
+            case 'C':
+                return 'G';
+            case 'g':
+            case 'G':
+                return 'C';
+            case 't':
+            case 'T':
+                return 'A';
+            case 'n':
+            case 'N':
+                return 'N';
+            default:
+                throw new ReviewedStingException("base must be A, C, G or T. " + (char) base + " is not a valid base.");
+        }
     }
 }

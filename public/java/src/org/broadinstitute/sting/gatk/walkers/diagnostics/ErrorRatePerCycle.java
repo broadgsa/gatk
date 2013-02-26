@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.gatk.walkers.diagnostics;
 
 import org.broadinstitute.sting.commandline.Argument;
@@ -12,6 +37,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -68,7 +94,7 @@ import java.io.PrintStream;
  *
  * @author Kiran Garimella, Mark DePristo
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 public class ErrorRatePerCycle extends LocusWalker<Integer, Integer> {
     @Output PrintStream out;
     @Argument(fullName="min_base_quality_score", shortName="mbq", doc="Minimum base quality required to consider a base for calling", required=false)
@@ -124,7 +150,7 @@ public class ErrorRatePerCycle extends LocusWalker<Integer, Integer> {
 
     public void initialize() {
         report = new GATKReport();
-        report.addTable(reportName, reportDescription, 6, true);
+        report.addTable(reportName, reportDescription, 6, GATKReportTable.TableSortingWay.SORT_BY_ROW);
         table = report.getTable(reportName);
         table.addColumn("readgroup");
         table.addColumn("cycle");
@@ -174,7 +200,7 @@ public class ErrorRatePerCycle extends LocusWalker<Integer, Integer> {
             final int mismatches = (Integer)table.get(key, "mismatches");
             final int count = (Integer)table.get(key, "counts");
             final double errorRate = (mismatches + 1) / (1.0*(count + 1));
-            final int qual = QualityUtils.probToQual(1-errorRate, 0.0);
+            final int qual = QualityUtils.errorProbToQual(errorRate);
             table.set(key, "qual", qual);
             table.set(key, "errorrate", errorRate);
         }

@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2010 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils.sam;
 
@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.io.File;
 import java.util.*;
@@ -169,8 +170,8 @@ public class ReadUtils {
      * @return whether or not the base is in the adaptor
      */
     public static boolean isBaseInsideAdaptor(final GATKSAMRecord read, long basePos) {
-        Integer adaptorBoundary = getAdaptorBoundary(read);
-        if (adaptorBoundary == null || read.getInferredInsertSize() > DEFAULT_ADAPTOR_SIZE)
+        final int adaptorBoundary = read.getAdaptorBoundary();
+        if (adaptorBoundary == CANNOT_COMPUTE_ADAPTOR_BOUNDARY || read.getInferredInsertSize() > DEFAULT_ADAPTOR_SIZE)
             return false;
 
         return read.getReadNegativeStrandFlag() ? basePos <= adaptorBoundary : basePos >= adaptorBoundary;
@@ -199,26 +200,28 @@ public class ReadUtils {
      *   in these cases the adaptor boundary is at the start of the read plus the inferred insert size (plus one)
      *
      * @param read the read being tested for the adaptor boundary
-     * @return the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read. NULL if the read is unmapped or the mate is mapped to another contig.
+     * @return the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read.
+     * CANNOT_COMPUTE_ADAPTOR_BOUNDARY if the read is unmapped or the mate is mapped to another contig.
      */
-    public static Integer getAdaptorBoundary(final SAMRecord read) {
+    public static int getAdaptorBoundary(final SAMRecord read) {
         final int MAXIMUM_ADAPTOR_LENGTH = 8;
         final int insertSize = Math.abs(read.getInferredInsertSize());    // the inferred insert size can be negative if the mate is mapped before the read (so we take the absolute value)
 
         if (insertSize == 0 || read.getReadUnmappedFlag())                // no adaptors in reads with mates in another chromosome or unmapped pairs
-            return null;                                                  
+            return CANNOT_COMPUTE_ADAPTOR_BOUNDARY;
         
-        Integer adaptorBoundary;                                          // the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read)
+        int adaptorBoundary;                                          // the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read)
         if (read.getReadNegativeStrandFlag())
             adaptorBoundary = read.getMateAlignmentStart() - 1;           // case 1 (see header)
         else
             adaptorBoundary = read.getAlignmentStart() + insertSize + 1;  // case 2 (see header)
 
         if ( (adaptorBoundary < read.getAlignmentStart() - MAXIMUM_ADAPTOR_LENGTH) || (adaptorBoundary > read.getAlignmentEnd() + MAXIMUM_ADAPTOR_LENGTH) )
-            adaptorBoundary = null;                                       // we are being conservative by not allowing the adaptor boundary to go beyond what we belive is the maximum size of an adaptor
+            adaptorBoundary = CANNOT_COMPUTE_ADAPTOR_BOUNDARY;                                       // we are being conservative by not allowing the adaptor boundary to go beyond what we belive is the maximum size of an adaptor
         
         return adaptorBoundary;
     }
+    public static int CANNOT_COMPUTE_ADAPTOR_BOUNDARY = Integer.MIN_VALUE;
 
     /**
      * is the read a 454 read?
@@ -226,7 +229,7 @@ public class ReadUtils {
      * @param read the read to test
      * @return checks the read group tag PL for the default 454 tag
      */
-    public static boolean is454Read(SAMRecord read) {
+    public static boolean is454Read(GATKSAMRecord read) {
         return NGSPlatform.fromRead(read) == NGSPlatform.LS454;
     }
 
@@ -236,7 +239,7 @@ public class ReadUtils {
      * @param read the read to test
      * @return checks the read group tag PL for the default ion tag
      */
-    public static boolean isIonRead(SAMRecord read) {
+    public static boolean isIonRead(GATKSAMRecord read) {
         return NGSPlatform.fromRead(read) == NGSPlatform.ION_TORRENT;
     }
 
@@ -246,7 +249,7 @@ public class ReadUtils {
      * @param read the read to test
      * @return checks the read group tag PL for the default SOLiD tag
      */
-    public static boolean isSOLiDRead(SAMRecord read) {
+    public static boolean isSOLiDRead(GATKSAMRecord read) {
         return NGSPlatform.fromRead(read) == NGSPlatform.SOLID;
     }
 
@@ -256,7 +259,7 @@ public class ReadUtils {
      * @param read the read to test
      * @return checks the read group tag PL for the default SLX tag
      */
-    public static boolean isIlluminaRead(SAMRecord read) {
+    public static boolean isIlluminaRead(GATKSAMRecord read) {
         return NGSPlatform.fromRead(read) == NGSPlatform.ILLUMINA;
     }
 
@@ -268,7 +271,7 @@ public class ReadUtils {
      * @param name the upper-cased platform name to test
      * @return whether or not name == PL tag in the read group of read
      */
-    public static boolean isPlatformRead(SAMRecord read, String name) {
+    public static boolean isPlatformRead(GATKSAMRecord read, String name) {
 
         SAMReadGroupRecord readGroup = read.getReadGroup();
         if (readGroup != null) {
@@ -390,6 +393,11 @@ public class ReadUtils {
     @Ensures({"result >= 0", "result < read.getReadLength()"})
     public static int getReadCoordinateForReferenceCoordinate(GATKSAMRecord read, int refCoord, ClippingTail tail) {
         return getReadCoordinateForReferenceCoordinate(read.getSoftStart(), read.getCigar(), refCoord, tail, false);
+    }
+
+    public static int getReadCoordinateForReferenceCoordinateUpToEndOfRead(GATKSAMRecord read, int refCoord, ClippingTail tail) {
+        final int leftmostSafeVariantPosition = Math.max(read.getSoftStart(), refCoord);
+        return getReadCoordinateForReferenceCoordinate(read.getSoftStart(), read.getCigar(), leftmostSafeVariantPosition, tail, false);
     }
 
     public static int getReadCoordinateForReferenceCoordinate(final int alignmentStart, final Cigar cigar, final int refCoord, final ClippingTail tail, final boolean allowGoalNotReached) {
@@ -843,4 +851,81 @@ public class ReadUtils {
         return events;
     }
 
+    /**
+     * Given a read, outputs the read bases in a string format
+     *
+     * @param read the read
+     * @return a string representation of the read bases
+     */
+    public static String convertReadBasesToString(GATKSAMRecord read) {
+        String bases = "";
+        for (byte b : read.getReadBases()) {
+            bases += (char) b;
+        }
+        return bases.toUpperCase();
+    }
+
+    /**
+     * Given a read, outputs the base qualities in a string format
+     *
+     * @param quals the read qualities
+     * @return a string representation of the base qualities
+     */
+    public static String convertReadQualToString(byte[] quals) {
+        String result = "";
+        for (byte b : quals) {
+            result += (char) (33 + b);
+        }
+        return result;
+    }
+
+    /**
+     * Given a read, outputs the base qualities in a string format
+     *
+     * @param read the read
+     * @return a string representation of the base qualities
+     */
+    public static String convertReadQualToString(GATKSAMRecord read) {
+        return convertReadQualToString(read.getBaseQualities());
+    }
+
+    /**
+     * Returns the reverse complement of the read bases
+     *
+     * @param bases the read bases
+     * @return the reverse complement of the read bases
+     */
+    public static String getBasesReverseComplement(byte[] bases) {
+        String reverse = "";
+        for (int i = bases.length-1; i >=0; i--) {
+            reverse += (char) BaseUtils.getComplement(bases[i]);
+        }
+        return reverse;
+    }
+
+    /**
+     * Returns the reverse complement of the read bases
+     *
+     * @param read the read
+     * @return the reverse complement of the read bases
+     */
+    public static String getBasesReverseComplement(GATKSAMRecord read) {
+        return getBasesReverseComplement(read.getReadBases());
+    }
+
+    /**
+     * Calculate the maximum read length from the given list of reads.
+     * @param reads list of reads
+     * @return      non-negative integer
+     */
+    @Ensures({"result >= 0"})
+    public static int getMaxReadLength( final List<GATKSAMRecord> reads ) {
+        if( reads == null ) { throw new IllegalArgumentException("Attempting to check a null list of reads."); }
+
+        int maxReadLength = 0;
+        for( final GATKSAMRecord read : reads ) {
+            maxReadLength = Math.max(maxReadLength, read.getReadLength());
+        }
+        return maxReadLength;
+    }
 }

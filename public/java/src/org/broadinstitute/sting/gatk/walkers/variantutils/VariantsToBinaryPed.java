@@ -1,7 +1,31 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.TribbleException;
-import org.broadinstitute.sting.alignment.bwa.java.AlignmentMatchSequence;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.DbsnpArgumentCollection;
@@ -10,18 +34,18 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
-import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.utils.variantcontext.*;
+import org.broadinstitute.variant.variantcontext.*;
 
 import java.io.*;
 import java.util.*;
@@ -29,7 +53,7 @@ import java.util.*;
 /**
  * Converts a VCF file to a binary plink Ped file (.bed/.bim/.fam)
  */
-@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=0,stop=100))
 public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     @ArgumentCollection
@@ -83,6 +107,9 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
     @Argument(fullName="majorAlleleFirst",required=false,doc="Sets the major allele to be 'reference' for the bim file, rather than the ref allele")
     boolean majorAlleleFirst = false;
 
+    @Argument(fullName="checkAlternateAlleles",required=false,doc="Checks that alternate alleles actually appear in samples, erroring out if they do not")
+    boolean checkAlternateAlleles = false;
+
     enum OutputMode { INDIVIDUAL_MAJOR,SNP_MAJOR }
 
     private static double APPROX_CM_PER_BP = 1000000.0/750000.0;
@@ -117,7 +144,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         // family ID, individual ID, Paternal ID, Maternal ID, Sex, Phenotype
         int dummyID = 0; // increments for dummy parental and family IDs used
         // want to be especially careful to maintain order here
-        Map<String,VCFHeader> headers = VCFUtils.getVCFHeadersFromRods(getToolkit());
+        Map<String,VCFHeader> headers = GATKVCFUtils.getVCFHeadersFromRods(getToolkit());
         for ( Map.Entry<String,VCFHeader> header : headers.entrySet() ) {
             if ( ! header.getKey().equals(variantCollection.variants.getName()) && ! metaDataFile.getAbsolutePath().endsWith(".fam") ) {
                 continue;
@@ -382,7 +409,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
             return genotype.getGQ() >= minGenotypeQuality;
         } else if ( genotype.hasLikelihoods() ) {
             double log10gq = GenotypeLikelihoods.getGQLog10FromLikelihoods(genotype.getType().ordinal()-1,genotype.getLikelihoods().getAsVector());
-            return MathUtils.log10ProbabilityToPhredScale(log10gq) >= minGenotypeQuality;
+            return QualityUtils.phredScaleLog10ErrorRate(log10gq) >= minGenotypeQuality;
         }
 
         return minGenotypeQuality <= 0;
@@ -476,7 +503,8 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
         System.arraycopy(ref.getBases(), 0, observedRefBases, 0, refLength);
         final Allele observedRefAllele = Allele.create(observedRefBases);
         vc.validateReferenceBases(reportedRefAllele, observedRefAllele);
-        vc.validateAlternateAlleles();
+        if ( checkAlternateAlleles )
+            vc.validateAlternateAlleles();
     }
 
     private String getReferenceAllele(VariantContext vc) {

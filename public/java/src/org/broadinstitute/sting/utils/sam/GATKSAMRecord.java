@@ -1,38 +1,37 @@
 /*
- * Copyright (c) 2011, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils.sam;
 
+import com.google.java.contract.Ensures;
 import net.sf.samtools.*;
-import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.recalibration.EventType;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author ebanks, depristo
@@ -45,6 +44,10 @@ import java.util.Map;
  *   if they are ever modified externally then one must also invoke the
  *   setReadGroup() method here to ensure that the cache is kept up-to-date.
  *
+ * WARNING -- GATKSAMRecords cache several values (that are expensive to compute)
+ * that depending on the inferred insert size and alignment starts and stops of this read and its mate.
+ * Changing these values in any way will invalidate the cached value. However, we do not monitor those setter
+ * functions, so modifying a GATKSAMRecord in any way may result in stale cached values.
  */
 public class GATKSAMRecord extends BAMRecord {
     // ReduceReads specific attribute tags
@@ -56,6 +59,12 @@ public class GATKSAMRecord extends BAMRecord {
     public static final String BQSR_BASE_INSERTION_QUALITIES = "BI";                // base qualities for insertions
     public static final String BQSR_BASE_DELETION_QUALITIES = "BD";                 // base qualities for deletions
 
+    /**
+     * The default quality score for an insertion or deletion, if
+     * none are provided for this read.
+     */
+    public static final byte DEFAULT_INSERTION_DELETION_QUAL = (byte)45;
+
     // the SAMRecord data we're caching
     private String mReadString = null;
     private GATKSAMReadGroupRecord mReadGroup = null;
@@ -63,6 +72,7 @@ public class GATKSAMRecord extends BAMRecord {
     private final static int UNINITIALIZED = -1;
     private int softStart = UNINITIALIZED;
     private int softEnd = UNINITIALIZED;
+    private Integer adapterBoundary = null;
 
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedReadGroup = false;
@@ -124,6 +134,13 @@ public class GATKSAMRecord extends BAMRecord {
                 flags, readLen, mateReferenceSequenceIndex, mateAlignmentStart, insertSize, variableLengthBlock);
     }
 
+    public static GATKSAMRecord createRandomRead(int length) {
+        List<CigarElement> cigarElements = new LinkedList<CigarElement>();
+        cigarElements.add(new CigarElement(length, CigarOperator.M));
+        Cigar cigar = new Cigar(cigarElements);
+        return ArtificialSAMUtils.createArtificialRead(cigar);
+    }
+
     ///////////////////////////////////////////////////////////////////////////////
     // *** The following methods are overloaded to cache the appropriate data ***//
     ///////////////////////////////////////////////////////////////////////////////
@@ -141,15 +158,35 @@ public class GATKSAMRecord extends BAMRecord {
         mReadString = s;
     }
 
+    /**
+     * Get the GATKSAMReadGroupRecord of this read
+     * @return a non-null GATKSAMReadGroupRecord
+     */
     @Override
     public GATKSAMReadGroupRecord getReadGroup() {
-        if ( !retrievedReadGroup ) {
-            SAMReadGroupRecord tempReadGroup = super.getReadGroup();
-            mReadGroup = (tempReadGroup == null ? null : new GATKSAMReadGroupRecord(tempReadGroup));
+        if ( ! retrievedReadGroup ) {
+            final SAMReadGroupRecord rg = super.getReadGroup();
+
+            // three cases: rg may be null (no rg, rg may already be a GATKSAMReadGroupRecord, or it may be
+            // a regular SAMReadGroupRecord in which case we have to make it a GATKSAMReadGroupRecord
+            if ( rg == null )
+                mReadGroup = null;
+            else if ( rg instanceof GATKSAMReadGroupRecord )
+                mReadGroup = (GATKSAMReadGroupRecord)rg;
+            else
+                mReadGroup = new GATKSAMReadGroupRecord(rg);
+
             retrievedReadGroup = true;
         }
         return mReadGroup;
     }
+
+    public void setReadGroup( final GATKSAMReadGroupRecord readGroup ) {
+        mReadGroup = readGroup;
+        retrievedReadGroup = true;
+        setAttribute("RG", mReadGroup.getId()); // todo -- this should be standardized, but we don't have access to SAMTagUtils!
+    }
+
 
     @Override
     public int hashCode() {
@@ -229,7 +266,7 @@ public class GATKSAMRecord extends BAMRecord {
         byte [] quals = getExistingBaseInsertionQualities();
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
-            Arrays.fill(quals, (byte) 45); // Some day in the future when base insertion and base deletion quals exist the samtools API will
+            Arrays.fill(quals, DEFAULT_INSERTION_DELETION_QUAL); // Some day in the future when base insertion and base deletion quals exist the samtools API will
                                            // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
         }
         return quals;
@@ -245,7 +282,7 @@ public class GATKSAMRecord extends BAMRecord {
         byte[] quals = getExistingBaseDeletionQualities();
         if( quals == null ) {
             quals = new byte[getBaseQualities().length];
-            Arrays.fill(quals, (byte) 45);  // Some day in the future when base insertion and base deletion quals exist the samtools API will
+            Arrays.fill(quals, DEFAULT_INSERTION_DELETION_QUAL);  // Some day in the future when base insertion and base deletion quals exist the samtools API will
                                             // be updated and the original quals will be pulled here, but for now we assume the original quality is a flat Q45
         }
         return quals;
@@ -257,12 +294,6 @@ public class GATKSAMRecord extends BAMRecord {
      */
     public NGSPlatform getNGSPlatform() {
         return getReadGroup().getNGSPlatform();
-    }
-
-    public void setReadGroup( final GATKSAMReadGroupRecord readGroup ) {
-        mReadGroup = readGroup;
-        retrievedReadGroup = true;
-        setAttribute("RG", mReadGroup.getId()); // todo -- this should be standardized, but we don't have access to SAMTagUtils!
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -539,5 +570,24 @@ public class GATKSAMRecord extends BAMRecord {
                 clone.setTemporaryAttribute(attribute, temporaryAttributes.get(attribute));
         }
         return clone;
+    }
+
+    /**
+     * A caching version of ReadUtils.getAdaptorBoundary()
+     *
+     * @see ReadUtils.getAdaptorBoundary(SAMRecord) for more information about the meaning of this function
+     *
+     * WARNING -- this function caches a value depending on the inferred insert size and alignment starts
+     * and stops of this read and its mate.  Changing these values in any way will invalidate the cached value.
+     * However, we do not monitor those setter functions, so modifying a GATKSAMRecord in any way may
+     * result in stale cached values.
+     *
+     * @return the result of calling ReadUtils.getAdaptorBoundary on this read
+     */
+    @Ensures("result == ReadUtils.getAdaptorBoundary(this)")
+    public int getAdaptorBoundary() {
+        if ( adapterBoundary == null )
+            adapterBoundary = ReadUtils.getAdaptorBoundary(this);
+        return adapterBoundary;
     }
 }

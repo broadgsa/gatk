@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 2012, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
@@ -51,7 +52,7 @@ public class ReadShardBalancerUnitTest extends BaseTest {
      * Tests to ensure that ReadShardBalancer works as expected and does not place shard boundaries
      * at inappropriate places, such as within an alignment start position
      */
-    private static class ExperimentalReadShardBalancerTest extends TestDataProvider {
+    private static class ReadShardBalancerTest extends TestDataProvider {
         private int numContigs;
         private int numStacksPerContig;
         private int stackSize;
@@ -62,19 +63,19 @@ public class ReadShardBalancerUnitTest extends BaseTest {
         private SAMFileHeader header;
         private SAMReaderID testBAM;
 
-        public ExperimentalReadShardBalancerTest( int numContigs,
-                                                  int numStacksPerContig,
-                                                  int stackSize,
-                                                  int numUnmappedReads,
-                                                  int downsamplingTargetCoverage ) {
-            super(ExperimentalReadShardBalancerTest.class);
+        public ReadShardBalancerTest( int numContigs,
+                                      int numStacksPerContig,
+                                      int stackSize,
+                                      int numUnmappedReads,
+                                      int downsamplingTargetCoverage ) {
+            super(ReadShardBalancerTest.class);
 
             this.numContigs = numContigs;
             this.numStacksPerContig = numStacksPerContig;
             this.stackSize = stackSize;
             this.numUnmappedReads = numUnmappedReads;
 
-            this.downsamplingMethod = new DownsamplingMethod(DownsampleType.BY_SAMPLE, downsamplingTargetCoverage, null, false);
+            this.downsamplingMethod = new DownsamplingMethod(DownsampleType.BY_SAMPLE, downsamplingTargetCoverage, null);
             this.expectedReadCount = Math.min(stackSize, downsamplingTargetCoverage) * numStacksPerContig * numContigs + numUnmappedReads;
 
             setName(String.format("%s: numContigs=%d numStacksPerContig=%d stackSize=%d numUnmappedReads=%d downsamplingTargetCoverage=%d",
@@ -175,8 +176,8 @@ public class ReadShardBalancerUnitTest extends BaseTest {
         }
     }
 
-    @DataProvider(name = "ExperimentalReadShardBalancerTestDataProvider")
-    public Object[][] createExperimentalReadShardBalancerTests() {
+    @DataProvider(name = "ReadShardBalancerTestDataProvider")
+    public Object[][] createReadShardBalancerTests() {
         for ( int numContigs = 1; numContigs <= 3; numContigs++ ) {
             for ( int numStacksPerContig : Arrays.asList(1, 2, 4) ) {
                 // Use crucial read shard boundary values as the stack sizes
@@ -184,18 +185,18 @@ public class ReadShardBalancerUnitTest extends BaseTest {
                     for ( int numUnmappedReads : Arrays.asList(0, ReadShard.DEFAULT_MAX_READS / 2, ReadShard.DEFAULT_MAX_READS * 2) ) {
                         // The first value will result in no downsampling at all, the others in some downsampling
                         for ( int downsamplingTargetCoverage : Arrays.asList(ReadShard.DEFAULT_MAX_READS * 10, ReadShard.DEFAULT_MAX_READS, ReadShard.DEFAULT_MAX_READS / 2) ) {
-                            new ExperimentalReadShardBalancerTest(numContigs, numStacksPerContig, stackSize, numUnmappedReads, downsamplingTargetCoverage);
+                            new ReadShardBalancerTest(numContigs, numStacksPerContig, stackSize, numUnmappedReads, downsamplingTargetCoverage);
                         }
                     }
                 }
             }
         }
 
-        return ExperimentalReadShardBalancerTest.getTests(ExperimentalReadShardBalancerTest.class);
+        return ReadShardBalancerTest.getTests(ReadShardBalancerTest.class);
     }
 
-    @Test(dataProvider = "ExperimentalReadShardBalancerTestDataProvider")
-    public void runExperimentalReadShardBalancerTest( ExperimentalReadShardBalancerTest test ) {
+    @Test(dataProvider = "ReadShardBalancerTestDataProvider")
+    public void runReadShardBalancerTest( ReadShardBalancerTest test ) {
         logger.warn("Running test: " + test);
 
         test.run();

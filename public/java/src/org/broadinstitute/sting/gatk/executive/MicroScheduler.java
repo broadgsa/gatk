@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2009 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.gatk.executive;
 
@@ -213,7 +213,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
 
         // Now that we have a progress meter, go through and initialize the traversal engines
         for ( final TraversalEngine traversalEngine : allCreatedTraversalEngines )
-            traversalEngine.initialize(engine, progressMeter);
+            traversalEngine.initialize(engine, walker, progressMeter);
 
         // JMX does not allow multiple instances with the same ObjectName to be registered with the same platform MXBean.
         // To get around this limitation and since we have no job identifier at this point, register a simple counter that
@@ -284,7 +284,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
     protected boolean abortExecution() {
         final boolean abort = engine.exceedsRuntimeLimit(progressMeter.getRuntimeInNanoseconds(), TimeUnit.NANOSECONDS);
         if ( abort ) {
-            final AutoFormattingTime aft = new AutoFormattingTime(TimeUnit.SECONDS.convert(engine.getRuntimeLimitInNanoseconds(), TimeUnit.NANOSECONDS), 1, 4);
+            final AutoFormattingTime aft = new AutoFormattingTime(engine.getRuntimeLimitInNanoseconds(), -1, 4);
             logger.info("Aborting execution (cleanly) because the runtime has exceeded the requested maximum " + aft);
         }
         return abort;
@@ -299,6 +299,17 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @return the return type of the walker
      */
     public abstract Object execute(Walker walker, Iterable<Shard> shardStrategy);
+
+    /**
+     * Tells this MicroScheduler that the execution of one of the subclass of this object as started
+     *
+     * Must be called when the implementation of execute actually starts up
+     *
+     * Currently only starts the progress meter timer running, but other start up activities could be incorporated
+     */
+    protected void startingExecution() {
+        progressMeter.start();
+    }
 
     /**
      * Retrieves the object responsible for tracking and managing output.

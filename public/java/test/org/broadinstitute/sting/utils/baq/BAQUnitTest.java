@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.utils.baq;
 
 
@@ -178,6 +203,23 @@ public class BAQUnitTest extends BaseTest {
             Assert.assertTrue(baq.calcEpsilon( ref, alt, (byte)i) >= 0.0, "Failed to get baq epsilon range");
     }
 
+    @Test(enabled = true)
+    public void testBAQOverwritesExistingTagWithNull() {
+
+        // create a read with a single base off the end of the contig, which cannot be BAQed
+        final SAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "foo", 0, fasta.getSequenceDictionary().getSequence("chr1").getSequenceLength() + 1, 1);
+        read.setReadBases(new byte[] {(byte) 'A'});
+        read.setBaseQualities(new byte[] {(byte) 20});
+        read.setCigarString("1M");
+        read.setAttribute("BQ", "A");
+
+        // try to BAQ and tell it to RECALCULATE AND ADD_TAG
+        BAQ baq = new BAQ(1e-3, 0.1, 7, (byte)4, false);
+        baq.baqRead(read, fasta, BAQ.CalculationMode.RECALCULATE, BAQ.QualityMode.ADD_TAG);
+
+        // did we remove the existing tag?
+        Assert.assertTrue(read.getAttribute("BQ") == null);
+    }
 
     public void testBAQ(BAQTest test, boolean lookupWithFasta) {
         BAQ baqHMM = new BAQ(1e-3, 0.1, 7, (byte)4, false);         // matches current samtools parameters

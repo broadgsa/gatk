@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2010 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
@@ -35,16 +35,19 @@ import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
-import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCounts;
+import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCountConstants;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextBuilder;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.utils.variantcontext.writer.Options;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
+import org.broadinstitute.variant.variantcontext.VariantContextUtils;
+import org.broadinstitute.variant.variantcontext.writer.Options;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 
 import java.util.*;
 
@@ -111,7 +114,7 @@ import java.util.*;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-50,stop=50))
 public class CombineVariants extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
     /**
@@ -134,14 +137,14 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
     protected VariantContextWriter vcfWriter = null;
 
     @Argument(shortName="genotypeMergeOptions", doc="Determines how we should merge genotype records for samples shared across the ROD files", required=false)
-    public VariantContextUtils.GenotypeMergeType genotypeMergeOption = null;
+    public GATKVariantContextUtils.GenotypeMergeType genotypeMergeOption = null;
 
     @Argument(shortName="filteredRecordsMergeType", doc="Determines how we should handle records seen at the same site in the VCF, but with different FILTER fields", required=false)
-    public VariantContextUtils.FilteredRecordMergeType filteredRecordsMergeType = VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED;
+    public GATKVariantContextUtils.FilteredRecordMergeType filteredRecordsMergeType = GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED;
 
     @Hidden
     @Argument(shortName="multipleAllelesMergeType", doc="Determines how we should handle records seen at the same site in the VCF, but with different allele types (for example, SNP vs. indel)", required=false)
-    public VariantContextUtils.MultipleAllelesMergeType multipleAllelesMergeType = VariantContextUtils.MultipleAllelesMergeType.BY_TYPE;
+    public GATKVariantContextUtils.MultipleAllelesMergeType multipleAllelesMergeType = GATKVariantContextUtils.MultipleAllelesMergeType.BY_TYPE;
 
     /**
      * Used when taking the union of variants that contain genotypes.  A complete priority list MUST be provided.
@@ -192,7 +195,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
     private Set<String> samples;
 
     public void initialize() {
-        Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit());
+        Map<String, VCFHeader> vcfRods = GATKVCFUtils.getVCFHeadersFromRods(getToolkit());
 
         if ( vcfWriter instanceof VariantContextWriterStub) {
             sitesOnlyVCF = ((VariantContextWriterStub)vcfWriter).getWriterOptions().contains(Options.DO_NOT_WRITE_GENOTYPES);
@@ -202,30 +205,36 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
 
         validateAnnotateUnionArguments();
         if ( PRIORITY_STRING == null && genotypeMergeOption == null) {
-            genotypeMergeOption = VariantContextUtils.GenotypeMergeType.UNSORTED;
+            genotypeMergeOption = GATKVariantContextUtils.GenotypeMergeType.UNSORTED;
             //PRIORITY_STRING = Utils.join(",", vcfRods.keySet());  Deleted by Ami (7/10/12)
-            logger.info("Priority string not provided, using arbitrary genotyping order: "+priority);
+            logger.info("Priority string is not provided, using arbitrary genotyping order: "+priority);
         }
+
+        if (genotypeMergeOption == GATKVariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE &&
+                !SampleUtils.verifyUniqueSamplesNames(vcfRods))
+            throw new IllegalStateException("REQUIRE_UNIQUE sample names is true but duplicate names were discovered.");
 
         samples = sitesOnlyVCF ? Collections.<String>emptySet() : SampleUtils.getSampleList(vcfRods, genotypeMergeOption);
 
         if ( SET_KEY.toLowerCase().equals("null") )
             SET_KEY = null;
 
-        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
+        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), true);
         if ( SET_KEY != null )
             headerLines.add(new VCFInfoHeaderLine(SET_KEY, 1, VCFHeaderLineType.String, "Source VCF for the merged record in CombineVariants"));
         if ( !ASSUME_IDENTICAL_SAMPLES )
-             headerLines.addAll(Arrays.asList(ChromosomeCounts.descriptions));
+             headerLines.addAll(Arrays.asList(ChromosomeCountConstants.descriptions));
         VCFHeader vcfHeader = new VCFHeader(headerLines, samples);
         vcfHeader.setWriteCommandLine(!SUPPRESS_COMMAND_LINE_HEADER);
         vcfWriter.writeHeader(vcfHeader);
     }
 
+
+
     private void validateAnnotateUnionArguments() {
         Set<String> rodNames = SampleUtils.getRodNamesWithVCFHeader(getToolkit(), null);
 
-        if ( genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE && PRIORITY_STRING == null )
+        if ( genotypeMergeOption == GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE && PRIORITY_STRING == null )
             throw new UserException.MissingArgument("rod_priority_list", "Priority string must be provided if you want to prioritize genotypes");
 
         if ( PRIORITY_STRING != null){
@@ -271,8 +280,8 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
 
         List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
 
-        if (multipleAllelesMergeType == VariantContextUtils.MultipleAllelesMergeType.BY_TYPE) {
-            Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
+        if (multipleAllelesMergeType == GATKVariantContextUtils.MultipleAllelesMergeType.BY_TYPE) {
+            Map<VariantContext.Type, List<VariantContext>> VCsByType = GATKVariantContextUtils.separateVariantContextsByType(vcs);
 
             // TODO -- clean this up in a refactoring
             // merge NO_VARIATION into another type of variant (based on the ordering in VariantContext.Type)
@@ -289,13 +298,13 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             // iterate over the types so that it's deterministic
             for (VariantContext.Type type : VariantContext.Type.values()) {
                 if (VCsByType.containsKey(type))
-                    mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
-                            priority, rodNames.size() , filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                    mergedVCs.add(GATKVariantContextUtils.simpleMerge(VCsByType.get(type),
+                            priority, rodNames.size(), filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
                             SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
             }
         }
-        else if (multipleAllelesMergeType == VariantContextUtils.MultipleAllelesMergeType.MIX_TYPES) {
-            mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), vcs,
+        else if (multipleAllelesMergeType == GATKVariantContextUtils.MultipleAllelesMergeType.MIX_TYPES) {
+            mergedVCs.add(GATKVariantContextUtils.simpleMerge(vcs,
                     priority, rodNames.size(), filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
                     SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
         }
@@ -312,7 +321,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             // re-compute chromosome counts
             VariantContextUtils.calculateChromosomeCounts(builder, false);
             if ( minimalVCF )
-                VariantContextUtils.pruneVariantContext(builder, Arrays.asList(SET_KEY));
+                GATKVariantContextUtils.pruneVariantContext(builder, Arrays.asList(SET_KEY));
             vcfWriter.add(builder.make());
         }
 

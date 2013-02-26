@@ -1,29 +1,46 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.utils.nanoScheduler;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.MultiThreadedErrorTracker;
 
 import java.util.Iterator;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * Producer Thread that reads input values from an inputReads and puts them into an output queue
+ * Helper class that allows multiple threads to reads input values from
+ * an iterator, and track the number of items read from that iterator.
  */
-class InputProducer<InputType> implements Runnable {
+class InputProducer<InputType> {
     private final static Logger logger = Logger.getLogger(InputProducer.class);
 
     /**
      * The iterator we are using to get data from
      */
     final Iterator<InputType> inputReader;
-
-    /**
-     * Where we put our input values for consumption
-     */
-    final BlockingQueue<InputValue> outputQueue;
-
-    final MultiThreadedErrorTracker errorTracker;
 
     /**
      * Have we read the last value from inputReader?
@@ -34,25 +51,20 @@ class InputProducer<InputType> implements Runnable {
      */
     boolean readLastValue = false;
 
+    /**
+     * Once we've readLastValue, lastValue contains a continually
+     * updating InputValue where EOF is true.  It's not necessarily
+     * a single value, as each read updates lastValue with the
+     * next EOF marker
+     */
+    private InputValue lastValue = null;
+
     int nRead = 0;
     int inputID = -1;
 
-    /**
-     * A latch used to block threads that want to start up only when all of the values
-     * in inputReader have been read by the thread executing run()
-     */
-    final CountDownLatch latch = new CountDownLatch(1);
-
-    public InputProducer(final Iterator<InputType> inputReader,
-                         final MultiThreadedErrorTracker errorTracker,
-                         final BlockingQueue<InputValue> outputQueue) {
+    public InputProducer(final Iterator<InputType> inputReader) {
         if ( inputReader == null ) throw new IllegalArgumentException("inputReader cannot be null");
-        if ( errorTracker == null ) throw new IllegalArgumentException("errorTracker cannot be null");
-        if ( outputQueue == null ) throw new IllegalArgumentException("OutputQueue cannot be null");
-
         this.inputReader = inputReader;
-        this.errorTracker = errorTracker;
-        this.outputQueue = outputQueue;
     }
 
     /**
@@ -82,9 +94,8 @@ class InputProducer<InputType> implements Runnable {
      * This method is synchronized, as it manipulates local state accessed across multiple threads.
      *
      * @return the next input stream value, or null if the stream contains no more elements
-     * @throws InterruptedException
      */
-    private synchronized InputType readNextItem() throws InterruptedException {
+    private synchronized InputType readNextItem() {
         if ( ! inputReader.hasNext() ) {
             // we are done, mark ourselves as such and return null
             readLastValue = true;
@@ -100,49 +111,60 @@ class InputProducer<InputType> implements Runnable {
     }
 
     /**
-     * Run this input producer, looping over all items in the input reader and
-     * enqueueing them as InputValues into the outputQueue.  After the
-     * end of the stream has been encountered, any threads waiting because
-     * they called waitForDone() will be freed.
+     * Are there currently more values in the iterator?
+     *
+     * Note the word currently.  It's possible that some already submitted
+     * job will read a value from this InputProvider, so in some sense
+     * there are no more values and in the future there'll be no next
+     * value.  That said, once this returns false it means that all
+     * of the possible values have been read
+     *
+     * @return true if a future call to next might return a non-EOF value, false if
+     *         the underlying iterator is definitely empty
      */
-    public void run() {
-        try {
-            while ( true ) {
-                final InputType value = readNextItem();
-
-                if ( value == null ) {
-                    if ( ! readLastValue )
-                        throw new IllegalStateException("value == null but readLastValue is false!");
-
-                    // add the EOF object so our consumer knows we are done in all inputs
-                    // note that we do not increase inputID here, so that variable indicates the ID
-                    // of the last real value read from the queue
-                    outputQueue.put(new InputValue(inputID + 1));
-                    break;
-                } else {
-                    // add the actual value to the outputQueue
-                    outputQueue.put(new InputValue(++inputID, value));
-                }
-            }
-
-            latch.countDown();
-        } catch (Throwable ex) {
-            errorTracker.notifyOfError(ex);
-        } finally {
-//            logger.info("Exiting input thread readLastValue = " + readLastValue);
-        }
+    public synchronized boolean hasNext() {
+        return ! allInputsHaveBeenRead();
     }
 
     /**
-     * Block until all of the items have been read from inputReader.
+     * Get the next InputValue from this producer.  The next value is
+     * either (1) the next value from the iterator, in which case the
+     * the return value is an InputValue containing that value, or (2)
+     * an InputValue with the EOF marker, indicating that the underlying
+     * iterator has been exhausted.
      *
-     * Note that this call doesn't actually read anything.   You have to submit a thread
-     * to actually execute run() directly.
+     * This function never fails -- it can be called endlessly and
+     * while the underlying iterator has values it returns them, and then
+     * it returns a succession of EOF marking input values.
      *
-     * @throws InterruptedException
+     * @return an InputValue containing the next value in the underlying
+     *         iterator, or one with EOF marker, if the iterator is exhausted
      */
-    public void waitForDone() throws InterruptedException {
-        latch.await();
+    public synchronized InputValue next() {
+        if ( readLastValue ) {
+            // we read the last value, so our value is the next
+            // EOF marker based on the last value.  Make sure to
+            // update the last value so the markers keep incrementing
+            // their job ids
+            lastValue = lastValue.nextEOF();
+            return lastValue;
+        } else {
+            final InputType value = readNextItem();
+
+            if ( value == null ) {
+                if ( ! readLastValue )
+                    throw new IllegalStateException("value == null but readLastValue is false!");
+
+                // add the EOF object so our consumer knows we are done in all inputs
+                // note that we do not increase inputID here, so that variable indicates the ID
+                // of the last real value read from the queue
+                lastValue = new InputValue(inputID + 1);
+                return lastValue;
+            } else {
+                // add the actual value to the outputQueue
+                return new InputValue(++inputID, value);
+            }
+        }
     }
 
     /**

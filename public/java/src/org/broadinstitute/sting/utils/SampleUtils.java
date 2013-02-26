@@ -1,39 +1,39 @@
 /*
- * Copyright (c) 2010 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.text.ListFileUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -102,34 +102,56 @@ public class SampleUtils {
     public static Set<String> getUniqueSamplesFromRods(GenomeAnalysisEngine toolkit, Collection<String> rodNames) {
         Set<String> samples = new LinkedHashSet<String>();
 
-        for ( VCFHeader header : VCFUtils.getVCFHeadersFromRods(toolkit, rodNames).values() )
+        for ( VCFHeader header : GATKVCFUtils.getVCFHeadersFromRods(toolkit, rodNames).values() )
             samples.addAll(header.getGenotypeSamples());
 
         return samples;
     }
 
     public static Set<String> getRodNamesWithVCFHeader(GenomeAnalysisEngine toolkit, Collection<String> rodNames) {
-        return VCFUtils.getVCFHeadersFromRods(toolkit, rodNames).keySet();
+        return GATKVCFUtils.getVCFHeadersFromRods(toolkit, rodNames).keySet();
     }
 
     public static Set<String> getSampleListWithVCFHeader(GenomeAnalysisEngine toolkit, Collection<String> rodNames) {
-        return getSampleList(VCFUtils.getVCFHeadersFromRods(toolkit, rodNames));
+        return getSampleList(GATKVCFUtils.getVCFHeadersFromRods(toolkit, rodNames));
     }
 
     public static Set<String> getSampleList(Map<String, VCFHeader> headers) {
-        return getSampleList(headers, VariantContextUtils.GenotypeMergeType.PRIORITIZE);
+        return getSampleList(headers, GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE);
     }
 
-    public static Set<String> getSampleList(Map<String, VCFHeader> headers, VariantContextUtils.GenotypeMergeType mergeOption) {
+    public static Set<String> getSampleList(Map<String, VCFHeader> headers, GATKVariantContextUtils.GenotypeMergeType mergeOption) {
         Set<String> samples = new TreeSet<String>();
         for ( Map.Entry<String, VCFHeader> val : headers.entrySet() ) {
             VCFHeader header = val.getValue();
             for ( String sample : header.getGenotypeSamples() ) {
-                samples.add(VariantContextUtils.mergedSampleName(val.getKey(), sample, mergeOption == VariantContextUtils.GenotypeMergeType.UNIQUIFY));
+                samples.add(GATKVariantContextUtils.mergedSampleName(val.getKey(), sample, mergeOption == GATKVariantContextUtils.GenotypeMergeType.UNIQUIFY));
             }
         }
 
         return samples;
+    }
+
+
+    /**
+     *
+     * @param VCF_Headers
+     * @return false if there are names duplication between the samples names in the VCF headers
+     */
+    public static boolean verifyUniqueSamplesNames(Map<String, VCFHeader> VCF_Headers) {
+        Set<String> samples = new HashSet<String>();
+        for ( Map.Entry<String, VCFHeader> val : VCF_Headers.entrySet() ) {
+            VCFHeader header = val.getValue();
+            for ( String sample : header.getGenotypeSamples() ) {
+                if (samples.contains(sample)){
+
+                    return false;
+                }
+                samples.add(sample);
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -149,7 +171,7 @@ public class SampleUtils {
 
         // iterate to get all of the sample names
 
-        for ( Map.Entry<String, VCFHeader> pair : VCFUtils.getVCFHeadersFromRods(toolkit).entrySet() ) {
+        for ( Map.Entry<String, VCFHeader> pair : GATKVCFUtils.getVCFHeadersFromRods(toolkit).entrySet() ) {
             for ( String sample : pair.getValue().getGenotypeSamples() )
                 addUniqueSample(samples, sampleOverlapMap, rodNamesToSampleNames, sample, pair.getKey());
         }

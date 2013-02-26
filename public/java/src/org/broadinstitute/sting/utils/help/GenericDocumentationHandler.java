@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 2012, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils.help;
 
@@ -29,11 +30,13 @@ import com.google.java.contract.Requires;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.Tag;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
+import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -41,6 +44,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
 
@@ -90,6 +94,9 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         addRelatedBindings(root);
         root.put("group", toProcess.group);
 
+        // Adding in retrieval of peripheral info (rf annotations etc)
+        getClazzAnnotations(toProcess.clazz, root);
+
         toProcess.setHandlerContent((String) root.get("summary"), root);
     }
 
@@ -134,7 +141,6 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
                         put("filename", otherUnit.filename);
                         put("name", otherUnit.name);
                     }});
-
         }
         root.put("extradocs", extraDocsData);
     }
@@ -270,6 +276,247 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     }
 
     /**
+     * Umbrella function that groups the collection of values for specific annotations applied to an
+     * instance of class c. Lists of collected values are added directly to the "toProcess" object.
+     * Requires being able to instantiate the class.
+     *
+     * @param classToProcess the object to instantiate and query for the annotation
+     * @param root the root of the document handler, to which we'll store collected annotations
+     */
+    private void getClazzAnnotations(Class classToProcess, Map<String, Object> root) {
+        //
+        // attempt to instantiate the class
+        final Object instance = makeInstanceIfPossible(classToProcess);
+        if (instance != null) {
+            final Class myClass = instance.getClass();
+            // Get parallelism options
+            final HashSet<HashMap<String, Object>> parallelOptions = getParallelism(myClass, new HashSet<HashMap<String, Object>>());
+            root.put("parallel", parallelOptions);
+            // Get annotation info (what type of annotation, standard etc.)
+            final HashSet<String> annotInfo = getAnnotInfo(myClass, new HashSet<String>());
+            root.put("annotinfo", StringUtils.join(annotInfo, ", "));
+            // Get walker type if applicable
+            root.put("walkertype", getWalkerType(myClass));
+            // Get partition type if applicable
+            root.put("partitiontype", getPartitionType(myClass));
+            // Get read filter annotations (ReadFilters) if applicable
+            final HashSet<HashMap<String, Object>> bucket= getReadFilters(myClass, new HashSet<HashMap<String, Object>>());
+            root.put("readfilters", bucket);
+            // Get default downsampling settings
+            final HashMap<String, Object> dsSettings = getDownSamplingSettings(myClass, new HashMap<String, Object>());
+            root.put("downsampling", dsSettings);
+            // Get reference window size settings
+            final HashMap<String, Object> refwindow = getRefWindow(myClass, new HashMap<String, Object>());
+            root.put("refwindow", refwindow);
+            // Get ActiveRegion size settings
+            final HashMap<String, Object> activeRegion = getActiveRegion(myClass, new HashMap<String, Object>());
+            root.put("activeregion", activeRegion);
+            // anything else?
+        } else {
+            // put empty items to avoid blowups
+            root.put("parallel", new HashSet<String>());
+            root.put("annotinfo", "");
+            root.put("walkertype", "");
+            root.put("partitiontype", "");
+            root.put("readfilters", new HashSet<HashMap<String, Object>>());
+            root.put("downsampling", new HashMap<String, Object>());
+            root.put("refwindow", new HashMap<String, Object>());
+            root.put("activeregion", new HashMap<String, Object>());
+        }
+    }
+
+    /**
+     * Utility function that checks which parallelism options are available for an instance of class c.
+     *
+     * @param myClass the class to query for the interfaces
+     * @param parallelOptions an empty HashSet in which to collect the info
+     * @return a hash set of parallelism options, otherwise an empty set
+     */
+    private HashSet<HashMap<String, Object>> getParallelism(Class myClass, HashSet<HashMap<String, Object>> parallelOptions) {
+        //
+        // Retrieve interfaces
+        Class[] implementedInterfaces = myClass.getInterfaces();
+        for (Class intfClass : implementedInterfaces) {
+            final HashMap<String, Object> nugget = new HashMap<String, Object>();
+            if (intfClass.getSimpleName().equals("TreeReducible")) {
+                nugget.put("name", intfClass.getSimpleName());
+                nugget.put("arg", HelpConstants.ARG_TREEREDUCIBLE);
+                nugget.put("link", HelpConstants.CMDLINE_GATK_URL + "#" + HelpConstants.ARG_TREEREDUCIBLE);
+            } else if (intfClass.getSimpleName().equals("NanoSchedulable")) {
+                nugget.put("name", intfClass.getSimpleName());
+                nugget.put("arg", HelpConstants.ARG_NANOSCHEDULABLE);
+                nugget.put("link", HelpConstants.CMDLINE_GATK_URL + "#" + HelpConstants.ARG_NANOSCHEDULABLE);
+            } else {
+                continue;
+            }
+            parallelOptions.add(nugget);
+        }
+        // Look up superclasses recursively
+        final Class mySuperClass = myClass.getSuperclass();
+        if (mySuperClass.getSimpleName().equals("Object")) {
+            return parallelOptions;
+        }
+        return getParallelism(mySuperClass, parallelOptions);
+    }
+
+    /**
+     * Utility function that determines the annotation type for an instance of class c.
+     *
+     * @param myClass the class to query for the interfaces
+     * @param annotInfo an empty HashSet in which to collect the info
+     * @return a hash set of the annotation types, otherwise an empty set
+     */
+    private HashSet<String> getAnnotInfo(Class myClass, HashSet<String> annotInfo) {
+        //
+        // Retrieve interfaces
+        Class[] implementedInterfaces = myClass.getInterfaces();
+        for (Class intfClass : implementedInterfaces) {
+            if (intfClass.getName().contains("Annotation")) {
+                annotInfo.add(intfClass.getSimpleName());
+            }
+        }
+        // Look up superclasses recursively
+        final Class mySuperClass = myClass.getSuperclass();
+        if (mySuperClass.getSimpleName().equals("Object")) {
+            return annotInfo;
+        }
+        return getAnnotInfo(mySuperClass, annotInfo);
+    }
+
+    /**
+     * Utility function that determines the default downsampling settings for an instance of class c.
+     *
+     * @param myClass the class to query for the settings
+     * @param dsSettings an empty HashMap in which to collect the info
+     * @return a hash set of the downsampling settings, otherwise an empty set
+     */
+    private HashMap<String, Object> getDownSamplingSettings(Class myClass, HashMap<String, Object> dsSettings) {
+        //
+        // Retrieve annotation
+        if (myClass.isAnnotationPresent(Downsample.class)) {
+            final Annotation thisAnnotation = myClass.getAnnotation(Downsample.class);
+            if(thisAnnotation instanceof Downsample) {
+                final Downsample dsAnnotation = (Downsample) thisAnnotation;
+                dsSettings.put("by", dsAnnotation.by().toString());
+                dsSettings.put("to_cov", dsAnnotation.toCoverage());
+            }
+        }
+        return dsSettings;
+    }
+
+    /**
+     * Utility function that determines the reference window size for an instance of class c.
+     *
+     * @param myClass the class to query for the settings
+     * @param refWindow an empty HashMap in which to collect the info
+     * @return a HashMap of the window start and stop, otherwise an empty HashMap
+     */
+    private HashMap<String, Object> getRefWindow(Class myClass, HashMap<String, Object> refWindow) {
+        //
+        // Retrieve annotation
+        if (myClass.isAnnotationPresent(Reference.class)) {
+            final Annotation thisAnnotation = myClass.getAnnotation(Reference.class);
+            if(thisAnnotation instanceof Reference) {
+                final Reference refAnnotation = (Reference) thisAnnotation;
+                refWindow.put("start", refAnnotation.window().start());
+                refWindow.put("stop", refAnnotation.window().stop());
+            }
+        }
+        return refWindow;
+    }
+
+    /**
+     * Utility function that determines the ActiveRegion settings for an instance of class c.
+     *
+     * @param myClass the class to query for the settings
+     * @param activeRegion an empty HashMap in which to collect the info
+     * @return a HashMap of the ActiveRegion parameters, otherwise an empty HashMap
+     */
+    private HashMap<String, Object> getActiveRegion(Class myClass, HashMap<String, Object> activeRegion) {
+        //
+        // Retrieve annotation
+        if (myClass.isAnnotationPresent(ActiveRegionTraversalParameters.class)) {
+            final Annotation thisAnnotation = myClass.getAnnotation(ActiveRegionTraversalParameters.class);
+            if(thisAnnotation instanceof ActiveRegionTraversalParameters) {
+                final ActiveRegionTraversalParameters arAnnotation = (ActiveRegionTraversalParameters) thisAnnotation;
+                activeRegion.put("ext", arAnnotation.extension());
+                activeRegion.put("max", arAnnotation.maxRegion());
+                activeRegion.put("min", arAnnotation.minRegion());
+            }
+        }
+        return activeRegion;
+    }
+
+    /**
+     * Utility function that determines the partition type of an instance of class c.
+     *
+     * @param myClass the class to query for the annotation
+     * @return the partition type if applicable, otherwise an empty string
+     */
+    private String getPartitionType(Class myClass) {
+        //
+        // Retrieve annotation
+        if (myClass.isAnnotationPresent(PartitionBy.class)) {
+            final Annotation thisAnnotation = myClass.getAnnotation(PartitionBy.class);
+            if(thisAnnotation instanceof PartitionBy) {
+                final PartitionBy partAnnotation = (PartitionBy) thisAnnotation;
+                return partAnnotation.value().toString();
+            }
+        }
+        return "";
+    }
+
+    /**
+     * Utility function that determines the type of walker subclassed by an instance of class c.
+     *
+     * @param myClass the class to query for the annotation
+     * @return the type of walker if applicable, otherwise an empty string
+     */
+    private String getWalkerType(Class myClass) {
+        //
+        // Look up superclasses recursively until we find either Walker or Object
+        final Class mySuperClass = myClass.getSuperclass();
+        if (mySuperClass.getSimpleName().equals("Walker")) {
+            return myClass.getSimpleName();
+        } else if (mySuperClass.getSimpleName().equals("Object")) {
+            return "";
+        }
+        return getWalkerType(mySuperClass);
+    }
+
+    /**
+     * Utility function that finds the values of ReadFilters annotation applied to an instance of class c.
+     *
+     * @param myClass the class to query for the annotation
+     * @param bucket a container in which we store the annotations collected
+     * @return a hash set of values, otherwise an empty set
+     */
+    private HashSet<HashMap<String, Object>> getReadFilters(Class myClass, HashSet<HashMap<String, Object>> bucket) {
+        //
+        // Retrieve annotation
+        if (myClass.isAnnotationPresent(ReadFilters.class)) {
+            final Annotation thisAnnotation = myClass.getAnnotation(ReadFilters.class);
+            if(thisAnnotation instanceof ReadFilters) {
+                final ReadFilters rfAnnotation = (ReadFilters) thisAnnotation;
+                for (Class<?> filter : rfAnnotation.value()) {
+                    // make hashmap of simplename and url
+                    final HashMap<String, Object> nugget = new HashMap<String, Object>();
+                    nugget.put("name", filter.getSimpleName());
+                    nugget.put("filename", GATKDocUtils.htmlFilenameForClass(filter));
+                    bucket.add(nugget);
+                }
+            }
+        }
+        // Look up superclasses recursively
+        final Class mySuperClass = myClass.getSuperclass();
+        if (mySuperClass.getSimpleName().equals("Object")) {
+            return bucket;
+        }
+        return getReadFilters(mySuperClass, bucket);
+    }
+
+
+    /**
      * Utility function that finds the value of fieldName in any fields of ArgumentCollection fields in
      * instance of class c.
      *
@@ -286,6 +533,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         // @ArgumentCollection
         // protected DbsnpArgumentCollection dbsnp = new DbsnpArgumentCollection();
         //
+
         for (Field field : JVMUtils.getAllFields(instance.getClass())) {
             if (field.isAnnotationPresent(ArgumentCollection.class)) {
                 //System.out.printf("Searching for %s in argument collection field %s%n", fieldName, field);

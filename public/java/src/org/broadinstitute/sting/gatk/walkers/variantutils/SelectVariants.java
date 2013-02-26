@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 2010, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
@@ -33,20 +34,19 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCounts;
-import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyper;
-import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
+import org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCountConstants;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.utils.variantcontext.*;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.*;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -179,7 +179,7 @@ import java.util.*;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class SelectVariants extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
     @ArgumentCollection protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
@@ -234,17 +234,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
     @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered loci in the analysis", required=false)
     protected boolean EXCLUDE_FILTERED = false;
-
-    /**
-     * This argument triggers re-genotyping of the selected samples through the Exact calculation model.  Note that this is truly the
-     * mathematically correct way to select samples (especially when calls were generated from low coverage sequencing data); using the
-     * hard genotypes to select (i.e. the default mode of SelectVariants) can lead to false positives when errors are confused for variants
-     * in the original genotyping.  We decided not to set the --regenotype option as the default though as the output can be unexpected if
-     * a user is strictly comparing against the original genotypes (GTs) in the file.
-     */
-    @Argument(fullName="regenotype", shortName="regenotype", doc="re-genotype the selected samples based on their GLs (or PLs)", required=false)
-    protected Boolean REGENOTYPE = false;
-    private UnifiedGenotyperEngine UG_engine = null;
 
     /**
      * When this argument is used, we can choose to include only multiallelic or biallelic sites, depending on how many alleles are listed in the ALT column of a vcf.
@@ -349,8 +338,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         // Get list of samples to include in the output
         List<String> rodNames = Arrays.asList(variantCollection.variants.getName());
 
-        vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
-        TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
+        vcfRods = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
+        TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, GATKVariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
 
         Collection<String> samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFiles);
         Collection<String> samplesFromExpressions = SampleUtils.matchSamplesExpressions(vcfSamples, sampleExpressions);
@@ -413,7 +402,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         }
         // Initialize VCF header
-        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
+        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), true);
         headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
 
         if (KEEP_ORIGINAL_CHR_COUNTS) {
@@ -421,7 +410,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             headerLines.add(new VCFInfoHeaderLine("AF_Orig", 1, VCFHeaderLineType.Float, "Original AF"));
             headerLines.add(new VCFInfoHeaderLine("AN_Orig", 1, VCFHeaderLineType.Integer, "Original AN"));
         }
-        headerLines.addAll(Arrays.asList(ChromosomeCounts.descriptions));
+        headerLines.addAll(Arrays.asList(ChromosomeCountConstants.descriptions));
         headerLines.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.DEPTH_KEY));
 
         for (int i = 0; i < SELECT_EXPRESSIONS.size(); i++) {
@@ -445,15 +434,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         SELECT_RANDOM_FRACTION = fractionRandom > 0;
         if (SELECT_RANDOM_FRACTION) logger.info("Selecting approximately " + 100.0*fractionRandom + "% of the variants at random from the variant track");
-
-        if ( REGENOTYPE ) {
-            final UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
-            UAC.GLmodel = GenotypeLikelihoodsCalculationModel.Model.BOTH;
-            UAC.OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES;
-            UAC.GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
-            UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, null, null, samples, VariantContextUtils.DEFAULT_PLOIDY);
-            headerLines.addAll(UnifiedGenotyper.getHeaderInfo(UAC, null, null));
-        }
 
         /** load in the IDs file to a hashset for matching */
         if ( rsIDFile != null ) {
@@ -532,14 +512,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
             VariantContext sub = subsetRecord(vc, EXCLUDE_NON_VARIANTS);
 
-            if ( REGENOTYPE && sub.isPolymorphicInSamples() && hasPLs(sub) ) {
-                synchronized (UG_engine) {
-                    final VariantContextBuilder builder = new VariantContextBuilder(UG_engine.calculateGenotypes(sub)).filters(sub.getFiltersMaybeNull());
-                    addAnnotations(builder, sub);
-                    sub = builder.make();
-                }
-            }
-            
             if ( (!EXCLUDE_NON_VARIANTS || sub.isPolymorphicInSamples()) && (!EXCLUDE_FILTERED || !sub.isFiltered()) ) {
                 boolean failedJexlMatch = false;
                 for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
@@ -571,19 +543,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         return false;
     }
 
-    private boolean hasPLs(final VariantContext vc) {
-        for ( Genotype g : vc.getGenotypes() ) {
-            if ( g.hasLikelihoods() )
-                return true;
-        }
-        return false;
-    }
-
     /**
      * Checks if vc has a variant call for (at least one of) the samples.
      * @param vc the variant rod VariantContext. Here, the variant is the dataset you're looking for discordances to (e.g. HapMap)
      * @param compVCs the comparison VariantContext (discordance
-     * @return
+     * @return true if is discordant
      */
     private boolean isDiscordant (VariantContext vc, Collection<VariantContext> compVCs) {
         if (vc == null)
@@ -699,7 +663,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs and AD (because they are no longer accurate)
         if ( vc.getAlleles().size() != sub.getAlleles().size() )
-            newGC = VariantContextUtils.stripPLsAndAD(sub.getGenotypes());
+            newGC = GATKVariantContextUtils.stripPLsAndAD(sub.getGenotypes());
 
         // if we have fewer samples in the selected VC than in the original VC, we need to strip out the MLE tags
         if ( vc.getNSamples() != sub.getNSamples() ) {

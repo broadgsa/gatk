@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import net.sf.picard.reference.ReferenceSequence;
@@ -98,36 +123,8 @@ public class LocusReferenceView extends ReferenceView {
         if(bounds != null) {
             int expandedStart = getWindowStart( bounds );
             int expandedStop  = getWindowStop( bounds );
-            initializeReferenceSequence(genomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
+            initializeReferenceSequence(genomeLocParser.createGenomeLoc(bounds.getContig(), bounds.getContigIndex(), expandedStart, expandedStop));
         }
-    }
-
-    /** Returns true if the specified location is fully within the bounds of the reference window loaded into
-     *  this LocusReferenceView object.
-     */
-    public boolean isLocationWithinBounds(GenomeLoc loc) {
-        return bounds.containsP(loc);
-    }
-
-    /** Ensures that specified location is within the bounds of the reference window loaded into this
-     * LocusReferenceView object. If the location loc is within the current bounds (or if it is null), then nothing is done.
-     * Otherwise, the bounds are expanded on either side, as needed, to accomodate the location, and the reference seuqence for the
-     * new bounds is reloaded (can be costly!). If loc spans beyond the current contig, the expansion is performed
-     * to the start/stop of that contig only.
-     * @param loc
-     */
-    public void expandBoundsToAccomodateLoc(GenomeLoc loc) {
-        if ( bounds==null || loc==null) return; // can bounds be null actually???
-        if ( isLocationWithinBounds(loc) ) return;
-        if ( loc.getContigIndex() != bounds.getContigIndex() )
-            throw new ReviewedStingException("Illegal attempt to expand reference view bounds to accommodate location on a different contig.");
-
-        bounds = genomeLocParser.createGenomeLoc(bounds.getContig(),
-                                                 Math.min(bounds.getStart(),loc.getStart()),
-                                                 Math.max(bounds.getStop(),loc.getStop()));
-        int expandedStart = getWindowStart( bounds );
-        int expandedStop  = getWindowStop( bounds );
-        initializeReferenceSequence(genomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
     }
 
     /**
@@ -185,7 +182,8 @@ public class LocusReferenceView extends ReferenceView {
     public ReferenceContext getReferenceContext( GenomeLoc genomeLoc ) {
         //validateLocation( genomeLoc );
 
-        GenomeLoc window = genomeLocParser.createGenomeLoc( genomeLoc.getContig(), getWindowStart(genomeLoc), getWindowStop(genomeLoc) );
+        GenomeLoc window = genomeLocParser.createGenomeLoc( genomeLoc.getContig(), bounds.getContigIndex(),
+                getWindowStart(genomeLoc), getWindowStop(genomeLoc) );
 
         int refStart = -1;
         if (bounds != null) {
@@ -210,16 +208,6 @@ public class LocusReferenceView extends ReferenceView {
      */
     public byte[] getReferenceBases( GenomeLoc genomeLoc ) {
         return super.getReferenceBases(genomeLoc);
-    }
-
-    /**
-     * Validates that the genomeLoc is one base wide and is in the reference sequence.
-     * @param genomeLoc location to verify.
-     */
-    private void validateLocation( GenomeLoc genomeLoc ) throws InvalidPositionException {
-        if( bounds != null && !bounds.containsP(genomeLoc) )
-            throw new InvalidPositionException(
-                    String.format("Requested position %s not within interval %s", genomeLoc, bounds));
     }
 
     /**

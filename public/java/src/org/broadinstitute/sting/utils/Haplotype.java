@@ -1,131 +1,104 @@
 /*
- * Copyright (c) 2010, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils;
 
-import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.io.Serializable;
 import java.util.*;
 
-public class Haplotype {
-    protected final byte[] bases;
-    protected final double[] quals;
+public class Haplotype extends Allele {
+
     private GenomeLoc genomeLocation = null;
-    private HashMap<Integer, VariantContext> eventMap = null;
-    private boolean isRef = false;
+    private Map<Integer, VariantContext> eventMap = null;
     private Cigar cigar;
     private int alignmentStartHapwrtRef;
-    public int leftBreakPoint = 0;
-    public int rightBreakPoint = 0;
-    private Allele artificialAllele = null;
-    private int artificialAllelePosition = -1;
+    private Event artificialEvent = null;
 
     /**
-     * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
+     * Main constructor
      *
      * @param bases bases
-     * @param qual  qual
+     * @param isRef is reference allele?
      */
-    public Haplotype( final byte[] bases, final int qual ) {
-        this.bases = bases.clone();
-        quals = new double[bases.length];
-        Arrays.fill(quals, (double)qual);
-    }
-
-    public Haplotype( final byte[] bases, final double[] quals ) {
-        this.bases = bases.clone();
-        this.quals = quals.clone();
+    public Haplotype( final byte[] bases, final boolean isRef ) {
+        super(bases.clone(), isRef);
     }
 
     public Haplotype( final byte[] bases ) {
-        this(bases, 0);
+        this(bases, false);
     }
 
-    protected Haplotype( final byte[] bases, final Allele artificialAllele, final int artificialAllelePosition ) {
-        this(bases, 0);
-        this.artificialAllele = artificialAllele;
-        this.artificialAllelePosition = artificialAllelePosition;
+    /**
+     * Copy constructor.  Note the ref state of the provided allele is ignored!
+     *
+     * @param allele allele to copy
+     */
+    public Haplotype( final Allele allele ) {
+        super(allele, true);
+    }
+
+    protected Haplotype( final byte[] bases, final Event artificialEvent ) {
+        this(bases, false);
+        this.artificialEvent = artificialEvent;
     }
 
     public Haplotype( final byte[] bases, final GenomeLoc loc ) {
-        this(bases);
+        this(bases, false);
         this.genomeLocation = loc;
     }
 
     @Override
     public boolean equals( Object h ) {
-        return h instanceof Haplotype && Arrays.equals(bases, ((Haplotype) h).bases);
-    }
-    
-    @Override
-    public int hashCode() {
-        return Arrays.hashCode(bases);
+        return h instanceof Haplotype && Arrays.equals(getBases(), ((Haplotype) h).getBases());
     }
 
-    public HashMap<Integer, VariantContext> getEventMap() {
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(getBases());
+    }
+
+    public Map<Integer, VariantContext> getEventMap() {
         return eventMap;
     }
 
-    public void setEventMap( final HashMap<Integer, VariantContext> eventMap ) {
+    public void setEventMap( final Map<Integer, VariantContext> eventMap ) {
         this.eventMap = eventMap;
-    }
-
-    public boolean isReference() {
-        return isRef;
-    }
-
-    public void setIsReference( boolean isRef ) {
-        this.isRef = isRef;
-    }
-
-    public double getQualitySum() {
-        double s = 0;
-        for (int k=0; k < bases.length; k++) {
-            s += quals[k];
-        }
-        return s;
     }
 
     @Override
     public String toString() {
-        return new String(bases);
-    }
-
-    public double[] getQuals() {
-        return quals.clone();
-    }
-    public byte[] getBases() {
-        return bases.clone();
+        return getDisplayString();
     }
 
     public long getStartPosition() {
@@ -153,39 +126,52 @@ public class Haplotype {
     }
 
     public boolean isArtificialHaplotype() {
-        return artificialAllele != null;
+        return artificialEvent != null;
     }
 
-    public Allele getArtificialAllele() {
-        return artificialAllele;
+    public Event getArtificialEvent() {
+        return artificialEvent;
+    }
+
+    public Allele getArtificialRefAllele() {
+        return artificialEvent.ref;
+    }
+
+    public Allele getArtificialAltAllele() {
+        return artificialEvent.alt;
     }
 
     public int getArtificialAllelePosition() {
-        return artificialAllelePosition;
+        return artificialEvent.pos;
     }
 
-    public void setArtificialAllele(final Allele artificialAllele, final int artificialAllelePosition) {
-        this.artificialAllele = artificialAllele;
-        this.artificialAllelePosition = artificialAllelePosition;
+    public void setArtificialEvent( final Event artificialEvent ) {
+        this.artificialEvent = artificialEvent;
     }
 
     @Requires({"refInsertLocation >= 0"})
     public Haplotype insertAllele( final Allele refAllele, final Allele altAllele, final int refInsertLocation, final int genomicInsertLocation ) {
         // refInsertLocation is in ref haplotype offset coordinates NOT genomic coordinates
         final int haplotypeInsertLocation = ReadUtils.getReadCoordinateForReferenceCoordinate(alignmentStartHapwrtRef, cigar, refInsertLocation, ReadUtils.ClippingTail.RIGHT_TAIL, true);
-        if( haplotypeInsertLocation == -1 || haplotypeInsertLocation + refAllele.length() >= bases.length ) { // desired change falls inside deletion so don't bother creating a new haplotype
+        final byte[] myBases = this.getBases();
+        if( haplotypeInsertLocation == -1 || haplotypeInsertLocation + refAllele.length() >= myBases.length ) { // desired change falls inside deletion so don't bother creating a new haplotype
             return null;
         }
+
         byte[] newHaplotypeBases = new byte[]{};
-        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, 0, haplotypeInsertLocation)); // bases before the variant
+        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(myBases, 0, haplotypeInsertLocation)); // bases before the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, altAllele.getBases()); // the alt allele of the variant
-        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(bases, haplotypeInsertLocation + refAllele.length(), bases.length)); // bases after the variant
-        return new Haplotype(newHaplotypeBases, altAllele, genomicInsertLocation);
+        newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(myBases, haplotypeInsertLocation + refAllele.length(), myBases.length)); // bases after the variant
+        return new Haplotype(newHaplotypeBases, new Event(refAllele, altAllele, genomicInsertLocation));
     }
 
     public static class HaplotypeBaseComparator implements Comparator<Haplotype>, Serializable {
         @Override
         public int compare( final Haplotype hap1, final Haplotype hap2 ) {
+            return compareHaplotypeBases(hap1, hap2);
+        }
+
+        public static int compareHaplotypeBases(final Haplotype hap1, final Haplotype hap2) {
             final byte[] arr1 = hap1.getBases();
             final byte[] arr2 = hap2.getBases();
             // compares byte arrays using lexical ordering
@@ -218,7 +204,7 @@ public class Haplotype {
         if (refAllele == null)
             throw new ReviewedStingException("BUG: no ref alleles in input to makeHaplotypeListfrom Alleles at loc: "+ startPos);
 
-        byte[] refBases = ref.getBases();
+        final byte[] refBases = ref.getBases();
 
         final int startIdxInReference = 1 + startPos - numPrefBases - ref.getWindow().getStart();
         final String basesBeforeVariant = new String(Arrays.copyOfRange(refBases, startIdxInReference, startIdxInReference + numPrefBases));
@@ -244,5 +230,17 @@ public class Haplotype {
         }
 
         return haplotypeMap;
+    }
+
+    private static class Event {
+        public Allele ref;
+        public Allele alt;
+        public int pos;
+
+        public Event( final Allele ref, final Allele alt, final int pos ) {
+            this.ref = ref;
+            this.alt = alt;
+            this.pos = pos;
+        }
     }
 }

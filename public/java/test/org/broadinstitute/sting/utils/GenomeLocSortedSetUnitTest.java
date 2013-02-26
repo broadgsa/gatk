@@ -1,20 +1,48 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.util.Iterator;
-import java.util.Arrays;
+import java.io.File;
+import java.util.*;
 
 /**
  *
@@ -295,5 +323,63 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
             ++seqNumber;
         }
         assertTrue(seqNumber == GenomeLocSortedSetUnitTest.NUMBER_OF_CHROMOSOMES);
+    }
+
+    // -----------------------------------------------------------------------------------------------
+    //
+    // Test getOverlapping
+    //
+    // -----------------------------------------------------------------------------------------------
+
+    @DataProvider(name = "GetOverlapping")
+    public Object[][] makeGetOverlappingTest() throws Exception {
+        final GenomeLocParser genomeLocParser = new GenomeLocParser(new CachingIndexedFastaSequenceFile(new File(b37KGReference)));
+
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final GenomeLoc prev1 = genomeLocParser.createGenomeLoc("19", 1, 10);
+        final GenomeLoc prev2 = genomeLocParser.createGenomeLoc("19", 20, 50);
+        final GenomeLoc post1 = genomeLocParser.createGenomeLoc("21", 1, 10);
+        final GenomeLoc post2 = genomeLocParser.createGenomeLoc("21", 20, 50);
+
+        final int chr20Length = genomeLocParser.getContigs().getSequence("20").getSequenceLength();
+        for ( final int regionStart : Arrays.asList(1, 10, chr20Length - 10, chr20Length) ) {
+            for ( final int regionSize : Arrays.asList(1, 10, 100) ) {
+                final GenomeLoc region = genomeLocParser.createGenomeLocOnContig("20", regionStart, regionStart + regionSize);
+                final GenomeLoc spanning = genomeLocParser.createGenomeLocOnContig("20", regionStart - 10, region.getStop() + 10);
+                final GenomeLoc before_into = genomeLocParser.createGenomeLocOnContig("20", regionStart - 10, regionStart + 1);
+                final GenomeLoc middle = genomeLocParser.createGenomeLocOnContig("20", regionStart + 1, regionStart + 2);
+                final GenomeLoc middle_past = genomeLocParser.createGenomeLocOnContig("20", region.getStop()-1, region.getStop()+10);
+
+                final List<GenomeLoc> potentials = new LinkedList<GenomeLoc>();
+                potentials.add(region);
+                if ( spanning != null ) potentials.add(spanning);
+                if ( before_into != null ) potentials.add(before_into);
+                if ( middle != null ) potentials.add(middle);
+                if ( middle_past != null ) potentials.add(middle_past);
+
+                for ( final int n : Arrays.asList(1, 2, 3) ) {
+                    for ( final List<GenomeLoc> regions : Utils.makePermutations(potentials, n, false) ) {
+                        tests.add(new Object[]{new GenomeLocSortedSet(genomeLocParser, regions), region});
+                        tests.add(new Object[]{new GenomeLocSortedSet(genomeLocParser, Utils.append(regions, prev1)), region});
+                        tests.add(new Object[]{new GenomeLocSortedSet(genomeLocParser, Utils.append(regions, prev1, prev2)), region});
+                        tests.add(new Object[]{new GenomeLocSortedSet(genomeLocParser, Utils.append(regions, post1)), region});
+                        tests.add(new Object[]{new GenomeLocSortedSet(genomeLocParser, Utils.append(regions, post1, post2)), region});
+                        tests.add(new Object[]{new GenomeLocSortedSet(genomeLocParser, Utils.append(regions, prev1, post1)), region});
+                        tests.add(new Object[]{new GenomeLocSortedSet(genomeLocParser, Utils.append(regions, prev1, prev2, post1, post2)), region});
+                    }
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "GetOverlapping")
+    public void testGetOverlapping(final GenomeLocSortedSet intervals, final GenomeLoc region) {
+        final List<GenomeLoc> expectedOverlapping = intervals.getOverlappingFullSearch(region);
+        final List<GenomeLoc> actualOverlapping = intervals.getOverlapping(region);
+        Assert.assertEquals(actualOverlapping, expectedOverlapping);
+        Assert.assertEquals(intervals.overlaps(region), ! expectedOverlapping.isEmpty(), "GenomeLocSortedSet.overlaps didn't return expected result");
     }
 }

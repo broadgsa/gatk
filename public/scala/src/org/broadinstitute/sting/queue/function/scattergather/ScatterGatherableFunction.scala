@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 2012, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.queue.function.scattergather
 
@@ -108,7 +109,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     this.copySettingsTo(scatterFunction)
     scatterFunction.originalFunction = this
     scatterFunction.originalInputs = inputFiles
-    scatterFunction.commandDirectory = this.scatterGatherTempDir("scatter")
+    scatterFunction.commandDirectory = this.scatterGatherCommandDir("scatter")
     scatterFunction.jobOutputFile = new File("scatter.out")
     scatterFunction.addOrder = this.addOrder :+ 1
     scatterFunction.isIntermediate = true
@@ -153,7 +154,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       this.copySettingsTo(gatherFunction)
       gatherFunction.originalFunction = this
       gatherFunction.originalOutput = gatherOutput
-      gatherFunction.commandDirectory = this.scatterGatherTempDir("gather-" + gatherField.field.getName)
+      gatherFunction.commandDirectory = this.scatterGatherCommandDir("gather-" + gatherField.field.getName)
       gatherFunction.jobOutputFile = new File("gather-" + gatherOutput.getName + ".out")
       gatherFunction.addOrder = this.addOrder :+ gatherAddOrder
 
@@ -177,10 +178,14 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       cloneFunction.analysisName = this.analysisName
       cloneFunction.cloneIndex = i
       cloneFunction.cloneCount = numClones
-      cloneFunction.commandDirectory = this.scatterGatherTempDir(dirFormat.format(i))
+      cloneFunction.commandDirectory = this.scatterGatherCommandDir(dirFormat.format(i))
       cloneFunction.jobOutputFile = if (IOUtils.isSpecialFile(this.jobOutputFile)) this.jobOutputFile else new File(this.jobOutputFile.getName)
       if (this.jobErrorFile != null)
         cloneFunction.jobErrorFile = if (IOUtils.isSpecialFile(this.jobErrorFile)) this.jobErrorFile else new File(this.jobErrorFile.getName)
+      // jic the "local" dir is actually on the network, create different sub local directories for each clone.
+      // This might be better handled with a hook that allows clones to create unique file names. Right now no hook
+      // like freezeFieldValues exists for specifying per cloneFunction fields.
+      cloneFunction.jobLocalDir = this.scatterGatherLocalDir(dirFormat.format(i))
       cloneFunction.addOrder = this.addOrder :+ (i+1)
       cloneFunction.isIntermediate = true
 
@@ -349,7 +354,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     this.copySettingsTo(gatherLogFunction)
     gatherLogFunction.logs = functions.map(logFile).filter(_ != null)
     gatherLogFunction.jobOutputFile = logFile(this)
-    gatherLogFunction.commandDirectory = this.scatterGatherTempDir()
+    gatherLogFunction.commandDirectory = this.scatterGatherCommandDir()
     gatherLogFunction.addOrder = this.addOrder :+ addOrder
     gatherLogFunction.isIntermediate = false
     gatherLogFunction
@@ -360,5 +365,12 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @param subDir directory under the scatter gather directory.
    * @return temporary directory under this scatter gather directory.
    */
-  private def scatterGatherTempDir(subDir: String = "") = IOUtils.absolute(this.scatterGatherDirectory, this.jobName + "-sg/" + subDir)
+  private def scatterGatherCommandDir(subDir: String = "") = IOUtils.absolute(this.scatterGatherDirectory, this.jobName + "-sg/" + subDir)
+
+  /**
+   * Returns a sub directory under this job local directory.
+   * @param subDir directory under the job local directory.
+   * @return absolute path to a directory under the original job local directory.
+   */
+  private def scatterGatherLocalDir(subDir: String = "") = IOUtils.absolute(this.jobLocalDir, this.jobName + "-sg/" + subDir)
 }

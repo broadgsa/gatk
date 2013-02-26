@@ -1,16 +1,42 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.gatk.executive;
 
 import net.sf.picard.util.PeekableIterator;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.iterators.LegacyLocusIteratorByState;
-import org.broadinstitute.sting.gatk.iterators.LocusIterator;
-import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
+import org.broadinstitute.sting.gatk.iterators.GATKSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.locusiterator.LocusIterator;
+import org.broadinstitute.sting.utils.locusiterator.LocusIteratorByState;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -46,7 +72,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
     /**
      * Hold the read iterator so that it can be closed later.
      */
-    private final StingSAMIterator readIterator;
+    private final GATKSAMIterator readIterator;
 
     /**
      * The data source for reads.  Will probably come directly from the BAM file.
@@ -79,22 +105,20 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
      * @param sampleNames The complete set of sample names in the reads in shard
      */
 
+    private final LocusIteratorByState libs;
+
     public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator iterator, List<GenomeLoc> intervals, Collection<String> sampleNames) {
         this.sourceInfo = shard.getReadProperties();
-        this.readIterator = iterator;
+        this.readIterator = new GATKSAMIterator(iterator);
 
-        // Use the legacy version of LocusIteratorByState if legacy downsampling was requested:
-        this.sourceIterator = sourceInfo.getDownsamplingMethod().useLegacyDownsampler ?
-                              new PeekableIterator<AlignmentContext>(new LegacyLocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleNames))
-                              :
-                              new PeekableIterator<AlignmentContext>(new LocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleNames));
-
+        this.libs = new LocusIteratorByState(readIterator,sourceInfo,genomeLocParser,sampleNames);
+        this.sourceIterator = new PeekableIterator<AlignmentContext>(libs);
 
         this.intervalIterator = intervals.size()>0 ? new PeekableIterator<GenomeLoc>(intervals.iterator()) : null;
     }
 
     public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator iterator, List<GenomeLoc> intervals ) {
-        this(shard, genomeLocParser, iterator, intervals, LegacyLocusIteratorByState.sampleListForSAMWithoutReadGroups());
+        this(shard, genomeLocParser, iterator, intervals, LocusIteratorByState.sampleListForSAMWithoutReadGroups());
     }
 
     public Iterator<WindowMakerIterator> iterator() {
@@ -183,6 +207,11 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
                 else
                     throw new ReviewedStingException("BUG: filtering locus does not contain, is not before, and is not past the given alignment context");
             }
+        }
+
+        @Override
+        public LocusIteratorByState getLIBS() {
+            return libs;
         }
     }
 }

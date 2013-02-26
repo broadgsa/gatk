@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 2010, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.gatk;
 
@@ -46,6 +47,8 @@ import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformersMode;
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
+import org.broadinstitute.sting.gatk.refdata.tracks.IndexDictionaryUtils;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
@@ -53,13 +56,11 @@ import org.broadinstitute.sting.gatk.samples.SampleDB;
 import org.broadinstitute.sting.gatk.samples.SampleDBBuilder;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.classloader.GATKLiteUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.sting.utils.recalibration.BaseRecalibration;
+import org.broadinstitute.sting.utils.recalibration.BQSRArgumentSet;
 import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import java.io.File;
@@ -210,18 +211,11 @@ public class GenomeAnalysisEngine {
     /**
      *  Base Quality Score Recalibration helper object
      */
-    private BaseRecalibration baseRecalibration = null;
-    public BaseRecalibration getBaseRecalibration() { return baseRecalibration; }
-    public boolean hasBaseRecalibration() { return baseRecalibration != null; }
-    public void setBaseRecalibration(final File recalFile, final int quantizationLevels, final boolean disableIndelQuals, final int preserveQLessThan, final boolean emitOriginalQuals) {
-        baseRecalibration = new BaseRecalibration(recalFile, quantizationLevels, disableIndelQuals, preserveQLessThan, emitOriginalQuals);
-    }
-
-    /**
-     * Utility method to determine whether this is the lite version of the GATK
-     */
-    public boolean isGATKLite() {
-        return GATKLiteUtils.isGATKLite();
+    private BQSRArgumentSet bqsrArgumentSet = null;
+    public BQSRArgumentSet getBQSRArgumentSet() { return bqsrArgumentSet; }
+    public boolean hasBQSRArgumentSet() { return bqsrArgumentSet != null; }
+    public void setBaseRecalibration(final GATKArgumentCollection args) {
+        bqsrArgumentSet = new BQSRArgumentSet(args);
     }
 
     /**
@@ -230,6 +224,9 @@ public class GenomeAnalysisEngine {
      * @return the value of this traversal.
      */
     public Object execute() {
+        // first thing is to make sure the AWS keys can be decrypted
+        GATKRunReport.checkAWSAreValid();
+
         //HeapSizeMonitor monitor = new HeapSizeMonitor();
         //monitor.start();
         setStartTime(new java.util.Date());
@@ -250,7 +247,7 @@ public class GenomeAnalysisEngine {
 
         // if the use specified an input BQSR recalibration table then enable on the fly recalibration
         if (args.BQSR_RECAL_FILE != null)
-            setBaseRecalibration(args.BQSR_RECAL_FILE, args.quantizationLevels, args.disableIndelQuals, args.PRESERVE_QSCORES_LESS_THAN, args.emitOriginalQuals);
+            setBaseRecalibration(args);
 
         // Determine how the threads should be divided between CPU vs. IO.
         determineThreadAllocation();
@@ -258,12 +255,15 @@ public class GenomeAnalysisEngine {
         // Prepare the data for traversal.
         initializeDataSources();
 
-        // initialize sampleDB
-        initializeSampleDB();
-
         // initialize and validate the interval list
         initializeIntervals();
         validateSuppliedIntervals();
+
+        // check to make sure that all sequence dictionaries are compatible with the reference's sequence dictionary
+        validateDataSourcesAgainstReference(readsDataSource, referenceDataSource.getReference(), rodDataSources);
+
+        // initialize sampleDB
+        initializeSampleDB();
 
         // our microscheduler, which is in charge of running everything
         MicroScheduler microScheduler = createMicroscheduler();
@@ -275,7 +275,9 @@ public class GenomeAnalysisEngine {
         // create the output streams
         initializeOutputStreams(microScheduler.getOutputTracker());
 
+        logger.info("Creating shard strategy for " + readsDataSource.getReaderIDs().size() + " BAM files");
         Iterable<Shard> shardStrategy = getShardStrategy(readsDataSource,microScheduler.getReference(),intervals);
+        logger.info("Done creating shard strategy");
 
         // execute the microscheduler, storing the results
         return microScheduler.execute(this.walker, shardStrategy);
@@ -330,10 +332,7 @@ public class GenomeAnalysisEngine {
         try {
             return walkerManager.createByName(walkerName);
         } catch ( UserException e ) {
-            if ( isGATKLite() && GATKLiteUtils.isAvailableOnlyInFullGATK(walkerName) ) {
-                e = new UserException.NotSupportedInGATKLite("the " + walkerName + " walker is available only in the full version of the GATK");
-            }
-            else if ( isDeprecatedWalker(walkerName) ) {
+            if ( isDeprecatedWalker(walkerName) ) {
                 e = new UserException.DeprecatedWalker(walkerName, getDeprecatedMajorVersionNumber(walkerName));
             }
             throw e;
@@ -371,7 +370,6 @@ public class GenomeAnalysisEngine {
      * Returns a list of active, initialized read transformers
      *
      * @param walker the walker we need to apply read transformers too
-     * @return a non-null list of read transformers
      */
     public void initializeReadTransformers(final Walker walker) {
         final List<ReadTransformer> activeTransformers = new ArrayList<ReadTransformer>();
@@ -446,12 +444,9 @@ public class GenomeAnalysisEngine {
     protected DownsamplingMethod getDownsamplingMethod() {
         GATKArgumentCollection argCollection = this.getArguments();
 
-        // Legacy downsampler can only be selected via the command line, not via walker annotations
-        boolean useLegacyDownsampler = argCollection.useLegacyDownsampler;
-
         DownsamplingMethod commandLineMethod = argCollection.getDownsamplingMethod();
-        DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker, useLegacyDownsampler);
-        DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker, useLegacyDownsampler);
+        DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker);
+        DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker);
 
         DownsamplingMethod method = commandLineMethod != null ? commandLineMethod : (walkerMethod != null ? walkerMethod : defaultMethod);
         method.checkCompatibilityWithWalker(walker);
@@ -584,15 +579,10 @@ public class GenomeAnalysisEngine {
                         throw new UserException.CommandLineException("Pairs traversal cannot be used in conjunction with intervals.");
                 }
 
-                // Use the legacy ReadShardBalancer if legacy downsampling is enabled
-                ShardBalancer readShardBalancer = downsamplingMethod != null && downsamplingMethod.useLegacyDownsampler ?
-                                                  new LegacyReadShardBalancer() :
-                                                  new ReadShardBalancer();
-
                 if(intervals == null)
-                    return readsDataSource.createShardIteratorOverAllReads(readShardBalancer);
+                    return readsDataSource.createShardIteratorOverAllReads(new ReadShardBalancer());
                 else
-                    return readsDataSource.createShardIteratorOverIntervals(intervals, readShardBalancer);
+                    return readsDataSource.createShardIteratorOverIntervals(intervals, new ReadShardBalancer());
             }
             else
                 throw new ReviewedStingException("Unable to determine walker type for walker " + walker.getClass().getName());
@@ -682,41 +672,7 @@ public class GenomeAnalysisEngine {
      * Setup the intervals to be processed
      */
     protected void initializeIntervals() {
-        // return if no interval arguments at all
-        if ( argCollection.intervals == null && argCollection.excludeIntervals == null )
-            return;
-
-        // Note that the use of '-L all' is no longer supported.
-
-        // if include argument isn't given, create new set of all possible intervals
-
-        final Pair<GenomeLocSortedSet, GenomeLocSortedSet> includeExcludePair = IntervalUtils.parseIntervalBindingsPair(
-                this.referenceDataSource,
-                argCollection.intervals,
-                argCollection.intervalSetRule, argCollection.intervalMerging, argCollection.intervalPadding,
-                argCollection.excludeIntervals);
-
-        final GenomeLocSortedSet includeSortedSet = includeExcludePair.getFirst();
-        final GenomeLocSortedSet excludeSortedSet = includeExcludePair.getSecond();
-
-        // if no exclude arguments, can return parseIntervalArguments directly
-        if ( excludeSortedSet == null )
-            intervals = includeSortedSet;
-
-        // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
-        else {
-            intervals = includeSortedSet.subtractRegions(excludeSortedSet);
-
-            // logging messages only printed when exclude (-XL) arguments are given
-            final long toPruneSize = includeSortedSet.coveredSize();
-            final long toExcludeSize = excludeSortedSet.coveredSize();
-            final long intervalSize = intervals.coveredSize();
-            logger.info(String.format("Initial include intervals span %d loci; exclude intervals span %d loci", toPruneSize, toExcludeSize));
-            logger.info(String.format("Excluding %d loci from original intervals (%.2f%% reduction)",
-                    toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
-        }
-
-        logger.info(String.format("Processing %d bp from intervals", intervals.coveredSize()));
+        intervals = IntervalUtils.parseIntervalArguments(this.referenceDataSource, argCollection.intervalArguments);
     }
 
     /**
@@ -801,9 +757,8 @@ public class GenomeAnalysisEngine {
      * @param reads     Reads data source.
      * @param reference Reference data source.
      * @param rods    a collection of the reference ordered data tracks
-     * @param manager manager
      */
-    private void validateSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, RMDTrackBuilder manager) {
+    private void validateDataSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
         if ((reads.isEmpty() && (rods == null || rods.isEmpty())) || reference == null )
             return;
 
@@ -820,11 +775,12 @@ public class GenomeAnalysisEngine {
             }
 
             // compare the reads to the reference
-            SequenceDictionaryUtils.validateDictionaries(logger, getArguments().unsafe, "reads", readsDictionary, "reference", referenceDictionary);
+            SequenceDictionaryUtils.validateDictionaries(logger, getArguments().unsafe, "reads", readsDictionary,
+                                                         "reference", referenceDictionary, true, intervals);
         }
 
         for (ReferenceOrderedDataSource rod : rods)
-            manager.validateTrackSequenceDictionary(rod.getName(),rod.getSequenceDictionary(),referenceDictionary);
+            IndexDictionaryUtils.validateTrackSequenceDictionary(rod.getName(), rod.getSequenceDictionary(), referenceDictionary, getArguments().unsafe);
     }
 
     /**
@@ -839,7 +795,7 @@ public class GenomeAnalysisEngine {
         DownsamplingMethod downsamplingMethod = getDownsamplingMethod();
 
         // Synchronize the method back into the collection so that it shows up when
-        // interrogating for the downsample method during command line recreation.
+        // interrogating for the downsampling method during command line recreation.
         setDownsamplingMethod(downsamplingMethod);
 
         logger.info(downsamplingMethod);
@@ -851,6 +807,8 @@ public class GenomeAnalysisEngine {
 
         if (argCollection.keepProgramRecords)
             removeProgramRecords = false;
+
+        final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker;
 
         return new SAMDataSource(
                 samReaderIDs,
@@ -866,7 +824,8 @@ public class GenomeAnalysisEngine {
                 readTransformers,
                 includeReadsWithDeletionAtLoci(),
                 argCollection.defaultBaseQualities,
-                removeProgramRecords);
+                removeProgramRecords,
+                keepReadsInLIBS);
     }
 
     /**
@@ -903,9 +862,6 @@ public class GenomeAnalysisEngine {
                                                            genomeLocParser,
                                                            flashbackData()));
 
-        // validation: check to make sure everything the walker needs is present, and that all sequence dictionaries match.
-        validateSourcesAgainstReference(readsDataSource, referenceDataSource.getReference(), dataSources, builder);
-
         return dataSources;
     }
 
@@ -929,10 +885,10 @@ public class GenomeAnalysisEngine {
     /**
      * Returns the unmerged SAM file header for an individual reader.
      * @param reader The reader.
-     * @return Header for that reader.
+     * @return Header for that reader or null if not available.
      */
     public SAMFileHeader getSAMFileHeader(SAMReaderID reader) {
-        return readsDataSource.getHeader(reader);
+        return readsDataSource == null ? null : readsDataSource.getHeader(reader);
     }
 
     /**

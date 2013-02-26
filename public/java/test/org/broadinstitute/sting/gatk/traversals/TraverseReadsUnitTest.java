@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.gatk.traversals;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
@@ -6,10 +31,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.reads.LegacyReadShardBalancer;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
+import org.broadinstitute.sting.gatk.datasources.reads.*;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.qc.CountReads;
@@ -107,14 +129,14 @@ public class TraverseReadsUnitTest extends BaseTest {
         countReadWalker = new CountReads();
         
         traversalEngine = new TraverseReadsNano(1);
-        traversalEngine.initialize(engine);
+        traversalEngine.initialize(engine, countReadWalker);
     }
 
     /** Test out that we can shard the file and iterate over every read */
     @Test
     public void testUnmappedReadCount() {
         SAMDataSource dataSource = new SAMDataSource(bamList,new ThreadAllocation(),null,genomeLocParser);
-        Iterable<Shard> shardStrategy = dataSource.createShardIteratorOverAllReads(new LegacyReadShardBalancer());
+        Iterable<Shard> shardStrategy = dataSource.createShardIteratorOverAllReads(new ReadShardBalancer());
 
         countReadWalker.initialize();
         Object accumulator = countReadWalker.reduceInit();

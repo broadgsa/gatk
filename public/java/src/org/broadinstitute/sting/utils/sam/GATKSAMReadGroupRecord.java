@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.SAMReadGroupRecord;
@@ -12,9 +37,6 @@ import org.broadinstitute.sting.utils.NGSPlatform;
  *
  */
 public class GATKSAMReadGroupRecord extends SAMReadGroupRecord {
-
-    public static final String LANE_TAG = "LN";
-    
     // the SAMReadGroupRecord data we're caching
     private String mSample = null;
     private String mPlatform = null;
@@ -33,46 +55,14 @@ public class GATKSAMReadGroupRecord extends SAMReadGroupRecord {
         super(record.getReadGroupId(), record);
     }
 
-    public GATKSAMReadGroupRecord(SAMReadGroupRecord record, NGSPlatform pl) {
-        super(record.getReadGroupId(), record);
-        setPlatform(pl.getDefaultPlatform());
-        mNGSPlatform = pl;
-        retrievedPlatform = retrievedNGSPlatform = true;
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // *** The following methods are overloaded to cache the appropriate data ***//
-    ///////////////////////////////////////////////////////////////////////////////
-
-    public String getSample() {
-        if ( !retrievedSample ) {
-            mSample = super.getSample();
-            retrievedSample = true;
-        }
-        return mSample;
-    }
-
-    public void setSample(String s) {
-        super.setSample(s);
-        mSample = s;
-        retrievedSample = true;
-    }
-
-    public String getPlatform() {
-        if ( !retrievedPlatform ) {
-            mPlatform = super.getPlatform();
-            retrievedPlatform = true;
-        }
-        return mPlatform;
-    }
-
-    public void setPlatform(String s) {
-        super.setPlatform(s);
-        mPlatform = s;
-        retrievedPlatform = true;
-        retrievedNGSPlatform = false;  // recalculate the NGSPlatform
-    }
-
+    /**
+     * Get the NGSPlatform enum telling us the platform of this read group
+     *
+     * This function call is caching, so subsequent calls to it are free, while
+     * the first time it's called there's a bit of work to resolve the enum
+     *
+     * @return an NGSPlatform enum value
+     */
     public NGSPlatform getNGSPlatform() {
         if ( ! retrievedNGSPlatform ) {
             mNGSPlatform = NGSPlatform.fromReadGroupPL(getPlatform());
@@ -82,11 +72,40 @@ public class GATKSAMReadGroupRecord extends SAMReadGroupRecord {
         return mNGSPlatform;
     }
 
-    public String getLane() {
-        return this.getAttribute(LANE_TAG);
+    ///////////////////////////////////////////////////////////////////////////////
+    // *** The following methods are overloaded to cache the appropriate data ***//
+    ///////////////////////////////////////////////////////////////////////////////
+
+    @Override
+    public String getSample() {
+        if ( !retrievedSample ) {
+            mSample = super.getSample();
+            retrievedSample = true;
+        }
+        return mSample;
     }
-    
-    public void setLane(String lane) {
-        this.setAttribute(LANE_TAG, lane);
+
+    @Override
+    public void setSample(String s) {
+        super.setSample(s);
+        mSample = s;
+        retrievedSample = true;
+    }
+
+    @Override
+    public String getPlatform() {
+        if ( !retrievedPlatform ) {
+            mPlatform = super.getPlatform();
+            retrievedPlatform = true;
+        }
+        return mPlatform;
+    }
+
+    @Override
+    public void setPlatform(String s) {
+        super.setPlatform(s);
+        mPlatform = s;
+        retrievedPlatform = true;
+        retrievedNGSPlatform = false; // recalculate the NGSPlatform
     }
 }

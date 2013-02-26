@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.utils.nanoScheduler;
 
 import org.apache.log4j.BasicConfigurator;
@@ -26,6 +51,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
     private final static boolean DEBUG = false;
     private final static boolean debug = false;
     public static final int NANO_SCHEDULE_MAX_RUNTIME = 30000;
+    public static final int EXCEPTION_THROWING_TEST_TIMEOUT = 10000;
 
     private static class Map2x implements NSMapFunction<Integer, Integer> {
         @Override public Integer apply(Integer input) { return input * 2; }
@@ -101,7 +127,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
 
         public int nExpectedCallbacks() {
             int nElements = Math.max(end - start, 0);
-            return nElements / bufferSize;
+            return nElements / bufferSize / NanoScheduler.UPDATE_PROGRESS_FREQ;
         }
 
         public Map2x makeMap() { return addDelays ? new Map2xWithDelays() : new Map2x(); }
@@ -243,22 +269,22 @@ public class NanoSchedulerUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(enabled = true, expectedExceptions = NullPointerException.class, timeOut = 10000)
+    @Test(enabled = true, expectedExceptions = NullPointerException.class, timeOut = EXCEPTION_THROWING_TEST_TIMEOUT)
     public void testInputErrorIsThrown_NPE() throws InterruptedException {
         executeTestErrorThrowingInput(10, new NullPointerException(), exampleTest, false);
     }
 
-    @Test(enabled = true, expectedExceptions = ReviewedStingException.class, timeOut = 1000)
+    @Test(enabled = true, expectedExceptions = ReviewedStingException.class, timeOut = EXCEPTION_THROWING_TEST_TIMEOUT)
     public void testInputErrorIsThrown_RSE() throws InterruptedException {
         executeTestErrorThrowingInput(10, new ReviewedStingException("test"), exampleTest, false);
     }
 
-    @Test(enabled = true, expectedExceptions = NullPointerException.class, dataProvider = "NanoSchedulerInputExceptionTest", timeOut = 1000, invocationCount = 1)
+    @Test(enabled = true, expectedExceptions = NullPointerException.class, dataProvider = "NanoSchedulerInputExceptionTest", timeOut = EXCEPTION_THROWING_TEST_TIMEOUT, invocationCount = 1)
     public void testInputRuntimeExceptionDoesntDeadlock(final int nElementsBeforeError, final NanoSchedulerBasicTest test, final boolean addDelays ) throws InterruptedException {
         executeTestErrorThrowingInput(nElementsBeforeError, new NullPointerException(), test, addDelays);
     }
 
-    @Test(enabled = true, expectedExceptions = ReviewedStingException.class, dataProvider = "NanoSchedulerInputExceptionTest", timeOut = 1000, invocationCount = 1)
+    @Test(enabled = true, expectedExceptions = ReviewedStingException.class, dataProvider = "NanoSchedulerInputExceptionTest", timeOut = EXCEPTION_THROWING_TEST_TIMEOUT, invocationCount = 1)
     public void testInputErrorDoesntDeadlock(final int nElementsBeforeError, final NanoSchedulerBasicTest test, final boolean addDelays ) throws InterruptedException {
         executeTestErrorThrowingInput(nElementsBeforeError, new Error(), test, addDelays);
     }

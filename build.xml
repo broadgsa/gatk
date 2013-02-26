@@ -107,7 +107,12 @@
 
     <!-- To run tests with debugging, use -Dtest.debug=true -Dtest.debug.port=XXXX on the command line -->
     <property name="test.debug.port" value="5005" />  <!-- override on the command line if desired -->
+    <property name="test.default.maxmemory" value="4g"/>
 
+    <!-- clover parameters -->
+    <property name="clover.jar" location="private/resources/clover/lib/clover.jar"/>
+    <property name="clover.instrument.level" value="method"/>
+    <taskdef resource="cloverlib.xml" classpath="${clover.jar}"/>
 
     <!-- ******************************************************************************** -->
     <!-- Filesets and paths                                                               -->
@@ -596,6 +601,7 @@
         <path id="doclet.classpath">
             <path refid="external.dependencies" />
             <pathelement location="${java.classes}" />
+	    <pathelement location="${clover.jar}" />
         </path>
 
         <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
@@ -644,12 +650,8 @@
 
     <target name="sting-utils.jar" depends="gatk.compile, init.jar, R.public.tar, R.script.stage">
         <jar jarfile="${dist.dir}/StingUtils.jar">
-            <fileset dir="${java.classes}">
-              <include name="**/utils/**/*.class"/>
-              <exclude name="**/utils/codecs/vcf/**/*.class"/>
-              <exclude name="**/utils/variantcontext/**/*.class"/>
-            </fileset>
-            <fileset dir="${java.classes}" includes="**/commandline/**/*.class"/>
+            <fileset dir="${java.classes}" includes="**/sting/utils/**/*.class"/>
+            <fileset dir="${java.classes}" includes="**/sting/commandline/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/pipeline/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/tools/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/jna/**/*.class"/>
@@ -659,23 +661,11 @@
                 <include name="**/${R.package.path}/**/*.tar.gz"/>
             </fileset>
             <fileset dir="${R.script.staging.dir}">
-                <include name="**/utils/**/*.R"/>
+                <include name="**/sting/utils/**/*.R"/>
             </fileset>
             <manifest>
                 <attribute name="Premain-Class" value="org.broadinstitute.sting.utils.instrumentation.Sizeof" />
             </manifest>
-        </jar>
-    </target>
-
-    <target name="vcf.jar" depends="gatk.compile,init.jar">
-        <jar jarfile="${dist.dir}/vcf.jar">
-            <fileset dir="${java.classes}">
-              <include name="org/broadinstitute/sting/utils/codecs/vcf/**/*.class"/>
-              <include name="org/broadinstitute/sting/utils/codecs/bcf2/**/*.class"/>
-              <include name="org/broadinstitute/sting/utils/variantcontext/**/*.class"/>
-              <include name="org/broadinstitute/sting/utils/exceptions/**"/>
-	          <include name="org/broadinstitute/sting/utils/help/DocumentedGATKFeature.class"/>
-            </fileset>
         </jar>
     </target>
 
@@ -703,12 +693,12 @@
             <fileset dir="${java.contracts.dir}" />
             <fileset dir="${java.classes}">
 	          <include name="${resource.file}" />
-              <include name="**/gatk/**/*.class" />
-              <include name="**/alignment/**/*.class"/>
+              <include name="**/sting/gatk/**/*.class" />
+              <include name="**/sting/alignment/**/*.class"/>
             </fileset>
             <fileset dir="${R.script.staging.dir}">
-                <include name="**/gatk/**/*.R"/>
-                <include name="**/alignment/**/*.R"/>
+                <include name="**/sting/gatk/**/*.R"/>
+                <include name="**/sting/alignment/**/*.R"/>
             </fileset>
             <fileset dir="${key.dir}">
                 <include name="**/*.key"/>
@@ -719,7 +709,7 @@
         </jar>
 
         <jar jarfile="${dist.dir}/Aligner.jar">
-            <fileset dir="${java.classes}" includes="**/alignment/**/*.class" />
+            <fileset dir="${java.classes}" includes="**/sting/alignment/**/*.class" />
         </jar>
 
         <subant target="dist" genericantfile="build.xml">
@@ -755,7 +745,7 @@
         </jar>
     </target>
 
-    <target name="sting.jar" depends="sting-utils.jar, vcf.jar, gatk.jar, queue.jar" />
+    <target name="sting.jar" depends="sting-utils.jar, gatk.jar, queue.jar" />
 
     <target name="init.manifests" depends="sting.jar">
         <pathconvert property="jar.classpath" pathsep=" ">
@@ -875,20 +865,12 @@
         <property name="executable" value="GenomeAnalysisTK" />
     </target>
 
-    <target name="init.executable.gatklite" depends="init.build.publiconly, init.javaonly">
-        <property name="executable" value="GenomeAnalysisTKLite" />
-    </target>
-
     <target name="init.executable.queueall" depends="init.build.all, init.javaandscala">
         <property name="executable" value="Queue" />
     </target>
 
     <target name="init.executable.queuefull" depends="init.build.publicprotectedonly, init.javaandscala">
         <property name="executable" value="Queue" />
-    </target>
-
-    <target name="init.executable.queuelite" depends="init.build.publiconly, init.javaandscala">
-        <property name="executable" value="QueueLite" />
     </target>
 
     <target name="require.executable">
@@ -941,14 +923,9 @@
     <!-- Package specific versions of the GATK/Queue. ALWAYS do an ant clean before invoking these! -->
     <target name="package.gatk.full" depends="init.executable.gatkfull,package" />
 
-    <target name="package.gatk.lite" depends="init.executable.gatklite,package" />
-
     <target name="package.queue.all" depends="init.executable.queueall,package" />
 
     <target name="package.queue.full" depends="init.executable.queuefull,package" />
-
-    <target name="package.queue.lite" depends="init.executable.queuelite,package" />
-
 
     <!-- Release a build. Don't call this target directly. Call one of the specific release targets below -->
     <target name="release" depends="require.executable" description="release a build, putting each file in a location specified by the package">
@@ -958,12 +935,7 @@
     <!-- Release specific versions of the GATK/Queue. ALWAYS do an ant clean before invoking these! -->
     <target name="release.gatk.full" depends="package.gatk.full,release" />
 
-    <target name="release.gatk.lite" depends="package.gatk.lite,release" />
-
     <target name="release.queue.full" depends="package.queue.full,release" />
-
-    <target name="release.queue.lite" depends="package.queue.lite,release" />
-
 
     <!-- Build a subset of picard with only those classes we need by completely abusing the packaging system -->
     <!-- TODO: Reuse as much as possible of the 'stage' and 'package' targets -->
@@ -993,7 +965,7 @@
 
     <!-- Maven install a package consisting of all supporting files. Don't call this target directly. Call one of the specific packaging targets below -->
     <target name="mvninstall" depends="package" description="maven install a package into .m2/repository">
-        <property name="mvn.build.version" value="0.0.1" />
+        <property name="mvn.build.version" value="0.0.2" />
         <!--
         We should use the build version or better yet a git tag version, but tags are currently missing. Alternatively how do we then depend on the LATEST?
         <property name="mvn.build.version" value="${build.version}" />
@@ -1008,13 +980,9 @@
     <!-- Maven install specific versions of the GATK/Queue. ALWAYS do an ant clean before invoking these! -->
     <target name="mvninstall.gatk.full" depends="package.gatk.full,mvninstall" />
 
-    <target name="mvninstall.gatk.lite" depends="package.gatk.lite,mvninstall" />
-
     <target name="mvninstall.queue.all" depends="package.queue.all,mvninstall" />
 
     <target name="mvninstall.queue.full" depends="package.queue.full,mvninstall" />
-
-    <target name="mvninstall.queue.lite" depends="package.queue.lite,mvninstall" />
 
     <!-- ******************************************************************************** -->
     <!-- Clean                                                                            -->
@@ -1032,6 +1000,14 @@
         <delete dir="${scaladoc.dir}" />
     </target>
 
+    <target name="-check.clover">
+      <available property="clover.installed" classname="com.cenqua.clover.CloverInstr" />
+    </target>
+
+    <target name="clean.clover" depends="-check.clover" if="clover.installed">
+      <clover-clean/>
+    </target>
+
     <target name="clean.gsalib">
         <!-- Currently not cleaning out the lib during 'ant clean' -->
       <exec executable="R" failonerror="false">
@@ -1039,7 +1015,7 @@
       </exec>
     </target>
 
-    <target name="clean" description="clean up" depends="clean.javadoc,clean.scaladoc,clean.gatkdocs">
+    <target name="clean" description="clean up" depends="clean.javadoc,clean.scaladoc,clean.gatkdocs,clean.clover">
         <delete dir="${build.dir}"/>
         <delete dir="${lib.dir}"/>
         <delete dir="${contract.dump.dir}"/>
@@ -1097,8 +1073,7 @@
     <property name="report" value="${build.dir}/report"/>
     <property name="iwww.report.dir" value="${user.home}/private_html/report"/>
     <property name="test.output" value="${dist.dir}/test"/>
-    <property name="testng.jar" value="${lib.dir}/testng-5.14.1.jar"/>
-    <property name="test.maxmemory" value="4g"/>  <!-- provide a ceiling on the memory that unit/integration tests can consume. -->
+    <property name="testng.jar" value="${lib.dir}/testng-6.8.jar"/>
 
     <path id="java.test.source.path">
         <dirset dir="${basedir}">
@@ -1129,12 +1104,52 @@
 
     <path id="testng.default.classpath">
         <path refid="build.results" />
+	<pathelement path="${clover.jar}"/>    
         <pathelement location="${java.contracts.dir}" />
         <pathelement location="${java.test.classes}" />
         <pathelement location="${scala.test.classes}" />
     </path>
 
     <!-- Test targets -->
+
+    <target name="clover.report">
+      <clover-report coverageCacheSize="nocache">
+	<current outfile="clover_html" title="GATK clover report" showUniqueCoverage="false" numThreads="4">
+	  <format type="html" filter="catch,static,property"/>
+	  <fileset dir="public">
+	    <patternset id="clover.excludes">
+	      <exclude name="**/*UnitTest.java"/>
+	      <exclude name="**/*TestProvider*.java"/>
+	      <exclude name="**/*PerformanceTest.java"/>
+	      <exclude name="**/*Benchmark.java"/>
+	      <exclude name="**/*LargeScaleTest.java"/>
+	      <exclude name="**/*IntegrationTest.java"/>
+	      <exclude name="**/jna/**/*.java"/>
+	      <exclude name="**/queue/extensions/**/*.java"/>
+	      <exclude name="**/sting/utils/help/*.java"/>
+	      <exclude name="**/sting/tools/*.java"/>
+	      <exclude name="**/datasources/reads/utilities/*.java"/>
+	      <exclude name="**/sting/alignment/**/*.java"/>
+	      <exclude name="**/examples/**/*.java"/>
+	    </patternset>
+	  </fileset>
+	  <fileset dir="private">
+	    <patternset refid="clover.excludes" />
+	  </fileset>
+	  <fileset dir="protected">
+	    <patternset refid="clover.excludes" />
+	  </fileset>
+	</current>
+      </clover-report>
+    </target>
+
+    <target name="with.clover">
+      <clover-setup fullyQualifyJavaLang="true" instrumentationLevel="${clover.instrument.level}">
+      </clover-setup>
+      <property name="compile.scala" value="false" /> <!-- currently doesn't work with scala -->
+      <property name="test.maxmemory" value="32g"/>  <!-- clover requires lots of memory -->
+      <echo message="Clover instrument level: ${clover.instrument.level}" />
+    </target>
 
     <target name="test.init.compile">
         <mkdir dir="${java.test.classes}"/>
@@ -1215,6 +1230,7 @@
             <echo message="Test Classpath: ${test.classpath.display.string}" />
             <echo message="" />
             <echo message="Sting: Running @{testtype} test cases!"/>
+            <echo message="Test Memory : ${test.maxmemory}" />
 
 	    <!-- no test is allowed to run for more than 10 hours -->
             <taskdef resource="testngtasks" classpath="${testng.jar}"/>
@@ -1228,6 +1244,7 @@
                     listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.TestNGTestTransformer,org.broadinstitute.sting.StingTextReporter,org.uncommons.reportng.HTMLReporter">
                 <jvmarg value="-Xmx${test.maxmemory}" />
                 <jvmarg value="-ea" />
+		<jvmarg value="-Dclover.pertest.coverage=diff" />
                 <jvmarg value="-Djava.awt.headless=true" />
                 <jvmarg value="-Dpipeline.run=${pipeline.run}" />
                 <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
@@ -1270,6 +1287,7 @@
 
     <target name="test.init">
         <property name="testng.classpath" value="testng.default.classpath" />
+	<property name="test.maxmemory" value="${test.default.maxmemory}"/>
     </target>
 
     <target name="init.testgatkjar">
@@ -1315,12 +1333,7 @@
     <!-- Order of the dependencies is significant in the *.release.tests targets -->
     <target name="gatkfull.binary.release.tests" depends="init.usecontracts,package.gatk.full,init.testgatkjar,unittest,integrationtest" />
 
-    <target name="gatklite.binary.release.tests" depends="init.usecontracts,package.gatk.lite,init.testgatkjar,unittest,integrationtest" />
-
     <target name="queuefull.binary.release.tests" depends="init.usecontracts,package.queue.full,init.testqueuejar,pipelinetest" />
-
-    <target name="queuelite.binary.release.tests" depends="init.usecontracts,package.queue.lite,init.testqueuejar,pipelinetest" />
-
 
     <!-- Our four different test types: UnitTest, IntegrationTest, LargeScaleTest, PipelineTest -->
     <target name="unittest" depends="test.compile,test.init" description="Run unit tests">
@@ -1382,6 +1395,7 @@
     <!-- Fast test target that cuts major corners for speed. Requires that a full build has been done first. Java-only, single test class only -->
     <!-- Usage: ant fasttest -Dsingle=TestClass -->
     <target name="fasttest" depends="init.javaonly,init">
+	<property name="test.maxmemory" value="${test.default.maxmemory}"/>
         <condition property="not.clean">
             <and>
                 <available file="${build.dir}" />

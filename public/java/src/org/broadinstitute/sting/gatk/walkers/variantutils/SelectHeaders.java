@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 2012, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
@@ -35,12 +36,16 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
+import org.broadinstitute.sting.utils.interval.IntervalSetRule;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
+import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.variantcontext.writer.VariantContextWriter;
+import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.sting.utils.text.ListFileUtils;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.io.File;
 import java.util.*;
@@ -100,7 +105,7 @@ import java.util.*;
  * </pre>
  */
 @SuppressWarnings("unused")
-@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class SelectHeaders extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
@@ -148,8 +153,8 @@ public class SelectHeaders extends RodWalker<Integer, Integer> implements TreeRe
         // Get list of samples to include in the output
         List<String> rodNames = Arrays.asList(variantCollection.variants.getName());
 
-        Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
-        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
+        Map<String, VCFHeader> vcfRods = GATKVCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
+        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), true);
 
         headerLines.add(new VCFHeaderLine(VCFHeader.SOURCE_KEY, "SelectHeaders"));
 
@@ -157,21 +162,50 @@ public class SelectHeaders extends RodWalker<Integer, Integer> implements TreeRe
         headerLines = new LinkedHashSet<VCFHeaderLine>(getSelectedHeaders(headerLines));
 
         // Optionally add in the intervals.
-        if (includeIntervals && getToolkit().getArguments().intervals != null) {
-            for (IntervalBinding<Feature> intervalBinding : getToolkit().getArguments().intervals) {
-                String source = intervalBinding.getSource();
-                if (source == null)
-                    continue;
-                File file = new File(source);
-                if (file.exists()) {
-                    headerLines.add(new VCFHeaderLine(VCFHeader.INTERVALS_KEY, FilenameUtils.getBaseName(file.getName())));
-                } else {
-                    headerLines.add(new VCFHeaderLine(VCFHeader.INTERVALS_KEY, source));
+        if (includeIntervals) {
+            IntervalArgumentCollection intervalArguments = getToolkit().getArguments().intervalArguments;
+            if (intervalArguments.intervals != null) {
+                for (IntervalBinding<Feature> intervalBinding : intervalArguments.intervals) {
+                    String source = intervalBinding.getSource();
+                    if (source == null)
+                        continue;
+                    File file = new File(source);
+                    if (file.exists()) {
+                        headerLines.add(new VCFHeaderLine(VCFHeader.INTERVALS_KEY, FilenameUtils.getBaseName(file.getName())));
+                    } else {
+                        headerLines.add(new VCFHeaderLine(VCFHeader.INTERVALS_KEY, source));
+                    }
                 }
+            }
+
+            if (intervalArguments.excludeIntervals != null) {
+                for (IntervalBinding<Feature> intervalBinding : intervalArguments.excludeIntervals) {
+                    String source = intervalBinding.getSource();
+                    if (source == null)
+                        continue;
+                    File file = new File(source);
+                    if (file.exists()) {
+                        headerLines.add(new VCFHeaderLine(VCFHeader.EXCLUDE_INTERVALS_KEY, FilenameUtils.getBaseName(file.getName())));
+                    } else {
+                        headerLines.add(new VCFHeaderLine(VCFHeader.EXCLUDE_INTERVALS_KEY, source));
+                    }
+                }
+            }
+
+            if (intervalArguments.intervalMerging != IntervalMergingRule.ALL) {
+                headerLines.add(new VCFHeaderLine(VCFHeader.INTERVAL_MERGING_KEY, String.valueOf(intervalArguments.intervalMerging)));
+            }
+
+            if (intervalArguments.intervalSetRule != IntervalSetRule.UNION) {
+                headerLines.add(new VCFHeaderLine(VCFHeader.INTERVAL_SET_RULE_KEY, String.valueOf(intervalArguments.intervalSetRule)));
+            }
+
+            if (intervalArguments.intervalPadding != 0) {
+                headerLines.add(new VCFHeaderLine(VCFHeader.INTERVAL_PADDING_KEY, String.valueOf(intervalArguments.intervalPadding)));
             }
         }
 
-        TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
+        TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, GATKVariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
         VCFHeader vcfHeader = new VCFHeader(headerLines, vcfSamples);
         vcfHeader.setWriteEngineHeaders(includeEngineHeaders);
         vcfWriter.writeHeader(vcfHeader);

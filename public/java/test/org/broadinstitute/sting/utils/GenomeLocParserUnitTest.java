@@ -1,19 +1,58 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.utils;
 
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
+import org.broad.tribble.BasicFeature;
+import org.broad.tribble.Feature;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.variant.variantcontext.Allele;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 /**
  * @author aaron
@@ -24,10 +63,11 @@ import org.testng.annotations.Test;
  */
 public class GenomeLocParserUnitTest extends BaseTest {
     private GenomeLocParser genomeLocParser;
+    private SAMFileHeader header;
 
     @BeforeClass
     public void init() {
-        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
+        header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
         genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
     }
 
@@ -206,7 +246,16 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",1,11)); // past the end of the contig
         assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",-1,10)); // bad start
         assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",1,-2)); // bad stop
+        assertTrue( genomeLocParser.isValidGenomeLoc("chr1",-1,2, false)); // bad stop
         assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",10,11)); // bad start, past end
+        assertTrue( genomeLocParser.isValidGenomeLoc("chr1",10,11, false)); // bad start, past end
+        assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",2,1)); // stop < start
+    }
+
+    @Test(expectedExceptions = ReviewedStingException.class)
+    public void testValidateGenomeLoc() {
+        // bad contig index
+        genomeLocParser.validateGenomeLoc("chr1", 1, 1, 2, false);
     }
 
     private static class FlankingGenomeLocTestData extends TestDataProvider {
@@ -307,5 +356,154 @@ public class GenomeLocParserUnitTest extends BaseTest {
         String description = String.format("%n      name: %s%n  original: %s%n    actual: %s%n  expected: %s%n",
                 data.toString(), data.original, actual, data.flankStop);
         assertEquals(actual, data.flankStop, description);
+    }
+
+    @DataProvider(name = "parseGenomeLoc")
+    public Object[][] makeParsingTest() {
+        final List<Object[]> tests = new LinkedList<Object[]>();
+
+        tests.add(new Object[]{ "chr1:10", "chr1", 10 });
+        tests.add(new Object[]{ "chr1:100", "chr1", 100 });
+        tests.add(new Object[]{ "chr1:1000", "chr1", 1000 });
+        tests.add(new Object[]{ "chr1:1,000", "chr1", 1000 });
+        tests.add(new Object[]{ "chr1:10000", "chr1", 10000 });
+        tests.add(new Object[]{ "chr1:10,000", "chr1", 10000 });
+        tests.add(new Object[]{ "chr1:100000", "chr1", 100000 });
+        tests.add(new Object[]{ "chr1:100,000", "chr1", 100000 });
+        tests.add(new Object[]{ "chr1:1000000", "chr1", 1000000 });
+        tests.add(new Object[]{ "chr1:1,000,000", "chr1", 1000000 });
+        tests.add(new Object[]{ "chr1:1000,000", "chr1", 1000000 });
+        tests.add(new Object[]{ "chr1:1,000000", "chr1", 1000000 });
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test( dataProvider = "parseGenomeLoc")
+    public void testParsingPositions(final String string, final String contig, final int start) {
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10000000);
+        GenomeLocParser genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
+        final GenomeLoc loc = genomeLocParser.parseGenomeLoc(string);
+        Assert.assertEquals(loc.getContig(), contig);
+        Assert.assertEquals(loc.getStart(), start);
+        Assert.assertEquals(loc.getStop(), start);
+    }
+
+    @Test( )
+    public void testCreationFromSAMRecord() {
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "foo", 0, 1, 5);
+        final GenomeLoc loc = genomeLocParser.createGenomeLoc(read);
+        Assert.assertEquals(loc.getContig(), read.getReferenceName());
+        Assert.assertEquals(loc.getContigIndex(), (int)read.getReferenceIndex());
+        Assert.assertEquals(loc.getStart(), read.getAlignmentStart());
+        Assert.assertEquals(loc.getStop(), read.getAlignmentEnd());
+    }
+
+    @Test( )
+    public void testCreationFromSAMRecordUnmapped() {
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "foo", 0, 1, 5);
+        read.setReadUnmappedFlag(true);
+        read.setReferenceIndex(-1);
+        final GenomeLoc loc = genomeLocParser.createGenomeLoc(read);
+        Assert.assertTrue(loc.isUnmapped());
+    }
+
+    @Test( )
+    public void testCreationFromSAMRecordUnmappedButOnGenome() {
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "foo", 0, 1, 5);
+        read.setReadUnmappedFlag(true);
+        read.setCigarString("*");
+        final GenomeLoc loc = genomeLocParser.createGenomeLoc(read);
+        Assert.assertEquals(loc.getContig(), read.getReferenceName());
+        Assert.assertEquals(loc.getContigIndex(), (int)read.getReferenceIndex());
+        Assert.assertEquals(loc.getStart(), read.getAlignmentStart());
+        Assert.assertEquals(loc.getStop(), read.getAlignmentStart());
+    }
+
+    @Test
+    public void testCreationFromFeature() {
+        final Feature feature = new BasicFeature("chr1", 1, 5);
+        final GenomeLoc loc = genomeLocParser.createGenomeLoc(feature);
+        Assert.assertEquals(loc.getContig(), feature.getChr());
+        Assert.assertEquals(loc.getStart(), feature.getStart());
+        Assert.assertEquals(loc.getStop(), feature.getEnd());
+    }
+
+    @Test
+    public void testCreationFromVariantContext() {
+        final VariantContext feature = new VariantContextBuilder("x", "chr1", 1, 5, Arrays.asList(Allele.create("AAAAA", true))).make();
+        final GenomeLoc loc = genomeLocParser.createGenomeLoc(feature);
+        Assert.assertEquals(loc.getContig(), feature.getChr());
+        Assert.assertEquals(loc.getStart(), feature.getStart());
+        Assert.assertEquals(loc.getStop(), feature.getEnd());
+    }
+
+    @Test
+    public void testcreateGenomeLocOnContig() throws FileNotFoundException {
+        final CachingIndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(b37KGReference));
+        final SAMSequenceDictionary dict = seq.getSequenceDictionary();
+        final GenomeLocParser genomeLocParser = new GenomeLocParser(dict);
+
+        for ( final SAMSequenceRecord rec : dict.getSequences() ) {
+            final GenomeLoc loc = genomeLocParser.createOverEntireContig(rec.getSequenceName());
+            Assert.assertEquals(loc.getContig(), rec.getSequenceName());
+            Assert.assertEquals(loc.getStart(), 1);
+            Assert.assertEquals(loc.getStop(), rec.getSequenceLength());
+        }
+    }
+
+    @DataProvider(name = "GenomeLocOnContig")
+    public Object[][] makeGenomeLocOnContig() {
+        final List<Object[]> tests = new LinkedList<Object[]>();
+
+        final int contigLength = header.getSequence(0).getSequenceLength();
+        for ( int start = -10; start < contigLength + 10; start++ ) {
+            for ( final int len : Arrays.asList(1, 10, 20) ) {
+                tests.add(new Object[]{ "chr1", start, start + len });
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test( dataProvider = "GenomeLocOnContig")
+    public void testGenomeLocOnContig(final String contig, final int start, final int stop) {
+        final int contigLength = header.getSequence(0).getSequenceLength();
+        final GenomeLoc loc = genomeLocParser.createGenomeLocOnContig(contig, start, stop);
+
+        if ( stop < 1 || start > contigLength )
+            Assert.assertNull(loc, "GenomeLoc should be null if the start/stops are not meaningful");
+        else {
+            Assert.assertNotNull(loc);
+            Assert.assertEquals(loc.getContig(), contig);
+            Assert.assertEquals(loc.getStart(), Math.max(start, 1));
+            Assert.assertEquals(loc.getStop(), Math.min(stop, contigLength));
+        }
+    }
+
+    @DataProvider(name = "GenomeLocPadding")
+    public Object[][] makeGenomeLocPadding() {
+        final List<Object[]> tests = new LinkedList<Object[]>();
+
+        final int contigLength = header.getSequence(0).getSequenceLength();
+        for ( int pad = 0; pad < contigLength + 1; pad++) {
+            for ( int start = 1; start < contigLength; start++ ) {
+                for ( int stop = start; stop < contigLength; stop++ ) {
+                    tests.add(new Object[]{ genomeLocParser.createGenomeLoc("chr1", start, stop), pad});
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test( dataProvider = "GenomeLocPadding")
+    public void testGenomeLocPadding(final GenomeLoc input, final int pad) {
+        final int contigLength = header.getSequence(0).getSequenceLength();
+        final GenomeLoc padded = genomeLocParser.createPaddedGenomeLoc(input, pad);
+
+        Assert.assertNotNull(padded);
+        Assert.assertEquals(padded.getContig(), input.getContig());
+        Assert.assertEquals(padded.getStart(), Math.max(input.getStart() - pad, 1));
+        Assert.assertEquals(padded.getStop(), Math.min(input.getStop() + pad, contigLength));
     }
 }

@@ -1,36 +1,32 @@
 /*
- * Copyright (c) 2010 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.gatk.arguments;
 
 import net.sf.samtools.SAMFileReader;
-import org.broad.tribble.Feature;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.IntervalBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
@@ -38,8 +34,7 @@ import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.samples.PedigreeValidationType;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.interval.IntervalSetRule;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -74,10 +69,10 @@ public class GATKArgumentCollection {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate? STANDARD is the default, can be NO_ET so nothing is posted to the run repository. Please see " + GATKRunReport.PHONE_HOME_DOCS_URL + " for details.", required = false)
+    @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate? STANDARD is the default, can be NO_ET so nothing is posted to the run repository. Please see " + UserException.PHONE_HOME_DOCS_URL + " for details.", required = false)
     public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.STANDARD;
 
-    @Argument(fullName = "gatk_key", shortName = "K", doc="GATK Key file. Required if running with -et NO_ET. Please see " + GATKRunReport.PHONE_HOME_DOCS_URL + " for details.", required = false)
+    @Argument(fullName = "gatk_key", shortName = "K", doc="GATK Key file. Required if running with -et NO_ET. Please see " + UserException.PHONE_HOME_DOCS_URL + " for details.", required = false)
     public File gatkKeyFile = null;
 
     /**
@@ -100,41 +95,8 @@ public class GATKArgumentCollection {
     @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually", required = false)
     public List<String> readFilters = new ArrayList<String>();
 
-    /**
-     * Using this option one can instruct the GATK engine to traverse over only part of the genome.  This argument can be specified multiple times.
-     * One may use samtools-style intervals either explicitly (e.g. -L chr1 or -L chr1:100-200) or listed in a file (e.g. -L myFile.intervals).
-     * Additionally, one may specify a rod file to traverse over the positions for which there is a record in the file (e.g. -L file.vcf).
-     * To specify the completely unmapped reads in the BAM file (i.e. those without a reference contig) use -L unmapped.
-     */
-    @Input(fullName = "intervals", shortName = "L", doc = "One or more genomic intervals over which to operate. Can be explicitly specified on the command line or in a file (including a rod file)", required = false)
-    public List<IntervalBinding<Feature>> intervals = null;
-
-    /**
-     * Using this option one can instruct the GATK engine NOT to traverse over certain parts of the genome.  This argument can be specified multiple times.
-     * One may use samtools-style intervals either explicitly (e.g. -XL chr1 or -XL chr1:100-200) or listed in a file (e.g. -XL myFile.intervals).
-     * Additionally, one may specify a rod file to skip over the positions for which there is a record in the file (e.g. -XL file.vcf).
-     */
-    @Input(fullName = "excludeIntervals", shortName = "XL", doc = "One or more genomic intervals to exclude from processing. Can be explicitly specified on the command line or in a file (including a rod file)", required = false)
-    public List<IntervalBinding<Feature>> excludeIntervals = null;
-
-    /**
-     * How should the intervals specified by multiple -L or -XL arguments be combined?  Using this argument one can, for example, traverse over all of the positions
-     * for which there is a record in a VCF but just in chromosome 20 (-L chr20 -L file.vcf -isr INTERSECTION).
-     */
-    @Argument(fullName = "interval_set_rule", shortName = "isr", doc = "Indicates the set merging approach the interval parser should use to combine the various -L or -XL inputs", required = false)
-    public IntervalSetRule intervalSetRule = IntervalSetRule.UNION;
-
-    /**
-     * Should abutting (but not overlapping) intervals be treated as separate intervals?
-     */
-    @Argument(fullName = "interval_merging", shortName = "im", doc = "Indicates the interval merging rule we should use for abutting intervals", required = false)
-    public IntervalMergingRule intervalMerging = IntervalMergingRule.ALL;
-
-    /**
-     * For example, '-L chr1:100' with a padding value of 20 would turn into '-L chr1:80-120'.
-     */
-    @Argument(fullName = "interval_padding", shortName = "ip", doc = "Indicates how many basepairs of padding to include around each of the intervals specified with the -L/--intervals argument", required = false)
-    public int intervalPadding = 0;
+    @ArgumentCollection
+    public IntervalArgumentCollection intervalArguments = new IntervalArgumentCollection();
 
     @Input(fullName = "reference_sequence", shortName = "R", doc = "Reference sequence file", required = false)
     public File referenceFile = null;
@@ -165,9 +127,6 @@ public class GATKArgumentCollection {
     @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to at any given locus; note that downsampled reads are randomly selected from all possible reads at a locus. For non-locus-based traversals (eg., ReadWalkers), this sets the maximum number of reads at each alignment start position.", required = false)
     public Integer downsampleCoverage = null;
 
-    @Argument(fullName = "use_legacy_downsampler", shortName = "use_legacy_downsampler", doc = "Use the legacy downsampling implementation instead of the newer, less-tested implementation", required = false)
-    public boolean useLegacyDownsampler = false;
-
     /**
      * Gets the downsampling method explicitly specified by the user.  If the user didn't specify
      * a default downsampling mechanism, return the default.
@@ -177,7 +136,7 @@ public class GATKArgumentCollection {
         if ( downsamplingType == null && downsampleFraction == null && downsampleCoverage == null )
             return null;
 
-        return new DownsamplingMethod(downsamplingType, downsampleCoverage, downsampleFraction, useLegacyDownsampler);
+        return new DownsamplingMethod(downsamplingType, downsampleCoverage, downsampleFraction);
     }
 
     /**
@@ -191,7 +150,6 @@ public class GATKArgumentCollection {
         downsamplingType = method.type;
         downsampleCoverage = method.toCoverage;
         downsampleFraction = method.toFraction;
-        useLegacyDownsampler = method.useLegacyDownsampler;
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -218,7 +176,7 @@ public class GATKArgumentCollection {
     @Argument(fullName = "fix_misencoded_quality_scores", shortName="fixMisencodedQuals", doc="Fix mis-encoded base quality scores", required = false)
     public boolean FIX_MISENCODED_QUALS = false;
 
-    @Argument(fullName = "allow_potentially_misencoded_quality_scores", shortName="allowPotentiallyMisencodedQuals", doc="Do not fail when encountered base qualities that are too high and seemingly indicate a problem with the base quality encoding of the BAM file", required = false)
+    @Argument(fullName = "allow_potentially_misencoded_quality_scores", shortName="allowPotentiallyMisencodedQuals", doc="Do not fail when encountering base qualities that are too high and that seemingly indicate a problem with the base quality encoding of the BAM file", required = false)
     public boolean ALLOW_POTENTIALLY_MISENCODED_QUALS = false;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -284,14 +242,25 @@ public class GATKArgumentCollection {
     @Argument(fullName = "preserve_qscores_less_than", shortName = "preserveQ", doc = "Bases with quality scores less than this threshold won't be recalibrated (with -BQSR)", required = false)
     public int PRESERVE_QSCORES_LESS_THAN = QualityUtils.MIN_USABLE_Q_SCORE;
 
-    @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
-    public byte defaultBaseQualities = -1;
+    @Argument(fullName = "globalQScorePrior", shortName = "globalQScorePrior", doc = "The global Qscore Bayesian prior to use in the BQSR. If specified, this value will be used as the prior for all mismatch quality scores instead of the actual reported quality score", required = false)
+    public double globalQScorePrior = -1.0;
+
+    /**
+     * For the sake of your data, please only use this option if you know what you are doing.  It is absolutely not recommended practice
+     * to run base quality score recalibration on reduced BAM files.
+     */
+    @Advanced
+    @Argument(fullName = "allow_bqsr_on_reduced_bams_despite_repeated_warnings", shortName="allowBqsrOnReducedBams", doc="Do not fail when running base quality score recalibration on a reduced BAM file even though we highly recommend against it", required = false)
+    public boolean ALLOW_BQSR_ON_REDUCED_BAMS = false;
 
     // --------------------------------------------------------------------------------------------------------------
     //
     // Other utility arguments
     //
     // --------------------------------------------------------------------------------------------------------------
+
+    @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
+    public byte defaultBaseQualities = -1;
 
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
     public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;

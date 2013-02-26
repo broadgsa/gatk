@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting;
 
 import org.apache.log4j.AppenderSkeleton;
@@ -6,9 +31,18 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.spi.LoggingEvent;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.crypt.CryptUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.io.IOUtils;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.variant.bcf2.BCF2Codec;
+import org.broadinstitute.variant.variantcontext.Genotype;
+import org.broadinstitute.variant.variantcontext.VariantContext;
+import org.broadinstitute.variant.vcf.VCFCodec;
+import org.broadinstitute.variant.vcf.VCFConstants;
+import org.broadinstitute.variant.vcf.VCFHeader;
+import org.broadinstitute.variant.vcf.VCFHeaderLine;
 import org.testng.Assert;
 import org.testng.Reporter;
 import org.testng.SkipException;
@@ -301,7 +335,11 @@ public abstract class BaseTest {
         Assert.assertTrue(actualSet.equals(expectedSet), info); // note this is necessary due to testng bug for set comps
     }
 
-    public static final void assertEqualsDoubleSmart(final double actual, final double expected, final double tolerance) {
+    public static void assertEqualsDoubleSmart(final double actual, final double expected, final double tolerance) {
+        assertEqualsDoubleSmart(actual, expected, tolerance, null);
+    }
+
+    public static void assertEqualsDoubleSmart(final double actual, final double expected, final double tolerance, final String message) {
         if ( Double.isNaN(expected) ) // NaN == NaN => false unfortunately
             Assert.assertTrue(Double.isNaN(actual), "expected is nan, actual is not");
         else if ( Double.isInfinite(expected) ) // NaN == NaN => false unfortunately
@@ -309,7 +347,159 @@ public abstract class BaseTest {
         else {
             final double delta = Math.abs(actual - expected);
             final double ratio = Math.abs(actual / expected - 1.0);
-            Assert.assertTrue(delta < tolerance || ratio < tolerance, "expected = " + expected + " actual = " + actual + " not within tolerance " + tolerance);
+            Assert.assertTrue(delta < tolerance || ratio < tolerance, "expected = " + expected + " actual = " + actual
+                    + " not within tolerance " + tolerance
+                    + (message == null ? "" : "message: " + message));
         }
+    }
+
+    public static void assertVariantContextsAreEqual( final VariantContext actual, final VariantContext expected ) {
+        Assert.assertNotNull(actual, "VariantContext expected not null");
+        Assert.assertEquals(actual.getChr(), expected.getChr(), "chr");
+        Assert.assertEquals(actual.getStart(), expected.getStart(), "start");
+        Assert.assertEquals(actual.getEnd(), expected.getEnd(), "end");
+        Assert.assertEquals(actual.getID(), expected.getID(), "id");
+        Assert.assertEquals(actual.getAlleles(), expected.getAlleles(), "alleles for " + expected + " vs " + actual);
+
+        assertAttributesEquals(actual.getAttributes(), expected.getAttributes());
+        Assert.assertEquals(actual.filtersWereApplied(), expected.filtersWereApplied(), "filtersWereApplied");
+        Assert.assertEquals(actual.isFiltered(), expected.isFiltered(), "isFiltered");
+        assertEqualsSet(actual.getFilters(), expected.getFilters(), "filters");
+        assertEqualsDoubleSmart(actual.getPhredScaledQual(), expected.getPhredScaledQual());
+
+        Assert.assertEquals(actual.hasGenotypes(), expected.hasGenotypes(), "hasGenotypes");
+        if ( expected.hasGenotypes() ) {
+            assertEqualsSet(actual.getSampleNames(), expected.getSampleNames(), "sample names set");
+            Assert.assertEquals(actual.getSampleNamesOrderedByName(), expected.getSampleNamesOrderedByName(), "sample names");
+            final Set<String> samples = expected.getSampleNames();
+            for ( final String sample : samples ) {
+                assertGenotypesAreEqual(actual.getGenotype(sample), expected.getGenotype(sample));
+            }
+        }
+    }
+
+    public static void assertVariantContextStreamsAreEqual(final Iterable<VariantContext> actual, final Iterable<VariantContext> expected) {
+        final Iterator<VariantContext> actualIT = actual.iterator();
+        final Iterator<VariantContext> expectedIT = expected.iterator();
+
+        while ( expectedIT.hasNext() ) {
+            final VariantContext expectedVC = expectedIT.next();
+            if ( expectedVC == null )
+                continue;
+
+            VariantContext actualVC;
+            do {
+                Assert.assertTrue(actualIT.hasNext(), "Too few records found in actual");
+                actualVC = actualIT.next();
+            } while ( actualIT.hasNext() && actualVC == null );
+
+            if ( actualVC == null )
+                Assert.fail("Too few records in actual");
+
+            assertVariantContextsAreEqual(actualVC, expectedVC);
+        }
+        Assert.assertTrue(! actualIT.hasNext(), "Too many records found in actual");
+    }
+
+
+    public static void assertGenotypesAreEqual(final Genotype actual, final Genotype expected) {
+        Assert.assertEquals(actual.getSampleName(), expected.getSampleName(), "Genotype names");
+        Assert.assertEquals(actual.getAlleles(), expected.getAlleles(), "Genotype alleles");
+        Assert.assertEquals(actual.getGenotypeString(), expected.getGenotypeString(), "Genotype string");
+        Assert.assertEquals(actual.getType(), expected.getType(), "Genotype type");
+
+        // filters are the same
+        Assert.assertEquals(actual.getFilters(), expected.getFilters(), "Genotype fields");
+        Assert.assertEquals(actual.isFiltered(), expected.isFiltered(), "Genotype isFiltered");
+
+        // inline attributes
+        Assert.assertEquals(actual.getDP(), expected.getDP(), "Genotype dp");
+        Assert.assertTrue(Arrays.equals(actual.getAD(), expected.getAD()));
+        Assert.assertEquals(actual.getGQ(), expected.getGQ(), "Genotype gq");
+        Assert.assertEquals(actual.hasPL(), expected.hasPL(), "Genotype hasPL");
+        Assert.assertEquals(actual.hasAD(), expected.hasAD(), "Genotype hasAD");
+        Assert.assertEquals(actual.hasGQ(), expected.hasGQ(), "Genotype hasGQ");
+        Assert.assertEquals(actual.hasDP(), expected.hasDP(), "Genotype hasDP");
+
+        Assert.assertEquals(actual.hasLikelihoods(), expected.hasLikelihoods(), "Genotype haslikelihoods");
+        Assert.assertEquals(actual.getLikelihoodsString(), expected.getLikelihoodsString(), "Genotype getlikelihoodsString");
+        Assert.assertEquals(actual.getLikelihoods(), expected.getLikelihoods(), "Genotype getLikelihoods");
+        Assert.assertTrue(Arrays.equals(actual.getPL(), expected.getPL()));
+
+        Assert.assertEquals(actual.getPhredScaledQual(), expected.getPhredScaledQual(), "Genotype phredScaledQual");
+        assertAttributesEquals(actual.getExtendedAttributes(), expected.getExtendedAttributes());
+        Assert.assertEquals(actual.isPhased(), expected.isPhased(), "Genotype isPhased");
+        Assert.assertEquals(actual.getPloidy(), expected.getPloidy(), "Genotype getPloidy");
+    }
+
+    public static void assertVCFHeadersAreEqual(final VCFHeader actual, final VCFHeader expected) {
+        Assert.assertEquals(actual.getMetaDataInSortedOrder().size(), expected.getMetaDataInSortedOrder().size(), "No VCF header lines");
+
+        // for some reason set.equals() is returning false but all paired elements are .equals().  Perhaps compare to is busted?
+        //Assert.assertEquals(actual.getMetaDataInInputOrder(), expected.getMetaDataInInputOrder());
+        final List<VCFHeaderLine> actualLines = new ArrayList<VCFHeaderLine>(actual.getMetaDataInSortedOrder());
+        final List<VCFHeaderLine> expectedLines = new ArrayList<VCFHeaderLine>(expected.getMetaDataInSortedOrder());
+        for ( int i = 0; i < actualLines.size(); i++ ) {
+            Assert.assertEquals(actualLines.get(i), expectedLines.get(i), "VCF header lines");
+        }
+    }
+
+    public static void assertVCFandBCFFilesAreTheSame(final File vcfFile, final File bcfFile) throws IOException {
+        final Pair<VCFHeader, GATKVCFUtils.VCIterable> vcfData = GATKVCFUtils.readAllVCs(vcfFile, new VCFCodec());
+        final Pair<VCFHeader, GATKVCFUtils.VCIterable> bcfData = GATKVCFUtils.readAllVCs(bcfFile, new BCF2Codec());
+        assertVCFHeadersAreEqual(bcfData.getFirst(), vcfData.getFirst());
+        assertVariantContextStreamsAreEqual(bcfData.getSecond(), vcfData.getSecond());
+    }
+
+    private static void assertAttributeEquals(final String key, final Object actual, final Object expected) {
+        if ( expected instanceof Double ) {
+            // must be very tolerant because doubles are being rounded to 2 sig figs
+            assertEqualsDoubleSmart(actual, (Double) expected, 1e-2);
+        } else
+            Assert.assertEquals(actual, expected, "Attribute " + key);
+    }
+
+    private static void assertAttributesEquals(final Map<String, Object> actual, Map<String, Object> expected) {
+        final Set<String> expectedKeys = new HashSet<String>(expected.keySet());
+
+        for ( final Map.Entry<String, Object> act : actual.entrySet() ) {
+            final Object actualValue = act.getValue();
+            if ( expected.containsKey(act.getKey()) && expected.get(act.getKey()) != null ) {
+                final Object expectedValue = expected.get(act.getKey());
+                if ( expectedValue instanceof List ) {
+                    final List<Object> expectedList = (List<Object>)expectedValue;
+                    Assert.assertTrue(actualValue instanceof List, act.getKey() + " should be a list but isn't");
+                    final List<Object> actualList = (List<Object>)actualValue;
+                    Assert.assertEquals(actualList.size(), expectedList.size(), act.getKey() + " size");
+                    for ( int i = 0; i < expectedList.size(); i++ )
+                        assertAttributeEquals(act.getKey(), actualList.get(i), expectedList.get(i));
+                } else
+                    assertAttributeEquals(act.getKey(), actualValue, expectedValue);
+            } else {
+                // it's ok to have a binding in x -> null that's absent in y
+                Assert.assertNull(actualValue, act.getKey() + " present in one but not in the other");
+            }
+            expectedKeys.remove(act.getKey());
+        }
+
+        // now expectedKeys contains only the keys found in expected but not in actual,
+        // and they must all be null
+        for ( final String missingExpected : expectedKeys ) {
+            final Object value = expected.get(missingExpected);
+            Assert.assertTrue(isMissing(value), "Attribute " + missingExpected + " missing in one but not in other" );
+        }
+    }
+
+    private static final boolean isMissing(final Object value) {
+        if ( value == null ) return true;
+        else if ( value.equals(VCFConstants.MISSING_VALUE_v4) ) return true;
+        else if ( value instanceof List ) {
+            // handles the case where all elements are null or the list is empty
+            for ( final Object elt : (List)value)
+                if ( elt != null )
+                    return false;
+            return true;
+        } else
+            return false;
     }
 }

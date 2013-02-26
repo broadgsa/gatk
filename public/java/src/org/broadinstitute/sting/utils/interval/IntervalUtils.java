@@ -1,3 +1,28 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.utils.interval;
 
 import com.google.java.contract.Ensures;
@@ -7,6 +32,7 @@ import net.sf.picard.util.IntervalList;
 import net.sf.samtools.SAMFileHeader;
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
+import org.broadinstitute.sting.commandline.IntervalArgumentCollection;
 import org.broadinstitute.sting.commandline.IntervalBinding;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -507,6 +533,47 @@ public class IntervalUtils {
         } else {
             return includeSortedSet;
         }
+    }
+
+    public static GenomeLocSortedSet parseIntervalArguments(final ReferenceDataSource referenceDataSource, IntervalArgumentCollection argCollection) {
+        GenomeLocSortedSet intervals = null;
+
+        // return if no interval arguments at all
+        if ( argCollection.intervals == null && argCollection.excludeIntervals == null )
+            return intervals;
+
+        // Note that the use of '-L all' is no longer supported.
+
+        // if include argument isn't given, create new set of all possible intervals
+
+        final Pair<GenomeLocSortedSet, GenomeLocSortedSet> includeExcludePair = IntervalUtils.parseIntervalBindingsPair(
+                referenceDataSource,
+                argCollection.intervals,
+                argCollection.intervalSetRule, argCollection.intervalMerging, argCollection.intervalPadding,
+                argCollection.excludeIntervals);
+
+        final GenomeLocSortedSet includeSortedSet = includeExcludePair.getFirst();
+        final GenomeLocSortedSet excludeSortedSet = includeExcludePair.getSecond();
+
+        // if no exclude arguments, can return parseIntervalArguments directly
+        if ( excludeSortedSet == null )
+            intervals = includeSortedSet;
+
+            // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
+        else {
+            intervals = includeSortedSet.subtractRegions(excludeSortedSet);
+
+            // logging messages only printed when exclude (-XL) arguments are given
+            final long toPruneSize = includeSortedSet.coveredSize();
+            final long toExcludeSize = excludeSortedSet.coveredSize();
+            final long intervalSize = intervals.coveredSize();
+            logger.info(String.format("Initial include intervals span %d loci; exclude intervals span %d loci", toPruneSize, toExcludeSize));
+            logger.info(String.format("Excluding %d loci from original intervals (%.2f%% reduction)",
+                    toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
+        }
+
+        logger.info(String.format("Processing %d bp from intervals", intervals.coveredSize()));
+        return intervals;
     }
 
     public static Pair<GenomeLocSortedSet, GenomeLocSortedSet> parseIntervalBindingsPair(

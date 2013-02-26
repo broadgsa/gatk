@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 2012, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.queue.function
 
@@ -58,8 +59,16 @@ trait QFunction extends Logging with QJobReport {
   /** Directory to run the command in. */
   var commandDirectory: File = new File(".")
 
-  /** Temporary directory to write any files */
+  /** Temporary directory to write any files. Must be network accessible. */
   var jobTempDir: File = null
+
+  /**
+   * Local path available on all machines to store LOCAL temporary files. Not an @Input,
+   * nor an @Output. Currently only used for local intermediate files for composite jobs.
+   * Needs to be an annotated field so that it's mutated during cloning.
+   */
+  @Argument(doc="Local path available on all machines to store LOCAL temporary files.")
+  var jobLocalDir: File = _
 
   /** Order the function was added to the graph. */
   var addOrder: Seq[Int] = Nil
@@ -96,6 +105,7 @@ trait QFunction extends Logging with QJobReport {
     function.qSettings = this.qSettings
     function.commandDirectory = this.commandDirectory
     function.jobTempDir = this.jobTempDir
+    function.jobLocalDir = this.jobLocalDir
     function.addOrder = this.addOrder
     function.jobPriority = this.jobPriority
     function.jobRestartable = this.jobRestartable
@@ -231,6 +241,7 @@ trait QFunction extends Logging with QJobReport {
     var dirs = Set.empty[File]
     dirs += commandDirectory
     dirs += jobTempDir
+    dirs += jobLocalDir
     dirs += jobOutputFile.getParentFile
     if (jobErrorFile != null)
       dirs += jobErrorFile.getParentFile
@@ -369,11 +380,15 @@ trait QFunction extends Logging with QJobReport {
     if (jobTempDir == null)
       jobTempDir = qSettings.tempDirectory
 
+    if (jobLocalDir == null)
+      jobLocalDir = jobTempDir
+
     if (jobPriority.isEmpty)
       jobPriority = qSettings.jobPriority
 
-    // Do not set the temp dir relative to the command directory
+    // Do not set the temp and local dir relative to the command directory
     jobTempDir = IOUtils.absolute(jobTempDir)
+    jobLocalDir = IOUtils.absolute(jobLocalDir)
 
     absoluteCommandDirectory()
   }

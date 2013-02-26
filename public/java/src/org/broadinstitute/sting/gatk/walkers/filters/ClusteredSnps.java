@@ -1,9 +1,34 @@
+/*
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 
 public class ClusteredSnps {
     private GenomeLocParser genomeLocParser;
@@ -32,7 +57,7 @@ public class ClusteredSnps {
                 throw new UserException.BadInput("The clustered SNPs filter does not work in the presence of non-variant records; see the documentation for more details");
 
             // find the nth variant
-            GenomeLoc left = VariantContextUtils.getLocation(genomeLocParser,variants[i].getVariantContext());
+            GenomeLoc left = GATKVariantContextUtils.getLocation(genomeLocParser, variants[i].getVariantContext());
             GenomeLoc right = null;
             int snpsSeen = 1;
 
@@ -40,7 +65,7 @@ public class ClusteredSnps {
             while ( ++currentIndex < variants.length ) {
                 if ( variants[currentIndex] != null && variants[currentIndex].getVariantContext() != null && variants[currentIndex].getVariantContext().isVariant() ) {
                     if ( ++snpsSeen == snpThreshold ) {
-                        right = VariantContextUtils.getLocation(genomeLocParser,variants[currentIndex].getVariantContext());
+                        right = GATKVariantContextUtils.getLocation(genomeLocParser, variants[currentIndex].getVariantContext());
                         break;
                     }
                 }

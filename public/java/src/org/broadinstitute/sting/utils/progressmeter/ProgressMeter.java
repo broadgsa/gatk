@@ -1,26 +1,27 @@
 /*
- * Copyright (c) 2010, The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils.progressmeter;
 
@@ -145,13 +146,15 @@ public class ProgressMeter {
     private final SimpleTimer timer = new SimpleTimer();
 
     private GenomeLoc maxGenomeLoc = null;
-    private String positionMessage = "starting";
+    private Position position = new Position(PositionStatus.STARTING);
     private long nTotalRecordsProcessed = 0;
 
     final ProgressMeterDaemon progressMeterDaemon;
 
     /**
      * Create a new ProgressMeter
+     *
+     * Note that progress meter isn't started until the client calls start()
      *
      * @param performanceLogFile an optional performance log file where a table of performance logs will be written
      * @param processingUnitName the name of the unit type being processed, suitable for saying X seconds per processingUnitName
@@ -160,6 +163,13 @@ public class ProgressMeter {
     public ProgressMeter(final File performanceLogFile,
                          final String processingUnitName,
                          final GenomeLocSortedSet processingIntervals) {
+        this(performanceLogFile, processingUnitName, processingIntervals, ProgressMeterDaemon.DEFAULT_POLL_FREQUENCY_MILLISECONDS);
+    }
+
+    protected ProgressMeter(final File performanceLogFile,
+                            final String processingUnitName,
+                            final GenomeLocSortedSet processingIntervals,
+                            final long pollingFrequency) {
         if ( processingUnitName == null ) throw new IllegalArgumentException("processingUnitName cannot be null");
         if ( processingIntervals == null ) throw new IllegalArgumentException("Target intervals cannot be null");
 
@@ -184,8 +194,11 @@ public class ProgressMeter {
         targetSizeInBP = processingIntervals.coveredSize();
 
         // start up the timer
-        progressMeterDaemon = new ProgressMeterDaemon(this);
-        start();
+        progressMeterDaemon = new ProgressMeterDaemon(this, pollingFrequency);
+    }
+
+    public ProgressMeterDaemon getProgressMeterDaemon() {
+        return progressMeterDaemon;
     }
 
     /**
@@ -193,7 +206,7 @@ public class ProgressMeter {
      * daemon thread for periodic printing.
      */
     @Requires("progressMeterDaemon != null")
-    private synchronized void start() {
+    public synchronized void start() {
         timer.start();
         lastProgressPrintTime = timer.currentTime();
 
@@ -223,20 +236,78 @@ public class ProgressMeter {
      * the progress itself.  A separate printing daemon periodically polls the meter to print out
      * progress
      *
-     * @param loc       Current location, can be null if you are at the end of the processing unit
+     * @param loc Current location, can be null if you are at the end of the processing unit.  Must
+     *            have size == 1 (cannot be multiple bases in size).
      * @param nTotalRecordsProcessed the total number of records we've processed
      */
     public synchronized void notifyOfProgress(final GenomeLoc loc, final long nTotalRecordsProcessed) {
         if ( nTotalRecordsProcessed < 0 ) throw new IllegalArgumentException("nTotalRecordsProcessed must be >= 0");
+        if ( loc.size() != 1 ) throw new IllegalArgumentException("GenomeLoc must have size == 1 but got " + loc);
 
         // weird comparison to ensure that loc == null (in unmapped reads) is keep before maxGenomeLoc == null (on startup)
         this.maxGenomeLoc = loc == null ? loc : (maxGenomeLoc == null ? loc : loc.max(maxGenomeLoc));
         this.nTotalRecordsProcessed = Math.max(this.nTotalRecordsProcessed, nTotalRecordsProcessed);
 
         // a pretty name for our position
-        this.positionMessage = maxGenomeLoc == null
-                ? "unmapped reads"
-                : String.format("%s:%d", maxGenomeLoc.getContig(), maxGenomeLoc.getStart());
+        this.position = maxGenomeLoc == null ? new Position(PositionStatus.IN_UNMAPPED_READS) : new Position(maxGenomeLoc);
+    }
+
+    /**
+     * Describes the status of this position marker, such as starting up, done, in the unmapped reads,
+     * or somewhere on the genome
+     */
+    private enum PositionStatus {
+        STARTING("Starting"),
+        DONE("done"),
+        IN_UNMAPPED_READS("unmapped reads"),
+        ON_GENOME(null);
+
+        public final String message;
+
+        private PositionStatus(String message) {
+            this.message = message;
+        }
+    }
+
+    /**
+     * A pair of position status and the genome loc, if necessary.  Used to get a
+     * status update message as needed, without the computational cost of formatting
+     * the genome loc string every time a progress notification happens (which is almost
+     * always not printed)
+     */
+    private class Position {
+        final PositionStatus type;
+        final GenomeLoc maybeLoc;
+
+        /**
+         * Create a position object of any type != ON_GENOME
+         * @param type
+         */
+        @Requires({"type != null", "type != PositionStatus.ON_GENOME"})
+        private Position(PositionStatus type) {
+            this.type = type;
+            this.maybeLoc = null;
+        }
+
+        /**
+         * Create a position object of type ON_GENOME at genomeloc loc
+         * @param loc
+         */
+        @Requires("loc != null")
+        private Position(GenomeLoc loc) {
+            this.type = PositionStatus.ON_GENOME;
+            this.maybeLoc = loc;
+        }
+
+        /**
+         * @return a human-readable representation of this position
+         */
+        private String getMessage() {
+            if ( type == PositionStatus.ON_GENOME )
+                return maxGenomeLoc.getContig() + ":" + maxGenomeLoc.getStart();
+            else
+                return type.message;
+        }
     }
 
     /**
@@ -267,7 +338,7 @@ public class ProgressMeter {
                 updateLoggerPrintFrequency(estTotalRuntime.getTimeInSeconds());
 
                 logger.info(String.format("%15s        %5.2e %s     %s    %5.1f%%      %s  %s",
-                        positionMessage, progressData.getUnitsProcessed()*1.0, elapsed, unitRate,
+                        position.getMessage(), progressData.getUnitsProcessed()*1.0, elapsed, unitRate,
                         100*fractionGenomeTargetCompleted, estTotalRuntime, timeToCompletion));
 
             }
@@ -317,7 +388,7 @@ public class ProgressMeter {
     public void notifyDone(final long nTotalRecordsProcessed) {
         // print out the progress meter
         this.nTotalRecordsProcessed = nTotalRecordsProcessed;
-        this.positionMessage = "done";
+        this.position = new Position(PositionStatus.DONE);
         printProgress(true);
 
         logger.info(String.format("Total runtime %.2f secs, %.2f min, %.2f hours",
