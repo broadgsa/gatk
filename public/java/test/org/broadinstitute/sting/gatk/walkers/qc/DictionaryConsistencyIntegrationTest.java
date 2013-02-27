@@ -75,7 +75,7 @@ public class DictionaryConsistencyIntegrationTest extends WalkerTest {
     @Test public void failBAM8() { executeTest("hg18bam-v-lexhg18", testBAM(lexHG18,        hg18BAM, "chr1", UserException.LexicographicallySortedSequenceDictionary.class)); }
 
     private WalkerTest.WalkerTestSpec testBAM(String ref, String bam, String contig, Class c) {
-        return new WalkerTest.WalkerTestSpec("-T UnifiedGenotyper -I " + bam + " -R " + ref +  " -L " + contig + ":10,000,000-11,000,000 -o %s",
+        return new WalkerTest.WalkerTestSpec("-T PrintReads -I " + bam + " -R " + ref +  " -L " + contig + ":10,000,000-11,000,000 -o %s",
                 1, c);
 
     }
