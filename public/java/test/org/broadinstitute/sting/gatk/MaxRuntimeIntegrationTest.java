@@ -71,7 +71,7 @@ public class MaxRuntimeIntegrationTest extends WalkerTest {
     @Test(enabled = true, dataProvider = "MaxRuntimeProvider", timeOut = 60 * 1000)
     public void testMaxRuntime(final MaxRuntimeTestProvider cfg) {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-T UnifiedGenotyper -R " + hg18Reference
+                "-T PrintReads -R " + hg18Reference
                         + " -I " + validationDataLocation + "NA12878.WEx.downsampled20x.bam -o /dev/null"
                         + " -maxRuntime " + cfg.maxRuntime + " -maxRuntimeUnits " + cfg.unit, 0,
                 Collections.<String>emptyList());
