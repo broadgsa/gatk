@@ -34,6 +34,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -55,7 +56,9 @@ public class MisencodedBaseQualityUnitTest extends BaseTest {
     }
 
     private GATKSAMRecord createRead(final boolean useGoodBases) {
-        GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "foo", 0, 10, readBases.getBytes(), useGoodBases ? goodQuals : badQuals);
+        GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "foo", 0, 10, readBases.getBytes(),
+                                                                     useGoodBases ? Arrays.copyOf(goodQuals, goodQuals.length) :
+                                                                                    Arrays.copyOf(badQuals, badQuals.length));
         read.setCigarString("10M");
         return read;
     }
