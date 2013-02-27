@@ -276,8 +276,14 @@ public class UserException extends ReviewedStingException {
     }
 
     public static class ReadMissingReadGroup extends MalformedBAM {
-        public ReadMissingReadGroup(SAMRecord read) {
-            super(read, String.format("Read %s is either missing the read group or its read group is not defined in the BAM header, both of which are required by the GATK.  Please use " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName()));
+        public ReadMissingReadGroup(final SAMRecord read) {
+            super(read, String.format("Read %s is missing the read group (RG) tag, which is required by the GATK.  Please use " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName()));
+        }
+    }
+
+    public static class ReadHasUndefinedReadGroup extends MalformedBAM {
+        public ReadHasUndefinedReadGroup(final SAMRecord read, final String rgID) {
+            super(read, String.format("Read %s uses a read group (%s) that is not defined in the BAM header, which is not valid.  Please use " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName(), rgID));
         }
     }
 
