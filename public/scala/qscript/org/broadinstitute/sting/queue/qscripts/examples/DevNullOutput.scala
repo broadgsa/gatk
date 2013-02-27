@@ -39,12 +39,12 @@ class DevNullOutput extends QScript {
   var bamFile: File = _
 
   def script() {
-    val genotyper = new UnifiedGenotyper
-    genotyper.reference_sequence = referenceFile
-    genotyper.memoryLimit = 2
-    genotyper.scatterCount = 3
-    genotyper.input_file :+= bamFile
-    genotyper.out = "/dev/null"
-    add(genotyper)
+    val printReads = new PrintReads
+    printReads.reference_sequence = referenceFile
+    printReads.memoryLimit = 2
+    printReads.scatterCount = 3
+    printReads.input_file :+= bamFile
+    printReads.out = "/dev/null"
+    add(printReads)
   }
 }

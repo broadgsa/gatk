@@ -33,21 +33,21 @@ class ExampleRetryMemoryLimit extends QScript {
   @Input(doc="The reference file for the bam files.", shortName="R")
   var referenceFile: File = _
 
-  @Input(doc="Bam file to genotype.", shortName="I")
+  @Input(doc="Bam file to print.", shortName="I")
   var bamFile: File = _
 
   def script() {
     for (scatterCount <- 1 to 2) {
-      val ug = new UnifiedGenotyper with RetryMemoryLimit
+      val printReads = new PrintReads with RetryMemoryLimit
       // First run with 1m
-      ug.memoryLimit = .001
+      printReads.memoryLimit = .001
       // On retry run with 1g
-      ug.retryMemoryFunction = (d => d * 1000)
-      ug.reference_sequence = referenceFile
-      ug.input_file = Seq(bamFile)
-      ug.out = swapExt(bamFile, ".bam", ".scattered_%d.vcf".format(scatterCount))
-      ug.scatterCount = scatterCount
-      add(ug)
+      printReads.retryMemoryFunction = (d => d * 1000)
+      printReads.reference_sequence = referenceFile
+      printReads.input_file = Seq(bamFile)
+      printReads.out = swapExt(bamFile, ".bam", ".out.scattered_%d.bam".format(scatterCount))
+      printReads.scatterCount = scatterCount
+      add(printReads)
     }
   }
 }
