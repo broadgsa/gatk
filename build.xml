@@ -1104,7 +1104,7 @@
 
     <path id="testng.default.classpath">
         <path refid="build.results" />
-	<pathelement path="${clover.jar}"/>    
+        <pathelement path="${clover.jar}"/>
         <pathelement location="${java.contracts.dir}" />
         <pathelement location="${java.test.classes}" />
         <pathelement location="${scala.test.classes}" />
@@ -1114,7 +1114,7 @@
 
     <target name="clover.report">
       <clover-report coverageCacheSize="nocache">
-	<current outfile="clover_html" title="GATK clover report" showUniqueCoverage="false" numThreads="4">
+      <current outfile="clover_html" title="GATK clover report" showUniqueCoverage="false" numThreads="4">
 	  <format type="html" filter="catch,static,property"/>
 	  <fileset dir="public">
 	    <patternset id="clover.excludes">
@@ -1244,7 +1244,7 @@
                     listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.TestNGTestTransformer,org.broadinstitute.sting.StingTextReporter,org.uncommons.reportng.HTMLReporter">
                 <jvmarg value="-Xmx${test.maxmemory}" />
                 <jvmarg value="-ea" />
-		<jvmarg value="-Dclover.pertest.coverage=diff" />
+                <jvmarg value="-Dclover.pertest.coverage=diff" />
                 <jvmarg value="-Djava.awt.headless=true" />
                 <jvmarg value="-Dpipeline.run=${pipeline.run}" />
                 <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
@@ -1287,7 +1287,7 @@
 
     <target name="test.init">
         <property name="testng.classpath" value="testng.default.classpath" />
-	<property name="test.maxmemory" value="${test.default.maxmemory}"/>
+        <property name="test.maxmemory" value="${test.default.maxmemory}"/>
     </target>
 
     <target name="init.testgatkjar">
@@ -1442,4 +1442,30 @@
 
         <run-test testtype="${single}" outputdir="${report}/${single}" runfailed="false"/>
     </target>
+
+    <!-- A target that runs a test without doing ANY compilation or any extra work at all -->
+    <!-- Intended to enable parallel tests that share the same working directory and build -->
+    <target name="runtestonly">
+        <condition property="not.clean">
+            <and>
+                <available file="${build.dir}" />
+                <available file="${lib.dir}" />
+                <available file="${dist.dir}" />
+                <available file="${java.test.classes}" />
+            </and>
+        </condition>
+        <fail message="runtestonly target requires a NON-CLEAN working directory (INCLUDING test classes). Do a full test build using ant test.compile first." unless="not.clean" />
+
+        <condition property="no.single.test.specified">
+            <equals arg1="${single}" arg2="$${single}" />
+        </condition>
+        <fail message="Must specify a specific test. Usage: ant runtestonly -Dsingle=TestClass" if="no.single.test.specified" />
+
+        <property name="testng.classpath" value="testng.default.classpath" />
+        <property name="test.maxmemory" value="${test.default.maxmemory}"/>
+        <property name="include.contracts" value="true" />
+
+        <run-test testtype="${single}" outputdir="${report}/${single}" runfailed="false"/>
+    </target>
+
 </project>
