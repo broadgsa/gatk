@@ -26,12 +26,10 @@
 package org.broadinstitute.sting.gatk.datasources.reads.utilities;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.gatk.datasources.reads.BAMScheduler;
 import org.broadinstitute.sting.gatk.datasources.reads.FilePointer;
 import org.broadinstitute.sting.gatk.datasources.reads.IntervalSharder;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
@@ -98,14 +96,11 @@ public class FindLargeShards extends CommandLineProgram {
         SAMDataSource dataSource = new SAMDataSource(bamReaders,new ThreadAllocation(),null,genomeLocParser);
 
         // intervals
-        GenomeLocSortedSet intervalSortedSet = null;
-        if(intervals != null)
+        final GenomeLocSortedSet intervalSortedSet;
+        if ( intervals != null )
             intervalSortedSet = IntervalUtils.sortAndMergeIntervals(genomeLocParser, IntervalUtils.parseIntervalArguments(genomeLocParser, intervals), IntervalMergingRule.ALL);
-        else {
-            intervalSortedSet = new GenomeLocSortedSet(genomeLocParser);
-            for(SAMSequenceRecord entry: refReader.getSequenceDictionary().getSequences())
-                intervalSortedSet.add(genomeLocParser.createGenomeLoc(entry.getSequenceName(),1,entry.getSequenceLength()));
-        }
+        else
+            intervalSortedSet = GenomeLocSortedSet.createSetFromSequenceDictionary(refReader.getSequenceDictionary());
 
         logger.info(String.format("PROGRESS: Calculating mean and variance: Contig\tRegion.Start\tRegion.Stop\tSize"));        
 
