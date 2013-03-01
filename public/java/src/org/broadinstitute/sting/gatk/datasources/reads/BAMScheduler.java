@@ -28,7 +28,6 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 import net.sf.picard.util.PeekableIterator;
 import net.sf.samtools.GATKBAMFileSpan;
 import net.sf.samtools.GATKChunk;
-import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -53,14 +52,15 @@ public class BAMScheduler implements Iterator<FilePointer> {
     private PeekableIterator<GenomeLoc> locusIterator;
     private GenomeLoc currentLocus;
 
-    public static BAMScheduler createOverMappedReads(final SAMDataSource dataSource, final SAMSequenceDictionary referenceSequenceDictionary, final GenomeLocParser parser) {
-        BAMScheduler scheduler = new BAMScheduler(dataSource);
-        GenomeLocSortedSet intervals = new GenomeLocSortedSet(parser);
-        for(SAMSequenceRecord sequence: referenceSequenceDictionary.getSequences()) {
-            // Match only on sequence name; trust startup validation to make sure all the sequences match.
-            if(dataSource.getHeader().getSequenceDictionary().getSequence(sequence.getSequenceName()) != null)
-                intervals.add(parser.createOverEntireContig(sequence.getSequenceName()));
-        }
+    /*
+     * Creates BAMScheduler using contigs from the given BAM data source.
+     *
+     * @param dataSource    BAM source
+     * @return non-null BAM scheduler
+     */
+    public static BAMScheduler createOverMappedReads(final SAMDataSource dataSource) {
+        final BAMScheduler scheduler = new BAMScheduler(dataSource);
+        final GenomeLocSortedSet intervals = GenomeLocSortedSet.createSetFromSequenceDictionary(dataSource.getHeader().getSequenceDictionary());
         scheduler.populateFilteredIntervalList(intervals);
         return scheduler;
     }

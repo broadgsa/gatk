@@ -117,11 +117,31 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
         GenomeLoc f = genomeLocParser.createGenomeLoc(contigOneName, 30, 80);
         mSortedSet.addRegion(f);
         assertTrue(mSortedSet.size() == 1);
-        
     }
 
+    @Test
+    public void addRegionsOutOfOrder() {
+        final String contigTwoName = header.getSequenceDictionary().getSequence(2).getSequenceName();
+        assertTrue(mSortedSet.size() == 0);
+        GenomeLoc g = genomeLocParser.createGenomeLoc(contigTwoName, 1, 50);
+        mSortedSet.add(g);
+        GenomeLoc f = genomeLocParser.createGenomeLoc(contigOneName, 30, 80);
+        mSortedSet.addRegion(f);
+        assertTrue(mSortedSet.size() == 2);
+        assertTrue(mSortedSet.toList().get(0).getContig().equals(contigOneName));
+        assertTrue(mSortedSet.toList().get(1).getContig().equals(contigTwoName));
+    }
 
-    @Test(expectedExceptions=ReviewedStingException.class)
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void addThrowsException() {
+        assertTrue(mSortedSet.size() == 0);
+        GenomeLoc g = genomeLocParser.createGenomeLoc(contigOneName, 1, 50);
+        mSortedSet.add(g);
+        GenomeLoc f = genomeLocParser.createGenomeLoc(contigOneName, 30, 80);
+        mSortedSet.add(f);
+    }
+
+    @Test(expectedExceptions=IllegalArgumentException.class)
     public void testAddDuplicate() {
         assertTrue(mSortedSet.size() == 0);
         GenomeLoc g = genomeLocParser.createGenomeLoc(contigOneName, 0, 0);
@@ -141,9 +161,9 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
         assertTrue(mSortedSet.size() == 1);
         Iterator<GenomeLoc> iter = mSortedSet.iterator();
         GenomeLoc loc = iter.next();
-        assertTrue(loc.getStart() == 0);
-        assertTrue(loc.getStop() == 100);
-        assertTrue(loc.getContigIndex() == 1);
+        assertEquals(loc.getStart(), 0);
+        assertEquals(loc.getStop(), 100);
+        assertEquals(loc.getContigIndex(), 1);
     }
 
     @Test
@@ -192,9 +212,9 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
         assertTrue(mSortedSet.size() == 1);
         Iterator<GenomeLoc> iter = mSortedSet.iterator();
         GenomeLoc loc = iter.next();
-        assertTrue(loc.getStart() == 0);
-        assertTrue(loc.getStop() == 100);
-        assertTrue(loc.getContigIndex() == 1);
+        assertEquals(loc.getStart(), 0);
+        assertEquals(loc.getStop(), 100);
+        assertEquals(loc.getContigIndex(), 1);
     }
 
     @Test

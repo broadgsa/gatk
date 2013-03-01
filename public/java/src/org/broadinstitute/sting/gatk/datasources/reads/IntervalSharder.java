@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
 import net.sf.picard.util.PeekableIterator;
-import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
@@ -51,8 +50,8 @@ public class IntervalSharder implements Iterator<FilePointer> {
         return new IntervalSharder(BAMScheduler.createOverAllReads(dataSource,parser),parser);
     }
 
-    public static IntervalSharder shardOverMappedReads(final SAMDataSource dataSource, final SAMSequenceDictionary sequenceDictionary, final GenomeLocParser parser) {
-        return new IntervalSharder(BAMScheduler.createOverMappedReads(dataSource,sequenceDictionary,parser),parser);
+    public static IntervalSharder shardOverMappedReads(final SAMDataSource dataSource, final GenomeLocParser parser) {
+        return new IntervalSharder(BAMScheduler.createOverMappedReads(dataSource),parser);
     }
 
     public static IntervalSharder shardOverIntervals(final SAMDataSource dataSource, final GenomeLocSortedSet loci) {
