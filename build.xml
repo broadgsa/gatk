@@ -865,11 +865,15 @@
         <property name="executable" value="GenomeAnalysisTK" />
     </target>
 
-    <target name="init.executable.queueall" depends="init.build.all, init.javaandscala">
-        <property name="executable" value="Queue" />
+    <target name="init.executable.gatkall" depends="init.build.all, init.javaonly">
+        <property name="executable" value="GenomeAnalysisTK" />
     </target>
 
     <target name="init.executable.queuefull" depends="init.build.publicprotectedonly, init.javaandscala">
+        <property name="executable" value="Queue" />
+    </target>
+
+    <target name="init.executable.queueall" depends="init.build.all, init.javaandscala">
         <property name="executable" value="Queue" />
     </target>
 
@@ -921,11 +925,16 @@
     </target>
 
     <!-- Package specific versions of the GATK/Queue. ALWAYS do an ant clean before invoking these! -->
+
+    <!-- GATK "full" == public + protected, ie., the standard binary release of the GATK  -->
     <target name="package.gatk.full" depends="init.executable.gatkfull,package" />
 
-    <target name="package.queue.all" depends="init.executable.queueall,package" />
+    <!-- GATK "all" == public + protected + private. Should never be publicly released -->
+    <target name="package.gatk.all" depends="init.executable.gatkall,package" />
 
     <target name="package.queue.full" depends="init.executable.queuefull,package" />
+
+    <target name="package.queue.all" depends="init.executable.queueall,package" />
 
     <!-- Release a build. Don't call this target directly. Call one of the specific release targets below -->
     <target name="release" depends="require.executable" description="release a build, putting each file in a location specified by the package">
