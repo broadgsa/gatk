@@ -405,6 +405,7 @@ public class GATKVariantContextUtils {
 
         // we need to determine which of the alternate alleles (and hence the likelihoods) to use and carry forward
         final int numOriginalAltAlleles = vc.getAlternateAlleles().size();
+        final int expectedNumLikelihoods = GenotypeLikelihoods.numLikelihoods(vc.getNAlleles(), 2);
         final int numNewAltAlleles = allelesToUse.size() - 1;
 
         // which PLs should be carried forward?
@@ -444,6 +445,9 @@ public class GATKVariantContextUtils {
             double[] newLikelihoods;
             if ( likelihoodIndexesToUse == null ) {
                 newLikelihoods = originalLikelihoods;
+            } else if ( originalLikelihoods.length != expectedNumLikelihoods ) {
+                logger.warn("Wrong number of likelihoods in sample " + g.getSampleName() + " at " + vc + " got " + g.getLikelihoodsString() + " but expected " + expectedNumLikelihoods);
+                newLikelihoods = null;
             } else {
                 newLikelihoods = new double[likelihoodIndexesToUse.size()];
                 int newIndex = 0;
@@ -455,13 +459,13 @@ public class GATKVariantContextUtils {
             }
 
             // if there is no mass on the (new) likelihoods, then just no-call the sample
-            if ( MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL ) {
+            if ( newLikelihoods != null && MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL ) {
                 newGTs.add(GenotypeBuilder.create(g.getSampleName(), NO_CALL_ALLELES));
             }
             else {
                 final GenotypeBuilder gb = new GenotypeBuilder(g);
 
-                if ( numNewAltAlleles == 0 )
+                if ( newLikelihoods == null || numNewAltAlleles == 0 )
                     gb.noPL();
                 else
                     gb.PL(newLikelihoods);
