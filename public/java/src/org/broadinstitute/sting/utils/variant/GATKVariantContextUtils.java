@@ -989,7 +989,6 @@ public class GATKVariantContextUtils {
             return inputVC;
 
         final List<Allele> alleles = new LinkedList<Allele>();
-        final GenotypesContext genotypes = GenotypesContext.create();
         final Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
 
         for (final Allele a : inputVC.getAlleles()) {
@@ -1006,17 +1005,8 @@ public class GATKVariantContextUtils {
         }
 
         // now we can recreate new genotypes with trimmed alleles
-        for ( final Genotype genotype : inputVC.getGenotypes() ) {
-            final List<Allele> originalAlleles = genotype.getAlleles();
-            final List<Allele> trimmedAlleles = new ArrayList<Allele>();
-            for ( final Allele a : originalAlleles ) {
-                if ( a.isCalled() )
-                    trimmedAlleles.add(originalToTrimmedAlleleMap.get(a));
-                else
-                    trimmedAlleles.add(Allele.NO_CALL);
-            }
-            genotypes.add(new GenotypeBuilder(genotype).alleles(trimmedAlleles).make());
-        }
+        final AlleleMapper alleleMapper = new AlleleMapper(originalToTrimmedAlleleMap);
+        final GenotypesContext genotypes = updateGenotypesWithMappedAlleles(inputVC.getGenotypes(), alleleMapper);
 
         final int start = inputVC.getStart() + (fwdTrimEnd + 1);
         final VariantContextBuilder builder = new VariantContextBuilder(inputVC);
@@ -1025,6 +1015,18 @@ public class GATKVariantContextUtils {
         builder.alleles(alleles);
         builder.genotypes(genotypes);
         return builder.make();
+    }
+
+    @Requires("originalGenotypes != null && alleleMapper != null")
+    protected static GenotypesContext updateGenotypesWithMappedAlleles(final GenotypesContext originalGenotypes, final AlleleMapper alleleMapper) {
+        final GenotypesContext updatedGenotypes = GenotypesContext.create();
+
+        for ( final Genotype genotype : originalGenotypes ) {
+            final List<Allele> updatedAlleles = alleleMapper.remap(genotype.getAlleles());
+            updatedGenotypes.add(new GenotypeBuilder(genotype).alleles(updatedAlleles).make());
+        }
+
+        return updatedGenotypes;
     }
 
     public static int computeReverseClipping(final List<Allele> unclippedAlleles, final byte[] ref) {
@@ -1263,7 +1265,7 @@ public class GATKVariantContextUtils {
     }
 
 
-    private static class AlleleMapper {
+    protected static class AlleleMapper {
         private VariantContext vc = null;
         private Map<Allele, Allele> map = null;
         public AlleleMapper(VariantContext vc)          { this.vc = vc; }
@@ -1322,5 +1324,60 @@ public class GATKVariantContextUtils {
             first = false;
         }
       return new VariantContextBuilder(name, contig, start, start+length-1, alleles).make();
+    }
+
+    /**
+     * Splits the alleles for the provided variant context into its primitive parts.
+     * Requires that the input VC be bi-allelic, so calling methods should first call splitVariantContextToBiallelics() if needed.
+     * Currently works only for MNPs.
+     *
+     * @param vc  the non-null VC to split
+     * @return a non-empty list of VCs split into primitive parts or the original VC otherwise
+     */
+    public static List<VariantContext> splitIntoPrimitiveAlleles(final VariantContext vc) {
+        if ( vc == null )
+            throw new IllegalArgumentException("Trying to break a null Variant Context into primitive parts");
+
+        if ( !vc.isBiallelic() )
+            throw new IllegalArgumentException("Trying to break a multi-allelic Variant Context into primitive parts");
+
+        // currently only works for MNPs
+        if ( !vc.isMNP() )
+            return Arrays.asList(vc);
+
+        final byte[] ref = vc.getReference().getBases();
+        final byte[] alt = vc.getAlternateAllele(0).getBases();
+
+        if ( ref.length != alt.length )
+            throw new IllegalStateException("ref and alt alleles for MNP have different lengths");
+
+        final List<VariantContext> result = new ArrayList<VariantContext>(ref.length);
+
+        for ( int i = 0; i < ref.length; i++ ) {
+
+            // if the ref and alt bases are different at a given position, create a new SNP record (otherwise do nothing)
+            if ( ref[i] != alt[i] ) {
+
+                // create the ref and alt SNP alleles
+                final Allele newRefAllele = Allele.create(ref[i], true);
+                final Allele newAltAllele = Allele.create(alt[i], false);
+
+                // create a new VariantContext with the new SNP alleles
+                final VariantContextBuilder newVC = new VariantContextBuilder(vc).start(vc.getStart() + i).stop(vc.getStart() + i).alleles(Arrays.asList(newRefAllele, newAltAllele));
+
+                // create new genotypes with updated alleles
+                final Map<Allele, Allele> alleleMap = new HashMap<Allele, Allele>();
+                alleleMap.put(vc.getReference(), newRefAllele);
+                alleleMap.put(vc.getAlternateAllele(0), newAltAllele);
+                final GenotypesContext newGenotypes = updateGenotypesWithMappedAlleles(vc.getGenotypes(), new AlleleMapper(alleleMap));
+
+                result.add(newVC.genotypes(newGenotypes).make());
+            }
+        }
+
+        if ( result.isEmpty() )
+            result.add(vc);
+
+        return result;
     }
 }
