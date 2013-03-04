@@ -203,12 +203,32 @@ public class PerReadAlleleLikelihoodMap {
      */
     @Ensures("result != null")
     public static Allele getMostLikelyAllele( final Map<Allele,Double> alleleMap ) {
+        return getMostLikelyAllele(alleleMap, null);
+    }
+
+    /**
+     * Given a map from alleles to likelihoods, find the allele with the largest likelihood.
+     * If the difference between the most-likely allele and the next-most-likely allele is < INFORMATIVE_LIKELIHOOD_THRESHOLD
+     * then the most likely allele is set to "no call"
+     *
+     * @param alleleMap - a map from alleles to likelihoods
+     * @param onlyConsiderTheseAlleles if not null, we will only consider alleles in this set for being one of the best.
+     *                                 this is useful for the case where you've selected a subset of the alleles that
+     *                                 the reads have been computed for further analysis.  If null totally ignored
+     * @return - the most likely allele, or NO_CALL if two or more alleles have likelihoods within INFORMATIVE_LIKELIHOOD_THRESHOLD
+     * of one another. By default empty allele maps will return NO_CALL, and allele maps with a single entry will return the
+     * corresponding key
+     */
+    public static Allele getMostLikelyAllele( final Map<Allele,Double> alleleMap, final Set<Allele> onlyConsiderTheseAlleles ) {
         if ( alleleMap == null ) throw new IllegalArgumentException("The allele to likelihood map cannot be null");
         double maxLike = Double.NEGATIVE_INFINITY;
         double prevMaxLike = Double.NEGATIVE_INFINITY;
         Allele mostLikelyAllele = Allele.NO_CALL;
 
         for (final Map.Entry<Allele,Double> el : alleleMap.entrySet()) {
+            if ( onlyConsiderTheseAlleles != null && ! onlyConsiderTheseAlleles.contains(el.getKey()) )
+                continue;
+
             if (el.getValue() > maxLike) {
                 prevMaxLike = maxLike;
                 maxLike = el.getValue();
@@ -219,7 +239,6 @@ public class PerReadAlleleLikelihoodMap {
         }
         return (maxLike - prevMaxLike > INFORMATIVE_LIKELIHOOD_THRESHOLD ? mostLikelyAllele : Allele.NO_CALL );
     }
-
 
     /**
      * Debug method to dump contents of object into string for display

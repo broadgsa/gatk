@@ -27,9 +27,12 @@ package org.broadinstitute.sting.utils;
 
 import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.variant.variantcontext.Allele;
 import org.broadinstitute.variant.variantcontext.VariantContext;
@@ -119,6 +122,19 @@ public class Haplotype extends Allele {
 
     public Cigar getCigar() {
         return cigar;
+    }
+
+    /**
+     * Get the haplotype cigar extended by padSize M at the tail, consolidated into a clean cigar
+     *
+     * @param padSize how many additional Ms should be appended to the end of this cigar.  Must be >= 0
+     * @return a newly allocated Cigar that consolidate(getCigar + padSize + M)
+     */
+    public Cigar getConsolidatedPaddedCigar(final int padSize) {
+        if ( padSize < 0 ) throw new IllegalArgumentException("padSize must be >= 0 but got " + padSize);
+        final Cigar extendedHaplotypeCigar = new Cigar(getCigar().getCigarElements());
+        if ( padSize > 0 ) extendedHaplotypeCigar.add(new CigarElement(padSize, CigarOperator.M));
+        return AlignmentUtils.consolidateCigar(extendedHaplotypeCigar);
     }
 
     public void setCigar( final Cigar cigar ) {

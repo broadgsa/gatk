@@ -26,9 +26,11 @@
 package org.broadinstitute.sting.utils;
 
 
+import net.sf.picard.util.CigarUtil;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
+import net.sf.samtools.TextCigarCodec;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.variant.variantcontext.Allele;
 import org.broadinstitute.variant.variantcontext.VariantContext;
@@ -162,5 +164,23 @@ public class HaplotypeUnitTest extends BaseTest {
         final Haplotype h1 = h.insertAllele(vc.getReference(), vc.getAlternateAllele(0), loc, vc.getStart());
         final Haplotype h1expected = new Haplotype(newHap.getBytes());
         Assert.assertEquals(h1, h1expected);
+    }
+
+    private Haplotype makeHCForCigar(final String bases, final String cigar) {
+        final Haplotype h = new Haplotype(bases.getBytes());
+        h.setCigar(TextCigarCodec.getSingleton().decode(cigar));
+        return h;
+    }
+
+    @Test
+    public void testConsolidateCigar() throws Exception {
+        Assert.assertEquals(makeHCForCigar("AGCT", "4M").getConsolidatedPaddedCigar(0).toString(), "4M");
+        Assert.assertEquals(makeHCForCigar("AGCT", "4M").getConsolidatedPaddedCigar(1).toString(), "5M");
+        Assert.assertEquals(makeHCForCigar("AGCT", "1M1I1I1M").getConsolidatedPaddedCigar(0).toString(), "1M2I1M");
+        Assert.assertEquals(makeHCForCigar("AGCT", "1M1I1I1M").getConsolidatedPaddedCigar(1).toString(), "1M2I2M");
+        Assert.assertEquals(makeHCForCigar("AGCT", "1M1I1I1M").getConsolidatedPaddedCigar(2).toString(), "1M2I3M");
+        Assert.assertEquals(makeHCForCigar("AGCT", "1M1I1I1I").getConsolidatedPaddedCigar(0).toString(), "1M3I");
+        Assert.assertEquals(makeHCForCigar("AGCT", "1M1I1I1I").getConsolidatedPaddedCigar(1).toString(), "1M3I1M");
+        Assert.assertEquals(makeHCForCigar("AGCT", "1M1I1I1I").getConsolidatedPaddedCigar(2).toString(), "1M3I2M");
     }
 }
