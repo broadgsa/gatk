@@ -67,18 +67,20 @@ public class ReferenceDataSource {
             throw new UserException("The fasta file you specified (" + fastaFile.getAbsolutePath() + ") does not exist.");
 
         final boolean isGzipped = fastaFile.getAbsolutePath().endsWith(".gz");
+        if ( isGzipped ) {
+            throw new UserException.CannotHandleGzippedRef();
+        }
 
         final File indexFile = new File(fastaFile.getAbsolutePath() + ".fai");
 
         // determine the name for the dict file
-        final String fastaExt = (fastaFile.getAbsolutePath().endsWith("fa") ? ".fa" : ".fasta" ) + (isGzipped ? ".gz" : "");
+        final String fastaExt = fastaFile.getAbsolutePath().endsWith("fa") ? ".fa" : ".fasta";
         final File dictFile = new File(fastaFile.getAbsolutePath().replace(fastaExt, ".dict"));
 
         /*
         * if index file does not exist, create it manually
         */
         if (!indexFile.exists()) {
-            if ( isGzipped ) throw new UserException.CouldNotCreateReferenceFAIorDictForGzippedRef(fastaFile);
 
             logger.info(String.format("Index file %s does not exist. Trying to create it now.", indexFile.getAbsolutePath()));
             FSLockWithShared indexLock = new FSLockWithShared(indexFile,true);
@@ -115,7 +117,6 @@ public class ReferenceDataSource {
         * This has been filed in trac as (PIC-370) Want programmatic interface to CreateSequenceDictionary
         */
         if (!dictFile.exists()) {
-            if ( isGzipped ) throw new UserException.CouldNotCreateReferenceFAIorDictForGzippedRef(fastaFile);
 
             logger.info(String.format("Dict file %s does not exist. Trying to create it now.", dictFile.getAbsolutePath()));
 
