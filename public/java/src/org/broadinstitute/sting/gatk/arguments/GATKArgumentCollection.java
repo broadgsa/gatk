@@ -206,7 +206,7 @@ public class GATKArgumentCollection {
      * Enables on-the-fly recalibrate of base qualities.  The covariates tables are produced by the BaseQualityScoreRecalibrator tool.
      * Please be aware that one should only run recalibration with the covariates file created on the same input bam(s).
      */
-    @Input(fullName="BQSR", shortName="BQSR", required=false, doc="The input covariates table file which enables on-the-fly base quality score recalibration")
+    @Input(fullName="BQSR", shortName="BQSR", required=false, doc="The input covariates table file which enables on-the-fly base quality score recalibration (intended for use with BaseRecalibrator and PrintReads)")
     public File BQSR_RECAL_FILE = null;
 
     /**

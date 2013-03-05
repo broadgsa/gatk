@@ -38,7 +38,27 @@ import org.broadinstitute.sting.utils.help.HelpConstants;
 import java.io.PrintStream;
 
 /**
- * Calculates basic statistics about the reference sequence itself
+ * Calculate basic statistics about the reference sequence itself
+ *
+ * <p>These are very basic statistics: total number of bases and number of "regular" bases (i.e. A, C, T or G).</p>
+ *
+ * <h3>Input</h3>
+ * <p>
+ * A FASTA reference file.
+ * </p>
+ *
+ * <h3>Output</h3>
+ * <p>
+ * Base counts are written to file if an output file name is given (with -o), otherwise output to stdout.
+ * </p>
+ *
+ * <h3>Example</h3>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -T FastaStats \
+ *   -R ref.fasta \
+ *   [-o output.txt]
+ * </pre>
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 public class FastaStats extends RefWalker<Byte, FastaStats.FastaStatistics> {

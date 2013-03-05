@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -37,12 +38,36 @@ import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+import java.io.PrintStream;
+
 /**
  * Walks over the input data set, calculating the number of reads seen from male samples for diagnostic purposes.
+ *
+ * <h3>Input</h3>
+ * <p>
+ * One or more BAM files.
+ * </p>
+ *
+ * <h3>Output</h3>
+ * <p>
+ * Number of reads seen from male samples.
+ * </p>
+ *
+ * <h3>Examples</h3>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -T CountMales \
+ *   -R ref.fasta \
+ *   -I samples.bam \
+ *   -o output.txt
+ * </pre>
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountMales extends ReadWalker<Integer, Integer> {
+    @Output
+    public PrintStream out;
+
     public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {
         Sample sample = getSampleDB().getSample(read);
         return sample.getGender() == Gender.MALE ? 1 : 0;
@@ -52,5 +77,9 @@ public class CountMales extends ReadWalker<Integer, Integer> {
 
     public Integer reduce(Integer value, Integer sum) {
         return value + sum;
+    }
+
+    public void onTraversalDone( Integer c ) {
+        out.println(c);
     }
 }                                       

@@ -55,17 +55,17 @@ import java.util.*;
  * VariantAnnotator is a GATK tool for annotating variant calls based on their context.
  * The tool is modular; new annotations can be written easily without modifying VariantAnnotator itself.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A variant set to annotate and optionally one or more BAM files.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * An annotated VCF.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
@@ -142,7 +142,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected List<String> annotationsToExclude = new ArrayList<String>();
 
     /**
-     * See the -list argument to view available groups.
+     * If specified, all available annotations in the group will be applied. See the VariantAnnotator -list argument to view available groups.
+     * Keep in mind that RODRequiringAnnotations are not intended to be used as a group, because they require specific ROD inputs.
      */
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
     protected List<String> annotationGroupsToUse = new ArrayList<String>();
@@ -166,13 +167,13 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     /**
      * Note that the --list argument requires a fully resolved and correct command-line to work.
      */
-    @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit")
+    @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit", required=false)
     protected Boolean LIST = false;
 
     /**
      * By default, the dbSNP ID is added only when the ID field in the variant VCF is empty.
      */
-    @Argument(fullName="alwaysAppendDbsnpId", shortName="alwaysAppendDbsnpId", doc="In conjunction with the dbSNP binding, append the dbSNP ID even when the variant VCF already has the ID field populated")
+    @Argument(fullName="alwaysAppendDbsnpId", shortName="alwaysAppendDbsnpId", doc="In conjunction with the dbSNP binding, append the dbSNP ID even when the variant VCF already has the ID field populated", required=false)
     protected Boolean ALWAYS_APPEND_DBSNP_ID = false;
     public boolean alwaysAppendDbsnpId() { return ALWAYS_APPEND_DBSNP_ID; }
 

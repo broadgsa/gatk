@@ -70,12 +70,12 @@ import java.io.PrintStream;
  * </dl>
  * </p>
  * <p/>
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A BAM file containing <b>exactly one sample</b>.
  * </p>
  * <p/>
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * <ul>
  * <li>-o: a OutputFormatted (recommended BED) file with the callable status covering each base</li>
@@ -83,7 +83,7 @@ import java.io.PrintStream;
  * </ul>
  * </p>
  * <p/>
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  *     -T CallableLociWalker \
  *     -I my.bam \

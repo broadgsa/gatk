@@ -41,36 +41,31 @@ import java.io.PrintStream;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
-
-/*
- * Copyright (c) 2009 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
-
 /**
- * A reimplementation of the 'samtools flagstat' subcommand in the GATK.  Walks
- * over all input data, accumulating statistics such as total number of reads,
- * reads with QC failure flag set, number of duplicates, percentage mapped, etc.
+ * A reimplementation of the 'samtools flagstat' subcommand in the GATK
+ *
+ * <p>This tool walks over all input data, accumulating statistics such as total number of reads,
+ * reads with QC failure flag set, number of duplicates, percentage mapped, etc.</p>
+ *
+ * <h3>Input</h3>
+ * <p>
+ * A BAM file containing the sequence data.
+ * </p>
+ *
+ * <h3>Output</h3>
+ * <p>
+ * Resulting stats are written to file if an output file name is given (with -o), otherwise output to stdout.
+ * </p>
+ *
+ * <h3>Example</h3>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -T FlagStat \
+ *   -R ref.fasta \
+ *   -I reads.bam \
+ *   [-o output.txt]
+ * </pre>
+ *
  * @author aaron
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )

@@ -66,7 +66,7 @@ import java.util.*;
  * and/or percentage of bases covered to or beyond a threshold.
  * Additionally, reads and bases can be filtered by mapping or base quality score.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * One or more bam files (with proper headers) to be analyzed for coverage statistics
  * </p>
@@ -75,7 +75,7 @@ import java.util.*;
  * <p>
  * (for information about creating the REFSEQ Rod, please consult the RefSeqCodec documentation)
  *</p></p>
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * Tables pertaining to different coverage summaries. Suffix on the table files declares the contents:
  * </p><p>
@@ -98,7 +98,7 @@ import java.util.*;
  *  - _cumulative_coverage_proportions: proprotions of loci with >= X coverage, aggregated over all bases
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
