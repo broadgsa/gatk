@@ -64,7 +64,7 @@ public @interface Output {
      * fail if the type can't be populated.
      * @return True if the argument is required.  False otherwise.
      */
-    boolean required() default true;
+    boolean required() default false;
 
     /**
      * Should this command-line argument be exclusive of others.  Should be
