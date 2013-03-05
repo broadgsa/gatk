@@ -372,7 +372,8 @@ public class GenomeAnalysisEngine {
      * @param walker the walker we need to apply read transformers too
      */
     public void initializeReadTransformers(final Walker walker) {
-        final List<ReadTransformer> activeTransformers = new ArrayList<ReadTransformer>();
+        // keep a list of the active read transformers sorted based on priority ordering
+        List<ReadTransformer> activeTransformers = new ArrayList<ReadTransformer>();
 
         final ReadTransformersMode overrideMode = WalkerManager.getWalkerAnnotation(walker, ReadTransformersMode.class);
         final ReadTransformer.ApplicationTime overrideTime = overrideMode != null ? overrideMode.ApplicationTime() : null;
@@ -392,9 +393,41 @@ public class GenomeAnalysisEngine {
         return readTransformers;
     }
 
-    private void setReadTransformers(final List<ReadTransformer> readTransformers) {
+    /*
+     * Sanity checks that incompatible read transformers are not active together (and throws an exception if they are).
+     *
+     * @param readTransformers   the active read transformers
+     */
+    protected void checkActiveReadTransformers(final List<ReadTransformer> readTransformers) {
+        if ( readTransformers == null )
+            throw new IllegalArgumentException("read transformers cannot be null");
+
+        ReadTransformer sawMustBeFirst = null;
+        ReadTransformer sawMustBeLast  = null;
+
+        for ( final ReadTransformer r : readTransformers ) {
+            if ( r.getOrderingConstraint() == ReadTransformer.OrderingConstraint.MUST_BE_FIRST ) {
+                if ( sawMustBeFirst != null )
+                    throw new UserException.IncompatibleReadFiltersException(sawMustBeFirst.toString(), r.toString());
+                sawMustBeFirst = r;
+            } else if ( r.getOrderingConstraint() == ReadTransformer.OrderingConstraint.MUST_BE_LAST ) {
+                if ( sawMustBeLast != null )
+                    throw new UserException.IncompatibleReadFiltersException(sawMustBeLast.toString(), r.toString());
+                sawMustBeLast = r;
+            }
+        }
+    }
+
+    protected void setReadTransformers(final List<ReadTransformer> readTransformers) {
         if ( readTransformers == null )
             throw new ReviewedStingException("read transformers cannot be null");
+
+        // sort them in priority order
+        Collections.sort(readTransformers, new ReadTransformer.ReadTransformerComparator());
+
+        // make sure we don't have an invalid set of active read transformers
+        checkActiveReadTransformers(readTransformers);
+
         this.readTransformers = readTransformers;
     }
 

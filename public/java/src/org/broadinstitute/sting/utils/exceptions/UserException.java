@@ -75,6 +75,12 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class IncompatibleReadFiltersException extends CommandLineException {
+        public IncompatibleReadFiltersException(final String filter1, final String filter2) {
+            super(String.format("Two read filters are enabled that are incompatible and cannot be used simultaneously: %s and %s", filter1, filter2));
+        }
+    }
+
     public static class MalformedWalkerArgumentsException extends CommandLineException {
         public MalformedWalkerArgumentsException(String message) {
             super(String.format("Malformed walker argument: %s",message));
