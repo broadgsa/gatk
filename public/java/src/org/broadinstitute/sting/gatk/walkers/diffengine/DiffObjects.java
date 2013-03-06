@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -134,7 +135,7 @@ import java.util.List;
  * @author Mark DePristo
  * @since 7/4/11
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 public class DiffObjects extends RodWalker<Integer, Integer> {
     /**
      * Writes out a file of the DiffEngine format:

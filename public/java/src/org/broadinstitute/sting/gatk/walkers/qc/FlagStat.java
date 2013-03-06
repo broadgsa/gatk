@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.walkers.NanoSchedulable;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
@@ -72,7 +73,7 @@ import java.text.NumberFormat;
  * reads with QC failure flag set, number of duplicates, percentage mapped, etc.
  * @author aaron
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS})
 public class FlagStat extends ReadWalker<FlagStat.FlagStatus, FlagStat.FlagStatus> implements NanoSchedulable {
     @Output

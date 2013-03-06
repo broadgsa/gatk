@@ -48,6 +48,7 @@ import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformersMode;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
+import org.broadinstitute.sting.gatk.refdata.tracks.IndexDictionaryUtils;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
@@ -254,12 +255,15 @@ public class GenomeAnalysisEngine {
         // Prepare the data for traversal.
         initializeDataSources();
 
-        // initialize sampleDB
-        initializeSampleDB();
-
         // initialize and validate the interval list
         initializeIntervals();
         validateSuppliedIntervals();
+
+        // check to make sure that all sequence dictionaries are compatible with the reference's sequence dictionary
+        validateDataSourcesAgainstReference(readsDataSource, referenceDataSource.getReference(), rodDataSources);
+
+        // initialize sampleDB
+        initializeSampleDB();
 
         // our microscheduler, which is in charge of running everything
         MicroScheduler microScheduler = createMicroscheduler();
@@ -271,7 +275,9 @@ public class GenomeAnalysisEngine {
         // create the output streams
         initializeOutputStreams(microScheduler.getOutputTracker());
 
+        logger.info("Creating shard strategy for " + readsDataSource.getReaderIDs().size() + " BAM files");
         Iterable<Shard> shardStrategy = getShardStrategy(readsDataSource,microScheduler.getReference(),intervals);
+        logger.info("Done creating shard strategy");
 
         // execute the microscheduler, storing the results
         return microScheduler.execute(this.walker, shardStrategy);
@@ -552,7 +558,7 @@ public class GenomeAnalysisEngine {
                 if (readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
                     throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
                 if(intervals == null)
-                    return readsDataSource.createShardIteratorOverMappedReads(referenceDataSource.getReference().getSequenceDictionary(),new LocusShardBalancer());
+                    return readsDataSource.createShardIteratorOverMappedReads(new LocusShardBalancer());
                 else
                     return readsDataSource.createShardIteratorOverIntervals(intervals,new LocusShardBalancer());
             } 
@@ -560,7 +566,7 @@ public class GenomeAnalysisEngine {
                 if (readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
                     throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Active region walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
                 if(intervals == null)
-                    return readsDataSource.createShardIteratorOverMappedReads(referenceDataSource.getReference().getSequenceDictionary(),new LocusShardBalancer());
+                    return readsDataSource.createShardIteratorOverMappedReads(new LocusShardBalancer());
                 else
                     return readsDataSource.createShardIteratorOverIntervals(((ActiveRegionWalker)walker).extendIntervals(intervals, this.genomeLocParser, this.getReferenceDataSource().getReference()), new LocusShardBalancer());
             } 
@@ -751,9 +757,8 @@ public class GenomeAnalysisEngine {
      * @param reads     Reads data source.
      * @param reference Reference data source.
      * @param rods    a collection of the reference ordered data tracks
-     * @param manager manager
      */
-    private void validateSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, RMDTrackBuilder manager) {
+    private void validateDataSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
         if ((reads.isEmpty() && (rods == null || rods.isEmpty())) || reference == null )
             return;
 
@@ -770,11 +775,12 @@ public class GenomeAnalysisEngine {
             }
 
             // compare the reads to the reference
-            SequenceDictionaryUtils.validateDictionaries(logger, getArguments().unsafe, "reads", readsDictionary, "reference", referenceDictionary);
+            SequenceDictionaryUtils.validateDictionaries(logger, getArguments().unsafe, "reads", readsDictionary,
+                                                         "reference", referenceDictionary, true, intervals);
         }
 
         for (ReferenceOrderedDataSource rod : rods)
-            manager.validateTrackSequenceDictionary(rod.getName(),rod.getSequenceDictionary(),referenceDictionary);
+            IndexDictionaryUtils.validateTrackSequenceDictionary(rod.getName(), rod.getSequenceDictionary(), referenceDictionary, getArguments().unsafe);
     }
 
     /**
@@ -856,9 +862,6 @@ public class GenomeAnalysisEngine {
                                                            genomeLocParser,
                                                            flashbackData()));
 
-        // validation: check to make sure everything the walker needs is present, and that all sequence dictionaries match.
-        validateSourcesAgainstReference(readsDataSource, referenceDataSource.getReference(), dataSources, builder);
-
         return dataSources;
     }
 
@@ -882,10 +885,10 @@ public class GenomeAnalysisEngine {
     /**
      * Returns the unmerged SAM file header for an individual reader.
      * @param reader The reader.
-     * @return Header for that reader.
+     * @return Header for that reader or null if not available.
      */
     public SAMFileHeader getSAMFileHeader(SAMReaderID reader) {
-        return readsDataSource.getHeader(reader);
+        return readsDataSource == null ? null : readsDataSource.getHeader(reader);
     }
 
     /**

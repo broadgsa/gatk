@@ -30,15 +30,13 @@ import com.google.java.contract.Invariant;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Represents a single active region created by the Active Region Traversal for processing
@@ -349,19 +347,6 @@ public class ActiveRegion implements HasGenomeLocation {
     }
 
     /**
-     * Clips all of the reads in this active region so that none extend beyond the active region extended loc
-     *
-     * This function may change the getReadSpanLoc, as it updates the read span based on the new clipped
-     * read coordinates.
-     */
-    public void hardClipToActiveRegion() {
-        final List<GATKSAMRecord> clippedReads = ReadClipper.hardClipToRegion( reads, extendedLoc.getStart(), extendedLoc.getStop() );
-        ReadUtils.sortReadsByCoordinate(clippedReads);
-        clearReads();
-        addAll(clippedReads);
-    }
-
-    /**
      * Is this region equal to other, excluding any reads in either region in the comparison
      * @param other the other active region we want to test
      * @return true if this region is equal, excluding any reads and derived values, to other
@@ -381,5 +366,31 @@ public class ActiveRegion implements HasGenomeLocation {
      */
     public boolean isActive() {
         return isActive;
+    }
+
+    /**
+     * Intersect this active region with the allowed intervals, returning a list of active regions
+     * that only contain locations present in intervals
+     *
+     * Note that the returned list may be empty, if this active region doesn't overlap the set at all
+     *
+     * @param intervals a non-null set of intervals that are allowed
+     * @return an ordered list of active region where each interval is contained within intervals
+     */
+    @Ensures("result != null")
+    protected List<ActiveRegion> splitAndTrimToIntervals(final GenomeLocSortedSet intervals) {
+        final List<GenomeLoc> allOverlapping = intervals.getOverlapping(getLocation());
+        final List<ActiveRegion> clippedRegions = new LinkedList<ActiveRegion>();
+
+        for ( final GenomeLoc overlapping : allOverlapping ) {
+            final GenomeLoc subLoc = getLocation().intersect(overlapping);
+            final int subStart = subLoc.getStart() - getLocation().getStart();
+            final int subEnd = subStart + subLoc.size();
+            final List<ActivityProfileState> subStates = supportingStates.isEmpty() ? supportingStates : supportingStates.subList(subStart, subEnd);
+            final ActiveRegion clipped = new ActiveRegion( subLoc, subStates, isActive, genomeLocParser, extension );
+            clippedRegions.add(clipped);
+        }
+
+        return clippedRegions;
     }
 }

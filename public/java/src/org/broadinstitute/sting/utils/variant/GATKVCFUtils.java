@@ -26,12 +26,14 @@
 package org.broadinstitute.sting.utils.variant;
 
 import org.broad.tribble.Feature;
+import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.variant.bcf2.BCF2Codec;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.vcf.*;
 
@@ -160,6 +162,67 @@ public class GATKVCFUtils {
         }
 
         return rsID;
+    }
+
+    /**
+     * Utility class to read all of the VC records from a file
+     *
+     * @param source
+     * @param codec
+     * @return
+     * @throws IOException
+     */
+    public final static Pair<VCFHeader, VCIterable> readAllVCs( final File source, final FeatureCodec<VariantContext> codec ) throws IOException {
+        // read in the features
+        PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(source));
+        FeatureCodecHeader header = codec.readHeader(pbs);
+        pbs.close();
+
+        pbs = new PositionalBufferedStream(new FileInputStream(source));
+        pbs.skip(header.getHeaderEnd());
+
+        final VCFHeader vcfHeader = (VCFHeader)header.getHeaderValue();
+        return new Pair<VCFHeader, VCIterable>(vcfHeader, new VCIterable(pbs, codec, vcfHeader));
+    }
+
+    public static class VCIterable implements Iterable<VariantContext>, Iterator<VariantContext> {
+        final PositionalBufferedStream pbs;
+        final FeatureCodec<VariantContext> codec;
+        final VCFHeader header;
+
+        private VCIterable(final PositionalBufferedStream pbs, final FeatureCodec<VariantContext> codec, final VCFHeader header) {
+            this.pbs = pbs;
+            this.codec = codec;
+            this.header = header;
+        }
+
+        @Override
+        public Iterator<VariantContext> iterator() {
+            return this;
+        }
+
+        @Override
+        public boolean hasNext() {
+            try {
+                return ! pbs.isDone();
+            } catch ( IOException e ) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public VariantContext next() {
+            try {
+                final VariantContext vc = codec.decode(pbs);
+                return vc == null ? null : vc.fullyDecode(header, false);
+            } catch ( IOException e ) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void remove() {
+        }
     }
 
     /**

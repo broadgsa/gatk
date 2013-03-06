@@ -34,6 +34,7 @@ import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -48,6 +49,7 @@ import java.util.*;
 
 
 public class ActiveRegionUnitTest extends BaseTest {
+    private final static boolean DEBUG = true;
     private GenomeLocParser genomeLocParser;
     private IndexedFastaSequenceFile seq;
     private String contig;
@@ -88,7 +90,7 @@ public class ActiveRegionUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(enabled = true, dataProvider = "ActionRegionCreationTest")
+    @Test(enabled = !DEBUG, dataProvider = "ActionRegionCreationTest")
     public void testCreatingActiveRegions(final GenomeLoc loc, final List<ActivityProfileState> supportingStates, final boolean isActive, final int extension) {
         final ActiveRegion region = new ActiveRegion(loc, supportingStates, isActive, genomeLocParser, extension);
         Assert.assertEquals(region.getLocation(), loc);
@@ -141,7 +143,7 @@ public class ActiveRegionUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "ActiveRegionReads")
+    @Test(enabled = !DEBUG, dataProvider = "ActiveRegionReads")
     public void testActiveRegionReads(final GenomeLoc loc, final GATKSAMRecord read) {
         final GenomeLoc expectedSpan = loc.union(genomeLocParser.createGenomeLoc(read));
 
@@ -187,15 +189,13 @@ public class ActiveRegionUnitTest extends BaseTest {
         Assert.assertEquals(region.getExtendedLoc(), loc);
         Assert.assertEquals(region.getReadSpanLoc(), loc);
         Assert.assertTrue(region.equalExceptReads(region2));
-
-        region.add(read);
-        region.hardClipToActiveRegion();
-        Assert.assertEquals(region.size(), 1);
-        Assert.assertEquals(region.getExtendedLoc(), loc);
-        Assert.assertEquals(region.getReadSpanLoc(), loc);
-        Assert.assertTrue(region.getReads().get(0).getAlignmentStart() >= region.getExtendedLoc().getStart());
-        Assert.assertTrue(region.getReads().get(0).getAlignmentEnd() <= region.getExtendedLoc().getStop());
     }
+
+    // -----------------------------------------------------------------------------------------------
+    //
+    // Make sure bad inputs are properly detected
+    //
+    // -----------------------------------------------------------------------------------------------
 
     @DataProvider(name = "BadReadsTest")
     public Object[][] makeBadReadsTest() {
@@ -213,11 +213,100 @@ public class ActiveRegionUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "BadReadsTest", expectedExceptions = IllegalArgumentException.class)
+    @Test(enabled = !DEBUG, dataProvider = "BadReadsTest", expectedExceptions = IllegalArgumentException.class)
     public void testBadReads(final GATKSAMRecord read1, final GATKSAMRecord read2) {
         final GenomeLoc loc = genomeLocParser.createGenomeLoc(read1);
         final ActiveRegion region = new ActiveRegion(loc, null, true, genomeLocParser, 0);
         region.add(read1);
         region.add(read2);
+    }
+
+    // -----------------------------------------------------------------------------------------------
+    //
+    // Make sure we can properly cut up an active region based on engine intervals
+    //
+    // -----------------------------------------------------------------------------------------------
+
+    @DataProvider(name = "SplitActiveRegion")
+    public Object[][] makeSplitActiveRegion() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final GenomeLoc whole_span = genomeLocParser.createGenomeLoc("20", 1, 500);
+        final GenomeLoc gl_before = genomeLocParser.createGenomeLoc("20", 1, 9);
+        final GenomeLoc gl_after = genomeLocParser.createGenomeLoc("20", 250, 500);
+        final GenomeLoc gl_diff_contig = genomeLocParser.createGenomeLoc("19", 40, 50);
+
+        final int regionStart = 10;
+        final int regionStop = 100;
+        final GenomeLoc region = genomeLocParser.createGenomeLoc("20", regionStart, regionStop);
+
+        for ( final GenomeLoc noEffect : Arrays.asList(whole_span) )
+            tests.add(new Object[]{
+                    region,
+                    Arrays.asList(noEffect),
+                    Arrays.asList(region)});
+
+        for ( final GenomeLoc noOverlap : Arrays.asList(gl_before, gl_after, gl_diff_contig) )
+            tests.add(new Object[]{
+                    region,
+                    Arrays.asList(noOverlap),
+                    Arrays.asList()});
+
+        tests.add(new Object[]{region,
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", 5, 50)),
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", regionStart, 50))});
+
+        tests.add(new Object[]{region,
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", 50, 200)),
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", 50, regionStop))});
+
+        tests.add(new Object[]{region,
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", 40, 50)),
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", 40, 50))});
+
+        tests.add(new Object[]{region,
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", 20, 30), genomeLocParser.createGenomeLoc("20", 40, 50)),
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", 20, 30), genomeLocParser.createGenomeLoc("20", 40, 50))});
+
+        tests.add(new Object[]{region,
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", 1, 30), genomeLocParser.createGenomeLoc("20", 40, 50)),
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", regionStart, 30), genomeLocParser.createGenomeLoc("20", 40, 50))});
+
+        tests.add(new Object[]{region,
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", 1, 30), genomeLocParser.createGenomeLoc("20", 70, 200)),
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", regionStart, 30), genomeLocParser.createGenomeLoc("20", 70, regionStop))});
+
+        tests.add(new Object[]{region,
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", 1, 30), genomeLocParser.createGenomeLoc("20", 40, 50), genomeLocParser.createGenomeLoc("20", 70, 200)),
+                Arrays.asList(genomeLocParser.createGenomeLoc("20", regionStart, 30), genomeLocParser.createGenomeLoc("20", 40, 50), genomeLocParser.createGenomeLoc("20", 70, regionStop))});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "SplitActiveRegion")
+    public void testSplitActiveRegion(final GenomeLoc regionLoc, final List<GenomeLoc> intervalLocs, final List<GenomeLoc> expectedRegionLocs) {
+        for ( final boolean addSubstates : Arrays.asList(true, false) ) {
+            final List<ActivityProfileState> states;
+            if ( addSubstates ) {
+                states = new LinkedList<ActivityProfileState>();
+                for ( int i = 0; i < regionLoc.size(); i++ )
+                    states.add(new ActivityProfileState(genomeLocParser.createGenomeLoc(regionLoc.getContig(), regionLoc.getStart() + i), 1.0));
+            } else {
+                states = null;
+            }
+
+            final ActiveRegion region = new ActiveRegion(regionLoc, states, true, genomeLocParser, 0);
+            final GenomeLocSortedSet intervals = new GenomeLocSortedSet(genomeLocParser,  intervalLocs);
+            final List<ActiveRegion> regions = region.splitAndTrimToIntervals(intervals);
+
+            Assert.assertEquals(regions.size(), expectedRegionLocs.size(), "Wrong number of split locations");
+            for ( int i = 0; i < expectedRegionLocs.size(); i++ ) {
+                final GenomeLoc expected = expectedRegionLocs.get(i);
+                final ActiveRegion actual = regions.get(i);
+                Assert.assertEquals(actual.getLocation(), expected, "Bad region after split");
+                Assert.assertEquals(actual.isActive(), region.isActive());
+                Assert.assertEquals(actual.getExtension(), region.getExtension());
+            }
+        }
     }
 }

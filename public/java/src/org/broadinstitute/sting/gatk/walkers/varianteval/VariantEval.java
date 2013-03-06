@@ -48,6 +48,7 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatc
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.VariantEvalUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.vcf.VCFHeader;
@@ -114,7 +115,7 @@ import java.util.*;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-50, stop=50))
 @PartitionBy(PartitionType.NONE)
 public class VariantEval extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {

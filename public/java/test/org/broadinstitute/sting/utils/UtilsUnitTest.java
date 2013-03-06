@@ -76,6 +76,14 @@ public class UtilsUnitTest extends BaseTest {
     }
 
     @Test
+    public void testXor() {
+        Assert.assertEquals(Utils.xor(false, false), false, "xor F F failed");
+        Assert.assertEquals(Utils.xor(false, true), true, "xor F T failed");
+        Assert.assertEquals(Utils.xor(true, false), true, "xor T F failed");
+        Assert.assertEquals(Utils.xor(true, true), false, "xor T T failed");
+    }
+
+    @Test
     public void testDupStringMultiChar() {
         String duped = Utils.dupString('c',5);
         Assert.assertEquals(duped.length(), 5, "dupString did not produce five character string");

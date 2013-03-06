@@ -45,6 +45,7 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.io.File;
@@ -116,7 +117,7 @@ import java.util.List;
  * @author chartl
  * @since July 2011
  */
-@DocumentedGATKFeature( groupName = "Validation Utilities", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VALIDATION, extraDocs = {CommandLineGATK.class} )
 @Requires(value={DataSource.REFERENCE})
 public class ValidationAmplicons extends RodWalker<Integer,Integer> {
     /**

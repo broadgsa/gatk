@@ -35,10 +35,12 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.VariantContextTestProvider;
 import org.broadinstitute.variant.vcf.VCFCodec;
+import org.broadinstitute.variant.vcf.VCFHeader;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -85,7 +87,7 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
 
     @Test(enabled = ! DEBUG, dataProvider = "BandPassBasicTest")
     public void testBandPass(final int start, final boolean precedingIsActive, final int nPrecedingSites, final int bandPassSize, final double sigma) {
-        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, bandPassSize, sigma, false);
+        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, null, bandPassSize, sigma, false);
 
         final int expectedBandSize = bandPassSize * 2 + 1;
         Assert.assertEquals(profile.getFilteredSize(), bandPassSize, "Wrong filter size");
@@ -140,7 +142,7 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
     @Test( enabled = ! DEBUG, dataProvider = "BandPassComposition")
     public void testBandPassComposition(final int bandPassSize, final int integrationLength) {
         final int start = 1;
-        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, bandPassSize, BandPassActivityProfile.DEFAULT_SIGMA);
+        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, null, bandPassSize, BandPassActivityProfile.DEFAULT_SIGMA);
         final double[] rawActiveProbs = new double[integrationLength + bandPassSize * 2];
 
         // add a buffer so that we can get all of the band pass values
@@ -213,7 +215,7 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
 
     @Test( enabled = ! DEBUG, dataProvider = "KernelCreation")
     public void testKernelCreation(final double sigma, final int maxSize, final double[] expectedKernel) {
-        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, maxSize, sigma, true);
+        final BandPassActivityProfile profile = new BandPassActivityProfile(genomeLocParser, null, maxSize, sigma, true);
 
         final double[] kernel = profile.getKernel();
         Assert.assertEquals(kernel.length, expectedKernel.length);
@@ -250,13 +252,13 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
 
         final File file = new File(path);
         final VCFCodec codec = new VCFCodec();
-        final VariantContextTestProvider.VariantContextContainer reader = VariantContextTestProvider.readAllVCs(file, codec);
+        final Pair<VCFHeader, GATKVCFUtils.VCIterable> reader = GATKVCFUtils.readAllVCs(file, codec);
 
         final List<ActiveRegion> incRegions = new ArrayList<ActiveRegion>();
-        final BandPassActivityProfile incProfile = new BandPassActivityProfile(genomeLocParser);
-        final BandPassActivityProfile fullProfile = new BandPassActivityProfile(genomeLocParser);
+        final BandPassActivityProfile incProfile = new BandPassActivityProfile(genomeLocParser, null);
+        final BandPassActivityProfile fullProfile = new BandPassActivityProfile(genomeLocParser, null);
         int pos = start;
-        for ( final VariantContext vc : reader.getVCs() ) {
+        for ( final VariantContext vc : reader.getSecond() ) {
             if ( vc == null ) continue;
             while ( pos < vc.getStart() ) {
                 final GenomeLoc loc = genomeLocParser.createGenomeLoc(contig, pos);

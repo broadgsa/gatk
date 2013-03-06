@@ -60,7 +60,7 @@ public class SampleDBUnitTest extends BaseTest {
 
     private static final Set<Sample> testPEDFamilyF3 = new HashSet<Sample>(Arrays.asList(
             new Sample("s1", "fam3", "d1", "m1", Gender.FEMALE, Affection.AFFECTED),
-            new Sample("d1", "fam3", null, null, Gender.FEMALE, Affection.UNKNOWN),
+            new Sample("d1", "fam3", null, null, Gender.MALE, Affection.UNKNOWN),
             new Sample("m1", "fam3", null, null, Gender.FEMALE, Affection.UNKNOWN)
             ));
 

@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 
 import java.io.PrintStream;
 import java.util.Arrays;
@@ -46,7 +47,7 @@ import java.util.List;
 /**
  * Test routine for new VariantContext object
  */
-@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 public class CompareCallableLoci extends RodWalker<List<CallableLoci.CallableBaseState>, long[][]> {
     @Output
     protected PrintStream out;

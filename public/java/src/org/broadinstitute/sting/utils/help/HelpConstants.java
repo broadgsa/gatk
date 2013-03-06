@@ -32,6 +32,31 @@ public class HelpConstants {
     public final static String GATK_FORUM_URL = "http://gatkforums.broadinstitute.org/";
     public final static String GATK_FORUM_API_URL = "https://gatkforums.broadinstitute.org/api/v1/";
 
+    /**
+     * Arguments for parallelism options
+     */
+    public final static String ARG_TREEREDUCIBLE = "-nt";
+    public final static String ARG_NANOSCHEDULABLE = "-nct";
+    public final static String CMDLINE_GATK_URL = GATK_DOCS_URL + "org_broadinstitute_sting_gatk_CommandLineGATK.html";
+
+    /**
+     * Definition of the group names / categories of tools.
+     * The names get parsed to make supercategories in the doc index,
+     * so be careful when making big changes -- see GATKDoclet.java toMap()
+     */
+    public final static String DOCS_CAT_DATA = "Sequence Data Processing Tools";
+    public final static String DOCS_CAT_QC = "Diagnostics and Quality Control Tools";
+    public final static String DOCS_CAT_ENGINE = "Engine Parameters (available to all tools)";
+    public final static String DOCS_CAT_RF = "Read Filters";
+    public final static String DOCS_CAT_REFUTILS = "Reference Utilities";
+    public final static String DOCS_CAT_RODCODECS = "ROD Codecs";
+    public final static String DOCS_CAT_USRERR = "User Exceptions";
+    public final static String DOCS_CAT_VALIDATION = "Validation Utilities";
+    public final static String DOCS_CAT_ANNOT = "Variant Annotations";
+    public final static String DOCS_CAT_VARDISC = "Variant Discovery Tools";
+    public final static String DOCS_CAT_VARMANIP = "Variant Evaluation and Manipulation Tools";
+    public final static String DOCS_CAT_TEST = "Testing Tools";
+
     public static String forumPost(String post) {
     	return GATK_FORUM_URL + post;
     }

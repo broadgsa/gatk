@@ -51,6 +51,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
     private final static boolean DEBUG = false;
     private final static boolean debug = false;
     public static final int NANO_SCHEDULE_MAX_RUNTIME = 30000;
+    public static final int EXCEPTION_THROWING_TEST_TIMEOUT = 10000;
 
     private static class Map2x implements NSMapFunction<Integer, Integer> {
         @Override public Integer apply(Integer input) { return input * 2; }
@@ -268,22 +269,22 @@ public class NanoSchedulerUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(enabled = true, expectedExceptions = NullPointerException.class, timeOut = 10000)
+    @Test(enabled = true, expectedExceptions = NullPointerException.class, timeOut = EXCEPTION_THROWING_TEST_TIMEOUT)
     public void testInputErrorIsThrown_NPE() throws InterruptedException {
         executeTestErrorThrowingInput(10, new NullPointerException(), exampleTest, false);
     }
 
-    @Test(enabled = true, expectedExceptions = ReviewedStingException.class, timeOut = 1000)
+    @Test(enabled = true, expectedExceptions = ReviewedStingException.class, timeOut = EXCEPTION_THROWING_TEST_TIMEOUT)
     public void testInputErrorIsThrown_RSE() throws InterruptedException {
         executeTestErrorThrowingInput(10, new ReviewedStingException("test"), exampleTest, false);
     }
 
-    @Test(enabled = true, expectedExceptions = NullPointerException.class, dataProvider = "NanoSchedulerInputExceptionTest", timeOut = 1000, invocationCount = 1)
+    @Test(enabled = true, expectedExceptions = NullPointerException.class, dataProvider = "NanoSchedulerInputExceptionTest", timeOut = EXCEPTION_THROWING_TEST_TIMEOUT, invocationCount = 1)
     public void testInputRuntimeExceptionDoesntDeadlock(final int nElementsBeforeError, final NanoSchedulerBasicTest test, final boolean addDelays ) throws InterruptedException {
         executeTestErrorThrowingInput(nElementsBeforeError, new NullPointerException(), test, addDelays);
     }
 
-    @Test(enabled = true, expectedExceptions = ReviewedStingException.class, dataProvider = "NanoSchedulerInputExceptionTest", timeOut = 1000, invocationCount = 1)
+    @Test(enabled = true, expectedExceptions = ReviewedStingException.class, dataProvider = "NanoSchedulerInputExceptionTest", timeOut = EXCEPTION_THROWING_TEST_TIMEOUT, invocationCount = 1)
     public void testInputErrorDoesntDeadlock(final int nElementsBeforeError, final NanoSchedulerBasicTest test, final boolean addDelays ) throws InterruptedException {
         executeTestErrorThrowingInput(nElementsBeforeError, new Error(), test, addDelays);
     }

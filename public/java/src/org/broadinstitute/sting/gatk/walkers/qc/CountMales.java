@@ -34,12 +34,13 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
  * Walks over the input data set, calculating the number of reads seen from male samples for diagnostic purposes.
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountMales extends ReadWalker<Integer, Integer> {
     public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {

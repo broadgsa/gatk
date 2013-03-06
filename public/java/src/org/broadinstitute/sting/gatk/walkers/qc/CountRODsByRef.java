@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 
 import java.util.Collections;
 import java.util.List;
@@ -65,7 +66,7 @@ import java.util.List;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 public class CountRODsByRef extends RefWalker<CountRODs.Datum, Pair<ExpandingArrayList<Long>, Long>> {
 
     /**

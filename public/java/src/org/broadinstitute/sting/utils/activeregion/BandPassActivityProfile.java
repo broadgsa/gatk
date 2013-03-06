@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.activeregion;
 import com.google.java.contract.Ensures;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.MathUtils;
 
 import java.util.ArrayList;
@@ -53,25 +54,34 @@ public class BandPassActivityProfile extends ActivityProfile {
     private final double[] GaussianKernel;
 
     /**
-     * Create a new BandPassActivityProfile with default sigma and file sizes
-     * @param parser our genome loc parser
+     * Create a new BandPassActivityProfile with default sigma and filter sizes
+     *
+     * @see #BandPassActivityProfile(org.broadinstitute.sting.utils.GenomeLocParser, org.broadinstitute.sting.utils.GenomeLocSortedSet, int, double, boolean)
      */
-    public BandPassActivityProfile(final GenomeLocParser parser) {
-        this(parser, MAX_FILTER_SIZE, DEFAULT_SIGMA, true);
+    public BandPassActivityProfile(final GenomeLocParser parser, final GenomeLocSortedSet restrictToIntervals) {
+        this(parser, restrictToIntervals, MAX_FILTER_SIZE, DEFAULT_SIGMA, true);
+    }
+
+    /**
+     * @see #BandPassActivityProfile(org.broadinstitute.sting.utils.GenomeLocParser, org.broadinstitute.sting.utils.GenomeLocSortedSet, int, double, boolean)
+     *
+     * sets adaptiveFilterSize to true
+     */
+    public BandPassActivityProfile(final GenomeLocParser parser, final GenomeLocSortedSet restrictToIntervals, final int maxFilterSize, final double sigma) {
+        this(parser, restrictToIntervals, maxFilterSize, sigma, true);
     }
 
     /**
      * Create an activity profile that implements a band pass filter on the states
+     *
      * @param parser our genome loc parser
+     * @param restrictToIntervals only include states that are within these intervals, if not null
      * @param maxFilterSize the maximum size of the band pass filter we are allowed to create, regardless of sigma
      * @param sigma the variance of the Gaussian kernel for this band pass filter
+     * @param adaptiveFilterSize if true, use the kernel itself to determine the best filter size
      */
-    public BandPassActivityProfile(final GenomeLocParser parser, final int maxFilterSize, final double sigma) {
-        this(parser, maxFilterSize, sigma, true);
-    }
-
-    public BandPassActivityProfile(final GenomeLocParser parser, final int maxFilterSize, final double sigma, final boolean adaptiveFilterSize) {
-        super(parser);
+    public BandPassActivityProfile(final GenomeLocParser parser, final GenomeLocSortedSet restrictToIntervals, final int maxFilterSize, final double sigma, final boolean adaptiveFilterSize) {
+        super(parser, restrictToIntervals);
 
         if ( sigma < 0 ) throw new IllegalArgumentException("Sigma must be greater than or equal to 0 but got " + sigma);
 

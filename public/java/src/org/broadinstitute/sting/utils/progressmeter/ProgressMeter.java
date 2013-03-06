@@ -154,6 +154,8 @@ public class ProgressMeter {
     /**
      * Create a new ProgressMeter
      *
+     * Note that progress meter isn't started until the client calls start()
+     *
      * @param performanceLogFile an optional performance log file where a table of performance logs will be written
      * @param processingUnitName the name of the unit type being processed, suitable for saying X seconds per processingUnitName
      * @param processingIntervals the intervals being processed
@@ -193,7 +195,6 @@ public class ProgressMeter {
 
         // start up the timer
         progressMeterDaemon = new ProgressMeterDaemon(this, pollingFrequency);
-        start();
     }
 
     public ProgressMeterDaemon getProgressMeterDaemon() {
@@ -205,7 +206,7 @@ public class ProgressMeter {
      * daemon thread for periodic printing.
      */
     @Requires("progressMeterDaemon != null")
-    private synchronized void start() {
+    public synchronized void start() {
         timer.start();
         lastProgressPrintTime = timer.currentTime();
 

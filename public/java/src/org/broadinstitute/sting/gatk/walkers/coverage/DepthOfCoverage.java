@@ -50,6 +50,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -59,7 +60,7 @@ import java.util.*;
  * Toolbox for assessing sequence coverage by a wide array of metrics, partitioned by sample, read group, or library
  *
  * <p>
- * DepthOfCoverage processes a set of bam files to determine coverage at different levels of partitioning and
+ * Coverage processes a set of bam files to determine coverage at different levels of partitioning and
  * aggregation. Coverage can be analyzed per locus, per interval, per gene, or in total; can be partitioned by
  * sample, by read group, by technology, by center, or by library; and can be summarized by mean, median, quartiles,
  * and/or percentage of bases covered to or beyond a threshold.
@@ -101,7 +102,7 @@ import java.util.*;
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
- *   -T DepthOfCoverage \
+ *   -T Coverage \
  *   -o file_name_base \
  *   -I input_bams.list
  *   [-geneList refSeq.sorted.txt] \
@@ -116,7 +117,7 @@ import java.util.*;
 // todo -- alter logarithmic scaling to spread out bins more
 // todo -- allow for user to set linear binning (default is logarithmic)
 // todo -- formatting --> do something special for end bins in getQuantile(int[] foo), this gets mushed into the end+-1 bins for now
-@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_DATA, extraDocs = {CommandLineGATK.class} )
 @By(DataSource.REFERENCE)
 @PartitionBy(PartitionType.NONE)
 @Downsample(by= DownsampleType.NONE, toCoverage=Integer.MAX_VALUE)

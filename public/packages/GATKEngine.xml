@@ -56,7 +56,7 @@
     <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/Pileup.java" />
     <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CountLoci.java" />
     <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CountReads.java" />
-    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/ValidatingPileup.java" />
+    <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/qc/CheckPileup.java" />
     <file name="public/java/src/org/broadinstitute/sting/gatk/walkers/readutils/PrintReads.java" />
   </resources>
 </package>

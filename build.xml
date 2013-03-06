@@ -669,21 +669,13 @@
         </jar>
     </target>
 
-    <target name="variant.jar" depends="gatk.compile,init.jar">
-        <jar jarfile="${dist.dir}/variant.jar">
-            <fileset dir="${java.classes}">
-              <include name="org/broadinstitute/variant/**/*.class"/>
-            </fileset>
-        </jar>
-    </target>
-
     <target name="na12878kb.jar" depends="gatk.compile,init.jar">
         <jar jarfile="${dist.dir}/na12878kb.jar">
             <fileset dir="${java.classes}">
               <include name="org/broadinstitute/sting/utils/GenomeLocParser*.class"/>
               <include name="org/broadinstitute/sting/utils/GenomeLoc.class"/>
               <include name="org/broadinstitute/sting/utils/HasGenomeLocation.class"/>
-              <include name="org/broadinstitute/variant/utils/BaseUtils.class"/>
+              <include name="org/broadinstitute/sting/utils/BaseUtils.class"/>
               <include name="org/broadinstitute/sting/utils/Utils.class"/>
               <include name="org/broadinstitute/sting/utils/exceptions/**/*.class"/>
               <include name="org/broadinstitute/sting/gatk/walkers/na12878kb/core/**/*.class"/>
@@ -753,7 +745,7 @@
         </jar>
     </target>
 
-    <target name="sting.jar" depends="sting-utils.jar, variant.jar, gatk.jar, queue.jar" />
+    <target name="sting.jar" depends="sting-utils.jar, gatk.jar, queue.jar" />
 
     <target name="init.manifests" depends="sting.jar">
         <pathconvert property="jar.classpath" pathsep=" ">
@@ -873,11 +865,15 @@
         <property name="executable" value="GenomeAnalysisTK" />
     </target>
 
-    <target name="init.executable.queueall" depends="init.build.all, init.javaandscala">
-        <property name="executable" value="Queue" />
+    <target name="init.executable.gatkall" depends="init.build.all, init.javaonly">
+        <property name="executable" value="GenomeAnalysisTK" />
     </target>
 
     <target name="init.executable.queuefull" depends="init.build.publicprotectedonly, init.javaandscala">
+        <property name="executable" value="Queue" />
+    </target>
+
+    <target name="init.executable.queueall" depends="init.build.all, init.javaandscala">
         <property name="executable" value="Queue" />
     </target>
 
@@ -929,11 +925,16 @@
     </target>
 
     <!-- Package specific versions of the GATK/Queue. ALWAYS do an ant clean before invoking these! -->
+
+    <!-- GATK "full" == public + protected, ie., the standard binary release of the GATK  -->
     <target name="package.gatk.full" depends="init.executable.gatkfull,package" />
 
-    <target name="package.queue.all" depends="init.executable.queueall,package" />
+    <!-- GATK "all" == public + protected + private. Should never be publicly released -->
+    <target name="package.gatk.all" depends="init.executable.gatkall,package" />
 
     <target name="package.queue.full" depends="init.executable.queuefull,package" />
+
+    <target name="package.queue.all" depends="init.executable.queueall,package" />
 
     <!-- Release a build. Don't call this target directly. Call one of the specific release targets below -->
     <target name="release" depends="require.executable" description="release a build, putting each file in a location specified by the package">
@@ -1081,7 +1082,7 @@
     <property name="report" value="${build.dir}/report"/>
     <property name="iwww.report.dir" value="${user.home}/private_html/report"/>
     <property name="test.output" value="${dist.dir}/test"/>
-    <property name="testng.jar" value="${lib.dir}/testng-5.14.1.jar"/>
+    <property name="testng.jar" value="${lib.dir}/testng-6.8.jar"/>
 
     <path id="java.test.source.path">
         <dirset dir="${basedir}">
@@ -1112,7 +1113,7 @@
 
     <path id="testng.default.classpath">
         <path refid="build.results" />
-	<pathelement path="${clover.jar}"/>    
+        <pathelement path="${clover.jar}"/>
         <pathelement location="${java.contracts.dir}" />
         <pathelement location="${java.test.classes}" />
         <pathelement location="${scala.test.classes}" />
@@ -1122,7 +1123,7 @@
 
     <target name="clover.report">
       <clover-report coverageCacheSize="nocache">
-	<current outfile="clover_html" title="GATK clover report" showUniqueCoverage="false" numThreads="4">
+      <current outfile="clover_html" title="GATK clover report" showUniqueCoverage="false" numThreads="4">
 	  <format type="html" filter="catch,static,property"/>
 	  <fileset dir="public">
 	    <patternset id="clover.excludes">
@@ -1252,7 +1253,7 @@
                     listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.TestNGTestTransformer,org.broadinstitute.sting.StingTextReporter,org.uncommons.reportng.HTMLReporter">
                 <jvmarg value="-Xmx${test.maxmemory}" />
                 <jvmarg value="-ea" />
-		<jvmarg value="-Dclover.pertest.coverage=diff" />
+                <jvmarg value="-Dclover.pertest.coverage=diff" />
                 <jvmarg value="-Djava.awt.headless=true" />
                 <jvmarg value="-Dpipeline.run=${pipeline.run}" />
                 <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
@@ -1295,7 +1296,7 @@
 
     <target name="test.init">
         <property name="testng.classpath" value="testng.default.classpath" />
-	<property name="test.maxmemory" value="${test.default.maxmemory}"/>
+        <property name="test.maxmemory" value="${test.default.maxmemory}"/>
     </target>
 
     <target name="init.testgatkjar">
@@ -1450,4 +1451,30 @@
 
         <run-test testtype="${single}" outputdir="${report}/${single}" runfailed="false"/>
     </target>
+
+    <!-- A target that runs a test without doing ANY compilation or any extra work at all -->
+    <!-- Intended to enable parallel tests that share the same working directory and build -->
+    <target name="runtestonly">
+        <condition property="not.clean">
+            <and>
+                <available file="${build.dir}" />
+                <available file="${lib.dir}" />
+                <available file="${dist.dir}" />
+                <available file="${java.test.classes}" />
+            </and>
+        </condition>
+        <fail message="runtestonly target requires a NON-CLEAN working directory (INCLUDING test classes). Do a full test build using ant test.compile first." unless="not.clean" />
+
+        <condition property="no.single.test.specified">
+            <equals arg1="${single}" arg2="$${single}" />
+        </condition>
+        <fail message="Must specify a specific test. Usage: ant runtestonly -Dsingle=TestClass" if="no.single.test.specified" />
+
+        <property name="testng.classpath" value="testng.default.classpath" />
+        <property name="test.maxmemory" value="${test.default.maxmemory}"/>
+        <property name="include.contracts" value="true" />
+
+        <run-test testtype="${single}" outputdir="${report}/${single}" runfailed="false"/>
+    </target>
+
 </project>

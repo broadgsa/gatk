@@ -39,6 +39,7 @@ import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.variant.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
@@ -79,7 +80,7 @@ import java.util.*;
  * </pre>
  *
  */
-@DocumentedGATKFeature( groupName = "Variant Evaluation and Manipulation Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-200,stop=200))
 public class LeftAlignVariants extends RodWalker<Integer, Integer> {
 
@@ -163,7 +164,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         Cigar originalCigar = new Cigar(elements);
 
         // left align the CIGAR
-        Cigar newCigar = AlignmentUtils.leftAlignIndel(originalCigar, refSeq, originalIndel, 0, 0);
+        Cigar newCigar = AlignmentUtils.leftAlignIndel(originalCigar, refSeq, originalIndel, 0, 0, true);
 
         // update if necessary and write
         if ( !newCigar.equals(originalCigar) && newCigar.numCigarElements() > 1 ) {

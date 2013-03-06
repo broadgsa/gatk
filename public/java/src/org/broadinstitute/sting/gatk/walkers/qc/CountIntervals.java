@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 
 import java.io.PrintStream;
 import java.util.Collections;
@@ -48,7 +49,7 @@ import java.util.List;
  * very useful since overlapping intervals get merged, so you can count the number of intervals the GATK merges down to.
  * This was its very first use.
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 public class CountIntervals extends RefWalker<Long, Long> {
     @Output
     PrintStream out;

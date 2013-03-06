@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils;
 
+import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 /**
@@ -36,22 +37,29 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  * @since 2011
  */
 public enum NGSPlatform {
+    // note the order of elements here determines the order of matching operations, and therefore the
+    // efficiency of getting a NGSPlatform from a string.
     ILLUMINA("ILLUMINA", "SLX", "SOLEXA"),
     SOLID("SOLID"),
     LS454("454"),
     COMPLETE_GENOMICS("COMPLETE"),
     PACBIO("PACBIO"),
     ION_TORRENT("IONTORRENT"),
+    CAPILLARY("CAPILLARY"),
+    HELICOS("HELICOS"),
     UNKNOWN("UNKNOWN");
 
     /**
      * Array of the prefix names in a BAM file for each of the platforms.
      */
-    private final String[] BAM_PL_NAMES;
+    protected final String[] BAM_PL_NAMES;
 
     NGSPlatform(final String... BAM_PL_NAMES) {
+        if ( BAM_PL_NAMES.length == 0 ) throw new IllegalStateException("Platforms must have at least one name");
+
         for ( int i = 0; i < BAM_PL_NAMES.length; i++ )
             BAM_PL_NAMES[i] = BAM_PL_NAMES[i].toUpperCase();
+
         this.BAM_PL_NAMES = BAM_PL_NAMES;
     }
 
@@ -64,21 +72,24 @@ public enum NGSPlatform {
     }
 
     /**
-     * Convenience get -- get the NGSPlatfrom from a SAMRecord.
+     * Convenience get -- get the NGSPlatform from a GATKSAMRecord.
      *
      * Just gets the platform from the GATKReadGroupRecord associated with this read.
      *
-     * @param read a GATKSAMRecord
-     * @return an NGSPlatform object matching the PL field of the header, of UNKNOWN if there was no match
+     * @param read a non-null GATKSAMRecord
+     * @return an NGSPlatform object matching the PL field of the header, of UNKNOWN if there was no match,
+     *         if there is no read group for read, or there's no PL field for the read group
      */
-    public static NGSPlatform fromRead(GATKSAMRecord read) {
-        return read.getReadGroup().getNGSPlatform();
+    public static NGSPlatform fromRead(final GATKSAMRecord read) {
+        if ( read == null ) throw new IllegalArgumentException("read cannot be null");
+        final GATKSAMReadGroupRecord rg = read.getReadGroup();
+        return rg == null ? UNKNOWN : rg.getNGSPlatform();
     }
 
     /**
      * Returns the NGSPlatform corresponding to the PL tag in the read group
-     * @param plFromRG -- the PL field (or equivalent) in a ReadGroup object
-     * @return an NGSPlatform object matching the PL field of the header, or UNKNOWN if there was no match
+     * @param plFromRG -- the PL field (or equivalent) in a ReadGroup object.  Can be null => UNKNOWN
+     * @return an NGSPlatform object matching the PL field of the header, or UNKNOWN if there was no match or plFromRG is null
      */
     public static NGSPlatform fromReadGroupPL(final String plFromRG) {
         if ( plFromRG == null ) return UNKNOWN;
@@ -100,10 +111,10 @@ public enum NGSPlatform {
     /**
      * checks whether or not the requested platform is listed in the set (and is not unknown)
      *
-     * @param platform the read group string that describes the platform used
+     * @param platform the read group string that describes the platform used.  can be null
      * @return true if the platform is known (i.e. it's in the list and is not UNKNOWN)
      */
-    public static final boolean isKnown(final String platform) {
+    public static boolean isKnown(final String platform) {
         return fromReadGroupPL(platform) != UNKNOWN;
     }
 }

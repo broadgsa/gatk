@@ -63,6 +63,7 @@ public class ProgressMeterDaemonUnitTest extends BaseTest {
 
         private TestingProgressMeter(final long poll) {
             super(null, "test", new GenomeLocSortedSet(genomeLocParser), poll);
+            super.start();
         }
 
         @Override

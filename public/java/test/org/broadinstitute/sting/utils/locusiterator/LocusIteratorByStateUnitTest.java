@@ -315,7 +315,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
                 read.setReadBases(("TT" + eventBases + "A").getBytes());
                 final byte[] quals = new byte[readLength];
                 for ( int i = 0; i < readLength; i++ )
-                    quals[i] = (byte)(i % QualityUtils.MAX_QUAL_SCORE);
+                    quals[i] = (byte)(i % QualityUtils.MAX_SAM_QUAL_SCORE);
                 read.setBaseQualities(quals);
                 read.setCigarString(cigar);
 

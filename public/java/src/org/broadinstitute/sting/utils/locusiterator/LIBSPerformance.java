@@ -129,7 +129,7 @@ public class LIBSPerformance extends CommandLineProgram {
 //            read.setReadBases(Utils.dupBytes((byte) 'A', readLength));
 //            final byte[] quals = new byte[readLength];
 //            for ( int i = 0; i < readLength; i++ )
-//                quals[i] = (byte)(i % QualityUtils.MAX_QUAL_SCORE);
+//                quals[i] = (byte)(i % QualityUtils.MAX_SAM_QUAL_SCORE);
 //            read.setBaseQualities(quals);
 //            read.setCigarString(cigar);
 //

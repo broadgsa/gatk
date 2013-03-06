@@ -1244,11 +1244,33 @@ public class MathUtils {
     /**
      * Checks that the result is a well-formed log10 probability
      *
-     * @param result a supposedly well-formed log10 probability value
+     * @param result a supposedly well-formed log10 probability value.  By default allows
+     *               -Infinity values, as log10(0.0) == -Infinity.
      * @return true if result is really well formed
      */
     public static boolean goodLog10Probability(final double result) {
-        return result <= 0.0 && ! Double.isInfinite(result) && ! Double.isNaN(result);
+        return goodLog10Probability(result, true);
+    }
+
+    /**
+     * Checks that the result is a well-formed log10 probability
+     *
+     * @param result a supposedly well-formed log10 probability value
+     * @param allowNegativeInfinity should we consider a -Infinity value ok?
+     * @return true if result is really well formed
+     */
+    public static boolean goodLog10Probability(final double result, final boolean allowNegativeInfinity) {
+        return result <= 0.0 && result != Double.POSITIVE_INFINITY && (allowNegativeInfinity || result != Double.NEGATIVE_INFINITY) && ! Double.isNaN(result);
+    }
+
+    /**
+     * Checks that the result is a well-formed probability
+     *
+     * @param result a supposedly well-formed probability value
+     * @return true if result is really well formed
+     */
+    public static boolean goodProbability(final double result) {
+        return result >= 0.0 && result <= 1.0 && ! Double.isInfinite(result) && ! Double.isNaN(result);
     }
 
     /**
@@ -1341,28 +1363,6 @@ public class MathUtils {
     static public double max(double x0, double x1, double x2) {
         double a = Math.max(x0, x1);
         return Math.max(a, x2);
-    }
-
-    public static double phredScaleToProbability(byte q) {
-        return Math.pow(10, (-q) / 10.0);
-    }
-
-    public static double phredScaleToLog10Probability(byte q) {
-        return ((-q) / 10.0);
-    }
-
-    /**
-     * Returns the phred scaled value of probability p
-     *
-     * @param p probability (between 0 and 1).
-     * @return phred scaled probability of p
-     */
-    public static byte probabilityToPhredScale(double p) {
-        return (byte) ((-10) * Math.log10(p));
-    }
-
-    public static double log10ProbabilityToPhredScale(double log10p) {
-        return (-10) * log10p;
     }
 
     /**
@@ -1773,5 +1773,27 @@ public class MathUtils {
             values.add(stop);
 
         return values;
+    }
+
+    /**
+     * Compute in a numerical correct way the quanity log10(1-x)
+     *
+     * Uses the approximation log10(1-x) = log10(1/x - 1) + log10(x) to avoid very quick underflow
+     * in 1-x when x is very small
+     *
+     * @param x a positive double value between 0.0 and 1.0
+     * @return an estimate of log10(1-x)
+     */
+    @Requires("x >= 0.0 && x <= 1.0")
+    @Ensures("result <= 0.0")
+    public static double log10OneMinusX(final double x) {
+        if ( x == 1.0 )
+            return Double.NEGATIVE_INFINITY;
+        else if ( x == 0.0 )
+            return 0.0;
+        else {
+            final double d = Math.log10(1 / x - 1) + Math.log10(x);
+            return Double.isInfinite(d) || d > 0.0 ? 0.0 : d;
+        }
     }
 }

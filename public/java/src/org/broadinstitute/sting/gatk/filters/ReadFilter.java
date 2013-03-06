@@ -29,12 +29,13 @@ import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 
 /**
  * A SamRecordFilter that also depends on the header.
  */
 @DocumentedGATKFeature(
-        groupName = "Read filters",
+        groupName = HelpConstants.DOCS_CAT_RF,
         summary = "GATK Engine arguments that filter or transfer incoming SAM/BAM data files" )
 public abstract class ReadFilter implements SamRecordFilter {
     /**

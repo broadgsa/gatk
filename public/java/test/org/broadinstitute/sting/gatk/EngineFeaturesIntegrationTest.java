@@ -64,16 +64,16 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
     }
 
     @Test() private void testMissingBAMnt1() {
-        testMissingFile("missing BAM", "-T UnifiedGenotyper -I missing.bam -nt 1");
+        testMissingFile("missing BAM", "-T PrintReads -I missing.bam -nt 1");
     }
     @Test() private void testMissingBAMnt4() {
-        testMissingFile("missing BAM", "-T UnifiedGenotyper -I missing.bam -nt 4");
+        testMissingFile("missing BAM", "-T PrintReads -I missing.bam -nt 4");
     }
     @Test() private void testMissingVCF() {
         testMissingFile("missing VCF", "-T SelectVariants -V missing.vcf");
     }
     @Test() private void testMissingInterval() {
-        testMissingFile("missing interval", "-T UnifiedGenotyper -L missing.interval_list -I " + b37GoodBAM);
+        testMissingFile("missing interval", "-T PrintReads -L missing.interval_list -I " + b37GoodBAM);
     }
 
 

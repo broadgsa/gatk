@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.filters;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
+import net.sf.samtools.SAMTagUtil;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -59,9 +60,14 @@ public class MalformedReadFilter extends ReadFilter {
                 !checkCigarDisagreesWithAlignment(read);
     }
 
-    private static boolean checkHasReadGroup(SAMRecord read) {
-        if ( read.getReadGroup() == null )
-            throw new UserException.ReadMissingReadGroup(read);
+    private static boolean checkHasReadGroup(final SAMRecord read) {
+        if ( read.getReadGroup() == null ) {
+            // there are 2 possibilities: either the RG tag is missing or it is not defined in the header
+            final String rgID = (String)read.getAttribute(SAMTagUtil.getSingleton().RG);
+            if ( rgID == null )
+                throw new UserException.ReadMissingReadGroup(read);
+            throw new UserException.ReadHasUndefinedReadGroup(read, rgID);
+        }
         return true;
     }
 

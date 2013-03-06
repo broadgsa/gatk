@@ -55,6 +55,17 @@ public class Utils {
     public static final float JAVA_DEFAULT_HASH_LOAD_FACTOR = 0.75f;
 
     /**
+     * Boolean xor operation.  Only true if x != y.
+     *
+     * @param x a boolean
+     * @param y a boolean
+     * @return true if x != y
+     */
+    public static boolean xor(final boolean x, final boolean y) {
+        return x != y;
+    }
+
+    /**
      * Calculates the optimum initial size for a hash table given the maximum number
      * of elements it will need to hold. The optimum size is the smallest size that
      * is guaranteed not to result in any rehash/table-resize operations.
@@ -306,6 +317,22 @@ public class Utils {
 
     public static <T> String join(final String separator, final T ... objects) {
         return join(separator, Arrays.asList(objects));
+    }
+
+    /**
+     * Create a new string thats a n duplicate copies of s
+     * @param s the string to duplicate
+     * @param nCopies how many copies?
+     * @return a string
+     */
+    public static String dupString(final String s, int nCopies) {
+        if ( s == null || s.equals("") ) throw new IllegalArgumentException("Bad s " + s);
+        if ( nCopies < 1 ) throw new IllegalArgumentException("nCopies must be >= 1 but got " + nCopies);
+
+        final StringBuilder b = new StringBuilder();
+        for ( int i = 0; i < nCopies; i++ )
+            b.append(s);
+        return b.toString();
     }
 
     public static String dupString(char c, int nCopies) {

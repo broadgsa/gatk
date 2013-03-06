@@ -62,6 +62,11 @@ public abstract class CommandLineProgram {
     @Argument(fullName = "help", shortName = "h", doc = "Generate this help message", required = false)
     public Boolean help = false;
 
+    /** This is used to indicate if they've asked for the version information */
+    @Argument(fullName = "version", shortName = "version", doc ="Output version information", required = false)
+    public Boolean version = false;
+
+
     /** our logging output patterns */
     private static final String patternString = "%-5p %d{HH:mm:ss,SSS} %C{1} - %m %n";
 
@@ -199,6 +204,9 @@ public abstract class CommandLineProgram {
                     parser.addArgumentSource(clp.getArgumentSourceName(argumentSource), argumentSource);
                 parsedArgs = parser.parse(args);
 
+                if (isVersionPresent(parser))
+                    printVersionAndExit();
+
                 if (isHelpPresent(parser))
                     printHelpAndExit(clp, parser);
 
@@ -314,6 +322,26 @@ public abstract class CommandLineProgram {
         parser.printHelp(clp.getApplicationDetails());
         System.exit(0);
     }
+
+    /**
+     * Do a cursory search for the argument "version".
+     *
+     * @param parser Parser
+     *
+     * @return True if version is present; false otherwise.
+     */
+    private static boolean isVersionPresent(ParsingEngine parser) {
+        return parser.isArgumentPresent("version");
+    }
+
+    /**
+     * Print help and exit.
+     */
+    private static void printVersionAndExit() {
+        System.out.println(CommandLineGATK.getVersionNumber().toString());
+        System.exit(0);
+    }
+
 
     private static void errorPrintf(String format, Object... s) {
         String formatted = String.format(format, s);

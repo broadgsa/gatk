@@ -31,20 +31,17 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.recalibration.EventType;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
+import java.util.*;
 
 
 public final class AlignmentUtils {
+    private final static Logger logger = Logger.getLogger(AlignmentUtils.class);
     private final static EnumSet<CigarOperator> ALIGNED_TO_GENOME_OPERATORS = EnumSet.of(CigarOperator.M, CigarOperator.EQ, CigarOperator.X);
     private final static EnumSet<CigarOperator> ALIGNED_TO_GENOME_PLUS_SOFTCLIPS = EnumSet.of(CigarOperator.M, CigarOperator.EQ, CigarOperator.X, CigarOperator.S);
 
@@ -56,34 +53,61 @@ public final class AlignmentUtils {
         public long mismatchQualities = 0;
     }
 
-    public static long mismatchingQualities(SAMRecord r, byte[] refSeq, int refIndex) {
+    public static long mismatchingQualities(GATKSAMRecord r, byte[] refSeq, int refIndex) {
         return getMismatchCount(r, refSeq, refIndex).mismatchQualities;
     }
 
-    public static MismatchCount getMismatchCount(SAMRecord r, byte[] refSeq, int refIndex) {
+    /**
+     * @see #getMismatchCount(GATKSAMRecord, byte[], int, int, int) with startOnRead == 0 and nReadBases == read.getReadLength()
+     */
+    public static MismatchCount getMismatchCount(GATKSAMRecord r, byte[] refSeq, int refIndex) {
         return getMismatchCount(r, refSeq, refIndex, 0, r.getReadLength());
     }
 
     // todo -- this code and mismatchesInRefWindow should be combined and optimized into a single
     // todo -- high performance implementation.  We can do a lot better than this right now
-    public static MismatchCount getMismatchCount(SAMRecord r, byte[] refSeq, int refIndex, int startOnRead, int nReadBases) {
+
+    /**
+     * Count how many bases mismatch the reference.  Indels are not considered mismatching.
+     *
+     * @param r                   the sam record to check against
+     * @param refSeq              the byte array representing the reference sequence
+     * @param refIndex            the index in the reference byte array of the read's first base (the reference index
+     *                            is matching the alignment start, there may be tons of soft-clipped bases before/after
+     *                            that so it's wrong to compare with getReadLength() here.).  Note that refIndex is
+     *                            zero based, not 1 based
+     * @param startOnRead         the index in the read's bases from which we start counting
+     * @param nReadBases          the number of bases after (but including) startOnRead that we check
+     * @return non-null object representing the mismatch count
+     */
+    @Ensures("result != null")
+    public static MismatchCount getMismatchCount(GATKSAMRecord r, byte[] refSeq, int refIndex, int startOnRead, int nReadBases) {
+        if ( r == null ) throw new IllegalArgumentException("attempting to calculate the mismatch count from a read that is null");
+        if ( refSeq == null ) throw new IllegalArgumentException("attempting to calculate the mismatch count with a reference sequence that is null");
+        if ( refIndex < 0 ) throw new IllegalArgumentException("attempting to calculate the mismatch count with a reference index that is negative");
+        if ( startOnRead < 0 ) throw new IllegalArgumentException("attempting to calculate the mismatch count with a read start that is negative");
+        if ( nReadBases < 0 ) throw new IllegalArgumentException("attempting to calculate the mismatch count for a negative number of read bases");
+        if ( refSeq.length - refIndex < (r.getAlignmentEnd() - r.getAlignmentStart()) )
+            throw new IllegalArgumentException("attempting to calculate the mismatch count against a reference string that is smaller than the read");
+
         MismatchCount mc = new MismatchCount();
 
         int readIdx = 0;
-        int endOnRead = startOnRead + nReadBases - 1; // index of the last base on read we want to count
-        byte[] readSeq = r.getReadBases();
-        Cigar c = r.getCigar();
-        for (int i = 0; i < c.numCigarElements(); i++) {
+        final int endOnRead = startOnRead + nReadBases - 1; // index of the last base on read we want to count (note we are including soft-clipped bases with this math)
+        final byte[] readSeq = r.getReadBases();
+        final Cigar c = r.getCigar();
+        final byte[] readQuals = r.getBaseQualities();
+        for (final CigarElement ce : c.getCigarElements()) {
 
-            if (readIdx > endOnRead) break;
+            if (readIdx > endOnRead)
+                break;
 
-            CigarElement ce = c.getCigarElement(i);
             final int elementLength = ce.getLength();
             switch (ce.getOperator()) {
                 case X:
                     mc.numMismatches += elementLength;
                     for (int j = 0; j < elementLength; j++)
-                        mc.mismatchQualities += r.getBaseQualities()[readIdx+j];
+                        mc.mismatchQualities += readQuals[readIdx+j];
                 case EQ:
                     refIndex += elementLength;
                     readIdx += elementLength;
@@ -91,7 +115,7 @@ public final class AlignmentUtils {
                 case M:
                     for (int j = 0; j < elementLength; j++, refIndex++, readIdx++) {
                         if (refIndex >= refSeq.length)
-                            continue;
+                            continue;                      // TODO : It should never happen, we should throw exception here
                         if (readIdx < startOnRead) continue;
                         if (readIdx > endOnRead) break;
                         byte refChr = refSeq[refIndex];
@@ -102,7 +126,7 @@ public final class AlignmentUtils {
                         //    continue; // do not count Ns/Xs/etc ?
                         if (readChr != refChr) {
                             mc.numMismatches++;
-                            mc.mismatchQualities += r.getBaseQualities()[readIdx];
+                            mc.mismatchQualities += readQuals[readIdx];
                         }
                     }
                     break;
@@ -241,7 +265,24 @@ public final class AlignmentUtils {
         return calcAlignmentByteArrayOffset( cigar, pileupElement.getOffset(), pileupElement.isDeletion(), alignmentStart, refLocus );
     }
 
+    /**
+     * Calculate the index into the read's bases of the beginning of the encompassing cigar element for a given cigar and offset
+     *
+     * @param cigar            the read's CIGAR -- cannot be null
+     * @param offset           the offset to use for the calculation or -1 if in the middle of a deletion
+     * @param isDeletion       are we in the middle of a deletion?
+     * @param alignmentStart   the alignment start of the read
+     * @param refLocus         the reference position of the offset
+     * @return a non-negative int index
+     */
+    @Ensures("result >= 0")
     public static int calcAlignmentByteArrayOffset(final Cigar cigar, final int offset, final boolean isDeletion, final int alignmentStart, final int refLocus) {
+        if ( cigar == null ) throw new IllegalArgumentException("attempting to find the alignment position from a CIGAR that is null");
+        if ( offset < -1 ) throw new IllegalArgumentException("attempting to find the alignment position with an offset that is negative (and not -1)");
+        if ( alignmentStart < 0 ) throw new IllegalArgumentException("attempting to find the alignment position from an alignment start that is negative");
+        if ( refLocus < 0 ) throw new IllegalArgumentException("attempting to find the alignment position from a reference position that is negative");
+        if ( offset >= cigar.getReadLength() ) throw new IllegalArgumentException("attempting to find the alignment position of an offset than is larger than the read length");
+
         int pileupOffset = offset;
 
         // Reassign the offset if we are in the middle of a deletion because of the modified representation of the read bases
@@ -262,7 +303,7 @@ public final class AlignmentUtils {
 
             switch (ce.getOperator()) {
                 case I:
-                case S:
+                case S: // TODO -- I don't think that soft clips should be treated the same as inserted bases here. Investigation needed.
                     pos += elementLength;
                     if (pos >= pileupOffset) {
                         return alignmentPos;
@@ -302,32 +343,19 @@ public final class AlignmentUtils {
         return alignmentPos;
     }
 
+    /**
+     * Generate an array of bases for just those that are aligned to the reference (i.e. no clips or insertions)
+     *
+     * @param cigar            the read's CIGAR -- cannot be null
+     * @param read             the read's base array
+     * @return a non-null array of bases (bytes)
+     */
+    @Ensures("result != null")
     public static byte[] readToAlignmentByteArray(final Cigar cigar, final byte[] read) {
+        if ( cigar == null ) throw new IllegalArgumentException("attempting to generate an alignment from a CIGAR that is null");
+        if ( read == null ) throw new IllegalArgumentException("attempting to generate an alignment from a read sequence that is null");
 
-        int alignmentLength = 0;
-        for (int iii = 0; iii < cigar.numCigarElements(); iii++) {
-
-            final CigarElement ce = cigar.getCigarElement(iii);
-            final int elementLength = ce.getLength();
-
-            switch (ce.getOperator()) {
-                case D:
-                case N:
-                case M:
-                case EQ:
-                case X:
-                    alignmentLength += elementLength;
-                    break;
-                case I:
-                case S:
-                case H:
-                case P:
-                    break;
-                default:
-                    throw new ReviewedStingException("Unsupported cigar operator: " + ce.getOperator());
-            }
-        }
-
+        final int alignmentLength = cigar.getReferenceLength();
         final byte[] alignment = new byte[alignmentLength];
         int alignPos = 0;
         int readPos = 0;
@@ -339,35 +367,31 @@ public final class AlignmentUtils {
             switch (ce.getOperator()) {
                 case I:
                     if (alignPos > 0) {
-                        if (alignment[alignPos - 1] == BaseUtils.Base.A.base) {
-                            alignment[alignPos - 1] = PileupElement.A_FOLLOWED_BY_INSERTION_BASE;
-                        } else if (alignment[alignPos - 1] == BaseUtils.Base.C.base) {
-                            alignment[alignPos - 1] = PileupElement.C_FOLLOWED_BY_INSERTION_BASE;
-                        } else if (alignment[alignPos - 1] == BaseUtils.Base.T.base) {
-                            alignment[alignPos - 1] = PileupElement.T_FOLLOWED_BY_INSERTION_BASE;
-                        } else if (alignment[alignPos - 1] == BaseUtils.Base.G.base) {
-                            alignment[alignPos - 1] = PileupElement.G_FOLLOWED_BY_INSERTION_BASE;
+                        final int prevPos = alignPos - 1;
+                        if (alignment[prevPos] == BaseUtils.Base.A.base) {
+                            alignment[prevPos] = PileupElement.A_FOLLOWED_BY_INSERTION_BASE;
+                        } else if (alignment[prevPos] == BaseUtils.Base.C.base) {
+                            alignment[prevPos] = PileupElement.C_FOLLOWED_BY_INSERTION_BASE;
+                        } else if (alignment[prevPos] == BaseUtils.Base.T.base) {
+                            alignment[prevPos] = PileupElement.T_FOLLOWED_BY_INSERTION_BASE;
+                        } else if (alignment[prevPos] == BaseUtils.Base.G.base) {
+                            alignment[prevPos] = PileupElement.G_FOLLOWED_BY_INSERTION_BASE;
                         }
                     }
                 case S:
-                    for (int jjj = 0; jjj < elementLength; jjj++) {
-                        readPos++;
-                    }
+                    readPos += elementLength;
                     break;
                 case D:
                 case N:
                     for (int jjj = 0; jjj < elementLength; jjj++) {
-                        alignment[alignPos] = PileupElement.DELETION_BASE;
-                        alignPos++;
+                        alignment[alignPos++] = PileupElement.DELETION_BASE;
                     }
                     break;
                 case M:
                 case EQ:
                 case X:
                     for (int jjj = 0; jjj < elementLength; jjj++) {
-                        alignment[alignPos] = read[readPos];
-                        alignPos++;
-                        readPos++;
+                        alignment[alignPos++] = read[readPos++];
                     }
                     break;
                 case H:
@@ -407,20 +431,23 @@ public final class AlignmentUtils {
      * @return true if read is unmapped
      */
     public static boolean isReadUnmapped(final SAMRecord r) {
-        if ( r == null ) throw new IllegalArgumentException("Read cannot be null");
+        if ( r == null )
+            throw new IllegalArgumentException("Read cannot be null");
 
-        if (r.getReadUnmappedFlag()) return true;
+        return r.getReadUnmappedFlag() ||
+               !((r.getReferenceIndex() != null && r.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX ||
+                  r.getReferenceName() != null && !r.getReferenceName().equals(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME)) &&
+                 r.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START);
 
-        if ((r.getReferenceIndex() != null && r.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX
-                || r.getReferenceName() != null && !r.getReferenceName().equals(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME))
-                && r.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START) return false;
-        return true;
     }
 
     /**
      * Need a well-formed, consolidated Cigar string so that the left aligning code works properly.
      * For example, 1M1M1M1D2M1M --> 3M1D3M
      * If the given cigar is empty then the returned cigar will also be empty
+     *
+     * Note that this routine collapses cigar elements of size 0, so 2M0M => 2M
+     *
      * @param c the cigar to consolidate
      * @return  a non-null cigar with consecutive matching operators merged into single operators.
      */
@@ -431,13 +458,25 @@ public final class AlignmentUtils {
 
         final Cigar returnCigar = new Cigar();
         int sumLength = 0;
-        for( int iii = 0; iii < c.numCigarElements(); iii++ ) {
-            sumLength += c.getCigarElement(iii).getLength();
-            if( iii == c.numCigarElements() - 1 || !c.getCigarElement(iii).getOperator().equals(c.getCigarElement(iii+1).getOperator())) { // at the end so finish the current element
-                returnCigar.add(new CigarElement(sumLength, c.getCigarElement(iii).getOperator()));
+        CigarElement lastElement = null;
+
+        for( final CigarElement cur : c.getCigarElements() ) {
+            if ( cur.getLength() == 0 )
+                continue; // don't add elements of 0 length
+
+            if ( lastElement != null && lastElement.getOperator() != cur.getOperator() ) {
+                returnCigar.add(new CigarElement(sumLength, lastElement.getOperator()));
                 sumLength = 0;
             }
+
+            sumLength += cur.getLength();
+            lastElement = cur;
         }
+
+        if( sumLength > 0 ) {
+            returnCigar.add(new CigarElement(sumLength, lastElement.getOperator()));
+        }
+
         return returnCigar;
     }
 
@@ -450,34 +489,98 @@ public final class AlignmentUtils {
      * should be the position where the alignment of that part of the read starts at. In other words, both refIndex and readIndex are
      * always the positions where the cigar starts on the ref and on the read, respectively.
      * <p/>
-     * If the alignment has an indel, then this method attempts moving this indel left across a stretch of repetitive bases. For instance, if the original cigar
-     * specifies that (any) one AT  is deleted from a repeat sequence TATATATA, the output cigar will always mark the leftmost AT
-     * as deleted. If there is no indel in the original cigar, or the indel position is determined unambiguously (i.e. inserted/deleted sequence
-     * is not repeated), the original cigar is returned.
+     * If the alignment has one or more indels, this method attempts to move them left across a stretch of repetitive bases.
+     * For instance, if the original cigar specifies that (any) one AT is deleted from a repeat sequence TATATATA, the output
+     * cigar will always mark the leftmost AT as deleted. If there is no indel in the original cigar or if the indel position
+     * is determined unambiguously (i.e. inserted/deleted sequence is not repeated), the original cigar is returned.
+     *
+     * Note that currently we do not actually support the case where there is more than one indel in the alignment.  We will throw
+     * an exception if there is -- unless the
      *
      * @param cigar     structure of the original alignment
      * @param refSeq    reference sequence the read is aligned to
      * @param readSeq   read sequence
      * @param refIndex  0-based alignment start position on ref
      * @param readIndex 0-based alignment start position on read
-     * @return a cigar, in which indel is guaranteed to be placed at the leftmost possible position across a repeat (if any)
+     * @param doNotThrowExceptionForMultipleIndels  if true we will not throw an exception if we encounter multiple indels in the alignment will instead will return the original cigar
+     * @return a non-null cigar, in which the indels are guaranteed to be placed at the leftmost possible position across a repeat (if any)
      */
-    public static Cigar leftAlignIndel(Cigar cigar, final byte[] refSeq, final byte[] readSeq, final int refIndex, final int readIndex) {
+    @Ensures("result != null")
+    public static Cigar leftAlignIndel(Cigar cigar, final byte[] refSeq, final byte[] readSeq, final int refIndex, final int readIndex, final boolean doNotThrowExceptionForMultipleIndels) {
+        ensureLeftAlignmentHasGoodArguments(cigar, refSeq, readSeq, refIndex, readIndex);
+
+        final int numIndels = countIndelElements(cigar);
+        if ( numIndels == 0 )
+            return cigar;
+        if ( numIndels == 1 )
+            return leftAlignSingleIndel(cigar, refSeq, readSeq, refIndex, readIndex);
+
+        // if we got here then there is more than 1 indel in the alignment
+        if ( doNotThrowExceptionForMultipleIndels )
+            return cigar;
+
+        throw new UnsupportedOperationException("attempting to left align a CIGAR that has more than 1 indel in its alignment but this functionality has not been implemented yet");
+    }
+
+    private static void ensureLeftAlignmentHasGoodArguments(final Cigar cigar, final byte[] refSeq, final byte[] readSeq, final int refIndex, final int readIndex) {
+        if ( cigar == null ) throw new IllegalArgumentException("attempting to left align a CIGAR that is null");
+        if ( refSeq == null ) throw new IllegalArgumentException("attempting to left align a reference sequence that is null");
+        if ( readSeq == null ) throw new IllegalArgumentException("attempting to left align a read sequence that is null");
+        if ( refIndex < 0 ) throw new IllegalArgumentException("attempting to left align with a reference index less than 0");
+        if ( readIndex < 0 ) throw new IllegalArgumentException("attempting to left align with a read index less than 0");
+    }
+
+    /**
+     * Counts the number of I/D operators
+     *
+     * @param cigar   cigar to check -- cannot be null
+     * @return  non-negative count of indel operators
+     */
+    @Requires("cigar != null")
+    @Ensures("result >= 0")
+    private static int countIndelElements(final Cigar cigar) {
+        int indelCount = 0;
+        for ( CigarElement ce : cigar.getCigarElements() ) {
+            if ( ce.getOperator() == CigarOperator.D || ce.getOperator() == CigarOperator.I )
+                indelCount++;
+        }
+        return indelCount;
+    }
+
+    /**
+     * See the documentation for AlignmentUtils.leftAlignIndel() for more details.
+     *
+     * This flavor of the left alignment works if and only if the alignment has one - and only one - indel.
+     * An exception is thrown if there are no indels or more than 1 indel in the alignment.
+     *
+     * @param cigar     structure of the original alignment -- cannot be null
+     * @param refSeq    reference sequence the read is aligned to
+     * @param readSeq   read sequence
+     * @param refIndex  0-based alignment start position on ref
+     * @param readIndex 0-based alignment start position on read
+     * @return a non-null cigar, in which the single indel is guaranteed to be placed at the leftmost possible position across a repeat (if any)
+     */
+    @Ensures("result != null")
+    public static Cigar leftAlignSingleIndel(Cigar cigar, final byte[] refSeq, final byte[] readSeq, final int refIndex, final int readIndex) {
+        ensureLeftAlignmentHasGoodArguments(cigar, refSeq, readSeq, refIndex, readIndex);
 
         int indexOfIndel = -1;
         for (int i = 0; i < cigar.numCigarElements(); i++) {
             CigarElement ce = cigar.getCigarElement(i);
             if (ce.getOperator() == CigarOperator.D || ce.getOperator() == CigarOperator.I) {
-                // if there is more than 1 indel, don't left align
+                // if there is more than 1 indel, exception out
                 if (indexOfIndel != -1)
-                    return cigar;
+                    throw new IllegalArgumentException("attempting to left align a CIGAR that has more than 1 indel in its alignment");
                 indexOfIndel = i;
             }
         }
 
-        // if there is no indel or if the alignment starts with an insertion (so that there
-        // is no place on the read to move that insertion further left), we are done
-        if (indexOfIndel < 1) return cigar;
+        // if there is no indel, exception out
+        if ( indexOfIndel == -1 )
+            throw new IllegalArgumentException("attempting to left align a CIGAR that has no indels in its alignment");
+        // if the alignment starts with an insertion (so that there is no place on the read to move that insertion further left), we are done
+        if ( indexOfIndel == 0 )
+            return cigar;
 
         final int indelLength = cigar.getCigarElement(indexOfIndel).getLength();
 
@@ -533,7 +636,7 @@ public final class AlignmentUtils {
      */
     @Requires("c != null")
     @Ensures("result != null")
-    private static Cigar cleanUpCigar(final Cigar c) {
+    public static Cigar cleanUpCigar(final Cigar c) {
         final List<CigarElement> elements = new ArrayList<CigarElement>(c.numCigarElements() - 1);
 
         for (final CigarElement ce : c.getCigarElements()) {
@@ -545,6 +648,15 @@ public final class AlignmentUtils {
         return new Cigar(elements);
     }
 
+    /**
+     * Move the indel in a given cigar string one base to the left
+     *
+     * @param cigar          original cigar
+     * @param indexOfIndel   the index of the indel cigar element
+     * @return non-null cigar with indel moved one base to the left
+     */
+    @Requires("cigar != null && indexOfIndel >= 0 && indexOfIndel < cigar.numCigarElements()")
+    @Ensures("result != null")
     private static Cigar moveCigarLeft(Cigar cigar, int indexOfIndel) {
         // get the first few elements
         ArrayList<CigarElement> elements = new ArrayList<CigarElement>(cigar.numCigarElements());
@@ -568,6 +680,19 @@ public final class AlignmentUtils {
         return new Cigar(elements);
     }
 
+    /**
+     * Create the string (really a byte array) representation of an indel-containing cigar against the reference.
+     *
+     * @param cigar             the indel-containing cigar
+     * @param indexOfIndel      the index of the indel cigar element
+     * @param refSeq            the reference sequence
+     * @param readSeq           the read sequence for the cigar
+     * @param refIndex          the starting reference index into refSeq
+     * @param readIndex         the starting read index into readSeq
+     * @return non-null byte array which is the indel representation against the reference
+     */
+    @Requires("cigar != null && indexOfIndel >= 0 && indexOfIndel < cigar.numCigarElements() && refSeq != null && readSeq != null && refIndex >= 0 && readIndex >= 0")
+    @Ensures("result != null")
     private static byte[] createIndelString(final Cigar cigar, final int indexOfIndel, final byte[] refSeq, final byte[] readSeq, int refIndex, int readIndex) {
         CigarElement indel = cigar.getCigarElement(indexOfIndel);
         int indelLength = indel.getLength();
@@ -625,4 +750,355 @@ public final class AlignmentUtils {
 
         return alt;
     }
+
+
+    /**
+     * Trim cigar down to one that starts at start reference on the left and extends to end on the reference
+     *
+     * @param cigar a non-null Cigar to trim down
+     * @param start Where should we start keeping bases on the reference?  The first position is 0
+     * @param end Where should we stop keeping bases on the reference?  The maximum value is cigar.getReferenceLength()
+     * @return a new Cigar with reference length == start - end + 1
+     */
+    public static Cigar trimCigarByReference(final Cigar cigar, final int start, final int end) {
+        if ( start < 0 ) throw new IllegalArgumentException("Start must be >= 0 but got " + start);
+        if ( end < start ) throw new IllegalArgumentException("End " + end + " is < start start " + start);
+        if ( end > cigar.getReferenceLength() ) throw new IllegalArgumentException("End is beyond the cigar's reference length " + end + " for cigar " + cigar );
+
+        final Cigar result = trimCigar(cigar, start, end, true);
+
+        if ( result.getReferenceLength() != end - start + 1)
+            throw new IllegalStateException("trimCigarByReference failure: start " + start + " end " + end + " for " + cigar + " resulted in cigar with wrong size " + result);
+        return result;
+    }
+
+    /**
+     * Trim cigar down to one that starts at start base in the cigar and extends to (inclusive) end base
+     *
+     * @param cigar a non-null Cigar to trim down
+     * @param start Where should we start keeping bases in the cigar?  The first position is 0
+     * @param end Where should we stop keeping bases in the cigar?  The maximum value is cigar.getReadLength()
+     * @return a new Cigar containing == start - end + 1 reads
+     */
+    public static Cigar trimCigarByBases(final Cigar cigar, final int start, final int end) {
+        if ( start < 0 ) throw new IllegalArgumentException("Start must be >= 0 but got " + start);
+        if ( end < start ) throw new IllegalArgumentException("End " + end + " is < start start " + start);
+        if ( end > cigar.getReadLength() ) throw new IllegalArgumentException("End is beyond the cigar's read length " + end + " for cigar " + cigar );
+
+        final Cigar result = trimCigar(cigar, start, end, false);
+
+        final int expectedSize = end - start + 1;
+        if ( result.getReadLength() != expectedSize)
+            throw new IllegalStateException("trimCigarByBases failure: start " + start + " end " + end + " for " + cigar + " resulted in cigar with wrong size " + result + " with size " + result.getReadLength() + " expected " + expectedSize + " for input cigar " + cigar);
+        return result;
+    }
+
+
+    /**
+     * Workhorse for trimCigarByBases and trimCigarByReference
+     *
+     * @param cigar a non-null Cigar to trim down
+     * @param start Where should we start keeping bases in the cigar?  The first position is 0
+     * @param end Where should we stop keeping bases in the cigar?  The maximum value is cigar.getReadLength()
+     * @param byReference should start and end be intrepreted as position in the reference or the read to trim to/from?
+     * @return a non-null cigar
+     */
+    @Requires({"cigar != null", "start >= 0", "start <= end"})
+    @Ensures("result != null")
+    private static Cigar trimCigar(final Cigar cigar, final int start, final int end, final boolean byReference) {
+        final List<CigarElement> newElements = new LinkedList<CigarElement>();
+
+        int pos = 0;
+        for ( final CigarElement elt : cigar.getCigarElements() ) {
+            if ( pos > end ) break;
+
+            switch ( elt.getOperator() ) {
+                case D:
+                    if ( ! byReference ) {
+                        if ( pos >= start )
+                            newElements.add(elt);
+                        break;
+                    }
+                    // otherwise fall through to the next case
+                case EQ: case M: case X:
+                    pos = addCigarElements(newElements, pos, start, end, elt);
+                    break;
+                case S: case I:
+                    if ( byReference ) {
+                        if ( pos >= start )
+                            newElements.add(elt);
+                    } else {
+                        pos = addCigarElements(newElements, pos, start, end, elt);
+                    }
+                    break;
+                default:
+                    throw new IllegalStateException("Cannot handle " + elt);
+            }
+        }
+
+        return AlignmentUtils.consolidateCigar(new Cigar(newElements));
+    }
+
+    /**
+     * Helper function for trimCigar that adds cigar elements (of total length X) of elt.op to dest for
+     * X bases that fall between start and end, where the last position of the base is pos.
+     *
+     * The primary use of this function is to create a new cigar element list that contains only
+     * elements that occur between start and end bases in an initial cigar.
+     *
+     * Note that this function may return multiple cigar elements (1M1M etc) that are best consolidated
+     * after the fact into a single simpler representation.
+     *
+     * @param dest we will append our cigar elements to this list
+     * @param pos the position (0 indexed) where elt started
+     * @param start only include bases that occur >= this position
+     * @param end only include bases that occur <= this position
+     * @param elt the element we are slicing down
+     * @return the position after we've traversed all elt.length bases of elt
+     */
+   protected static int addCigarElements(final List<CigarElement> dest, int pos, final int start, final int end, final CigarElement elt) {
+        final int length = Math.min(pos + elt.getLength() - 1, end) - Math.max(pos, start) + 1;
+        if ( length > 0 )
+            dest.add(new CigarElement(length, elt.getOperator()));
+        return pos + elt.getLength();
+    }
+
+    /**
+     * Get the offset (base 0) of the first reference aligned base in Cigar that occurs after readStartByBaseOfCigar base of the cigar
+     *
+     * The main purpose of this routine is to find a good start position for a read given it's cigar.  The real
+     * challenge is that the starting base might be inside an insertion, in which case the read actually starts
+     * at the next M/EQ/X operator.
+     *
+     * @param cigar a non-null cigar
+     * @param readStartByBaseOfCigar finds the first base after this (0 indexed) that aligns to the reference genome (M, EQ, X)
+     * @throws IllegalStateException if no such base can be found
+     * @return an offset into cigar
+     */
+    public static int calcFirstBaseMatchingReferenceInCigar(final Cigar cigar, int readStartByBaseOfCigar) {
+        if ( cigar == null ) throw new IllegalArgumentException("cigar cannot be null");
+        if ( readStartByBaseOfCigar >= cigar.getReadLength() ) throw new IllegalArgumentException("readStartByBaseOfCigar " + readStartByBaseOfCigar + " must be <= readLength " + cigar.getReadLength());
+
+        int hapOffset = 0, refOffset = 0;
+        for ( final CigarElement ce : cigar.getCigarElements() ) {
+            for ( int i = 0; i < ce.getLength(); i++ ) {
+                switch ( ce.getOperator() ) {
+                    case M:case EQ:case X:
+                        if ( hapOffset >= readStartByBaseOfCigar )
+                            return refOffset;
+                        hapOffset++;
+                        refOffset++;
+                        break;
+                    case I: case S:
+                        hapOffset++;
+                        break;
+                    case D:
+                        refOffset++;
+                        break;
+                    default:
+                        throw new IllegalStateException("calcFirstBaseMatchingReferenceInCigar does not support cigar " + ce.getOperator() + " in cigar " + cigar);
+                }
+            }
+        }
+
+        throw new IllegalStateException("Never found appropriate matching state for cigar " + cigar + " given start of " + readStartByBaseOfCigar);
+    }
+
+    /**
+     * Generate a new Cigar that maps the operations of the first cigar through those in a second
+     *
+     * For example, if first is 5M and the second is 2M1I2M then the result is 2M1I2M.
+     * However, if first is 1M2D3M and second is 2M1I3M this results in a cigar X
+     *
+     * ref   : AC-GTA
+     * hap   : ACxGTA  - 2M1I3M
+     * read  : A--GTA  - 1M2D3M
+     * result: A--GTA => 1M1D3M
+     *
+     * ref   : ACxG-TA
+     * hap   : AC-G-TA  - 2M1D3M
+     * read  : AC-GxTA  - 3M1I2M
+     * result: AC-GxTA => 2M1D1M1I2M
+     *
+     * ref   : ACGTA
+     * hap   : ACGTA  - 5M
+     * read  : A-GTA  - 1M1I3M
+     * result: A-GTA => 1M1I3M
+     *
+     * ref   : ACGTAC
+     * hap   : AC---C  - 2M3D1M
+     * read  : AC---C  - 3M
+     * result: AG---C => 2M3D
+     *
+     * The constraint here is that both cigars should imply that the result have the same number of
+     * reference bases (i.e.g, cigar.getReferenceLength() are equals).
+     *
+     * @param firstToSecond the cigar mapping hap1 -> hap2
+     * @param secondToThird the cigar mapping hap2 -> hap3
+     * @return A cigar mapping hap1 -> hap3
+     */
+    public static Cigar applyCigarToCigar(final Cigar firstToSecond, final Cigar secondToThird) {
+        final boolean DEBUG = false;
+
+        final List<CigarElement> newElements = new LinkedList<CigarElement>();
+        final int nElements12 = firstToSecond.getCigarElements().size();
+        final int nElements23 = secondToThird.getCigarElements().size();
+
+        int cigar12I = 0, cigar23I = 0;
+        int elt12I = 0, elt23I = 0;
+
+        while ( cigar12I < nElements12 && cigar23I < nElements23 ) {
+            final CigarElement elt12 = firstToSecond.getCigarElement(cigar12I);
+            final CigarElement elt23 = secondToThird.getCigarElement(cigar23I);
+
+            final CigarPairTransform transform = getTransformer(elt12.getOperator(), elt23.getOperator());
+
+            if ( DEBUG )
+                System.out.printf("Transform %s => %s with elt1 = %d %s @ %d elt2 = %d %s @ %d with transform %s%n",
+                        firstToSecond, secondToThird, cigar12I, elt12.getOperator(), elt12I, cigar23I, elt23.getOperator(), elt23I, transform);
+
+            if ( transform.op13 != null ) // skip no ops
+                newElements.add(new CigarElement(1, transform.op13));
+
+            elt12I += transform.advance12;
+            elt23I += transform.advance23;
+
+            // if have exhausted our current element, advance to the next one
+            if ( elt12I == elt12.getLength() ) { cigar12I++; elt12I = 0; }
+            if ( elt23I == elt23.getLength() ) { cigar23I++; elt23I = 0; }
+        }
+
+        return AlignmentUtils.consolidateCigar(new Cigar(newElements));
+    }
+
+    private static CigarPairTransform getTransformer(final CigarOperator op12, final CigarOperator op23) {
+        for ( final CigarPairTransform transform : cigarPairTransformers) {
+            if ( transform.op12.contains(op12) && transform.op23.contains(op23) )
+                return transform;
+        }
+
+        throw new IllegalStateException("No transformer for operators " + op12 + " and " + op23);
+    }
+
+    /**
+     * transformations that project one alignment state through another
+     *
+     * Think about this as a state machine, where we have:
+     *
+     * bases3 : xxx A zzz
+     * bases2 : xxx B zzz
+     * bases1 : xxx C zzz
+     *
+     * where A, B and C are alignment states of a three way alignment.  We want to capture
+     * the transition from operation mapping 1 -> 2 and an operation mapping 2 -> 3 and its
+     * associated mapping from 1 -> 3 and the advancement of the cigar states of 1->2 and 2->3.
+     *
+     * Imagine that A, B, and C are all equivalent (so that op12 = M and op23 = M).  This implies
+     * a mapping of 1->3 of M, and in this case the next states to consider in the 3 way alignment
+     * are the subsequent states in 1 and 2 (so that advance12 and advance23 are both 1).
+     *
+     * Obviously not all of the states and their associated transitions are so simple.  Suppose instead
+     * that op12 = I, and op23 = M.  What does this look like:
+     *
+     * bases3 : xxx - A zzz
+     * bases2 : xxx - B zzz
+     * bases1 : xxx I C zzz
+     *
+     * It means that op13 must be an insertion (as we have an extra base in 1 thats not present in 2 and
+     * so not present in 3).  We advance the cigar in 1 by 1 (as we've consumed one base in 1 for the I)
+     * but we haven't yet found the base corresponding to the M of op23.  So we don't advance23.
+     */
+    private static class CigarPairTransform {
+        private final EnumSet<CigarOperator> op12, op23;
+        private final CigarOperator op13;
+        private final int advance12, advance23;
+
+        private CigarPairTransform(CigarOperator op12, CigarOperator op23, CigarOperator op13, int advance12, int advance23) {
+            this.op12 = getCigarSet(op12);
+            this.op23 = getCigarSet(op23);
+            this.op13 = op13;
+            this.advance12 = advance12;
+            this.advance23 = advance23;
+        }
+
+        private static EnumSet<CigarOperator> getCigarSet(final CigarOperator masterOp) {
+            switch ( masterOp ) {
+                case M: return EnumSet.of(CigarOperator.M, CigarOperator.EQ, CigarOperator.X);
+                case I: return EnumSet.of(CigarOperator.I, CigarOperator.S);
+                case D: return EnumSet.of(CigarOperator.D);
+                default: throw new IllegalStateException("Unexpected state " + masterOp);
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "CigarPairTransform{" +
+                    "op12=" + op12 +
+                    ", op23=" + op23 +
+                    ", op13=" + op13 +
+                    ", advance12=" + advance12 +
+                    ", advance23=" + advance23 +
+                    '}';
+        }
+    }
+
+
+    private final static List<CigarPairTransform> cigarPairTransformers = Arrays.asList(
+            //
+            // op12 is a match
+            //
+            // 3: xxx B yyy
+            // ^^^^^^^^^^^^
+            // 2: xxx M yyy
+            // 1: xxx M yyy
+            new CigarPairTransform(CigarOperator.M, CigarOperator.M, CigarOperator.M, 1, 1),
+            // 3: xxx I yyy
+            // ^^^^^^^^^^^^
+            // 2: xxx I yyy
+            // 1: xxx M yyy
+            new CigarPairTransform(CigarOperator.M, CigarOperator.I, CigarOperator.I, 1, 1),
+            // 3: xxx D yyy
+            // ^^^^^^^^^^^^
+            // 2: xxx D yyy
+            // 1: xxx M yyy
+            new CigarPairTransform(CigarOperator.M, CigarOperator.D, CigarOperator.D, 0, 1),
+
+            //
+            // op12 is a deletion
+            //
+            // 3: xxx D M yyy
+            // ^^^^^^^^^^^^
+            // 2: xxx M yyy
+            // 1: xxx D yyy
+            new CigarPairTransform(CigarOperator.D, CigarOperator.M, CigarOperator.D, 1, 1),
+            // 3: xxx D1 D2 yyy
+            // ^^^^^^^^^^^^
+            // 2: xxx D2 yyy
+            // 1: xxx D1 yyy
+            new CigarPairTransform(CigarOperator.D, CigarOperator.D, CigarOperator.D, 1, 0),
+            // 3: xxx X yyy => no-op, we skip emitting anything here
+            // ^^^^^^^^^^^^
+            // 2: xxx I yyy
+            // 1: xxx D yyy
+            new CigarPairTransform(CigarOperator.D, CigarOperator.I, null, 1, 1),
+
+            //
+            // op12 is a insertion
+            //
+            // 3: xxx I M yyy
+            // ^^^^^^^^^^^^
+            // 2: xxx M yyy
+            // 1: xxx I yyy
+            new CigarPairTransform(CigarOperator.I, CigarOperator.M, CigarOperator.I, 1, 0),
+            // 3: xxx I D yyy
+            // ^^^^^^^^^^^^
+            // 2: xxx D yyy
+            // 1: xxx I yyy
+            new CigarPairTransform(CigarOperator.I, CigarOperator.D, CigarOperator.I, 1, 0),
+            // 3: xxx I1 I2 yyy
+            // ^^^^^^^^^^^^
+            // 2: xxx I2 yyy
+            // 1: xxx I1 yyy
+            new CigarPairTransform(CigarOperator.I, CigarOperator.I, CigarOperator.I, 1, 0)
+            );
 }

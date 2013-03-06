@@ -29,7 +29,7 @@ import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
 
 /**
- * Script used for testing output to /dev/null
+ * Script used for testing inclusion of a read filter
  */
 class ExampleReadFilter extends QScript {
   @Input(doc="The reference file for the bam files.", shortName="R")
@@ -39,10 +39,10 @@ class ExampleReadFilter extends QScript {
   var bamFile: File = _
 
   def script() {
-    val genotyper = new UnifiedGenotyper with BadMate
-    genotyper.reference_sequence = referenceFile
-    genotyper.memoryLimit = 2
-    genotyper.input_file :+= bamFile
-    add(genotyper)
+    val printReads = new PrintReads with BadMate
+    printReads.reference_sequence = referenceFile
+    printReads.memoryLimit = 2
+    printReads.input_file :+= bamFile
+    add(printReads)
   }
 }

@@ -46,8 +46,8 @@ import java.io.File;
  * Time: 2:24:09 PM
  */
 @DocumentedGATKFeature(
-        groupName = "User exceptions",
-        summary = "Exceptions caused by incorrect user behavior, such as bad files, bad arguments, etc." )
+        groupName = HelpConstants.DOCS_CAT_USRERR,
+        summary = "Errors caused by incorrect user behavior, such as bad files, bad arguments, etc." )
 public class UserException extends ReviewedStingException {
     /**
      * The URL where people can get help messages.  Printed when an error occurs
@@ -276,8 +276,14 @@ public class UserException extends ReviewedStingException {
     }
 
     public static class ReadMissingReadGroup extends MalformedBAM {
-        public ReadMissingReadGroup(SAMRecord read) {
-            super(read, String.format("Read %s is either missing the read group or its read group is not defined in the BAM header, both of which are required by the GATK.  Please use " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName()));
+        public ReadMissingReadGroup(final SAMRecord read) {
+            super(read, String.format("Read %s is missing the read group (RG) tag, which is required by the GATK.  Please use " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName()));
+        }
+    }
+
+    public static class ReadHasUndefinedReadGroup extends MalformedBAM {
+        public ReadHasUndefinedReadGroup(final SAMRecord read, final String rgID) {
+            super(read, String.format("Read %s uses a read group (%s) that is not defined in the BAM header, which is not valid.  Please use " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName(), rgID));
         }
     }
 
@@ -387,15 +393,10 @@ public class UserException extends ReviewedStingException {
         }
     }
 
-    public static class CouldNotCreateReferenceFAIorDictForGzippedRef extends UserException {
-        public CouldNotCreateReferenceFAIorDictForGzippedRef(final File f) {
-            super("Although the GATK can process .gz reference sequences, it currently cannot create FAI " +
-                    "or DICT files for them.  In order to use the GATK with reference.fasta.gz you will need to " +
-                    "create .dict and .fai files for reference.fasta.gz and name them reference.fasta.gz.fai and " +
-                    "reference.dict.  Potentially the easiest way to do this is to uncompress reference.fasta, " +
-                    "run the GATK to create the .dict and .fai files, and copy them to the appropriate location. " +
-                    "Sorry for the inconvenience.");
-        }
+    public static class CannotHandleGzippedRef extends UserException {
+	public CannotHandleGzippedRef() {
+	    super("The GATK cannot process compressed (.gz) reference sequences. Please unzip the file and try again.  Sorry for the inconvenience.");
+	}
     }
 
     public static class CouldNotCreateReferenceIndexFileBecauseOfLock extends UserException.CouldNotCreateReferenceIndexFile {

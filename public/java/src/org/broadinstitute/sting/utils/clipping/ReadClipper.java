@@ -28,8 +28,8 @@ package org.broadinstitute.sting.utils.clipping;
 import com.google.java.contract.Requires;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
@@ -534,7 +534,7 @@ public class ReadClipper {
             throw new ReviewedStingException("Trying to clip before the start or after the end of a read");
 
         if ( start > stop )
-            throw new ReviewedStingException(String.format("START (%d) > (%d) STOP -- this should never happen -- call Mauricio!", start, stop));
+            throw new ReviewedStingException(String.format("START (%d) > (%d) STOP -- this should never happen, please check read: %s (CIGAR: %s)", start, stop, read, read.getCigarString()));
 
         if ( start > 0 && stop < read.getReadLength() - 1)
             throw new ReviewedStingException(String.format("Trying to clip the middle of the read: start %d, stop %d, cigar: %s", start, stop, read.getCigarString()));

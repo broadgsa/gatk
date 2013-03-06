@@ -39,7 +39,6 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.variant.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.variant.variantcontext.VariantContextTestProvider;
 import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeMethod;
@@ -82,7 +81,7 @@ public class WalkerTest extends BaseTest {
         if ( bcfFile != null && bcfFile.exists() ) {
             logger.warn("Checking shadow BCF output file " + bcfFile + " against VCF file " + resultFile);
             try {
-                VariantContextTestProvider.assertVCFandBCFFilesAreTheSame(resultFile, bcfFile);
+                assertVCFandBCFFilesAreTheSame(resultFile, bcfFile);
                 logger.warn("  Shadow BCF PASSED!");
             } catch ( Exception e ) {
                 Assert.fail("Exception received reading shadow BCFFile " + bcfFile + " for test " + name, e);

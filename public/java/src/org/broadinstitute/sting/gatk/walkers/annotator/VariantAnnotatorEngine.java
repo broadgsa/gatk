@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -235,6 +237,16 @@ public class VariantAnnotatorEngine {
         return builder.genotypes(annotateGenotypes(null, null, null, vc, perReadAlleleLikelihoodMap)).make();
     }
 
+    /**
+     * Annotate the ID field and other DBs for the given Variant Context
+     *
+     * @param tracker  ref meta data tracker (cannot be null)
+     * @param loc      location of the vc
+     * @param vc       variant context to annotate
+     * @return non-null annotated version of vc
+     */
+    @Requires({"tracker != null && loc != null && vc != null"})
+    @Ensures("result != null")
     public VariantContext annotateDBs(final RefMetaDataTracker tracker, final GenomeLoc loc, VariantContext vc) {
         final Map<String, Object> newInfoAnnotations = new HashMap<String, Object>(0);
         vc = annotateDBs(tracker, loc, vc, newInfoAnnotations);
@@ -247,6 +259,17 @@ public class VariantAnnotatorEngine {
         return vc;
     }
 
+    /**
+     * Annotate the ID field and other DBs for the given Variant Context
+     *
+     * @param tracker  ref meta data tracker (cannot be null)
+     * @param loc      location of the vc
+     * @param vc       variant context to annotate
+     * @param infoAnnotations  info annotation map to populate
+     * @return non-null annotated version of vc
+     */
+    @Requires({"tracker != null && loc != null && vc != null && infoAnnotations != null"})
+    @Ensures("result != null")
     private VariantContext annotateDBs(final RefMetaDataTracker tracker, final GenomeLoc loc, VariantContext vc, final Map<String, Object> infoAnnotations) {
         for ( Map.Entry<RodBinding<VariantContext>, String> dbSet : dbAnnotations.entrySet() ) {
             if ( dbSet.getValue().equals(VCFConstants.DBSNP_KEY) ) {

@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.BaseUtils;
 
@@ -123,7 +124,7 @@ import java.io.PrintStream;
  * @author Mark DePristo
  * @since May 7, 2010
  */
-@DocumentedGATKFeature( groupName = "BAM Processing and Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @By(DataSource.REFERENCE)
 public class CallableLoci extends LocusWalker<CallableLoci.CallableBaseState, CallableLoci.Integrator> {
     @Output

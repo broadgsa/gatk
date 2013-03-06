@@ -40,6 +40,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -56,7 +57,7 @@ import java.util.Arrays;
  * Walks over the input reads, printing out statistics about the read length, number of clipping events, and length
  * of the clipping to the output stream.
  */
-@DocumentedGATKFeature( groupName = "Quality Control and Simple Analysis Tools", extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS})
 public class ReadClippingStats extends ReadWalker<ReadClippingStats.ReadClippingInfo,Integer> {
     @Output

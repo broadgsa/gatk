@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
+import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.Serializable;
@@ -622,5 +623,38 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
         }
 
         return result;
+    }
+
+    /**
+     * Calculates the distance between two genomeLocs across contigs (if necessary).
+     *
+     * Returns minDistance(other) if in same contig.
+     * Works with intervals!
+     * Uses the SAMFileHeader to extract the size of the contigs and follows the order in the dictionary.
+     *
+     * @param other         the genome loc to compare to
+     * @param samFileHeader the contig information
+     * @return the sum of all the bases in between the genomeLocs, including entire contigs
+     */
+    public long distanceAcrossContigs(GenomeLoc other, SAMFileHeader samFileHeader) {
+        if (onSameContig(other))
+            return minDistance(other);
+
+        // add the distance from the first genomeLoc to the end of it's contig and the distance from the
+        // second genomeLoc to the beginning of it's contig.
+        long distance = 0;
+        if (contigIndex < other.contigIndex) {
+            distance += samFileHeader.getSequence(contigIndex).getSequenceLength() - stop;
+            distance += other.start;
+        } else {
+            distance += samFileHeader.getSequence(other.contigIndex).getSequenceLength() - other.stop;
+            distance += start;
+        }
+
+        // add any contig (in its entirety) in between the two genomeLocs
+        for (int i=Math.min(this.contigIndex, other.contigIndex) + 1; i < Math.max(this.contigIndex, other.contigIndex); i++) {
+            distance += samFileHeader.getSequence(i).getSequenceLength();
+        }
+        return distance;
     }
 }

@@ -113,6 +113,7 @@ class QCommandLine extends CommandLineProgram with Logging {
   def execute = {
     var success = false
     var result = 1
+    var functionsAndStatusSize = 0
     try {
       ClassFieldCache.parsingEngine = this.parser
 
@@ -176,8 +177,7 @@ class QCommandLine extends CommandLineProgram with Logging {
         val scriptFunctions = functionsAndStatus.filterKeys(f => script.functions.contains(f))
         script.onExecutionDone(scriptFunctions, success)
       }
-
-      logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", functionsAndStatus.size))
+      functionsAndStatusSize = functionsAndStatus.size
 
       // write the final complete job report
       logger.info("Writing final jobs report...")
@@ -207,6 +207,7 @@ class QCommandLine extends CommandLineProgram with Logging {
         }
       }
     }
+    logger.info("Script %s with %d total jobs".format(if (success) "completed successfully" else "failed", functionsAndStatusSize))
     result
   }
 

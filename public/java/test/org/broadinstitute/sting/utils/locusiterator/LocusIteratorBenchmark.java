@@ -28,7 +28,6 @@ package org.broadinstitute.sting.utils.locusiterator;
 import com.google.caliper.Param;
 import com.google.caliper.SimpleBenchmark;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -63,7 +62,7 @@ public class LocusIteratorBenchmark extends SimpleBenchmark {
             read.setReadBases(Utils.dupBytes((byte) 'A', readLength));
             final byte[] quals = new byte[readLength];
             for ( int i = 0; i < readLength; i++ )
-                quals[i] = (byte)(i % QualityUtils.MAX_QUAL_SCORE);
+                quals[i] = (byte)(i % QualityUtils.MAX_SAM_QUAL_SCORE);
             read.setBaseQualities(quals);
             read.setCigarString(cigar);
             reads.add(read);
