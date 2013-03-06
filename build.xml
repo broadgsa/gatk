@@ -1473,6 +1473,7 @@
         <property name="testng.classpath" value="testng.default.classpath" />
         <property name="test.maxmemory" value="${test.default.maxmemory}"/>
         <property name="include.contracts" value="true" />
+        <property name="include.scala" value="true" />
 
         <run-test testtype="${single}" outputdir="${report}/${single}" runfailed="false"/>
     </target>

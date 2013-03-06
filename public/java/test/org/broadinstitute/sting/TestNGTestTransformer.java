@@ -35,7 +35,7 @@ import java.lang.reflect.Method;
 /**
  * Provide default @Test values for GATK testng tests.
  *
- * Currently only sets the maximum runtime to 10 minutes, if it's not been specified.
+ * Currently only sets the maximum runtime to 40 minutes, if it's not been specified.
  *
  * See http://beust.com/weblog/2006/10/18/annotation-transformers-in-java/
  *
@@ -44,7 +44,7 @@ import java.lang.reflect.Method;
  * @version 0.1
  */
 public class TestNGTestTransformer implements IAnnotationTransformer {
-    public static final long DEFAULT_TIMEOUT = 1000 * 60 * 20; // 20 minutes max per test
+    public static final long DEFAULT_TIMEOUT = 1000 * 60 * 40; // 40 minutes max per test
 
     final static Logger logger = Logger.getLogger(TestNGTestTransformer.class);
 
