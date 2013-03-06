@@ -288,17 +288,17 @@ public class AlleleBiasedDownsamplingUtils {
                     continue;
                 }
 
-                StringTokenizer st = new StringTokenizer(line);
+                StringTokenizer st = new StringTokenizer(line,"\t");
 
                 String fields[] = new String[2];
                 try {
                     fields[0] = st.nextToken();
                     fields[1] = st.nextToken();
                 } catch(NoSuchElementException e){
-                    throw new UserException.MalformedFile("Contamination file must have exactly two columns. Offending line:\n" + line);
+                    throw new UserException.MalformedFile("Contamination file must have exactly two, tab-delimited columns. Offending line:\n" + line);
                 }
                 if(st.hasMoreTokens()) {
-                    throw new UserException.MalformedFile("Contamination file must have exactly two columns. Offending line:\n" + line);
+                    throw new UserException.MalformedFile("Contamination file must have exactly two, tab-delimited columns. Offending line:\n" + line);
                 }
 
                 if (fields[0].length() == 0 || fields[1].length() == 0) {
