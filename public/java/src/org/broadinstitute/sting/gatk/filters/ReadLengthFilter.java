@@ -29,18 +29,20 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 
 /**
- * Filters out reads whose length is >= some value.
+ * Filters out reads whose length is >= some value or < some value.
  *
  * @author mhanna
  * @version 0.1
  */
-public class MaxReadLengthFilter extends ReadFilter {
+public class ReadLengthFilter extends ReadFilter {
     @Argument(fullName = "maxReadLength", shortName = "maxRead", doc="Discard reads with length greater than the specified value", required=true)
     private int maxReadLength;
-    
+
+    @Argument(fullName = "minReadLength", shortName = "minRead", doc="Discard reads with length shorter than the specified value", required=true)
+    private int minReadLength = 1;
     public boolean filterOut(SAMRecord read) {
         // check the length
-        return read.getReadLength() > maxReadLength;
+        return read.getReadLength() > maxReadLength || read.getReadLength() < minReadLength;
     }
 
 }
