@@ -229,6 +229,7 @@ public class FragmentUtilsUnitTest extends BaseTest {
         if ( expectedMerged == null ) {
             Assert.assertNull(actual, "Expected reads not to merge, but got non-null result from merging");
         } else {
+            Assert.assertTrue(actual.isStrandless(), "Merged reads should be strandless");
             Assert.assertNotNull(actual, "Expected reads to merge, but got null result from merging");
             // I really care about the bases, the quals, the CIGAR, and the read group tag
             Assert.assertEquals(actual.getCigarString(), expectedMerged.getCigarString());

@@ -263,6 +263,7 @@ public final class FragmentUtils {
         }
 
         final GATKSAMRecord returnRead = new GATKSAMRecord( firstRead.getHeader() );
+        returnRead.setIsStrandless(true);
         returnRead.setAlignmentStart( firstRead.getSoftStart() );
         returnRead.setReadBases( bases );
         returnRead.setBaseQualities( quals );
