@@ -46,7 +46,13 @@ import java.util.List;
 
 
 /**
- * The allele balance (fraction of ref bases over ref + alt bases) separately for each bialleleic het-called sample
+ * Allele balance per sample
+ *
+ * <p>The allele balance is the fraction of ref bases over ref + alt bases.</p>
+ *
+ * <h3>Caveats</h3>
+ * <p>Note that this annotation will only work properly for biallelic het-called samples.</p>
+ * <h4>This is an experimental annotation. As such, it is unsupported; we do not make any guarantees that it will work properly, and you use it at your own risk.</h4>
  */
 public class AlleleBalanceBySample extends GenotypeAnnotation implements ExperimentalAnnotation {
 
