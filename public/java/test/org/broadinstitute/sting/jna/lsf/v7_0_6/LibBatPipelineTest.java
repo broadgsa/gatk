@@ -40,7 +40,7 @@ import java.io.File;
 /**
  * Really unit tests, but these test will only run on systems with LSF setup.
  */
-public class LibBatIntegrationTest extends BaseTest {
+public class LibBatPipelineTest extends BaseTest {
     @BeforeClass
     public void initLibBat() {
         Assert.assertFalse(LibBat.lsb_init("LibBatIntegrationTest") < 0, LibBat.lsb_sperror("lsb_init() failed"));

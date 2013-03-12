@@ -40,7 +40,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 
-public class LibDrmaaIntegrationTest extends BaseTest {
+public class LibDrmaaPipelineTest extends BaseTest {
     private String implementation = null;
 
     @Test

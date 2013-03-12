@@ -34,7 +34,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.util.*;
 
-public class JnaSessionIntegrationTest extends BaseTest {
+public class JnaSessionPipelineTest extends BaseTest {
     private String implementation = null;
     private static final SessionFactory factory = new JnaSessionFactory();
 
