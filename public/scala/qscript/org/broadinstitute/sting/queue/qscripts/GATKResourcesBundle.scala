@@ -171,7 +171,7 @@ class GATKResourcesBundle extends QScript {
       "CEUTrio.HiSeq.WGS.b37.bestPractices.phased",b37,true,false))
 
     //
-    // example call set for wiki tutorial
+    // example call set for documentation guide tutorial
     //
     addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/exampleCalls/NA12878.HiSeq.WGS.bwa.cleaned.raw.b37.subset.vcf",
       "NA12878.HiSeq.WGS.bwa.cleaned.raw.subset", b37, true, true))

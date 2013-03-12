@@ -65,13 +65,13 @@ import java.util.List;
  * reasons why the site may fail validation (nearby variation, for example).
  * </p>
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * Requires a VCF containing alleles to design amplicons towards, a VCF of variants to mask out of the amplicons, and an
  * interval list defining the size of the amplicons around the sites to be validated
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * Output is a FASTA-formatted file with some modifications at probe sites. For instance:
  * <pre>
@@ -100,7 +100,7 @@ import java.util.List;
  * INDEL_OVERLAPS_VALIDATION_SITE, // an insertion or deletion interferes directly with the site to be validated (i.e. insertion directly preceding or postceding, or a deletion that spans the site itself)
  * </pre></p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  *    java
  *      -jar GenomeAnalysisTK.jar

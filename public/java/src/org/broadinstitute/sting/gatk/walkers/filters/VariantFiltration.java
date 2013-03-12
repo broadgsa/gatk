@@ -55,17 +55,17 @@ import java.util.*;
  * VariantFiltration is a GATK tool for hard-filtering variant calls based on certain criteria.
  * Records are hard-filtered by changing the value in the FILTER field to something other than PASS.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A variant set to filter.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A filtered VCF.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
@@ -114,7 +114,7 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
      * One can filter normally based on most fields (e.g. "GQ < 5.0"), but the GT (genotype) field is an exception. We have put in convenience
      * methods so that one can now filter out hets ("isHet == 1"), refs ("isHomRef == 1"), or homs ("isHomVar == 1").
      */
-    @Argument(fullName="genotypeFilterExpression", shortName="G_filter", doc="One or more expression used with FORMAT (sample/genotype-level) fields to filter (see wiki docs for more info)", required=false)
+    @Argument(fullName="genotypeFilterExpression", shortName="G_filter", doc="One or more expression used with FORMAT (sample/genotype-level) fields to filter (see documentation guide for more info)", required=false)
     protected ArrayList<String> GENOTYPE_FILTER_EXPS = new ArrayList<String>();
 
     /**

@@ -60,17 +60,17 @@ import java.util.*;
  * place an indel at the left-most position this doesn't always happen, so this tool can be used to left-align them.
  * Note that this tool cannot handle anything other than bi-allelic, simple indels.  Complex events are written out unchanged.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A variant set to left-align.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A left-aligned VCF.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \

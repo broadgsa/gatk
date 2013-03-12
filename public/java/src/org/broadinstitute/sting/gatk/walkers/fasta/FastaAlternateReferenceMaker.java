@@ -60,17 +60,17 @@ import java.util.List;
  * 3) this tool works only for SNPs and for simple indels (but not for things like complex substitutions).
  * Reference bases for each interval will be output as a separate fasta sequence (named numerically in order).
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * The reference, requested intervals, and any number of variant rod files.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A fasta file representing the requested intervals.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \

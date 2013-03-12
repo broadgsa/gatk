@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.qc;
 
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -39,22 +40,23 @@ import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+import java.io.PrintStream;
 import java.util.List;
 
 /**
  * Walks over the input data set, counting the number of reads ending in insertions/deletions or soft-clips
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * One or more BAM files.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * Number of reads ending in each category.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
@@ -67,6 +69,9 @@ import java.util.List;
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountTerminusEvent extends ReadWalker<Pair<Long, Long>, Pair<Long, Long>> {
+    @Output
+    public PrintStream out;
+
     public Pair<Long, Long> map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {
         List<CigarElement> cigarElements = read.getCigar().getCigarElements();
 
@@ -94,6 +99,6 @@ public class CountTerminusEvent extends ReadWalker<Pair<Long, Long>, Pair<Long, 
 
     @Override
     public void onTraversalDone(Pair<Long, Long> result) {
-        System.out.println(String.format("\tReads ending in indels : %d\n\tReads ending in soft-clips: %d\n", result.getFirst(), result.getSecond()));
+        out.println(String.format("\tReads ending in indels : %d\n\tReads ending in soft-clips: %d\n", result.getFirst(), result.getSecond()));
     }
 }

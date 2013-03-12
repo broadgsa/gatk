@@ -57,7 +57,7 @@ import java.util.*;
  *  Converts the input VCF into a format accepted by the Beagle imputation/analysis program.
  * <p>
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A VCF with variants to convert to Beagle format
  * </p>
@@ -70,7 +70,7 @@ import java.util.*;
  * Optional: A file with a list of markers
  * </p>
   *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  *     java -Xmx2g -jar dist/GenomeAnalysisTK.jar -L 20 \
  *      -R reffile.fasta -T ProduceBeagleInput \

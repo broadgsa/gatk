@@ -59,7 +59,7 @@ index (.fasta.fai).
 
 Instructions for preparing input files are available here:
 
-http://www.broadinstitute.org/gsa/wiki/index.php/Preparing_input_files
+http://www.broadinstitute.org/gatk/guide/article?id=1204
 
 The bundled 'resources' directory  contains an example BAM and fasta.
 
@@ -69,7 +69,7 @@ The GATK is distributed with a few standard analyses, including PrintReads,
 Pileup, and DepthOfCoverage.  More information on the included walkers is
 available here:
 
-http://www.broadinstitute.org/gsa/wiki/index.php/Built-in_walkers
+http://www.broadinstitute.org/gatk/gatkdocs
 
 To print the reads of the included sample data, untar the package into
 the GenomeAnalysisTK directory and run the following command:
@@ -81,6 +81,6 @@ java -jar GenomeAnalysisTK/GenomeAnalysisTK.jar \
 
 Support
 -------
-Documentation for the GATK is available at http://www.broadinstitute.org/gsa/wiki.  
+Documentation for the GATK is available at http://www.broadinstitute.org/gatk/guide.
 For help using the GATK, developing analyses with the GATK, bug reports, 
-or feature requests, please email gsadevelopers@broadinstitute.org.
+or feature requests, please visit our support forum at http://gatkforums.broadinstitute.org/

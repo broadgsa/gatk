@@ -44,21 +44,21 @@ import java.util.List;
  * Walks along reference and calculates the GC content for each interval.
  *
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  *  A reference file
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  *  GC content calculations per interval.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Example</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
  *   -T GCContentByInterval \
+ *   -R ref.fasta \
  *   -o output.txt \
  *   -L input.intervals
  * </pre>

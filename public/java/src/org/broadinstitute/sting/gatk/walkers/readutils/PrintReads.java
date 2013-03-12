@@ -56,18 +56,24 @@ import java.util.*;
  * PrintReads can dynamically merge the contents of multiple input BAM files, resulting
  * in merged output sorted in coordinate order.  Can also optionally filter reads based on the
  * --read_filter command line argument.
+ * </p>
  *
- * <h2>Input</h2>
+ * <p>
+ * Note that when PrintReads is used as part of the Base Quality Score Recalibration workflow,
+ * it takes the --BQSR engine argument, which is listed under Inherited Arguments > CommandLineGATK below.
+ * </p>
+ *
+ * <h3>Input</h3>
  * <p>
  * One or more bam files.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A single processed bam file.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \

@@ -62,17 +62,17 @@ import java.util.*;
  * <p>
  * Note that there must be a Tribble feature/codec for the file format as well as an adaptor.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A variant file to filter.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A VCF file.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \

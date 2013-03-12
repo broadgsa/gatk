@@ -50,17 +50,17 @@ import java.util.Collection;
  * CoveredByNSamplesSites is a GATK tool for filter out sites based on their coverage.
  * The sites that pass the filter are printed out to an intervals file.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A variant file and optionally min coverage and sample percentage values.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * An intervals file.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \

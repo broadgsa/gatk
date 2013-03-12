@@ -62,20 +62,20 @@ import java.util.*;
  * Given a single VCF file, one or more samples can be extracted from the file (based on a complete sample name or a
  * pattern match).  Variants can be further selected by specifying criteria for inclusion, i.e. "DP > 1000" (depth of
  * coverage greater than 1000x), "AF < 0.25" (sites with allele frequency less than 0.25).  These JEXL expressions are
- * documented in the Using JEXL expressions section (http://www.broadinstitute.org/gsa/wiki/index.php/Using_JEXL_expressions).
+ * documented in the Using JEXL expressions section (http://www.broadinstitute.org/gatk/guide/article?id=1255).
  * One can optionally include concordance or discordance tracks for use in selecting overlapping variants.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A variant set to select from.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A selected VCF.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * Select two samples out of a VCF with many samples:
  * java -Xmx2g -jar GenomeAnalysisTK.jar \

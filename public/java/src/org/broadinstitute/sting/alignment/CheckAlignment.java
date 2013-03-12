@@ -42,9 +42,14 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import java.util.Iterator;
 
 /**
- * Validates consistency of the aligner interface by taking reads already aligned by BWA in a BAM file, stripping them
+ * Validates consistency of the aligner interface
+ *
+ * <p>Validates consistency of the aligner interface by taking reads already aligned by BWA in a BAM file, stripping them
  * of their alignment data, realigning them, and making sure one of the best resulting realignments matches the original
- * alignment from the input file.
+ * alignment from the input file.</p>
+ *
+ * <h3>Caveat</h3>
+ * <p>This tool requires that BWA be available on the java path.</p>
  *
  * @author mhanna
  * @version 0.1

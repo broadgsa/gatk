@@ -58,17 +58,17 @@ import java.util.*;
  * SelectHeaders can be used for this purpose. Given a single VCF file, one or more headers can be extracted from the
  * file (based on a complete header name or a pattern match).
  * <p/>
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A set of VCFs.
  * </p>
  * <p/>
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A header selected VCF.
  * </p>
  * <p/>
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * Select only the FILTER, FORMAT, and INFO headers:
  * java -Xmx2g -jar GenomeAnalysisTK.jar \

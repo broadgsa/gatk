@@ -35,6 +35,9 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.variant.bcf2.BCF2Codec;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.variant.vcf.VCFCodec;
@@ -51,12 +54,48 @@ import java.util.*;
 
 /**
  *
- * Usage: java -cp dist/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.CatVariants <reference> <input VCF or BCF files> <outputFile> [sorted (optional)]");
- * The input files can be of type: VCF (ends in .vcf or .VCF)");
- *                                 BCF2 (ends in .bcf or .BCF)");
- * Output file must be vcf or bcf file (.vcf or .bcf)");
- * If the input files are already sorted, the last argument can indicate that");
+ * Concatenates VCF files of non-overlapped genome intervals, all with the same set of samples.
+ *
+ * <p>
+ * The main purpose of this tool is to speed up the gather function when using scatter-gather parallelization.
+ * This tool concatenates the scattered output VCF files. It assumes that:
+ * - All the input VCFs (or BCFs) contain the same samples in the same order.
+ * - The variants in each input file are from non-overlapping (scattered) intervals.
+ *
+ * When the input files are already sorted based on the intervals start positions, use -assumeSorted.
+ *
+ * Note: Currently the tool is more efficient when working with VCFs; we will work to make it as efficient for BCFs.
+ *
+ * </p>
+ *
+ * <h3>Input</h3>
+ * <p>
+ * One or more variant sets to combine. They should be of non-overlapping genome intervals and with the same samples (in the same order).
+ * The input files should be 'name.vcf' or 'name.VCF' or 'name.bcf' or 'name.BCF'.
+ * If the files are ordered according to the appearance of intervals in the ref genome, then one can use the -assumeSorted flag.
+ * </p>
+ *
+ * <h3>Output</h3>
+ * <p>
+ * A combined VCF. The output file should be 'name.vcf' or 'name.VCF'.
+ * <\p>
+ *
+ *
+ * <h3>Examples</h3>
+ * <pre>
+ * java -cp dist/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.CatVariants \
+ *    -R ref.fasta \
+ *    -V input1.vcf \
+ *    -V input2.vcf \
+ *    -out output.vcf \
+ *    -assumeSorted
+ * </pre>
+ *
+ * @author Ami Levy Moonshine
+ * @since Jan 2012
  */
+
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class CatVariants extends CommandLineProgram {
     // setup the logging system, used by some codecs
     private static org.apache.log4j.Logger logger = org.apache.log4j.Logger.getRootLogger();
@@ -64,6 +103,14 @@ public class CatVariants extends CommandLineProgram {
     @Input(fullName = "reference", shortName = "R", doc = "genome reference file <name>.fasta", required = true)
     private File refFile = null;
 
+    /**
+     * The VCF or BCF files to merge together
+     *
+     * CatVariants can take any number of -V arguments on the command line.  Each -V argument
+     * will be included in the final merged output VCF. The order of arguments does not matter, but it runs more
+     * efficiently if they are sorted based on the intervals and the assumeSorted argument is used.
+     *
+     */
     @Input(fullName="variant", shortName="V", doc="Input VCF file/s named <name>.vcf or <name>.bcf", required = true)
     private List<File> variant = null;
 
