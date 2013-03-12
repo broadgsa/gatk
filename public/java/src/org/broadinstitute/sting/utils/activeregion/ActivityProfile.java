@@ -259,7 +259,7 @@ public class ActivityProfile {
      * Can be overridden by subclasses to transform states in any way
      *
      * There's no particular contract for the output states, except that they can never refer to states
-     * beyond the current end of the stateList unless the explictly include preceding states before
+     * beyond the current end of the stateList unless the explicitly include preceding states before
      * the reference.  So for example if the current state list is [1, 2, 3] this function could return
      * [1,2,3,4,5] but not [1,2,3,5].
      *
