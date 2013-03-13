@@ -74,6 +74,8 @@ public class GATKSAMRecord extends BAMRecord {
     private int softEnd = UNINITIALIZED;
     private Integer adapterBoundary = null;
 
+    private boolean isStrandlessRead = false;
+
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedReadGroup = false;
     private boolean retrievedReduceReadCounts = false;
@@ -140,6 +142,45 @@ public class GATKSAMRecord extends BAMRecord {
         Cigar cigar = new Cigar(cigarElements);
         return ArtificialSAMUtils.createArtificialRead(cigar);
     }
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // *** support for reads without meaningful strand information            ***//
+    ///////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Does this read have a meaningful strandedness value?
+     *
+     * Some advanced types of reads, such as reads coming from merged fragments,
+     * don't have meaningful strandedness values, as they are composites of multiple
+     * other reads.  Strandless reads need to be handled specially by code that cares about
+     * stranded information, such as FS.
+     *
+     * @return true if this read doesn't have meaningful strand information
+     */
+    public boolean isStrandless() {
+        return isStrandlessRead;
+    }
+
+    /**
+     * Set the strandless state of this read to isStrandless
+     * @param isStrandless true if this read doesn't have a meaningful strandedness value
+     */
+    public void setIsStrandless(final boolean isStrandless) {
+        this.isStrandlessRead = isStrandless;
+    }
+
+    @Override
+    public boolean getReadNegativeStrandFlag() {
+        return ! isStrandless() && super.getReadNegativeStrandFlag();
+    }
+
+    @Override
+    public void setReadNegativeStrandFlag(boolean flag) {
+        if ( isStrandless() )
+            throw new IllegalStateException("Cannot set the strand of a strandless read");
+        super.setReadNegativeStrandFlag(flag);
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////
     // *** The following methods are overloaded to cache the appropriate data ***//
@@ -311,6 +352,15 @@ public class GATKSAMRecord extends BAMRecord {
 
     public boolean isReducedRead() {
         return getReducedReadCounts() != null;
+    }
+
+    /**
+     * Set the reduced read counts for this record to counts
+     * @param counts the count array
+     */
+    public void setReducedReadCounts(final byte[] counts) {
+        retrievedReduceReadCounts = false;
+        setAttribute(REDUCED_READ_CONSENSUS_TAG, counts);
     }
 
     /**

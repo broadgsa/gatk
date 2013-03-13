@@ -64,6 +64,7 @@ public class GATKSAMRecordUnitTest extends BaseTest {
         for (int i = 0; i < reducedRead.getReadLength(); i++) {
             Assert.assertEquals(reducedRead.getReducedCount(i), REDUCED_READ_COUNTS[i], "Reduced read count not set to the expected value at " + i);
         }
+        Assert.assertEquals(reducedRead.isStrandless(), false, "Reduced reads don't have meaningful strandedness information");
     }
 
     @Test
@@ -103,7 +104,35 @@ public class GATKSAMRecordUnitTest extends BaseTest {
         read.setAttribute(GATKSAMRecord.REDUCED_READ_ORIGINAL_ALIGNMENT_START_SHIFT, null);
         Assert.assertEquals(read.getAlignmentStart(), read.getOriginalAlignmentStart());
         Assert.assertEquals(read.getAlignmentEnd() - alignmentShift, read.getOriginalAlignmentEnd());
-        
     }
 
+    @Test
+    public void testStrandlessReads() {
+        final byte [] bases = {'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'};
+        final byte [] quals = {20 , 20 , 20 , 20 , 20 , 20 , 20 , 20 };
+        GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(bases, quals, "6M");
+        Assert.assertEquals(read.isStrandless(), false);
+
+        read.setReadNegativeStrandFlag(false);
+        Assert.assertEquals(read.isStrandless(), false);
+        Assert.assertEquals(read.getReadNegativeStrandFlag(), false);
+
+        read.setReadNegativeStrandFlag(true);
+        Assert.assertEquals(read.isStrandless(), false);
+        Assert.assertEquals(read.getReadNegativeStrandFlag(), true);
+
+        read.setReadNegativeStrandFlag(true);
+        read.setIsStrandless(true);
+        Assert.assertEquals(read.isStrandless(), true);
+        Assert.assertEquals(read.getReadNegativeStrandFlag(), false, "negative strand flag should return false even through its set for a strandless read");
+    }
+
+    @Test(expectedExceptions = IllegalStateException.class)
+    public void testStrandlessReadsFailSetStrand() {
+        final byte [] bases = {'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'};
+        final byte [] quals = {20 , 20 , 20 , 20 , 20 , 20 , 20 , 20 };
+        GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(bases, quals, "6M");
+        read.setIsStrandless(true);
+        read.setReadNegativeStrandFlag(true);
+    }
 }
