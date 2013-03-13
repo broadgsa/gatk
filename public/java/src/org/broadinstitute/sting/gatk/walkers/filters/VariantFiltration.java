@@ -92,7 +92,7 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
     @Input(fullName="mask", doc="Input ROD mask", required=false)
     public RodBinding<Feature> mask;
 
-    @Output(doc="File to which variants should be written", required=true)
+    @Output(doc="File to which variants should be written")
     protected VariantContextWriter writer = null;
 
     /**

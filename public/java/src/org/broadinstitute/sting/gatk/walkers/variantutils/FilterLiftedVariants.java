@@ -56,7 +56,7 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
 
     private static final int MAX_VARIANT_SIZE = 100;
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which variants should be written")
     protected VariantContextWriter writer = null;
 
     private long failedLocs = 0, totalLocs = 0;

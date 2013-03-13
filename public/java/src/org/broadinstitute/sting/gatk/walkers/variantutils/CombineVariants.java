@@ -133,7 +133,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
     @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
     public List<RodBinding<VariantContext>> variants;
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which variants should be written")
     protected VariantContextWriter vcfWriter = null;
 
     @Argument(shortName="genotypeMergeOptions", doc="Determines how we should merge genotype records for samples shared across the ROD files", required=false)

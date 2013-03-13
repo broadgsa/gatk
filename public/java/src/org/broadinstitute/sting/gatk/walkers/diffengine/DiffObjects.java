@@ -146,7 +146,7 @@ public class DiffObjects extends RodWalker<Integer, Integer> {
      *
      *     See http://www.broadinstitute.org/gatk/guide/article?id=1299 for details.
      */
-    @Output(doc="File to which results should be written",required=true)
+    @Output(doc="File to which results should be written")
     protected PrintStream out;
 
     /**

@@ -111,7 +111,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
     public List<RodBinding<VariantContext>> variants;
 
-    @Output(doc="File to which results should be written",required=true)
+    @Output(doc="File to which results should be written")
     protected PrintStream out;
 
     /**

@@ -91,7 +91,7 @@ public class VariantValidationAssessor extends RodWalker<VariantContext,Integer>
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which variants should be written")
     protected VariantContextWriter vcfwriter = null;
 
     @Argument(fullName="maxHardy", doc="Maximum phred-scaled Hardy-Weinberg violation pvalue to consider an assay valid", required=false)

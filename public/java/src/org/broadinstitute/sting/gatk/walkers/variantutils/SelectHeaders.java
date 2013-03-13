@@ -110,7 +110,7 @@ public class SelectHeaders extends RodWalker<Integer, Integer> implements TreeRe
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
-    @Output(doc = "File to which variants should be written", required = true)
+    @Output(doc = "File to which variants should be written")
     protected VariantContextWriter vcfWriter;
 
     @Argument(fullName = "header_name", shortName = "hn", doc = "Include header. Can be specified multiple times", required = false)

@@ -87,7 +87,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which variants should be written")
     protected VariantContextWriter baseWriter = null;
 
     private VariantContextWriter writer;

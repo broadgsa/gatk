@@ -67,6 +67,13 @@ public @interface Output {
     boolean required() default false;
 
     /**
+     * If this argument is not required, should it default to use stdout if no
+     * output file is explicitly provided on the command-line?
+     * @return True if the argument should default to stdout.  False otherwise.
+     */
+    boolean defaultToStdout() default true;
+
+    /**
      * Should this command-line argument be exclusive of others.  Should be
      * a comma-separated list of names of arguments of which this should be
      * independent.

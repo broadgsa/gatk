@@ -75,7 +75,7 @@ import java.util.Collection;
 @By(DataSource.REFERENCE_ORDERED_DATA)
 public class CoveredByNSamplesSites extends RodWalker<GenomeLoc, Integer> implements TreeReducible<Integer> {
 
-    @Output(fullName = "OutputIntervals", shortName = "out", doc = "Name of file for output intervals", required = true)
+    @Output(fullName = "OutputIntervals", shortName = "out", doc = "Name of file for output intervals")
     PrintStream outputStream;
 
     @ArgumentCollection

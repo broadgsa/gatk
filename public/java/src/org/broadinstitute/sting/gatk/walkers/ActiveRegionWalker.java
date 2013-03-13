@@ -67,7 +67,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
      *
      * Intended to make debugging the activity profile calculations easier
      */
-    @Output(fullName="activityProfileOut", shortName="APO", doc="Output the raw activity profile results in IGV format", required = false)
+    @Output(fullName="activityProfileOut", shortName="APO", doc="Output the raw activity profile results in IGV format", required = false, defaultToStdout = false)
     public PrintStream activityProfileOutStream = null;
 
     /**
@@ -78,7 +78,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
      *
      * Intended to make debugging the active region calculations easier
      */
-    @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this IGV formatted file", required = false)
+    @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this IGV formatted file", required = false, defaultToStdout = false)
     public PrintStream activeRegionOutStream = null;
 
     @Input(fullName="activeRegionIn", shortName="AR", doc="Use this interval list file as the active regions to process", required = false)
