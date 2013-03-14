@@ -110,7 +110,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
      */
     @Override
     public boolean createsTypeDefault(ArgumentSource source) {
-        return source.isRequired();
+        return !source.isRequired() && source.defaultsToStdout();
     }
 
     @Override
@@ -119,8 +119,8 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) {
-        if(!source.isRequired())
+    public Object createTypeDefault(ParsingEngine parsingEngine, ArgumentSource source, Type type) {
+        if(source.isRequired() || !source.defaultsToStdout())
             throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");        
         VariantContextWriterStub stub = new VariantContextWriterStub(engine, defaultOutputStream, argumentSources);
         engine.addOutput(stub);
@@ -143,7 +143,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
         // This parser has been passed a null filename and the GATK is not responsible for creating a type default for the object;
         // therefore, the user must have failed to specify a type default
-        if(writerFile == null && !source.isRequired())
+        if(writerFile == null && source.isRequired())
             throw new MissingArgumentValueException(defaultArgumentDefinition);
 
         // Create a stub for the given object.

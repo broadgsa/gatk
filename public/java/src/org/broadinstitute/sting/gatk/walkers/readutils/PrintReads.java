@@ -107,7 +107,7 @@ import java.util.*;
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> implements NanoSchedulable {
 
-    @Output(doc="Write output to this BAM filename instead of STDOUT", required = true)
+    @Output(doc="Write output to this BAM filename instead of STDOUT")
     StingSAMFileWriter out;
 
     @Argument(fullName = "readGroup", shortName = "readGroup", doc="Exclude all reads with this read group from the output", required = false)

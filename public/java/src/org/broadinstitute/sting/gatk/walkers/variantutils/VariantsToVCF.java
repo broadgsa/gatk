@@ -87,7 +87,7 @@ import java.util.*;
 @Reference(window=@Window(start=-40,stop=40))
 public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which variants should be written")
     protected VariantContextWriter baseWriter = null;
     private VariantContextWriter vcfwriter; // needed because hapmap/dbsnp indel records move
 

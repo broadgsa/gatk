@@ -125,7 +125,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     public List<RodBinding<VariantContext>> resources = Collections.emptyList();
     public List<RodBinding<VariantContext>> getResourceRodBindings() { return resources; }
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which variants should be written")
     protected VariantContextWriter vcfWriter = null;
 
     /**

@@ -106,7 +106,7 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
     @Input(fullName="beaglePhased", shortName = "beaglePhased", doc="Beagle-produced .phased file containing phased genotypes", required=true)
     public RodBinding<BeagleFeature> beaglePhased;
 
-    @Output(doc="VCF File to which variants should be written",required=true)
+    @Output(doc="VCF File to which variants should be written")
     protected VariantContextWriter vcfWriter = null;
 
     /**

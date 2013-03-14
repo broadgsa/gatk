@@ -161,13 +161,13 @@ public class ClipReads extends ReadWalker<ClipReads.ReadClipperWithData, ClipRea
      * If provided, ClipReads will write summary statistics about the clipping operations applied
      * to the reads to this file.
      */
-    @Output(fullName = "outputStatistics", shortName = "os", doc = "Write output statistics to this file", required = false)
+    @Output(fullName = "outputStatistics", shortName = "os", doc = "Write output statistics to this file", required = false, defaultToStdout = false)
     PrintStream out = null;
 
     /**
      * The output SAM/BAM file will be written here
      */
-    @Output(doc = "Write BAM output here", required = true)
+    @Output(doc = "Write BAM output here")
     StingSAMFileWriter outputBam;
 
     /**
