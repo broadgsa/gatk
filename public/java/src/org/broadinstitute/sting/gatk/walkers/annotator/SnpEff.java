@@ -45,11 +45,12 @@ import java.util.*;
 
 /**
  * A set of genomic annotations based on the output of the SnpEff variant effect predictor tool
- * (http://snpeff.sourceforge.net/).
  *
- * For each variant, chooses one of the effects of highest biological impact from the SnpEff
+ * <p>See <a href='http://snpeff.sourceforge.net/'>http://snpeff.sourceforge.net/</a> for more information on the SnpEff tool</p>.
+ *
+ * <p>For each variant, this tol chooses one of the effects of highest biological impact from the SnpEff
  * output file (which must be provided on the command line via --snpEffFile filename.vcf),
- * and adds annotations on that effect.
+ * and adds annotations on that effect.</p>
  *
  * @author David Roazen
  */

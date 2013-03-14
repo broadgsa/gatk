@@ -51,7 +51,6 @@ public class GATKVariantContextUtils {
     public final static String MERGE_FILTER_IN_ALL = "FilteredInAll";
     public final static String MERGE_INTERSECTION = "Intersection";
 
-
     public enum GenotypeMergeType {
         /**
          * Make all sample genotypes unique by file. Each sample shared across RODs gets named sample.ROD.
@@ -98,6 +97,46 @@ public class GATKVariantContextUtils {
     }
 
     /**
+     * Refactored out of the AverageAltAlleleLength annotation class
+     * @param vc the variant context
+     * @return the average length of the alt allele (a double)
+     */
+    public static double getMeanAltAlleleLength(VariantContext vc) {
+        double averageLength = 1.0;
+        if ( ! vc.isSNP() && ! vc.isSymbolic() ) {
+            // adjust for the event length
+            int averageLengthNum = 0;
+            int averageLengthDenom = 0;
+            int refLength = vc.getReference().length();
+            for ( Allele a : vc.getAlternateAlleles() ) {
+                int numAllele = vc.getCalledChrCount(a);
+                int alleleSize;
+                if ( a.length() == refLength ) {
+                    // SNP or MNP
+                    byte[] a_bases = a.getBases();
+                    byte[] ref_bases = vc.getReference().getBases();
+                    int n_mismatch = 0;
+                    for ( int idx = 0; idx < a_bases.length; idx++ ) {
+                        if ( a_bases[idx] != ref_bases[idx] )
+                            n_mismatch++;
+                    }
+                    alleleSize = n_mismatch;
+                }
+                else if ( a.isSymbolic() ) {
+                    alleleSize = 1;
+                } else {
+                    alleleSize = Math.abs(refLength-a.length());
+                }
+                averageLengthNum += alleleSize*numAllele;
+                averageLengthDenom += numAllele;
+            }
+            averageLength = ( (double) averageLengthNum )/averageLengthDenom;
+        }
+
+        return averageLength;
+    }
+
+    /**
      * create a genome location, given a variant context
      * @param genomeLocParser parser
      * @param vc the variant context
@@ -114,14 +153,14 @@ public class GATKVariantContextUtils {
     }
 
     /**
-     * If this is a BiAlleic SNP, is it a transition?
+     * If this is a BiAllelic SNP, is it a transition?
      */
     public static boolean isTransition(VariantContext context) {
         return getSNPSubstitutionType(context) == BaseUtils.BaseSubstitutionType.TRANSITION;
     }
 
     /**
-     * If this is a BiAlleic SNP, is it a transversion?
+     * If this is a BiAllelic SNP, is it a transversion?
      */
     public static boolean isTransversion(VariantContext context) {
         return getSNPSubstitutionType(context) == BaseUtils.BaseSubstitutionType.TRANSVERSION;
