@@ -581,8 +581,8 @@ public class ClippingOp {
         if (cigarElement.getOperator() == CigarOperator.INSERTION)
             return -clippedLength;
 
-            // Deletions should be added to the total hard clip count
-        else if (cigarElement.getOperator() == CigarOperator.DELETION)
+            // Deletions and Ns should be added to the total hard clip count (because we want to maintain the original alignment start)
+        else if (cigarElement.getOperator() == CigarOperator.DELETION || cigarElement.getOperator() == CigarOperator.SKIPPED_REGION)
             return cigarElement.getLength();
 
         // There is no shift if we are not clipping an indel
