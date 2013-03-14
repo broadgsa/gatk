@@ -524,7 +524,7 @@ public class ReadUtils {
                 // If we reached our goal inside a deletion, but the deletion is the next cigar element then we need
                 // to add the shift of the current cigar element but go back to it's last element to return the last
                 // base before the deletion (see warning in function contracts)
-                else if (fallsInsideDeletion && !endsWithinCigar)
+                else if (fallsInsideDeletion && !endsWithinCigar && cigarElement.getOperator().consumesReadBases())
                     readBases += shift - 1;
 
                 // If we reached our goal inside a deletion then we must backtrack to the last base before the deletion
