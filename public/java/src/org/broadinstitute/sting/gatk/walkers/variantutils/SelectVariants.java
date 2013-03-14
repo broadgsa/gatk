@@ -507,7 +507,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if (!selectedTypes.contains(vc.getType()))
                 continue;
 
-            if ( badIndelSize(vc) )
+            if ( containsIndelLargerThan(vc, maxIndelSize) )
                 continue;
 
             VariantContext sub = subsetRecord(vc, EXCLUDE_NON_VARIANTS);
@@ -531,12 +531,20 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         return 1;
     }
 
-    private boolean badIndelSize(final VariantContext vc) {
-        List<Integer> lengths = vc.getIndelLengths();
+    /*
+     * Determines if any of the alternate alleles are greater than the max indel size
+     *
+     * @param vc            the variant context to check
+     * @param maxIndelSize  the maximum size of allowed indels
+     * @return true if the VC contains an indel larger than maxIndelSize and false otherwise
+     */
+    protected static boolean containsIndelLargerThan(final VariantContext vc, final int maxIndelSize) {
+        final List<Integer> lengths = vc.getIndelLengths();
         if ( lengths == null )
-            return false; // VC does not harbor indel
-        for ( Integer indelLength : vc.getIndelLengths() ) {
-            if ( indelLength > maxIndelSize )
+            return false;
+
+        for ( Integer indelLength : lengths ) {
+            if ( Math.abs(indelLength) > maxIndelSize )
                 return true;
         }
 
