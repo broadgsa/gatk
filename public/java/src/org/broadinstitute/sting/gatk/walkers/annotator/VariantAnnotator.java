@@ -36,17 +36,16 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.sting.utils.help.HelpUtils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 
 import java.util.*;
-
 
 /**
  * Annotates variant calls with context information.
@@ -165,7 +164,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected Boolean USE_ALL_ANNOTATIONS = false;
 
     /**
-     * Note that the --list argument requires a fully resolved and correct command-line to work.
+     * Note that the --list argument requires a fully resolved and correct command-line to work. As a simpler alternative, you can use ListAnnotations (see Help Utilities).
      */
     @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit", required=false)
     protected Boolean LIST = false;
@@ -177,7 +176,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected Boolean ALWAYS_APPEND_DBSNP_ID = false;
     public boolean alwaysAppendDbsnpId() { return ALWAYS_APPEND_DBSNP_ID; }
 
-    @Argument(fullName="MendelViolationGenotypeQualityThreshold",shortName="mvq",required=false,doc="The genotype quality treshold in order to annotate mendelian violation ratio")
+    @Argument(fullName="MendelViolationGenotypeQualityThreshold",shortName="mvq",required=false,doc="The genotype quality threshold in order to annotate mendelian violation ratio")
     public double minGenotypeQualityP = 0.0;
 
     @Argument(fullName="requireStrictAlleleMatch", shortName="strict", doc="If provided only comp tracks that exactly match both reference and alternate alleles will be counted as concordant", required=false)
@@ -185,33 +184,14 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
 
     private VariantAnnotatorEngine engine;
 
-
-    private void listAnnotationsAndExit() {
-        System.out.println("\nStandard annotations in the list below are marked with a '*'.");
-        List<Class<? extends InfoFieldAnnotation>> infoAnnotationClasses = new PluginManager<InfoFieldAnnotation>(InfoFieldAnnotation.class).getPlugins();
-        System.out.println("\nAvailable annotations for the VCF INFO field:");
-        for (int i = 0; i < infoAnnotationClasses.size(); i++)
-            System.out.println("\t" + (StandardAnnotation.class.isAssignableFrom(infoAnnotationClasses.get(i)) ? "*" : "") + infoAnnotationClasses.get(i).getSimpleName());
-        System.out.println();
-        List<Class<? extends GenotypeAnnotation>> genotypeAnnotationClasses = new PluginManager<GenotypeAnnotation>(GenotypeAnnotation.class).getPlugins();
-        System.out.println("\nAvailable annotations for the VCF FORMAT field:");
-        for (int i = 0; i < genotypeAnnotationClasses.size(); i++)
-            System.out.println("\t" + (StandardAnnotation.class.isAssignableFrom(genotypeAnnotationClasses.get(i)) ? "*" : "") + genotypeAnnotationClasses.get(i).getSimpleName());
-        System.out.println();
-        System.out.println("\nAvailable classes/groups of annotations:");
-        for ( Class c : new PluginManager<AnnotationType>(AnnotationType.class).getInterfaces() )
-            System.out.println("\t" + c.getSimpleName());
-        System.out.println();
-        System.exit(0);
-    }
-
     /**
      * Prepare the output file and the list of available features.
      */
     public void initialize() {
 
         if ( LIST )
-            listAnnotationsAndExit();
+            HelpUtils.listAnnotations();
+            System.exit(0);
 
         // get the list of all sample names from the variant VCF input rod, if applicable
         List<String> rodName = Arrays.asList(variantCollection.variants.getName());
