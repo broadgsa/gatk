@@ -52,6 +52,7 @@ import java.util.*;
 public class GATKSAMRecord extends BAMRecord {
     // ReduceReads specific attribute tags
     public static final String REDUCED_READ_CONSENSUS_TAG = "RR";                   // marks a synthetic read produced by the ReduceReads tool
+    public static final String REDUCED_READ_STRANDED_TAG = "RS";                    // marks a stranded synthetic read produced by the ReduceReads tool
     public static final String REDUCED_READ_ORIGINAL_ALIGNMENT_START_SHIFT = "OP";  // reads that are clipped may use this attribute to keep track of their original alignment start
     public static final String REDUCED_READ_ORIGINAL_ALIGNMENT_END_SHIFT = "OE";    // reads that are clipped may use this attribute to keep track of their original alignment end
 
@@ -74,7 +75,7 @@ public class GATKSAMRecord extends BAMRecord {
     private int softEnd = UNINITIALIZED;
     private Integer adapterBoundary = null;
 
-    private boolean isStrandlessRead = false;
+    private Boolean isStrandlessRead = null;
 
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedReadGroup = false;
@@ -158,6 +159,9 @@ public class GATKSAMRecord extends BAMRecord {
      * @return true if this read doesn't have meaningful strand information
      */
     public boolean isStrandless() {
+        if ( isStrandlessRead == null ) {
+            isStrandlessRead = isReducedRead() && getCharacterAttribute(REDUCED_READ_STRANDED_TAG) == null;
+        }
         return isStrandlessRead;
     }
 
@@ -175,7 +179,7 @@ public class GATKSAMRecord extends BAMRecord {
     }
 
     @Override
-    public void setReadNegativeStrandFlag(boolean flag) {
+    public void setReadNegativeStrandFlag(final boolean flag) {
         if ( isStrandless() )
             throw new IllegalStateException("Cannot set the strand of a strandless read");
         super.setReadNegativeStrandFlag(flag);
