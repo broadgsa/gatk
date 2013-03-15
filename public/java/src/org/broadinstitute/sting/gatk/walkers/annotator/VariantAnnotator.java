@@ -44,6 +44,7 @@ import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 import java.util.*;
 
@@ -155,7 +156,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
      * If multiple records in the rod overlap the given position, one is chosen arbitrarily.
      */
     @Argument(fullName="expression", shortName="E", doc="One or more specific expressions to apply to variant calls; see documentation for more details", required=false)
-    protected List<String> expressionsToUse = new ArrayList<String>();
+    protected Set<String> expressionsToUse = new ObjectOpenHashSet();
 
     /**
      * Note that the -XL argument can be used along with this one to exclude annotations.
@@ -189,9 +190,10 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
      */
     public void initialize() {
 
-        if ( LIST )
+        if ( LIST ) {
             HelpUtils.listAnnotations();
             System.exit(0);
+        }
 
         // get the list of all sample names from the variant VCF input rod, if applicable
         List<String> rodName = Arrays.asList(variantCollection.variants.getName());

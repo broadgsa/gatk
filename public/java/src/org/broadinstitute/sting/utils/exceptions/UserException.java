@@ -371,11 +371,15 @@ public class UserException extends ReviewedStingException {
         }
     }
 
-
-
     public static class DeprecatedWalker extends UserException {
         public DeprecatedWalker(String walkerName, String version) {
             super(String.format("Walker %s is no longer available in the GATK; it has been deprecated since version %s", walkerName, version));
+        }
+    }
+
+    public static class DeprecatedAnnotation extends UserException {
+        public DeprecatedAnnotation(String annotationName, String version) {
+            super(String.format("Annotation %s is no longer available in the GATK; it has been deprecated since version %s", annotationName, version));
         }
     }
 
