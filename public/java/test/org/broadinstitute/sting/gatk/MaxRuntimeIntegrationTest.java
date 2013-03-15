@@ -39,8 +39,7 @@ import java.util.concurrent.TimeUnit;
  *
  */
 public class MaxRuntimeIntegrationTest extends WalkerTest {
-    // Assume a ridiculous amount of startup overhead to allow for running these tests on slow farm nodes
-    private static final long STARTUP_TIME = TimeUnit.NANOSECONDS.convert(300, TimeUnit.SECONDS);
+    private static final long STARTUP_TIME = TimeUnit.NANOSECONDS.convert(20, TimeUnit.SECONDS);
 
     private class MaxRuntimeTestProvider extends TestDataProvider {
         final long maxRuntime;
@@ -69,7 +68,7 @@ public class MaxRuntimeIntegrationTest extends WalkerTest {
     //
     // Loop over errors to throw, make sure they are the errors we get back from the engine, regardless of NT type
     //
-    @Test(enabled = true, dataProvider = "MaxRuntimeProvider", timeOut = 600 * 1000)
+    @Test(enabled = true, dataProvider = "MaxRuntimeProvider", timeOut = 60 * 1000)
     public void testMaxRuntime(final MaxRuntimeTestProvider cfg) {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T PrintReads -R " + hg18Reference
