@@ -81,10 +81,10 @@ public class CoveredByNSamplesSites extends RodWalker<GenomeLoc, Integer> implem
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
-    @Argument(fullName = "minCoverage", shortName = "minCov",doc = "only samples that have covarage bigger then minCoverage will be counted",required = false)
+    @Argument(fullName = "minCoverage", shortName = "minCov",doc = "only samples that have coverage bigger than minCoverage will be counted",required = false)
     int minCoverage = 10;
 
-    @Argument(fullName = "precentageOfSamples", shortName = "percentage", doc = "only sites where at list percentageOfSamples of the samples have good coverage, will be emited", required = false)
+    @Argument(fullName = "percentageOfSamples", shortName = "percentage", doc = "only sites where at least percentageOfSamples of the samples have good coverage, will be emitted", required = false)
     double percentageOfSamples = 0.9;
 
     @Override
@@ -95,8 +95,6 @@ public class CoveredByNSamplesSites extends RodWalker<GenomeLoc, Integer> implem
         Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
         if ( VCs.size() == 0 )
             return null;
-        if(VCs.size() != 1)
-            throw new RuntimeException("there are more then one vc: "+VCs.size());
 
         boolean emitSite = false;
         for(VariantContext vc : VCs){
@@ -135,12 +133,11 @@ public class CoveredByNSamplesSites extends RodWalker<GenomeLoc, Integer> implem
     }
 
     /**
-     * Tell the user the number of sites processed and how many passed. Close out the new intervals file.
      *
-     * @param result  pair of *the number of sites seen and number of sites passed the filter.
+     * @param result the number of sites that passed the filter.
      */
     public void onTraversalDone(Integer result) {
-        logger.info(result+" sites that have "+(percentageOfSamples*100)+"% of the samples with at list "+minCoverage+" coverage.\n");
+        logger.info(result+" sites that have "+(percentageOfSamples*100)+"% of the samples with at least "+minCoverage+" coverage.\n");
     }
 
 
