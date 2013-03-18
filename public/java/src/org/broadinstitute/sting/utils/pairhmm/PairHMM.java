@@ -122,7 +122,10 @@ public abstract class PairHMM {
         if ( overallGCP.length != readBases.length ) throw new IllegalArgumentException("Read bases and overall GCP aren't the same size: " + readBases.length + " vs " + overallGCP.length);
         if ( hapStartIndex < 0 || hapStartIndex > haplotypeBases.length ) throw new IllegalArgumentException("hapStartIndex is bad, must be between 0 and haplotype length " + haplotypeBases.length + " but got " + hapStartIndex);
 
-        final double result = subComputeReadLikelihoodGivenHaplotypeLog10(haplotypeBases, readBases, readQuals, insertionGOP, deletionGOP, overallGCP, hapStartIndex, recacheReadValues);
+        double result = subComputeReadLikelihoodGivenHaplotypeLog10(haplotypeBases, readBases, readQuals, insertionGOP, deletionGOP, overallGCP, hapStartIndex, recacheReadValues);
+
+        // TODO -- remove max when PairHMM no longer returns likelihoods >= 0
+        result = Math.min(result, 0.0);
 
         if ( MathUtils.goodLog10Probability(result) )
             return result;
