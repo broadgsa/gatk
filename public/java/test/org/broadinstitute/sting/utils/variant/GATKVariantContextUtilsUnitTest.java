@@ -694,6 +694,15 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
                         root.alleles(Arrays.asList(CAref, C)).stop(11).make(),
                         root.alleles(Arrays.asList(CAAAref, C)).stop(13).make())});
 
+        final Allele threeCopies = Allele.create("GTTTTATTTTATTTTA", true);
+        final Allele twoCopies = Allele.create("GTTTTATTTTA", true);
+        final Allele zeroCopies = Allele.create("G", false);
+        final Allele oneCopies = Allele.create("GTTTTA", false);
+        tests.add(new Object[]{root.alleles(Arrays.asList(threeCopies, zeroCopies, oneCopies)).stop(25).make(),
+                Arrays.asList(
+                        root.alleles(Arrays.asList(threeCopies, zeroCopies)).stop(25).make(),
+                        root.alleles(Arrays.asList(twoCopies, zeroCopies)).stop(20).make())});
+
         return tests.toArray(new Object[][]{});
     }
 

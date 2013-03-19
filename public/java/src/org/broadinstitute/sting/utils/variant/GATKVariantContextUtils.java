@@ -1000,7 +1000,7 @@ public class GATKVariantContextUtils {
     public static VariantContext trimAlleles(final VariantContext inputVC, final boolean trimForward, final boolean trimReverse) {
         if ( inputVC == null ) throw new IllegalArgumentException("inputVC cannot be null");
 
-        if ( inputVC.getNAlleles() <= 1 )
+        if ( inputVC.getNAlleles() <= 1 || inputVC.isSNP() )
             return inputVC;
 
         // see whether we need to trim common reference base from all alleles
