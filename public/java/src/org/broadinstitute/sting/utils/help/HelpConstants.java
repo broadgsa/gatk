@@ -56,6 +56,7 @@ public class HelpConstants {
     public final static String DOCS_CAT_VARDISC = "Variant Discovery Tools";
     public final static String DOCS_CAT_VARMANIP = "Variant Evaluation and Manipulation Tools";
     public final static String DOCS_CAT_TEST = "Testing Tools";
+    public final static String DOCS_CAT_HELPUTILS = "Help Utilities";
 
     public static String forumPost(String post) {
     	return GATK_FORUM_URL + post;

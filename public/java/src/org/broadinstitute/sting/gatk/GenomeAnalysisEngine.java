@@ -67,6 +67,9 @@ import java.io.File;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static org.broadinstitute.sting.utils.DeprecatedToolChecks.getWalkerDeprecationInfo;
+import static org.broadinstitute.sting.utils.DeprecatedToolChecks.isDeprecatedWalker;
+
 /**
  * A GenomeAnalysisEngine that runs a specified walker.
  */
@@ -288,40 +291,6 @@ public class GenomeAnalysisEngine {
         //return result;
     }
 
-    // TODO -- Let's move this to a utility class in unstable - but which one?
-    // **************************************************************************************
-    // *                            Handle Deprecated Walkers                               *
-    // **************************************************************************************
-
-    // Mapping from walker name to major version number where the walker first disappeared
-    private static Map<String, String> deprecatedGATKWalkers = new HashMap<String, String>();
-    static {
-        deprecatedGATKWalkers.put("CountCovariates", "2.0");
-        deprecatedGATKWalkers.put("TableRecalibration", "2.0");
-        deprecatedGATKWalkers.put("AlignmentWalker", "2.2");
-        deprecatedGATKWalkers.put("CountBestAlignments", "2.2");
-    }
-
-    /**
-     * Utility method to check whether a given walker has been deprecated in a previous GATK release
-     *
-     * @param walkerName   the walker class name (not the full package) to check
-     */
-    public static boolean isDeprecatedWalker(final String walkerName) {
-        return deprecatedGATKWalkers.containsKey(walkerName);
-    }
-
-    /**
-     * Utility method to check whether a given walker has been deprecated in a previous GATK release
-     *
-     * @param walkerName   the walker class name (not the full package) to check
-     */
-    public static String getDeprecatedMajorVersionNumber(final String walkerName) {
-        return deprecatedGATKWalkers.get(walkerName);
-    }
-
-    // **************************************************************************************
-
     /**
      * Retrieves an instance of the walker based on the walker name.
      *
@@ -333,7 +302,7 @@ public class GenomeAnalysisEngine {
             return walkerManager.createByName(walkerName);
         } catch ( UserException e ) {
             if ( isDeprecatedWalker(walkerName) ) {
-                e = new UserException.DeprecatedWalker(walkerName, getDeprecatedMajorVersionNumber(walkerName));
+                e = new UserException.DeprecatedWalker(walkerName, getWalkerDeprecationInfo(walkerName));
             }
             throw e;
         }
@@ -565,6 +534,8 @@ public class GenomeAnalysisEngine {
         if ( intervals != null && intervals.isEmpty() ) {
             logger.warn("The given combination of -L and -XL options results in an empty set.  No intervals to process.");
         }
+
+        // TODO: add a check for ActiveRegion walkers to prevent users from passing an entire contig/chromosome
     }
 
     /**

@@ -35,7 +35,6 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
-import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.variant.bcf2.BCF2Codec;
@@ -54,7 +53,7 @@ import java.util.*;
 
 /**
  *
- * Concatenates VCF files of non-overlapped genome intervals, all with the same set of samples.
+ * Concatenates VCF files of non-overlapped genome intervals, all with the same set of samples
  *
  * <p>
  * The main purpose of this tool is to speed up the gather function when using scatter-gather parallelization.
@@ -80,10 +79,14 @@ import java.util.*;
  * A combined VCF. The output file should be 'name.vcf' or 'name.VCF'.
  * <\p>
  *
+ * <h3>Important note</h3>
+ * <p>This is a command-line utility that bypasses the GATK engine. As a result, the command-line you must use to
+ * invoke it is a little different from other GATK tools (see example below), and it does not accept any of the
+ * classic "CommandLineGATK" arguments.</p>
  *
- * <h3>Examples</h3>
+ * <h3>Example</h3>
  * <pre>
- * java -cp dist/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.CatVariants \
+ * java -cp GenomeAnalysisTK.jar org.broadinstitute.sting.tools.CatVariants \
  *    -R ref.fasta \
  *    -V input1.vcf \
  *    -V input2.vcf \
@@ -95,7 +98,7 @@ import java.util.*;
  * @since Jan 2012
  */
 
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP )
 public class CatVariants extends CommandLineProgram {
     // setup the logging system, used by some codecs
     private static org.apache.log4j.Logger logger = org.apache.log4j.Logger.getRootLogger();
@@ -124,7 +127,7 @@ public class CatVariants extends CommandLineProgram {
      * print usage information
      */
     private static void printUsage() {
-        System.err.println("Usage: java -cp dist/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.AppendVariants <reference> <input VCF or BCF files> <outputFile> [sorted (optional)]");
+        System.err.println("Usage: java -cp dist/GenomeAnalysisTK.jar org.broadinstitute.sting.tools.CatVariants <reference> <input VCF or BCF files> <outputFile> [sorted (optional)]");
         System.err.println("    The input files can be of type: VCF (ends in .vcf or .VCF)");
         System.err.println("                                    BCF2 (ends in .bcf or .BCF)");
         System.err.println("    Output file must be vcf or bcf file (.vcf or .bcf)");

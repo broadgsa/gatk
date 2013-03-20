@@ -29,12 +29,15 @@ package org.broadinstitute.sting.gatk.walkers.diagnostics;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.variant.variantcontext.Genotype;
 import org.broadinstitute.variant.variantcontext.GenotypesContext;
 import org.broadinstitute.variant.variantcontext.VariantContext;
@@ -44,11 +47,14 @@ import java.io.*;
 import java.util.Collection;
 
 /**
- * print intervals file with all the variant sites that have "most" ( >= 90% by default) of the samples with "good" (>= 10 by default)coverage ("most" and "good" can be set in the command line).
+ * Print intervals file with all the variant sites for which most of the samples have good coverage
  *
  * <p>
- * CoveredByNSamplesSites is a GATK tool for filter out sites based on their coverage.
+ * CoveredByNSamplesSites is a GATK tool for filtering out sites based on their coverage.
  * The sites that pass the filter are printed out to an intervals file.
+ *
+ * See argument defaults for what constitutes "most" samples and "good" coverage. These parameters can be modified from the command line.
+ * </p>
  *
  * <h3>Input</h3>
  * <p>
@@ -60,7 +66,7 @@ import java.util.Collection;
  * An intervals file.
  * </p>
  *
- * <h3>Examples</h3>
+ * <h3>Example</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
@@ -71,7 +77,7 @@ import java.util.Collection;
  * </pre>
  *
  */
-
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @By(DataSource.REFERENCE_ORDERED_DATA)
 public class CoveredByNSamplesSites extends RodWalker<GenomeLoc, Integer> implements TreeReducible<Integer> {
 
