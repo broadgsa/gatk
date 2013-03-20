@@ -37,7 +37,7 @@ import org.testng.annotations.Test;
 import java.util.*;
 
 public class AlignmentUtilsUnitTest {
-    private final static boolean DEBUG = true;
+    private final static boolean DEBUG = false;
     private SAMFileHeader header;
 
     /** Basic aligned and mapped read. */
