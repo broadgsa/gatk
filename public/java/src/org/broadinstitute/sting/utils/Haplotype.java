@@ -41,12 +41,12 @@ import java.io.Serializable;
 import java.util.*;
 
 public class Haplotype extends Allele {
-
     private GenomeLoc genomeLocation = null;
     private Map<Integer, VariantContext> eventMap = null;
     private Cigar cigar;
     private int alignmentStartHapwrtRef;
     private Event artificialEvent = null;
+    private double score = 0;
 
     /**
      * Main constructor
@@ -257,6 +257,36 @@ public class Haplotype extends Allele {
             this.ref = ref;
             this.alt = alt;
             this.pos = pos;
+        }
+    }
+
+    /**
+     * Get the score (an estimate of the support) of this haplotype
+     * @return a double, where higher values are better
+     */
+    public double getScore() {
+        return this.isReference() ? Double.MAX_VALUE : score;
+    }
+
+    /**
+     * Set the score (an estimate of the support) of this haplotype.
+     *
+     * Note that if this is the reference haplotype it is always given Double.MAX_VALUE score
+     *
+     * @param score a double, where higher values are better
+     */
+    public void setScore(double score) {
+        this.score = this.isReference() ? Double.MAX_VALUE : score;
+    }
+
+    /**
+     * A comparator that sorts haplotypes in decreasing order of score, so that the best supported
+     * haplotypes are at the top
+     */
+    public static class ScoreComparator implements Comparator<Haplotype> {
+        @Override
+        public int compare(Haplotype o1, Haplotype o2) {
+            return -1 * Double.valueOf(o1.getScore()).compareTo(o2.getScore());
         }
     }
 }

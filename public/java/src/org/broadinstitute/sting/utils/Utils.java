@@ -795,4 +795,17 @@ public class Utils {
         while (md5String.length() < 32) md5String = "0" + md5String; // pad to length 32
         return md5String;
     }
+
+    /**
+     * Does big end with the exact sequence of bytes in suffix?
+     *
+     * @param big a non-null byte[] to test if it a prefix + suffix
+     * @param suffix a non-null byte[] to test if it's a suffix of big
+     * @return true if big is proper byte[] composed of some prefix + suffix
+     */
+    public static boolean endsWith(final byte[] big, final byte[] suffix) {
+        if ( big == null ) throw new IllegalArgumentException("big cannot be null");
+        if ( suffix == null ) throw new IllegalArgumentException("suffix cannot be null");
+        return new String(big).endsWith(new String(suffix));
+    }
 }
