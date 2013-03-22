@@ -40,7 +40,6 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -314,13 +313,14 @@ public class CallableLoci extends LocusWalker<CallableLoci.CallableBaseState, Ca
             // count up the depths of all and QC+ bases
             int rawDepth = 0, QCDepth = 0, lowMAPQDepth = 0;
             for (PileupElement e : context.getBasePileup()) {
-                rawDepth++;
+                final int depth = e.getRepresentativeCount();
+                rawDepth += depth;
 
                 if (e.getMappingQual() <= maxLowMAPQ)
-                    lowMAPQDepth++;
+                    lowMAPQDepth += depth;
 
                 if (e.getMappingQual() >= minMappingQuality && (e.getQual() >= minBaseQuality || e.isDeletion())) {
-                    QCDepth++;
+                    QCDepth += depth;
                 }
             }
 

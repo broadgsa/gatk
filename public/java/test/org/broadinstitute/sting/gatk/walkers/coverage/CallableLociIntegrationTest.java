@@ -30,8 +30,9 @@ import org.testng.annotations.Test;
 
 import java.util.Arrays;
 
-public class CallableLociWalkerIntegrationTest extends WalkerTest {
-    final static String commonArgs = "-R " + b36KGReference + " -T CallableLoci -I " + validationDataLocation + "/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s";
+public class CallableLociIntegrationTest extends WalkerTest {
+    final static String commonArgs     = "-R " + b36KGReference + " -T CallableLoci -I " + validationDataLocation + "/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s";
+    final static String reduceReadArgs = "-R " + b37KGReference + " -T CallableLoci -I " + " private/testdata/NA12878.HiSeq.b37.chr20.10_11mb.reduced.bam -o %s";
 
     final static String SUMMARY_MD5 = "ffdbd9cdcb4169ebed5ae4bec797260f";
 
@@ -66,4 +67,13 @@ public class CallableLociWalkerIntegrationTest extends WalkerTest {
                 Arrays.asList("46a53379aaaf9803276a0a34b234f6ab", "da431d393f7c2b2b3e27556b86c1dbc7"));
         executeTest("formatBed lots of arguments", spec);
     }
+
+    @Test(enabled=true)
+    public void testWithReducedRead() {
+        String gatk_args = reduceReadArgs + " -L 20:10,000,000-11,000,000 -minDepth 10 -maxDepth 100 --minBaseQuality 10 --minMappingQuality 20 -summary %s";
+        WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 1,
+                Arrays.asList("684069ffe94a1175051066ed53f0fd9d", "ebc310cf734d98e26d2d83e16b1144d1"));
+        executeTest("CallableLoci with ReducedRead", spec);
+    }
+
 }
