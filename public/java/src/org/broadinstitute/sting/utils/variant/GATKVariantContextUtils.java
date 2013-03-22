@@ -436,11 +436,15 @@ public class GATKVariantContextUtils {
         // the genotypes with PLs
         final GenotypesContext oldGTs = vc.getGenotypes();
 
+        // the new genotypes to create
+        final GenotypesContext newGTs = GenotypesContext.create();
+        // optimization: if no input genotypes, just exit
+        if (oldGTs.isEmpty())
+            return newGTs;
+
         // samples
         final List<String> sampleIndices = oldGTs.getSampleNamesOrderedByName();
 
-        // the new genotypes to create
-        final GenotypesContext newGTs = GenotypesContext.create();
 
         // we need to determine which of the alternate alleles (and hence the likelihoods) to use and carry forward
         final int numOriginalAltAlleles = vc.getAlternateAlleles().size();
@@ -1007,7 +1011,8 @@ public class GATKVariantContextUtils {
         final int revTrim = trimReverse ? computeReverseClipping(inputVC.getAlleles(), inputVC.getReference().getDisplayString().getBytes()) : 0;
         final VariantContext revTrimVC = trimAlleles(inputVC, -1, revTrim);
         final int fwdTrim = trimForward ? computeForwardClipping(revTrimVC.getAlleles()) : -1;
-        return trimAlleles(revTrimVC, fwdTrim, 0);
+        final VariantContext vc= trimAlleles(revTrimVC, fwdTrim, 0);
+        return vc;
     }
 
     /**
