@@ -41,10 +41,6 @@ import java.util.*;
  *   For each read, this holds underlying alleles represented by an aligned read, and corresponding relative likelihood.
  */
 public class PerReadAlleleLikelihoodMap {
-
-
-    public static final double INFORMATIVE_LIKELIHOOD_THRESHOLD = 0.2;
-
     protected List<Allele> alleles;
     protected Map<GATKSAMRecord, Map<Allele, Double>> likelihoodReadMap;
 
@@ -119,9 +115,9 @@ public class PerReadAlleleLikelihoodMap {
         for ( final Map.Entry<GATKSAMRecord, Map<Allele, Double>> entry : likelihoodReadMap.entrySet() ) {
             // do not remove reduced reads!
             if ( !entry.getKey().isReducedRead() ) {
-                final Allele bestAllele = getMostLikelyAllele(entry.getValue());
-                if ( bestAllele != Allele.NO_CALL )
-                    alleleReadMap.get(bestAllele).add(entry.getKey());
+                final MostLikelyAllele bestAllele = getMostLikelyAllele(entry.getValue());
+                if ( bestAllele.isInformative() )
+                    alleleReadMap.get(bestAllele.getMostLikelyAllele()).add(entry.getKey());
             }
         }
 
@@ -194,32 +190,25 @@ public class PerReadAlleleLikelihoodMap {
 
     /**
      * Given a map from alleles to likelihoods, find the allele with the largest likelihood.
-     * If the difference between the most-likely allele and the next-most-likely allele is < INFORMATIVE_LIKELIHOOD_THRESHOLD
-     * then the most likely allele is set to "no call"
+     *
      * @param alleleMap - a map from alleles to likelihoods
-     * @return - the most likely allele, or NO_CALL if two or more alleles have likelihoods within INFORMATIVE_LIKELIHOOD_THRESHOLD
-     * of one another. By default empty allele maps will return NO_CALL, and allele maps with a single entry will return the
-     * corresponding key
+     * @return - a MostLikelyAllele object
      */
     @Ensures("result != null")
-    public static Allele getMostLikelyAllele( final Map<Allele,Double> alleleMap ) {
+    public static MostLikelyAllele getMostLikelyAllele( final Map<Allele,Double> alleleMap ) {
         return getMostLikelyAllele(alleleMap, null);
     }
 
     /**
      * Given a map from alleles to likelihoods, find the allele with the largest likelihood.
-     * If the difference between the most-likely allele and the next-most-likely allele is < INFORMATIVE_LIKELIHOOD_THRESHOLD
-     * then the most likely allele is set to "no call"
      *
      * @param alleleMap - a map from alleles to likelihoods
      * @param onlyConsiderTheseAlleles if not null, we will only consider alleles in this set for being one of the best.
      *                                 this is useful for the case where you've selected a subset of the alleles that
      *                                 the reads have been computed for further analysis.  If null totally ignored
-     * @return - the most likely allele, or NO_CALL if two or more alleles have likelihoods within INFORMATIVE_LIKELIHOOD_THRESHOLD
-     * of one another. By default empty allele maps will return NO_CALL, and allele maps with a single entry will return the
-     * corresponding key
+     * @return - a MostLikelyAllele object
      */
-    public static Allele getMostLikelyAllele( final Map<Allele,Double> alleleMap, final Set<Allele> onlyConsiderTheseAlleles ) {
+    public static MostLikelyAllele getMostLikelyAllele( final Map<Allele,Double> alleleMap, final Set<Allele> onlyConsiderTheseAlleles ) {
         if ( alleleMap == null ) throw new IllegalArgumentException("The allele to likelihood map cannot be null");
         double maxLike = Double.NEGATIVE_INFINITY;
         double prevMaxLike = Double.NEGATIVE_INFINITY;
@@ -237,7 +226,8 @@ public class PerReadAlleleLikelihoodMap {
                 prevMaxLike = el.getValue();
             }
         }
-        return (maxLike - prevMaxLike > INFORMATIVE_LIKELIHOOD_THRESHOLD ? mostLikelyAllele : Allele.NO_CALL );
+
+        return new MostLikelyAllele(mostLikelyAllele, maxLike, prevMaxLike);
     }
 
     /**
