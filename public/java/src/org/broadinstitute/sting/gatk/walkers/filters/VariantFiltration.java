@@ -87,9 +87,10 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
-     * Any variant which overlaps entries from the provided mask rod will be filtered.
+     * Any variant which overlaps entries from the provided mask rod will be filtered. If the user wants logic to be reversed,
+     * i.e. filter variants that do not overlap with provided mask, then argument -filterNotInMask can be used.
      */
-    @Input(fullName="mask", doc="Input ROD mask", required=false)
+    @Input(fullName="mask", shortName="mask", doc="Input ROD mask", required=false)
     public RodBinding<Feature> mask;
 
     @Output(doc="File to which variants should be written")
@@ -141,6 +142,14 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
     protected String MASK_NAME = "Mask";
 
     /**
+     * By default, if the -mask argument is used, any variant falling in a mask will be filtered.
+     * If this argument is used, logic is reversed, and variants falling outside a given mask will be filtered.
+     * Use case is, for example, if we have an interval list or BED file with "good" sites.
+     */
+    @Argument(fullName="filterNotInMask", shortName="filterNotInMask", doc="Filter records NOT in given input mask.", required=false)
+    protected boolean filterRecordsNotInMask = false;
+
+    /**
      * By default, if JEXL cannot evaluate your expression for a particular record because one of the annotations is not present, the whole expression evaluates as PASSing.
      * Use this argument to have it evaluate as failing filters instead for these cases.
      */
@@ -186,7 +195,9 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
             hInfo.add(VCFStandardHeaderLines.getFormatLine(VCFConstants.GENOTYPE_FILTER_KEY));
 
         if ( mask.isBound() ) {
-            hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
+            if (filterRecordsNotInMask)
+                hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Doesn't overlap a user-input mask"));
+            else hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
         }
 
         writer.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames)));
@@ -199,6 +210,8 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
         if ( MASK_EXTEND < 0 )
              throw new UserException.BadArgumentValue("maskExtension", "negative values are not allowed");
 
+        if (filterRecordsNotInMask && !mask.isBound())
+            throw new UserException.BadArgumentValue("filterNotInMask","argument not allowed if mask argument is not provided");
         filterExps = VariantContextUtils.initializeMatchExps(FILTER_NAMES, FILTER_EXPS);
         genotypeFilterExps = VariantContextUtils.initializeMatchExps(GENOTYPE_FILTER_NAMES, GENOTYPE_FILTER_EXPS);
 
@@ -223,7 +236,7 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
         Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
 
         // is there a SNP mask present?
-        boolean hasMask = tracker.hasValues(mask);
+        boolean hasMask = (tracker.hasValues(mask) && !filterRecordsNotInMask) || (filterRecordsNotInMask && !tracker.hasValues(mask));
         if ( hasMask )
             previousMaskPosition = ref.getLocus();  // multi-base masks will get triggered over all bases of the mask
 
