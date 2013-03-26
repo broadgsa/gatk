@@ -67,10 +67,10 @@ public class Log10PairHMM extends PairHMM {
     public void initialize( final int haplotypeMaxLength, final int readMaxLength) {
         super.initialize(haplotypeMaxLength, readMaxLength);
 
-        for( int iii=0; iii < X_METRIC_MAX_LENGTH; iii++ ) {
-            Arrays.fill(matchMetricArray[iii], Double.NEGATIVE_INFINITY);
-            Arrays.fill(XMetricArray[iii], Double.NEGATIVE_INFINITY);
-            Arrays.fill(YMetricArray[iii], Double.NEGATIVE_INFINITY);
+        for( int iii=0; iii < paddedMaxReadLength; iii++ ) {
+            Arrays.fill(matchMatrix[iii], Double.NEGATIVE_INFINITY);
+            Arrays.fill(insertionMatrix[iii], Double.NEGATIVE_INFINITY);
+            Arrays.fill(deletionMatrix[iii], Double.NEGATIVE_INFINITY);
         }
     }
 
@@ -88,7 +88,8 @@ public class Log10PairHMM extends PairHMM {
                                                                final boolean recacheReadValues ) {
         // the initial condition -- must be in subComputeReadLikelihoodGivenHaplotypeLog10 because it needs that actual
         // read and haplotypes, not the maximum
-        matchMetricArray[1][1] = getNPotentialXStartsLikelihoodPenaltyLog10(haplotypeBases.length, readBases.length);
+        final double initialValue = Math.log10((double) 1/haplotypeBases.length);
+        matchMatrix[1][1] = initialValue;
 
         // M, X, and Y arrays are of size read and haplotype + 1 because of an extra column for initial conditions and + 1 to consider the final base in a non-global alignment
         final int X_METRIC_LENGTH = readBases.length + 2;
@@ -104,14 +105,17 @@ public class Log10PairHMM extends PairHMM {
             for( int jjj = hapStartIndex + 1; jjj < Y_METRIC_LENGTH; jjj++ ) {
                 if( (iii == 1 && jjj == 1) ) { continue; }
                 updateCell(iii, jjj, haplotypeBases, readBases, readQuals, insertionGOP, deletionGOP, overallGCP,
-                        matchMetricArray, XMetricArray, YMetricArray);
+                        matchMatrix, insertionMatrix, deletionMatrix);
             }
         }
 
         // final probability is the log10 sum of the last element in all three state arrays
         final int endI = X_METRIC_LENGTH - 1;
-        final int endJ = Y_METRIC_LENGTH - 1;
-        return myLog10SumLog10(new double[]{matchMetricArray[endI][endJ], XMetricArray[endI][endJ], YMetricArray[endI][endJ]});
+        double result = myLog10SumLog10(new double[]{matchMatrix[endI][1], insertionMatrix[endI][1]});
+        for (int j = 2; j < Y_METRIC_LENGTH; j++)
+            result = myLog10SumLog10(new double[]{result, matchMatrix[endI][j], insertionMatrix[endI][j]});
+
+        return result;
     }
 
     /**
@@ -134,7 +138,7 @@ public class Log10PairHMM extends PairHMM {
 
     private void updateCell( final int indI, final int indJ, final byte[] haplotypeBases, final byte[] readBases,
                              final byte[] readQuals, final byte[] insertionGOP, final byte[] deletionGOP, final byte[] overallGCP,
-                             final double[][] matchMetricArray, final double[][] XMetricArray, final double[][] YMetricArray ) {
+                             final double[][] matchMatrix, final double[][] insertionMatrix, final double[][] deletionMatrix ) {
 
         // the read and haplotype indices are offset by one because the state arrays have an extra column to hold the initial conditions
         final int im1 = indI - 1;
@@ -151,18 +155,18 @@ public class Log10PairHMM extends PairHMM {
         final int qualIndexGOP = ( im1 == 0 ? DEFAULT_GOP + DEFAULT_GOP : ( insertionGOP[im1-1] + deletionGOP[im1-1] > MAX_CACHED_QUAL ? MAX_CACHED_QUAL : insertionGOP[im1-1] + deletionGOP[im1-1]) );
         final double d0 = QualityUtils.qualToProbLog10((byte)qualIndexGOP);
         final double e0 = ( im1 == 0 ? QualityUtils.qualToProbLog10(DEFAULT_GCP) : QualityUtils.qualToProbLog10(overallGCP[im1-1]) );
-        matchMetricArray[indI][indJ] = pBaseReadLog10 + myLog10SumLog10(new double[]{matchMetricArray[indI - 1][indJ - 1] + d0, XMetricArray[indI - 1][indJ - 1] + e0, YMetricArray[indI - 1][indJ - 1] + e0});
+        matchMatrix[indI][indJ] = pBaseReadLog10 + myLog10SumLog10(new double[]{matchMatrix[indI - 1][indJ - 1] + d0, insertionMatrix[indI - 1][indJ - 1] + e0, deletionMatrix[indI - 1][indJ - 1] + e0});
 
         // update the X (insertion) array
         final double d1 = ( im1 == 0 ? QualityUtils.qualToErrorProbLog10(DEFAULT_GOP) : QualityUtils.qualToErrorProbLog10(insertionGOP[im1-1]) );
         final double e1 = ( im1 == 0 ? QualityUtils.qualToErrorProbLog10(DEFAULT_GCP) : QualityUtils.qualToErrorProbLog10(overallGCP[im1-1]) );
         final double qBaseReadLog10 = 0.0; // Math.log10(1.0) -- we don't have an estimate for this emission probability so assume q=1.0
-        XMetricArray[indI][indJ] = qBaseReadLog10 + myLog10SumLog10(new double[]{matchMetricArray[indI - 1][indJ] + d1, XMetricArray[indI - 1][indJ] + e1});
+        insertionMatrix[indI][indJ] = qBaseReadLog10 + myLog10SumLog10(new double[]{matchMatrix[indI - 1][indJ] + d1, insertionMatrix[indI - 1][indJ] + e1});
 
         // update the Y (deletion) array, with penalty of zero on the left and right flanks to allow for a local alignment within the haplotype
-        final double d2 = ( im1 == 0 || im1 == readBases.length ? 0.0 : QualityUtils.qualToErrorProbLog10(deletionGOP[im1-1]) );
-        final double e2 = ( im1 == 0 || im1 == readBases.length ? 0.0 : QualityUtils.qualToErrorProbLog10(overallGCP[im1-1]) );
+        final double d2 = ( im1 == 0 ) ? 0.0 : QualityUtils.qualToErrorProbLog10(deletionGOP[im1-1]);
+        final double e2 = ( im1 == 0 ) ? 0.0 : QualityUtils.qualToErrorProbLog10(overallGCP[im1-1]);
         final double qBaseRefLog10 = 0.0; // Math.log10(1.0) -- we don't have an estimate for this emission probability so assume q=1.0
-        YMetricArray[indI][indJ] = qBaseRefLog10 + myLog10SumLog10(new double[]{matchMetricArray[indI][indJ - 1] + d2, YMetricArray[indI][indJ - 1] + e2});
+        deletionMatrix[indI][indJ] = qBaseRefLog10 + myLog10SumLog10(new double[]{matchMatrix[indI][indJ - 1] + d2, deletionMatrix[indI][indJ - 1] + e2});
     }
 }
