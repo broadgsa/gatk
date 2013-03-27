@@ -43,7 +43,7 @@ import java.util.*;
 
 public class Haplotype extends Allele {
     private GenomeLoc genomeLocation = null;
-    private Map<Integer, VariantContext> eventMap = null;
+    private EventExtractor eventMap = null;
     private Cigar cigar;
     private int alignmentStartHapwrtRef;
     private Event artificialEvent = null;
@@ -61,6 +61,12 @@ public class Haplotype extends Allele {
 
     public Haplotype( final byte[] bases ) {
         this(bases, false);
+    }
+
+    public Haplotype( final byte[] bases, final boolean isRef, final int alignmentStartHapwrtRef, final Cigar cigar) {
+        this(bases, isRef);
+        this.alignmentStartHapwrtRef = alignmentStartHapwrtRef;
+        this.cigar = cigar;
     }
 
     /**
@@ -92,11 +98,11 @@ public class Haplotype extends Allele {
         return Arrays.hashCode(getBases());
     }
 
-    public Map<Integer, VariantContext> getEventMap() {
+    public EventExtractor getEventMap() {
         return eventMap;
     }
 
-    public void setEventMap( final Map<Integer, VariantContext> eventMap ) {
+    public void setEventMap( final EventExtractor eventMap ) {
         this.eventMap = eventMap;
     }
 
