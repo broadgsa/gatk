@@ -26,11 +26,8 @@
 package org.broadinstitute.sting.utils.haplotypeBAMWriter;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Haplotype;
-import org.broadinstitute.sting.utils.SWPairwiseAlignment;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.haplotype.Haplotype;
 import org.broadinstitute.sting.utils.genotyper.MostLikelyAllele;
 import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
