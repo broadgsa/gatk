@@ -36,10 +36,12 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.variant.variantcontext.Allele;
-import org.broadinstitute.variant.variantcontext.VariantContext;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 public class Haplotype extends Allele {
     private GenomeLoc genomeLocation = null;
@@ -52,21 +54,36 @@ public class Haplotype extends Allele {
     /**
      * Main constructor
      *
-     * @param bases bases
-     * @param isRef is reference allele?
+     * @param bases a non-null array of bases
+     * @param isRef is this the reference haplotype?
      */
     public Haplotype( final byte[] bases, final boolean isRef ) {
         super(bases.clone(), isRef);
     }
 
+    /**
+     * Create a new non-ref haplotype
+     *
+     * @param bases a non-null array of bases
+     */
     public Haplotype( final byte[] bases ) {
         this(bases, false);
     }
 
+    /**
+     * Create a new haplotype with bases
+     *
+     * Requires bases.length == cigar.getReadLength()
+     *
+     * @param bases a non-null array of bases
+     * @param isRef is this the reference haplotype?
+     * @param alignmentStartHapwrtRef offset of this haplotype w.r.t. the reference
+     * @param cigar the cigar that maps this haplotype to the reference sequence
+     */
     public Haplotype( final byte[] bases, final boolean isRef, final int alignmentStartHapwrtRef, final Cigar cigar) {
         this(bases, isRef);
         this.alignmentStartHapwrtRef = alignmentStartHapwrtRef;
-        this.cigar = cigar;
+        setCigar(cigar);
     }
 
     /**
@@ -127,6 +144,11 @@ public class Haplotype extends Allele {
         this.alignmentStartHapwrtRef = alignmentStartHapwrtRef;
     }
 
+    /**
+     * Get the cigar for this haplotype.  Note that cigar is guarenteed to be consolidated
+     * in that multiple adjacent equal operates will have been merged
+     * @return the cigar of this haplotype
+     */
     public Cigar getCigar() {
         return cigar;
     }
@@ -144,8 +166,17 @@ public class Haplotype extends Allele {
         return AlignmentUtils.consolidateCigar(extendedHaplotypeCigar);
     }
 
+    /**
+     * Set the cigar of this haplotype to cigar.
+     *
+     * Note that this function consolidates the cigar, so that 1M1M1I1M1M => 2M1I2M
+     *
+     * @param cigar a cigar whose readLength == length()
+     */
     public void setCigar( final Cigar cigar ) {
-        this.cigar = cigar;
+        this.cigar = AlignmentUtils.consolidateCigar(cigar);
+        if ( this.cigar.getReadLength() != length() )
+            throw new IllegalArgumentException("Read length " + length() + " not equal to the read length of the cigar " + cigar.getReadLength());
     }
 
     public boolean isArtificialHaplotype() {
