@@ -64,7 +64,6 @@ public class GATKSAMRecordUnitTest extends BaseTest {
         for (int i = 0; i < reducedRead.getReadLength(); i++) {
             Assert.assertEquals(reducedRead.getReducedCount(i), REDUCED_READ_COUNTS[i], "Reduced read count not set to the expected value at " + i);
         }
-        Assert.assertEquals(reducedRead.isStrandless(), false, "Reduced reads don't have meaningful strandedness information");
     }
 
     @Test

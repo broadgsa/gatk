@@ -72,7 +72,7 @@ public class CallableLociIntegrationTest extends WalkerTest {
     public void testWithReducedRead() {
         String gatk_args = reduceReadArgs + " -L 20:10,000,000-11,000,000 -minDepth 10 -maxDepth 100 --minBaseQuality 10 --minMappingQuality 20 -summary %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 1,
-                Arrays.asList("684069ffe94a1175051066ed53f0fd9d", "ebc310cf734d98e26d2d83e16b1144d1"));
+                Arrays.asList("69fc303c888fd1fa2937b9518dc82f9e", "f512a85c373087ce03a24ab0f98522c0"));
         executeTest("CallableLoci with ReducedRead", spec);
     }
 
