@@ -37,15 +37,13 @@ import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.variant.variantcontext.Allele;
 
-import java.io.Serializable;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 
 public class Haplotype extends Allele {
     private GenomeLoc genomeLocation = null;
-    private EventExtractor eventMap = null;
+    private EventMap eventMap = null;
     private Cigar cigar;
     private int alignmentStartHapwrtRef;
     private Event artificialEvent = null;
@@ -115,11 +113,11 @@ public class Haplotype extends Allele {
         return Arrays.hashCode(getBases());
     }
 
-    public EventExtractor getEventMap() {
+    public EventMap getEventMap() {
         return eventMap;
     }
 
-    public void setEventMap( final EventExtractor eventMap ) {
+    public void setEventMap( final EventMap eventMap ) {
         this.eventMap = eventMap;
     }
 
@@ -219,25 +217,6 @@ public class Haplotype extends Allele {
         return new Haplotype(newHaplotypeBases, new Event(refAllele, altAllele, genomicInsertLocation));
     }
 
-    public static class HaplotypeBaseComparator implements Comparator<Haplotype>, Serializable {
-        @Override
-        public int compare( final Haplotype hap1, final Haplotype hap2 ) {
-            return compareHaplotypeBases(hap1, hap2);
-        }
-
-        public static int compareHaplotypeBases(final Haplotype hap1, final Haplotype hap2) {
-            final byte[] arr1 = hap1.getBases();
-            final byte[] arr2 = hap2.getBases();
-            // compares byte arrays using lexical ordering
-            final int len = Math.min(arr1.length, arr2.length);
-            for( int iii = 0; iii < len; iii++ ) {
-                final int cmp = arr1[iii] - arr2[iii];
-                if (cmp != 0) { return cmp; }
-            }
-            return arr2.length - arr1.length;
-        }
-    }
-
     public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(final List<Allele> alleleList,
                                                                                final int startPos,
                                                                                final ReferenceContext ref,
@@ -315,16 +294,5 @@ public class Haplotype extends Allele {
      */
     public void setScore(double score) {
         this.score = this.isReference() ? Double.MAX_VALUE : score;
-    }
-
-    /**
-     * A comparator that sorts haplotypes in decreasing order of score, so that the best supported
-     * haplotypes are at the top
-     */
-    public static class ScoreComparator implements Comparator<Haplotype> {
-        @Override
-        public int compare(Haplotype o1, Haplotype o2) {
-            return -1 * Double.valueOf(o1.getScore()).compareTo(o2.getScore());
-        }
     }
 }

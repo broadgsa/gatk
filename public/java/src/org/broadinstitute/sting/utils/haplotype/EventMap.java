@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2012 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils.haplotype;
 
@@ -35,7 +35,6 @@ import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
-import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.variantcontext.Allele;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
@@ -49,39 +48,40 @@ import java.util.*;
  * Date: 3/27/13
  * Time: 8:35 AM
  */
-public class EventExtractor extends TreeMap<Integer, VariantContext> {
-    private final static Logger logger = Logger.getLogger(EventExtractor.class);
-    private final static boolean mergeClumpedEvents = true;
+public class EventMap extends TreeMap<Integer, VariantContext> {
+    private final static Logger logger = Logger.getLogger(EventMap.class);
     protected final static int MIN_NUMBER_OF_EVENTS_TO_COMBINE_INTO_BLOCK_SUBSTITUTION = 3;
     public final static Allele SYMBOLIC_UNASSEMBLED_EVENT_ALLELE = Allele.create("<UNASSEMBLED_EVENT>", false);
 
-    public EventExtractor( final Haplotype haplotype, final byte[] ref, final GenomeLoc refLoc, final String sourceNameToAdd ) {
+    private final Haplotype haplotype;
+    private final byte[] ref;
+    private final GenomeLoc refLoc;
+    private final String sourceNameToAdd;
+
+    public EventMap(final Haplotype haplotype, final byte[] ref, final GenomeLoc refLoc, final String sourceNameToAdd) {
         super();
+        this.haplotype = haplotype;
+        this.ref = ref;
+        this.refLoc = refLoc;
+        this.sourceNameToAdd = sourceNameToAdd;
 
-        processCigarForInitialEvents(haplotype, ref, refLoc, sourceNameToAdd);
-        if ( mergeClumpedEvents && getNumberOfEvents() >= MIN_NUMBER_OF_EVENTS_TO_COMBINE_INTO_BLOCK_SUBSTITUTION) {
-            replaceClumpedEventsWithBlockSubstititions(haplotype, ref, refLoc);
-        }
+        processCigarForInitialEvents();
     }
 
     /**
      * For testing.  Let's you set up a explicit configuration without having to process a haplotype and reference
      * @param stateForTesting
      */
-    protected EventExtractor(final Map<Integer, VariantContext> stateForTesting) {
-        super(stateForTesting);
-    }
-
-    /**
-     * For testing.  Let's you set up a explicit configuration without having to process a haplotype and reference
-     * @param stateForTesting
-     */
-    protected EventExtractor(final Collection<VariantContext> stateForTesting) {
+    protected EventMap(final Collection<VariantContext> stateForTesting) {
+        haplotype = null;
+        ref = null;
+        refLoc = null;
+        sourceNameToAdd = null;
         for ( final VariantContext vc : stateForTesting )
             addVC(vc);
     }
 
-    protected void processCigarForInitialEvents(final Haplotype haplotype, final byte[] ref, final GenomeLoc refLoc, final String sourceNameToAdd) {
+    protected void processCigarForInitialEvents() {
         final Cigar cigar = haplotype.getCigar();
         final byte[] alignment = haplotype.getBases();
 
@@ -172,11 +172,22 @@ public class EventExtractor extends TreeMap<Integer, VariantContext> {
         }
     }
 
-    private void addVC(final VariantContext vc) {
+    /**
+     * Add VariantContext vc to this map, merging events with the same start sites if necessary
+     * @param vc the variant context to add
+     */
+    protected void addVC(final VariantContext vc) {
         addVC(vc, true);
     }
 
-    private void addVC(final VariantContext vc, final boolean merge) {
+    /**
+     * Add VariantContext vc to this map
+     * @param vc the variant context to add
+     * @param merge should we attempt to merge it with an already existing element, or should we throw an error in that case?
+     */
+    protected void addVC(final VariantContext vc, final boolean merge) {
+        if ( vc == null ) throw new IllegalArgumentException("vc cannot be null");
+
         if ( containsKey(vc.getStart()) ) {
             if ( merge ) {
                 final VariantContext prev = get(vc.getStart());
@@ -188,20 +199,46 @@ public class EventExtractor extends TreeMap<Integer, VariantContext> {
             put(vc.getStart(), vc);
     }
 
-    private VariantContext makeBlock(final VariantContext vc1, final VariantContext vc2) {
-        if ( ! vc1.isSNP() ) throw new IllegalArgumentException("vc1 must be a snp");
+    /**
+     * Create a block substitution out of two variant contexts that start at the same position
+     *
+     * vc1 can be SNP, and vc2 can then be either a insertion or deletion.
+     * If vc1 is an indel, then vc2 must be the opposite type (vc1 deletion => vc2 must be an insertion)
+     *
+     * @param vc1 the first variant context we want to merge
+     * @param vc2 the second
+     * @return a block substitution that represents the composite substitution implied by vc1 and vc2
+     */
+    protected VariantContext makeBlock(final VariantContext vc1, final VariantContext vc2) {
+        if ( vc1.getStart() != vc2.getStart() )  throw new IllegalArgumentException("vc1 and 2 must have the same start but got " + vc1 + " and " + vc2);
+        if ( ! vc1.isBiallelic() ) throw new IllegalArgumentException("vc1 must be biallelic");
+        if ( ! vc1.isSNP() ) {
+            if ( ! ((vc1.isSimpleDeletion() && vc2.isSimpleInsertion()) || (vc1.isSimpleInsertion() && vc2.isSimpleDeletion())))
+                throw new IllegalArgumentException("Can only merge single insertion with deletion (or vice versa) but got " + vc1 + " merging with " + vc2);
+        } else if ( vc2.isSNP() ) {
+            throw new IllegalArgumentException("vc1 is " + vc1 + " but vc2 is a SNP, which implies there's been some terrible bug in the cigar " + vc2);
+        }
 
-        Allele ref, alt;
+        final Allele ref, alt;
         final VariantContextBuilder b = new VariantContextBuilder(vc1);
-        if ( vc1.getReference().equals(vc2.getReference()) ) {
-            // we've got an insertion, so we just update the alt to have the prev alt
-            ref = vc1.getReference();
-            alt = Allele.create(vc1.getAlternateAllele(0).getDisplayString() + vc2.getAlternateAllele(0).getDisplayString().substring(1), false);
+        if ( vc1.isSNP() ) {
+            // we have to repair the first base, so SNP case is special cased
+            if ( vc1.getReference().equals(vc2.getReference()) ) {
+                // we've got an insertion, so we just update the alt to have the prev alt
+                ref = vc1.getReference();
+                alt = Allele.create(vc1.getAlternateAllele(0).getDisplayString() + vc2.getAlternateAllele(0).getDisplayString().substring(1), false);
+            } else {
+                // we're dealing with a deletion, so we patch the ref
+                ref = vc2.getReference();
+                alt = vc1.getAlternateAllele(0);
+                b.stop(vc2.getEnd());
+            }
         } else {
-            // we're dealing with a deletion, so we patch the ref
-            ref = vc2.getReference();
-            alt = vc1.getAlternateAllele(0);
-            b.stop(vc2.getEnd());
+            final VariantContext insertion = vc1.isSimpleInsertion() ? vc1 : vc2;
+            final VariantContext deletion  = vc1.isSimpleInsertion() ? vc2 : vc1;
+            ref = deletion.getReference();
+            alt = insertion.getAlternateAllele(0);
+            b.stop(deletion.getEnd());
         }
 
         return b.alleles(Arrays.asList(ref, alt)).make();
@@ -209,24 +246,26 @@ public class EventExtractor extends TreeMap<Integer, VariantContext> {
 
     // TODO -- warning this is an O(N^3) algorithm because I'm just lazy.  If it's valuable we need to reengineer it
     @Requires("getNumberOfEvents() > 0")
-    protected void replaceClumpedEventsWithBlockSubstititions(final Haplotype haplotype, final byte[] ref, final GenomeLoc refLoc) {
-        int lastStart = -1;
-        for ( boolean foundOne = true; foundOne; ) {
-            foundOne = false;
-            for ( final VariantContext vc : getVariantContexts() ) {
-                if ( vc.getStart() > lastStart ) {
-                    lastStart = vc.getStart();
-                    final List<VariantContext> neighborhood = getNeighborhood(vc, 10);
-                    if ( updateToBlockSubstitutionIfBetter(neighborhood, haplotype, ref, refLoc) ) {
-                        foundOne = true;
-                        break;
+    protected void replaceClumpedEventsWithBlockSubstititions() {
+        if ( getNumberOfEvents() >= MIN_NUMBER_OF_EVENTS_TO_COMBINE_INTO_BLOCK_SUBSTITUTION) {
+            int lastStart = -1;
+            for ( boolean foundOne = true; foundOne; ) {
+                foundOne = false;
+                for ( final VariantContext vc : getVariantContexts() ) {
+                    if ( vc.getStart() > lastStart ) {
+                        lastStart = vc.getStart();
+                        final List<VariantContext> neighborhood = getNeighborhood(vc, 10);
+                        if ( updateToBlockSubstitutionIfBetter(neighborhood) ) {
+                            foundOne = true;
+                            break;
+                        }
                     }
                 }
             }
         }
     }
 
-    protected boolean updateToBlockSubstitutionIfBetter(final List<VariantContext> neighbors, final Haplotype haplotype, final byte[] ref, final GenomeLoc refLoc) {
+    protected boolean updateToBlockSubstitutionIfBetter(final List<VariantContext> neighbors) {
         if (neighbors.size() < MIN_NUMBER_OF_EVENTS_TO_COMBINE_INTO_BLOCK_SUBSTITUTION)
             return false;
         // TODO -- need more tests to decide if this is really so good
@@ -284,24 +323,70 @@ public class EventExtractor extends TreeMap<Integer, VariantContext> {
         return neighbors;
     }
 
+    /**
+     * Get the starting positions of events in this event map
+     * @return
+     */
     public Set<Integer> getStartPositions() {
         return keySet();
     }
 
+    /**
+     * Get the variant contexts in order of start position in this event map
+     * @return
+     */
     public Collection<VariantContext> getVariantContexts() {
         return values();
     }
 
+    /**
+     * How many events do we have?
+     * @return
+     */
     public int getNumberOfEvents() {
         return size();
     }
 
     @Override
     public String toString() {
-        final StringBuilder b = new StringBuilder("EventExtractor{");
+        final StringBuilder b = new StringBuilder("EventMap{");
         for ( final VariantContext vc : getVariantContexts() )
             b.append(String.format("%s:%d-%d %s,", vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles()));
         b.append("}");
         return b.toString();
+    }
+
+    /**
+     * Build event maps for each haplotype, returning the sorted set of all of the starting positions of all
+     * events across all haplotypes
+     *
+     * @param haplotypes a list of haplotypes
+     * @param ref the reference bases
+     * @param refLoc the span of the reference bases
+     * @param debug if true, we'll emit debugging information during this operation
+     * @return a sorted set of start positions of all events among all haplotypes
+     */
+    public static TreeSet<Integer> buildEventMapsForHaplotypes( final List<Haplotype> haplotypes,
+                                                                final byte[] ref,
+                                                                final GenomeLoc refLoc,
+                                                                final boolean debug) {
+        // Using the cigar from each called haplotype figure out what events need to be written out in a VCF file
+        final TreeSet<Integer> startPosKeySet = new TreeSet<Integer>();
+        int hapNumber = 0;
+
+        if( debug ) logger.info("=== Best Haplotypes ===");
+        for( final Haplotype h : haplotypes ) {
+            // Walk along the alignment and turn any difference from the reference into an event
+            h.setEventMap( new EventMap( h, ref, refLoc, "HC" + hapNumber++ ) );
+            startPosKeySet.addAll(h.getEventMap().getStartPositions());
+
+            if( debug ) {
+                logger.info(h.toString());
+                logger.info("> Cigar = " + h.getCigar());
+                logger.info(">> Events = " + h.getEventMap());
+            }
+        }
+
+        return startPosKeySet;
     }
 }

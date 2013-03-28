@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2012 The Broad Institute
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+* Copyright (c) 2012 The Broad Institute
+* 
+* Permission is hereby granted, free of charge, to any person
+* obtaining a copy of this software and associated documentation
+* files (the "Software"), to deal in the Software without
+* restriction, including without limitation the rights to use,
+* copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the
+* Software is furnished to do so, subject to the following
+* conditions:
+* 
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 package org.broadinstitute.sting.utils.haplotype;
 
@@ -31,16 +31,14 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.UnvalidatingGenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
-import org.broadinstitute.variant.variantcontext.Allele;
 import org.broadinstitute.variant.variantcontext.VariantContext;
-import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.*;
 
-public class EventExtractorUnitTest extends BaseTest {
+public class EventMapUnitTest extends BaseTest {
     private final static String CHR = "20";
     private final static String NAME = "foo";
     
@@ -71,9 +69,9 @@ public class EventExtractorUnitTest extends BaseTest {
                                 vcs.add(vc);
                             }
 
-                            tests.add(new Object[]{new EventExtractor(new LinkedList<VariantContext>(allVCS)), Collections.emptyList()});
+                            tests.add(new Object[]{new EventMap(new LinkedList<VariantContext>(allVCS)), Collections.emptyList()});
                             allVCS.addAll(vcs);
-                            tests.add(new Object[]{new EventExtractor(allVCS), vcs});
+                            tests.add(new Object[]{new EventMap(allVCS), vcs});
                         }
                     }
                 }
@@ -86,12 +84,12 @@ public class EventExtractorUnitTest extends BaseTest {
     /**
      * Example testng test using MyDataProvider
      */
-    @Test(dataProvider = "MyDataProvider", enabled = true) // TODO == reenable
-    public void testGetNeighborhood(final EventExtractor eventExtractor, final List<VariantContext> expectedNeighbors) {
+    @Test(dataProvider = "MyDataProvider", enabled = true)
+    public void testGetNeighborhood(final EventMap eventMap, final List<VariantContext> expectedNeighbors) {
         final VariantContext leftOfNeighors = expectedNeighbors.isEmpty() ? null : expectedNeighbors.get(0);
 
-        for ( final VariantContext vc : eventExtractor.getVariantContexts() ) {
-            final List<VariantContext> n = eventExtractor.getNeighborhood(vc, 5);
+        for ( final VariantContext vc : eventMap.getVariantContexts() ) {
+            final List<VariantContext> n = eventMap.getNeighborhood(vc, 5);
             if ( leftOfNeighors == vc )
                 Assert.assertEquals(n, expectedNeighbors);
             else if ( ! expectedNeighbors.contains(vc) )
@@ -103,7 +101,7 @@ public class EventExtractorUnitTest extends BaseTest {
     public Object[][] makeBlockSubstitutionsData() {
         List<Object[]> tests = new ArrayList<Object[]>();
 
-        for ( int size = EventExtractor.MIN_NUMBER_OF_EVENTS_TO_COMBINE_INTO_BLOCK_SUBSTITUTION; size < 10; size++ ) {
+        for ( int size = EventMap.MIN_NUMBER_OF_EVENTS_TO_COMBINE_INTO_BLOCK_SUBSTITUTION; size < 10; size++ ) {
             final String ref = Utils.dupString("A", size);
             final String alt = Utils.dupString("C", size);
             tests.add(new Object[]{ref, alt, size + "M", GATKVariantContextUtils.makeFromAlleles(NAME, CHR, 1, Arrays.asList(ref, alt))});
@@ -131,7 +129,8 @@ public class EventExtractorUnitTest extends BaseTest {
     public void testBlockSubstitutionsData(final String refBases, final String haplotypeBases, final String cigar, final VariantContext expectedBlock) {
         final Haplotype hap = new Haplotype(haplotypeBases.getBytes(), false, 0, TextCigarCodec.getSingleton().decode(cigar));
         final GenomeLoc loc = new UnvalidatingGenomeLoc(CHR, 0, 1, refBases.length());
-        final EventExtractor ee = new EventExtractor(hap, refBases.getBytes(), loc, NAME);
+        final EventMap ee = new EventMap(hap, refBases.getBytes(), loc, NAME);
+        ee.replaceClumpedEventsWithBlockSubstititions();
         Assert.assertEquals(ee.getNumberOfEvents(), 1);
         final VariantContext actual = ee.getVariantContexts().iterator().next();
         Assert.assertTrue(GATKVariantContextUtils.equalSites(actual, expectedBlock), "Failed with " + actual);
@@ -142,11 +141,11 @@ public class EventExtractorUnitTest extends BaseTest {
         List<Object[]> tests = new ArrayList<Object[]>();
 
         tests.add(new Object[]{"TT", "GCT", "1M1I1M", Arrays.asList(Arrays.asList("T", "GC"))});
-        tests.add(new Object[]{"GCT", "TT", "1M1D", Arrays.asList(Arrays.asList("GC", "T"))});
+        tests.add(new Object[]{"GCT", "TT", "1M1D1M", Arrays.asList(Arrays.asList("GC", "T"))});
         tests.add(new Object[]{"TT", "GCCT", "1M2I1M", Arrays.asList(Arrays.asList("T", "GCC"))});
-        tests.add(new Object[]{"GCCT", "TT", "1M2D", Arrays.asList(Arrays.asList("GCC", "T"))});
-        tests.add(new Object[]{"AAGCCT", "AATT", "3M2D", Arrays.asList(Arrays.asList("GCC", "T"))});
-        tests.add(new Object[]{"AAGCCT", "GATT", "3M2D", Arrays.asList(Arrays.asList("A", "G"), Arrays.asList("GCC", "T"))});
+        tests.add(new Object[]{"GCCT", "TT", "1M2D1M", Arrays.asList(Arrays.asList("GCC", "T"))});
+        tests.add(new Object[]{"AAGCCT", "AATT", "3M2D1M", Arrays.asList(Arrays.asList("GCC", "T"))});
+        tests.add(new Object[]{"AAGCCT", "GATT", "3M2D1M", Arrays.asList(Arrays.asList("A", "G"), Arrays.asList("GCC", "T"))});
         tests.add(new Object[]{"AAAAA", "AGACA", "5M", Arrays.asList(Arrays.asList("A", "G"), Arrays.asList("A", "C"))});
 
         return tests.toArray(new Object[][]{});
@@ -155,11 +154,12 @@ public class EventExtractorUnitTest extends BaseTest {
     /**
      * Example testng test using MyDataProvider
      */
-    @Test(dataProvider = "AdjacentSNPIndelTest", enabled = true)
+    @Test(dataProvider = "AdjacentSNPIndelTest")
     public void testAdjacentSNPIndelTest(final String refBases, final String haplotypeBases, final String cigar, final List<List<String>> expectedAlleles) {
         final Haplotype hap = new Haplotype(haplotypeBases.getBytes(), false, 0, TextCigarCodec.getSingleton().decode(cigar));
         final GenomeLoc loc = new UnvalidatingGenomeLoc(CHR, 0, 1, refBases.length());
-        final EventExtractor ee = new EventExtractor(hap, refBases.getBytes(), loc, NAME);
+        final EventMap ee = new EventMap(hap, refBases.getBytes(), loc, NAME);
+        ee.replaceClumpedEventsWithBlockSubstititions();
         Assert.assertEquals(ee.getNumberOfEvents(), expectedAlleles.size());
         final List<VariantContext> actuals = new ArrayList<VariantContext>(ee.getVariantContexts());
         for ( int i = 0; i < ee.getNumberOfEvents(); i++ ) {
@@ -167,5 +167,37 @@ public class EventExtractorUnitTest extends BaseTest {
             Assert.assertEquals(actual.getReference().getDisplayString(), expectedAlleles.get(i).get(0));
             Assert.assertEquals(actual.getAlternateAllele(0).getDisplayString(), expectedAlleles.get(i).get(1));
         }
+    }
+
+    @DataProvider(name = "MakeBlockData")
+    public Object[][] makeMakeBlockData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        tests.add(new Object[]{Arrays.asList("A", "G"), Arrays.asList("AGT", "A"), Arrays.asList("AGT", "G")});
+        tests.add(new Object[]{Arrays.asList("A", "G"), Arrays.asList("A", "AGT"), Arrays.asList("A", "GGT")});
+
+        tests.add(new Object[]{Arrays.asList("AC", "A"), Arrays.asList("A", "AGT"), Arrays.asList("AC", "AGT")});
+        tests.add(new Object[]{Arrays.asList("ACGTA", "A"), Arrays.asList("A", "AG"), Arrays.asList("ACGTA", "AG")});
+        tests.add(new Object[]{Arrays.asList("AC", "A"), Arrays.asList("A", "AGCGT"), Arrays.asList("AC", "AGCGT")});
+        tests.add(new Object[]{Arrays.asList("A", "ACGTA"), Arrays.asList("AG", "A"), Arrays.asList("AG", "ACGTA")});
+        tests.add(new Object[]{Arrays.asList("A", "AC"), Arrays.asList("AGCGT", "A"), Arrays.asList("AGCGT", "AC")});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    /**
+     * Example testng test using MyDataProvider
+     */
+    @Test(dataProvider = "MakeBlockData", enabled = true)
+    public void testGetNeighborhood(final List<String> firstAlleles, final List<String> secondAlleles, final List<String> expectedAlleles) {
+        final VariantContext vc1 = GATKVariantContextUtils.makeFromAlleles("x", "20", 10, firstAlleles);
+        final VariantContext vc2 = GATKVariantContextUtils.makeFromAlleles("x", "20", 10, secondAlleles);
+        final VariantContext expected = GATKVariantContextUtils.makeFromAlleles("x", "20", 10, expectedAlleles);
+
+        final EventMap eventMap = new EventMap(Collections.<VariantContext>emptyList());
+        final VariantContext block = eventMap.makeBlock(vc1, vc2);
+
+        Assert.assertEquals(block.getStart(), expected.getStart());
+        Assert.assertEquals(block.getAlleles(), expected.getAlleles());
     }
 }
