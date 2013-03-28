@@ -88,6 +88,14 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     @Argument(fullName="activeRegionExtension", shortName="activeRegionExtension", doc="The active region extension; if not provided defaults to Walker annotated default", required = false)
     public Integer activeRegionExtension = null;
 
+    /**
+     * For the active region walker to treat all bases as active.  Useful for debugging when you want to force something like
+     * the HaplotypeCaller to process a specific interval you provide the GATK
+     */
+    @Advanced
+    @Argument(fullName="forceActive", shortName="forceActive", doc="If provided, all bases will be tagged as active", required = false)
+    public boolean forceActive = false;
+
     @Advanced
     @Argument(fullName="activeRegionMaxSize", shortName="activeRegionMaxSize", doc="The active region maximum size; if not provided defaults to Walker annotated default", required = false)
     public Integer activeRegionMaxSize = null;

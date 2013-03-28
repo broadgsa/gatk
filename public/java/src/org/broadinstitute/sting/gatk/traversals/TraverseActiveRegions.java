@@ -487,6 +487,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
                                    final AlignmentContext locus) {
         // must be called, even if we won't use the result, to satisfy walker contract
         final ActivityProfileState state = walker.isActive( tracker, refContext, locus );
+        if ( walker.forceActive) state.isActiveProb = 1.0;
         if ( ! walkerHasPresetRegions ) {
             activityProfile.add(state);
         }
