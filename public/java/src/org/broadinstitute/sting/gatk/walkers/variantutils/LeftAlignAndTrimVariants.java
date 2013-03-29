@@ -25,9 +25,12 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
@@ -38,8 +41,11 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.variant.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
@@ -55,14 +61,15 @@ import java.util.*;
  * Left-aligns indels from a variants file.
  *
  * <p>
- * LeftAlignVariants is a tool that takes a VCF file and left-aligns the indels inside it.  The same indel can often be
+ * LeftAlignAndTrimVariants is a tool that takes a VCF file and left-aligns the indels inside it.  The same indel can often be
  * placed at multiple positions and still represent the same haplotype.  While the standard convention with VCF is to
  * place an indel at the left-most position this doesn't always happen, so this tool can be used to left-align them.
  * Note that this tool cannot handle anything other than bi-allelic, simple indels.  Complex events are written out unchanged.
+ * Optionally, the tool will also trim common bases from indels, leaving them with a minimum representation.
  *
  * <h3>Input</h3>
  * <p>
- * A variant set to left-align.
+ * A variant set to left-align and trim.
  * </p>
  *
  * <h3>Output</h3>
@@ -74,24 +81,39 @@ import java.util.*;
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
- *   -T LeftAlignVariants \
+ *   -T LeftAlignAndTrimVariants \
  *   --variant input.vcf \
  *   -o output.vcf
  * </pre>
  *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
-@Reference(window=@Window(start=-200,stop=200))
-public class LeftAlignVariants extends RodWalker<Integer, Integer> {
+@Reference(window=@Window(start=-200,stop=200))    // WARNING: if this changes,MAX_INDEL_LENGTH needs to change as well!
+public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
+
+    /**
+     * If this argument is set, bases common to all alleles will be removed, leaving only their minimal representation.
+     */
+    @Argument(fullName="trimAlleles", shortName="trim", doc="Trim alleles to remove bases common to all of them", required=false)
+    protected boolean trimAlleles = false;
+
+    /**
+     * If this argument is set, split multiallelic records and left-align individual alleles.
+     * If this argument is not set, multiallelic records are not attempted to left-align and will be copied as is.
+     */
+    @Argument(fullName="splitMultiallelics", shortName="split", doc="Split multiallelic records and left-align individual alleles", required=false)
+    protected boolean splitMultiallelics = false;
+
 
     @Output(doc="File to which variants should be written")
     protected VariantContextWriter baseWriter = null;
 
     private VariantContextWriter writer;
 
+    private static final int MAX_INDEL_LENGTH = 200; // needs to match reference window size!
     public void initialize() {
         String trackName = variantCollection.variants.getName();
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(trackName));
@@ -110,8 +132,25 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
 
         int changedSites = 0;
-        for ( VariantContext vc : VCs )
-            changedSites += alignAndWrite(vc, ref);
+        for ( final VariantContext vc : VCs ) {
+            // split first into biallelics, and optionally trim alleles to minimal representation
+            Pair<VariantContext,Integer> result = new Pair<VariantContext, Integer>(vc,0); // default value
+            if (splitMultiallelics) {
+                final List<VariantContext> vcList = GATKVariantContextUtils.splitVariantContextToBiallelics( vc);
+                for (final VariantContext biallelicVC: vcList) {
+                    final VariantContext v = (trimAlleles ? GATKVariantContextUtils.trimAlleles(vc,true,true):biallelicVC);
+                    result = alignAndWrite(v, ref);
+
+                }
+            }
+            else if (trimAlleles)
+                result = alignAndWrite(GATKVariantContextUtils.trimAlleles(vc,true,true), ref);
+            else
+                result = alignAndWrite(vc,ref);
+
+            writer.add(result.first);
+            changedSites += result.second;
+        }
 
         return changedSites;
     }
@@ -127,18 +166,21 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         System.out.println(result + " variants were aligned");
     }
 
+    /**
+     * Main routine workhorse. By definitio, it will only take biallelic vc's. Splitting into multiple alleles has to be
+     * handled by calling routine.
+     * @param vc                  Input VC with variants to left align
+     * @param ref                 Reference context
+     * @return                    # of records left-aligned (0 or 1) and new VC.
+     */
+    @Requires({"vc != null","ref != null", "vc.isBiallelic() == true","ref.getBases().length>=2*MAX_INDEL_LENGTH+1"})
+    @Ensures({"result != null","result.first != null", "result.second >=0"})
+    protected static Pair<VariantContext,Integer>  alignAndWrite(final VariantContext vc, final ReferenceContext ref) {
 
-    private int alignAndWrite(VariantContext vc, final ReferenceContext ref) {
-        if ( vc.isBiallelic() && vc.isIndel() && !vc.isComplexIndel() )
-            return writeLeftAlignedIndel(vc, ref);
-        else {
-            writer.add(vc);
-            return 0;
+        final Pair<VariantContext, Integer> retValue =  new Pair<VariantContext, Integer>(vc,0);
+        if (!vc.isIndel() || vc.isComplexIndel() ) {
+            return retValue;
         }
-    }
-
-    private int writeLeftAlignedIndel(final VariantContext vc, final ReferenceContext ref) {
-        final byte[] refSeq = ref.getBases();
 
         // get the indel length
         final int indelLength;
@@ -147,13 +189,20 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         else
             indelLength = vc.getAlternateAllele(0).length() - 1;
 
-        if ( indelLength > 200 ) {
-            writer.add(vc);
-            return 0;
-        }
+        if ( indelLength > MAX_INDEL_LENGTH )
+            return retValue;
 
-        // create an indel haplotype
-        final int originalIndex = ref.getLocus().getStart() - ref.getWindow().getStart() + 1;
+         if (vc.getReference().getBases()[0] != vc.getAlternateAllele(0).getBases()[0])
+            return retValue;
+
+        final byte[] refSeq = ref.getBases();
+
+        // create an indel haplotype.
+        //
+        final int originalIndex = vc.getStart() - ref.getWindow().getStart() + 1;
+        if (originalIndex < 0 || originalIndex >= ref.getBases().length)
+            return retValue;
+
         final byte[] originalIndel = makeHaplotype(vc, refSeq, originalIndex, indelLength);
 
         // create a CIGAR string to represent the event
@@ -178,15 +227,24 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
             System.arraycopy((vc.isSimpleDeletion() ? refSeq : originalIndel), indelIndex, newBases, 1, indelLength);
             final Allele newAllele = Allele.create(newBases, vc.isSimpleDeletion());
             newVC = updateAllele(newVC, newAllele);
+            // overwrite default return value with new left-aligned VC
+            retValue.first = newVC;
+            retValue.second = 1;
 
-            writer.add(newVC);
-            return 1;
-        } else {
-            writer.add(vc);
-            return 0;
         }
+        return retValue;
     }
 
+    /**
+     * Make a haplotype from a given alt allele, using bases in input reference, index of an input reference
+     * @param vc                                Input VC - will use only alt allele from it
+     * @param ref                               Ref bases
+     * @param indexOfRef                        Index in ref where to create indel
+     * @param indelLength                       Indel length
+     * @return
+     */
+    @Requires({"vc != null","ref != null", "indexOfRef +indelLength < ref.length", "vc.getNAlleles() == 2"})
+    @Ensures("result != null")
     private static byte[] makeHaplotype(VariantContext vc, byte[] ref, int indexOfRef, int indelLength) {
         byte[] hap = new byte[ref.length + (indelLength * (vc.isSimpleDeletion() ? -1 : 1))];
 
