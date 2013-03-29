@@ -141,7 +141,7 @@ public class NWaySAMFileWriter implements SAMFileWriter {
     private void addWriter(SAMReaderID id , String outName, SAMFileHeader.SortOrder order, boolean presorted,
                            boolean indexOnTheFly, boolean generateMD5, SAMProgramRecord programRecord) {
         File f = new File(outName);
-        SAMFileHeader header = Utils.setupWriter(toolkit, toolkit.getSAMFileHeader(id), KEEP_ALL_PG_RECORDS, programRecord);
+        SAMFileHeader header = Utils.setupWriter(toolkit.getSAMFileHeader(id), programRecord);
         SAMFileWriterFactory factory = new SAMFileWriterFactory();
         factory.setCreateIndex(indexOnTheFly);
         factory.setCreateMd5File(generateMD5);
