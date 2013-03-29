@@ -102,15 +102,16 @@ public class ConcordanceMetrics {
     public void update(VariantContext eval, VariantContext truth) {
         overallSiteConcordance.update(eval,truth);
         Set<String> alleleTruth = new HashSet<String>(8);
-        alleleTruth.add(truth.getReference().getBaseString());
+        String truthRef = truth.getReference().getBaseString();
+        alleleTruth.add(truthRef);
         for ( Allele a : truth.getAlternateAlleles() ) {
             alleleTruth.add(a.getBaseString());
         }
         for ( String sample : perSampleGenotypeConcordance.keySet() ) {
             Genotype evalGenotype = eval.getGenotype(sample);
             Genotype truthGenotype = truth.getGenotype(sample);
-            perSampleGenotypeConcordance.get(sample).update(evalGenotype,truthGenotype,alleleTruth);
-            overallGenotypeConcordance.update(evalGenotype,truthGenotype,alleleTruth);
+            perSampleGenotypeConcordance.get(sample).update(evalGenotype,truthGenotype,alleleTruth,truthRef);
+            overallGenotypeConcordance.update(evalGenotype,truthGenotype,alleleTruth,truthRef);
         }
     }
 
@@ -170,16 +171,31 @@ public class ConcordanceMetrics {
         }
 
         @Requires({"eval!=null","truth != null","truthAlleles != null"})
-        public void update(Genotype eval, Genotype truth, Set<String> truthAlleles) {
-            // this is slow but correct
+        public void update(Genotype eval, Genotype truth, Set<String> truthAlleles, String truthRef) {
+            // this is slow but correct.
+
+            // NOTE: a reference call in "truth" is a special case, the eval can match *any* of the truth alleles
+            // that is, if the reference base is C, and a sample is C/C in truth, A/C, A/A, T/C, T/T will
+            // all match, so long as A and T are alleles in the truth callset.
             boolean matchingAlt = true;
-            if ( eval.isCalled() && truth.isCalled() ) {
+            if ( eval.isCalled() && truth.isCalled() && truth.isHomRef() ) {
                 // by default, no-calls "match" between alleles, so if
                 // one or both sites are no-call or unavailable, the alt alleles match
                 // otherwise, check explicitly: if the eval has an allele that's not ref, no-call, or present in truth
                 // the alt allele is mismatching - regardless of whether the genotype is correct.
                 for ( Allele evalAllele : eval.getAlleles() ) {
                     matchingAlt &= truthAlleles.contains(evalAllele.getBaseString());
+                }
+            } else if ( eval.isCalled() && truth.isCalled() ) {
+                // otherwise, the eval genotype has to match either the alleles in the truth genotype, or the truth reference allele
+                // todo -- this can be sped up by caching the truth allele sets
+                Set<String> genoAlleles = new HashSet<String>(3);
+                genoAlleles.add(truthRef);
+                for ( Allele truthGenoAl : truth.getAlleles() ) {
+                    genoAlleles.add(truthGenoAl.getBaseString());
+                }
+                for ( Allele evalAllele : eval.getAlleles() ) {
+                    matchingAlt &= genoAlleles.contains(evalAllele.getBaseString());
                 }
             }
 
