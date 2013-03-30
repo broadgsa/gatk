@@ -138,18 +138,22 @@ public class LeftAlignAndTrimVariants extends RodWalker<Integer, Integer> {
             if (splitMultiallelics) {
                 final List<VariantContext> vcList = GATKVariantContextUtils.splitVariantContextToBiallelics( vc);
                 for (final VariantContext biallelicVC: vcList) {
-                    final VariantContext v = (trimAlleles ? GATKVariantContextUtils.trimAlleles(vc,true,true):biallelicVC);
+                    final VariantContext v = (trimAlleles ? GATKVariantContextUtils.trimAlleles(biallelicVC,true,true):biallelicVC);
                     result = alignAndWrite(v, ref);
-
+                    writer.add(result.first);
+                    changedSites += result.second;
                 }
             }
-            else if (trimAlleles)
-                result = alignAndWrite(GATKVariantContextUtils.trimAlleles(vc,true,true), ref);
-            else
-                result = alignAndWrite(vc,ref);
+            else {
+                if (trimAlleles)
+                    result = alignAndWrite(GATKVariantContextUtils.trimAlleles(vc,true,true), ref);
+                else
+                    result = alignAndWrite(vc,ref);
+                writer.add(result.first);
+                changedSites += result.second;
 
-            writer.add(result.first);
-            changedSites += result.second;
+            }
+
         }
 
         return changedSites;
