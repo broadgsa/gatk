@@ -103,6 +103,40 @@ public class Haplotype extends Allele {
         this.genomeLocation = loc;
     }
 
+    /**
+     * Create a new Haplotype derived from this one that exactly spans the provided location
+     *
+     * Note that this haplotype must have a contain a genome loc for this operation to be successful.  If no
+     * GenomeLoc is contained than @throws an IllegalStateException
+     *
+     * Also loc must be fully contained within this Haplotype's genomeLoc.  If not an IllegalArgumentException is
+     * thrown.
+     *
+     * @param loc a location completely contained within this Haplotype's location
+     * @return a new Haplotype within only the bases spanning the provided location, or null for some reason the haplotype would be malformed if
+     */
+    public Haplotype trim(final GenomeLoc loc) {
+        if ( loc == null ) throw new IllegalArgumentException("Loc cannot be null");
+        if ( genomeLocation == null ) throw new IllegalStateException("Cannot trim a Haplotype without containing GenomeLoc");
+        if ( ! genomeLocation.containsP(loc) ) throw new IllegalArgumentException("Can only trim a Haplotype to a containing span.  My loc is " + genomeLocation + " but wanted trim to " + loc);
+        if ( getCigar() == null ) throw new IllegalArgumentException("Cannot trim haplotype without a cigar " + this);
+
+        final int newStart = loc.getStart() - this.genomeLocation.getStart();
+        final int newStop = newStart + loc.size() - 1;
+        final byte[] newBases = AlignmentUtils.getBasesCoveringRefInterval(newStart, newStop, getBases(), 0, getCigar());
+        final Cigar newCigar = AlignmentUtils.trimCigarByReference(getCigar(), newStart, newStop);
+
+        if ( newBases == null || AlignmentUtils.startsOrEndsWithInsertionOrDeletion(newCigar) )
+            // we cannot meaningfully chop down the haplotype, so return null
+            return null;
+
+        final Haplotype ret = new Haplotype(newBases, isReference());
+        ret.setCigar(newCigar);
+        ret.setGenomeLocation(loc);
+        ret.setAlignmentStartHapwrtRef(newStart + getAlignmentStartHapwrtRef());
+        return ret;
+    }
+
     @Override
     public boolean equals( Object h ) {
         return h instanceof Haplotype && Arrays.equals(getBases(), ((Haplotype) h).getBases());
@@ -124,6 +158,18 @@ public class Haplotype extends Allele {
     @Override
     public String toString() {
         return getDisplayString();
+    }
+
+    /**
+     * Get the span of this haplotype (may be null)
+     * @return a potentially null genome loc
+     */
+    public GenomeLoc getGenomeLocation() {
+        return genomeLocation;
+    }
+
+    public void setGenomeLocation(GenomeLoc genomeLocation) {
+        this.genomeLocation = genomeLocation;
     }
 
     public long getStartPosition() {
