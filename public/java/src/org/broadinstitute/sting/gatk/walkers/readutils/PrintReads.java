@@ -38,7 +38,6 @@ import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformersMode;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.baq.BAQ;
@@ -151,7 +150,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
 
     @Hidden
     @Argument(fullName = "no_pg_tag", shortName = "npt", doc ="", required = false)
-    private boolean NO_PG_TAG = false;
+    public boolean NO_PG_TAG = false;
 
     List<ReadTransformer> readTransformers = Collections.emptyList();
     private TreeSet<String> samplesToChoose = new TreeSet<String>();
@@ -166,7 +165,6 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
      * The initialize function.
      */
     public void initialize() {
-        final boolean keep_records = true;
         final GenomeAnalysisEngine toolkit = getToolkit();
 
         if  ( platform != null )
@@ -192,7 +190,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
 
         final boolean preSorted = true;
         if (getToolkit() != null && getToolkit().getArguments().BQSR_RECAL_FILE != null && !NO_PG_TAG ) {
-            Utils.setupWriter(out, toolkit, toolkit.getSAMFileHeader(), !preSorted, keep_records, this, PROGRAM_RECORD_NAME);
+            Utils.setupWriter(out, toolkit, toolkit.getSAMFileHeader(), !preSorted, this, PROGRAM_RECORD_NAME);
         }
 
     }
