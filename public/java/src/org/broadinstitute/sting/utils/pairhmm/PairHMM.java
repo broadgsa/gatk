@@ -28,7 +28,6 @@ package org.broadinstitute.sting.utils.pairhmm;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Arrays;
 
@@ -129,7 +128,7 @@ public abstract class PairHMM {
         if ( MathUtils.goodLog10Probability(result) )
             return result;
         else
-            throw new ReviewedStingException("PairHMM Log Probability cannot be greater than 0: " + String.format("haplotype: %s, read: %s, result: %f", Arrays.toString(haplotypeBases), Arrays.toString(readBases), result));
+            throw new IllegalStateException("PairHMM Log Probability cannot be greater than 0: " + String.format("haplotype: %s, read: %s, result: %f", Arrays.toString(haplotypeBases), Arrays.toString(readBases), result));
     }
 
     /**
@@ -185,8 +184,8 @@ public abstract class PairHMM {
      * @return the index of the first position in haplotype1 and haplotype2 where the byte isn't the same
      */
     public static int findFirstPositionWhereHaplotypesDiffer(final byte[] haplotype1, final byte[] haplotype2) {
-        if ( haplotype1 == null || haplotype1.length == 0 ) throw new IllegalArgumentException("Haplotype1 is bad " + haplotype1);
-        if ( haplotype2 == null || haplotype2.length == 0 ) throw new IllegalArgumentException("Haplotype2 is bad " + haplotype2);
+        if ( haplotype1 == null || haplotype1.length == 0 ) throw new IllegalArgumentException("Haplotype1 is bad " + Arrays.toString(haplotype1));
+        if ( haplotype2 == null || haplotype2.length == 0 ) throw new IllegalArgumentException("Haplotype2 is bad " + Arrays.toString(haplotype2));
 
         for( int iii = 0; iii < haplotype1.length && iii < haplotype2.length; iii++ ) {
             if( haplotype1[iii] != haplotype2[iii] ) {
