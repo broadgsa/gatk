@@ -285,4 +285,20 @@ public class IntervalIntegrationTest extends WalkerTest {
                 Arrays.asList(md5));
         executeTest("testSymbolicAlleles", spec);
     }
+
+    @Test
+    public void testIntersectionOfLexicographicallySortedIntervals() {
+        final String md5 = "18be9375e5a753f766616a51eb6131f0";
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                " -T CountLoci" +
+                " -I " + privateTestDir + "NA12878.4.snippet.bam" +
+                " -R " + b37KGReference +
+                " -L " + privateTestDir + "lexicographicallySortedIntervals.bed" +
+                " -L 4" +
+                " -isr INTERSECTION" +
+                " -o %s",
+                1, // just one output file
+                Arrays.asList(md5));
+        executeTest("testIntersectionOfLexicographicallySortedIntervals", spec);
+    }
 }
