@@ -105,8 +105,9 @@ public class EventMap extends TreeMap<Integer, VariantContext> {
                         if( BaseUtils.isRegularBase(refByte) ) {
                             insertionAlleles.add( Allele.create(refByte, true) );
                         }
-                        if( cigarIndex == 0 || cigarIndex == cigar.getCigarElements().size() - 1 ) { // if the insertion isn't completely resolved in the haplotype then make it a symbolic allele
-                            insertionAlleles.add( SYMBOLIC_UNASSEMBLED_EVENT_ALLELE );
+                        if( cigarIndex == 0 || cigarIndex == cigar.getCigarElements().size() - 1 ) {
+                            // if the insertion isn't completely resolved in the haplotype, skip it
+                            // note this used to emit SYMBOLIC_UNASSEMBLED_EVENT_ALLELE but that seems dangerous
                         } else {
                             byte[] insertionBases = new byte[]{};
                             insertionBases = ArrayUtils.add(insertionBases, ref[refPos - 1]); // add the padding base
