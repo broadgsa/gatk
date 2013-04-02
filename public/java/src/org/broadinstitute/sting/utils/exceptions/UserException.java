@@ -392,29 +392,25 @@ public class UserException extends ReviewedStingException {
         }
     }
 
-    public static class CouldNotCreateReferenceIndexFile extends UserException {
-        public CouldNotCreateReferenceIndexFile(File f, Exception e) {
-            this(f, "", e);
-        }
-
-        public CouldNotCreateReferenceIndexFile(File f, String message, Exception e) {
-            super(String.format("Index file %s does not exist but could not be created because: %s. ", f, message)
-                    + (e == null ? "" : getMessage(e)));
-        }
-    }
-
     public static class CannotHandleGzippedRef extends UserException {
-	public CannotHandleGzippedRef() {
-	    super("The GATK cannot process compressed (.gz) reference sequences. Please unzip the file and try again.  Sorry for the inconvenience.");
-	}
+        public CannotHandleGzippedRef() {
+            super("The GATK cannot process compressed (.gz) reference sequences. Please unzip the file and try again.  Sorry for the inconvenience.");
+        }
     }
 
-    public static class CouldNotCreateReferenceIndexFileBecauseOfLock extends UserException.CouldNotCreateReferenceIndexFile {
-        public CouldNotCreateReferenceIndexFileBecauseOfLock(File f) {
-            super(f, "could not be written because an exclusive file lock could not be obtained. " +
-                    "If you are running multiple instances of GATK, another GATK process is " +
-                    "probably creating this file now, and has locked it. Please wait until this process finishes " +
-                    "and try again.", null);
+    public static class MissingReferenceFaiFile extends UserException {
+        public MissingReferenceFaiFile( final File indexFile, final File fastaFile ) {
+            super(String.format("Fasta index file %s for reference %s does not exist. Please see %s for help creating it.",
+                                indexFile.getAbsolutePath(), fastaFile.getAbsolutePath(),
+                                HelpConstants.forumPost("discussion/1601/how-can-i-prepare-a-fasta-file-to-use-as-reference")));
+        }
+    }
+
+    public static class MissingReferenceDictFile extends UserException {
+        public MissingReferenceDictFile( final File dictFile, final File fastaFile ) {
+            super(String.format("Fasta dict file %s for reference %s does not exist. Please see %s for help creating it.",
+                                dictFile.getAbsolutePath(), fastaFile.getAbsolutePath(),
+                                HelpConstants.forumPost("discussion/1601/how-can-i-prepare-a-fasta-file-to-use-as-reference")));
         }
     }
 
