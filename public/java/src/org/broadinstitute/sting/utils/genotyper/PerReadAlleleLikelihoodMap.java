@@ -251,4 +251,62 @@ public class PerReadAlleleLikelihoodMap {
         }
         return sb.toString();
     }
+
+    /**
+     * Remove reads from this map that are poorly modelled w.r.t. their per allele likelihoods
+     *
+     * Goes through each read in this map, and if it is poorly modelled removes it from the map.
+     *
+     * @see #readIsPoorlyModelled(org.broadinstitute.sting.utils.sam.GATKSAMRecord, java.util.Collection, double)
+     * for more information about the poorly modelled test.
+     *
+     * @param maxErrorRatePerBase see equivalent parameter in #readIsPoorlyModelled
+     * @return the list of reads removed from this map because they are poorly modelled
+     */
+    public List<GATKSAMRecord> filterPoorlyModelledReads(final double maxErrorRatePerBase) {
+        final List<GATKSAMRecord> removedReads = new LinkedList<GATKSAMRecord>();
+        final Iterator<Map.Entry<GATKSAMRecord, Map<Allele, Double>>> it = likelihoodReadMap.entrySet().iterator();
+        while ( it.hasNext() ) {
+            final Map.Entry<GATKSAMRecord, Map<Allele, Double>> record = it.next();
+            if ( readIsPoorlyModelled(record.getKey(), record.getValue().values(), maxErrorRatePerBase) ) {
+                it.remove();
+                removedReads.add(record.getKey());
+            }
+        }
+
+        return removedReads;
+    }
+
+    /**
+     * Is this read poorly modelled by any of the alleles in this map?
+     *
+     * A read is poorly modeled when it's likelihood is below what would be expected for a read
+     * originating from one of the alleles given the maxErrorRatePerBase of the reads in general.
+     *
+     * This function makes a number of key assumptions.  First, that the likelihoods reflect the total likelihood
+     * of the read.  In other words, that the read would be fully explained by one of the alleles.  This means
+     * that the allele should be something like the full haplotype from which the read might originate.
+     *
+     * It further assumes that each error in the read occurs with likelihood of -3 (Q30 confidence per base).  So
+     * a read with a 10% error rate with Q30 bases that's 100 bp long we'd expect to see 10 real Q30 errors
+     * even against the true haplotype.  So for this read to be well modelled by at least one allele we'd expect
+     * a likelihood to be >= 10 * -3.
+     *
+     * @param read the read we want to evaluate
+     * @param log10Likelihoods a list of the log10 likelihoods of the read against a set of haplotypes.
+     * @param maxErrorRatePerBase the maximum error rate we'd expect for this read per base, in real space.  So
+     *                            0.01 means a 1% error rate
+     * @return true if none of the log10 likelihoods imply that the read truly originated from one of the haplotypes
+     */
+    protected boolean readIsPoorlyModelled(final GATKSAMRecord read, final Collection<Double> log10Likelihoods, final double maxErrorRatePerBase) {
+        final double maxErrorsForRead = Math.ceil(read.getReadLength() * maxErrorRatePerBase);
+        final double log10QualPerBase = -3.0;
+        final double log10MaxLikelihoodForTrueAllele = maxErrorsForRead * log10QualPerBase;
+
+        for ( final double log10Likelihood : log10Likelihoods )
+            if ( log10Likelihood >= log10MaxLikelihoodForTrueAllele )
+                return false;
+
+        return true;
+    }
 }
