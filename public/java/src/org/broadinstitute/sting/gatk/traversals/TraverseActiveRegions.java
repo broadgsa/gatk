@@ -70,7 +70,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
     protected final static Logger logger = Logger.getLogger(TraversalEngine.class);
     protected final static boolean LOG_READ_CARRYING = false;
 
-    // set by the tranversal
+    // set by the traversal
     private boolean walkerHasPresetRegions = false;
     private int activeRegionExtension = -1;
     private int maxRegionSize = -1;
@@ -112,7 +112,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         activityProfile = new BandPassActivityProfile(engine.getGenomeLocParser(), engine.getIntervals(), BandPassActivityProfile.MAX_FILTER_SIZE, bandPassSigma);
 
         if ( walkerHasPresetRegions ) {
-            // we load all of the preset locations into the
+            // we load all of the preset locations into the workQueue
             for ( final GenomeLoc loc : this.walker.getPresetActiveRegions()) {
                 workQueue.add(new ActiveRegion(loc, null, true, engine.getGenomeLocParser(), getActiveRegionExtension()));
             }
@@ -190,6 +190,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
      * @param read the read we want to test if it's already been seen in the last shard
      * @return true if read would have appeared in the last shard, false otherwise
      */
+    @Requires({"read != null"})
     private boolean appearedInLastShard(final GenomeLoc locOfLastReadAtTraversalStart, final GATKSAMRecord read) {
         if ( locOfLastReadAtTraversalStart == null )
             // we're in the first shard, so obviously the answer is no
@@ -285,6 +286,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
      *
      * @param read the last read we've seen during the traversal
      */
+    @Requires({"read != null"})
     protected void rememberLastReadLocation(final GATKSAMRecord read) {
         final GenomeLoc currentLocation = engine.getGenomeLocParser().createGenomeLoc(read);
         if ( spanOfLastReadSeen == null )
