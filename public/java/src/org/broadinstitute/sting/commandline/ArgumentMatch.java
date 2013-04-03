@@ -276,10 +276,10 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
      * @return A collection of the string representation of these value.
      */
     public List<ArgumentMatchValue> values() {
-        List<ArgumentMatchValue> values = new ArrayList<ArgumentMatchValue>();
-        for( ArgumentMatchSite site: sites.keySet() ) {
-            if( sites.get(site) != null )
-                values.addAll(sites.get(site));
+        final List<ArgumentMatchValue> values = new ArrayList<ArgumentMatchValue>();
+        for ( final List<ArgumentMatchValue> siteValue : sites.values() ) {
+            if ( siteValue != null )
+                values.addAll(siteValue);
         }
         return values;
     }
