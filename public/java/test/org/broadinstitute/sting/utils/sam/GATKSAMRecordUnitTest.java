@@ -134,4 +134,12 @@ public class GATKSAMRecordUnitTest extends BaseTest {
         read.setIsStrandless(true);
         read.setReadNegativeStrandFlag(true);
     }
+
+    @Test
+    public void testGetReducedCountsIsCorrect() {
+        final byte[] counts = reducedRead.getReducedReadCounts();
+        Assert.assertNotSame(counts, reducedRead.getAttribute(GATKSAMRecord.REDUCED_READ_CONSENSUS_TAG));
+        for ( int i = 0; i < counts.length; i++ )
+            Assert.assertEquals(counts[i], reducedRead.getReducedCount(i), "Reduced counts vector not equal to getReducedCount(i) at " + i);
+    }
 }
