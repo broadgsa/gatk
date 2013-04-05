@@ -186,18 +186,22 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
         if ( clusterWindow > 0 )
             hInfo.add(new VCFFilterHeaderLine(CLUSTERED_SNP_FILTER_NAME, "SNPs found in clusters"));
 
-        for ( VariantContextUtils.JexlVCMatchExp exp : filterExps )
-            hInfo.add(new VCFFilterHeaderLine(exp.name, exp.exp.toString()));
-        for ( VariantContextUtils.JexlVCMatchExp exp : genotypeFilterExps )
-            hInfo.add(new VCFFilterHeaderLine(exp.name, exp.exp.toString()));
-
         if ( genotypeFilterExps.size() > 0 )
             hInfo.add(VCFStandardHeaderLines.getFormatLine(VCFConstants.GENOTYPE_FILTER_KEY));
 
-        if ( mask.isBound() ) {
-            if (filterRecordsNotInMask)
-                hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Doesn't overlap a user-input mask"));
-            else hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
+        try {
+            for ( VariantContextUtils.JexlVCMatchExp exp : filterExps )
+                hInfo.add(new VCFFilterHeaderLine(exp.name, exp.exp.toString()));
+            for ( VariantContextUtils.JexlVCMatchExp exp : genotypeFilterExps )
+                hInfo.add(new VCFFilterHeaderLine(exp.name, exp.exp.toString()));
+
+            if ( mask.isBound() ) {
+                if (filterRecordsNotInMask)
+                    hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Doesn't overlap a user-input mask"));
+                else hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
+            }
+        } catch (IllegalArgumentException e) {
+            throw new UserException.BadInput(e.getMessage());
         }
 
         writer.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames)));

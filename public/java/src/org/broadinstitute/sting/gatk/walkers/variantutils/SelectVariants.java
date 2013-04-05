@@ -406,8 +406,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
 
         if (KEEP_ORIGINAL_CHR_COUNTS) {
-            headerLines.add(new VCFInfoHeaderLine("AC_Orig", 1, VCFHeaderLineType.Integer, "Original AC"));
-            headerLines.add(new VCFInfoHeaderLine("AF_Orig", 1, VCFHeaderLineType.Float, "Original AF"));
+            headerLines.add(new VCFInfoHeaderLine("AC_Orig", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Original AC"));
+            headerLines.add(new VCFInfoHeaderLine("AF_Orig", VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Original AF"));
             headerLines.add(new VCFInfoHeaderLine("AN_Orig", 1, VCFHeaderLineType.Integer, "Original AN"));
         }
         headerLines.addAll(Arrays.asList(ChromosomeCountConstants.descriptions));
@@ -670,7 +670,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         GenotypesContext newGC = sub.getGenotypes();
 
         // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs and AD (because they are no longer accurate)
-        if ( vc.getAlleles().size() != sub.getAlleles().size() )
+        final boolean lostAllelesInSelection = vc.getAlleles().size() != sub.getAlleles().size();
+        if ( lostAllelesInSelection )
             newGC = GATKVariantContextUtils.stripPLsAndAD(sub.getGenotypes());
 
         // if we have fewer samples in the selected VC than in the original VC, we need to strip out the MLE tags
@@ -697,15 +698,22 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         builder.genotypes(newGC);
 
-        addAnnotations(builder, sub);
+        addAnnotations(builder, sub, lostAllelesInSelection);
 
         return builder.make();
     }
 
-    private void addAnnotations(final VariantContextBuilder builder, final VariantContext originalVC) {
+    /*
+     * Add annotations to the new VC
+     *
+     * @param builder     the new VC to annotate
+     * @param originalVC  the original -- but post-selection -- VC
+     * @param lostAllelesInSelection  true if the original (pre-selection) VC has more alleles than the new one
+     */
+    private void addAnnotations(final VariantContextBuilder builder, final VariantContext originalVC, final boolean lostAllelesInSelection) {
         if ( fullyDecode ) return; // TODO -- annotations are broken with fully decoded data
 
-        if (KEEP_ORIGINAL_CHR_COUNTS) {
+        if ( KEEP_ORIGINAL_CHR_COUNTS && !lostAllelesInSelection ) {
             if ( originalVC.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
                 builder.attribute("AC_Orig", originalVC.getAttribute(VCFConstants.ALLELE_COUNT_KEY));
             if ( originalVC.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )
