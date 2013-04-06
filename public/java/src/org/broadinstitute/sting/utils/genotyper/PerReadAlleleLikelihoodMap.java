@@ -278,7 +278,7 @@ public class PerReadAlleleLikelihoodMap {
     }
 
     /**
-     * Is this read poorly modelled by any of the alleles in this map?
+     * Is this read poorly modelled by all of the alleles in this map?
      *
      * A read is poorly modeled when it's likelihood is below what would be expected for a read
      * originating from one of the alleles given the maxErrorRatePerBase of the reads in general.
