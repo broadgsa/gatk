@@ -470,7 +470,6 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
     private List<LocusShardDataProvider> createDataProviders(TraverseActiveRegions traverseActiveRegions, final Walker walker, List<GenomeLoc> intervals, File bamFile) {
         GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
         engine.setGenomeLocParser(genomeLocParser);
-        traverseActiveRegions.initialize(engine, walker);
 
         Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();
         SAMReaderID readerID = new SAMReaderID(bamFile, new Tags());
@@ -486,8 +485,10 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
                 new ArrayList<ReadTransformer>(),
                 false, (byte)30, false, true);
 
+        engine.setReadsDataSource(dataSource);
         final Set<String> samples = SampleUtils.getSAMFileSamples(dataSource.getHeader());
 
+        traverseActiveRegions.initialize(engine, walker);
         List<LocusShardDataProvider> providers = new ArrayList<LocusShardDataProvider>();
         for (Shard shard : dataSource.createShardIteratorOverIntervals(new GenomeLocSortedSet(genomeLocParser, intervals), new LocusShardBalancer())) {
             for (WindowMaker.WindowMakerIterator window : new WindowMaker(shard, genomeLocParser, dataSource.seek(shard), shard.getGenomeLocs(), samples)) {
