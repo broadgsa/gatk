@@ -112,6 +112,11 @@ public class SimplePositionalDownsampler<T extends SAMRecord> implements ReadsDo
         return numDiscardedItems;
     }
 
+    @Override
+    public int size() {
+        return finalizedReads.size() + reservoir.size();
+    }
+
     public void signalEndOfInput() {
         finalizeReservoir();
     }

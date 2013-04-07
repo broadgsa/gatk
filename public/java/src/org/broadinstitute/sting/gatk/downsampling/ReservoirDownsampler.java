@@ -156,6 +156,11 @@ public class ReservoirDownsampler<T extends SAMRecord> implements ReadsDownsampl
         return numDiscardedItems;
     }
 
+    @Override
+    public int size() {
+        return reservoir.size();
+    }
+
     public void signalEndOfInput() {
         // NO-OP
     }

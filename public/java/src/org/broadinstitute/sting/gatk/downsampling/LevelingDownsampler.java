@@ -128,6 +128,15 @@ public class LevelingDownsampler<T extends List<E>, E> implements Downsampler<T>
         return numDiscardedItems;
     }
 
+    @Override
+    public int size() {
+        int s = 0;
+        for ( final List<E> l : groups ) {
+            s += l.size();
+        }
+        return s;
+    }
+
     public void signalEndOfInput() {
         levelGroups();
         groupsAreFinalized = true;
