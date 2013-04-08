@@ -329,8 +329,8 @@ public class MathUtils {
     /**
      * Performs the cumulative sum of binomial probabilities, where the probability calculation is done in log space.
      *
-     * @param start   - start of the cumulant sum (over hits)
-     * @param end     - end of the cumulant sum (over hits)
+     * @param start   - start (inclusive) of the cumulant sum (over hits)
+     * @param end     - end (exclusive) of the cumulant sum (over hits)
      * @param total   - number of attempts for the number of hits
      * @param probHit - probability of a successful hit
      * @return - returns the cumulative probability
