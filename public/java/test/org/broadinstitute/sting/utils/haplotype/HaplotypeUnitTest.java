@@ -23,20 +23,23 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.utils.haplotype;
 
 
-import net.sf.picard.util.CigarUtil;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.TextCigarCodec;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.UnvalidatingGenomeLoc;
+import org.broadinstitute.sting.utils.haplotype.Haplotype;
 import org.broadinstitute.variant.variantcontext.Allele;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.VariantContextBuilder;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.*;
@@ -45,10 +48,6 @@ import java.util.*;
  * Basic unit test for Haplotype Class
  */
 public class HaplotypeUnitTest extends BaseTest {
-    @BeforeClass
-    public void init() {
-    }
-
     @Test
     public void testSimpleInsertionAllele() {
         final String bases = "ACTGGTCAACTGGTCAACTGGTCAACTGGTCA";
@@ -182,5 +181,69 @@ public class HaplotypeUnitTest extends BaseTest {
         Assert.assertEquals(makeHCForCigar("AGCT", "1M1I1I1I").getConsolidatedPaddedCigar(0).toString(), "1M3I");
         Assert.assertEquals(makeHCForCigar("AGCT", "1M1I1I1I").getConsolidatedPaddedCigar(1).toString(), "1M3I1M");
         Assert.assertEquals(makeHCForCigar("AGCT", "1M1I1I1I").getConsolidatedPaddedCigar(2).toString(), "1M3I2M");
+    }
+
+    @DataProvider(name = "TrimmingData")
+    public Object[][] makeTrimmingData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        // this functionality can be adapted to provide input data for whatever you might want in your data
+        final GenomeLoc loc = new UnvalidatingGenomeLoc("20", 0, 10, 20);
+        final String fullBases = "ACGTAACCGGT";
+        for ( int trimStart = loc.getStart(); trimStart < loc.getStop(); trimStart++ ) {
+            for ( int trimStop = trimStart; trimStop <= loc.getStop(); trimStop++ ) {
+                final int start = trimStart - loc.getStart();
+                final int stop = start + (trimStop - trimStart) + 1;
+                final GenomeLoc trimmedLoc = new UnvalidatingGenomeLoc("20", 0, start + loc.getStart(), stop + loc.getStart() - 1);
+                final String expectedBases = fullBases.substring(start, stop);
+                final Haplotype full = new Haplotype(fullBases.getBytes(), loc);
+                final Haplotype trimmed = new Haplotype(expectedBases.getBytes(), trimmedLoc);
+
+                final int hapStart = 10;
+                full.setAlignmentStartHapwrtRef(hapStart);
+                full.setCigar(TextCigarCodec.getSingleton().decode(full.length() + "M"));
+
+                trimmed.setAlignmentStartHapwrtRef(hapStart + start);
+                trimmed.setCigar(TextCigarCodec.getSingleton().decode(trimmed.length() + "M"));
+
+                tests.add(new Object[]{full, trimmedLoc, trimmed});
+            }
+        }
+
+        final Haplotype full = new Haplotype("ACT".getBytes(), new UnvalidatingGenomeLoc("20", 0, 10, 14));
+        full.setAlignmentStartHapwrtRef(10);
+        full.setCigar(TextCigarCodec.getSingleton().decode("1M2D2M"));
+        tests.add(new Object[]{full, new UnvalidatingGenomeLoc("20", 0, 11, 12), null});
+        tests.add(new Object[]{full, new UnvalidatingGenomeLoc("20", 0, 10, 12), null});
+        tests.add(new Object[]{full, new UnvalidatingGenomeLoc("20", 0, 11, 13), null});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "TrimmingData")
+    public void testTrim(final Haplotype full, final GenomeLoc trimTo, final Haplotype expected) {
+        final Haplotype actual = full.trim(trimTo);
+        if ( expected != null ) {
+            Assert.assertEquals(actual.getBases(), expected.getBases());
+            Assert.assertEquals(actual.getStartPosition(), trimTo.getStart());
+            Assert.assertEquals(actual.getStopPosition(), trimTo.getStop());
+            Assert.assertEquals(actual.getCigar(), expected.getCigar());
+            Assert.assertEquals(actual.getAlignmentStartHapwrtRef(), expected.getAlignmentStartHapwrtRef());
+        } else {
+            Assert.assertNull(actual);
+        }
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void testBadTrimLoc() {
+        final GenomeLoc loc = new UnvalidatingGenomeLoc("20", 0, 10, 20);
+        final Haplotype hap = new Haplotype("ACGTAACCGGT".getBytes(), loc);
+        hap.trim(new UnvalidatingGenomeLoc("20", 0, 1, 20));
+    }
+
+    @Test(expectedExceptions = IllegalStateException.class)
+    public void testBadTrimNoLoc() {
+        final Haplotype hap = new Haplotype("ACGTAACCGGT".getBytes());
+        hap.trim(new UnvalidatingGenomeLoc("20", 0, 1, 20));
     }
 }

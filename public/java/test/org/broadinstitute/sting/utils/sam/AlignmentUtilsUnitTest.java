@@ -948,4 +948,89 @@ public class AlignmentUtilsUnitTest {
         Assert.assertEquals(actualEndPos, pos + elt.getLength());
         Assert.assertEquals(AlignmentUtils.consolidateCigar(new Cigar(elts)), expectedCigar);
     }
+
+    @DataProvider(name = "GetBasesCoveringRefIntervalData")
+    public Object[][] makeGetBasesCoveringRefIntervalData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        // matches
+        // 0123
+        // ACGT
+        tests.add(new Object[]{"ACGT", 0, 3, "4M", "ACGT"});
+        tests.add(new Object[]{"ACGT", 1, 3, "4M", "CGT"});
+        tests.add(new Object[]{"ACGT", 1, 2, "4M", "CG"});
+        tests.add(new Object[]{"ACGT", 1, 1, "4M", "C"});
+
+        // deletions
+        // 012345
+        // AC--GT
+        tests.add(new Object[]{"ACGT", 0, 5, "2M2D2M", "ACGT"});
+        tests.add(new Object[]{"ACGT", 1, 5, "2M2D2M", "CGT"});
+        tests.add(new Object[]{"ACGT", 2, 5, "2M2D2M", null});
+        tests.add(new Object[]{"ACGT", 3, 5, "2M2D2M", null});
+        tests.add(new Object[]{"ACGT", 4, 5, "2M2D2M", "GT"});
+        tests.add(new Object[]{"ACGT", 5, 5, "2M2D2M", "T"});
+        tests.add(new Object[]{"ACGT", 0, 4, "2M2D2M", "ACG"});
+        tests.add(new Object[]{"ACGT", 0, 3, "2M2D2M", null});
+        tests.add(new Object[]{"ACGT", 0, 2, "2M2D2M", null});
+        tests.add(new Object[]{"ACGT", 0, 1, "2M2D2M", "AC"});
+        tests.add(new Object[]{"ACGT", 0, 0, "2M2D2M", "A"});
+
+        // insertions
+        // 01--23
+        // ACTTGT
+        tests.add(new Object[]{"ACTTGT", 0, 3, "2M2I2M", "ACTTGT"});
+        tests.add(new Object[]{"ACTTGT", 1, 3, "2M2I2M", "CTTGT"});
+        tests.add(new Object[]{"ACTTGT", 2, 3, "2M2I2M", "GT"});
+        tests.add(new Object[]{"ACTTGT", 3, 3, "2M2I2M", "T"});
+        tests.add(new Object[]{"ACTTGT", 0, 2, "2M2I2M", "ACTTG"});
+        tests.add(new Object[]{"ACTTGT", 0, 1, "2M2I2M", "AC"});
+        tests.add(new Object[]{"ACTTGT", 1, 2, "2M2I2M", "CTTG"});
+        tests.add(new Object[]{"ACTTGT", 2, 2, "2M2I2M", "G"});
+        tests.add(new Object[]{"ACTTGT", 1, 1, "2M2I2M", "C"});
+
+        tests.add(new Object[]{"ACGT", 0, 1, "2M2I", "AC"});
+        tests.add(new Object[]{"ACGT", 1, 1, "2M2I", "C"});
+        tests.add(new Object[]{"ACGT", 0, 0, "2M2I", "A"});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "GetBasesCoveringRefIntervalData", enabled = true)
+    public void testGetBasesCoveringRefInterval(final String basesString, final int refStart, final int refEnd, final String cigarString, final String expected) {
+        final byte[] actualBytes = AlignmentUtils.getBasesCoveringRefInterval(refStart, refEnd, basesString.getBytes(), 0, TextCigarCodec.getSingleton().decode(cigarString));
+        if ( expected == null )
+            Assert.assertNull(actualBytes);
+        else
+            Assert.assertEquals(new String(actualBytes), expected);
+    }
+
+    @DataProvider(name = "StartsOrEndsWithInsertionOrDeletionData")
+    public Object[][] makeStartsOrEndsWithInsertionOrDeletionData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        tests.add(new Object[]{"2M", false});
+        tests.add(new Object[]{"1D2M", true});
+        tests.add(new Object[]{"2M1D", true});
+        tests.add(new Object[]{"2M1I", true});
+        tests.add(new Object[]{"1I2M", true});
+        tests.add(new Object[]{"1M1I2M", false});
+        tests.add(new Object[]{"1M1D2M", false});
+        tests.add(new Object[]{"1M1I2M1I", true});
+        tests.add(new Object[]{"1M1I2M1D", true});
+        tests.add(new Object[]{"1D1M1I2M", true});
+        tests.add(new Object[]{"1I1M1I2M", true});
+        tests.add(new Object[]{"1M1I2M1I1M", false});
+        tests.add(new Object[]{"1M1I2M1D1M", false});
+        tests.add(new Object[]{"1M1D2M1D1M", false});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "StartsOrEndsWithInsertionOrDeletionData", enabled = true)
+    public void testStartsOrEndsWithInsertionOrDeletion(final String cigar, final boolean expected) {
+        Assert.assertEquals(AlignmentUtils.startsOrEndsWithInsertionOrDeletion(TextCigarCodec.getSingleton().decode(cigar)), expected);
+    }
+
+
 }

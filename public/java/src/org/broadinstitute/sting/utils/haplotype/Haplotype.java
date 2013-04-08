@@ -23,7 +23,7 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.utils.haplotype;
 
 import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
@@ -31,18 +31,19 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.variant.variantcontext.Allele;
-import org.broadinstitute.variant.variantcontext.VariantContext;
 
-import java.io.Serializable;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 public class Haplotype extends Allele {
     private GenomeLoc genomeLocation = null;
-    private Map<Integer, VariantContext> eventMap = null;
+    private EventMap eventMap = null;
     private Cigar cigar;
     private int alignmentStartHapwrtRef;
     private Event artificialEvent = null;
@@ -51,15 +52,36 @@ public class Haplotype extends Allele {
     /**
      * Main constructor
      *
-     * @param bases bases
-     * @param isRef is reference allele?
+     * @param bases a non-null array of bases
+     * @param isRef is this the reference haplotype?
      */
     public Haplotype( final byte[] bases, final boolean isRef ) {
         super(bases.clone(), isRef);
     }
 
+    /**
+     * Create a new non-ref haplotype
+     *
+     * @param bases a non-null array of bases
+     */
     public Haplotype( final byte[] bases ) {
         this(bases, false);
+    }
+
+    /**
+     * Create a new haplotype with bases
+     *
+     * Requires bases.length == cigar.getReadLength()
+     *
+     * @param bases a non-null array of bases
+     * @param isRef is this the reference haplotype?
+     * @param alignmentStartHapwrtRef offset of this haplotype w.r.t. the reference
+     * @param cigar the cigar that maps this haplotype to the reference sequence
+     */
+    public Haplotype( final byte[] bases, final boolean isRef, final int alignmentStartHapwrtRef, final Cigar cigar) {
+        this(bases, isRef);
+        this.alignmentStartHapwrtRef = alignmentStartHapwrtRef;
+        setCigar(cigar);
     }
 
     /**
@@ -81,6 +103,40 @@ public class Haplotype extends Allele {
         this.genomeLocation = loc;
     }
 
+    /**
+     * Create a new Haplotype derived from this one that exactly spans the provided location
+     *
+     * Note that this haplotype must have a contain a genome loc for this operation to be successful.  If no
+     * GenomeLoc is contained than @throws an IllegalStateException
+     *
+     * Also loc must be fully contained within this Haplotype's genomeLoc.  If not an IllegalArgumentException is
+     * thrown.
+     *
+     * @param loc a location completely contained within this Haplotype's location
+     * @return a new Haplotype within only the bases spanning the provided location, or null for some reason the haplotype would be malformed if
+     */
+    public Haplotype trim(final GenomeLoc loc) {
+        if ( loc == null ) throw new IllegalArgumentException("Loc cannot be null");
+        if ( genomeLocation == null ) throw new IllegalStateException("Cannot trim a Haplotype without containing GenomeLoc");
+        if ( ! genomeLocation.containsP(loc) ) throw new IllegalArgumentException("Can only trim a Haplotype to a containing span.  My loc is " + genomeLocation + " but wanted trim to " + loc);
+        if ( getCigar() == null ) throw new IllegalArgumentException("Cannot trim haplotype without a cigar " + this);
+
+        final int newStart = loc.getStart() - this.genomeLocation.getStart();
+        final int newStop = newStart + loc.size() - 1;
+        final byte[] newBases = AlignmentUtils.getBasesCoveringRefInterval(newStart, newStop, getBases(), 0, getCigar());
+        final Cigar newCigar = AlignmentUtils.trimCigarByReference(getCigar(), newStart, newStop);
+
+        if ( newBases == null || AlignmentUtils.startsOrEndsWithInsertionOrDeletion(newCigar) )
+            // we cannot meaningfully chop down the haplotype, so return null
+            return null;
+
+        final Haplotype ret = new Haplotype(newBases, isReference());
+        ret.setCigar(newCigar);
+        ret.setGenomeLocation(loc);
+        ret.setAlignmentStartHapwrtRef(newStart + getAlignmentStartHapwrtRef());
+        return ret;
+    }
+
     @Override
     public boolean equals( Object h ) {
         return h instanceof Haplotype && Arrays.equals(getBases(), ((Haplotype) h).getBases());
@@ -91,17 +147,29 @@ public class Haplotype extends Allele {
         return Arrays.hashCode(getBases());
     }
 
-    public Map<Integer, VariantContext> getEventMap() {
+    public EventMap getEventMap() {
         return eventMap;
     }
 
-    public void setEventMap( final Map<Integer, VariantContext> eventMap ) {
+    public void setEventMap( final EventMap eventMap ) {
         this.eventMap = eventMap;
     }
 
     @Override
     public String toString() {
         return getDisplayString();
+    }
+
+    /**
+     * Get the span of this haplotype (may be null)
+     * @return a potentially null genome loc
+     */
+    public GenomeLoc getGenomeLocation() {
+        return genomeLocation;
+    }
+
+    public void setGenomeLocation(GenomeLoc genomeLocation) {
+        this.genomeLocation = genomeLocation;
     }
 
     public long getStartPosition() {
@@ -120,6 +188,11 @@ public class Haplotype extends Allele {
         this.alignmentStartHapwrtRef = alignmentStartHapwrtRef;
     }
 
+    /**
+     * Get the cigar for this haplotype.  Note that cigar is guarenteed to be consolidated
+     * in that multiple adjacent equal operates will have been merged
+     * @return the cigar of this haplotype
+     */
     public Cigar getCigar() {
         return cigar;
     }
@@ -137,8 +210,17 @@ public class Haplotype extends Allele {
         return AlignmentUtils.consolidateCigar(extendedHaplotypeCigar);
     }
 
+    /**
+     * Set the cigar of this haplotype to cigar.
+     *
+     * Note that this function consolidates the cigar, so that 1M1M1I1M1M => 2M1I2M
+     *
+     * @param cigar a cigar whose readLength == length()
+     */
     public void setCigar( final Cigar cigar ) {
-        this.cigar = cigar;
+        this.cigar = AlignmentUtils.consolidateCigar(cigar);
+        if ( this.cigar.getReadLength() != length() )
+            throw new IllegalArgumentException("Read length " + length() + " not equal to the read length of the cigar " + cigar.getReadLength());
     }
 
     public boolean isArtificialHaplotype() {
@@ -179,25 +261,6 @@ public class Haplotype extends Allele {
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, altAllele.getBases()); // the alt allele of the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(myBases, haplotypeInsertLocation + refAllele.length(), myBases.length)); // bases after the variant
         return new Haplotype(newHaplotypeBases, new Event(refAllele, altAllele, genomicInsertLocation));
-    }
-
-    public static class HaplotypeBaseComparator implements Comparator<Haplotype>, Serializable {
-        @Override
-        public int compare( final Haplotype hap1, final Haplotype hap2 ) {
-            return compareHaplotypeBases(hap1, hap2);
-        }
-
-        public static int compareHaplotypeBases(final Haplotype hap1, final Haplotype hap2) {
-            final byte[] arr1 = hap1.getBases();
-            final byte[] arr2 = hap2.getBases();
-            // compares byte arrays using lexical ordering
-            final int len = Math.min(arr1.length, arr2.length);
-            for( int iii = 0; iii < len; iii++ ) {
-                final int cmp = arr1[iii] - arr2[iii];
-                if (cmp != 0) { return cmp; }
-            }
-            return arr2.length - arr1.length;
-        }
     }
 
     public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(final List<Allele> alleleList,
@@ -277,16 +340,5 @@ public class Haplotype extends Allele {
      */
     public void setScore(double score) {
         this.score = this.isReference() ? Double.MAX_VALUE : score;
-    }
-
-    /**
-     * A comparator that sorts haplotypes in decreasing order of score, so that the best supported
-     * haplotypes are at the top
-     */
-    public static class ScoreComparator implements Comparator<Haplotype> {
-        @Override
-        public int compare(Haplotype o1, Haplotype o2) {
-            return -1 * Double.valueOf(o1.getScore()).compareTo(o2.getScore());
-        }
     }
 }

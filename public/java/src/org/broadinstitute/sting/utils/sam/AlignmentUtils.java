@@ -49,6 +49,95 @@ public final class AlignmentUtils {
     private AlignmentUtils() { }
 
     /**
+     * Does cigar start or end with a deletion operation?
+     *
+     * @param cigar a non-null cigar to test
+     * @return true if the first or last operator of cigar is a D
+     */
+    public static boolean startsOrEndsWithInsertionOrDeletion(final Cigar cigar) {
+        if ( cigar == null ) throw new IllegalArgumentException("Cigar cannot be null");
+
+        if ( cigar.isEmpty() )
+            return false;
+
+        final CigarOperator first = cigar.getCigarElement(0).getOperator();
+        final CigarOperator last = cigar.getCigarElement(cigar.numCigarElements()-1).getOperator();
+        return first == CigarOperator.D || first == CigarOperator.I || last == CigarOperator.D || last == CigarOperator.I;
+    }
+
+
+    /**
+     * Get the byte[] from bases that cover the reference interval refStart -> refEnd given the
+     * alignment of bases to the reference (basesToRefCigar) and the start offset of the bases on the reference
+     *
+     * refStart and refEnd are 0 based offsets that we want to obtain.  In the client code, if the reference
+     * bases start at position X and you want Y -> Z, refStart should be Y - X and refEnd should be Z - X.
+     *
+     * If refStart or refEnd would start or end the new bases within a deletion, this function will return null
+     *
+     * @param bases
+     * @param refStart
+     * @param refEnd
+     * @param basesStartOnRef where does the bases array start w.r.t. the reference start?  For example, bases[0] of
+     *                        could be at refStart == 0 if basesStartOnRef == 0, but it could just as easily be at
+     *                        10 (meaning bases doesn't fully span the reference), which would be indicated by basesStartOnRef == 10.
+     *                        It's not trivial to eliminate this parameter because it's tied up with the cigar
+     * @param basesToRefCigar the cigar that maps the bases to the reference genome
+     * @return a byte[] containing the bases covering this interval, or null if we would start or end within a deletion
+     */
+    public static byte[] getBasesCoveringRefInterval(final int refStart, final int refEnd, final byte[] bases, final int basesStartOnRef, final Cigar basesToRefCigar) {
+        if ( refStart < 0 || refEnd < refStart ) throw new IllegalArgumentException("Bad start " + refStart + " and/or stop " + refEnd);
+        if ( basesStartOnRef < 0 ) throw new IllegalArgumentException("BasesStartOnRef must be >= 0 but got " + basesStartOnRef);
+        if ( bases == null ) throw new IllegalArgumentException("Bases cannot be null");
+        if ( basesToRefCigar == null ) throw new IllegalArgumentException("basesToRefCigar cannot be null");
+        if ( bases.length != basesToRefCigar.getReadLength() ) throw new IllegalArgumentException("Mismatch in length between reference bases " + bases.length + " and cigar length " + basesToRefCigar);
+
+        int refPos = basesStartOnRef;
+        int basesPos = 0;
+        int basesStart = -1;
+        int basesStop = -1;
+        boolean done = false;
+
+        for ( int iii = 0; ! done && iii < basesToRefCigar.numCigarElements(); iii++ ) {
+            final CigarElement ce = basesToRefCigar.getCigarElement(iii);
+            switch ( ce.getOperator() ) {
+                case I:
+                    basesPos += ce.getLength();
+                    break;
+                case M: case X: case EQ:
+                    for ( int i = 0; i < ce.getLength(); i++ ) {
+                        if ( refPos == refStart )
+                            basesStart = basesPos;
+                        if ( refPos == refEnd ) {
+                            basesStop = basesPos;
+                            done = true;
+                            break;
+                        }
+                        refPos++;
+                        basesPos++;
+                    }
+                    break;
+                case D:
+                    for ( int i = 0; i < ce.getLength(); i++ ) {
+                        if ( refPos == refEnd || refPos == refStart ) {
+                            // if we ever reach a ref position that is either a start or an end, we fail
+                            return null;
+                        }
+                        refPos++;
+                    }
+                    break;
+                default:
+                    throw new IllegalStateException("Unsupported operator " + ce);
+            }
+        }
+
+        if ( basesStart == -1 || basesStop == -1 )
+            throw new IllegalStateException("Never found start " + basesStart + " or stop " + basesStop + " given cigar " + basesToRefCigar);
+
+        return Arrays.copyOfRange(bases, basesStart, basesStop + 1);
+    }
+
+    /**
      * Get the number of bases at which refSeq and readSeq differ, given their alignment
      *
      * @param cigar the alignment of readSeq to refSeq

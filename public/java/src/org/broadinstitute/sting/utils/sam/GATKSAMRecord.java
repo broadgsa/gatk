@@ -345,24 +345,50 @@ public class GATKSAMRecord extends BAMRecord {
     // *** ReduceReads functions                                              ***//
     ///////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Get the counts of the bases in this reduced read
+     *
+     * NOTE that this is not the value of the REDUCED_READ_CONSENSUS_TAG, which
+     * is encoded in a special way.  This is the actual positive counts of the
+     * depth at each bases.  So for a RR with a tag of:
+     *
+     * [10, 5, -1, -5]
+     *
+     * this function returns
+     *
+     * [10, 15, 9, 5]
+     *
+     * as one might expect.
+     *
+     * @return a byte[] holding the depth of the bases in this reduced read, or null if this isn't a reduced read
+     */
     public byte[] getReducedReadCounts() {
         if ( ! retrievedReduceReadCounts ) {
-            reducedReadCounts = getByteArrayAttribute(REDUCED_READ_CONSENSUS_TAG);
+            final byte[] tag = getByteArrayAttribute(REDUCED_READ_CONSENSUS_TAG);
+            if ( tag != null ) reducedReadCounts = decodeReadReadCounts(tag);
             retrievedReduceReadCounts = true;
         }
 
         return reducedReadCounts;
     }
 
+    /**
+     * Is this read a reduced read?
+     * @return true if yes
+     */
     public boolean isReducedRead() {
         return getReducedReadCounts() != null;
     }
 
     /**
-     * Set the reduced read counts for this record to counts
+     * Set the reduced read counts tag for this record to counts
+     *
+     * WARNING -- this function assumes that counts is encoded as a difference in value count
+     * of count[i] - count[0].  It is not a straight counting of the bases in the read.
+     *
      * @param counts the count array
      */
-    public void setReducedReadCounts(final byte[] counts) {
+    public void setReducedReadCountsTag(final byte[] counts) {
         retrievedReduceReadCounts = false;
         setAttribute(REDUCED_READ_CONSENSUS_TAG, counts);
     }
@@ -374,9 +400,32 @@ public class GATKSAMRecord extends BAMRecord {
      * @return the number of bases corresponding to the i'th base of the reduced read
      */
     public final byte getReducedCount(final int i) {
-        byte firstCount = getReducedReadCounts()[0];
-        byte offsetCount = getReducedReadCounts()[i];
-        return (i==0) ? firstCount : (byte) Math.min(firstCount + offsetCount, Byte.MAX_VALUE);
+        return getReducedReadCounts()[i];
+    }
+
+    /**
+     * Actually decode the consensus tag of a reduce read, returning a newly allocated
+     * set of values countsFromTag to be the real depth of cover at each base of the reduced read.
+     *
+     * for example, if the tag contains [10, 5, -1, -5], after running this function the
+     * byte[] will contain the true counts [10, 15, 9, 5].
+     *
+     * as one might expect.
+     *
+     * @param countsFromTag a non-null byte[] containing the tag encoded reduce reads counts
+     * @return a non-null byte[] containing the true depth values for the vector
+     */
+    private byte[] decodeReadReadCounts(final byte[] countsFromTag) {
+        final int n = countsFromTag.length;
+        final byte[] result = new byte[n];
+        final byte firstCount = countsFromTag[0];
+        result[0] = firstCount;
+        for ( int i = 1; i < n; i++) {
+            final byte offsetCount = countsFromTag[i];
+            result[i] = (byte) Math.min(firstCount + offsetCount, Byte.MAX_VALUE);
+        }
+
+        return result;
     }
 
     ///////////////////////////////////////////////////////////////////////////////
