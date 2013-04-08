@@ -139,6 +139,7 @@ public class LevelingDownsamplerUnitTest extends BaseTest {
             Assert.assertTrue(downsampler.peekFinalized() == null && downsampler.peekPending() == null);
         }
 
+        final int sizeFromDownsampler = downsampler.size();
         List<List<Object>> downsampledStacks = downsampler.consumeFinalizedItems();
         Assert.assertFalse(downsampler.hasFinalizedItems() || downsampler.hasPendingItems());
         Assert.assertTrue(downsampler.peekFinalized() == null && downsampler.peekPending() == null);
@@ -151,6 +152,7 @@ public class LevelingDownsamplerUnitTest extends BaseTest {
             totalRemainingItems += stack.size();
         }
 
+        Assert.assertEquals(sizeFromDownsampler, totalRemainingItems);
         int numItemsReportedDiscarded = downsampler.getNumberOfDiscardedItems();
         int numItemsActuallyDiscarded = test.numStacks * test.stackSize - totalRemainingItems;
 

@@ -726,6 +726,15 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Purely for testing purposes.  Do not use unless you absolutely positively know what you are doing (or
+     * need to absolutely positively kill everyone in the room)
+     * @param dataSource
+     */
+    public void setReadsDataSource(final SAMDataSource dataSource) {
+        this.readsDataSource = dataSource;
+    }
+
+    /**
      * Entry-point function to initialize the samples database from input data and pedigree arguments
      */
     private void initializeSampleDB() {
