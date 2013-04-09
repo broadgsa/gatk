@@ -27,7 +27,6 @@ package org.broadinstitute.sting.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -63,6 +62,7 @@ public class MathUtils {
      * where the real-space value is 0.0.
      */
     public final static double LOG10_P_OF_ZERO = -1000000.0;
+    public final static double FAIR_BINOMIAL_PROB_LOG10_0_5 = Math.log10(0.5);
 
     static {
         log10Cache = new double[LOG10_CACHE_SIZE];
@@ -70,6 +70,7 @@ public class MathUtils {
         jacobianLogTable = new double[JACOBIAN_LOG_TABLE_SIZE];
 
         log10Cache[0] = Double.NEGATIVE_INFINITY;
+        log10FactorialCache[0] = 0.0;
         for (int k = 1; k < LOG10_CACHE_SIZE; k++) {
             log10Cache[k] = Math.log10(k);
             log10FactorialCache[k] = log10FactorialCache[k-1] + log10Cache[k];
@@ -306,8 +307,23 @@ public class MathUtils {
         return a * b;
     }
 
+    /**
+     * Calculates the log10 of the binomial coefficient. Designed to prevent
+     * overflows even with very large numbers.
+     *
+     * @param n total number of trials
+     * @param k number of successes
+     * @return the log10 of the binomial coefficient
+     */
     public static double binomialCoefficient(final int n, final int k) {
         return Math.pow(10, log10BinomialCoefficient(n, k));
+    }
+
+    /**
+     * @see #binomialCoefficient(int, int) with log10 applied to result
+     */
+    public static double log10BinomialCoefficient(final int n, final int k) {
+        return log10Factorial(n) - log10Factorial(k) - log10Factorial(n - k);
     }
 
     /**
@@ -327,22 +343,47 @@ public class MathUtils {
     }
 
     /**
+     * @see #binomialProbability(int, int, double) with log10 applied to result
+     */
+    public static double log10BinomialProbability(final int n, final int k, final double log10p) {
+        double log10OneMinusP = Math.log10(1 - Math.pow(10, log10p));
+        return log10BinomialCoefficient(n, k) + log10p * k + log10OneMinusP * (n - k);
+    }
+
+    /**
+     * @see #binomialProbability(int, int, double) with p=0.5
+     */
+    public static double binomialProbability(final int n, final int k) {
+        return Math.pow(10, log10BinomialProbability(n, k));
+    }
+
+    /**
+     * @see #binomialProbability(int, int, double) with p=0.5 and log10 applied to result
+     */
+    public static double log10BinomialProbability(final int n, final int k) {
+        return log10BinomialCoefficient(n, k) + (n * FAIR_BINOMIAL_PROB_LOG10_0_5);
+    }
+
+    /**
      * Performs the cumulative sum of binomial probabilities, where the probability calculation is done in log space.
+     * Assumes that the probability of a successful hit is fair (i.e. 0.5).
      *
-     * @param start   - start (inclusive) of the cumulant sum (over hits)
-     * @param end     - end (exclusive) of the cumulant sum (over hits)
-     * @param total   - number of attempts for the number of hits
-     * @param probHit - probability of a successful hit
+     * @param n         number of attempts for the number of hits
+     * @param k_start   start (inclusive) of the cumulant sum (over hits)
+     * @param k_end     end (inclusive) of the cumulant sum (over hits)
      * @return - returns the cumulative probability
      */
-    public static double binomialCumulativeProbability(final int start, final int end, final int total, final double probHit) {
+    public static double binomialCumulativeProbability(final int n, final int k_start, final int k_end) {
+        if ( k_end > n )
+            throw new IllegalArgumentException(String.format("Value for k_end (%d) is greater than n (%d)", k_end, n));
+
         double cumProb = 0.0;
         double prevProb;
         BigDecimal probCache = BigDecimal.ZERO;
 
-        for (int hits = start; hits < end; hits++) {
+        for (int hits = k_start; hits <= k_end; hits++) {
             prevProb = cumProb;
-            double probability = binomialProbability(total, hits, probHit);
+            double probability = binomialProbability(n, hits);
             cumProb += probability;
             if (probability > 0 && cumProb - prevProb < probability / 2) { // loss of precision
                 probCache = probCache.add(new BigDecimal(prevProb));
@@ -353,6 +394,41 @@ public class MathUtils {
         }
 
         return probCache.add(new BigDecimal(cumProb)).doubleValue();
+    }
+
+    /**
+     * Calculates the log10 of the multinomial coefficient. Designed to prevent
+     * overflows even with very large numbers.
+     *
+     * @param n total number of trials
+     * @param k array of any size with the number of successes for each grouping (k1, k2, k3, ..., km)
+     * @return
+     */
+    public static double log10MultinomialCoefficient(final int n, final int[] k) {
+        double denominator = 0.0;
+        for (int x : k) {
+            denominator += log10Factorial(x);
+        }
+        return log10Factorial(n) - denominator;
+    }
+
+    /**
+     * Computes the log10 of the multinomial distribution probability given a vector
+     * of log10 probabilities. Designed to prevent overflows even with very large numbers.
+     *
+     * @param n      number of trials
+     * @param k      array of number of successes for each possibility
+     * @param log10p array of log10 probabilities
+     * @return
+     */
+    public static double log10MultinomialProbability(final int n, final int[] k, final double[] log10p) {
+        if (log10p.length != k.length)
+            throw new UserException.BadArgumentValue("p and k", "Array of log10 probabilities must have the same size as the array of number of sucesses: " + log10p.length + ", " + k.length);
+        double log10Prod = 0.0;
+        for (int i = 0; i < log10p.length; i++) {
+            log10Prod += log10p[i] * k[i];
+        }
+        return log10MultinomialCoefficient(n, k) + log10Prod;
     }
 
     /**
@@ -1118,58 +1194,6 @@ public class MathUtils {
      */
     public static double log10Gamma(final double x) {
         return lnToLog10(lnGamma(x));
-    }
-
-    /**
-     * Calculates the log10 of the binomial coefficient. Designed to prevent
-     * overflows even with very large numbers.
-     *
-     * @param n total number of trials
-     * @param k number of successes
-     * @return the log10 of the binomial coefficient
-     */
-    public static double log10BinomialCoefficient(final int n, final int k) {
-        return log10Factorial(n) - log10Factorial(k) - log10Factorial(n - k);
-    }
-
-    public static double log10BinomialProbability(final int n, final int k, final double log10p) {
-        double log10OneMinusP = Math.log10(1 - Math.pow(10, log10p));
-        return log10BinomialCoefficient(n, k) + log10p * k + log10OneMinusP * (n - k);
-    }
-
-    /**
-     * Calculates the log10 of the multinomial coefficient. Designed to prevent
-     * overflows even with very large numbers.
-     *
-     * @param n total number of trials
-     * @param k array of any size with the number of successes for each grouping (k1, k2, k3, ..., km)
-     * @return
-     */
-    public static double log10MultinomialCoefficient(final int n, final int[] k) {
-        double denominator = 0.0;
-        for (int x : k) {
-            denominator += log10Factorial(x);
-        }
-        return log10Factorial(n) - denominator;
-    }
-
-    /**
-     * Computes the log10 of the multinomial distribution probability given a vector
-     * of log10 probabilities. Designed to prevent overflows even with very large numbers.
-     *
-     * @param n      number of trials
-     * @param k      array of number of successes for each possibility
-     * @param log10p array of log10 probabilities
-     * @return
-     */
-    public static double log10MultinomialProbability(final int n, final int[] k, final double[] log10p) {
-        if (log10p.length != k.length)
-            throw new UserException.BadArgumentValue("p and k", "Array of log10 probabilities must have the same size as the array of number of sucesses: " + log10p.length + ", " + k.length);
-        double log10Prod = 0.0;
-        for (int i = 0; i < log10p.length; i++) {
-            log10Prod += log10p[i] * k[i];
-        }
-        return log10MultinomialCoefficient(n, k) + log10Prod;
     }
 
     public static double factorial(final int x) {
