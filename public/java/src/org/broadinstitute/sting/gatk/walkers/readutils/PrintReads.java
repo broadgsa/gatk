@@ -190,7 +190,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
 
         final boolean preSorted = true;
         if (getToolkit() != null && getToolkit().getArguments().BQSR_RECAL_FILE != null && !NO_PG_TAG ) {
-            Utils.setupWriter(out, toolkit, toolkit.getSAMFileHeader(), !preSorted, this, PROGRAM_RECORD_NAME);
+            Utils.setupWriter(out, toolkit, toolkit.getSAMFileHeader(), preSorted, this, PROGRAM_RECORD_NAME);
         }
 
     }
