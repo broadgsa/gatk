@@ -205,10 +205,9 @@ public final class SWPairwiseAlignment {
 
     private void calculateCigar(int n, int m, double [] sw, int [] btrack) {
         // p holds the position we start backtracking from; we will be assembling a cigar in the backwards order
-        //PrimitivePair.Int p = new PrimitivePair.Int();
         int p1 = 0, p2 = 0;
 
-        double maxscore = 0.0;
+        double maxscore = Double.NEGATIVE_INFINITY; // sw scores are allowed to be negative
         int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
 
         // look for largest score. we use >= combined with the traversal direction
@@ -259,7 +258,7 @@ public final class SWPairwiseAlignment {
 
             // move to next best location in the sw matrix:
             switch( new_state ) {
-                case MSTATE: data_offset -= (m+2); p1--; p2--; break; // move back along the diag in th esw matrix
+                case MSTATE: data_offset -= (m+2); p1--; p2--; break; // move back along the diag in the sw matrix
                 case ISTATE: data_offset -= step_length; p2 -= step_length; break; // move left
                 case DSTATE: data_offset -= (m+1)*step_length; p1 -= step_length; break; // move up
             }
