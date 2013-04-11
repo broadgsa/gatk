@@ -440,4 +440,21 @@ public class UserException extends ReviewedStingException {
                                 f.getAbsolutePath(), PHONE_HOME_DOCS_URL));
         }
     }
+
+    /**
+     * A special exception that happens only in the case where
+     * the filesystem, by design or configuration, is completely unable
+     * to handle locking.  This exception will specifically NOT be thrown
+     * in the case where the filesystem handles locking but is unable to
+     * acquire a lock due to concurrency.
+     */
+    public static class FileSystemInabilityToLockException extends UserException {
+        public FileSystemInabilityToLockException( String message ) {
+            super(message);
+        }
+
+        public FileSystemInabilityToLockException( String message, Exception innerException ) {
+            super(message,innerException);
+        }
+    }
 }

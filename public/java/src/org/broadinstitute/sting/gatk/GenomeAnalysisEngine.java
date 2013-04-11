@@ -865,7 +865,8 @@ public class GenomeAnalysisEngine {
                                                                             SAMSequenceDictionary sequenceDictionary,
                                                                             GenomeLocParser genomeLocParser,
                                                                             ValidationExclusion.TYPE validationExclusionType) {
-        final RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser, validationExclusionType);
+        final RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser, validationExclusionType,
+                                                            getArguments().disableAutoIndexCreationAndLockingWhenReadingRods);
 
         final List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTriplet fileDescriptor : referenceMetaDataFiles)

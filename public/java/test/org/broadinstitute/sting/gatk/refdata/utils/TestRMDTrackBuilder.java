@@ -45,7 +45,8 @@ public class TestRMDTrackBuilder extends RMDTrackBuilder {
     private GenomeLocParser genomeLocParser;
 
     public TestRMDTrackBuilder(SAMSequenceDictionary dict, GenomeLocParser genomeLocParser) {
-        super(dict, genomeLocParser, null);
+        // disable auto-index creation/locking in the RMDTrackBuilder for tests
+        super(dict, genomeLocParser, null, true);
         this.genomeLocParser = genomeLocParser;
     }
 
