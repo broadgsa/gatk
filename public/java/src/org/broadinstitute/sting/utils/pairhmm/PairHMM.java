@@ -134,7 +134,7 @@ public abstract class PairHMM {
         paddedReadLength = readBases.length + 1;
         paddedHaplotypeLength = haplotypeBases.length + 1;
 
-        final int hapStartIndex =  (previousHaplotypeBases == null || haplotypeBases.length != previousHaplotypeBases.length ) ? 0 : findFirstPositionWhereHaplotypesDiffer(haplotypeBases, previousHaplotypeBases);
+        final int hapStartIndex =  (previousHaplotypeBases == null || haplotypeBases.length != previousHaplotypeBases.length || recacheReadValues) ? 0 : findFirstPositionWhereHaplotypesDiffer(haplotypeBases, previousHaplotypeBases);
 
         double result = subComputeReadLikelihoodGivenHaplotypeLog10(haplotypeBases, readBases, readQuals, insertionGOP, deletionGOP, overallGCP, hapStartIndex, recacheReadValues);
 
