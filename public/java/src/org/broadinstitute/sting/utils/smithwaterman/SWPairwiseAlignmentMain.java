@@ -23,8 +23,9 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.utils.smithwaterman;
 
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
 
 import java.util.ArrayList;
@@ -100,6 +101,7 @@ public class SWPairwiseAlignmentMain {
         w_extend = (ext == null ? -2.0 : ext.doubleValue());
 
 
+        SWPairwiseAlignment.keepScoringMatrix = true;
         SWPairwiseAlignment a = new SWPairwiseAlignment(ref.getBytes(),read.getBytes(),w_match,w_mismatch,w_open,w_extend);
 
         System.out.println("start="+a.getAlignmentStart2wrt1()+", cigar="+a.getCigar()+
