@@ -50,6 +50,7 @@ public final class MostLikelyAllele {
     public static final double INFORMATIVE_LIKELIHOOD_THRESHOLD = 0.2;
 
     final Allele mostLikely;
+    final Allele secondLikely;
     final double log10LikelihoodOfMostLikely;
     final double log10LikelihoodOfSecondBest;
 
@@ -60,10 +61,11 @@ public final class MostLikelyAllele {
      * mostLikely should be a NO_CALL allele.
      *
      * @param mostLikely the most likely allele
+     * @param secondMostLikely the most likely allele after mostLikely
      * @param log10LikelihoodOfMostLikely the log10 likelihood of the most likely allele
      * @param log10LikelihoodOfSecondBest the log10 likelihood of the next most likely allele (should be NEGATIVE_INFINITY if none is available)
      */
-    public MostLikelyAllele(Allele mostLikely, double log10LikelihoodOfMostLikely, double log10LikelihoodOfSecondBest) {
+    public MostLikelyAllele(Allele mostLikely, Allele secondMostLikely, double log10LikelihoodOfMostLikely, double log10LikelihoodOfSecondBest) {
         if ( mostLikely == null ) throw new IllegalArgumentException("mostLikely allele cannot be null");
         if ( log10LikelihoodOfMostLikely != Double.NEGATIVE_INFINITY && ! MathUtils.goodLog10Probability(log10LikelihoodOfMostLikely) )
             throw new IllegalArgumentException("log10LikelihoodOfMostLikely must be either -Infinity or a good log10 prob but got " + log10LikelihoodOfMostLikely);
@@ -73,12 +75,17 @@ public final class MostLikelyAllele {
             throw new IllegalArgumentException("log10LikelihoodOfMostLikely must be <= log10LikelihoodOfSecondBest but got " + log10LikelihoodOfMostLikely + " vs 2nd " + log10LikelihoodOfSecondBest);
 
         this.mostLikely = mostLikely;
+        this.secondLikely = secondMostLikely;
         this.log10LikelihoodOfMostLikely = log10LikelihoodOfMostLikely;
         this.log10LikelihoodOfSecondBest = log10LikelihoodOfSecondBest;
     }
 
     public Allele getMostLikelyAllele() {
         return mostLikely;
+    }
+
+    public Allele getSecondMostLikelyAllele() {
+        return secondLikely;
     }
 
     public double getLog10LikelihoodOfMostLikely() {
