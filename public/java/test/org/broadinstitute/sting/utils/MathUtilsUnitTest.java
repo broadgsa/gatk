@@ -57,6 +57,22 @@ public class MathUtilsUnitTest extends BaseTest {
     }
 
     /**
+     * Tests that we get the right values from the binomial distribution
+     */
+    @Test
+    public void testCumulativeBinomialProbability() {
+        logger.warn("Executing testCumulativeBinomialProbability");
+
+        final int numTrials = 10;
+        for ( int i = 0; i < numTrials; i++ )
+            Assert.assertEquals(MathUtils.binomialCumulativeProbability(numTrials, i, i), MathUtils.binomialProbability(numTrials, i), 1e-10, String.format("k=%d, n=%d", i, numTrials));
+
+        Assert.assertEquals(MathUtils.binomialCumulativeProbability(10, 0, 2), 0.05468750, 1e-7);
+        Assert.assertEquals(MathUtils.binomialCumulativeProbability(10, 0, 5), 0.62304687, 1e-7);
+        Assert.assertEquals(MathUtils.binomialCumulativeProbability(10, 0, 10), 1.0, 1e-7);
+    }
+
+    /**
      * Tests that we get the right values from the multinomial distribution
      */
     @Test
