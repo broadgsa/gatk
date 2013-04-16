@@ -27,10 +27,13 @@ package org.broadinstitute.sting.utils.genotyper;
 
 
 import com.google.java.contract.Ensures;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.downsampling.AlleleBiasedDownsamplingUtils;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.variant.variantcontext.Allele;
 
 import java.io.PrintStream;
@@ -41,6 +44,7 @@ import java.util.*;
  *   For each read, this holds underlying alleles represented by an aligned read, and corresponding relative likelihood.
  */
 public class PerReadAlleleLikelihoodMap {
+    private final static Logger logger = Logger.getLogger(PerReadAlleleLikelihoodMap.class);
     protected List<Allele> alleles;
     protected Map<GATKSAMRecord, Map<Allele, Double>> likelihoodReadMap;
 
@@ -187,6 +191,57 @@ public class PerReadAlleleLikelihoodMap {
         return likelihoodReadMap.get(p.getRead());
     }
 
+    /**
+     * Get the most likely alleles estimated across all reads in this object
+     *
+     * Takes the most likely two alleles according to their diploid genotype likelihoods.  That is, for
+     * each allele i and j we compute p(D | i,j) where D is the read likelihoods.  We track the maximum
+     * i,j likelihood and return an object that contains the alleles i and j as well as the max likelihood.
+     *
+     * Note that the second most likely diploid genotype is not tracked so the resulting MostLikelyAllele
+     * doesn't have a meaningful get best likelihood.
+     *
+     * @return a MostLikelyAllele object, or null if this map is empty
+     */
+    public MostLikelyAllele getMostLikelyDiploidAlleles() {
+        if ( isEmpty() ) return null;
+
+        int hap1 = 0;
+        int hap2 = 0;
+        double maxElement = Double.NEGATIVE_INFINITY;
+        for( int iii = 0; iii < alleles.size(); iii++ ) {
+            final Allele iii_allele = alleles.get(iii);
+            for( int jjj = 0; jjj <= iii; jjj++ ) {
+                final Allele jjj_allele = alleles.get(jjj);
+
+                double haplotypeLikelihood = 0.0;
+                for( final Map.Entry<GATKSAMRecord, Map<Allele,Double>> entry : likelihoodReadMap.entrySet() ) {
+                    // Compute log10(10^x1/2 + 10^x2/2) = log10(10^x1+10^x2)-log10(2)
+                    final GATKSAMRecord read = entry.getKey();
+                    final int count = ReadUtils.getMeanRepresentativeReadCount(read);
+                    final double likelihood_iii = entry.getValue().get(iii_allele);
+                    final double likelihood_jjj = entry.getValue().get(jjj_allele);
+                    haplotypeLikelihood += count * (MathUtils.approximateLog10SumLog10(likelihood_iii, likelihood_jjj) + LOG_ONE_HALF);
+
+                    // fast exit.  If this diploid pair is already worse than the max, just stop and look at the next pair
+                    if ( haplotypeLikelihood < maxElement ) break;
+                }
+
+                // keep track of the max element and associated indices
+                if ( haplotypeLikelihood > maxElement ) {
+                    hap1 = iii;
+                    hap2 = jjj;
+                    maxElement = haplotypeLikelihood;
+                }
+            }
+        }
+
+        if ( maxElement == Double.NEGATIVE_INFINITY )
+            throw new IllegalStateException("max likelihood is " + maxElement + " indicating something has gone wrong");
+
+        return new MostLikelyAllele(alleles.get(hap1), alleles.get(hap2), maxElement, maxElement);
+    }
+    private static final double LOG_ONE_HALF = -Math.log10(2.0);
 
     /**
      * Given a map from alleles to likelihoods, find the allele with the largest likelihood.
@@ -213,6 +268,7 @@ public class PerReadAlleleLikelihoodMap {
         double maxLike = Double.NEGATIVE_INFINITY;
         double prevMaxLike = Double.NEGATIVE_INFINITY;
         Allele mostLikelyAllele = Allele.NO_CALL;
+        Allele secondMostLikely = null;
 
         for (final Map.Entry<Allele,Double> el : alleleMap.entrySet()) {
             if ( onlyConsiderTheseAlleles != null && ! onlyConsiderTheseAlleles.contains(el.getKey()) )
@@ -221,13 +277,15 @@ public class PerReadAlleleLikelihoodMap {
             if (el.getValue() > maxLike) {
                 prevMaxLike = maxLike;
                 maxLike = el.getValue();
+                secondMostLikely = mostLikelyAllele;
                 mostLikelyAllele = el.getKey();
             } else if( el.getValue() > prevMaxLike ) {
+                secondMostLikely = el.getKey();
                 prevMaxLike = el.getValue();
             }
         }
 
-        return new MostLikelyAllele(mostLikelyAllele, maxLike, prevMaxLike);
+        return new MostLikelyAllele(mostLikelyAllele, secondMostLikely, maxLike, prevMaxLike);
     }
 
     /**
