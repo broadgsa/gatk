@@ -383,7 +383,7 @@ public class MathUtils {
 
         for (int hits = k_start; hits <= k_end; hits++) {
             prevProb = cumProb;
-            double probability = binomialProbability(n, hits);
+            final double probability = binomialProbability(n, hits);
             cumProb += probability;
             if (probability > 0 && cumProb - prevProb < probability / 2) { // loss of precision
                 probCache = probCache.add(new BigDecimal(prevProb));
