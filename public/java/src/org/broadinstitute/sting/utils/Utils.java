@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
+import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMProgramRecord;
 import org.apache.log4j.Logger;
@@ -747,5 +748,45 @@ public class Utils {
         if ( big == null ) throw new IllegalArgumentException("big cannot be null");
         if ( suffix == null ) throw new IllegalArgumentException("suffix cannot be null");
         return new String(big).endsWith(new String(suffix));
+    }
+
+    /**
+     * Get the length of the longest common prefix of seq1 and seq2
+     * @param seq1 non-null byte array
+     * @param seq2 non-null byte array
+     * @param maxLength the maximum allowed length to return
+     * @return the length of the longest common prefix of seq1 and seq2, >= 0
+     */
+    public static int longestCommonPrefix(final byte[] seq1, final byte[] seq2, final int maxLength) {
+        if ( seq1 == null ) throw new IllegalArgumentException("seq1 is null");
+        if ( seq2 == null ) throw new IllegalArgumentException("seq2 is null");
+        if ( maxLength < 0 ) throw new IllegalArgumentException("maxLength < 0 " + maxLength);
+
+        final int end = Math.min(seq1.length, Math.min(seq2.length, maxLength));
+        for ( int i = 0; i < end; i++ ) {
+            if ( seq1[i] != seq2[i] )
+                return i;
+        }
+        return end;
+    }
+
+    /**
+     * Get the length of the longest common suffix of seq1 and seq2
+     * @param seq1 non-null byte array
+     * @param seq2 non-null byte array
+     * @param maxLength the maximum allowed length to return
+     * @return the length of the longest common suffix of seq1 and seq2, >= 0
+     */
+    public static int longestCommonSuffix(final byte[] seq1, final byte[] seq2, final int maxLength) {
+        if ( seq1 == null ) throw new IllegalArgumentException("seq1 is null");
+        if ( seq2 == null ) throw new IllegalArgumentException("seq2 is null");
+        if ( maxLength < 0 ) throw new IllegalArgumentException("maxLength < 0 " + maxLength);
+
+        final int end = Math.min(seq1.length, Math.min(seq2.length, maxLength));
+        for ( int i = 0; i < end; i++ ) {
+            if ( seq1[seq1.length - i - 1] != seq2[seq2.length - i - 1] )
+                return i;
+        }
+        return end;
     }
 }
