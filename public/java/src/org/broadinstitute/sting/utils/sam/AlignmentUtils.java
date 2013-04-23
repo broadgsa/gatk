@@ -934,7 +934,7 @@ public final class AlignmentUtils {
      */
     public static Cigar trimCigarByBases(final Cigar cigar, final int start, final int end) {
         if ( start < 0 ) throw new IllegalArgumentException("Start must be >= 0 but got " + start);
-        if ( end < start ) throw new IllegalArgumentException("End " + end + " is < start start " + start);
+        if ( end < start ) throw new IllegalArgumentException("End " + end + " is < start = " + start);
         if ( end > cigar.getReadLength() ) throw new IllegalArgumentException("End is beyond the cigar's read length " + end + " for cigar " + cigar );
 
         final Cigar result = trimCigar(cigar, start, end, false);
@@ -962,7 +962,7 @@ public final class AlignmentUtils {
 
         int pos = 0;
         for ( final CigarElement elt : cigar.getCigarElements() ) {
-            if ( pos > end ) break;
+            if ( pos > end && (byReference || elt.getOperator() != CigarOperator.D) ) break;
 
             switch ( elt.getOperator() ) {
                 case D:
