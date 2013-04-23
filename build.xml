@@ -674,8 +674,9 @@
               <include name="org/broadinstitute/sting/utils/GenomeLocParser*.class"/>
               <include name="org/broadinstitute/sting/utils/GenomeLoc.class"/>
               <include name="org/broadinstitute/sting/utils/HasGenomeLocation.class"/>
-              <include name="org/broadinstitute/sting/utils/BaseUtils.class"/>
+              <include name="org/broadinstitute/sting/utils/BaseUtils*.class"/>
               <include name="org/broadinstitute/sting/utils/Utils.class"/>
+              <include name="org/broadinstitute/sting/utils/MRUCaching*.class"/>
               <include name="org/broadinstitute/sting/utils/exceptions/**/*.class"/>
               <include name="org/broadinstitute/sting/gatk/walkers/na12878kb/core/**/*.class"/>
               <include name="net/sf/picard/reference/FastaSequenceFile.class"/>
