@@ -39,7 +39,7 @@ public class GATKSAMRecordUnitTest extends BaseTest {
     final static String BASES = "ACTG";
     final static String QUALS = "!+5?";
     final private static byte[] REDUCED_READ_COUNTS = new byte[]{10, 20, 30, 40, 1};
-    final private static byte[] REDUCED_READ_COUNTS_TAG = new byte[]{10, 10, 20, 30, -9};  // just the offsets
+    final private static byte[] REDUCED_READ_COUNTS_OFFSETS = new byte[]{10, 10, 20, 30, -9};  // just the offsets
 
     @BeforeClass
     public void init() {
@@ -52,7 +52,7 @@ public class GATKSAMRecordUnitTest extends BaseTest {
         reducedRead = ArtificialSAMUtils.createArtificialRead(header, "reducedRead", 0, 1, BASES.length());
         reducedRead.setReadBases(BASES.getBytes());
         reducedRead.setBaseQualityString(QUALS);
-        reducedRead.setAttribute(GATKSAMRecord.REDUCED_READ_CONSENSUS_TAG, REDUCED_READ_COUNTS_TAG);
+        reducedRead.setReducedReadCountsTag(REDUCED_READ_COUNTS_OFFSETS);
     }
 
     @Test
@@ -63,6 +63,36 @@ public class GATKSAMRecordUnitTest extends BaseTest {
         Assert.assertTrue(reducedRead.isReducedRead(), "isReducedRead is true for reduced read");
         for (int i = 0; i < reducedRead.getReadLength(); i++) {
             Assert.assertEquals(reducedRead.getReducedCount(i), REDUCED_READ_COUNTS[i], "Reduced read count not set to the expected value at " + i);
+        }
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void testGetReducedCountOnNormalRead() {
+        read.getReducedCount(0);
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void testSetReducedTagOnNormalRead() {
+        read.setReducedCount(0, (byte)2);
+    }
+
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void testSetReducedCountToNegativeNumber() {
+        reducedRead.setReducedCount(0, (byte)1000);
+    }
+
+    @Test
+    public void testSetReducedTagOnReducedRead() {
+        for (int i = 0; i < reducedRead.getReadLength(); i++) {
+            final byte newCount = (byte)i;
+            reducedRead.setReducedCount(i, newCount);
+            Assert.assertEquals(reducedRead.getReducedCount(i), newCount, "Reduced read count not set to the expected value at " + i);
+        }
+
+        for (int i = 0; i < reducedRead.getReadLength(); i++) {
+            final int newCount = reducedRead.getReducedCount(i) + i;
+            reducedRead.adjustReducedCount(i, i);
+            Assert.assertEquals(reducedRead.getReducedCount(i), newCount, "Reduced read count not set to the expected value at " + i);
         }
     }
 

@@ -400,7 +400,40 @@ public class GATKSAMRecord extends BAMRecord {
      * @return the number of bases corresponding to the i'th base of the reduced read
      */
     public final byte getReducedCount(final int i) {
-        return getReducedReadCounts()[i];
+        if ( !isReducedRead() )
+            throw new IllegalArgumentException("error trying to retrieve the reduced count from a read that is not reduced");
+        final byte[] reducedCounts = getReducedReadCounts();
+        return reducedCounts[i];
+    }
+
+    /**
+     * Sets the number of bases corresponding the i'th base of the reduced read.
+     *
+     * @param i      the read based coordinate inside the read
+     * @param count  the new count
+     */
+    public final void setReducedCount(final int i, final byte count) {
+        if ( count < 0 )
+            throw new IllegalArgumentException("the reduced count cannot be set to a negative value");
+        if ( !isReducedRead() )
+            throw new IllegalArgumentException("error trying to set the reduced count for a read that is not reduced");
+        final byte[] reducedCounts = getReducedReadCounts();
+        reducedCounts[i] = count;
+        setReducedReadCountsTag(reducedCounts);
+    }
+
+    /**
+     * Sets the number of bases corresponding the i'th base of the reduced read.
+     *
+     * @param i                 the read based coordinate inside the read
+     * @param adjustmentFactor  how much to add/subtract to the current count
+     */
+    public final void adjustReducedCount(final int i, final int adjustmentFactor) {
+        if ( !isReducedRead() )
+            throw new IllegalArgumentException("error trying to set the reduced count for a read that is not reduced");
+        final byte[] reducedCounts = getReducedReadCounts();
+        final byte newCount = (byte)(reducedCounts[i] + adjustmentFactor);
+        setReducedCount(i, newCount);
     }
 
     /**

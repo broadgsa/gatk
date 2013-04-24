@@ -25,18 +25,21 @@
 
 package org.broadinstitute.sting.gatk.downsampling;
 
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
+import net.sf.samtools.SAMFileHeader;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 
 /**
@@ -115,6 +118,51 @@ public class AlleleBiasedDownsamplingUtilsUnitTest extends BaseTest {
         return true;
     }
 
+    @DataProvider(name = "BiasedDownsamplingTest")
+    public Object[][] makeBiasedDownsamplingTest() {
+        final List<Object[]> tests = new LinkedList<Object[]>();
+
+        final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
+
+        for ( final int originalNormalCount : Arrays.asList(0, 1, 2, 10, 1000) ) {
+            for ( final int originalReducedCount : Arrays.asList(0, 1, 2, 10, 100) ) {
+                for ( final int indexToPutReducedRead : Arrays.asList(0, 2, originalNormalCount) ) {
+                    if ( originalReducedCount == 0 || indexToPutReducedRead > originalNormalCount )
+                        continue;
+                    for ( final int toRemove : Arrays.asList(0, 1, 2, 10, 1000) ) {
+                        if ( toRemove <= originalNormalCount + originalReducedCount )
+                            tests.add(new Object[]{header, originalNormalCount, originalReducedCount, indexToPutReducedRead, toRemove});
+                    }
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "BiasedDownsamplingTest")
+    public void testBiasedDownsampling(final SAMFileHeader header, final int originalNormalCount, final int originalReducedCount, final int indexToPutReducedRead, final int toRemove) {
+
+        final LinkedList<PileupElement> elements = new LinkedList<PileupElement>();
+        for ( int i = 0; i < originalNormalCount; i++ ) {
+            final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read", 0, 1, 1);
+            elements.add(new PileupElement(read, 0, new CigarElement(1, CigarOperator.M), 0, 0));
+        }
+        if ( originalReducedCount > 0 ) {
+            final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read", 0, 1, 1);
+            read.setReducedReadCountsTag(new byte[]{(byte)originalReducedCount});
+            elements.add(indexToPutReducedRead, new PileupElement(read, 0, new CigarElement(1, CigarOperator.M), 0, 0));
+        }
+
+        final List<PileupElement> result = AlleleBiasedDownsamplingUtils.downsampleElements(elements, originalNormalCount + originalReducedCount, toRemove);
+        int pileupCount = 0;
+        for ( final PileupElement pe : elements ) // reduced reads may have gotten modified
+            pileupCount += pe.getRepresentativeCount();
+        for ( final PileupElement pe : result )
+            pileupCount -= pe.getRepresentativeCount();
+
+        Assert.assertEquals(pileupCount, originalNormalCount + originalReducedCount - toRemove);
+    }
 
     @Test
     public void testLoadContaminationFileDetails(){

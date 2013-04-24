@@ -27,7 +27,6 @@ package org.broadinstitute.sting.utils.genotyper;
 
 
 import com.google.java.contract.Ensures;
-import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.downsampling.AlleleBiasedDownsamplingUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -36,7 +35,6 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.variant.variantcontext.Allele;
 
-import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -44,9 +42,8 @@ import java.util.*;
  *   For each read, this holds underlying alleles represented by an aligned read, and corresponding relative likelihood.
  */
 public class PerReadAlleleLikelihoodMap {
-    private final static Logger logger = Logger.getLogger(PerReadAlleleLikelihoodMap.class);
-    protected List<Allele> alleles;
-    protected Map<GATKSAMRecord, Map<Allele, Double>> likelihoodReadMap;
+    protected final List<Allele> alleles;
+    protected final Map<GATKSAMRecord, Map<Allele, Double>> likelihoodReadMap;
 
     public PerReadAlleleLikelihoodMap() {
         likelihoodReadMap = new LinkedHashMap<GATKSAMRecord,Map<Allele,Double>>();
@@ -78,17 +75,16 @@ public class PerReadAlleleLikelihoodMap {
 
     }
 
-    public ReadBackedPileup createPerAlleleDownsampledBasePileup(final ReadBackedPileup pileup, final double downsamplingFraction, final PrintStream log) {
-        return AlleleBiasedDownsamplingUtils.createAlleleBiasedBasePileup(pileup, downsamplingFraction, log);
+    public ReadBackedPileup createPerAlleleDownsampledBasePileup(final ReadBackedPileup pileup, final double downsamplingFraction) {
+        return AlleleBiasedDownsamplingUtils.createAlleleBiasedBasePileup(pileup, downsamplingFraction);
     }
 
     /**
      * For each allele "a" , identify those reads whose most likely allele is "a", and remove a "downsamplingFraction" proportion
      * of those reads from the "likelihoodReadMap". This is used for e.g. sample contamination
      * @param downsamplingFraction - the fraction of supporting reads to remove from each allele. If <=0 all reads kept, if >=1 all reads tossed.
-     * @param log - a PrintStream to log the removed reads to (passed through to the utility function)
      */
-    public void performPerAlleleDownsampling(final double downsamplingFraction, final PrintStream log) {
+    public void performPerAlleleDownsampling(final double downsamplingFraction) {
         // special case removal of all or no reads
         if ( downsamplingFraction <= 0.0 )
             return;
@@ -101,7 +97,7 @@ public class PerReadAlleleLikelihoodMap {
         final Map<Allele, List<GATKSAMRecord>> alleleReadMap = getAlleleStratifiedReadMap();
 
         // compute the reads to remove and actually remove them
-        final List<GATKSAMRecord> readsToRemove = AlleleBiasedDownsamplingUtils.selectAlleleBiasedReads(alleleReadMap, downsamplingFraction, log);
+        final List<GATKSAMRecord> readsToRemove = AlleleBiasedDownsamplingUtils.selectAlleleBiasedReads(alleleReadMap, downsamplingFraction);
         for ( final GATKSAMRecord read : readsToRemove )
             likelihoodReadMap.remove(read);
     }
@@ -117,7 +113,8 @@ public class PerReadAlleleLikelihoodMap {
             alleleReadMap.put(allele, new ArrayList<GATKSAMRecord>());
 
         for ( final Map.Entry<GATKSAMRecord, Map<Allele, Double>> entry : likelihoodReadMap.entrySet() ) {
-            // do not remove reduced reads!
+            // TODO -- come up with a strategy for down-sampling reduced reads
+            // Currently we are unable to remove reduced reads because their representative base count differs throughout the read
             if ( !entry.getKey().isReducedRead() ) {
                 final MostLikelyAllele bestAllele = getMostLikelyAllele(entry.getValue());
                 if ( bestAllele.isInformative() )

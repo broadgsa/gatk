@@ -104,8 +104,9 @@ public class GATKArgumentCollection {
     @Argument(fullName = "nonDeterministicRandomSeed", shortName = "ndrs", doc = "Makes the GATK behave non deterministically, that is, the random numbers generated will be different in every run", required = false)
     public boolean nonDeterministicRandomSeed = false;
 
-    @Argument(fullName = "disableRandomization",doc="Completely eliminates randomization from nondeterministic methods. To be used mostly in the testing framework where dynamic parallelism can result in differing numbers of calls to the generator.")
-    public boolean disableRandomization = false;
+    @Hidden
+    @Argument(fullName = "disableDithering",doc="Completely eliminates randomized dithering from rank sum tests. To be used in the testing framework where dynamic parallelism can result in differing numbers of calls to the random generator.")
+    public boolean disableDithering = false;
 
     @Argument(fullName = "maxRuntime", shortName = "maxRuntime", doc="If provided, that GATK will stop execution cleanly as soon after maxRuntime has been exceeded, truncating the run but not exiting with a failure.  By default the value is interpreted in minutes, but this can be changed by maxRuntimeUnits", required = false)
     public long maxRuntime = GenomeAnalysisEngine.NO_RUNTIME_LIMIT;
