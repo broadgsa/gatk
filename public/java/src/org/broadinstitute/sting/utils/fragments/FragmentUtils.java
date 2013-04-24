@@ -31,6 +31,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -213,24 +214,28 @@ public final class FragmentUtils {
      *
      * Assumes that firstRead starts before secondRead (according to their soft clipped starts)
      *
-     * @param firstRead the left most read
-     * @param firstRead the right most read
+     * @param unclippedFirstRead the left most read
+     * @param unclippedSecondRead the right most read
      *
      * @return a strandless merged read of first and second, or null if the algorithm cannot create a meaningful one
      */
-    public static GATKSAMRecord mergeOverlappingPairedFragments(final GATKSAMRecord firstRead, final GATKSAMRecord secondRead) {
-        if ( firstRead == null ) throw new IllegalArgumentException("firstRead cannot be null");
-        if ( secondRead == null ) throw new IllegalArgumentException("secondRead cannot be null");
-        if ( ! firstRead.getReadName().equals(secondRead.getReadName()) ) throw new IllegalArgumentException("attempting to merge two reads with different names " + firstRead + " and " + secondRead);
+    public static GATKSAMRecord mergeOverlappingPairedFragments(final GATKSAMRecord unclippedFirstRead, final GATKSAMRecord unclippedSecondRead) {
+        if ( unclippedFirstRead == null ) throw new IllegalArgumentException("unclippedFirstRead cannot be null");
+        if ( unclippedSecondRead == null ) throw new IllegalArgumentException("unclippedSecondRead cannot be null");
+        if ( ! unclippedFirstRead.getReadName().equals(unclippedSecondRead.getReadName()) ) throw new IllegalArgumentException("attempting to merge two reads with different names " + unclippedFirstRead + " and " + unclippedSecondRead);
+
+        if( unclippedFirstRead.getCigarString().contains("I") || unclippedFirstRead.getCigarString().contains("D") || unclippedSecondRead.getCigarString().contains("I") || unclippedSecondRead.getCigarString().contains("D") ) {
+            return null; // fragments contain indels so don't merge them
+        }
+
+        final GATKSAMRecord firstRead = ReadClipper.hardClipAdaptorSequence(ReadClipper.revertSoftClippedBases(unclippedFirstRead));
+        final GATKSAMRecord secondRead = ReadClipper.hardClipAdaptorSequence(ReadClipper.revertSoftClippedBases(unclippedSecondRead));
 
         if( !(secondRead.getSoftStart() <= firstRead.getSoftEnd() && secondRead.getSoftStart() >= firstRead.getSoftStart() && secondRead.getSoftEnd() >= firstRead.getSoftEnd()) ) {
             return null; // can't merge them, yet:  AAAAAAAAAAA-BBBBBBBBBBB-AAAAAAAAAAAAAA, B is contained entirely inside A
         }
-        if( firstRead.getCigarString().contains("I") || firstRead.getCigarString().contains("D") || secondRead.getCigarString().contains("I") || secondRead.getCigarString().contains("D") ) {
-            return null; // fragments contain indels so don't merge them
-        }
 
-        final Pair<Integer, Boolean> pair = ReadUtils.getReadCoordinateForReferenceCoordinate(firstRead, secondRead.getSoftStart());
+        final Pair<Integer, Boolean> pair = ReadUtils.getReadCoordinateForReferenceCoordinate(firstRead, secondRead.getAlignmentStart());
 
         final int firstReadStop = ( pair.getSecond() ? pair.getFirst() + 1 : pair.getFirst() );
         final int numBases = firstReadStop + secondRead.getReadLength();
@@ -264,7 +269,7 @@ public final class FragmentUtils {
 
         final GATKSAMRecord returnRead = new GATKSAMRecord( firstRead.getHeader() );
         returnRead.setIsStrandless(true);
-        returnRead.setAlignmentStart( firstRead.getSoftStart() );
+        returnRead.setAlignmentStart( firstRead.getAlignmentStart() );
         returnRead.setReadBases( bases );
         returnRead.setBaseQualities( quals );
         returnRead.setReadGroup( firstRead.getReadGroup() );

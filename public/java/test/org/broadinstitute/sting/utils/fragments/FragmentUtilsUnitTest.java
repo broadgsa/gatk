@@ -222,7 +222,7 @@ public class FragmentUtilsUnitTest extends BaseTest {
         return read;
     }
 
-    @Test(enabled = true, dataProvider = "MergeFragmentsTest")
+    @Test(enabled = !DEBUG, dataProvider = "MergeFragmentsTest")
     public void testMergingTwoReads(final String name, final GATKSAMRecord read1, GATKSAMRecord read2, final GATKSAMRecord expectedMerged) {
         final GATKSAMRecord actual = FragmentUtils.mergeOverlappingPairedFragments(read1, read2);
 
@@ -239,5 +239,61 @@ public class FragmentUtilsUnitTest extends BaseTest {
             for ( final EventType type : EventType.values() )
                 Assert.assertEquals(actual.getBaseQualities(type), expectedMerged.getBaseQualities(type), "Failed base qualities for event type " + type);
         }
+    }
+
+    @Test(enabled = !DEBUG)
+    public void testHardClippingBeforeMerge() {
+        final String common = Utils.dupString("A", 10);
+        final byte[] commonQuals = Utils.dupBytes((byte)30, common.length());
+        final String adapter    = "NNNN";
+
+        final GATKSAMRecord read1 = makeOverlappingRead(adapter, 30, common, commonQuals, "", 30, 10);
+        final GATKSAMRecord read2 = makeOverlappingRead("", 30, common, commonQuals, adapter, 30, 10);
+        final GATKSAMRecord expectedMerged = makeOverlappingRead("", 30, common, commonQuals, "", 30, 10);
+        read1.setCigarString("4S" + common.length() + "M");
+        read1.setProperPairFlag(true);
+        read1.setFirstOfPairFlag(true);
+        read1.setReadNegativeStrandFlag(true);
+        read1.setMateAlignmentStart(10);
+        read2.setCigarString(common.length() + "M4S");
+        read2.setProperPairFlag(true);
+        read2.setFirstOfPairFlag(false);
+        read2.setReadNegativeStrandFlag(false);
+
+        final int insertSize = common.length() - 1;
+        read1.setInferredInsertSize(insertSize);
+        read2.setInferredInsertSize(-insertSize);
+
+        final GATKSAMRecord actual = FragmentUtils.mergeOverlappingPairedFragments(read1, read2);
+        Assert.assertEquals(actual.getCigarString(), expectedMerged.getCigarString());
+        Assert.assertEquals(actual.getReadBases(), expectedMerged.getReadBases());
+        Assert.assertEquals(actual.getReadGroup(), expectedMerged.getReadGroup());
+        Assert.assertEquals(actual.getMappingQuality(), expectedMerged.getMappingQuality());
+        for ( final EventType type : EventType.values() )
+            Assert.assertEquals(actual.getBaseQualities(type), expectedMerged.getBaseQualities(type), "Failed base qualities for event type " + type);
+    }
+
+    @Test(enabled = true)
+    public void testHardClippingBeforeMergeResultingInCompletelyContainedSecondRead() {
+        final String adapter    = "NNNN";
+
+        final GATKSAMRecord read1 = makeOverlappingRead(adapter, 30, Utils.dupString("A", 10), Utils.dupBytes((byte)30, 10), "", 30, 10);
+        final GATKSAMRecord read2 = makeOverlappingRead("", 30, Utils.dupString("A", 7), Utils.dupBytes((byte)30, 7), adapter, 30, 10);
+        read1.setCigarString("4S10M");
+        read1.setProperPairFlag(true);
+        read1.setFirstOfPairFlag(true);
+        read1.setReadNegativeStrandFlag(true);
+        read1.setMateAlignmentStart(10);
+        read2.setCigarString("7M4S");
+        read2.setProperPairFlag(true);
+        read2.setFirstOfPairFlag(false);
+        read2.setReadNegativeStrandFlag(false);
+
+        final int insertSize = 7 - 1;
+        read1.setInferredInsertSize(insertSize);
+        read2.setInferredInsertSize(-insertSize);
+
+        final GATKSAMRecord actual = FragmentUtils.mergeOverlappingPairedFragments(read1, read2);
+        Assert.assertNull(actual);
     }
 }
