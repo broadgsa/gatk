@@ -274,6 +274,17 @@ public class GATKArgumentCollection {
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations: nothing will be checked at runtime.  For expert users only who know what they are doing.  We do not support usage of this argument.", required = false)
     public ValidationExclusion.TYPE unsafe;
 
+    @Hidden
+    @Advanced
+    @Argument(fullName = "disable_auto_index_creation_and_locking_when_reading_rods", shortName = "disable_auto_index_creation_and_locking_when_reading_rods",
+              doc = "UNSAFE FOR GENERAL USE (FOR TEST SUITE USE ONLY). Disable both auto-generation of index files and index file locking " +
+                    "when reading VCFs and other rods and an index isn't present or is out-of-date. The file locking necessary for auto index " +
+                    "generation to work safely is prone to random failures/hangs on certain platforms, which makes it desirable to disable it " +
+                    "for situations like test suite runs where the indices are already known to exist, however this option is unsafe in general " +
+                    "because it allows reading from index files without first acquiring a lock.",
+              required = false)
+    public boolean disableAutoIndexCreationAndLockingWhenReadingRods = false;
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // Multi-threading arguments

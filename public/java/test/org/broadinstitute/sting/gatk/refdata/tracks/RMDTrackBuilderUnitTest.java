@@ -27,17 +27,15 @@ package org.broadinstitute.sting.gatk.refdata.tracks;
 
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.Index;
-import org.broadinstitute.variant.vcf.VCF3Codec;
+import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.variant.vcf.VCFCodec;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.file.FSLockWithShared;
 
 import org.testng.annotations.BeforeMethod;
 
@@ -61,7 +59,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
 
     @BeforeMethod
     public void setup() {
-        File referenceFile = new File(b36KGReference);
+        File referenceFile = new File(b37KGReference);
         try {
             seq = new CachingIndexedFastaSequenceFile(referenceFile);
         }
@@ -69,7 +67,11 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
             throw new UserException.CouldNotReadInputFile(referenceFile,ex);
         }
         genomeLocParser = new GenomeLocParser(seq);
-        builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null);
+
+        // We have to disable auto-index creation/locking in the RMDTrackBuilder for tests,
+        // as the lock acquisition calls were intermittently hanging on our farm. This unfortunately
+        // means that we can't include tests for the auto-index creation feature.
+        builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null,true);
     }
 
     @Test
@@ -78,134 +80,83 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
     }
 
     @Test
-    // in this test, the index exists, but is out of date.
-    public void testBuilderIndexUnwriteable() {
-        File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/relic.vcf");
-        try {
-            builder.loadIndex(vcfFile, new VCF3Codec());
-        } catch (IOException e) {
-            e.printStackTrace();
-            Assert.fail("IO exception unexpected" + e.getMessage());
-        }
-        // make sure we didn't write the file (check that it's timestamp is within bounds)
-        //System.err.println(new File(vcfFile + RMDTrackBuilder.indexExtension).lastModified());
-        Assert.assertTrue(Math.abs(1279591752000l - Tribble.indexFile(vcfFile).lastModified()) < 100);
+    public void testDisableAutoIndexGeneration() throws IOException {
+        final File unindexedVCF = new File(privateTestDir + "unindexed.vcf");
+        final File unindexedVCFIndex = Tribble.indexFile(unindexedVCF);
 
+        Index index = builder.loadIndex(unindexedVCF, new VCFCodec());
+
+        Assert.assertFalse(unindexedVCFIndex.exists());
+        Assert.assertNotNull(index);
     }
 
-    // we have a good index file, in a read-only dir. This would cause the previous version to remake the index; make
-    // sure we don't do this
     @Test
-    public void testDirIsLockedIndexFromDisk() {
-        File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/good_index.vcf");
-        File vcfFileIndex = Tribble.indexFile(vcfFile);
-        Index ind = null;
-        try {
-            ind = builder.attemptIndexFromDisk(vcfFile,new VCFCodec(),vcfFileIndex,new FSLockWithShared(vcfFile));
-        } catch (IOException e) {
-            Assert.fail("We weren't expecting an exception -> " + e.getMessage());
-        }
-        // make sure we get back a null index; i.e. we can't load the index from disk
-        Assert.assertTrue(ind == null);
+    public void testLoadOnDiskIndex() {
+        final File originalVCF = new File(privateTestDir + "vcf4.1.example.vcf");
+        final File tempVCFWithCorrectIndex = createTempVCFFileAndIndex(originalVCF, false);
+        final File tempVCFIndexFile = Tribble.indexFile(tempVCFWithCorrectIndex);
+
+        final Index index = builder.loadFromDisk(tempVCFWithCorrectIndex, tempVCFIndexFile);
+
+        Assert.assertNotNull(index);
+        Assert.assertTrue(tempVCFIndexFile.exists());
+
+        final Index inMemoryIndex = builder.createIndexInMemory(tempVCFWithCorrectIndex, new VCFCodec());
+        Assert.assertTrue(index.equalsIgnoreProperties(inMemoryIndex));
     }
 
-
-
     @Test
-    public void testBuilderIndexDirectoryUnwritable() {
-        File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/no_index.vcf");
-        File vcfFileIndex = Tribble.indexFile(vcfFile);
+    public void testLoadOnDiskOutdatedIndex() {
+        final File originalVCF = new File(privateTestDir + "vcf4.1.example.vcf");
+        final File tempVCFWithOutdatedIndex = createTempVCFFileAndIndex(originalVCF, true);
+        final File tempVCFIndexFile = Tribble.indexFile(tempVCFWithOutdatedIndex);
 
-        Index ind = null;
-        try {
-            ind = builder.loadIndex(vcfFile, new VCF3Codec());
-        } catch (IOException e) {
-            e.printStackTrace();
-            Assert.fail("IO exception unexpected" + e.getMessage());
-        }
-        // make sure we didn't write the file (check that it's timestamp is within bounds)
-        Assert.assertTrue(!vcfFileIndex.exists());
-        Assert.assertTrue(ind != null);
+        final Index index = builder.loadFromDisk(tempVCFWithOutdatedIndex, tempVCFIndexFile);
 
-    }
-
-
-    @Test
-    public void testGenerateIndexForUnindexedFile() {
-        File vcfFile = new File(privateTestDir + "always_reindex.vcf");
-        File vcfFileIndex = Tribble.indexFile(vcfFile);
-
-        // if we can't write to the directory, don't fault the tester, just pass
-        if (!vcfFileIndex.getParentFile().canWrite()) {
-            logger.warn("Unable to run test testGenerateIndexForUnindexedFile: unable to write to dir " + vcfFileIndex.getParentFile());
-            return;
-        }
-        // clean-up our test, and previous tests that may have written the file
-        vcfFileIndex.deleteOnExit();
-        if (vcfFileIndex.exists())
-            vcfFileIndex.delete();
-
-        try {
-            builder.loadIndex(vcfFile, new VCFCodec());
-        } catch (IOException e) {
-            e.printStackTrace();
-            Assert.fail("IO exception unexpected" + e.getMessage());
-        }
-        // make sure we wrote the file
-        Assert.assertTrue(vcfFileIndex.exists());
-    }
-
-
-    // test to make sure we get a full sequence dictionary from the VCF (when we set the dictionary in the builder)
-    @Test
-    public void testBuilderIndexSequenceDictionary() {
-        File vcfFile = createCorrectDateIndexFile(new File(validationDataLocation + "/ROD_validation/newerTribbleTrack.vcf"));
-        Long indexTimeStamp = Tribble.indexFile(vcfFile).lastModified();
-        try {
-            Index idx = builder.loadIndex(vcfFile, new VCFCodec());
-            // catch any exception; this call should pass correctly
-            SAMSequenceDictionary dict =  IndexDictionaryUtils.getSequenceDictionaryFromProperties(idx);
-        } catch (IOException e) {
-            e.printStackTrace();
-            Assert.fail("IO exception unexpected" + e.getMessage());
-        }
-
-        // make sure that we removed and updated the index
-        Assert.assertTrue(Tribble.indexFile(vcfFile).lastModified() >= indexTimeStamp,"Fail: index file was modified");
+        // loadFromDisk() should return null to indicate that the index is outdated and should not be used,
+        // but should not delete the index since our builder has disableAutoIndexCreation set to true
+        Assert.assertNull(index);
+        Assert.assertTrue(tempVCFIndexFile.exists());
     }
 
     /**
-     * create a temporary file and an associated out of date index file
+     * Create a temporary vcf file and an associated index file, which may be set to be out-of-date
+     * relative to the vcf
      *
-     * @param tribbleFile the tribble file
-     * @return a file pointing to the new tmp location, with out of date index
+     * @param vcfFile the vcf file
+     * @param createOutOfDateIndex if true, ensure that the temporary vcf file is modified after the index
+     * @return a file pointing to the new tmp location, with accompanying index
      */
-    private File createCorrectDateIndexFile(File tribbleFile) {
+    private File createTempVCFFileAndIndex( final File vcfFile, final boolean createOutOfDateIndex ) {
         try {
-            // first copy the tribble file to a temperary file
-            File tmpFile = File.createTempFile("TribbleUnitTestFile", "");
+            final File tmpFile = File.createTempFile("RMDTrackBuilderUnitTest", "");
+            final File tmpIndex = Tribble.indexFile(tmpFile);
             tmpFile.deleteOnExit();
-            logger.info("creating temp file " + tmpFile);
-
-            // copy the vcf (tribble) file to the tmp file location
-            copyFile(tribbleFile, tmpFile);
-
-            // sleep again, to make sure the timestamps are different (vcf vrs updated index file)
-            Thread.sleep(2000);
-
-            // create a fake index, before we copy so it's out of date
-            File tmpIndex = Tribble.indexFile(tmpFile);
             tmpIndex.deleteOnExit();
 
-            // copy the vcf (tribble) file to the tmp file location
-            copyFile(Tribble.indexFile(tribbleFile), tmpIndex);
+            copyFile(vcfFile, tmpFile);
+            final Index inMemoryIndex = builder.createIndexInMemory(tmpFile, new VCFCodec());
+            final LittleEndianOutputStream indexOutputStream = new LittleEndianOutputStream(new FileOutputStream(tmpIndex));
+
+            // If requested, modify the tribble file after the index. Otherwise, modify the index last.
+            if ( createOutOfDateIndex ) {
+                inMemoryIndex.write(indexOutputStream);
+                indexOutputStream.close();
+                Thread.sleep(2000);
+                copyFile(vcfFile, tmpFile);
+            }
+            else {
+                copyFile(vcfFile, tmpFile);
+                Thread.sleep(2000);
+                inMemoryIndex.write(indexOutputStream);
+                indexOutputStream.close();
+            }
 
             return tmpFile;
-
         } catch (IOException e) {
             Assert.fail("Unable to create temperary file");
         } catch (InterruptedException e) {
-            Assert.fail("Somehow our thread got interupted");
+            Assert.fail("Somehow our thread got interrupted");
         }
         return null;
     }

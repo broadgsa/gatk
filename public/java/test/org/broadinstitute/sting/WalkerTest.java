@@ -53,6 +53,7 @@ public class WalkerTest extends BaseTest {
     private static final boolean GENERATE_SHADOW_BCF = true;
     private static final boolean ENABLE_PHONE_HOME_FOR_TESTS = false;
     private static final boolean ENABLE_ON_THE_FLY_CHECK_FOR_VCF_INDEX = false;
+    private static final boolean ENABLE_AUTO_INDEX_CREATION_AND_LOCKING_FOR_TESTS = false;
 
     private static MD5DB md5DB = new MD5DB();
 
@@ -209,6 +210,8 @@ public class WalkerTest extends BaseTest {
                         String.format(" -et %s -K %s ", GATKRunReport.PhoneHomeOption.NO_ET, gatkKeyFile));
                 if ( includeShadowBCF && GENERATE_SHADOW_BCF )
                     args = args + " --generateShadowBCF ";
+                if ( ! ENABLE_AUTO_INDEX_CREATION_AND_LOCKING_FOR_TESTS )
+                    args = args + " --disable_auto_index_creation_and_locking_when_reading_rods ";
             }
 
             return args;
