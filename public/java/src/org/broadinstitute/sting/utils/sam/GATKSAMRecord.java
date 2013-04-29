@@ -394,6 +394,22 @@ public class GATKSAMRecord extends BAMRecord {
     }
 
     /**
+     * Set the reduced read counts tag for this record to counts
+     *
+     * Note that this function does not set the REDUCED_READ_CONSENSUS_TAG value, it's purely for manipulating
+     * the underlying reduced reads count
+     *
+     * TODO -- this function needs to be fixed when the RR spec is set to 2.0
+     *
+     * @param counts the count array
+     */
+    public void setReducedReadCounts(final byte[] counts) {
+        if ( counts.length != getReadBases().length ) throw new IllegalArgumentException("Reduced counts length " + counts.length + " != bases length " + getReadBases().length);
+        retrievedReduceReadCounts = true;
+        reducedReadCounts = counts;
+    }
+
+    /**
      * The number of bases corresponding the i'th base of the reduced read.
      *
      * @param i the read based coordinate inside the read
@@ -678,6 +694,7 @@ public class GATKSAMRecord extends BAMRecord {
         emptyRead.setCigarString("");
         emptyRead.setReadBases(new byte[0]);
         emptyRead.setBaseQualities(new byte[0]);
+        if ( read.isReducedRead() ) emptyRead.setReducedReadCounts(new byte[0]);
 
         SAMReadGroupRecord samRG = read.getReadGroup();
         emptyRead.clearAttributes();
