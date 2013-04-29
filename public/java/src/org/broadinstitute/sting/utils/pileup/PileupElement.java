@@ -322,6 +322,8 @@ public class PileupElement implements Comparable<PileupElement> {
      * Adjusts the representative count of this pileup element.
      * Throws an exception if this element does not represent a reduced read.
      *
+     * See GATKSAMRecord.adjustReducedCount() for warnings on the permanency of this operation.
+     *
      * @param adjustmentFactor   how much to adjust the representative count (can be positive or negative)
      */
     public void adjustRepresentativeCount(final int adjustmentFactor) {

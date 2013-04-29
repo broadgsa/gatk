@@ -150,7 +150,7 @@ public class AlleleBiasedDownsamplingUtilsUnitTest extends BaseTest {
         }
         if ( originalReducedCount > 0 ) {
             final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read", 0, 1, 1);
-            read.setReducedReadCountsTag(new byte[]{(byte)originalReducedCount});
+            read.setReducedReadCountsTag(new int[]{originalReducedCount});
             elements.add(indexToPutReducedRead, new PileupElement(read, 0, new CigarElement(1, CigarOperator.M), 0, 0));
         }
 

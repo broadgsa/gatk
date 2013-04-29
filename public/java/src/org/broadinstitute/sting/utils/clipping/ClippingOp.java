@@ -380,7 +380,7 @@ public class ClippingOp {
         }
 
         if (read.isReducedRead()) {
-            final byte[] reducedCounts = new byte[newLength];
+            final int[] reducedCounts = new int[newLength];
             System.arraycopy(read.getReducedReadCounts(), copyStart, reducedCounts, 0, newLength);
             hardClippedRead.setReducedReadCounts(reducedCounts);
         }

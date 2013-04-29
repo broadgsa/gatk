@@ -62,7 +62,7 @@ public class ReadUtils {
             return 1;
 
         // compute mean representative read counts
-        final byte[] counts = read.getReducedReadCounts();
+        final int[] counts = read.getReducedReadCounts();
         return (int)Math.round((double)MathUtils.sum(counts)/counts.length);
     }
 
