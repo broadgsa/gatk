@@ -378,7 +378,13 @@ public class ClippingOp {
             hardClippedRead.setBaseQualities(newBaseInsertionQuals, EventType.BASE_INSERTION);
             hardClippedRead.setBaseQualities(newBaseDeletionQuals, EventType.BASE_DELETION);
         }
-        
+
+        if (read.isReducedRead()) {
+            final byte[] reducedCounts = new byte[newLength];
+            System.arraycopy(read.getReducedReadCounts(), copyStart, reducedCounts, 0, newLength);
+            hardClippedRead.setReducedReadCounts(reducedCounts);
+        }
+
         return hardClippedRead;
 
     }
