@@ -698,7 +698,7 @@ public class MathUtils {
         return maxI;
     }
 
-    public static byte arrayMax(final byte[] array) {
+    public static int arrayMax(final int[] array) {
         return array[maxElementIndex(array)];
     }
 
