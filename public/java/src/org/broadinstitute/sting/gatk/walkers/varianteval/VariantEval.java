@@ -77,12 +77,12 @@ import java.util.*;
  * evaluation and stratification modules, and by providing a framework that permits the easy development of new evaluation
  * and stratification modules.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * One or more variant sets to evaluate plus any number of comparison sets.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * Evaluation tables detailing the results of the eval modules which were applied.
  * For example:
@@ -103,7 +103,7 @@ import java.util.*;
  * </pre>
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \

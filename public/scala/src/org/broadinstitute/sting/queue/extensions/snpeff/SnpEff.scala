@@ -31,7 +31,7 @@ import org.broadinstitute.sting.commandline.{Argument, Output, Input}
 
 /**
  * Basic snpEff support.
- * See: http://www.broadinstitute.org/gsa/wiki/index.php/Adding_Genomic_Annotations_Using_SnpEff_and_VariantAnnotator
+ * See: http://www.broadinstitute.org/gatk/guide/article?id=50
  */
 class SnpEff extends JavaCommandLineFunction {
   javaMainClass = "ca.mcgill.mcb.pcingola.snpEffect.commandLine.SnpEff"

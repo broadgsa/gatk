@@ -29,12 +29,12 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.io.File;
 import java.util.*;
@@ -62,7 +62,7 @@ public class ReadUtils {
             return 1;
 
         // compute mean representative read counts
-        final byte[] counts = read.getReducedReadCounts();
+        final int[] counts = read.getReducedReadCounts();
         return (int)Math.round((double)MathUtils.sum(counts)/counts.length);
     }
 
@@ -485,7 +485,7 @@ public class ReadUtils {
                     if (allowGoalNotReached) {
                         return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
                     } else {
-                        throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+                        throw new ReviewedStingException(String.format("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- check read with alignment start: %s  and cigar: %s", alignmentStart, cigar));
                     }
                 }
 
@@ -506,7 +506,7 @@ public class ReadUtils {
                             if (allowGoalNotReached) {
                                 return new Pair<Integer, Boolean>(CLIPPING_GOAL_NOT_REACHED, false);
                             } else {
-                                throw new ReviewedStingException("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- call Mauricio");
+                                throw new ReviewedStingException(String.format("Reference coordinate corresponds to a non-existent base in the read. This should never happen -- check read with alignment start: %s  and cigar: %s", alignmentStart, cigar));
                             }
                         }
 
@@ -524,7 +524,7 @@ public class ReadUtils {
                 // If we reached our goal inside a deletion, but the deletion is the next cigar element then we need
                 // to add the shift of the current cigar element but go back to it's last element to return the last
                 // base before the deletion (see warning in function contracts)
-                else if (fallsInsideDeletion && !endsWithinCigar)
+                else if (fallsInsideDeletion && !endsWithinCigar && cigarElement.getOperator().consumesReadBases())
                     readBases += shift - 1;
 
                 // If we reached our goal inside a deletion then we must backtrack to the last base before the deletion

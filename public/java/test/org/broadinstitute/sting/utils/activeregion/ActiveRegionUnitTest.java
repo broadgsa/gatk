@@ -49,7 +49,7 @@ import java.util.*;
 
 
 public class ActiveRegionUnitTest extends BaseTest {
-    private final static boolean DEBUG = true;
+    private final static boolean DEBUG = false;
     private GenomeLocParser genomeLocParser;
     private IndexedFastaSequenceFile seq;
     private String contig;
@@ -308,5 +308,76 @@ public class ActiveRegionUnitTest extends BaseTest {
                 Assert.assertEquals(actual.getExtension(), region.getExtension());
             }
         }
+    }
+
+    // -----------------------------------------------------------------------------------------------
+    //
+    // Make sure we can properly cut up an active region based on engine intervals
+    //
+    // -----------------------------------------------------------------------------------------------
+
+    @DataProvider(name = "TrimActiveRegionData")
+    public Object[][] makeTrimActiveRegionData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        // fully enclosed within active region
+        tests.add(new Object[]{
+                genomeLocParser.createGenomeLoc("20", 10, 20), 10,
+                genomeLocParser.createGenomeLoc("20", 15, 16),
+                genomeLocParser.createGenomeLoc("20", 15, 16), 0});
+
+        tests.add(new Object[]{
+                genomeLocParser.createGenomeLoc("20", 10, 20), 10,
+                genomeLocParser.createGenomeLoc("20", 10, 15),
+                genomeLocParser.createGenomeLoc("20", 10, 15), 0});
+
+        tests.add(new Object[]{
+                genomeLocParser.createGenomeLoc("20", 10, 20), 10,
+                genomeLocParser.createGenomeLoc("20", 15, 20),
+                genomeLocParser.createGenomeLoc("20", 15, 20), 0});
+
+        // needs extra padding on the right
+        tests.add(new Object[]{
+                genomeLocParser.createGenomeLoc("20", 10, 20), 10,
+                genomeLocParser.createGenomeLoc("20", 15, 25),
+                genomeLocParser.createGenomeLoc("20", 15, 20), 5});
+
+        // needs extra padding on the left
+        tests.add(new Object[]{
+                genomeLocParser.createGenomeLoc("20", 10, 20), 10,
+                genomeLocParser.createGenomeLoc("20", 5, 15),
+                genomeLocParser.createGenomeLoc("20", 10, 15), 5});
+
+        // needs extra padding on both
+        tests.add(new Object[]{
+                genomeLocParser.createGenomeLoc("20", 10, 20), 10,
+                genomeLocParser.createGenomeLoc("20", 7, 21),
+                genomeLocParser.createGenomeLoc("20", 10, 20), 3});
+        tests.add(new Object[]{
+                genomeLocParser.createGenomeLoc("20", 10, 20), 10,
+                genomeLocParser.createGenomeLoc("20", 9, 23),
+                genomeLocParser.createGenomeLoc("20", 10, 20), 3});
+
+        // desired span captures everything, so we're returning everything.  Tests that extension is set correctly
+        tests.add(new Object[]{
+                genomeLocParser.createGenomeLoc("20", 10, 20), 10,
+                genomeLocParser.createGenomeLoc("20", 1, 50),
+                genomeLocParser.createGenomeLoc("20", 10, 20), 10});
+
+        // At the start of the chromosome, potentially a bit weird
+        tests.add(new Object[]{
+                genomeLocParser.createGenomeLoc("20", 1, 10), 10,
+                genomeLocParser.createGenomeLoc("20", 1, 50),
+                genomeLocParser.createGenomeLoc("20", 1, 10), 10});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "TrimActiveRegionData")
+    public void testTrimActiveRegion(final GenomeLoc regionLoc, final int extension, final GenomeLoc desiredSpan, final GenomeLoc expectedActiveRegion, final int expectedExtension) {
+        final ActiveRegion region = new ActiveRegion(regionLoc, Collections.<ActivityProfileState>emptyList(), true, genomeLocParser, extension);
+        final ActiveRegion trimmed = region.trim(desiredSpan);
+        Assert.assertEquals(trimmed.getLocation(), expectedActiveRegion, "Incorrect region");
+        Assert.assertEquals(trimmed.getExtension(), expectedExtension, "Incorrect region");
     }
 }

@@ -115,6 +115,7 @@ public class ReservoirDownsamplerUnitTest extends BaseTest {
             Assert.assertTrue(downsampler.peekFinalized() == null && downsampler.peekPending() == null);
         }
 
+        Assert.assertEquals(downsampler.size(), test.expectedNumReadsAfterDownsampling);
         List<SAMRecord> downsampledReads = downsampler.consumeFinalizedItems();
         Assert.assertFalse(downsampler.hasFinalizedItems() || downsampler.hasPendingItems());
         Assert.assertTrue(downsampler.peekFinalized() == null && downsampler.peekPending() == null);

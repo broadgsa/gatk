@@ -38,7 +38,6 @@ import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformersMode;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.baq.BAQ;
@@ -56,18 +55,24 @@ import java.util.*;
  * PrintReads can dynamically merge the contents of multiple input BAM files, resulting
  * in merged output sorted in coordinate order.  Can also optionally filter reads based on the
  * --read_filter command line argument.
+ * </p>
  *
- * <h2>Input</h2>
+ * <p>
+ * Note that when PrintReads is used as part of the Base Quality Score Recalibration workflow,
+ * it takes the --BQSR engine argument, which is listed under Inherited Arguments > CommandLineGATK below.
+ * </p>
+ *
+ * <h3>Input</h3>
  * <p>
  * One or more bam files.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A single processed bam file.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
@@ -101,7 +106,7 @@ import java.util.*;
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> implements NanoSchedulable {
 
-    @Output(doc="Write output to this BAM filename instead of STDOUT", required = true)
+    @Output(doc="Write output to this BAM filename instead of STDOUT")
     StingSAMFileWriter out;
 
     @Argument(fullName = "readGroup", shortName = "readGroup", doc="Exclude all reads with this read group from the output", required = false)
@@ -145,7 +150,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
 
     @Hidden
     @Argument(fullName = "no_pg_tag", shortName = "npt", doc ="", required = false)
-    private boolean NO_PG_TAG = false;
+    public boolean NO_PG_TAG = false;
 
     List<ReadTransformer> readTransformers = Collections.emptyList();
     private TreeSet<String> samplesToChoose = new TreeSet<String>();
@@ -160,7 +165,6 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
      * The initialize function.
      */
     public void initialize() {
-        final boolean keep_records = true;
         final GenomeAnalysisEngine toolkit = getToolkit();
 
         if  ( platform != null )
@@ -186,7 +190,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
 
         final boolean preSorted = true;
         if (getToolkit() != null && getToolkit().getArguments().BQSR_RECAL_FILE != null && !NO_PG_TAG ) {
-            Utils.setupWriter(out, toolkit, toolkit.getSAMFileHeader(), !preSorted, keep_records, this, PROGRAM_RECORD_NAME);
+            Utils.setupWriter(out, toolkit, toolkit.getSAMFileHeader(), preSorted, this, PROGRAM_RECORD_NAME);
         }
 
     }

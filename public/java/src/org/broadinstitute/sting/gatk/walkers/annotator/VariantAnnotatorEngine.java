@@ -104,7 +104,7 @@ public class VariantAnnotatorEngine {
     }
 
     // select specific expressions to use
-    public void initializeExpressions(List<String> expressionsToUse) {
+    public void initializeExpressions(Set<String> expressionsToUse) {
         // set up the expressions
         for ( String expression : expressionsToUse )
             requestedExpressions.add(new VAExpression(expression, walker.getResourceRodBindings()));

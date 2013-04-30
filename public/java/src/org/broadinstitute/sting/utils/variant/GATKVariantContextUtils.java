@@ -51,7 +51,6 @@ public class GATKVariantContextUtils {
     public final static String MERGE_FILTER_IN_ALL = "FilteredInAll";
     public final static String MERGE_INTERSECTION = "Intersection";
 
-
     public enum GenotypeMergeType {
         /**
          * Make all sample genotypes unique by file. Each sample shared across RODs gets named sample.ROD.
@@ -98,6 +97,46 @@ public class GATKVariantContextUtils {
     }
 
     /**
+     * Refactored out of the AverageAltAlleleLength annotation class
+     * @param vc the variant context
+     * @return the average length of the alt allele (a double)
+     */
+    public static double getMeanAltAlleleLength(VariantContext vc) {
+        double averageLength = 1.0;
+        if ( ! vc.isSNP() && ! vc.isSymbolic() ) {
+            // adjust for the event length
+            int averageLengthNum = 0;
+            int averageLengthDenom = 0;
+            int refLength = vc.getReference().length();
+            for ( Allele a : vc.getAlternateAlleles() ) {
+                int numAllele = vc.getCalledChrCount(a);
+                int alleleSize;
+                if ( a.length() == refLength ) {
+                    // SNP or MNP
+                    byte[] a_bases = a.getBases();
+                    byte[] ref_bases = vc.getReference().getBases();
+                    int n_mismatch = 0;
+                    for ( int idx = 0; idx < a_bases.length; idx++ ) {
+                        if ( a_bases[idx] != ref_bases[idx] )
+                            n_mismatch++;
+                    }
+                    alleleSize = n_mismatch;
+                }
+                else if ( a.isSymbolic() ) {
+                    alleleSize = 1;
+                } else {
+                    alleleSize = Math.abs(refLength-a.length());
+                }
+                averageLengthNum += alleleSize*numAllele;
+                averageLengthDenom += numAllele;
+            }
+            averageLength = ( (double) averageLengthNum )/averageLengthDenom;
+        }
+
+        return averageLength;
+    }
+
+    /**
      * create a genome location, given a variant context
      * @param genomeLocParser parser
      * @param vc the variant context
@@ -114,14 +153,14 @@ public class GATKVariantContextUtils {
     }
 
     /**
-     * If this is a BiAlleic SNP, is it a transition?
+     * If this is a BiAllelic SNP, is it a transition?
      */
     public static boolean isTransition(VariantContext context) {
         return getSNPSubstitutionType(context) == BaseUtils.BaseSubstitutionType.TRANSITION;
     }
 
     /**
-     * If this is a BiAlleic SNP, is it a transversion?
+     * If this is a BiAllelic SNP, is it a transversion?
      */
     public static boolean isTransversion(VariantContext context) {
         return getSNPSubstitutionType(context) == BaseUtils.BaseSubstitutionType.TRANSVERSION;
@@ -397,14 +436,19 @@ public class GATKVariantContextUtils {
         // the genotypes with PLs
         final GenotypesContext oldGTs = vc.getGenotypes();
 
+        // the new genotypes to create
+        final GenotypesContext newGTs = GenotypesContext.create();
+        // optimization: if no input genotypes, just exit
+        if (oldGTs.isEmpty())
+            return newGTs;
+
         // samples
         final List<String> sampleIndices = oldGTs.getSampleNamesOrderedByName();
 
-        // the new genotypes to create
-        final GenotypesContext newGTs = GenotypesContext.create();
 
         // we need to determine which of the alternate alleles (and hence the likelihoods) to use and carry forward
         final int numOriginalAltAlleles = vc.getAlternateAlleles().size();
+        final int expectedNumLikelihoods = GenotypeLikelihoods.numLikelihoods(vc.getNAlleles(), 2);
         final int numNewAltAlleles = allelesToUse.size() - 1;
 
         // which PLs should be carried forward?
@@ -444,6 +488,9 @@ public class GATKVariantContextUtils {
             double[] newLikelihoods;
             if ( likelihoodIndexesToUse == null ) {
                 newLikelihoods = originalLikelihoods;
+            } else if ( originalLikelihoods.length != expectedNumLikelihoods ) {
+                logger.warn("Wrong number of likelihoods in sample " + g.getSampleName() + " at " + vc + " got " + g.getLikelihoodsString() + " but expected " + expectedNumLikelihoods);
+                newLikelihoods = null;
             } else {
                 newLikelihoods = new double[likelihoodIndexesToUse.size()];
                 int newIndex = 0;
@@ -455,13 +502,13 @@ public class GATKVariantContextUtils {
             }
 
             // if there is no mass on the (new) likelihoods, then just no-call the sample
-            if ( MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL ) {
+            if ( newLikelihoods != null && MathUtils.sum(newLikelihoods) > SUM_GL_THRESH_NOCALL ) {
                 newGTs.add(GenotypeBuilder.create(g.getSampleName(), NO_CALL_ALLELES));
             }
             else {
                 final GenotypeBuilder gb = new GenotypeBuilder(g);
 
-                if ( numNewAltAlleles == 0 )
+                if ( newLikelihoods == null || numNewAltAlleles == 0 )
                     gb.noPL();
                 else
                     gb.PL(newLikelihoods);
@@ -957,14 +1004,15 @@ public class GATKVariantContextUtils {
     public static VariantContext trimAlleles(final VariantContext inputVC, final boolean trimForward, final boolean trimReverse) {
         if ( inputVC == null ) throw new IllegalArgumentException("inputVC cannot be null");
 
-        if ( inputVC.getNAlleles() <= 1 )
+        if ( inputVC.getNAlleles() <= 1 || inputVC.isSNP() )
             return inputVC;
 
         // see whether we need to trim common reference base from all alleles
         final int revTrim = trimReverse ? computeReverseClipping(inputVC.getAlleles(), inputVC.getReference().getDisplayString().getBytes()) : 0;
         final VariantContext revTrimVC = trimAlleles(inputVC, -1, revTrim);
         final int fwdTrim = trimForward ? computeForwardClipping(revTrimVC.getAlleles()) : -1;
-        return trimAlleles(revTrimVC, fwdTrim, 0);
+        final VariantContext vc= trimAlleles(revTrimVC, fwdTrim, 0);
+        return vc;
     }
 
     /**
@@ -985,7 +1033,6 @@ public class GATKVariantContextUtils {
             return inputVC;
 
         final List<Allele> alleles = new LinkedList<Allele>();
-        final GenotypesContext genotypes = GenotypesContext.create();
         final Map<Allele, Allele> originalToTrimmedAlleleMap = new HashMap<Allele, Allele>();
 
         for (final Allele a : inputVC.getAlleles()) {
@@ -1002,17 +1049,8 @@ public class GATKVariantContextUtils {
         }
 
         // now we can recreate new genotypes with trimmed alleles
-        for ( final Genotype genotype : inputVC.getGenotypes() ) {
-            final List<Allele> originalAlleles = genotype.getAlleles();
-            final List<Allele> trimmedAlleles = new ArrayList<Allele>();
-            for ( final Allele a : originalAlleles ) {
-                if ( a.isCalled() )
-                    trimmedAlleles.add(originalToTrimmedAlleleMap.get(a));
-                else
-                    trimmedAlleles.add(Allele.NO_CALL);
-            }
-            genotypes.add(new GenotypeBuilder(genotype).alleles(trimmedAlleles).make());
-        }
+        final AlleleMapper alleleMapper = new AlleleMapper(originalToTrimmedAlleleMap);
+        final GenotypesContext genotypes = updateGenotypesWithMappedAlleles(inputVC.getGenotypes(), alleleMapper);
 
         final int start = inputVC.getStart() + (fwdTrimEnd + 1);
         final VariantContextBuilder builder = new VariantContextBuilder(inputVC);
@@ -1021,6 +1059,18 @@ public class GATKVariantContextUtils {
         builder.alleles(alleles);
         builder.genotypes(genotypes);
         return builder.make();
+    }
+
+    @Requires("originalGenotypes != null && alleleMapper != null")
+    protected static GenotypesContext updateGenotypesWithMappedAlleles(final GenotypesContext originalGenotypes, final AlleleMapper alleleMapper) {
+        final GenotypesContext updatedGenotypes = GenotypesContext.create();
+
+        for ( final Genotype genotype : originalGenotypes ) {
+            final List<Allele> updatedAlleles = alleleMapper.remap(genotype.getAlleles());
+            updatedGenotypes.add(new GenotypeBuilder(genotype).alleles(updatedAlleles).make());
+        }
+
+        return updatedGenotypes;
     }
 
     public static int computeReverseClipping(final List<Allele> unclippedAlleles, final byte[] ref) {
@@ -1259,7 +1309,7 @@ public class GATKVariantContextUtils {
     }
 
 
-    private static class AlleleMapper {
+    protected static class AlleleMapper {
         private VariantContext vc = null;
         private Map<Allele, Allele> map = null;
         public AlleleMapper(VariantContext vc)          { this.vc = vc; }
@@ -1318,5 +1368,77 @@ public class GATKVariantContextUtils {
             first = false;
         }
       return new VariantContextBuilder(name, contig, start, start+length-1, alleles).make();
+    }
+
+    /**
+     * Splits the alleles for the provided variant context into its primitive parts.
+     * Requires that the input VC be bi-allelic, so calling methods should first call splitVariantContextToBiallelics() if needed.
+     * Currently works only for MNPs.
+     *
+     * @param vc  the non-null VC to split
+     * @return a non-empty list of VCs split into primitive parts or the original VC otherwise
+     */
+    public static List<VariantContext> splitIntoPrimitiveAlleles(final VariantContext vc) {
+        if ( vc == null )
+            throw new IllegalArgumentException("Trying to break a null Variant Context into primitive parts");
+
+        if ( !vc.isBiallelic() )
+            throw new IllegalArgumentException("Trying to break a multi-allelic Variant Context into primitive parts");
+
+        // currently only works for MNPs
+        if ( !vc.isMNP() )
+            return Arrays.asList(vc);
+
+        final byte[] ref = vc.getReference().getBases();
+        final byte[] alt = vc.getAlternateAllele(0).getBases();
+
+        if ( ref.length != alt.length )
+            throw new IllegalStateException("ref and alt alleles for MNP have different lengths");
+
+        final List<VariantContext> result = new ArrayList<VariantContext>(ref.length);
+
+        for ( int i = 0; i < ref.length; i++ ) {
+
+            // if the ref and alt bases are different at a given position, create a new SNP record (otherwise do nothing)
+            if ( ref[i] != alt[i] ) {
+
+                // create the ref and alt SNP alleles
+                final Allele newRefAllele = Allele.create(ref[i], true);
+                final Allele newAltAllele = Allele.create(alt[i], false);
+
+                // create a new VariantContext with the new SNP alleles
+                final VariantContextBuilder newVC = new VariantContextBuilder(vc).start(vc.getStart() + i).stop(vc.getStart() + i).alleles(Arrays.asList(newRefAllele, newAltAllele));
+
+                // create new genotypes with updated alleles
+                final Map<Allele, Allele> alleleMap = new HashMap<Allele, Allele>();
+                alleleMap.put(vc.getReference(), newRefAllele);
+                alleleMap.put(vc.getAlternateAllele(0), newAltAllele);
+                final GenotypesContext newGenotypes = updateGenotypesWithMappedAlleles(vc.getGenotypes(), new AlleleMapper(alleleMap));
+
+                result.add(newVC.genotypes(newGenotypes).make());
+            }
+        }
+
+        if ( result.isEmpty() )
+            result.add(vc);
+
+        return result;
+    }
+
+    /**
+     * Are vc1 and 2 equal including their position and alleles?
+     * @param vc1 non-null VariantContext
+     * @param vc2 non-null VariantContext
+     * @return true if vc1 and vc2 are equal, false otherwise
+     */
+    public static boolean equalSites(final VariantContext vc1, final VariantContext vc2) {
+        if ( vc1 == null ) throw new IllegalArgumentException("vc1 cannot be null");
+        if ( vc2 == null ) throw new IllegalArgumentException("vc2 cannot be null");
+
+        if ( vc1.getStart() != vc2.getStart() ) return false;
+        if ( vc1.getEnd() != vc2.getEnd() ) return false;
+        if ( ! vc1.getChr().equals(vc2.getChr())) return false;
+        if ( ! vc1.getAlleles().equals(vc2.getAlleles()) ) return false;
+        return true;
     }
 }

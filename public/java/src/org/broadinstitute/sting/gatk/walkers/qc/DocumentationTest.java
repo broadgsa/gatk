@@ -73,7 +73,7 @@ public class DocumentationTest extends RodWalker<Integer, Integer> {
     @Input(fullName="featureArg", shortName = "featureArg", doc="A RodBinding of feature", required=false)
     private RodBinding<Feature> featureArg = null;
 
-    @Output(doc="VCFWriter",required=true)
+    @Output(doc="VCFWriter")
     protected VariantContextWriter vcfWriter = null;
 
     @Advanced

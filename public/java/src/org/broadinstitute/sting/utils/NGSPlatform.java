@@ -28,6 +28,9 @@ package org.broadinstitute.sting.utils;
 import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  * A canonical, master list of the standard NGS platforms.  These values
  * can be obtained (efficiently) from a GATKSAMRecord object with the
@@ -116,5 +119,18 @@ public enum NGSPlatform {
      */
     public static boolean isKnown(final String platform) {
         return fromReadGroupPL(platform) != UNKNOWN;
+    }
+
+    /**
+     * Get a human-readable list of platform names
+     * @return the list of platform names
+     */
+    public static String knownPlatformsString() {
+        final List<String> names = new LinkedList<String>();
+        for ( final NGSPlatform pl : values() ) {
+            for ( final String name : pl.BAM_PL_NAMES )
+                names.add(name);
+        }
+        return Utils.join(",", names);
     }
 }

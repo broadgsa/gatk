@@ -37,6 +37,7 @@ import org.testng.annotations.Test;
 import java.util.*;
 
 public class AlignmentUtilsUnitTest {
+    private final static boolean DEBUG = false;
     private SAMFileHeader header;
 
     /** Basic aligned and mapped read. */
@@ -85,7 +86,7 @@ public class AlignmentUtilsUnitTest {
                 new Object[] {readUnknownStart, false}
         };
     }
-    @Test(dataProvider = "genomeLocUnmappedReadTests")
+    @Test(enabled = !DEBUG, dataProvider = "genomeLocUnmappedReadTests")
     public void testIsReadGenomeLocUnmapped(SAMRecord read, boolean expected) {
         Assert.assertEquals(AlignmentUtils.isReadGenomeLocUnmapped(read), expected);
     }
@@ -103,7 +104,7 @@ public class AlignmentUtilsUnitTest {
                 new Object[] {readUnknownStart, true}
         };
     }
-    @Test(dataProvider = "unmappedReadTests")
+    @Test(enabled = !DEBUG, dataProvider = "unmappedReadTests")
     public void testIsReadUnmapped(SAMRecord read, boolean expected) {
         Assert.assertEquals(AlignmentUtils.isReadUnmapped(read), expected);
     }
@@ -144,6 +145,34 @@ public class AlignmentUtilsUnitTest {
     }
 
 
+    @DataProvider(name = "CalcNumDifferentBasesData")
+    public Object[][] makeCalcNumDifferentBasesData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        tests.add(new Object[]{"5M", "ACGTA", "ACGTA", 0});
+        tests.add(new Object[]{"5M", "ACGTA", "ACGTT", 1});
+        tests.add(new Object[]{"5M", "ACGTA", "TCGTT", 2});
+        tests.add(new Object[]{"5M", "ACGTA", "TTGTT", 3});
+        tests.add(new Object[]{"5M", "ACGTA", "TTTTT", 4});
+        tests.add(new Object[]{"5M", "ACGTA", "TTTCT", 5});
+        tests.add(new Object[]{"2M3I3M", "ACGTA", "ACNNNGTA", 3});
+        tests.add(new Object[]{"2M3I3M", "ACGTA", "ACNNNGTT", 4});
+        tests.add(new Object[]{"2M3I3M", "ACGTA", "TCNNNGTT", 5});
+        tests.add(new Object[]{"2M2D1M", "ACGTA", "ACA", 2});
+        tests.add(new Object[]{"2M2D1M", "ACGTA", "ACT", 3});
+        tests.add(new Object[]{"2M2D1M", "ACGTA", "TCT", 4});
+        tests.add(new Object[]{"2M2D1M", "ACGTA", "TGT", 5});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(enabled = true, dataProvider = "CalcNumDifferentBasesData")
+    public void testCalcNumDifferentBases(final String cigarString, final String ref, final String read, final int expectedDifferences) {
+        final Cigar cigar = TextCigarCodec.getSingleton().decode(cigarString);
+        Assert.assertEquals(AlignmentUtils.calcNumDifferentBases(cigar, ref.getBytes(), read.getBytes()), expectedDifferences);
+    }
+
+
     @DataProvider(name = "NumAlignedBasesCountingSoftClips")
     public Object[][] makeNumAlignedBasesCountingSoftClips() {
         List<Object[]> tests = new ArrayList<Object[]>();
@@ -160,7 +189,7 @@ public class AlignmentUtilsUnitTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "NumAlignedBasesCountingSoftClips")
+    @Test(enabled = !DEBUG, dataProvider = "NumAlignedBasesCountingSoftClips")
     public void testNumAlignedBasesCountingSoftClips(final Cigar cigar, final int expected) {
         final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 1, cigar == null ? 10 : cigar.getReadLength());
         read.setCigar(cigar);
@@ -180,7 +209,7 @@ public class AlignmentUtilsUnitTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "CigarHasZeroElement")
+    @Test(enabled = !DEBUG, dataProvider = "CigarHasZeroElement")
     public void testCigarHasZeroSize(final Cigar cigar, final boolean hasZero) {
         Assert.assertEquals(AlignmentUtils.cigarHasZeroSizeElement(cigar), hasZero, "Cigar " + cigar.toString() + " failed cigarHasZeroSizeElement");
     }
@@ -200,7 +229,7 @@ public class AlignmentUtilsUnitTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "NumHardClipped")
+    @Test(enabled = !DEBUG, dataProvider = "NumHardClipped")
     public void testNumHardClipped(final Cigar cigar, final int expected) {
         final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 1, cigar == null ? 10 : cigar.getReadLength());
         read.setCigar(cigar);
@@ -227,49 +256,54 @@ public class AlignmentUtilsUnitTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "NumAlignedBlocks")
+    @Test(enabled = !DEBUG, dataProvider = "NumAlignedBlocks")
     public void testNumAlignedBlocks(final Cigar cigar, final int expected) {
         final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 1, cigar == null ? 10 : cigar.getReadLength());
         read.setCigar(cigar);
         Assert.assertEquals(AlignmentUtils.getNumAlignmentBlocks(read), expected, "Cigar " + cigar + " failed NumAlignedBlocks");
     }
 
-    @Test
-    public void testConsolidateCigar() {
-        {
-            //1M1M1M1D2M1M --> 3M1D3M
-            List<CigarElement> list = new ArrayList<CigarElement>();
-            list.add( new CigarElement(1, CigarOperator.M));
-            list.add( new CigarElement(1, CigarOperator.M));
-            list.add( new CigarElement(1, CigarOperator.M));
-            list.add( new CigarElement(1, CigarOperator.D));
-            list.add( new CigarElement(2, CigarOperator.M));
-            list.add( new CigarElement(1, CigarOperator.M));
-            Cigar unconsolidatedCigar = new Cigar(list);
+    @DataProvider(name = "ConsolidateCigarData")
+    public Object[][] makeConsolidateCigarData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
 
-            list.clear();
-            list.add( new CigarElement(3, CigarOperator.M));
-            list.add( new CigarElement(1, CigarOperator.D));
-            list.add( new CigarElement(3, CigarOperator.M));
-            Cigar consolidatedCigar = new Cigar(list);
+        // this functionality can be adapted to provide input data for whatever you might want in your data
+        tests.add(new Object[]{"1M1M", "2M"});
+        tests.add(new Object[]{"2M", "2M"});
+        tests.add(new Object[]{"2M0M", "2M"});
+        tests.add(new Object[]{"0M2M", "2M"});
+        tests.add(new Object[]{"0M2M0M0I0M1M", "3M"});
+        tests.add(new Object[]{"2M0M1M", "3M"});
+        tests.add(new Object[]{"1M1M1M1D2M1M", "3M1D3M"});
+        tests.add(new Object[]{"6M6M6M", "18M"});
 
-            Assert.assertEquals(consolidatedCigar.toString(), AlignmentUtils.consolidateCigar(unconsolidatedCigar).toString());
+        final List<CigarElement> elements = new LinkedList<CigarElement>();
+        int i = 1;
+        for ( final CigarOperator op : CigarOperator.values() ) {
+            elements.add(new CigarElement(i++, op));
+        }
+        for ( final List<CigarElement> ops : Utils.makePermutations(elements,  3, false) ) {
+            final String expected = new Cigar(ops).toString();
+            final List<CigarElement> cutElements = new LinkedList<CigarElement>();
+            for ( final CigarElement elt : ops ) {
+                for ( int j = 0; j < elt.getLength(); j++ ) {
+                    cutElements.add(new CigarElement(1, elt.getOperator()));
+                }
+            }
+
+            final String actual = new Cigar(cutElements).toString();
+            tests.add(new Object[]{actual, expected});
         }
 
-        {
-            //6M6M6M --> 18M
-            List<CigarElement> list = new ArrayList<CigarElement>();
-            list.add( new CigarElement(6, CigarOperator.M));
-            list.add( new CigarElement(6, CigarOperator.M));
-            list.add( new CigarElement(6, CigarOperator.M));
-            Cigar unconsolidatedCigar = new Cigar(list);
+        return tests.toArray(new Object[][]{});
+    }
 
-            list.clear();
-            list.add( new CigarElement(18, CigarOperator.M));
-            Cigar consolidatedCigar = new Cigar(list);
-
-            Assert.assertEquals(consolidatedCigar.toString(), AlignmentUtils.consolidateCigar(unconsolidatedCigar).toString());
-        }
+    @Test(enabled = !DEBUG, dataProvider = "ConsolidateCigarData")
+    public void testConsolidateCigarWithData(final String testCigarString, final String expectedCigarString) {
+        final Cigar testCigar = TextCigarCodec.getSingleton().decode(testCigarString);
+        final Cigar expectedCigar = TextCigarCodec.getSingleton().decode(expectedCigarString);
+        final Cigar actualCigar = AlignmentUtils.consolidateCigar(testCigar);
+        Assert.assertEquals(actualCigar, expectedCigar);
     }
 
     @DataProvider(name = "SoftClipsDataProvider")
@@ -304,7 +338,7 @@ public class AlignmentUtilsUnitTest {
         return array;
     }
 
-    @Test(dataProvider = "SoftClipsDataProvider")
+    @Test(enabled = !DEBUG, dataProvider = "SoftClipsDataProvider")
     public void testSoftClipsData(final byte[] qualsOfSoftClipsOnLeft, final int middleSize, final String middleOp, final byte[] qualOfSoftClipsOnRight, final int qualThreshold, final int numExpected) {
         final int readLength = (middleOp.equals("D") ? 0 : middleSize) + qualOfSoftClipsOnRight.length + qualsOfSoftClipsOnLeft.length;
         final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, 1, readLength);
@@ -391,7 +425,7 @@ public class AlignmentUtilsUnitTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "MismatchCountDataProvider")
+    @Test(enabled = !DEBUG, dataProvider = "MismatchCountDataProvider")
     public void testMismatchCountData(final GATKSAMRecord read, final int refIndex, final int startOnRead, final int basesToRead, final boolean isMismatch) {
         final byte[] reference = Utils.dupBytes((byte)'A', 100);
         final int actual = AlignmentUtils.getMismatchCount(read, reference, refIndex, startOnRead, basesToRead).numMismatches;
@@ -476,7 +510,7 @@ public class AlignmentUtilsUnitTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "AlignmentByteArrayOffsetDataProvider")
+    @Test(enabled = !DEBUG, dataProvider = "AlignmentByteArrayOffsetDataProvider")
     public void testAlignmentByteArrayOffsetData(final Cigar cigar, final int offset, final int expectedResult, final boolean isDeletion, final int lengthOfSoftClip) {
         final int actual = AlignmentUtils.calcAlignmentByteArrayOffset(cigar, isDeletion ? -1 : offset, isDeletion, 20, 20 + offset - lengthOfSoftClip);
         Assert.assertEquals(actual, expectedResult, "Wrong alignment offset detected for cigar " + cigar.toString());
@@ -514,7 +548,7 @@ public class AlignmentUtilsUnitTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "ReadToAlignmentByteArrayDataProvider")
+    @Test(enabled = !DEBUG, dataProvider = "ReadToAlignmentByteArrayDataProvider")
     public void testReadToAlignmentByteArrayData(final Cigar cigar, final int expectedLength, final char middleOp, final int startOfIndelBases, final int lengthOfDeletion) {
         final byte[] read = Utils.dupBytes((byte)'A', cigar.getReadLength());
         final byte[] alignment = AlignmentUtils.readToAlignmentByteArray(cigar, read);
@@ -645,9 +679,358 @@ public class AlignmentUtilsUnitTest {
         return readString;
     }
 
-    @Test(dataProvider = "LeftAlignIndelDataProvider", enabled = true)
+    @Test(enabled = !DEBUG, dataProvider = "LeftAlignIndelDataProvider")
     public void testLeftAlignIndelData(final Cigar originalCigar, final Cigar expectedCigar, final byte[] reference, final byte[] read, final int repeatLength) {
         final Cigar actualCigar = AlignmentUtils.leftAlignIndel(originalCigar, reference, read, 0, 0, true);
         Assert.assertTrue(expectedCigar.equals(actualCigar), "Wrong left alignment detected for cigar " + originalCigar.toString() + " to " + actualCigar.toString() + " but expected " + expectedCigar.toString() + " with repeat length " + repeatLength);
     }
+
+    //////////////////////////////////////////
+    // Test AlignmentUtils.trimCigarByReference() //
+    //////////////////////////////////////////
+
+    @DataProvider(name = "TrimCigarData")
+    public Object[][] makeTrimCigarData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        for ( final CigarOperator op : Arrays.asList(CigarOperator.D, CigarOperator.EQ, CigarOperator.X, CigarOperator.M) ) {
+            for ( int myLength = 1; myLength < 6; myLength++ ) {
+                for ( int start = 0; start < myLength - 1; start++ ) {
+                    for ( int end = start; end < myLength; end++ ) {
+                        final int length = end - start + 1;
+
+                        final List<CigarOperator> padOps = Arrays.asList(CigarOperator.D, CigarOperator.M);
+                        for ( final CigarOperator padOp: padOps) {
+                            for ( int leftPad = 0; leftPad < 2; leftPad++ ) {
+                                for ( int rightPad = 0; rightPad < 2; rightPad++ ) {
+                                    tests.add(new Object[]{
+                                            (leftPad > 0 ? leftPad + padOp.toString() : "") + myLength + op.toString() + (rightPad > 0 ? rightPad + padOp.toString() : ""),
+                                            start + leftPad,
+                                            end + leftPad,
+                                            length + op.toString()});
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        for ( final int leftPad : Arrays.asList(0, 1, 2, 5) ) {
+            for ( final int rightPad : Arrays.asList(0, 1, 2, 5) ) {
+                final int length = leftPad + rightPad;
+                if ( length > 0 ) {
+                    for ( final int insSize : Arrays.asList(1, 10) ) {
+                        for ( int start = 0; start <= leftPad; start++ ) {
+                            for ( int stop = leftPad; stop < length; stop++ ) {
+                                final int leftPadRemaining = leftPad - start;
+                                final int rightPadRemaining = stop - leftPad + 1;
+                                final String insC = insSize + "I";
+                                tests.add(new Object[]{
+                                        leftPad + "M" + insC + rightPad + "M",
+                                        start,
+                                        stop,
+                                        (leftPadRemaining > 0 ? leftPadRemaining + "M" : "") + insC + (rightPadRemaining > 0 ? rightPadRemaining + "M" : "")
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        tests.add(new Object[]{"3M2D4M", 0, 8, "3M2D4M"});
+        tests.add(new Object[]{"3M2D4M", 2, 8, "1M2D4M"});
+        tests.add(new Object[]{"3M2D4M", 2, 6, "1M2D2M"});
+        tests.add(new Object[]{"3M2D4M", 3, 6, "2D2M"});
+        tests.add(new Object[]{"3M2D4M", 4, 6, "1D2M"});
+        tests.add(new Object[]{"3M2D4M", 5, 6, "2M"});
+        tests.add(new Object[]{"3M2D4M", 6, 6, "1M"});
+
+        tests.add(new Object[]{"2M3I4M", 0, 5, "2M3I4M"});
+        tests.add(new Object[]{"2M3I4M", 1, 5, "1M3I4M"});
+        tests.add(new Object[]{"2M3I4M", 1, 4, "1M3I3M"});
+        tests.add(new Object[]{"2M3I4M", 2, 4, "3I3M"});
+        tests.add(new Object[]{"2M3I4M", 2, 3, "3I2M"});
+        tests.add(new Object[]{"2M3I4M", 2, 2, "3I1M"});
+        tests.add(new Object[]{"2M3I4M", 3, 4, "2M"});
+        tests.add(new Object[]{"2M3I4M", 3, 3, "1M"});
+        tests.add(new Object[]{"2M3I4M", 4, 4, "1M"});
+
+        // this doesn't work -- but I'm not sure it should
+        //        tests.add(new Object[]{"2M3I4M", 2, 1, "3I"});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "TrimCigarData", enabled = ! DEBUG)
+    public void testTrimCigar(final String cigarString, final int start, final int length, final String expectedCigarString) {
+        final Cigar cigar = TextCigarCodec.getSingleton().decode(cigarString);
+        final Cigar expectedCigar = TextCigarCodec.getSingleton().decode(expectedCigarString);
+        final Cigar actualCigar = AlignmentUtils.trimCigarByReference(cigar, start, length);
+        Assert.assertEquals(actualCigar, expectedCigar);
+    }
+
+    @DataProvider(name = "TrimCigarByBasesData")
+    public Object[][] makeTrimCigarByBasesData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        tests.add(new Object[]{"2M3I4M", 0, 8, "2M3I4M"});
+        tests.add(new Object[]{"2M3I4M", 1, 8, "1M3I4M"});
+        tests.add(new Object[]{"2M3I4M", 2, 8, "3I4M"});
+        tests.add(new Object[]{"2M3I4M", 3, 8, "2I4M"});
+        tests.add(new Object[]{"2M3I4M", 4, 8, "1I4M"});
+        tests.add(new Object[]{"2M3I4M", 4, 7, "1I3M"});
+        tests.add(new Object[]{"2M3I4M", 4, 6, "1I2M"});
+        tests.add(new Object[]{"2M3I4M", 4, 5, "1I1M"});
+        tests.add(new Object[]{"2M3I4M", 4, 4, "1I"});
+        tests.add(new Object[]{"2M3I4M", 5, 5, "1M"});
+
+        tests.add(new Object[]{"2M2D2I", 0, 3, "2M2D2I"});
+        tests.add(new Object[]{"2M2D2I", 1, 3, "1M2D2I"});
+        tests.add(new Object[]{"2M2D2I", 2, 3, "2D2I"});
+        tests.add(new Object[]{"2M2D2I", 3, 3, "1I"});
+        tests.add(new Object[]{"2M2D2I", 2, 2, "2D1I"});
+        tests.add(new Object[]{"2M2D2I", 1, 2, "1M2D1I"});
+        tests.add(new Object[]{"2M2D2I", 1, 1, "1M"});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "TrimCigarByBasesData", enabled = !DEBUG)
+    public void testTrimCigarByBase(final String cigarString, final int start, final int length, final String expectedCigarString) {
+        final Cigar cigar = TextCigarCodec.getSingleton().decode(cigarString);
+        final Cigar expectedCigar = TextCigarCodec.getSingleton().decode(expectedCigarString);
+        final Cigar actualCigar = AlignmentUtils.trimCigarByBases(cigar, start, length);
+        Assert.assertEquals(actualCigar, expectedCigar);
+    }
+
+    //////////////////////////////////////////
+    // Test AlignmentUtils.applyCigarToCigar() //
+    //////////////////////////////////////////
+
+    @DataProvider(name = "ApplyCigarToCigarData")
+    public Object[][] makeApplyCigarToCigarData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        for ( int i = 1; i < 5; i++ )
+            tests.add(new Object[]{i + "M", i + "M", i + "M"});
+
+//        * ref   : ACGTAC
+//        * hap   : AC---C  - 2M3D1M
+//        * read  : AC---C  - 3M
+//        * result: AG---C => 2M3D
+        tests.add(new Object[]{"3M", "2M3D1M", "2M3D1M"});
+
+//        * ref   : ACxG-TA
+//        * hap   : AC-G-TA  - 2M1D3M
+//        * read  : AC-GxTA  - 3M1I2M
+//        * result: AC-GxTA => 2M1D1M1I2M
+        tests.add(new Object[]{"3M1I2M", "2M1D3M", "2M1D1M1I2M"});
+
+//        * ref   : A-CGTA
+//        * hap   : A-CGTA  - 5M
+//        * read  : AxCGTA  - 1M1I4M
+//        * result: AxCGTA => 1M1I4M
+        tests.add(new Object[]{"1M1I4M", "5M", "1M1I4M"});
+
+//        * ref   : ACGTA
+//        * hap   : ACGTA  - 5M
+//        * read  : A--TA  - 1M2D2M
+//        * result: A--TA => 1M2D2M
+        tests.add(new Object[]{"1M2D2M", "5M", "1M2D2M"});
+
+//        * ref   : AC-GTA
+//        * hap   : ACxGTA  - 2M1I3M
+//        * read  : A--GTA  - 1M2D3M
+//        * result: A--GTA => 1M1D3M
+        tests.add(new Object[]{"108M14D24M2M18I29M92M1000M", "2M1I3M", "2M1I3M"});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "ApplyCigarToCigarData", enabled = !DEBUG)
+    public void testApplyCigarToCigar(final String firstToSecondString, final String secondToThirdString, final String expectedCigarString) {
+        final Cigar firstToSecond = TextCigarCodec.getSingleton().decode(firstToSecondString);
+        final Cigar secondToThird = TextCigarCodec.getSingleton().decode(secondToThirdString);
+        final Cigar expectedCigar = TextCigarCodec.getSingleton().decode(expectedCigarString);
+        final Cigar actualCigar = AlignmentUtils.applyCigarToCigar(firstToSecond, secondToThird);
+        Assert.assertEquals(actualCigar, expectedCigar);
+    }
+
+    //////////////////////////////////////////
+    // Test AlignmentUtils.applyCigarToCigar() //
+    //////////////////////////////////////////
+
+    @DataProvider(name = "ReadOffsetFromCigarData")
+    public Object[][] makeReadOffsetFromCigarData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final int SIZE = 10;
+        for ( int i = 0; i < SIZE; i++ ) {
+            tests.add(new Object[]{SIZE + "M", i, i});
+        }
+
+        //          0123ii45
+        // ref    : ACGT--AC
+        // hap    : AC--xxAC (2M2D2I2M)
+        // ref.pos: 01    45
+        tests.add(new Object[]{"2M2D2I2M", 0, 0});
+        tests.add(new Object[]{"2M2D2I2M", 1, 1});
+        tests.add(new Object[]{"2M2D2I2M", 2, 4});
+        tests.add(new Object[]{"2M2D2I2M", 3, 4});
+        tests.add(new Object[]{"2M2D2I2M", 4, 4});
+        tests.add(new Object[]{"2M2D2I2M", 5, 5});
+
+        // 10132723 - 10132075 - 500 = 148
+        // what's the offset of the first match after the I?
+        // 108M + 14D + 24M + 2M = 148
+        // What's the offset of the first base that is after the I?
+        // 108M + 24M + 2M + 18I = 134M + 18I = 152 - 1 = 151
+        tests.add(new Object[]{"108M14D24M2M18I29M92M", 0, 0});
+        tests.add(new Object[]{"108M14D24M2M18I29M92M", 107, 107});
+        tests.add(new Object[]{"108M14D24M2M18I29M92M", 108, 108 + 14}); // first base after the deletion
+
+        tests.add(new Object[]{"108M14D24M2M18I29M92M", 132, 132+14}); // 2 before insertion
+        tests.add(new Object[]{"108M14D24M2M18I29M92M", 133, 133+14}); // last base before insertion
+
+        // entering into the insertion
+        for ( int i = 0; i < 18; i++ ) {
+            tests.add(new Object[]{"108M14D24M2M18I29M92M", 134+i, 148}); // inside insertion
+        }
+        tests.add(new Object[]{"108M14D24M2M18I29M92M", 134+18, 148}); // first base after insertion matches at same as insertion
+        tests.add(new Object[]{"108M14D24M2M18I29M92M", 134+18+1, 149});
+        tests.add(new Object[]{"108M14D24M2M18I29M92M", 134+18+2, 150});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "ReadOffsetFromCigarData", enabled = !DEBUG)
+    public void testReadOffsetFromCigar(final String cigarString, final int startOnCigar, final int expectedOffset) {
+        final Cigar cigar = TextCigarCodec.getSingleton().decode(cigarString);
+        final int actualOffset = AlignmentUtils.calcFirstBaseMatchingReferenceInCigar(cigar, startOnCigar);
+        Assert.assertEquals(actualOffset, expectedOffset);
+    }
+
+    //////////////////////////////////////////
+    // Test AlignmentUtils.addCigarElements() //
+    //////////////////////////////////////////
+
+    @DataProvider(name = "AddCigarElementsData")
+    public Object[][] makeAddCigarElementsData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final int SIZE = 10;
+        for ( final CigarOperator op : Arrays.asList(CigarOperator.I, CigarOperator.M, CigarOperator.S, CigarOperator.EQ, CigarOperator.X)) {
+            for ( int start = 0; start < SIZE; start++ ) {
+                for ( int end = start; end < SIZE * 2; end ++ ) {
+                    for ( int pos = 0; pos < SIZE * 3; pos++ ) {
+                        int length = 0;
+                        for ( int i = 0; i < SIZE; i++ ) length += (i+pos) >= start && (i+pos) <= end ? 1 : 0;
+                        tests.add(new Object[]{SIZE + op.toString(), pos, start, end, length > 0 ? length + op.toString() : "*"});
+                    }
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "AddCigarElementsData", enabled = !DEBUG)
+    public void testAddCigarElements(final String cigarString, final int pos, final int start, final int end, final String expectedCigarString) {
+        final Cigar cigar = TextCigarCodec.getSingleton().decode(cigarString);
+        final CigarElement elt = cigar.getCigarElement(0);
+        final Cigar expectedCigar = TextCigarCodec.getSingleton().decode(expectedCigarString);
+
+        final List<CigarElement> elts = new LinkedList<CigarElement>();
+        final int actualEndPos = AlignmentUtils.addCigarElements(elts, pos, start, end, elt);
+
+        Assert.assertEquals(actualEndPos, pos + elt.getLength());
+        Assert.assertEquals(AlignmentUtils.consolidateCigar(new Cigar(elts)), expectedCigar);
+    }
+
+    @DataProvider(name = "GetBasesCoveringRefIntervalData")
+    public Object[][] makeGetBasesCoveringRefIntervalData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        // matches
+        // 0123
+        // ACGT
+        tests.add(new Object[]{"ACGT", 0, 3, "4M", "ACGT"});
+        tests.add(new Object[]{"ACGT", 1, 3, "4M", "CGT"});
+        tests.add(new Object[]{"ACGT", 1, 2, "4M", "CG"});
+        tests.add(new Object[]{"ACGT", 1, 1, "4M", "C"});
+
+        // deletions
+        // 012345
+        // AC--GT
+        tests.add(new Object[]{"ACGT", 0, 5, "2M2D2M", "ACGT"});
+        tests.add(new Object[]{"ACGT", 1, 5, "2M2D2M", "CGT"});
+        tests.add(new Object[]{"ACGT", 2, 5, "2M2D2M", null});
+        tests.add(new Object[]{"ACGT", 3, 5, "2M2D2M", null});
+        tests.add(new Object[]{"ACGT", 4, 5, "2M2D2M", "GT"});
+        tests.add(new Object[]{"ACGT", 5, 5, "2M2D2M", "T"});
+        tests.add(new Object[]{"ACGT", 0, 4, "2M2D2M", "ACG"});
+        tests.add(new Object[]{"ACGT", 0, 3, "2M2D2M", null});
+        tests.add(new Object[]{"ACGT", 0, 2, "2M2D2M", null});
+        tests.add(new Object[]{"ACGT", 0, 1, "2M2D2M", "AC"});
+        tests.add(new Object[]{"ACGT", 0, 0, "2M2D2M", "A"});
+
+        // insertions
+        // 01--23
+        // ACTTGT
+        tests.add(new Object[]{"ACTTGT", 0, 3, "2M2I2M", "ACTTGT"});
+        tests.add(new Object[]{"ACTTGT", 1, 3, "2M2I2M", "CTTGT"});
+        tests.add(new Object[]{"ACTTGT", 2, 3, "2M2I2M", "GT"});
+        tests.add(new Object[]{"ACTTGT", 3, 3, "2M2I2M", "T"});
+        tests.add(new Object[]{"ACTTGT", 0, 2, "2M2I2M", "ACTTG"});
+        tests.add(new Object[]{"ACTTGT", 0, 1, "2M2I2M", "AC"});
+        tests.add(new Object[]{"ACTTGT", 1, 2, "2M2I2M", "CTTG"});
+        tests.add(new Object[]{"ACTTGT", 2, 2, "2M2I2M", "G"});
+        tests.add(new Object[]{"ACTTGT", 1, 1, "2M2I2M", "C"});
+
+        tests.add(new Object[]{"ACGT", 0, 1, "2M2I", "AC"});
+        tests.add(new Object[]{"ACGT", 1, 1, "2M2I", "C"});
+        tests.add(new Object[]{"ACGT", 0, 0, "2M2I", "A"});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "GetBasesCoveringRefIntervalData", enabled = true)
+    public void testGetBasesCoveringRefInterval(final String basesString, final int refStart, final int refEnd, final String cigarString, final String expected) {
+        final byte[] actualBytes = AlignmentUtils.getBasesCoveringRefInterval(refStart, refEnd, basesString.getBytes(), 0, TextCigarCodec.getSingleton().decode(cigarString));
+        if ( expected == null )
+            Assert.assertNull(actualBytes);
+        else
+            Assert.assertEquals(new String(actualBytes), expected);
+    }
+
+    @DataProvider(name = "StartsOrEndsWithInsertionOrDeletionData")
+    public Object[][] makeStartsOrEndsWithInsertionOrDeletionData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        tests.add(new Object[]{"2M", false});
+        tests.add(new Object[]{"1D2M", true});
+        tests.add(new Object[]{"2M1D", true});
+        tests.add(new Object[]{"2M1I", true});
+        tests.add(new Object[]{"1I2M", true});
+        tests.add(new Object[]{"1M1I2M", false});
+        tests.add(new Object[]{"1M1D2M", false});
+        tests.add(new Object[]{"1M1I2M1I", true});
+        tests.add(new Object[]{"1M1I2M1D", true});
+        tests.add(new Object[]{"1D1M1I2M", true});
+        tests.add(new Object[]{"1I1M1I2M", true});
+        tests.add(new Object[]{"1M1I2M1I1M", false});
+        tests.add(new Object[]{"1M1I2M1D1M", false});
+        tests.add(new Object[]{"1M1D2M1D1M", false});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "StartsOrEndsWithInsertionOrDeletionData", enabled = true)
+    public void testStartsOrEndsWithInsertionOrDeletion(final String cigar, final boolean expected) {
+        Assert.assertEquals(AlignmentUtils.startsOrEndsWithInsertionOrDeletion(TextCigarCodec.getSingleton().decode(cigar)), expected);
+    }
+
+
 }

@@ -29,7 +29,6 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMProgramRecord;
-import net.sf.samtools.util.StringUtil;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
@@ -55,6 +54,17 @@ public class Utils {
     public static final float JAVA_DEFAULT_HASH_LOAD_FACTOR = 0.75f;
 
     /**
+     * Boolean xor operation.  Only true if x != y.
+     *
+     * @param x a boolean
+     * @param y a boolean
+     * @return true if x != y
+     */
+    public static boolean xor(final boolean x, final boolean y) {
+        return x != y;
+    }
+
+    /**
      * Calculates the optimum initial size for a hash table given the maximum number
      * of elements it will need to hold. The optimum size is the smallest size that
      * is guaranteed not to result in any rehash/table-resize operations.
@@ -76,9 +86,7 @@ public class Utils {
      * @return True if the two objects are equal, false otherwise.
      */
     public static boolean equals(Object lhs, Object rhs) {
-        if (lhs == null && rhs == null) return true;
-        else if (lhs == null) return false;
-        else return lhs.equals(rhs);
+        return lhs == null && rhs == null || lhs != null && lhs.equals(rhs);
     }
 
     public static <T> List<T> cons(final T elt, final List<T> l) {
@@ -115,35 +123,6 @@ public class Utils {
             builder.delete(0, space + 1);
         }
         logger.warn(String.format("* %s", builder));
-    }
-
-    public static ArrayList<Byte> subseq(char[] fullArray) {
-        byte[] fullByteArray = new byte[fullArray.length];
-        StringUtil.charsToBytes(fullArray, 0, fullArray.length, fullByteArray, 0);
-        return subseq(fullByteArray);
-    }
-
-    public static ArrayList<Byte> subseq(byte[] fullArray) {
-        return subseq(fullArray, 0, fullArray.length - 1);
-    }
-
-    public static ArrayList<Byte> subseq(byte[] fullArray, int start, int end) {
-        assert end < fullArray.length;
-        ArrayList<Byte> dest = new ArrayList<Byte>(end - start + 1);
-        for (int i = start; i <= end; i++) {
-            dest.add(fullArray[i]);
-        }
-        return dest;
-    }
-
-    public static String baseList2string(List<Byte> bases) {
-        byte[] basesAsbytes = new byte[bases.size()];
-        int i = 0;
-        for (Byte b : bases) {
-            basesAsbytes[i] = b;
-            i++;
-        }
-        return new String(basesAsbytes);
     }
 
     /**
@@ -244,7 +223,6 @@ public class Utils {
      * Create a new list that contains the elements of left along with elements elts
      * @param left a non-null list of elements
      * @param elts a varargs vector for elts to append in order to left
-     * @param <T>
      * @return A newly allocated linked list containing left followed by elts
      */
     public static <T> List<T> append(final List<T> left, T ... elts) {
@@ -256,9 +234,9 @@ public class Utils {
     /**
      * Returns a string of the values in joined by separator, such as A,B,C
      *
-     * @param separator
-     * @param doubles
-     * @return
+     * @param separator separator character
+     * @param doubles   the array with values
+     * @return a string with the values separated by the separator
      */
     public static String join(String separator, double[] doubles) {
         if ( doubles == null || doubles.length == 0)
@@ -405,6 +383,24 @@ public class Utils {
     }
 
     /**
+     * Concatenates byte arrays
+     * @return a concat of all bytes in allBytes in order
+     */
+    public static byte[] concat(final byte[] ... allBytes) {
+        int size = 0;
+        for ( final byte[] bytes : allBytes ) size += bytes.length;
+
+        final byte[] c = new byte[size];
+        int offset = 0;
+        for ( final byte[] bytes : allBytes ) {
+            System.arraycopy(bytes, 0, c, offset, bytes.length);
+            offset += bytes.length;
+        }
+
+        return c;
+    }
+
+    /**
      * Appends String(s) B to array A.
      * @param A First array.
      * @param B Strings to append.
@@ -457,7 +453,7 @@ public class Utils {
         return rcbases;
     }
 
-    static public final <T> List<T> reverse(final List<T> l) {
+    static public <T> List<T> reverse(final List<T> l) {
         final List<T> newL = new ArrayList<T>(l);
         Collections.reverse(newL);
         return newL;
@@ -496,10 +492,8 @@ public class Utils {
     /**
      * Helper utility that calls into the InetAddress system to resolve the hostname.  If this fails,
      * unresolvable gets returned instead.
-     *
-     * @return
      */
-    public static final String resolveHostname() {
+    public static String resolveHostname() {
         try {
             return InetAddress.getLocalHost().getCanonicalHostName();
         }
@@ -526,17 +520,15 @@ public class Utils {
      * Creates a program record for the program, adds it to the list of program records (@PG tags) in the bam file and sets
      * up the writer with the header and presorted status.
      *
-     * @param toolkit             the engine
      * @param originalHeader      original header
-     * @param KEEP_ALL_PG_RECORDS whether or not to keep all the other program records already existing in this BAM file
      * @param programRecord       the program record for this program
      */
-    public static SAMFileHeader setupWriter(GenomeAnalysisEngine toolkit, SAMFileHeader originalHeader, boolean KEEP_ALL_PG_RECORDS, SAMProgramRecord programRecord) {
-        SAMFileHeader header = originalHeader.clone();
-        List<SAMProgramRecord> oldRecords = header.getProgramRecords();
-        List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
+    public static SAMFileHeader setupWriter(final SAMFileHeader originalHeader, final SAMProgramRecord programRecord) {
+        final SAMFileHeader header = originalHeader.clone();
+        final List<SAMProgramRecord> oldRecords = header.getProgramRecords();
+        final List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);
         for ( SAMProgramRecord record : oldRecords )
-            if ( (programRecord != null && !record.getId().startsWith(programRecord.getId())) || KEEP_ALL_PG_RECORDS )
+            if ( (programRecord != null && !record.getId().startsWith(programRecord.getId())))
                 newRecords.add(record);
 
         if (programRecord != null) {
@@ -551,14 +543,13 @@ public class Utils {
     * the new header to be added to the BAM writer.
     *
     * @param toolkit             the engine
-    * @param KEEP_ALL_PG_RECORDS whether or not to keep all the other program records already existing in this BAM file
     * @param walker              the walker object (so we can extract the command line)
     * @param PROGRAM_RECORD_NAME the name for the PG tag
     * @return a pre-filled header for the bam writer
     */
-    public static SAMFileHeader setupWriter(GenomeAnalysisEngine toolkit, SAMFileHeader originalHeader, boolean KEEP_ALL_PG_RECORDS, Object walker, String PROGRAM_RECORD_NAME) {
+    public static SAMFileHeader setupWriter(final GenomeAnalysisEngine toolkit, final SAMFileHeader originalHeader, final Object walker, final String PROGRAM_RECORD_NAME) {
         final SAMProgramRecord programRecord = createProgramRecord(toolkit, walker, PROGRAM_RECORD_NAME);
-        return setupWriter(toolkit, originalHeader, KEEP_ALL_PG_RECORDS, programRecord);
+        return setupWriter(originalHeader, programRecord);
     }
 
     /**
@@ -568,12 +559,11 @@ public class Utils {
      * @param writer              BAM file writer
      * @param toolkit             the engine
      * @param preSorted           whether or not the writer can assume reads are going to be added are already sorted
-     * @param KEEP_ALL_PG_RECORDS whether or not to keep all the other program records already existing in this BAM file
      * @param walker              the walker object (so we can extract the command line)
      * @param PROGRAM_RECORD_NAME the name for the PG tag
      */
-    public static void setupWriter(StingSAMFileWriter writer, GenomeAnalysisEngine toolkit, SAMFileHeader originalHeader, boolean preSorted, boolean KEEP_ALL_PG_RECORDS, Object walker, String PROGRAM_RECORD_NAME) {
-        SAMFileHeader header = setupWriter(toolkit, originalHeader, KEEP_ALL_PG_RECORDS, walker, PROGRAM_RECORD_NAME);
+    public static void setupWriter(StingSAMFileWriter writer, GenomeAnalysisEngine toolkit, SAMFileHeader originalHeader, boolean preSorted, Object walker, String PROGRAM_RECORD_NAME) {
+        SAMFileHeader header = setupWriter(toolkit, originalHeader, walker, PROGRAM_RECORD_NAME);
         writer.writeHeader(header);
         writer.setPresorted(preSorted);
     }
@@ -600,23 +590,11 @@ public class Utils {
         return programRecord;
     }
 
-    public static <E> Collection<E> makeCollection(Iterable<E> iter) {
-        Collection<E> list = new ArrayList<E>();
-        for (E item : iter) {
-            list.add(item);
-        }
-        return list;
-    }
-
     /**
      * Returns the number of combinations represented by this collection
      * of collection of options.
      *
      * For example, if this is [[A, B], [C, D], [E, F, G]] returns 2 * 2 * 3 = 12
-     *
-     * @param options
-     * @param <T>
-     * @return
      */
     @Requires("options != null")
     public static <T> int nCombinations(final Collection<T>[] options) {
@@ -647,21 +625,18 @@ public class Utils {
      * if N = 1 => [[A], [B], [C]]
      * if N = 2 => [[A, A], [B, A], [C, A], [A, B], [B, B], [C, B], [A, C], [B, C], [C, C]]
      *
-     * @param objects
-     * @param n
-     * @param <T>
+     * @param objects         list of objects
+     * @param n               size of each combination
      * @param withReplacement if false, the resulting permutations will only contain unique objects from objects
-     * @return
+     * @return a list with all combinations with size n of objects.
      */
     public static <T> List<List<T>> makePermutations(final List<T> objects, final int n, final boolean withReplacement) {
         final List<List<T>> combinations = new ArrayList<List<T>>();
 
-        if ( n <= 0 )
-            ;
-        else if ( n == 1 ) {
+        if ( n == 1 ) {
             for ( final T o : objects )
                 combinations.add(Collections.singletonList(o));
-        } else {
+        } else if (n > 1) {
             final List<List<T>> sub = makePermutations(objects, n - 1, withReplacement);
             for ( List<T> subI : sub ) {
                 for ( final T a : objects ) {
@@ -709,9 +684,6 @@ public class Utils {
 
     /**
      * Create a constant map that maps each value in values to itself
-     * @param values
-     * @param <T>
-     * @return
      */
     public static <T> Map<T, T> makeIdentityFunctionMap(Collection<T> values) {
         Map<T,T> map = new HashMap<T, T>(values.size());
@@ -727,9 +699,6 @@ public class Utils {
      * groupSize = 2
      * result = [[A, B], [C, D], [E]]
      *
-     * @param list
-     * @param groupSize
-     * @return
      */
     public static <T> List<List<T>> groupList(final List<T> list, final int groupSize) {
         if ( groupSize < 1 ) throw new IllegalArgumentException("groupSize >= 1");
@@ -765,5 +734,18 @@ public class Utils {
         String md5String = bigInt.toString(16);
         while (md5String.length() < 32) md5String = "0" + md5String; // pad to length 32
         return md5String;
+    }
+
+    /**
+     * Does big end with the exact sequence of bytes in suffix?
+     *
+     * @param big a non-null byte[] to test if it a prefix + suffix
+     * @param suffix a non-null byte[] to test if it's a suffix of big
+     * @return true if big is proper byte[] composed of some prefix + suffix
+     */
+    public static boolean endsWith(final byte[] big, final byte[] suffix) {
+        if ( big == null ) throw new IllegalArgumentException("big cannot be null");
+        if ( suffix == null ) throw new IllegalArgumentException("suffix cannot be null");
+        return new String(big).endsWith(new String(suffix));
     }
 }

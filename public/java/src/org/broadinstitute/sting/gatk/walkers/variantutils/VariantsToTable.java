@@ -62,14 +62,13 @@ import java.util.*;
  * genotypes), NO-CALL (count of no-call genotypes), TYPE (the type of event), VAR (count of
  * non-reference genotypes), NSAMPLES (number of samples), NCALLED (number of called samples),
  * GQ (from the genotype field; works only for a file with a single sample), and MULTI-ALLELIC
- * (is the record from a multi-allelic site).  Note that this tool does not support capturing any
- * GENOTYPE field values.  If a VCF record is missing a value, then the tool by
+ * (is the record from a multi-allelic site).  Note that if a VCF record is missing a value, then the tool by
  * default throws an error, but the special value NA can be emitted instead with
  * appropriate tool arguments.
  *
  * </p>
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * <ul>
  *     <li>A VCF file</li>
@@ -77,12 +76,12 @@ import java.util.*;
  * </ul>
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A tab-delimited file containing the values of the requested fields in the VCF file
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  *     java -jar GenomeAnalysisTK.jar \
  *     -R reference.fasta
@@ -112,7 +111,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
     public List<RodBinding<VariantContext>> variants;
 
-    @Output(doc="File to which results should be written",required=true)
+    @Output(doc="File to which results should be written")
     protected PrintStream out;
 
     /**

@@ -109,6 +109,11 @@ public class FractionalDownsampler<T extends SAMRecord> implements ReadsDownsamp
         return numDiscardedItems;
     }
 
+    @Override
+    public int size() {
+        return selectedReads.size();
+    }
+
     public void signalEndOfInput() {
         // NO-OP
     }

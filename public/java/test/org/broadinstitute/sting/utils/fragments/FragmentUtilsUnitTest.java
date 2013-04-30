@@ -27,23 +27,30 @@ package org.broadinstitute.sting.utils.fragments;
 
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
+import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMReadGroupRecord;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Test routines for read-backed pileup.
  */
 public class FragmentUtilsUnitTest extends BaseTest {
     private static SAMFileHeader header;
+    private static GATKSAMReadGroupRecord rgForMerged;
+    private final static boolean DEBUG = false;
 
     private class FragmentUtilsTest extends TestDataProvider {
         List<TestState> statesForPileup = new ArrayList<TestState>();
@@ -119,7 +126,7 @@ public class FragmentUtilsUnitTest extends BaseTest {
         return FragmentUtilsTest.getTests(FragmentUtilsTest.class);
     }
 
-    @Test(enabled = true, dataProvider = "fragmentUtilsTest")
+    @Test(enabled = !DEBUG, dataProvider = "fragmentUtilsTest")
     public void testAsPileup(FragmentUtilsTest test) {
         for ( TestState testState : test.statesForPileup ) {
             ReadBackedPileup rbp = testState.pileup;
@@ -129,7 +136,7 @@ public class FragmentUtilsUnitTest extends BaseTest {
         }
     }
 
-    @Test(enabled = true, dataProvider = "fragmentUtilsTest")
+    @Test(enabled = !DEBUG, dataProvider = "fragmentUtilsTest")
     public void testAsListOfReadsFromPileup(FragmentUtilsTest test) {
         for ( TestState testState : test.statesForPileup ) {
             FragmentCollection<GATKSAMRecord> fp = FragmentUtils.create(testState.pileup.getReads());
@@ -138,7 +145,7 @@ public class FragmentUtilsUnitTest extends BaseTest {
         }
     }
 
-    @Test(enabled = true, dataProvider = "fragmentUtilsTest")
+    @Test(enabled = !DEBUG, dataProvider = "fragmentUtilsTest")
     public void testAsListOfReads(FragmentUtilsTest test) {
         for ( TestState testState : test.statesForReads ) {
             FragmentCollection<GATKSAMRecord> fp = FragmentUtils.create(testState.rawReads);
@@ -147,7 +154,7 @@ public class FragmentUtilsUnitTest extends BaseTest {
         }
     }
 
-    @Test(enabled = true, expectedExceptions = IllegalArgumentException.class)
+    @Test(enabled = !DEBUG, expectedExceptions = IllegalArgumentException.class)
     public void testOutOfOrder() {
         final List<GATKSAMRecord> pair = ArtificialSAMUtils.createPair(header, "readpair", 100, 1, 50, true, true);
         final GATKSAMRecord left = pair.get(0);
@@ -161,5 +168,132 @@ public class FragmentUtilsUnitTest extends BaseTest {
     @BeforeTest
     public void setup() {
         header = ArtificialSAMUtils.createArtificialSamHeader(1,1,1000);
+        rgForMerged = new GATKSAMReadGroupRecord("RG1");
+    }
+
+    @DataProvider(name = "MergeFragmentsTest")
+    public Object[][] createMergeFragmentsTest() throws Exception {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final String leftFlank = "CCC";
+        final String rightFlank = "AAA";
+        final String allOverlappingBases = "ACGTACGTGGAACCTTAG";
+        for ( int overlapSize = 1; overlapSize < allOverlappingBases.length(); overlapSize++ ) {
+            final String overlappingBases = allOverlappingBases.substring(0, overlapSize);
+            final byte[] overlappingBaseQuals = new byte[overlapSize];
+            for ( int i = 0; i < overlapSize; i++ ) overlappingBaseQuals[i] = (byte)(i + 30);
+            final GATKSAMRecord read1  = makeOverlappingRead(leftFlank, 20, overlappingBases, overlappingBaseQuals, "", 30, 1);
+            final GATKSAMRecord read2  = makeOverlappingRead("", 20, overlappingBases, overlappingBaseQuals, rightFlank, 30, leftFlank.length() + 1);
+            final GATKSAMRecord merged = makeOverlappingRead(leftFlank, 20, overlappingBases, overlappingBaseQuals, rightFlank, 30, 1);
+            tests.add(new Object[]{"equalQuals", read1, read2, merged});
+
+            // test that the merged read base quality is the
+            tests.add(new Object[]{"lowQualLeft", modifyBaseQualities(read1, leftFlank.length(), overlapSize), read2, merged});
+            tests.add(new Object[]{"lowQualRight", read1, modifyBaseQualities(read2, 0, overlapSize), merged});
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    private GATKSAMRecord modifyBaseQualities(final GATKSAMRecord read, final int startOffset, final int length) throws Exception {
+        final GATKSAMRecord readWithLowQuals = (GATKSAMRecord)read.clone();
+        final byte[] withLowQuals = Arrays.copyOf(read.getBaseQualities(), read.getBaseQualities().length);
+        for ( int i = startOffset; i < startOffset + length; i++ )
+            withLowQuals[i] = (byte)(read.getBaseQualities()[i] + (i % 2 == 0 ? -1 : 0));
+        readWithLowQuals.setBaseQualities(withLowQuals);
+        return readWithLowQuals;
+    }
+
+    private GATKSAMRecord makeOverlappingRead(final String leftFlank, final int leftQual, final String overlapBases,
+                                              final byte[] overlapQuals, final String rightFlank, final int rightQual,
+                                              final int alignmentStart) {
+        final String bases = leftFlank + overlapBases + rightFlank;
+        final int readLength = bases.length();
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "myRead", 0, alignmentStart, readLength);
+        final byte[] leftQuals = Utils.dupBytes((byte) leftQual, leftFlank.length());
+        final byte[] rightQuals = Utils.dupBytes((byte) rightQual, rightFlank.length());
+        final byte[] quals = Utils.concat(leftQuals, overlapQuals, rightQuals);
+        read.setCigarString(readLength + "M");
+        read.setReadBases(bases.getBytes());
+        for ( final EventType type : EventType.values() )
+            read.setBaseQualities(quals, type);
+        read.setReadGroup(rgForMerged);
+        read.setMappingQuality(60);
+        return read;
+    }
+
+    @Test(enabled = !DEBUG, dataProvider = "MergeFragmentsTest")
+    public void testMergingTwoReads(final String name, final GATKSAMRecord read1, GATKSAMRecord read2, final GATKSAMRecord expectedMerged) {
+        final GATKSAMRecord actual = FragmentUtils.mergeOverlappingPairedFragments(read1, read2);
+
+        if ( expectedMerged == null ) {
+            Assert.assertNull(actual, "Expected reads not to merge, but got non-null result from merging");
+        } else {
+            Assert.assertTrue(actual.isStrandless(), "Merged reads should be strandless");
+            Assert.assertNotNull(actual, "Expected reads to merge, but got null result from merging");
+            // I really care about the bases, the quals, the CIGAR, and the read group tag
+            Assert.assertEquals(actual.getCigarString(), expectedMerged.getCigarString());
+            Assert.assertEquals(actual.getReadBases(), expectedMerged.getReadBases());
+            Assert.assertEquals(actual.getReadGroup(), expectedMerged.getReadGroup());
+            Assert.assertEquals(actual.getMappingQuality(), expectedMerged.getMappingQuality());
+            for ( final EventType type : EventType.values() )
+                Assert.assertEquals(actual.getBaseQualities(type), expectedMerged.getBaseQualities(type), "Failed base qualities for event type " + type);
+        }
+    }
+
+    @Test(enabled = !DEBUG)
+    public void testHardClippingBeforeMerge() {
+        final String common = Utils.dupString("A", 10);
+        final byte[] commonQuals = Utils.dupBytes((byte)30, common.length());
+        final String adapter    = "NNNN";
+
+        final GATKSAMRecord read1 = makeOverlappingRead(adapter, 30, common, commonQuals, "", 30, 10);
+        final GATKSAMRecord read2 = makeOverlappingRead("", 30, common, commonQuals, adapter, 30, 10);
+        final GATKSAMRecord expectedMerged = makeOverlappingRead("", 30, common, commonQuals, "", 30, 10);
+        read1.setCigarString("4S" + common.length() + "M");
+        read1.setProperPairFlag(true);
+        read1.setFirstOfPairFlag(true);
+        read1.setReadNegativeStrandFlag(true);
+        read1.setMateAlignmentStart(10);
+        read2.setCigarString(common.length() + "M4S");
+        read2.setProperPairFlag(true);
+        read2.setFirstOfPairFlag(false);
+        read2.setReadNegativeStrandFlag(false);
+
+        final int insertSize = common.length() - 1;
+        read1.setInferredInsertSize(insertSize);
+        read2.setInferredInsertSize(-insertSize);
+
+        final GATKSAMRecord actual = FragmentUtils.mergeOverlappingPairedFragments(read1, read2);
+        Assert.assertEquals(actual.getCigarString(), expectedMerged.getCigarString());
+        Assert.assertEquals(actual.getReadBases(), expectedMerged.getReadBases());
+        Assert.assertEquals(actual.getReadGroup(), expectedMerged.getReadGroup());
+        Assert.assertEquals(actual.getMappingQuality(), expectedMerged.getMappingQuality());
+        for ( final EventType type : EventType.values() )
+            Assert.assertEquals(actual.getBaseQualities(type), expectedMerged.getBaseQualities(type), "Failed base qualities for event type " + type);
+    }
+
+    @Test(enabled = true)
+    public void testHardClippingBeforeMergeResultingInCompletelyContainedSecondRead() {
+        final String adapter    = "NNNN";
+
+        final GATKSAMRecord read1 = makeOverlappingRead(adapter, 30, Utils.dupString("A", 10), Utils.dupBytes((byte)30, 10), "", 30, 10);
+        final GATKSAMRecord read2 = makeOverlappingRead("", 30, Utils.dupString("A", 7), Utils.dupBytes((byte)30, 7), adapter, 30, 10);
+        read1.setCigarString("4S10M");
+        read1.setProperPairFlag(true);
+        read1.setFirstOfPairFlag(true);
+        read1.setReadNegativeStrandFlag(true);
+        read1.setMateAlignmentStart(10);
+        read2.setCigarString("7M4S");
+        read2.setProperPairFlag(true);
+        read2.setFirstOfPairFlag(false);
+        read2.setReadNegativeStrandFlag(false);
+
+        final int insertSize = 7 - 1;
+        read1.setInferredInsertSize(insertSize);
+        read2.setInferredInsertSize(-insertSize);
+
+        final GATKSAMRecord actual = FragmentUtils.mergeOverlappingPairedFragments(read1, read2);
+        Assert.assertNull(actual);
     }
 }

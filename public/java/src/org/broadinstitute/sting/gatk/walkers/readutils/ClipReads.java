@@ -88,12 +88,12 @@ import java.util.regex.Pattern;
  *
  * </p>
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  *     Any number of BAM files.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  *     A new BAM file containing all of the reads from the input BAMs with the user-specified clipping
  *     operation applied to each read.
@@ -145,7 +145,7 @@ import java.util.regex.Pattern;
  *     </pre>
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  *     -T ClipReads -I my.bam -I your.bam -o my_and_your.clipped.bam -R Homo_sapiens_assembly18.fasta \
  *     -XF seqsToClip.fasta -X CCCCC -CT "1-5,11-15" -QT 10
@@ -161,13 +161,13 @@ public class ClipReads extends ReadWalker<ClipReads.ReadClipperWithData, ClipRea
      * If provided, ClipReads will write summary statistics about the clipping operations applied
      * to the reads to this file.
      */
-    @Output(fullName = "outputStatistics", shortName = "os", doc = "Write output statistics to this file", required = false)
+    @Output(fullName = "outputStatistics", shortName = "os", doc = "Write output statistics to this file", required = false, defaultToStdout = false)
     PrintStream out = null;
 
     /**
      * The output SAM/BAM file will be written here
      */
-    @Output(doc = "Write BAM output here", required = true)
+    @Output(doc = "Write BAM output here")
     StingSAMFileWriter outputBam;
 
     /**

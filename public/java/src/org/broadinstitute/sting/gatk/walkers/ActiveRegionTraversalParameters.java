@@ -78,4 +78,20 @@ public @interface ActiveRegionTraversalParameters {
      * @return the breadth of the band pass gaussian kernel we want for our traversal
      */
     public double bandPassSigma() default BandPassActivityProfile.DEFAULT_SIGMA;
+
+    /**
+     * What is the maximum number of reads we're willing to hold in memory per sample
+     * during the traversal?  This limits our exposure to unusually large amounts
+     * of coverage in the engine.
+     * @return the maximum number of reads we're willing to hold in memory
+     */
+    public int maxReadsToHoldInMemoryPerSample() default 3000;
+
+    /**
+     * No matter what the per sample value says, we will never hold more than this
+     * number of reads in memory at any time.  Provides an upper bound on the total number
+     * of reads in the case where we have a lot of samples.
+     * @return the maximum number of reads to hold in memory
+     */
+    public int maxReadsToHoldTotal() default 1000000;
 }

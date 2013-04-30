@@ -44,7 +44,6 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.file.FSLockWithShared;
-import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
 import org.broadinstitute.sting.utils.instrumentation.Sizeof;
 
 import java.io.File;
@@ -83,6 +82,10 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
 
     private final FeatureManager featureManager;
 
+    // If true, do not attempt to create index files if they don't exist or are outdated, and don't
+    // make any file lock acquisition calls on the index files.
+    private final boolean disableAutoIndexCreation;
+
     /**
      * Construct an RMDTrackerBuilder, allowing the user to define tracks to build after-the-fact.  This is generally
      * used when walkers want to directly manage the ROD system for whatever reason.  Before using this constructor,
@@ -90,14 +93,19 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * @param dict Sequence dictionary to use.
      * @param genomeLocParser Location parser to use.
      * @param validationExclusionType Types of validations to exclude, for sequence dictionary verification.
+     * @param disableAutoIndexCreation Do not auto-create index files, and do not use file locking when accessing index files.
+     *                                 UNSAFE in general (because it causes us not to lock index files before reading them) --
+     *                                 suitable only for test suite use.
      */
     public RMDTrackBuilder(final SAMSequenceDictionary dict,
                            final GenomeLocParser genomeLocParser,
-                           ValidationExclusion.TYPE validationExclusionType) {
+                           final ValidationExclusion.TYPE validationExclusionType,
+                           final boolean disableAutoIndexCreation) {
         this.dict = dict;
         this.validationExclusionType = validationExclusionType;
         this.genomeLocParser = genomeLocParser;
         this.featureManager = new FeatureManager(GenomeAnalysisEngine.lenientVCFProcessing(validationExclusionType));
+        this.disableAutoIndexCreation = disableAutoIndexCreation;
     }
 
     /**
@@ -208,12 +216,15 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
 
                 // if we don't have a dictionary in the Tribble file, and we've set a dictionary for this builder, set it in the file if they match
                 if (sequenceDictionary.size() == 0 && dict != null) {
-                    File indexFile = Tribble.indexFile(inputFile);
                     validateAndUpdateIndexSequenceDictionary(inputFile, index, dict);
-                    try { // re-write the index
-                        writeIndexToDisk(index,indexFile,new FSLockWithShared(indexFile));
-                    } catch (IOException e) {
-                        logger.warn("Unable to update index with the sequence dictionary for file " + indexFile + "; this will not effect your run of the GATK");
+
+                    if ( ! disableAutoIndexCreation ) {
+                        File indexFile = Tribble.indexFile(inputFile);
+                        try { // re-write the index
+                            writeIndexToDisk(index,indexFile,new FSLockWithShared(indexFile));
+                        } catch (IOException e) {
+                            logger.warn("Unable to update index with the sequence dictionary for file " + indexFile + "; this will not affect your run of the GATK");
+                        }
                     }
 
                     sequenceDictionary = IndexDictionaryUtils.getSequenceDictionaryFromProperties(index);
@@ -225,7 +236,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
                 throw new UserException(e.getMessage());
             }
             catch (IOException e) {
-                throw new UserException.CouldNotCreateOutputFile(inputFile, "unable to write Tribble index", e);
+                throw new UserException("I/O error loading or writing tribble index file for " + inputFile.getAbsolutePath(), e);
             }
         }
         else {
@@ -242,25 +253,36 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * @return a linear index for the specified type
      * @throws IOException if we cannot write the index file
      */
-    public synchronized Index loadIndex(File inputFile, FeatureCodec codec) throws IOException {
-        // create the index file name, locking on the index file name
-        File indexFile = Tribble.indexFile(inputFile);
-        FSLockWithShared lock = new FSLockWithShared(indexFile);
-
-        // acquire a lock on the file
+    public synchronized Index loadIndex( final File inputFile, final FeatureCodec codec) throws IOException {
+        final File indexFile = Tribble.indexFile(inputFile);
+        final FSLockWithShared lock = new FSLockWithShared(indexFile);
         Index idx = null;
-        if (indexFile.canRead())
-            idx = attemptIndexFromDisk(inputFile, codec, indexFile, lock);
 
-        // if we managed to make an index, return
+        // If the index file exists and is readable, attempt to load it from disk. We'll get null back
+        // if a problem was discovered with the index file when it was inspected, and we'll get an
+        // in-memory index back in the case where the index file could not be locked.
+        if (indexFile.canRead()) {
+            idx = disableAutoIndexCreation ? loadFromDisk(inputFile, indexFile)  // load without locking if we're in disableAutoIndexCreation mode
+                                           : attemptToLockAndLoadIndexFromDisk(inputFile, codec, indexFile, lock);
+        }
+
+        // If we have an index, it means we either loaded it from disk without issue or we created an in-memory
+        // index due to not being able to acquire a lock.
         if (idx != null) return idx;
 
-        // we couldn't read the file, or we fell out of the conditions above, continue on to making a new index
-        return writeIndexToDisk(createIndexInMemory(inputFile, codec), indexFile, lock);
+        // We couldn't read the file, or we discovered a problem with the index file, so continue on to making a new index
+        idx = createIndexInMemory(inputFile, codec);
+        if ( ! disableAutoIndexCreation ) {
+            writeIndexToDisk(idx, indexFile, lock);
+        }
+        return idx;
     }
 
     /**
-     * attempt to read the index from disk
+     * Attempt to acquire a shared lock and then load the index from disk. Returns an in-memory index if
+     * a lock could not be obtained. Returns null if a problem was discovered with the index file when it
+     * was examined (eg., it was out-of-date).
+     *
      * @param inputFile the input file
      * @param codec the codec to read from
      * @param indexFile the index file itself
@@ -268,20 +290,21 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * @return an index, or null if we couldn't load one
      * @throws IOException if we fail for FS issues
      */
-    protected Index attemptIndexFromDisk(File inputFile, FeatureCodec codec, File indexFile, FSLockWithShared lock) throws IOException {
-        boolean locked;
+    protected Index attemptToLockAndLoadIndexFromDisk( final File inputFile, final FeatureCodec codec, final File indexFile, final FSLockWithShared lock ) throws IOException {
+        boolean locked = false;
+        Index idx = null;
+
         try {
             locked = lock.sharedLock();
-        }
-        catch(FileSystemInabilityToLockException ex) {
-            throw new UserException.MissortedFile(inputFile, "Unexpected inability to lock exception", ex);
-        }
-        Index idx;
-        try {
-            if (!locked) // can't lock file
+
+            if ( ! locked ) { // can't lock file
+                logger.info(String.format("Could not acquire a shared lock on index file %s, falling back to using an in-memory index for this GATK run.",
+                                          indexFile.getAbsolutePath()));
                 idx = createIndexInMemory(inputFile, codec);
-            else
+            }
+            else {
                 idx = loadFromDisk(inputFile, indexFile);
+            }
         } finally {
             if (locked) lock.unlock();
         }
@@ -294,7 +317,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * @param indexFile the input file, plus the index extension
      * @return an Index, or null if we're unable to load
      */
-    public static Index loadFromDisk(File inputFile, File indexFile) {
+    protected Index loadFromDisk( final File inputFile, final File indexFile ) {
         logger.info("Loading Tribble index from disk for file " + inputFile);
         Index index = IndexFactory.loadIndex(indexFile.getAbsolutePath());
 
@@ -302,14 +325,17 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
         if (index.isCurrentVersion() && indexFile.lastModified() >= inputFile.lastModified())
             return index;
         else if (indexFile.lastModified() < inputFile.lastModified())
-            logger.warn("Index file " + indexFile + " is out of date (index older than input file), deleting and updating the index file");
+            logger.warn("Index file " + indexFile + " is out of date (index older than input file), " +
+                        (disableAutoIndexCreation ? "falling back to an in-memory index" : "deleting and updating the index file"));
         else // we've loaded an old version of the index, we want to remove it <-- currently not used, but may re-enable
-            logger.warn("Index file " + indexFile + " is out of date (old version), deleting and updating the index file");
+            logger.warn("Index file " + indexFile + " is out of date (old version), " +
+                        (disableAutoIndexCreation ? "falling back to an in-memory index" : "deleting and updating the index file"));
 
-        // however we got here, remove the index and return null
-        boolean deleted = indexFile.delete();
+        if ( ! disableAutoIndexCreation ) {
+            boolean deleted = indexFile.delete();
+            if (!deleted) logger.warn("Index file " + indexFile + " is out of date, but could not be removed; it will not be trusted (we'll try to rebuild an in-memory copy)");
+        }
 
-        if (!deleted) logger.warn("Index file " + indexFile + " is out of date, but could not be removed; it will not be trusted (we'll try to rebuild an in-memory copy)");
         return null;
     }
 
@@ -319,13 +345,18 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * @param index the index to write to disk
      * @param indexFile the index file location
      * @param lock the locking object
-     * @return the index object
      * @throws IOException when unable to create the new index
      */
-    private static Index writeIndexToDisk(Index index, File indexFile, FSLockWithShared lock) throws IOException {
-        boolean locked = false; // could we exclusive lock the file?
+    private void writeIndexToDisk( final Index index, final File indexFile, final FSLockWithShared lock ) throws IOException {
+        if ( disableAutoIndexCreation ) {
+            return;
+        }
+
+        boolean locked = false;
+
         try {
-            locked = lock.exclusiveLock(); // handle the case where we aren't locking anything
+            locked = lock.exclusiveLock();
+
             if (locked) {
                 logger.info("Writing Tribble index to disk for file " + indexFile);
                 LittleEndianOutputStream stream = new LittleEndianOutputStream(new FileOutputStream(indexFile));
@@ -337,11 +368,6 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
 
             try { logger.info(String.format("  Index for %s has size in bytes %d", indexFile, Sizeof.getObjectGraphSize(index))); }
             catch ( ReviewedStingException e) { }
-
-            return index;
-        }
-        catch(FileSystemInabilityToLockException ex) {
-            throw new UserException.CouldNotCreateOutputFile(indexFile,"Unexpected inability to lock exception", ex);
         }
         finally {
             if (locked) lock.unlock();
@@ -356,7 +382,7 @@ public class RMDTrackBuilder { // extends PluginManager<FeatureCodec> {
      * @return a LinearIndex, given the file location
      * @throws IOException when unable to create the index in memory
      */
-    private Index createIndexInMemory(File inputFile, FeatureCodec codec) {
+    protected Index createIndexInMemory(File inputFile, FeatureCodec codec) {
         // this can take a while, let them know what we're doing
         logger.info("Creating Tribble index in memory for file " + inputFile);
         Index idx = IndexFactory.createDynamicIndex(inputFile, codec, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);

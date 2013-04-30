@@ -40,7 +40,8 @@ import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.io.PrintStream;
-
+import java.util.Arrays;
+import java.util.Comparator;
 
 /**
  * A simple Bayesian genotyper, that outputs a text based call format. Intended to be used only as an
@@ -95,7 +96,7 @@ public class GATKPaperGenotyper extends LocusWalker<Integer,Long> implements Tre
                 likelihoods[genotype.ordinal()] += Math.log10(p / genotype.toString().length());
             }
 
-        Integer sortedList[] = MathUtils.sortPermutation(likelihoods);
+        Integer sortedList[] = sortPermutation(likelihoods);
 
         // create call using the best genotype (GENOTYPE.values()[sortedList[9]].toString())
         // and calculate the LOD score from best - next best (9 and 8 in the sorted list, since the best likelihoods are closest to zero)
@@ -108,6 +109,29 @@ public class GATKPaperGenotyper extends LocusWalker<Integer,Long> implements Tre
         }
 
         return 0;
+    }
+
+    private static Integer[] sortPermutation(final double[] A) {
+        class comparator implements Comparator<Integer> {
+            public int compare(Integer a, Integer b) {
+                if (A[a.intValue()] < A[b.intValue()]) {
+                    return -1;
+                }
+                if (A[a.intValue()] == A[b.intValue()]) {
+                    return 0;
+                }
+                if (A[a.intValue()] > A[b.intValue()]) {
+                    return 1;
+                }
+                return 0;
+            }
+        }
+        Integer[] permutation = new Integer[A.length];
+        for (int i = 0; i < A.length; i++) {
+            permutation[i] = i;
+        }
+        Arrays.sort(permutation, new comparator());
+        return permutation;
     }
 
     /**

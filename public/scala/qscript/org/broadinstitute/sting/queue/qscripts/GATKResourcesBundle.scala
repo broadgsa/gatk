@@ -160,6 +160,9 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource("/humgen/1kg/DCC/ftp/technical/working/20120312_phase1_v2_indel_cleaned_sites_list/ALL.wgs.phase1_release_v2.20101123.official_indel_calls.20120312.sites.vcf",
       "1000G_phase1.indels", b37, true, false))
 
+    addResource(new Resource("/humgen/1kg/processing/official_release/phase1/projectConsensus/phase1.wgs.projectConsensus.v2b.recal.highQuality.vcf",
+      "1000G_phase1.snps.high_confidence, b37, true, false))
+
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/GoldStandardIndel/gold.standard.indel.MillsAnd1000G.b37.vcf",
       "Mills_and_1000G_gold_standard.indels", b37, true, false))
 
@@ -171,7 +174,7 @@ class GATKResourcesBundle extends QScript {
       "CEUTrio.HiSeq.WGS.b37.bestPractices.phased",b37,true,false))
 
     //
-    // example call set for wiki tutorial
+    // example call set for documentation guide tutorial
     //
     addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/exampleCalls/NA12878.HiSeq.WGS.bwa.cleaned.raw.b37.subset.vcf",
       "NA12878.HiSeq.WGS.bwa.cleaned.raw.subset", b37, true, true))

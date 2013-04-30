@@ -76,6 +76,14 @@ public class UtilsUnitTest extends BaseTest {
     }
 
     @Test
+    public void testXor() {
+        Assert.assertEquals(Utils.xor(false, false), false, "xor F F failed");
+        Assert.assertEquals(Utils.xor(false, true), true, "xor F T failed");
+        Assert.assertEquals(Utils.xor(true, false), true, "xor T F failed");
+        Assert.assertEquals(Utils.xor(true, true), false, "xor T T failed");
+    }
+
+    @Test
     public void testDupStringMultiChar() {
         String duped = Utils.dupString('c',5);
         Assert.assertEquals(duped.length(), 5, "dupString did not produce five character string");
@@ -102,6 +110,19 @@ public class UtilsUnitTest extends BaseTest {
         map.put("six",2);
         String joined = Utils.joinMap("-",";",map);
         Assert.assertTrue("one-1;two-2;three-1;four-2;five-1;six-2".equals(joined));
+    }
+
+    @Test
+    public void testConcat() {
+        final String s1 = "A";
+        final String s2 = "CC";
+        final String s3 = "TTT";
+        final String s4 = "GGGG";
+        Assert.assertEquals(new String(Utils.concat()), "");
+        Assert.assertEquals(new String(Utils.concat(s1.getBytes())), s1);
+        Assert.assertEquals(new String(Utils.concat(s1.getBytes(), s2.getBytes())), s1 + s2);
+        Assert.assertEquals(new String(Utils.concat(s1.getBytes(), s2.getBytes(), s3.getBytes())), s1 + s2 + s3);
+        Assert.assertEquals(new String(Utils.concat(s1.getBytes(), s2.getBytes(), s3.getBytes(), s4.getBytes())), s1 + s2 + s3 + s4);
     }
 
     @Test

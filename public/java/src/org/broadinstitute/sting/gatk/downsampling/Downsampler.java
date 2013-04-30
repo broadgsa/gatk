@@ -95,6 +95,17 @@ public interface Downsampler<T> {
     public T peekPending();
 
     /**
+     * Get the current number of items in this downsampler
+     *
+     * This should be the best estimate of the total number of elements that will come out of the downsampler
+     * were consumeFinalizedItems() to be called immediately after this call.  In other words it should
+     * be number of finalized items + estimate of number of pending items that will ultimately be included as well.
+     *
+     * @return a positive integer
+     */
+    public int size();
+
+    /**
      * Returns the number of items discarded (so far) during the downsampling process
      *
      * @return the number of items that have been submitted to this downsampler and discarded in the process of

@@ -68,7 +68,7 @@ import java.util.*;
  * can be exacted using JEXL expressions on the set attribute using SelectVariants.  If you want to extract just
  * the records in common between two VCFs, you would first run CombineVariants on the two files to generate a single
  * VCF and then run SelectVariants to extract the common records with -select 'set == "Intersection"', as worked out
- * in the detailed example on the wiki.
+ * in the detailed example in the documentation guide.
  *
  * Note that CombineVariants supports multi-threaded parallelism (8/15/12).  This is particularly useful
  * when converting from VCF to BCF2, which can be expensive.  In this case each thread spends CPU time
@@ -83,17 +83,17 @@ import java.util.*;
  *      max QUAL, which resulted in sometime strange downstream confusion</li>
  *   </ul>
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * One or more variant sets to combine.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A combined VCF.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
@@ -133,7 +133,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
     @Input(fullName="variant", shortName = "V", doc="Input VCF file", required=true)
     public List<RodBinding<VariantContext>> variants;
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which variants should be written")
     protected VariantContextWriter vcfWriter = null;
 
     @Argument(shortName="genotypeMergeOptions", doc="Determines how we should merge genotype records for samples shared across the ROD files", required=false)

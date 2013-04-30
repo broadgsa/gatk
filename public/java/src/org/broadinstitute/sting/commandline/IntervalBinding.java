@@ -98,6 +98,7 @@ public final class IntervalBinding<T extends Feature> {
             intervals = IntervalUtils.parseIntervalArguments(genomeLocParser, stringIntervals);
         }
 
+        Collections.sort(intervals);
         return intervals;
     }
 

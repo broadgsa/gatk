@@ -67,6 +67,9 @@ import java.io.File;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static org.broadinstitute.sting.utils.DeprecatedToolChecks.getWalkerDeprecationInfo;
+import static org.broadinstitute.sting.utils.DeprecatedToolChecks.isDeprecatedWalker;
+
 /**
  * A GenomeAnalysisEngine that runs a specified walker.
  */
@@ -288,40 +291,6 @@ public class GenomeAnalysisEngine {
         //return result;
     }
 
-    // TODO -- Let's move this to a utility class in unstable - but which one?
-    // **************************************************************************************
-    // *                            Handle Deprecated Walkers                               *
-    // **************************************************************************************
-
-    // Mapping from walker name to major version number where the walker first disappeared
-    private static Map<String, String> deprecatedGATKWalkers = new HashMap<String, String>();
-    static {
-        deprecatedGATKWalkers.put("CountCovariates", "2.0");
-        deprecatedGATKWalkers.put("TableRecalibration", "2.0");
-        deprecatedGATKWalkers.put("AlignmentWalker", "2.2");
-        deprecatedGATKWalkers.put("CountBestAlignments", "2.2");
-    }
-
-    /**
-     * Utility method to check whether a given walker has been deprecated in a previous GATK release
-     *
-     * @param walkerName   the walker class name (not the full package) to check
-     */
-    public static boolean isDeprecatedWalker(final String walkerName) {
-        return deprecatedGATKWalkers.containsKey(walkerName);
-    }
-
-    /**
-     * Utility method to check whether a given walker has been deprecated in a previous GATK release
-     *
-     * @param walkerName   the walker class name (not the full package) to check
-     */
-    public static String getDeprecatedMajorVersionNumber(final String walkerName) {
-        return deprecatedGATKWalkers.get(walkerName);
-    }
-
-    // **************************************************************************************
-
     /**
      * Retrieves an instance of the walker based on the walker name.
      *
@@ -333,7 +302,7 @@ public class GenomeAnalysisEngine {
             return walkerManager.createByName(walkerName);
         } catch ( UserException e ) {
             if ( isDeprecatedWalker(walkerName) ) {
-                e = new UserException.DeprecatedWalker(walkerName, getDeprecatedMajorVersionNumber(walkerName));
+                e = new UserException.DeprecatedWalker(walkerName, getWalkerDeprecationInfo(walkerName));
             }
             throw e;
         }
@@ -372,7 +341,8 @@ public class GenomeAnalysisEngine {
      * @param walker the walker we need to apply read transformers too
      */
     public void initializeReadTransformers(final Walker walker) {
-        final List<ReadTransformer> activeTransformers = new ArrayList<ReadTransformer>();
+        // keep a list of the active read transformers sorted based on priority ordering
+        List<ReadTransformer> activeTransformers = new ArrayList<ReadTransformer>();
 
         final ReadTransformersMode overrideMode = WalkerManager.getWalkerAnnotation(walker, ReadTransformersMode.class);
         final ReadTransformer.ApplicationTime overrideTime = overrideMode != null ? overrideMode.ApplicationTime() : null;
@@ -392,9 +362,41 @@ public class GenomeAnalysisEngine {
         return readTransformers;
     }
 
-    private void setReadTransformers(final List<ReadTransformer> readTransformers) {
+    /*
+     * Sanity checks that incompatible read transformers are not active together (and throws an exception if they are).
+     *
+     * @param readTransformers   the active read transformers
+     */
+    protected void checkActiveReadTransformers(final List<ReadTransformer> readTransformers) {
+        if ( readTransformers == null )
+            throw new IllegalArgumentException("read transformers cannot be null");
+
+        ReadTransformer sawMustBeFirst = null;
+        ReadTransformer sawMustBeLast  = null;
+
+        for ( final ReadTransformer r : readTransformers ) {
+            if ( r.getOrderingConstraint() == ReadTransformer.OrderingConstraint.MUST_BE_FIRST ) {
+                if ( sawMustBeFirst != null )
+                    throw new UserException.IncompatibleReadFiltersException(sawMustBeFirst.toString(), r.toString());
+                sawMustBeFirst = r;
+            } else if ( r.getOrderingConstraint() == ReadTransformer.OrderingConstraint.MUST_BE_LAST ) {
+                if ( sawMustBeLast != null )
+                    throw new UserException.IncompatibleReadFiltersException(sawMustBeLast.toString(), r.toString());
+                sawMustBeLast = r;
+            }
+        }
+    }
+
+    protected void setReadTransformers(final List<ReadTransformer> readTransformers) {
         if ( readTransformers == null )
             throw new ReviewedStingException("read transformers cannot be null");
+
+        // sort them in priority order
+        Collections.sort(readTransformers, new ReadTransformer.ReadTransformerComparator());
+
+        // make sure we don't have an invalid set of active read transformers
+        checkActiveReadTransformers(readTransformers);
+
         this.readTransformers = readTransformers;
     }
 
@@ -532,6 +534,8 @@ public class GenomeAnalysisEngine {
         if ( intervals != null && intervals.isEmpty() ) {
             logger.warn("The given combination of -L and -XL options results in an empty set.  No intervals to process.");
         }
+
+        // TODO: add a check for ActiveRegion walkers to prevent users from passing an entire contig/chromosome
     }
 
     /**
@@ -558,7 +562,7 @@ public class GenomeAnalysisEngine {
                 if (readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
                     throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
                 if(intervals == null)
-                    return readsDataSource.createShardIteratorOverMappedReads(referenceDataSource.getReference().getSequenceDictionary(),new LocusShardBalancer());
+                    return readsDataSource.createShardIteratorOverMappedReads(new LocusShardBalancer());
                 else
                     return readsDataSource.createShardIteratorOverIntervals(intervals,new LocusShardBalancer());
             } 
@@ -566,7 +570,7 @@ public class GenomeAnalysisEngine {
                 if (readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
                     throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Active region walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
                 if(intervals == null)
-                    return readsDataSource.createShardIteratorOverMappedReads(referenceDataSource.getReference().getSequenceDictionary(),new LocusShardBalancer());
+                    return readsDataSource.createShardIteratorOverMappedReads(new LocusShardBalancer());
                 else
                     return readsDataSource.createShardIteratorOverIntervals(((ActiveRegionWalker)walker).extendIntervals(intervals, this.genomeLocParser, this.getReferenceDataSource().getReference()), new LocusShardBalancer());
             } 
@@ -722,6 +726,15 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * Purely for testing purposes.  Do not use unless you absolutely positively know what you are doing (or
+     * need to absolutely positively kill everyone in the room)
+     * @param dataSource
+     */
+    public void setReadsDataSource(final SAMDataSource dataSource) {
+        this.readsDataSource = dataSource;
+    }
+
+    /**
      * Entry-point function to initialize the samples database from input data and pedigree arguments
      */
     private void initializeSampleDB() {
@@ -852,7 +865,8 @@ public class GenomeAnalysisEngine {
                                                                             SAMSequenceDictionary sequenceDictionary,
                                                                             GenomeLocParser genomeLocParser,
                                                                             ValidationExclusion.TYPE validationExclusionType) {
-        final RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser, validationExclusionType);
+        final RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser, validationExclusionType,
+                                                            getArguments().disableAutoIndexCreationAndLockingWhenReadingRods);
 
         final List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTriplet fileDescriptor : referenceMetaDataFiles)

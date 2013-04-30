@@ -26,6 +26,8 @@
 package org.broadinstitute.sting.utils.variant;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.variant.variantcontext.*;
@@ -692,6 +694,15 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
                         root.alleles(Arrays.asList(CAref, C)).stop(11).make(),
                         root.alleles(Arrays.asList(CAAAref, C)).stop(13).make())});
 
+        final Allele threeCopies = Allele.create("GTTTTATTTTATTTTA", true);
+        final Allele twoCopies = Allele.create("GTTTTATTTTA", true);
+        final Allele zeroCopies = Allele.create("G", false);
+        final Allele oneCopies = Allele.create("GTTTTA", false);
+        tests.add(new Object[]{root.alleles(Arrays.asList(threeCopies, zeroCopies, oneCopies)).stop(25).make(),
+                Arrays.asList(
+                        root.alleles(Arrays.asList(threeCopies, zeroCopies)).stop(25).make(),
+                        root.alleles(Arrays.asList(twoCopies, zeroCopies)).stop(20).make())});
+
         return tests.toArray(new Object[][]{});
     }
 
@@ -975,5 +986,120 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
             final Allele trimmed = clipped.getAlleles().get(i);
             Assert.assertEquals(trimmed.getBaseString(), expected.get(i));
         }
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // test primitive allele splitting
+    //
+    // --------------------------------------------------------------------------------
+
+    @DataProvider(name = "PrimitiveAlleleSplittingData")
+    public Object[][] makePrimitiveAlleleSplittingData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        // no split
+        tests.add(new Object[]{"A", "C", 0, null});
+        tests.add(new Object[]{"A", "AC", 0, null});
+        tests.add(new Object[]{"AC", "A", 0, null});
+
+        // one split
+        tests.add(new Object[]{"ACA", "GCA", 1, Arrays.asList(0)});
+        tests.add(new Object[]{"ACA", "AGA", 1, Arrays.asList(1)});
+        tests.add(new Object[]{"ACA", "ACG", 1, Arrays.asList(2)});
+
+        // two splits
+        tests.add(new Object[]{"ACA", "GGA", 2, Arrays.asList(0, 1)});
+        tests.add(new Object[]{"ACA", "GCG", 2, Arrays.asList(0, 2)});
+        tests.add(new Object[]{"ACA", "AGG", 2, Arrays.asList(1, 2)});
+
+        // three splits
+        tests.add(new Object[]{"ACA", "GGG", 3, Arrays.asList(0, 1, 2)});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "PrimitiveAlleleSplittingData")
+    public void testPrimitiveAlleleSplitting(final String ref, final String alt, final int expectedSplit, final List<Integer> variantPositions) {
+
+        final int start = 10;
+        final VariantContext vc = GATKVariantContextUtils.makeFromAlleles("test", "20", start, Arrays.asList(ref, alt));
+
+        final List<VariantContext> result = GATKVariantContextUtils.splitIntoPrimitiveAlleles(vc);
+
+        if ( expectedSplit > 0 ) {
+            Assert.assertEquals(result.size(), expectedSplit);
+            for ( int i = 0; i < variantPositions.size(); i++ ) {
+                Assert.assertEquals(result.get(i).getStart(), start + variantPositions.get(i));
+            }
+        } else {
+            Assert.assertEquals(result.size(), 1);
+            Assert.assertEquals(vc, result.get(0));
+        }
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // test allele remapping
+    //
+    // --------------------------------------------------------------------------------
+
+    @DataProvider(name = "AlleleRemappingData")
+    public Object[][] makeAlleleRemappingData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final Allele originalBase1 = Allele.create((byte)'A');
+        final Allele originalBase2 = Allele.create((byte)'T');
+
+        for ( final byte base1 : BaseUtils.BASES ) {
+            for ( final byte base2 : BaseUtils.BASES ) {
+                for ( final int numGenotypes : Arrays.asList(0, 1, 2, 5) ) {
+                    Map<Allele, Allele> map = new HashMap<Allele, Allele>(2);
+                    map.put(originalBase1, Allele.create(base1));
+                    map.put(originalBase2, Allele.create(base2));
+
+                    tests.add(new Object[]{map, numGenotypes});
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "AlleleRemappingData")
+    public void testAlleleRemapping(final Map<Allele, Allele> alleleMap, final int numGenotypes) {
+
+        final GATKVariantContextUtils.AlleleMapper alleleMapper = new GATKVariantContextUtils.AlleleMapper(alleleMap);
+
+        final GenotypesContext originalGC = createGenotypesContext(numGenotypes, new ArrayList(alleleMap.keySet()));
+
+        final GenotypesContext remappedGC = GATKVariantContextUtils.updateGenotypesWithMappedAlleles(originalGC, alleleMapper);
+
+        for ( int i = 0; i < numGenotypes; i++ ) {
+            final Genotype originalG = originalGC.get(String.format("%d", i));
+            final Genotype remappedG = remappedGC.get(String.format("%d", i));
+
+            Assert.assertEquals(originalG.getAlleles().size(), remappedG.getAlleles().size());
+            for ( int j = 0; j < originalG.getAlleles().size(); j++ )
+                Assert.assertEquals(remappedG.getAllele(j), alleleMap.get(originalG.getAllele(j)));
+        }
+    }
+
+    private static GenotypesContext createGenotypesContext(final int numGenotypes, final List<Allele> alleles) {
+        GenomeAnalysisEngine.resetRandomGenerator();
+        final Random random = GenomeAnalysisEngine.getRandomGenerator();
+
+        final GenotypesContext gc = GenotypesContext.create();
+        for ( int i = 0; i < numGenotypes; i++ ) {
+            // choose alleles at random
+            final List<Allele> myAlleles = new ArrayList<Allele>();
+            myAlleles.add(alleles.get(random.nextInt(2)));
+            myAlleles.add(alleles.get(random.nextInt(2)));
+
+            final Genotype g = new GenotypeBuilder(String.format("%d", i)).alleles(myAlleles).make();
+            gc.add(g);
+        }
+
+        return gc;
     }
 }

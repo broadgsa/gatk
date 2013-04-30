@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
 
+import org.broadinstitute.sting.utils.DeprecatedToolChecks;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -58,7 +59,7 @@ public class AnnotationInterfaceManager {
                 if ( interfaceClass == null )
                     interfaceClass = classMap.get(group + "Annotation");
                 if ( interfaceClass == null )
-                    throw new UserException.BadArgumentValue("group", "Class " + group + " is not found; please check that you have specified the class name correctly");
+                    throw new UserException.BadArgumentValue("group", "Annotation group " + group + " was not found; please check that you have specified the group name correctly");
             }
         }
 
@@ -67,8 +68,13 @@ public class AnnotationInterfaceManager {
             Class annotationClass = classMap.get(annotation);
             if ( annotationClass == null )
                 annotationClass = classMap.get(annotation + "Annotation");
-            if ( annotationClass == null )
-                throw new UserException.BadArgumentValue("annotation", "Class " + annotation + " is not found; please check that you have specified the class name correctly");
+            if ( annotationClass == null ) {
+                if (DeprecatedToolChecks.isDeprecatedAnnotation(annotation) ) {
+                    throw new UserException.DeprecatedAnnotation(annotation, DeprecatedToolChecks.getAnnotationDeprecationInfo(annotation));
+                } else {
+                    throw new UserException.BadArgumentValue("annotation", "Annotation " + annotation + " was not found; please check that you have specified the annotation name correctly");
+                }
+            }
         }
     }
 

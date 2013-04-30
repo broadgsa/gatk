@@ -58,6 +58,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -86,11 +87,10 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
 
     private List<GenomeLoc> intervals;
 
-    private static final String testBAM = "TraverseActiveRegionsUnitTest.bam";
-    private static final String testBAI = "TraverseActiveRegionsUnitTest.bai";
+    private File testBAM;
 
     @BeforeClass
-    private void init() throws FileNotFoundException {
+    private void init() throws IOException {
         //reference = new CachingIndexedFastaSequenceFile(new File("/Users/depristo/Desktop/broadLocal/localData/human_g1k_v37.fasta")); // hg19Reference));
         reference = new CachingIndexedFastaSequenceFile(new File(hg19Reference));
         dictionary = reference.getSequenceDictionary();
@@ -133,17 +133,18 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         createBAM(reads);
     }
 
-    private void createBAM(List<GATKSAMRecord> reads) {
-        File outFile = new File(testBAM);
-        outFile.deleteOnExit();
-        File indexFile = new File(testBAI);
-        indexFile.deleteOnExit();
+    private void createBAM(List<GATKSAMRecord> reads) throws IOException {
+        testBAM = File.createTempFile("TraverseActiveRegionsUnitTest", ".bam");
+        testBAM.deleteOnExit();
 
-        SAMFileWriter out = new SAMFileWriterFactory().setCreateIndex(true).makeBAMWriter(reads.get(0).getHeader(), true, outFile);
+        SAMFileWriter out = new SAMFileWriterFactory().setCreateIndex(true).makeBAMWriter(reads.get(0).getHeader(), true, testBAM);
         for (GATKSAMRecord read : ReadUtils.sortReadsByCoordinate(reads)) {
             out.addAlignment(read);
         }
         out.close();
+
+        new File(testBAM.getAbsolutePath().replace(".bam", ".bai")).deleteOnExit();
+        new File(testBAM.getAbsolutePath() + ".bai").deleteOnExit();
     }
 
     @Test(enabled = true && ! DEBUG, dataProvider = "TraversalEngineProvider")
@@ -400,7 +401,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         return getActiveRegions(t, walker, intervals, testBAM);
     }
 
-    private Map<GenomeLoc, ActiveRegion> getActiveRegions(TraverseActiveRegions t, DummyActiveRegionWalker walker, List<GenomeLoc> intervals, final String bam) {
+    private Map<GenomeLoc, ActiveRegion> getActiveRegions(TraverseActiveRegions t, DummyActiveRegionWalker walker, List<GenomeLoc> intervals, final File bam) {
         for (LocusShardDataProvider dataProvider : createDataProviders(t, walker, intervals, bam))
             t.traverse(walker, dataProvider, 0);
 
@@ -466,13 +467,12 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         return record;
     }
 
-    private List<LocusShardDataProvider> createDataProviders(TraverseActiveRegions traverseActiveRegions, final Walker walker, List<GenomeLoc> intervals, String bamFile) {
+    private List<LocusShardDataProvider> createDataProviders(TraverseActiveRegions traverseActiveRegions, final Walker walker, List<GenomeLoc> intervals, File bamFile) {
         GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
         engine.setGenomeLocParser(genomeLocParser);
-        traverseActiveRegions.initialize(engine, walker);
 
         Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();
-        SAMReaderID readerID = new SAMReaderID(new File(bamFile), new Tags());
+        SAMReaderID readerID = new SAMReaderID(bamFile, new Tags());
         samFiles.add(readerID);
 
         SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser,
@@ -485,8 +485,10 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
                 new ArrayList<ReadTransformer>(),
                 false, (byte)30, false, true);
 
+        engine.setReadsDataSource(dataSource);
         final Set<String> samples = SampleUtils.getSAMFileSamples(dataSource.getHeader());
 
+        traverseActiveRegions.initialize(engine, walker);
         List<LocusShardDataProvider> providers = new ArrayList<LocusShardDataProvider>();
         for (Shard shard : dataSource.createShardIteratorOverIntervals(new GenomeLocSortedSet(genomeLocParser, intervals), new LocusShardBalancer())) {
             for (WindowMaker.WindowMakerIterator window : new WindowMaker(shard, genomeLocParser, dataSource.seek(shard), shard.getGenomeLocs(), samples)) {
@@ -594,7 +596,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         walker.setStates(readStates);
 
         final TraverseActiveRegions traversal = new TraverseActiveRegions<Integer, Integer>();
-        final Map<GenomeLoc, ActiveRegion> activeRegionsMap = getActiveRegions(traversal, walker, intervals, bamBuilder.makeTemporarilyBAMFile().toString());
+        final Map<GenomeLoc, ActiveRegion> activeRegionsMap = getActiveRegions(traversal, walker, intervals, bamBuilder.makeTemporarilyBAMFile());
 
         final Set<String> alreadySeenReads = new HashSet<String>(); // for use with the primary / non-primary
         for ( final ActiveRegion region : activeRegionsMap.values() ) {
@@ -666,7 +668,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         final DummyActiveRegionWalker walker = new DummyActiveRegionWalker(activeRegions, false);
 
         final TraverseActiveRegions traversal = new TraverseActiveRegions<Integer, Integer>();
-        final Map<GenomeLoc, ActiveRegion> activeRegionsMap = getActiveRegions(traversal, walker, intervals, bamBuilder.makeTemporarilyBAMFile().toString());
+        final Map<GenomeLoc, ActiveRegion> activeRegionsMap = getActiveRegions(traversal, walker, intervals, bamBuilder.makeTemporarilyBAMFile());
 
         final ActiveRegion region = activeRegionsMap.values().iterator().next();
         int nReadsExpectedInRegion = 0;

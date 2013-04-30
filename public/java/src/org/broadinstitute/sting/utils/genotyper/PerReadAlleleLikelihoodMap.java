@@ -28,12 +28,13 @@ package org.broadinstitute.sting.utils.genotyper;
 
 import com.google.java.contract.Ensures;
 import org.broadinstitute.sting.gatk.downsampling.AlleleBiasedDownsamplingUtils;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.variant.variantcontext.Allele;
 
-import java.io.PrintStream;
 import java.util.*;
 
 /**
@@ -41,12 +42,8 @@ import java.util.*;
  *   For each read, this holds underlying alleles represented by an aligned read, and corresponding relative likelihood.
  */
 public class PerReadAlleleLikelihoodMap {
-
-
-    public static final double INFORMATIVE_LIKELIHOOD_THRESHOLD = 0.2;
-
-    protected List<Allele> alleles;
-    protected Map<GATKSAMRecord, Map<Allele, Double>> likelihoodReadMap;
+    protected final List<Allele> alleles;
+    protected final Map<GATKSAMRecord, Map<Allele, Double>> likelihoodReadMap;
 
     public PerReadAlleleLikelihoodMap() {
         likelihoodReadMap = new LinkedHashMap<GATKSAMRecord,Map<Allele,Double>>();
@@ -78,17 +75,16 @@ public class PerReadAlleleLikelihoodMap {
 
     }
 
-    public ReadBackedPileup createPerAlleleDownsampledBasePileup(final ReadBackedPileup pileup, final double downsamplingFraction, final PrintStream log) {
-        return AlleleBiasedDownsamplingUtils.createAlleleBiasedBasePileup(pileup, downsamplingFraction, log);
+    public ReadBackedPileup createPerAlleleDownsampledBasePileup(final ReadBackedPileup pileup, final double downsamplingFraction) {
+        return AlleleBiasedDownsamplingUtils.createAlleleBiasedBasePileup(pileup, downsamplingFraction);
     }
 
     /**
      * For each allele "a" , identify those reads whose most likely allele is "a", and remove a "downsamplingFraction" proportion
      * of those reads from the "likelihoodReadMap". This is used for e.g. sample contamination
      * @param downsamplingFraction - the fraction of supporting reads to remove from each allele. If <=0 all reads kept, if >=1 all reads tossed.
-     * @param log - a PrintStream to log the removed reads to (passed through to the utility function)
      */
-    public void performPerAlleleDownsampling(final double downsamplingFraction, final PrintStream log) {
+    public void performPerAlleleDownsampling(final double downsamplingFraction) {
         // special case removal of all or no reads
         if ( downsamplingFraction <= 0.0 )
             return;
@@ -101,7 +97,7 @@ public class PerReadAlleleLikelihoodMap {
         final Map<Allele, List<GATKSAMRecord>> alleleReadMap = getAlleleStratifiedReadMap();
 
         // compute the reads to remove and actually remove them
-        final List<GATKSAMRecord> readsToRemove = AlleleBiasedDownsamplingUtils.selectAlleleBiasedReads(alleleReadMap, downsamplingFraction, log);
+        final List<GATKSAMRecord> readsToRemove = AlleleBiasedDownsamplingUtils.selectAlleleBiasedReads(alleleReadMap, downsamplingFraction);
         for ( final GATKSAMRecord read : readsToRemove )
             likelihoodReadMap.remove(read);
     }
@@ -117,11 +113,12 @@ public class PerReadAlleleLikelihoodMap {
             alleleReadMap.put(allele, new ArrayList<GATKSAMRecord>());
 
         for ( final Map.Entry<GATKSAMRecord, Map<Allele, Double>> entry : likelihoodReadMap.entrySet() ) {
-            // do not remove reduced reads!
+            // TODO -- come up with a strategy for down-sampling reduced reads
+            // Currently we are unable to remove reduced reads because their representative base count differs throughout the read
             if ( !entry.getKey().isReducedRead() ) {
-                final Allele bestAllele = getMostLikelyAllele(entry.getValue());
-                if ( bestAllele != Allele.NO_CALL )
-                    alleleReadMap.get(bestAllele).add(entry.getKey());
+                final MostLikelyAllele bestAllele = getMostLikelyAllele(entry.getValue());
+                if ( bestAllele.isInformative() )
+                    alleleReadMap.get(bestAllele.getMostLikelyAllele()).add(entry.getKey());
             }
         }
 
@@ -191,35 +188,102 @@ public class PerReadAlleleLikelihoodMap {
         return likelihoodReadMap.get(p.getRead());
     }
 
+    /**
+     * Get the most likely alleles estimated across all reads in this object
+     *
+     * Takes the most likely two alleles according to their diploid genotype likelihoods.  That is, for
+     * each allele i and j we compute p(D | i,j) where D is the read likelihoods.  We track the maximum
+     * i,j likelihood and return an object that contains the alleles i and j as well as the max likelihood.
+     *
+     * Note that the second most likely diploid genotype is not tracked so the resulting MostLikelyAllele
+     * doesn't have a meaningful get best likelihood.
+     *
+     * @return a MostLikelyAllele object, or null if this map is empty
+     */
+    public MostLikelyAllele getMostLikelyDiploidAlleles() {
+        if ( isEmpty() ) return null;
+
+        int hap1 = 0;
+        int hap2 = 0;
+        double maxElement = Double.NEGATIVE_INFINITY;
+        for( int iii = 0; iii < alleles.size(); iii++ ) {
+            final Allele iii_allele = alleles.get(iii);
+            for( int jjj = 0; jjj <= iii; jjj++ ) {
+                final Allele jjj_allele = alleles.get(jjj);
+
+                double haplotypeLikelihood = 0.0;
+                for( final Map.Entry<GATKSAMRecord, Map<Allele,Double>> entry : likelihoodReadMap.entrySet() ) {
+                    // Compute log10(10^x1/2 + 10^x2/2) = log10(10^x1+10^x2)-log10(2)
+                    final GATKSAMRecord read = entry.getKey();
+                    final int count = ReadUtils.getMeanRepresentativeReadCount(read);
+                    final double likelihood_iii = entry.getValue().get(iii_allele);
+                    final double likelihood_jjj = entry.getValue().get(jjj_allele);
+                    haplotypeLikelihood += count * (MathUtils.approximateLog10SumLog10(likelihood_iii, likelihood_jjj) + LOG_ONE_HALF);
+
+                    // fast exit.  If this diploid pair is already worse than the max, just stop and look at the next pair
+                    if ( haplotypeLikelihood < maxElement ) break;
+                }
+
+                // keep track of the max element and associated indices
+                if ( haplotypeLikelihood > maxElement ) {
+                    hap1 = iii;
+                    hap2 = jjj;
+                    maxElement = haplotypeLikelihood;
+                }
+            }
+        }
+
+        if ( maxElement == Double.NEGATIVE_INFINITY )
+            throw new IllegalStateException("max likelihood is " + maxElement + " indicating something has gone wrong");
+
+        return new MostLikelyAllele(alleles.get(hap1), alleles.get(hap2), maxElement, maxElement);
+    }
+    private static final double LOG_ONE_HALF = -Math.log10(2.0);
 
     /**
      * Given a map from alleles to likelihoods, find the allele with the largest likelihood.
-     * If the difference between the most-likely allele and the next-most-likely allele is < INFORMATIVE_LIKELIHOOD_THRESHOLD
-     * then the most likely allele is set to "no call"
+     *
      * @param alleleMap - a map from alleles to likelihoods
-     * @return - the most likely allele, or NO_CALL if two or more alleles have likelihoods within INFORMATIVE_LIKELIHOOD_THRESHOLD
-     * of one another. By default empty allele maps will return NO_CALL, and allele maps with a single entry will return the
-     * corresponding key
+     * @return - a MostLikelyAllele object
      */
     @Ensures("result != null")
-    public static Allele getMostLikelyAllele( final Map<Allele,Double> alleleMap ) {
+    public static MostLikelyAllele getMostLikelyAllele( final Map<Allele,Double> alleleMap ) {
+        return getMostLikelyAllele(alleleMap, null);
+    }
+
+    /**
+     * Given a map from alleles to likelihoods, find the allele with the largest likelihood.
+     *
+     * @param alleleMap - a map from alleles to likelihoods
+     * @param onlyConsiderTheseAlleles if not null, we will only consider alleles in this set for being one of the best.
+     *                                 this is useful for the case where you've selected a subset of the alleles that
+     *                                 the reads have been computed for further analysis.  If null totally ignored
+     * @return - a MostLikelyAllele object
+     */
+    public static MostLikelyAllele getMostLikelyAllele( final Map<Allele,Double> alleleMap, final Set<Allele> onlyConsiderTheseAlleles ) {
         if ( alleleMap == null ) throw new IllegalArgumentException("The allele to likelihood map cannot be null");
         double maxLike = Double.NEGATIVE_INFINITY;
         double prevMaxLike = Double.NEGATIVE_INFINITY;
         Allele mostLikelyAllele = Allele.NO_CALL;
+        Allele secondMostLikely = null;
 
         for (final Map.Entry<Allele,Double> el : alleleMap.entrySet()) {
+            if ( onlyConsiderTheseAlleles != null && ! onlyConsiderTheseAlleles.contains(el.getKey()) )
+                continue;
+
             if (el.getValue() > maxLike) {
                 prevMaxLike = maxLike;
                 maxLike = el.getValue();
+                secondMostLikely = mostLikelyAllele;
                 mostLikelyAllele = el.getKey();
             } else if( el.getValue() > prevMaxLike ) {
+                secondMostLikely = el.getKey();
                 prevMaxLike = el.getValue();
             }
         }
-        return (maxLike - prevMaxLike > INFORMATIVE_LIKELIHOOD_THRESHOLD ? mostLikelyAllele : Allele.NO_CALL );
-    }
 
+        return new MostLikelyAllele(mostLikelyAllele, secondMostLikely, maxLike, prevMaxLike);
+    }
 
     /**
      * Debug method to dump contents of object into string for display
@@ -241,5 +305,63 @@ public class PerReadAlleleLikelihoodMap {
 
         }
         return sb.toString();
+    }
+
+    /**
+     * Remove reads from this map that are poorly modelled w.r.t. their per allele likelihoods
+     *
+     * Goes through each read in this map, and if it is poorly modelled removes it from the map.
+     *
+     * @see #readIsPoorlyModelled(org.broadinstitute.sting.utils.sam.GATKSAMRecord, java.util.Collection, double)
+     * for more information about the poorly modelled test.
+     *
+     * @param maxErrorRatePerBase see equivalent parameter in #readIsPoorlyModelled
+     * @return the list of reads removed from this map because they are poorly modelled
+     */
+    public List<GATKSAMRecord> filterPoorlyModelledReads(final double maxErrorRatePerBase) {
+        final List<GATKSAMRecord> removedReads = new LinkedList<GATKSAMRecord>();
+        final Iterator<Map.Entry<GATKSAMRecord, Map<Allele, Double>>> it = likelihoodReadMap.entrySet().iterator();
+        while ( it.hasNext() ) {
+            final Map.Entry<GATKSAMRecord, Map<Allele, Double>> record = it.next();
+            if ( readIsPoorlyModelled(record.getKey(), record.getValue().values(), maxErrorRatePerBase) ) {
+                it.remove();
+                removedReads.add(record.getKey());
+            }
+        }
+
+        return removedReads;
+    }
+
+    /**
+     * Is this read poorly modelled by all of the alleles in this map?
+     *
+     * A read is poorly modeled when it's likelihood is below what would be expected for a read
+     * originating from one of the alleles given the maxErrorRatePerBase of the reads in general.
+     *
+     * This function makes a number of key assumptions.  First, that the likelihoods reflect the total likelihood
+     * of the read.  In other words, that the read would be fully explained by one of the alleles.  This means
+     * that the allele should be something like the full haplotype from which the read might originate.
+     *
+     * It further assumes that each error in the read occurs with likelihood of -3 (Q30 confidence per base).  So
+     * a read with a 10% error rate with Q30 bases that's 100 bp long we'd expect to see 10 real Q30 errors
+     * even against the true haplotype.  So for this read to be well modelled by at least one allele we'd expect
+     * a likelihood to be >= 10 * -3.
+     *
+     * @param read the read we want to evaluate
+     * @param log10Likelihoods a list of the log10 likelihoods of the read against a set of haplotypes.
+     * @param maxErrorRatePerBase the maximum error rate we'd expect for this read per base, in real space.  So
+     *                            0.01 means a 1% error rate
+     * @return true if none of the log10 likelihoods imply that the read truly originated from one of the haplotypes
+     */
+    protected boolean readIsPoorlyModelled(final GATKSAMRecord read, final Collection<Double> log10Likelihoods, final double maxErrorRatePerBase) {
+        final double maxErrorsForRead = Math.ceil(read.getReadLength() * maxErrorRatePerBase);
+        final double log10QualPerBase = -3.0;
+        final double log10MaxLikelihoodForTrueAllele = maxErrorsForRead * log10QualPerBase;
+
+        for ( final double log10Likelihood : log10Likelihoods )
+            if ( log10Likelihood >= log10MaxLikelihoodForTrueAllele )
+                return false;
+
+        return true;
     }
 }

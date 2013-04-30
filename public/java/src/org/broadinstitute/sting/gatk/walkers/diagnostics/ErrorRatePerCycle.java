@@ -49,12 +49,12 @@ import java.io.PrintStream;
  * Emits a GATKReport containing readgroup, cycle, mismatches, counts, qual, and error rate for each read
  * group in the input BAMs FOR ONLY THE FIRST OF PAIR READS.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  *  <p>
  *      Any number of BAM files
  *  </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  *  <p>
  *      GATKReport containing readgroup, cycle, mismatches, counts, qual, and error rate.
  *
@@ -82,7 +82,7 @@ import java.io.PrintStream;
  *      </pre>
  *  </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  *  <pre>
  *    java
  *      -jar GenomeAnalysisTK.jar

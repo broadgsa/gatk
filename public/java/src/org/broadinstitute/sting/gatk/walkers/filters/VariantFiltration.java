@@ -55,17 +55,17 @@ import java.util.*;
  * VariantFiltration is a GATK tool for hard-filtering variant calls based on certain criteria.
  * Records are hard-filtered by changing the value in the FILTER field to something other than PASS.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A variant set to filter.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A filtered VCF.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
@@ -87,12 +87,13 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
     /**
-     * Any variant which overlaps entries from the provided mask rod will be filtered.
+     * Any variant which overlaps entries from the provided mask rod will be filtered. If the user wants logic to be reversed,
+     * i.e. filter variants that do not overlap with provided mask, then argument -filterNotInMask can be used.
      */
-    @Input(fullName="mask", doc="Input ROD mask", required=false)
+    @Input(fullName="mask", shortName="mask", doc="Input ROD mask", required=false)
     public RodBinding<Feature> mask;
 
-    @Output(doc="File to which variants should be written", required=true)
+    @Output(doc="File to which variants should be written")
     protected VariantContextWriter writer = null;
 
     /**
@@ -114,7 +115,7 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
      * One can filter normally based on most fields (e.g. "GQ < 5.0"), but the GT (genotype) field is an exception. We have put in convenience
      * methods so that one can now filter out hets ("isHet == 1"), refs ("isHomRef == 1"), or homs ("isHomVar == 1").
      */
-    @Argument(fullName="genotypeFilterExpression", shortName="G_filter", doc="One or more expression used with FORMAT (sample/genotype-level) fields to filter (see wiki docs for more info)", required=false)
+    @Argument(fullName="genotypeFilterExpression", shortName="G_filter", doc="One or more expression used with FORMAT (sample/genotype-level) fields to filter (see documentation guide for more info)", required=false)
     protected ArrayList<String> GENOTYPE_FILTER_EXPS = new ArrayList<String>();
 
     /**
@@ -139,6 +140,14 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
     protected Integer MASK_EXTEND = 0;
     @Argument(fullName="maskName", shortName="maskName", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call", required=false)
     protected String MASK_NAME = "Mask";
+
+    /**
+     * By default, if the -mask argument is used, any variant falling in a mask will be filtered.
+     * If this argument is used, logic is reversed, and variants falling outside a given mask will be filtered.
+     * Use case is, for example, if we have an interval list or BED file with "good" sites.
+     */
+    @Argument(fullName="filterNotInMask", shortName="filterNotInMask", doc="Filter records NOT in given input mask.", required=false)
+    protected boolean filterRecordsNotInMask = false;
 
     /**
      * By default, if JEXL cannot evaluate your expression for a particular record because one of the annotations is not present, the whole expression evaluates as PASSing.
@@ -177,16 +186,22 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
         if ( clusterWindow > 0 )
             hInfo.add(new VCFFilterHeaderLine(CLUSTERED_SNP_FILTER_NAME, "SNPs found in clusters"));
 
-        for ( VariantContextUtils.JexlVCMatchExp exp : filterExps )
-            hInfo.add(new VCFFilterHeaderLine(exp.name, exp.exp.toString()));
-        for ( VariantContextUtils.JexlVCMatchExp exp : genotypeFilterExps )
-            hInfo.add(new VCFFilterHeaderLine(exp.name, exp.exp.toString()));
-
         if ( genotypeFilterExps.size() > 0 )
             hInfo.add(VCFStandardHeaderLines.getFormatLine(VCFConstants.GENOTYPE_FILTER_KEY));
 
-        if ( mask.isBound() ) {
-            hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
+        try {
+            for ( VariantContextUtils.JexlVCMatchExp exp : filterExps )
+                hInfo.add(new VCFFilterHeaderLine(exp.name, exp.exp.toString()));
+            for ( VariantContextUtils.JexlVCMatchExp exp : genotypeFilterExps )
+                hInfo.add(new VCFFilterHeaderLine(exp.name, exp.exp.toString()));
+
+            if ( mask.isBound() ) {
+                if (filterRecordsNotInMask)
+                    hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Doesn't overlap a user-input mask"));
+                else hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
+            }
+        } catch (IllegalArgumentException e) {
+            throw new UserException.BadInput(e.getMessage());
         }
 
         writer.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames)));
@@ -199,6 +214,8 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
         if ( MASK_EXTEND < 0 )
              throw new UserException.BadArgumentValue("maskExtension", "negative values are not allowed");
 
+        if (filterRecordsNotInMask && !mask.isBound())
+            throw new UserException.BadArgumentValue("filterNotInMask","argument not allowed if mask argument is not provided");
         filterExps = VariantContextUtils.initializeMatchExps(FILTER_NAMES, FILTER_EXPS);
         genotypeFilterExps = VariantContextUtils.initializeMatchExps(GENOTYPE_FILTER_NAMES, GENOTYPE_FILTER_EXPS);
 
@@ -223,7 +240,7 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
         Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
 
         // is there a SNP mask present?
-        boolean hasMask = tracker.hasValues(mask);
+        boolean hasMask = (tracker.hasValues(mask) && !filterRecordsNotInMask) || (filterRecordsNotInMask && !tracker.hasValues(mask));
         if ( hasMask )
             previousMaskPosition = ref.getLocus();  // multi-base masks will get triggered over all bases of the mask
 

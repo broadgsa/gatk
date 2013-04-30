@@ -1060,10 +1060,12 @@ public class SAMDataSource {
     /**
      * Creates a BAM schedule over all mapped reads in the BAM file, when a 'mapped' read is defined as any
      * read that has been assigned
-     * @return
+     *
+     * @param   shardBalancer  shard balancer object
+     * @return non-null initialized version of the shard balancer
      */
-    public Iterable<Shard> createShardIteratorOverMappedReads(final SAMSequenceDictionary sequenceDictionary, final ShardBalancer shardBalancer) {
-        shardBalancer.initialize(this,IntervalSharder.shardOverMappedReads(this,sequenceDictionary,genomeLocParser),genomeLocParser);
+    public Iterable<Shard> createShardIteratorOverMappedReads(final ShardBalancer shardBalancer) {
+        shardBalancer.initialize(this,IntervalSharder.shardOverMappedReads(this,genomeLocParser),genomeLocParser);
         return shardBalancer;
     }
 

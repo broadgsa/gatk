@@ -61,7 +61,7 @@ import static java.lang.Math.log10;
  * Note that this walker requires all input files produced by Beagle.
  *
  *
- * <h2>Example</h2>
+ * <h3>Example</h3>
  * <pre>
  *     java -Xmx4000m -jar dist/GenomeAnalysisTK.jar \
  *      -R reffile.fasta -T BeagleOutputToVCF \
@@ -106,7 +106,7 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
     @Input(fullName="beaglePhased", shortName = "beaglePhased", doc="Beagle-produced .phased file containing phased genotypes", required=true)
     public RodBinding<BeagleFeature> beaglePhased;
 
-    @Output(doc="VCF File to which variants should be written",required=true)
+    @Output(doc="VCF File to which variants should be written")
     protected VariantContextWriter vcfWriter = null;
 
     /**

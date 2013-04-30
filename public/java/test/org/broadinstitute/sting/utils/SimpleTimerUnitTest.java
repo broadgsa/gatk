@@ -118,8 +118,8 @@ public class SimpleTimerUnitTest extends BaseTest {
         Assert.assertTrue(secs < 0.01, "Fast operation said to take longer than 10 milliseconds: elapsed time in seconds " + secs);
 
         Assert.assertTrue(nano > 0, "Nanosecond timer doesn't appear to count properly: elapsed time is " + nano);
-        final long maxTimeInMicro = 100;
-        final long maxTimeInNano = TimeUnit.MICROSECONDS.toNanos(100);
+        final long maxTimeInMicro = 10000;
+        final long maxTimeInNano = TimeUnit.MICROSECONDS.toNanos(maxTimeInMicro);
         Assert.assertTrue(nano < maxTimeInNano, "Fast operation said to take longer than " + maxTimeInMicro + " microseconds: elapsed time in nano " + nano + " micro " + TimeUnit.NANOSECONDS.toMicros(nano));
     }
 

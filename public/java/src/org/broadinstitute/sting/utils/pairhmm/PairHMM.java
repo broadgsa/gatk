@@ -25,10 +25,11 @@
 
 package org.broadinstitute.sting.utils.pairhmm;
 
-import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MathUtils;
+
+import java.util.Arrays;
 
 /**
  * Util class for performing the pair HMM for local alignment. Figure 4.3 in Durbin 1998 book.
@@ -39,9 +40,11 @@ import org.broadinstitute.sting.utils.MathUtils;
 public abstract class PairHMM {
     protected final static Logger logger = Logger.getLogger(PairHMM.class);
 
-    protected static final Byte MAX_CACHED_QUAL = Byte.MAX_VALUE;
-    protected static final byte DEFAULT_GOP = (byte) 45;
-    protected static final byte DEFAULT_GCP = (byte) 10;
+    protected double[][] transition = null; // The transition probabilities cache
+    protected double[][] prior = null;      // The prior probabilities cache
+    protected boolean constantsAreInitialized = false;
+
+    protected byte[] previousHaplotypeBases;
 
     public enum HMM_IMPLEMENTATION {
         /* Very slow implementation which uses very accurate log10 sum functions. Only meant to be used as a reference test implementation */
@@ -52,17 +55,21 @@ public abstract class PairHMM {
         LOGLESS_CACHING
     }
 
-    protected double[][] matchMetricArray = null;
-    protected double[][] XMetricArray = null;
-    protected double[][] YMetricArray = null;
+    protected double[][] matchMatrix = null;
+    protected double[][] insertionMatrix = null;
+    protected double[][] deletionMatrix = null;
     protected int maxHaplotypeLength, maxReadLength;
-    protected int X_METRIC_MAX_LENGTH, Y_METRIC_MAX_LENGTH;
+    protected int paddedMaxReadLength, paddedMaxHaplotypeLength;
+    protected int paddedReadLength, paddedHaplotypeLength;
     private boolean initialized = false;
 
     /**
      * Initialize this PairHMM, making it suitable to run against a read and haplotype with given lengths
-     * @param readMaxLength the max length of reads we want to use with this PairHMM
+     *
+     * Note: Do not worry about padding, just provide the true max length of the read and haplotype. The HMM will take care of the padding.
+     *
      * @param haplotypeMaxLength the max length of haplotypes we want to use with this PairHMM
+     * @param readMaxLength the max length of reads we want to use with this PairHMM
      */
     public void initialize( final int readMaxLength, final int haplotypeMaxLength ) {
         if ( readMaxLength <= 0 ) throw new IllegalArgumentException("READ_MAX_LENGTH must be > 0 but got " + readMaxLength);
@@ -72,14 +79,20 @@ public abstract class PairHMM {
         maxReadLength = readMaxLength;
 
         // M, X, and Y arrays are of size read and haplotype + 1 because of an extra column for initial conditions and + 1 to consider the final base in a non-global alignment
-        X_METRIC_MAX_LENGTH = readMaxLength + 2;
-        Y_METRIC_MAX_LENGTH = haplotypeMaxLength + 2;
+        paddedMaxReadLength = readMaxLength + 1;
+        paddedMaxHaplotypeLength = haplotypeMaxLength + 1;
 
-        matchMetricArray = new double[X_METRIC_MAX_LENGTH][Y_METRIC_MAX_LENGTH];
-        XMetricArray = new double[X_METRIC_MAX_LENGTH][Y_METRIC_MAX_LENGTH];
-        YMetricArray = new double[X_METRIC_MAX_LENGTH][Y_METRIC_MAX_LENGTH];
+        matchMatrix = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
+        insertionMatrix = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
+        deletionMatrix = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
+
+        previousHaplotypeBases = null;
+
+        constantsAreInitialized = false;
         initialized = true;
     }
+
+
 
     /**
      * Compute the total probability of read arising from haplotypeBases given base substitution, insertion, and deletion
@@ -97,8 +110,6 @@ public abstract class PairHMM {
      * @param insertionGOP the phred-scaled per base insertion quality scores of read.  Must be the same length as readBases
      * @param deletionGOP the phred-scaled per base deletion quality scores of read.  Must be the same length as readBases
      * @param overallGCP the phred-scaled gap continuation penalties scores of read.  Must be the same length as readBases
-     * @param hapStartIndex start the hmm calculation at this offset in haplotype bases.  Used in the caching calculation
-     *                      where multiple haplotypes are used, and they only diff starting at hapStartIndex
      * @param recacheReadValues if false, we don't recalculate any cached results, assuming that readBases and its associated
      *                          parameters are the same, and only the haplotype bases are changing underneath us
      * @return the log10 probability of read coming from the haplotype under the provided error model
@@ -109,7 +120,6 @@ public abstract class PairHMM {
                                                                   final byte[] insertionGOP,
                                                                   final byte[] deletionGOP,
                                                                   final byte[] overallGCP,
-                                                                  final int hapStartIndex,
                                                                   final boolean recacheReadValues ) {
         if ( ! initialized ) throw new IllegalStateException("Must call initialize before calling computeReadLikelihoodGivenHaplotypeLog10");
         if ( haplotypeBases == null ) throw new IllegalArgumentException("haplotypeBases cannot be null");
@@ -120,25 +130,29 @@ public abstract class PairHMM {
         if ( insertionGOP.length != readBases.length ) throw new IllegalArgumentException("Read bases and read insertion quals aren't the same size: " + readBases.length + " vs " + insertionGOP.length);
         if ( deletionGOP.length != readBases.length ) throw new IllegalArgumentException("Read bases and read deletion quals aren't the same size: " + readBases.length + " vs " + deletionGOP.length);
         if ( overallGCP.length != readBases.length ) throw new IllegalArgumentException("Read bases and overall GCP aren't the same size: " + readBases.length + " vs " + overallGCP.length);
-        if ( hapStartIndex < 0 || hapStartIndex > haplotypeBases.length ) throw new IllegalArgumentException("hapStartIndex is bad, must be between 0 and haplotype length " + haplotypeBases.length + " but got " + hapStartIndex);
+
+        paddedReadLength = readBases.length + 1;
+        paddedHaplotypeLength = haplotypeBases.length + 1;
+
+        final int hapStartIndex =  (previousHaplotypeBases == null || haplotypeBases.length != previousHaplotypeBases.length || recacheReadValues) ? 0 : findFirstPositionWhereHaplotypesDiffer(haplotypeBases, previousHaplotypeBases);
 
         double result = subComputeReadLikelihoodGivenHaplotypeLog10(haplotypeBases, readBases, readQuals, insertionGOP, deletionGOP, overallGCP, hapStartIndex, recacheReadValues);
 
-        // TODO -- remove max when PairHMM no longer returns likelihoods >= 0
-        result = Math.min(result, 0.0);
+        if ( ! MathUtils.goodLog10Probability(result) )
+            throw new IllegalStateException("PairHMM Log Probability cannot be greater than 0: " + String.format("haplotype: %s, read: %s, result: %f", Arrays.toString(haplotypeBases), Arrays.toString(readBases), result));
 
-        if ( MathUtils.goodLog10Probability(result) )
-            return result;
-        else
-            throw new IllegalStateException("Bad likelihoods detected: " + result);
-//            return result;
+        // Warning: Careful if using the PairHMM in parallel! (this update has to be taken care of).
+        // Warning: This assumes no downstream modification of the haplotype bases (saves us from copying the array). It is okay for the haplotype caller and the Unified Genotyper.
+        previousHaplotypeBases = haplotypeBases;
+
+        return result;
     }
 
     /**
      * To be overloaded by subclasses to actually do calculation for #computeReadLikelihoodGivenHaplotypeLog10
      */
     @Requires({"readBases.length == readQuals.length", "readBases.length == insertionGOP.length", "readBases.length == deletionGOP.length",
-               "readBases.length == overallGCP.length", "matchMetricArray!=null", "XMetricArray!=null", "YMetricArray!=null"})
+               "readBases.length == overallGCP.length", "matchMatrix!=null", "insertionMatrix!=null", "deletionMatrix!=null"})
     protected abstract double subComputeReadLikelihoodGivenHaplotypeLog10( final byte[] haplotypeBases,
                                                                         final byte[] readBases,
                                                                         final byte[] readQuals,
@@ -149,40 +163,12 @@ public abstract class PairHMM {
                                                                         final boolean recacheReadValues );
 
     /**
-     * How many potential starting locations are a read with readSize bases against a haplotype with haplotypeSize bases?
-     *
-     * for example, a 3 bp read against a 5 bp haplotype could potentially start at 1, 2, 3 = 5 - 3 + 1 = 3
-     * the max value is necessary in the case where the read is longer than the haplotype, in which case
-     * there's a single unique start site by assumption
-     *
-     * @param haplotypeSize the number of bases in the haplotype we are testing
-     * @param readSize the number of bases in the read we are testing
-     * @return a positive integer >= 1
-     */
-    @Ensures("result >= 1")
-    protected int getNPotentialXStarts(final int haplotypeSize, final int readSize) {
-        return Math.max(haplotypeSize - readSize + 1, 1);
-    }
-
-    /**
-     * The the log10 probability penalty for the number of potential start sites of the read aginst the haplotype
-     *
-     * @param haplotypeSize the number of bases in the haplotype we are testing
-     * @param readSize the number of bases in the read we are testing
-     * @return a log10 probability
-     */
-    @Ensures("MathUtils.goodLog10Probability(result)")
-    protected double getNPotentialXStartsLikelihoodPenaltyLog10(final int haplotypeSize, final int readSize) {
-        return - Math.log10(getNPotentialXStarts(haplotypeSize, readSize));
-    }
-
-    /**
      * Print out the core hmm matrices for debugging
      */
     protected void dumpMatrices() {
-        dumpMatrix("matchMetricArray", matchMetricArray);
-        dumpMatrix("XMetricArray", XMetricArray);
-        dumpMatrix("YMetricArray", YMetricArray);
+        dumpMatrix("matchMetricArray", matchMatrix);
+        dumpMatrix("insertionMatrix", insertionMatrix);
+        dumpMatrix("deletionMatrix", deletionMatrix);
     }
 
     /**
@@ -215,8 +201,8 @@ public abstract class PairHMM {
      * @return the index of the first position in haplotype1 and haplotype2 where the byte isn't the same
      */
     public static int findFirstPositionWhereHaplotypesDiffer(final byte[] haplotype1, final byte[] haplotype2) {
-        if ( haplotype1 == null || haplotype1.length == 0 ) throw new IllegalArgumentException("Haplotype1 is bad " + haplotype1);
-        if ( haplotype2 == null || haplotype2.length == 0 ) throw new IllegalArgumentException("Haplotype2 is bad " + haplotype2);
+        if ( haplotype1 == null || haplotype1.length == 0 ) throw new IllegalArgumentException("Haplotype1 is bad " + Arrays.toString(haplotype1));
+        if ( haplotype2 == null || haplotype2.length == 0 ) throw new IllegalArgumentException("Haplotype2 is bad " + Arrays.toString(haplotype2));
 
         for( int iii = 0; iii < haplotype1.length && iii < haplotype2.length; iii++ ) {
             if( haplotype1[iii] != haplotype2[iii] ) {

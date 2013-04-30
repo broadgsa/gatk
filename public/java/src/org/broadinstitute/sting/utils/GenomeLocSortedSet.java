@@ -266,78 +266,94 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     }
 
     /**
-     * add a genomeLoc to the collection, simply inserting in order into the set
+     * Adds a GenomeLoc to the collection, inserting at the correct sorted position into the set.
+     * Throws an exception if the loc overlaps another loc already in the set.
      *
-     * TODO -- this may break the contract of the GenomeLocSortedSet if e overlaps or
-     * TODO -- other locations already in the set.  This code should check to see if
-     * TODO -- e is overlapping with its nearby elements and merge them or alternatively
-     * TODO -- throw an exception
+     * @param loc the GenomeLoc to add
      *
-     * @param e the GenomeLoc to add
-     *
-     * @return true
+     * @return true if the loc was added or false otherwise (if the loc was null)
      */
-    public boolean add(GenomeLoc e) {
-        // assuming that the intervals coming arrive in order saves us a fair amount of time (and it's most likely true)
-        if (mArray.size() > 0 && e.isPast(mArray.get(mArray.size() - 1))) {
-            mArray.add(e);
-            return true;
-        } else {
-            final int loc = Collections.binarySearch(mArray,e);
-            if (loc >= 0) {
-                throw new ReviewedStingException("Genome Loc Sorted Set already contains the GenomicLoc " + e.toString());
-            } else {
-                mArray.add((loc+1) * -1,e);
-                return true;
-            }
-        }
+    public boolean add(final GenomeLoc loc) {
+        return add(loc, false);
     }
 
     /**
      * Adds a GenomeLoc to the collection, merging it if it overlaps another region.
-     * If it's not overlapping then we add it in sorted order.
+     * If it's not overlapping then we insert it at the correct sorted position into the set.
      *
-     * TODO TODO TODO -- this function is buggy and will not properly create a sorted
-     * TODO TODO TODO -- genome loc is addRegion is called sequentially where the second
-     * TODO TODO TODO -- loc added is actually before the first.  So when creating
-     * TODO TODO TODO -- sets make sure to sort the input locations first!
+     * @param loc the GenomeLoc to add
      *
-     * @param e the GenomeLoc to add to the collection
-     *
-     * @return true, if the GenomeLoc could be added to the collection
+     * @return true if the loc was added or false otherwise (if the loc was null)
      */
-    public boolean addRegion(GenomeLoc e) {
-        if (e == null) {
-            return false;
-        }
-        // have we added it to the collection?
-        boolean haveAdded = false;
+    public boolean addRegion(final GenomeLoc loc) {
+        return add(loc, true);
+    }
 
-        /**
-         * check if the specified element overlaps any current locations, if so
-         * we should merge the two.
-         */
-        for (GenomeLoc g : mArray) {
-            if (g.contiguousP(e)) {
-                GenomeLoc c = g.merge(e);
-                mArray.set(mArray.indexOf(g), c);
-                haveAdded = true;
-            } else if ((g.getContigIndex() == e.getContigIndex()) &&
-                    (e.getStart() < g.getStart()) && !haveAdded) {
-                mArray.add(mArray.indexOf(g), e);
-                return true;
-            } else if (haveAdded && ((e.getContigIndex() > e.getContigIndex()) ||
-                    (g.getContigIndex() == e.getContigIndex() && e.getStart() > g.getStart()))) {
-                return true;
-            }
+    /**
+     * Adds a GenomeLoc to the collection, inserting at the correct sorted position into the set.
+     *
+     * @param loc                      the GenomeLoc to add
+     * @param mergeIfIntervalOverlaps  if true we merge the interval if it overlaps another one already in the set, otherwise we throw an exception
+     *
+     * @return true if the loc was added or false otherwise (if the loc was null or an exact duplicate)
+     */
+    public boolean add(final GenomeLoc loc, final boolean mergeIfIntervalOverlaps) {
+        if ( loc == null )
+            return false;
+
+        // if we have no other intervals yet or if the new loc is past the last one in the list (which is usually the
+        // case because locs are generally added in order) then be extra efficient and just add the loc to the end
+        if ( mArray.size() == 0 || loc.isPast(mArray.get(mArray.size() - 1)) ) {
+            return mArray.add(loc);
         }
-        /** we're at the end and we haven't found locations that should fall after it,
-         * so we'll put it at the end
-         */
-        if (!haveAdded) {
-            mArray.add(e);
+
+        // find where in the list the new loc belongs
+        final int binarySearchIndex = Collections.binarySearch(mArray,loc);
+
+        // if it already exists in the list, return or throw an exception as needed
+        if ( binarySearchIndex >= 0 ) {
+            if ( mergeIfIntervalOverlaps )
+                return false;
+            throw new IllegalArgumentException("GenomeLocSortedSet already contains the GenomeLoc " + loc);
         }
+
+        // if it overlaps a loc already in the list merge or throw an exception as needed
+        final int insertionIndex = -1 * (binarySearchIndex + 1);
+        if ( ! mergeOverlappingIntervalsFromAdd(loc, insertionIndex, !mergeIfIntervalOverlaps) ) {
+            // it does not overlap any current intervals, so add it to the set
+            mArray.add(insertionIndex, loc);
+        }
+
         return true;
+    }
+
+    /*
+     * If the provided GenomeLoc overlaps another already in the set, merge them (or throw an exception if requested)
+     *
+     * @param loc                          the GenomeLoc to add
+     * @param insertionIndex               the index in the sorted set to add the new loc
+     * @param throwExceptionIfOverlapping  if true we throw an exception if there's overlap, otherwise we merge them
+     *
+     * @return true if the loc was added or false otherwise
+     */
+    private boolean mergeOverlappingIntervalsFromAdd(final GenomeLoc loc, final int insertionIndex, final boolean throwExceptionIfOverlapping) {
+        // try merging with the previous index
+        if ( insertionIndex != 0 && loc.overlapsP(mArray.get(insertionIndex - 1)) ) {
+            if ( throwExceptionIfOverlapping )
+                throw new IllegalArgumentException(String.format("GenomeLocSortedSet contains a GenomeLoc (%s) that overlaps with the provided one (%s)", mArray.get(insertionIndex - 1).toString(), loc.toString()));
+            mArray.set(insertionIndex - 1, mArray.get(insertionIndex - 1).merge(loc));
+            return true;
+        }
+
+        // try merging with the following index
+        if ( insertionIndex < mArray.size() && loc.overlapsP(mArray.get(insertionIndex)) ) {
+            if ( throwExceptionIfOverlapping )
+                throw new IllegalArgumentException(String.format("GenomeLocSortedSet contains a GenomeLoc (%s) that overlaps with the provided one (%s)", mArray.get(insertionIndex).toString(), loc.toString()));
+            mArray.set(insertionIndex, mArray.get(insertionIndex).merge(loc));
+            return true;
+        }
+
+        return false;
     }
 
     public GenomeLocSortedSet subtractRegions(GenomeLocSortedSet toRemoveSet) {
@@ -401,11 +417,11 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      *
      * @return the GenomeLocSet of all references sequences as GenomeLoc's
      */
-    public static GenomeLocSortedSet createSetFromSequenceDictionary(SAMSequenceDictionary dict) {
-        GenomeLocParser parser = new GenomeLocParser(dict);
-        GenomeLocSortedSet returnSortedSet = new GenomeLocSortedSet(parser);
-        for (SAMSequenceRecord record : dict.getSequences()) {
-            returnSortedSet.add(parser.createGenomeLoc(record.getSequenceName(), 1, record.getSequenceLength()));
+    public static GenomeLocSortedSet createSetFromSequenceDictionary(final SAMSequenceDictionary dict) {
+        final GenomeLocParser parser = new GenomeLocParser(dict);
+        final GenomeLocSortedSet returnSortedSet = new GenomeLocSortedSet(parser);
+        for ( final SAMSequenceRecord sequence : dict.getSequences() ) {
+            returnSortedSet.add(parser.createOverEntireContig(sequence.getSequenceName()));
         }
         return returnSortedSet;
     }

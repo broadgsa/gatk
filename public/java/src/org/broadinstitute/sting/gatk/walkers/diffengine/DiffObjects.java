@@ -68,12 +68,12 @@ import java.util.List;
  *      The reason for this system is that it allows you to compare two structured files -- such as BAMs and VCFs -- for common differences among them.  This is primarily useful in regression testing or optimization, where you want to ensure that the differences are those that you expect and not any others.
  * </p>
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  *      The DiffObjectsWalker works with BAM or VCF files.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  *      The DiffEngine system compares to two hierarchical data structures for specific differences in the values of named
  *      nodes.  Suppose I have two trees:
@@ -132,6 +132,10 @@ import java.util.List;
  [testng] 64b991fd3850f83614518f7d71f0532f.integrationtest.20:10000598.AC  1
  </pre>
  *
+ * <h3>Caveat</h3>
+ * <p>Because this is a walker, it requires that you pass a reference file. However the reference is not actually used, so it does not matter what you pass as reference.</p>
+ *
+ *
  * @author Mark DePristo
  * @since 7/4/11
  */
@@ -140,10 +144,9 @@ public class DiffObjects extends RodWalker<Integer, Integer> {
     /**
      * Writes out a file of the DiffEngine format:
      *
-     *     TODO for Geraldine -- link needs to be updated below (and also in SelectVariants and RefSeqCodec GATK docs)
-     *     http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine
+     *     See http://www.broadinstitute.org/gatk/guide/article?id=1299 for details.
      */
-    @Output(doc="File to which results should be written",required=true)
+    @Output(doc="File to which results should be written")
     protected PrintStream out;
 
     /**
@@ -169,7 +172,7 @@ public class DiffObjects extends RodWalker<Integer, Integer> {
     @Argument(fullName="maxObjectsToRead", shortName="motr", doc="Max. number of objects to read from the files.  -1 [default] means unlimited", required=false)
     int MAX_OBJECTS_TO_READ = -1;
 
-    @Argument(fullName="maxRawDiffsToSummary", shortName="maxRawDiffsToSummary", doc="Max. number of objects to read from the files.  -1 [default] means unlimited", required=false)
+    @Argument(fullName="maxRawDiffsToSummarize", shortName="maxRawDiffsToSummarize", doc="Max. number of differences to include in the summary.  -1 [default] means unlimited", required=false)
     int maxRawDiffsToSummary = -1;
 
     @Argument(fullName="doPairwise", shortName="doPairwise", doc="If provided, we will compute the minimum pairwise differences to summary, which can be extremely expensive", required=false)

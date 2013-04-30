@@ -303,7 +303,7 @@ public class PileupElement implements Comparable<PileupElement> {
      * this being a reduced read and a deletion, we return the average number of elements between the left
      * and right elements to the deletion. We assume the deletion to be left aligned.
      *
-     * @return
+     * @return the representative count
      */
     public int getRepresentativeCount() {
         if (read.isReducedRead())     {
@@ -316,6 +316,21 @@ public class PileupElement implements Comparable<PileupElement> {
         } else {
             return 1;
         }
+    }
+
+    /**
+     * Adjusts the representative count of this pileup element.
+     * Throws an exception if this element does not represent a reduced read.
+     *
+     * See GATKSAMRecord.adjustReducedCount() for warnings on the permanency of this operation.
+     *
+     * @param adjustmentFactor   how much to adjust the representative count (can be positive or negative)
+     */
+    public void adjustRepresentativeCount(final int adjustmentFactor) {
+        if ( read.isReducedRead() )
+            read.adjustReducedCount(offset, adjustmentFactor);
+        else
+            throw new IllegalArgumentException("Trying to adjust the representative count of a read that is not reduced");
     }
 
     /**

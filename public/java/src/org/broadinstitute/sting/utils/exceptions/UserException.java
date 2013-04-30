@@ -75,6 +75,12 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class IncompatibleReadFiltersException extends CommandLineException {
+        public IncompatibleReadFiltersException(final String filter1, final String filter2) {
+            super(String.format("Two read filters are enabled that are incompatible and cannot be used simultaneously: %s and %s", filter1, filter2));
+        }
+    }
+
     public static class MalformedWalkerArgumentsException extends CommandLineException {
         public MalformedWalkerArgumentsException(String message) {
             super(String.format("Malformed walker argument: %s",message));
@@ -276,8 +282,14 @@ public class UserException extends ReviewedStingException {
     }
 
     public static class ReadMissingReadGroup extends MalformedBAM {
-        public ReadMissingReadGroup(SAMRecord read) {
-            super(read, String.format("Read %s is either missing the read group or its read group is not defined in the BAM header, both of which are required by the GATK.  Please use " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName()));
+        public ReadMissingReadGroup(final SAMRecord read) {
+            super(read, String.format("Read %s is missing the read group (RG) tag, which is required by the GATK.  Please use " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName()));
+        }
+    }
+
+    public static class ReadHasUndefinedReadGroup extends MalformedBAM {
+        public ReadHasUndefinedReadGroup(final SAMRecord read, final String rgID) {
+            super(read, String.format("Read %s uses a read group (%s) that is not defined in the BAM header, which is not valid.  Please use " + HelpConstants.forumPost("discussion/59/companion-utilities-replacereadgroups to fix this problem"), read.getReadName(), rgID));
         }
     }
 
@@ -359,11 +371,15 @@ public class UserException extends ReviewedStingException {
         }
     }
 
-
-
     public static class DeprecatedWalker extends UserException {
         public DeprecatedWalker(String walkerName, String version) {
             super(String.format("Walker %s is no longer available in the GATK; it has been deprecated since version %s", walkerName, version));
+        }
+    }
+
+    public static class DeprecatedAnnotation extends UserException {
+        public DeprecatedAnnotation(String annotationName, String version) {
+            super(String.format("Annotation %s is no longer available in the GATK; it has been deprecated since version %s", annotationName, version));
         }
     }
 
@@ -376,29 +392,25 @@ public class UserException extends ReviewedStingException {
         }
     }
 
-    public static class CouldNotCreateReferenceIndexFile extends UserException {
-        public CouldNotCreateReferenceIndexFile(File f, Exception e) {
-            this(f, "", e);
-        }
-
-        public CouldNotCreateReferenceIndexFile(File f, String message, Exception e) {
-            super(String.format("Index file %s does not exist but could not be created because: %s. ", f, message)
-                    + (e == null ? "" : getMessage(e)));
-        }
-    }
-
     public static class CannotHandleGzippedRef extends UserException {
-	public CannotHandleGzippedRef() {
-	    super("The GATK cannot process compressed (.gz) reference sequences. Please unzip the file and try again.  Sorry for the inconvenience.");
-	}
+        public CannotHandleGzippedRef() {
+            super("The GATK cannot process compressed (.gz) reference sequences. Please unzip the file and try again.  Sorry for the inconvenience.");
+        }
     }
 
-    public static class CouldNotCreateReferenceIndexFileBecauseOfLock extends UserException.CouldNotCreateReferenceIndexFile {
-        public CouldNotCreateReferenceIndexFileBecauseOfLock(File f) {
-            super(f, "could not be written because an exclusive file lock could not be obtained. " +
-                    "If you are running multiple instances of GATK, another GATK process is " +
-                    "probably creating this file now, and has locked it. Please wait until this process finishes " +
-                    "and try again.", null);
+    public static class MissingReferenceFaiFile extends UserException {
+        public MissingReferenceFaiFile( final File indexFile, final File fastaFile ) {
+            super(String.format("Fasta index file %s for reference %s does not exist. Please see %s for help creating it.",
+                                indexFile.getAbsolutePath(), fastaFile.getAbsolutePath(),
+                                HelpConstants.forumPost("discussion/1601/how-can-i-prepare-a-fasta-file-to-use-as-reference")));
+        }
+    }
+
+    public static class MissingReferenceDictFile extends UserException {
+        public MissingReferenceDictFile( final File dictFile, final File fastaFile ) {
+            super(String.format("Fasta dict file %s for reference %s does not exist. Please see %s for help creating it.",
+                                dictFile.getAbsolutePath(), fastaFile.getAbsolutePath(),
+                                HelpConstants.forumPost("discussion/1601/how-can-i-prepare-a-fasta-file-to-use-as-reference")));
         }
     }
 
@@ -426,6 +438,23 @@ public class UserException extends ReviewedStingException {
                                 "If this key was valid in the past, it's likely been revoked. " +
                                 "Please see %s for help.",
                                 f.getAbsolutePath(), PHONE_HOME_DOCS_URL));
+        }
+    }
+
+    /**
+     * A special exception that happens only in the case where
+     * the filesystem, by design or configuration, is completely unable
+     * to handle locking.  This exception will specifically NOT be thrown
+     * in the case where the filesystem handles locking but is unable to
+     * acquire a lock due to concurrency.
+     */
+    public static class FileSystemInabilityToLockException extends UserException {
+        public FileSystemInabilityToLockException( String message ) {
+            super(message);
+        }
+
+        public FileSystemInabilityToLockException( String message, Exception innerException ) {
+            super(message,innerException);
         }
     }
 }

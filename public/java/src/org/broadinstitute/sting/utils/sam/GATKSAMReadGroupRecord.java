@@ -72,6 +72,11 @@ public class GATKSAMReadGroupRecord extends SAMReadGroupRecord {
         return mNGSPlatform;
     }
 
+    @Override
+    public String toString() {
+        return "GATKSAMReadGroupRecord @RG:" + getReadGroupId();
+    }
+
     ///////////////////////////////////////////////////////////////////////////////
     // *** The following methods are overloaded to cache the appropriate data ***//
     ///////////////////////////////////////////////////////////////////////////////

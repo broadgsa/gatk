@@ -83,7 +83,7 @@ public class DiffEngine {
             DiffElement masterElt = master.getElement(name);
             DiffElement testElt = test.getElement(name);
             if ( masterElt == null && testElt == null ) {
-                throw new ReviewedStingException("BUG: unexceptedly got two null elements for field: " + name);
+                throw new ReviewedStingException("BUG: unexpectedly got two null elements for field: " + name);
             } else if ( masterElt == null || testElt == null ) { // if either is null, we are missing a value
                 // todo -- should one of these be a special MISSING item?
                 diffs.add(new Difference(masterElt, testElt));
@@ -283,8 +283,7 @@ public class DiffEngine {
         // now that we have a specific list of values we want to show, display them
         GATKReport report = new GATKReport();
         final String tableName = "differences";
-        // TODO for Geraldine -- link needs to be updated below
-        report.addTable(tableName, "Summarized differences between the master and test files. See http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine for more information", 3);
+        report.addTable(tableName, "Summarized differences between the master and test files. See http://www.broadinstitute.org/gatk/guide/article?id=1299 for more information", 3);
         final GATKReportTable table = report.getTable(tableName);
         table.addColumn("Difference");
         table.addColumn("NumberOfOccurrences");

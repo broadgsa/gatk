@@ -25,10 +25,13 @@
 
 package org.broadinstitute.sting.utils.fragments;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.clipping.ReadClipper;
 import org.broadinstitute.sting.utils.recalibration.EventType;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -56,7 +59,8 @@ import java.util.*;
  * Date: 3/26/11
  * Time: 10:09 PM
  */
-public class FragmentUtils {
+public final class FragmentUtils {
+    protected final static byte MIN_QUAL_BAD_OVERLAP = 16;
     private FragmentUtils() {} // private constructor
 
     /**
@@ -65,18 +69,28 @@ public class FragmentUtils {
      * Allows us to write a generic T -> Fragment algorithm that works with any object containing
      * a read.
      *
-     * @param <T>
+     * @param <T> The type of the object that contains a GATKSAMRecord
      */
     public interface ReadGetter<T> {
+        /**
+         * Get the GATKSAMRecord associated with object
+         *
+         * @param object the thing that contains the read
+         * @return a non-null GATKSAMRecord read
+         */
         public GATKSAMRecord get(T object);
     }
 
-    /** Identify getter for SAMRecords themselves */
+    /**
+     * Identify getter for SAMRecords themselves
+     */
     private final static ReadGetter<GATKSAMRecord> SamRecordGetter = new ReadGetter<GATKSAMRecord>() {
         @Override public GATKSAMRecord get(final GATKSAMRecord object) { return object; }
     };
 
-    /** Gets the SAMRecord in a PileupElement */
+    /**
+     * Gets the SAMRecord in a PileupElement
+     */
     private final static ReadGetter<PileupElement> PileupElementGetter = new ReadGetter<PileupElement>() {
         @Override public GATKSAMRecord get(final PileupElement object) { return object.getRead(); }
     };
@@ -87,13 +101,20 @@ public class FragmentUtils {
      * and returns a FragmentCollection that contains the T objects whose underlying reads either overlap (or
      * not) with their mate pairs.
      *
-     * @param readContainingObjects
-     * @param nElements
-     * @param getter
+     * @param readContainingObjects An iterator of objects that contain GATKSAMRecords
+     * @param nElements the number of elements to be provided by the iterator, which is usually known upfront and
+     *                  greatly improves the efficiency of the fragment calculation
+     * @param getter a helper function that takes an object of type T and returns is associated GATKSAMRecord
      * @param <T>
-     * @return
+     * @return a fragment collection
      */
-    private final static <T> FragmentCollection<T> create(Iterable<T> readContainingObjects, int nElements, ReadGetter<T> getter) {
+    @Requires({
+            "readContainingObjects != null",
+            "nElements >= 0",
+            "getter != null"
+    })
+    @Ensures("result != null")
+    private static <T> FragmentCollection<T> create(final Iterable<T> readContainingObjects, final int nElements, final ReadGetter<T> getter) {
         Collection<T> singletons = null;
         Collection<List<T>> overlapping = null;
         Map<String, T> nameMap = null;
@@ -145,33 +166,76 @@ public class FragmentUtils {
         return new FragmentCollection<T>(singletons, overlapping);
     }
 
-    public final static FragmentCollection<PileupElement> create(ReadBackedPileup rbp) {
+    /**
+     * Create a FragmentCollection containing PileupElements from the ReadBackedPileup rbp
+     * @param rbp a non-null read-backed pileup.  The elements in this ReadBackedPileup must be ordered
+     * @return a non-null FragmentCollection
+     */
+    @Ensures("result != null")
+    public static FragmentCollection<PileupElement> create(final ReadBackedPileup rbp) {
+        if ( rbp == null ) throw new IllegalArgumentException("Pileup cannot be null");
         return create(rbp, rbp.getNumberOfElements(), PileupElementGetter);
     }
 
-    public final static FragmentCollection<GATKSAMRecord> create(List<GATKSAMRecord> reads) {
+    /**
+     * Create a FragmentCollection containing GATKSAMRecords from a list of reads
+     *
+     * @param reads a non-null list of reads, ordered by their start location
+     * @return a non-null FragmentCollection
+     */
+    @Ensures("result != null")
+    public static FragmentCollection<GATKSAMRecord> create(final List<GATKSAMRecord> reads) {
+        if ( reads == null ) throw new IllegalArgumentException("Pileup cannot be null");
         return create(reads, reads.size(), SamRecordGetter);
     }
 
-    public final static List<GATKSAMRecord> mergeOverlappingPairedFragments( final List<GATKSAMRecord> overlappingPair ) {
-        final byte MIN_QUAL_BAD_OVERLAP = 16;
+    public static List<GATKSAMRecord> mergeOverlappingPairedFragments( final List<GATKSAMRecord> overlappingPair ) {
         if( overlappingPair.size() != 2 ) { throw new ReviewedStingException("Found overlapping pair with " + overlappingPair.size() + " reads, but expecting exactly 2."); }
 
-        GATKSAMRecord firstRead = overlappingPair.get(0);
-        GATKSAMRecord secondRead = overlappingPair.get(1);
+        final GATKSAMRecord firstRead = overlappingPair.get(0);
+        final GATKSAMRecord secondRead = overlappingPair.get(1);
 
+        final GATKSAMRecord merged;
         if( !(secondRead.getSoftStart() <= firstRead.getSoftEnd() && secondRead.getSoftStart() >= firstRead.getSoftStart() && secondRead.getSoftEnd() >= firstRead.getSoftEnd()) ) {
-            firstRead = overlappingPair.get(1); // swap them
-            secondRead = overlappingPair.get(0);
-        }
-        if( !(secondRead.getSoftStart() <= firstRead.getSoftEnd() && secondRead.getSoftStart() >= firstRead.getSoftStart() && secondRead.getSoftEnd() >= firstRead.getSoftEnd()) ) {
-            return overlappingPair; // can't merge them, yet:  AAAAAAAAAAA-BBBBBBBBBBB-AAAAAAAAAAAAAA, B is contained entirely inside A
-        }
-        if( firstRead.getCigarString().contains("I") || firstRead.getCigarString().contains("D") || secondRead.getCigarString().contains("I") || secondRead.getCigarString().contains("D") ) {
-            return overlappingPair; // fragments contain indels so don't merge them
+            merged = mergeOverlappingPairedFragments(secondRead, firstRead);
+        } else {
+            merged = mergeOverlappingPairedFragments(firstRead, secondRead);
         }
 
-        final Pair<Integer, Boolean> pair = ReadUtils.getReadCoordinateForReferenceCoordinate(firstRead, secondRead.getSoftStart());
+        return merged == null ? overlappingPair : Collections.singletonList(merged);
+    }
+
+    /**
+     * Merge two overlapping reads from the same fragment into a single super read, if possible
+     *
+     * firstRead and secondRead must be part of the same fragment (though this isn't checked).  Looks
+     * at the bases and alignment, and tries its best to create a meaningful synthetic single super read
+     * that represents the entire sequenced fragment.
+     *
+     * Assumes that firstRead starts before secondRead (according to their soft clipped starts)
+     *
+     * @param unclippedFirstRead the left most read
+     * @param unclippedSecondRead the right most read
+     *
+     * @return a strandless merged read of first and second, or null if the algorithm cannot create a meaningful one
+     */
+    public static GATKSAMRecord mergeOverlappingPairedFragments(final GATKSAMRecord unclippedFirstRead, final GATKSAMRecord unclippedSecondRead) {
+        if ( unclippedFirstRead == null ) throw new IllegalArgumentException("unclippedFirstRead cannot be null");
+        if ( unclippedSecondRead == null ) throw new IllegalArgumentException("unclippedSecondRead cannot be null");
+        if ( ! unclippedFirstRead.getReadName().equals(unclippedSecondRead.getReadName()) ) throw new IllegalArgumentException("attempting to merge two reads with different names " + unclippedFirstRead + " and " + unclippedSecondRead);
+
+        if( unclippedFirstRead.getCigarString().contains("I") || unclippedFirstRead.getCigarString().contains("D") || unclippedSecondRead.getCigarString().contains("I") || unclippedSecondRead.getCigarString().contains("D") ) {
+            return null; // fragments contain indels so don't merge them
+        }
+
+        final GATKSAMRecord firstRead = ReadClipper.hardClipAdaptorSequence(ReadClipper.revertSoftClippedBases(unclippedFirstRead));
+        final GATKSAMRecord secondRead = ReadClipper.hardClipAdaptorSequence(ReadClipper.revertSoftClippedBases(unclippedSecondRead));
+
+        if( !(secondRead.getSoftStart() <= firstRead.getSoftEnd() && secondRead.getSoftStart() >= firstRead.getSoftStart() && secondRead.getSoftEnd() >= firstRead.getSoftEnd()) ) {
+            return null; // can't merge them, yet:  AAAAAAAAAAA-BBBBBBBBBBB-AAAAAAAAAAAAAA, B is contained entirely inside A
+        }
+
+        final Pair<Integer, Boolean> pair = ReadUtils.getReadCoordinateForReferenceCoordinate(firstRead, secondRead.getAlignmentStart());
 
         final int firstReadStop = ( pair.getSecond() ? pair.getFirst() + 1 : pair.getFirst() );
         final int numBases = firstReadStop + secondRead.getReadLength();
@@ -190,10 +254,10 @@ public class FragmentUtils {
         }
         for(int iii = firstReadStop; iii < firstRead.getReadLength(); iii++) {
             if( firstReadQuals[iii] > MIN_QUAL_BAD_OVERLAP && secondReadQuals[iii-firstReadStop] > MIN_QUAL_BAD_OVERLAP && firstReadBases[iii] != secondReadBases[iii-firstReadStop] ) {
-                return overlappingPair; // high qual bases don't match exactly, probably indel in only one of the fragments, so don't merge them
+                return null; // high qual bases don't match exactly, probably indel in only one of the fragments, so don't merge them
             }
             if( firstReadQuals[iii] < MIN_QUAL_BAD_OVERLAP && secondReadQuals[iii-firstReadStop] < MIN_QUAL_BAD_OVERLAP ) {
-                return overlappingPair; // both reads have low qual bases in the overlap region so don't merge them because don't know what is going on
+                return null; // both reads have low qual bases in the overlap region so don't merge them because don't know what is going on
             }
             bases[iii] = ( firstReadQuals[iii] > secondReadQuals[iii-firstReadStop] ? firstReadBases[iii] : secondReadBases[iii-firstReadStop] );
             quals[iii] = ( firstReadQuals[iii] > secondReadQuals[iii-firstReadStop] ? firstReadQuals[iii] : secondReadQuals[iii-firstReadStop] );
@@ -204,7 +268,8 @@ public class FragmentUtils {
         }
 
         final GATKSAMRecord returnRead = new GATKSAMRecord( firstRead.getHeader() );
-        returnRead.setAlignmentStart( firstRead.getSoftStart() );
+        returnRead.setIsStrandless(true);
+        returnRead.setAlignmentStart( firstRead.getAlignmentStart() );
         returnRead.setReadBases( bases );
         returnRead.setBaseQualities( quals );
         returnRead.setReadGroup( firstRead.getReadGroup() );
@@ -237,8 +302,6 @@ public class FragmentUtils {
             returnRead.setBaseQualities( deletionQuals, EventType.BASE_DELETION );
         }
 
-        final ArrayList<GATKSAMRecord> returnList = new ArrayList<GATKSAMRecord>();
-        returnList.add(returnRead);
-        return returnList;
+        return returnRead;
     }
 }

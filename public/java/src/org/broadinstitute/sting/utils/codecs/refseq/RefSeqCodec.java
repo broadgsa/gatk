@@ -45,8 +45,8 @@ import java.util.ArrayList;
  * </p>
  *
  * <p>
- * Instructions for generating a RefSeq file for use with the RefSeq codec can be found on the Wiki here
- * <a href="http://www.broadinstitute.org/gsa/wiki/index.php/RefSeq">http://www.broadinstitute.org/gsa/wiki/index.php/RefSeq</a>
+ * Instructions for generating a RefSeq file for use with the RefSeq codec can be found on the documentation guide here
+ * <a href="http://www.broadinstitute.org/gatk/guide/article?id=1329">http://www.broadinstitute.org/gatk/guide/article?id=1329</a>
  * </p>
  * <h2> Usage </h2>
  * The RefSeq Rod can be bound as any other rod, and is specified by REFSEQ, for example
