@@ -87,7 +87,7 @@ public class GATKBAMIndex {
 
     private SeekableFileStream fileStream;
     private SeekableBufferedStream bufferedStream;
-    private Long fileLength;
+    private long fileLength;
 
     public GATKBAMIndex(final File file) {
         mFile = file;
@@ -320,7 +320,7 @@ public class GATKBAMIndex {
         try {
             bufferedStream.close();
             fileStream.close();
-            fileLength=null;
+            fileLength = -1;
         }
         catch (IOException exc) {
             throw new ReviewedStingException("Unable to close index file " + mFile, exc);
