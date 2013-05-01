@@ -1315,6 +1315,7 @@
                 <fileset dir="${lib.dir}">
                     <include name="scala*.jar"/>
                     <include name="jna*.jar"/>
+                    <include name="cofoja*.jar"/>
                 </fileset>
             </path>
         </path>
@@ -1332,6 +1333,11 @@
             <pathelement location="${java.contracts.dir}" />
             <pathelement location="${java.test.classes}" />
             <pathelement location="${scala.test.classes}" />
+            <path>
+                <fileset dir="${lib.dir}">
+                    <include name="cofoja*.jar"/>
+                </fileset>
+            </path>
         </path>
         <property name="testng.classpath" value="queue.binary.release.tests.classpath" />
     </target>
