@@ -216,4 +216,24 @@ public class UtilsUnitTest extends BaseTest {
             }
         }
     }
+
+    @DataProvider(name = "trim")
+    public Object[][] createTrimTestData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final String s = "AAAA";
+        for ( int front = 0; front < s.length(); front++ ) {
+            for ( int back = 0; back < s.length(); back++ ) {
+                if ( front + back <= s.length() )
+                    tests.add(new Object[]{s, front, back});
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "trim", enabled = true)
+    public void testTrim(final String s, final int frontTrim, final int backTrim) {
+        Assert.assertEquals(s.length() - frontTrim - backTrim, Utils.trimArray(s.getBytes(), frontTrim, backTrim).length);
+    }
 }

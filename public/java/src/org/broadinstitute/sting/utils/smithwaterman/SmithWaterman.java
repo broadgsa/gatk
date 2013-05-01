@@ -42,6 +42,7 @@ import net.sf.samtools.Cigar;
  * Time: 8:24 AM
  */
 public interface SmithWaterman {
+
     /**
      * Get the cigar string for the alignment of this SmithWaterman class
      * @return a non-null cigar
