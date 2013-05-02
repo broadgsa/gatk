@@ -40,8 +40,8 @@ class GATKResourcesBundle extends QScript {
   @Argument(doc="liftOverPerl", required=false)
   var liftOverPerl: File = new File("./public/perl/liftOverVCF.pl")
 
-  @Argument(shortName = "ver", doc="The SVN version of this release", required=true)
-  var VERSION: String = _
+  @Argument(shortName = "ver", doc="The GIT version of this release", required=true)
+  var BUNDLE_VERSION: String = _
 
   @Argument(shortName = "bundleDir", doc="Path to root where resource files will be placed", required=false)
   val BUNDLE_ROOT = new File("/humgen/gsa-hpprojects/GATK/bundle")
@@ -57,8 +57,8 @@ class GATKResourcesBundle extends QScript {
 
   val SITES_EXT: String = "sites"
 
-  def BUNDLE_DIR: File = BUNDLE_ROOT + "/" + VERSION
-  def DOWNLOAD_DIR: File = DOWNLOAD_ROOT + "/" + VERSION
+  def BUNDLE_DIR: File = BUNDLE_ROOT + "/" + BUNDLE_VERSION
+  def DOWNLOAD_DIR: File = DOWNLOAD_ROOT + "/" + BUNDLE_VERSION
 
   // REFERENCES
   class Reference( val name: String, val file: File ) { }
@@ -161,7 +161,7 @@ class GATKResourcesBundle extends QScript {
       "1000G_phase1.indels", b37, true, false))
 
     addResource(new Resource("/humgen/1kg/processing/official_release/phase1/projectConsensus/phase1.wgs.projectConsensus.v2b.recal.highQuality.vcf",
-      "1000G_phase1.snps.high_confidence, b37, true, false))
+      "1000G_phase1.snps.high_confidence", b37, true, false))
 
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/GoldStandardIndel/gold.standard.indel.MillsAnd1000G.b37.vcf",
       "Mills_and_1000G_gold_standard.indels", b37, true, false))
@@ -182,7 +182,7 @@ class GATKResourcesBundle extends QScript {
     //
     // Test BAM file, specific to each reference
     //
-    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.b37.20.bam",
+    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WGS.b37.NA12878.bam",
       "IGNORE", b37, false, false))
 
     //
