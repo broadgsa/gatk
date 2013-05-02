@@ -234,8 +234,7 @@ class GATKResourcesBundle extends QScript {
 
       for ( resource: Resource <- RESOURCES ) {
         if ( isFASTA(resource.file) ) {
-          val f = copyBundleFile(resource, resource.ref)
-          add(new createDictandFAI(f))
+          copyBundleFasta(resource, resource.ref)
         } else if ( isBAM(resource.file) ) {
           val f = copyBundleFile(resource, resource.ref)
           add(new IndexBAM(f))
@@ -310,6 +309,20 @@ class GATKResourcesBundle extends QScript {
 
       }
     }
+  }
+
+  def copyBundleFasta(res: Resource, ref: Reference) {
+    val out = destFile(BUNDLE_DIR, ref, res.destname(ref))
+    add(new cpFile(res.file, out))
+
+    val oldRefDict = swapExt(res.file.getParent, res.file, ".fasta", ".dict")
+    val newRefDict = swapExt(out.getParent, out, ".fasta", ".dict")
+
+    val oldRefFai = swapExt(res.file.getParent, res.file, ".fasta", ".fasta.fai")
+    val newRefFai = swapExt(out.getParent, out, ".fasta", ".fasta.fai")
+
+    add(new cpFile(oldRefDict, newRefDict))
+    add(new cpFile(oldRefFai, newRefFai))
   }
 
   def copyBundleFile(res: Resource, ref: Reference): File = {
@@ -388,14 +401,6 @@ class GATKResourcesBundle extends QScript {
       return f.getName.substring(i+1).toLowerCase();
     else
       return "";
-  }
-
-  class createDictandFAI (@Input ref: File) extends FastaStats with UNIVERSAL_GATK_ARGS {
-    @Output val outDict: File = swapExt(ref.getParent, ref, ".fasta", ".dict")
-    @Output val outFai: File = swapExt(ref.getParent, ref, ".fasta", ".fasta.fai")
-    @Output val outStats: File = swapExt(ref.getParent, ref, ".fasta", ".stats")
-    this.reference_sequence = ref
-    this.out = outStats
   }
 }
 
