@@ -294,7 +294,7 @@ public class Utils {
      */
     public static String dupString(final String s, int nCopies) {
         if ( s == null || s.equals("") ) throw new IllegalArgumentException("Bad s " + s);
-        if ( nCopies < 1 ) throw new IllegalArgumentException("nCopies must be >= 1 but got " + nCopies);
+        if ( nCopies < 0 ) throw new IllegalArgumentException("nCopies must be >= 0 but got " + nCopies);
 
         final StringBuilder b = new StringBuilder();
         for ( int i = 0; i < nCopies; i++ )

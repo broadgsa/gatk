@@ -34,13 +34,13 @@ public class CallableLociIntegrationTest extends WalkerTest {
     final static String commonArgs     = "-R " + b36KGReference + " -T CallableLoci -I " + validationDataLocation + "/NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s";
     final static String reduceReadArgs = "-R " + b37KGReference + " -T CallableLoci -I " + " private/testdata/NA12878.HiSeq.b37.chr20.10_11mb.reduced.bam -o %s";
 
-    final static String SUMMARY_MD5 = "ffdbd9cdcb4169ebed5ae4bec797260f";
+    final static String SUMMARY_MD5 = "a6f5963669f19d9d137ced87d65834b0";
 
     @Test
     public void testCallableLociWalkerBed() {
         String gatk_args = commonArgs + " -format BED -L 1:10,000,000-11,000,000 -summary %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
-                Arrays.asList("42e86c06c167246a28bffdacaca75ffb", SUMMARY_MD5));
+                Arrays.asList("9b4ffea1dbcfefadeb1c9fa74b0e0e59", SUMMARY_MD5));
         executeTest("formatBed", spec);
     }
 
@@ -48,7 +48,7 @@ public class CallableLociIntegrationTest extends WalkerTest {
     public void testCallableLociWalkerPerBase() {
         String gatk_args = commonArgs + " -format STATE_PER_BASE -L 1:10,000,000-11,000,000 -summary %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
-                Arrays.asList("d66c525d9c70f62df8156261d3e535ad", SUMMARY_MD5));
+                Arrays.asList("d6505e489899e80c08a7168777f6e07b", SUMMARY_MD5));
         executeTest("format_state_per_base", spec);
     }
     
@@ -64,7 +64,7 @@ public class CallableLociIntegrationTest extends WalkerTest {
     public void testCallableLociWalker3() {
         String gatk_args = commonArgs + " -format BED -L 1:10,000,000-11,000,000 -minDepth 10 -maxDepth 100 --minBaseQuality 10 --minMappingQuality 20 -summary %s";
         WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 2,
-                Arrays.asList("46a53379aaaf9803276a0a34b234f6ab", "da431d393f7c2b2b3e27556b86c1dbc7"));
+                Arrays.asList("7f79ad8195c4161060463eeb21d2bb11", "7ee269e5f4581a924529a356cc806e55"));
         executeTest("formatBed lots of arguments", spec);
     }
 

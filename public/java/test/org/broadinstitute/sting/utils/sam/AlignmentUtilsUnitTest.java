@@ -792,7 +792,8 @@ public class AlignmentUtilsUnitTest {
         tests.add(new Object[]{"2M2D2I", 3, 3, "1I"});
         tests.add(new Object[]{"2M2D2I", 2, 2, "2D1I"});
         tests.add(new Object[]{"2M2D2I", 1, 2, "1M2D1I"});
-        tests.add(new Object[]{"2M2D2I", 1, 1, "1M"});
+        tests.add(new Object[]{"2M2D2I", 0, 1, "2M2D"});
+        tests.add(new Object[]{"2M2D2I", 1, 1, "1M2D"});
 
         return tests.toArray(new Object[][]{});
     }
