@@ -47,8 +47,8 @@ import java.util.*;
  * @author David Roazen
  */
 public class LevelingDownsampler<T extends List<E>, E> implements Downsampler<T> {
-
-    private int targetSize;
+    private final int minElementsPerStack;
+    private final int targetSize;
 
     private List<T> groups;
 
@@ -59,12 +59,32 @@ public class LevelingDownsampler<T extends List<E>, E> implements Downsampler<T>
     /**
      * Construct a LevelingDownsampler
      *
+     * Uses the default minElementsPerStack of 1
+     *
      * @param targetSize the sum of the sizes of all individual Lists this downsampler is fed may not exceed
      *                   this value -- if it does, items are removed from Lists evenly until the total size
      *                   is <= this value
      */
     public LevelingDownsampler( int targetSize ) {
+        this(targetSize, 1);
+    }
+
+    /**
+     * Construct a LevelingDownsampler
+     *
+     * @param targetSize the sum of the sizes of all individual Lists this downsampler is fed may not exceed
+     *                   this value -- if it does, items are removed from Lists evenly until the total size
+     *                   is <= this value
+     * @param minElementsPerStack no stack will be reduced below this size during downsampling.  That is,
+     *                            if a stack has only 3 elements and minElementsPerStack is 3, no matter what
+     *                            we'll not reduce this stack below 3.
+     */
+    public LevelingDownsampler(final int targetSize, final int minElementsPerStack) {
+        if ( targetSize < 0 ) throw new IllegalArgumentException("targetSize must be >= 0 but got " + targetSize);
+        if ( minElementsPerStack < 0 ) throw new IllegalArgumentException("minElementsPerStack must be >= 0 but got " + minElementsPerStack);
+
         this.targetSize = targetSize;
+        this.minElementsPerStack = minElementsPerStack;
         clear();
         reset();
     }
@@ -108,6 +128,15 @@ public class LevelingDownsampler<T extends List<E>, E> implements Downsampler<T>
         return numDiscardedItems;
     }
 
+    @Override
+    public int size() {
+        int s = 0;
+        for ( final List<E> l : groups ) {
+            s += l.size();
+        }
+        return s;
+    }
+
     public void signalEndOfInput() {
         levelGroups();
         groupsAreFinalized = true;
@@ -148,7 +177,7 @@ public class LevelingDownsampler<T extends List<E>, E> implements Downsampler<T>
         // remove any more items without violating the constraint that all groups must
         // be left with at least one item
         while ( numItemsToRemove > 0 && numConsecutiveUmodifiableGroups < groupSizes.length ) {
-            if ( groupSizes[currentGroupIndex] > 1 ) {
+            if ( groupSizes[currentGroupIndex] > minElementsPerStack ) {
                 groupSizes[currentGroupIndex]--;
                 numItemsToRemove--;
                 numConsecutiveUmodifiableGroups = 0;

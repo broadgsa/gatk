@@ -89,7 +89,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
 
     @Override
     public boolean createsTypeDefault(ArgumentSource source) {
-        return source.isRequired();
+        return !source.isRequired() && source.defaultsToStdout();
     }
 
     @Override
@@ -99,7 +99,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
 
     @Override
     public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) {
-        if(!source.isRequired())
+        if(source.isRequired() || !source.defaultsToStdout())
             throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");
         SAMFileWriterStub stub = new SAMFileWriterStub(engine,defaultOutputStream);
         engine.addOutput(stub);
@@ -162,7 +162,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
                                        DEFAULT_ARGUMENT_FULLNAME,
                                        DEFAULT_ARGUMENT_SHORTNAME,
                                        ArgumentDefinition.getDoc(annotation),
-                                       false,
+                                       source.isRequired(),
                                        false,
                                        source.isMultiValued(),
                                        source.isHidden(),

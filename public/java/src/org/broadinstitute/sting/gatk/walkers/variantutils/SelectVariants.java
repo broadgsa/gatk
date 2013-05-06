@@ -62,20 +62,20 @@ import java.util.*;
  * Given a single VCF file, one or more samples can be extracted from the file (based on a complete sample name or a
  * pattern match).  Variants can be further selected by specifying criteria for inclusion, i.e. "DP > 1000" (depth of
  * coverage greater than 1000x), "AF < 0.25" (sites with allele frequency less than 0.25).  These JEXL expressions are
- * documented in the Using JEXL expressions section (http://www.broadinstitute.org/gsa/wiki/index.php/Using_JEXL_expressions).
+ * documented in the Using JEXL expressions section (http://www.broadinstitute.org/gatk/guide/article?id=1255).
  * One can optionally include concordance or discordance tracks for use in selecting overlapping variants.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A variant set to select from.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A selected VCF.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * Select two samples out of a VCF with many samples:
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
@@ -199,7 +199,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
     @Input(fullName="concordance", shortName = "conc", doc="Output variants that were also called in this comparison track", required=false)
     protected RodBinding<VariantContext> concordanceTrack;
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which variants should be written")
     protected VariantContextWriter vcfWriter = null;
 
     @Argument(fullName="sample_name", shortName="sn", doc="Include genotypes from this sample. Can be specified multiple times", required=false)
@@ -377,10 +377,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         }
 
         // now, exclude any requested samples
-        Collection<String> XLsamplesFromFile = SampleUtils.getSamplesFromFiles(XLsampleFiles);
+        final Collection<String> XLsamplesFromFile = SampleUtils.getSamplesFromFiles(XLsampleFiles);
         samples.removeAll(XLsamplesFromFile);
         samples.removeAll(XLsampleNames);
-        NO_SAMPLES_SPECIFIED = NO_SAMPLES_SPECIFIED && XLsampleNames.isEmpty();
+        NO_SAMPLES_SPECIFIED = NO_SAMPLES_SPECIFIED && XLsampleNames.isEmpty() && XLsamplesFromFile.isEmpty();
 
         if ( samples.size() == 0 && !NO_SAMPLES_SPECIFIED )
             throw new UserException("All samples requested to be included were also requested to be excluded.");
@@ -406,8 +406,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
 
         if (KEEP_ORIGINAL_CHR_COUNTS) {
-            headerLines.add(new VCFInfoHeaderLine("AC_Orig", 1, VCFHeaderLineType.Integer, "Original AC"));
-            headerLines.add(new VCFInfoHeaderLine("AF_Orig", 1, VCFHeaderLineType.Float, "Original AF"));
+            headerLines.add(new VCFInfoHeaderLine("AC_Orig", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Original AC"));
+            headerLines.add(new VCFInfoHeaderLine("AF_Orig", VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Original AF"));
             headerLines.add(new VCFInfoHeaderLine("AN_Orig", 1, VCFHeaderLineType.Integer, "Original AN"));
         }
         headerLines.addAll(Arrays.asList(ChromosomeCountConstants.descriptions));
@@ -507,7 +507,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
             if (!selectedTypes.contains(vc.getType()))
                 continue;
 
-            if ( badIndelSize(vc) )
+            if ( containsIndelLargerThan(vc, maxIndelSize) )
                 continue;
 
             VariantContext sub = subsetRecord(vc, EXCLUDE_NON_VARIANTS);
@@ -531,12 +531,20 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         return 1;
     }
 
-    private boolean badIndelSize(final VariantContext vc) {
-        List<Integer> lengths = vc.getIndelLengths();
+    /*
+     * Determines if any of the alternate alleles are greater than the max indel size
+     *
+     * @param vc            the variant context to check
+     * @param maxIndelSize  the maximum size of allowed indels
+     * @return true if the VC contains an indel larger than maxIndelSize and false otherwise
+     */
+    protected static boolean containsIndelLargerThan(final VariantContext vc, final int maxIndelSize) {
+        final List<Integer> lengths = vc.getIndelLengths();
         if ( lengths == null )
-            return false; // VC does not harbor indel
-        for ( Integer indelLength : vc.getIndelLengths() ) {
-            if ( indelLength > maxIndelSize )
+            return false;
+
+        for ( Integer indelLength : lengths ) {
+            if ( Math.abs(indelLength) > maxIndelSize )
                 return true;
         }
 
@@ -662,7 +670,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
         GenotypesContext newGC = sub.getGenotypes();
 
         // if we have fewer alternate alleles in the selected VC than in the original VC, we need to strip out the GL/PLs and AD (because they are no longer accurate)
-        if ( vc.getAlleles().size() != sub.getAlleles().size() )
+        final boolean lostAllelesInSelection = vc.getAlleles().size() != sub.getAlleles().size();
+        if ( lostAllelesInSelection )
             newGC = GATKVariantContextUtils.stripPLsAndAD(sub.getGenotypes());
 
         // if we have fewer samples in the selected VC than in the original VC, we need to strip out the MLE tags
@@ -689,15 +698,22 @@ public class SelectVariants extends RodWalker<Integer, Integer> implements TreeR
 
         builder.genotypes(newGC);
 
-        addAnnotations(builder, sub);
+        addAnnotations(builder, sub, lostAllelesInSelection);
 
         return builder.make();
     }
 
-    private void addAnnotations(final VariantContextBuilder builder, final VariantContext originalVC) {
+    /*
+     * Add annotations to the new VC
+     *
+     * @param builder     the new VC to annotate
+     * @param originalVC  the original -- but post-selection -- VC
+     * @param lostAllelesInSelection  true if the original (pre-selection) VC has more alleles than the new one
+     */
+    private void addAnnotations(final VariantContextBuilder builder, final VariantContext originalVC, final boolean lostAllelesInSelection) {
         if ( fullyDecode ) return; // TODO -- annotations are broken with fully decoded data
 
-        if (KEEP_ORIGINAL_CHR_COUNTS) {
+        if ( KEEP_ORIGINAL_CHR_COUNTS && !lostAllelesInSelection ) {
             if ( originalVC.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) )
                 builder.attribute("AC_Orig", originalVC.getAttribute(VCFConstants.ALLELE_COUNT_KEY));
             if ( originalVC.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )

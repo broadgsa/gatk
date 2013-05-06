@@ -41,17 +41,17 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
  * [Functionality of this walker]
  * </p>
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * [Input description]
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * [Output description]
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  *    java
  *      -jar GenomeAnalysisTK.jar

@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -33,6 +34,8 @@ import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.variant.variantcontext.*;
 import org.broadinstitute.variant.vcf.VCFHeader;
@@ -41,29 +44,30 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * A simple walker for performing genotype concordance calculations between two callsets. Outputs a GATK table with
- * per-sample and aggregate counts and frequencies, a summary table for NRD/NRS, and a table for site allele overlaps.
+ * Genotype concordance (per-sample and aggregate counts and frequencies, NRD/NRS and site allele overlaps) between two callsets
  *
  * <p>
- *  Genotype concordance takes in two callsets (vcfs) and tabulates the number of sites which overlap and share alleles,
+ *  GenotypeConcordance takes in two callsets (vcfs) and tabulates the number of sites which overlap and share alleles,
  *  and for each sample, the genotype-by-genotype counts (for instance, the number of sites at which a sample was
  *  called homozygous reference in the EVAL callset, but homozygous variant in the COMP callset). It outputs these
  *  counts as well as convenient proportions (such as the proportion of het calls in the EVAL which were called REF in
  *  the COMP) and metrics (such as NRD and NRS).
  *
- *  <h2> INPUT </h2>
+ *  <h3>Input</h3>
  *  <p>
  *  Genotype concordance requires two callsets (as it does a comparison): an EVAL and a COMP callset, specified via
- *  the -eval and -comp arguments
- *  <p>
+ *  the -eval and -comp arguments.
+ *
  *  (Optional) Jexl expressions for genotype-level filtering of EVAL or COMP genotypes, specified via the -gfe and
  *  -cfe arguments, respectively.
+ *  </p>
  *
- *  <h2> OUTPUT </h2>
- *  Genotype Concordance writes a GATK report to the specified (via -o) file, consisting of multiple tables of counts
+ *  <h3>Output</h3>
+ *  Genotype Concordance writes a GATK report to the specified file (via -o) , consisting of multiple tables of counts
  *  and proportions. These tables may be optionally moltenized via the -moltenize argument.
  *
  */
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,VariantContext>>,ConcordanceMetrics> {
 
     /**

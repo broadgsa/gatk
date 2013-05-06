@@ -176,6 +176,14 @@ public class ArgumentSource {
     }
 
     /**
+     * Returns whether the field should default to stdout if not provided explicitly on the command-line.
+     * @return True if field should default to stdout.
+     */
+    public boolean defaultsToStdout() {
+        return field.isAnnotationPresent(Output.class) && (Boolean)CommandLineUtils.getValue(ArgumentTypeDescriptor.getArgumentAnnotation(this),"defaultToStdout");
+    }
+
+    /**
      * Returns false if a type-specific default can be employed.
      * @return True to throw in a type specific default.  False otherwise.
      */

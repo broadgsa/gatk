@@ -40,8 +40,8 @@ class GATKResourcesBundle extends QScript {
   @Argument(doc="liftOverPerl", required=false)
   var liftOverPerl: File = new File("./public/perl/liftOverVCF.pl")
 
-  @Argument(shortName = "ver", doc="The SVN version of this release", required=true)
-  var VERSION: String = _
+  @Argument(shortName = "ver", doc="The GIT version of this release", required=true)
+  var BUNDLE_VERSION: String = _
 
   @Argument(shortName = "bundleDir", doc="Path to root where resource files will be placed", required=false)
   val BUNDLE_ROOT = new File("/humgen/gsa-hpprojects/GATK/bundle")
@@ -57,8 +57,8 @@ class GATKResourcesBundle extends QScript {
 
   val SITES_EXT: String = "sites"
 
-  def BUNDLE_DIR: File = BUNDLE_ROOT + "/" + VERSION
-  def DOWNLOAD_DIR: File = DOWNLOAD_ROOT + "/" + VERSION
+  def BUNDLE_DIR: File = BUNDLE_ROOT + "/" + BUNDLE_VERSION
+  def DOWNLOAD_DIR: File = DOWNLOAD_ROOT + "/" + BUNDLE_VERSION
 
   // REFERENCES
   class Reference( val name: String, val file: File ) { }
@@ -160,6 +160,9 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource("/humgen/1kg/DCC/ftp/technical/working/20120312_phase1_v2_indel_cleaned_sites_list/ALL.wgs.phase1_release_v2.20101123.official_indel_calls.20120312.sites.vcf",
       "1000G_phase1.indels", b37, true, false))
 
+    addResource(new Resource("/humgen/1kg/processing/official_release/phase1/projectConsensus/phase1.wgs.projectConsensus.v2b.recal.highQuality.vcf",
+      "1000G_phase1.snps.high_confidence", b37, true, false))
+
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/GoldStandardIndel/gold.standard.indel.MillsAnd1000G.b37.vcf",
       "Mills_and_1000G_gold_standard.indels", b37, true, false))
 
@@ -171,7 +174,7 @@ class GATKResourcesBundle extends QScript {
       "CEUTrio.HiSeq.WGS.b37.bestPractices.phased",b37,true,false))
 
     //
-    // example call set for wiki tutorial
+    // example call set for documentation guide tutorial
     //
     addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/exampleCalls/NA12878.HiSeq.WGS.bwa.cleaned.raw.b37.subset.vcf",
       "NA12878.HiSeq.WGS.bwa.cleaned.raw.subset", b37, true, true))
@@ -179,7 +182,7 @@ class GATKResourcesBundle extends QScript {
     //
     // Test BAM file, specific to each reference
     //
-    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.b37.20.bam",
+    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WGS.b37.NA12878.bam",
       "IGNORE", b37, false, false))
 
     //
@@ -231,8 +234,7 @@ class GATKResourcesBundle extends QScript {
 
       for ( resource: Resource <- RESOURCES ) {
         if ( isFASTA(resource.file) ) {
-          val f = copyBundleFile(resource, resource.ref)
-          add(new createDictandFAI(f))
+          copyBundleFasta(resource, resource.ref)
         } else if ( isBAM(resource.file) ) {
           val f = copyBundleFile(resource, resource.ref)
           add(new IndexBAM(f))
@@ -307,6 +309,20 @@ class GATKResourcesBundle extends QScript {
 
       }
     }
+  }
+
+  def copyBundleFasta(res: Resource, ref: Reference) {
+    val out = destFile(BUNDLE_DIR, ref, res.destname(ref))
+    add(new cpFile(res.file, out))
+
+    val oldRefDict = swapExt(res.file.getParent, res.file, ".fasta", ".dict")
+    val newRefDict = swapExt(out.getParent, out, ".fasta", ".dict")
+
+    val oldRefFai = swapExt(res.file.getParent, res.file, ".fasta", ".fasta.fai")
+    val newRefFai = swapExt(out.getParent, out, ".fasta", ".fasta.fai")
+
+    add(new cpFile(oldRefDict, newRefDict))
+    add(new cpFile(oldRefFai, newRefFai))
   }
 
   def copyBundleFile(res: Resource, ref: Reference): File = {
@@ -385,14 +401,6 @@ class GATKResourcesBundle extends QScript {
       return f.getName.substring(i+1).toLowerCase();
     else
       return "";
-  }
-
-  class createDictandFAI (@Input ref: File) extends FastaStats with UNIVERSAL_GATK_ARGS {
-    @Output val outDict: File = swapExt(ref.getParent, ref, ".fasta", ".dict")
-    @Output val outFai: File = swapExt(ref.getParent, ref, ".fasta", ".fasta.fai")
-    @Output val outStats: File = swapExt(ref.getParent, ref, ".fasta", ".stats")
-    this.reference_sequence = ref
-    this.out = outStats
   }
 }
 

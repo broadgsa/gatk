@@ -36,17 +36,17 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.help.HelpConstants;
+import org.broadinstitute.sting.utils.help.HelpUtils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 import java.util.*;
-
 
 /**
  * Annotates variant calls with context information.
@@ -55,17 +55,17 @@ import java.util.*;
  * VariantAnnotator is a GATK tool for annotating variant calls based on their context.
  * The tool is modular; new annotations can be written easily without modifying VariantAnnotator itself.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A variant set to annotate and optionally one or more BAM files.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * An annotated VCF.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
@@ -125,7 +125,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     public List<RodBinding<VariantContext>> resources = Collections.emptyList();
     public List<RodBinding<VariantContext>> getResourceRodBindings() { return resources; }
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which variants should be written")
     protected VariantContextWriter vcfWriter = null;
 
     /**
@@ -142,7 +142,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected List<String> annotationsToExclude = new ArrayList<String>();
 
     /**
-     * See the -list argument to view available groups.
+     * If specified, all available annotations in the group will be applied. See the VariantAnnotator -list argument to view available groups.
+     * Keep in mind that RODRequiringAnnotations are not intended to be used as a group, because they require specific ROD inputs.
      */
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
     protected List<String> annotationGroupsToUse = new ArrayList<String>();
@@ -155,7 +156,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
      * If multiple records in the rod overlap the given position, one is chosen arbitrarily.
      */
     @Argument(fullName="expression", shortName="E", doc="One or more specific expressions to apply to variant calls; see documentation for more details", required=false)
-    protected List<String> expressionsToUse = new ArrayList<String>();
+    protected Set<String> expressionsToUse = new ObjectOpenHashSet();
 
     /**
      * Note that the -XL argument can be used along with this one to exclude annotations.
@@ -164,19 +165,19 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     protected Boolean USE_ALL_ANNOTATIONS = false;
 
     /**
-     * Note that the --list argument requires a fully resolved and correct command-line to work.
+     * Note that the --list argument requires a fully resolved and correct command-line to work. As a simpler alternative, you can use ListAnnotations (see Help Utilities).
      */
-    @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit")
+    @Argument(fullName="list", shortName="ls", doc="List the available annotations and exit", required=false)
     protected Boolean LIST = false;
 
     /**
      * By default, the dbSNP ID is added only when the ID field in the variant VCF is empty.
      */
-    @Argument(fullName="alwaysAppendDbsnpId", shortName="alwaysAppendDbsnpId", doc="In conjunction with the dbSNP binding, append the dbSNP ID even when the variant VCF already has the ID field populated")
+    @Argument(fullName="alwaysAppendDbsnpId", shortName="alwaysAppendDbsnpId", doc="In conjunction with the dbSNP binding, append the dbSNP ID even when the variant VCF already has the ID field populated", required=false)
     protected Boolean ALWAYS_APPEND_DBSNP_ID = false;
     public boolean alwaysAppendDbsnpId() { return ALWAYS_APPEND_DBSNP_ID; }
 
-    @Argument(fullName="MendelViolationGenotypeQualityThreshold",shortName="mvq",required=false,doc="The genotype quality treshold in order to annotate mendelian violation ratio")
+    @Argument(fullName="MendelViolationGenotypeQualityThreshold",shortName="mvq",required=false,doc="The genotype quality threshold in order to annotate mendelian violation ratio")
     public double minGenotypeQualityP = 0.0;
 
     @Argument(fullName="requireStrictAlleleMatch", shortName="strict", doc="If provided only comp tracks that exactly match both reference and alternate alleles will be counted as concordant", required=false)
@@ -184,33 +185,15 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
 
     private VariantAnnotatorEngine engine;
 
-
-    private void listAnnotationsAndExit() {
-        System.out.println("\nStandard annotations in the list below are marked with a '*'.");
-        List<Class<? extends InfoFieldAnnotation>> infoAnnotationClasses = new PluginManager<InfoFieldAnnotation>(InfoFieldAnnotation.class).getPlugins();
-        System.out.println("\nAvailable annotations for the VCF INFO field:");
-        for (int i = 0; i < infoAnnotationClasses.size(); i++)
-            System.out.println("\t" + (StandardAnnotation.class.isAssignableFrom(infoAnnotationClasses.get(i)) ? "*" : "") + infoAnnotationClasses.get(i).getSimpleName());
-        System.out.println();
-        List<Class<? extends GenotypeAnnotation>> genotypeAnnotationClasses = new PluginManager<GenotypeAnnotation>(GenotypeAnnotation.class).getPlugins();
-        System.out.println("\nAvailable annotations for the VCF FORMAT field:");
-        for (int i = 0; i < genotypeAnnotationClasses.size(); i++)
-            System.out.println("\t" + (StandardAnnotation.class.isAssignableFrom(genotypeAnnotationClasses.get(i)) ? "*" : "") + genotypeAnnotationClasses.get(i).getSimpleName());
-        System.out.println();
-        System.out.println("\nAvailable classes/groups of annotations:");
-        for ( Class c : new PluginManager<AnnotationType>(AnnotationType.class).getInterfaces() )
-            System.out.println("\t" + c.getSimpleName());
-        System.out.println();
-        System.exit(0);
-    }
-
     /**
      * Prepare the output file and the list of available features.
      */
     public void initialize() {
 
-        if ( LIST )
-            listAnnotationsAndExit();
+        if ( LIST ) {
+            HelpUtils.listAnnotations();
+            System.exit(0);
+        }
 
         // get the list of all sample names from the variant VCF input rod, if applicable
         List<String> rodName = Arrays.asList(variantCollection.variants.getName());

@@ -113,6 +113,19 @@ public class UtilsUnitTest extends BaseTest {
     }
 
     @Test
+    public void testConcat() {
+        final String s1 = "A";
+        final String s2 = "CC";
+        final String s3 = "TTT";
+        final String s4 = "GGGG";
+        Assert.assertEquals(new String(Utils.concat()), "");
+        Assert.assertEquals(new String(Utils.concat(s1.getBytes())), s1);
+        Assert.assertEquals(new String(Utils.concat(s1.getBytes(), s2.getBytes())), s1 + s2);
+        Assert.assertEquals(new String(Utils.concat(s1.getBytes(), s2.getBytes(), s3.getBytes())), s1 + s2 + s3);
+        Assert.assertEquals(new String(Utils.concat(s1.getBytes(), s2.getBytes(), s3.getBytes(), s4.getBytes())), s1 + s2 + s3 + s4);
+    }
+
+    @Test
     public void testEscapeExpressions() {
         String[] expected, actual;
 

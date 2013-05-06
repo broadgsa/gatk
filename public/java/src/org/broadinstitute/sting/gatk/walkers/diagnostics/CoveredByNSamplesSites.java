@@ -29,12 +29,15 @@ package org.broadinstitute.sting.gatk.walkers.diagnostics;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.StandardVariantContextInputArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
+import org.broadinstitute.sting.utils.help.HelpConstants;
 import org.broadinstitute.variant.variantcontext.Genotype;
 import org.broadinstitute.variant.variantcontext.GenotypesContext;
 import org.broadinstitute.variant.variantcontext.VariantContext;
@@ -44,23 +47,26 @@ import java.io.*;
 import java.util.Collection;
 
 /**
- * print intervals file with all the variant sites that have "most" ( >= 90% by default) of the samples with "good" (>= 10 by default)coverage ("most" and "good" can be set in the command line).
+ * Print intervals file with all the variant sites for which most of the samples have good coverage
  *
  * <p>
- * CoveredByNSamplesSites is a GATK tool for filter out sites based on their coverage.
+ * CoveredByNSamplesSites is a GATK tool for filtering out sites based on their coverage.
  * The sites that pass the filter are printed out to an intervals file.
  *
- * <h2>Input</h2>
+ * See argument defaults for what constitutes "most" samples and "good" coverage. These parameters can be modified from the command line.
+ * </p>
+ *
+ * <h3>Input</h3>
  * <p>
  * A variant file and optionally min coverage and sample percentage values.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * An intervals file.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Example</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
@@ -71,20 +77,20 @@ import java.util.Collection;
  * </pre>
  *
  */
-
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @By(DataSource.REFERENCE_ORDERED_DATA)
 public class CoveredByNSamplesSites extends RodWalker<GenomeLoc, Integer> implements TreeReducible<Integer> {
 
-    @Output(fullName = "OutputIntervals", shortName = "out", doc = "Name of file for output intervals", required = true)
+    @Output(fullName = "OutputIntervals", shortName = "out", doc = "Name of file for output intervals")
     PrintStream outputStream;
 
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
-    @Argument(fullName = "minCoverage", shortName = "minCov",doc = "only samples that have covarage bigger then minCoverage will be counted",required = false)
+    @Argument(fullName = "minCoverage", shortName = "minCov",doc = "only samples that have coverage bigger than minCoverage will be counted",required = false)
     int minCoverage = 10;
 
-    @Argument(fullName = "precentageOfSamples", shortName = "percentage", doc = "only sites where at list percentageOfSamples of the samples have good coverage, will be emited", required = false)
+    @Argument(fullName = "percentageOfSamples", shortName = "percentage", doc = "only sites where at least percentageOfSamples of the samples have good coverage, will be emitted", required = false)
     double percentageOfSamples = 0.9;
 
     @Override
@@ -95,8 +101,6 @@ public class CoveredByNSamplesSites extends RodWalker<GenomeLoc, Integer> implem
         Collection<VariantContext> VCs = tracker.getValues(variantCollection.variants, context.getLocation());
         if ( VCs.size() == 0 )
             return null;
-        if(VCs.size() != 1)
-            throw new RuntimeException("there are more then one vc: "+VCs.size());
 
         boolean emitSite = false;
         for(VariantContext vc : VCs){
@@ -135,12 +139,11 @@ public class CoveredByNSamplesSites extends RodWalker<GenomeLoc, Integer> implem
     }
 
     /**
-     * Tell the user the number of sites processed and how many passed. Close out the new intervals file.
      *
-     * @param result  pair of *the number of sites seen and number of sites passed the filter.
+     * @param result the number of sites that passed the filter.
      */
     public void onTraversalDone(Integer result) {
-        logger.info(result+" sites that have "+(percentageOfSamples*100)+"% of the samples with at list "+minCoverage+" coverage.\n");
+        logger.info(result+" sites that have "+(percentageOfSamples*100)+"% of the samples with at least "+minCoverage+" coverage.\n");
     }
 
 

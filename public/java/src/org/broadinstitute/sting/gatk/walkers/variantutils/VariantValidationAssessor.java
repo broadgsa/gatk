@@ -55,12 +55,12 @@ import java.util.*;
  * default is soft-filtered by high no-call rate or low Hardy-Weinberg probability.
  * If you have .ped files, please first convert them to VCF format.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A validation VCF to annotate.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * An annotated VCF.  Additionally, a table like the following will be output:
  * <pre>
@@ -74,7 +74,7 @@ import java.util.*;
  * </pre>
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
@@ -91,7 +91,7 @@ public class VariantValidationAssessor extends RodWalker<VariantContext,Integer>
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which variants should be written")
     protected VariantContextWriter vcfwriter = null;
 
     @Argument(fullName="maxHardy", doc="Maximum phred-scaled Hardy-Weinberg violation pvalue to consider an assay valid", required=false)

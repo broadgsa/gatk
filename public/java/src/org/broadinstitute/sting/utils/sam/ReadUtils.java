@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.sam;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.*;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -47,6 +48,7 @@ import java.util.*;
  * @version 0.1
  */
 public class ReadUtils {
+    private final static Logger logger = Logger.getLogger(ReadUtils.class);
     
     private static final String OFFSET_OUT_OF_BOUNDS_EXCEPTION = "Offset cannot be greater than read length %d : %d";
     private static final String OFFSET_NOT_ZERO_EXCEPTION = "We ran past the end of the read and never found the offset, something went wrong!";
@@ -62,7 +64,7 @@ public class ReadUtils {
             return 1;
 
         // compute mean representative read counts
-        final byte[] counts = read.getReducedReadCounts();
+        final int[] counts = read.getReducedReadCounts();
         return (int)Math.round((double)MathUtils.sum(counts)/counts.length);
     }
 
@@ -209,7 +211,16 @@ public class ReadUtils {
 
         if (insertSize == 0 || read.getReadUnmappedFlag())                // no adaptors in reads with mates in another chromosome or unmapped pairs
             return CANNOT_COMPUTE_ADAPTOR_BOUNDARY;
-        
+
+        if ( read.getReadPairedFlag() && read.getReadNegativeStrandFlag() == read.getMateNegativeStrandFlag() ) {
+            // note that the read.getProperPairFlag() is not reliably set, so many reads may have this tag but still be overlapping
+//            logger.info(String.format("Read %s start=%d end=%d insert=%d mateStart=%d readNeg=%b mateNeg=%b not properly paired, returning CANNOT_COMPUTE_ADAPTOR_BOUNDARY",
+//                    read.getReadName(), read.getAlignmentStart(), read.getAlignmentEnd(), insertSize, read.getMateAlignmentStart(),
+//                    read.getReadNegativeStrandFlag(), read.getMateNegativeStrandFlag()));
+            return CANNOT_COMPUTE_ADAPTOR_BOUNDARY;
+        }
+
+
         int adaptorBoundary;                                          // the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read)
         if (read.getReadNegativeStrandFlag())
             adaptorBoundary = read.getMateAlignmentStart() - 1;           // case 1 (see header)
@@ -218,7 +229,7 @@ public class ReadUtils {
 
         if ( (adaptorBoundary < read.getAlignmentStart() - MAXIMUM_ADAPTOR_LENGTH) || (adaptorBoundary > read.getAlignmentEnd() + MAXIMUM_ADAPTOR_LENGTH) )
             adaptorBoundary = CANNOT_COMPUTE_ADAPTOR_BOUNDARY;                                       // we are being conservative by not allowing the adaptor boundary to go beyond what we belive is the maximum size of an adaptor
-        
+
         return adaptorBoundary;
     }
     public static int CANNOT_COMPUTE_ADAPTOR_BOUNDARY = Integer.MIN_VALUE;
@@ -524,7 +535,7 @@ public class ReadUtils {
                 // If we reached our goal inside a deletion, but the deletion is the next cigar element then we need
                 // to add the shift of the current cigar element but go back to it's last element to return the last
                 // base before the deletion (see warning in function contracts)
-                else if (fallsInsideDeletion && !endsWithinCigar)
+                else if (fallsInsideDeletion && !endsWithinCigar && cigarElement.getOperator().consumesReadBases())
                     readBases += shift - 1;
 
                 // If we reached our goal inside a deletion then we must backtrack to the last base before the deletion

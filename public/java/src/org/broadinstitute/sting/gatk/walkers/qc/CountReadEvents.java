@@ -47,22 +47,22 @@ import java.util.Map;
 /**
  * Walks over the input data set, counting the number of read events (from the CIGAR operator)
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * One or more BAM files.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
- * Number of reads events for each category
+ * Number of read events for each category, formatted as a GATKReport table.
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
  *   -T CountReadEvents \
- *   -o output.grp \
+ *   -R ref.fasta \
  *   -I input.bam \
+ *   -o output.grp \
  *   [-L input.intervals]
  * </pre>
  */
@@ -70,7 +70,7 @@ import java.util.Map;
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class CountReadEvents extends ReadWalker<Map<CigarOperator, ArrayList<Integer>> , Map<Integer, Map<CigarOperator, Long>>> {
-    @Output (doc = "GATKReport table output")
+    @Output
     PrintStream out;
 
     public Map<CigarOperator, ArrayList<Integer>> map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {

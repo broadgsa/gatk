@@ -46,7 +46,7 @@ import java.util.Map;
 
 
 /**
- * The allele balance (fraction of ref bases over ref + alt bases) across all bialleleic het-called samples
+ * The allele balance (fraction of ref bases over ref + alt bases) across all biallelic het-called samples
  */
 public class AlleleBalance extends InfoFieldAnnotation {
 

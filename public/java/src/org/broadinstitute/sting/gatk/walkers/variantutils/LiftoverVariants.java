@@ -62,7 +62,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which variants should be written")
     protected File file = null;
     protected VariantContextWriter writer = null;
 

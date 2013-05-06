@@ -216,7 +216,7 @@ public class NanoSchedulerUnitTest extends BaseTest {
         nanoScheduler.shutdown();
     }
 
-    @Test(enabled = true && ! DEBUG, dataProvider = "NanoSchedulerBasicTest", dependsOnMethods = "testMultiThreadedNanoScheduler", timeOut = NANO_SCHEDULE_MAX_RUNTIME)
+    @Test(enabled = true && ! DEBUG, dataProvider = "NanoSchedulerBasicTest", dependsOnMethods = "testMultiThreadedNanoScheduler", timeOut = 2 * NANO_SCHEDULE_MAX_RUNTIME)
     public void testNanoSchedulerInLoop(final NanoSchedulerBasicTest test) throws InterruptedException {
         if ( test.bufferSize > 1) {
             logger.warn("Running " + test);

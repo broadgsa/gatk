@@ -378,7 +378,13 @@ public class ClippingOp {
             hardClippedRead.setBaseQualities(newBaseInsertionQuals, EventType.BASE_INSERTION);
             hardClippedRead.setBaseQualities(newBaseDeletionQuals, EventType.BASE_DELETION);
         }
-        
+
+        if (read.isReducedRead()) {
+            final int[] reducedCounts = new int[newLength];
+            System.arraycopy(read.getReducedReadCounts(), copyStart, reducedCounts, 0, newLength);
+            hardClippedRead.setReducedReadCounts(reducedCounts);
+        }
+
         return hardClippedRead;
 
     }
@@ -581,8 +587,8 @@ public class ClippingOp {
         if (cigarElement.getOperator() == CigarOperator.INSERTION)
             return -clippedLength;
 
-            // Deletions should be added to the total hard clip count
-        else if (cigarElement.getOperator() == CigarOperator.DELETION)
+            // Deletions and Ns should be added to the total hard clip count (because we want to maintain the original alignment start)
+        else if (cigarElement.getOperator() == CigarOperator.DELETION || cigarElement.getOperator() == CigarOperator.SKIPPED_REGION)
             return cigarElement.getLength();
 
         // There is no shift if we are not clipping an indel

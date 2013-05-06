@@ -89,6 +89,11 @@ public class PassThroughDownsampler<T extends SAMRecord> implements ReadsDownsam
         return 0;
     }
 
+    @Override
+    public int size() {
+        return selectedReads.size();
+    }
+
     public void signalEndOfInput() {
         // NO-OP
     }

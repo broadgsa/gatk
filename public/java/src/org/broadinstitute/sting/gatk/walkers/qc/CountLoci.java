@@ -42,33 +42,34 @@ import java.io.PrintStream;
  * Walks over the input data set, calculating the total number of covered loci for diagnostic purposes.
  *
  * <p>
- * Simplest example of a locus walker.
+ * This is the simplest example of a locus walker.
+ * </p>
  *
- *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * One or more BAM files.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
- * Number of loci traversed.
+ * Number of loci traversed. If an output file name is provided, then the result will be written to that file.
+ * Otherwise it will be sent to standard console output.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
  *   -T CountLoci \
- *   -o output.txt \
+ *   -R ref.fasta \
  *   -I input.bam \
+ *   -o output.txt \
  *   [-L input.intervals]
  * </pre>
  *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 public class CountLoci extends LocusWalker<Integer, Long> implements TreeReducible<Long>, NanoSchedulable {
-    @Output(doc="Write count to this file instead of STDOUT")
+    @Output
     PrintStream out;
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

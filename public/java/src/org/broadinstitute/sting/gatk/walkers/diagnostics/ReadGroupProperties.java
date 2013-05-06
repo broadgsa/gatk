@@ -53,12 +53,12 @@ import java.util.Map;
  * the median statistics are well determined.  It is safe to run it WG and it'll finish in an appropriate
  * timeframe.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  *  <p>
  *      Any number of BAM files
  *  </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  *  <p>
  *      GATKReport containing read group, sample, library, platform, center, median insert size and median read length.
  *
@@ -86,7 +86,7 @@ import java.util.Map;
  *      </pre>
  *  </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  *  <pre>
  *    java
  *      -jar GenomeAnalysisTK.jar

@@ -67,7 +67,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
      *
      * Intended to make debugging the activity profile calculations easier
      */
-    @Output(fullName="activityProfileOut", shortName="APO", doc="Output the raw activity profile results in IGV format", required = false)
+    @Output(fullName="activityProfileOut", shortName="APO", doc="Output the raw activity profile results in IGV format", required = false, defaultToStdout = false)
     public PrintStream activityProfileOutStream = null;
 
     /**
@@ -78,7 +78,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
      *
      * Intended to make debugging the active region calculations easier
      */
-    @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this IGV formatted file", required = false)
+    @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this IGV formatted file", required = false, defaultToStdout = false)
     public PrintStream activeRegionOutStream = null;
 
     @Input(fullName="activeRegionIn", shortName="AR", doc="Use this interval list file as the active regions to process", required = false)
@@ -87,6 +87,14 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     @Advanced
     @Argument(fullName="activeRegionExtension", shortName="activeRegionExtension", doc="The active region extension; if not provided defaults to Walker annotated default", required = false)
     public Integer activeRegionExtension = null;
+
+    /**
+     * For the active region walker to treat all bases as active.  Useful for debugging when you want to force something like
+     * the HaplotypeCaller to process a specific interval you provide the GATK
+     */
+    @Advanced
+    @Argument(fullName="forceActive", shortName="forceActive", doc="If provided, all bases will be tagged as active", required = false)
+    public boolean forceActive = false;
 
     @Advanced
     @Argument(fullName="activeRegionMaxSize", shortName="activeRegionMaxSize", doc="The active region maximum size; if not provided defaults to Walker annotated default", required = false)

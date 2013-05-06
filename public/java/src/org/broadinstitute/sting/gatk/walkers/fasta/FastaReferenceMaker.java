@@ -48,17 +48,17 @@ import java.io.PrintStream;
  * Overlapping intervals are automatically merged; reference bases for each disjoint interval will be output as a
  * separate fasta sequence (named numerically in order).
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * The reference and requested intervals.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A fasta file representing the requested intervals.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \

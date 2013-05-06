@@ -48,6 +48,134 @@ public final class AlignmentUtils {
     // cannot be instantiated
     private AlignmentUtils() { }
 
+    /**
+     * Does cigar start or end with a deletion operation?
+     *
+     * @param cigar a non-null cigar to test
+     * @return true if the first or last operator of cigar is a D
+     */
+    public static boolean startsOrEndsWithInsertionOrDeletion(final Cigar cigar) {
+        if ( cigar == null ) throw new IllegalArgumentException("Cigar cannot be null");
+
+        if ( cigar.isEmpty() )
+            return false;
+
+        final CigarOperator first = cigar.getCigarElement(0).getOperator();
+        final CigarOperator last = cigar.getCigarElement(cigar.numCigarElements()-1).getOperator();
+        return first == CigarOperator.D || first == CigarOperator.I || last == CigarOperator.D || last == CigarOperator.I;
+    }
+
+
+    /**
+     * Get the byte[] from bases that cover the reference interval refStart -> refEnd given the
+     * alignment of bases to the reference (basesToRefCigar) and the start offset of the bases on the reference
+     *
+     * refStart and refEnd are 0 based offsets that we want to obtain.  In the client code, if the reference
+     * bases start at position X and you want Y -> Z, refStart should be Y - X and refEnd should be Z - X.
+     *
+     * If refStart or refEnd would start or end the new bases within a deletion, this function will return null
+     *
+     * @param bases
+     * @param refStart
+     * @param refEnd
+     * @param basesStartOnRef where does the bases array start w.r.t. the reference start?  For example, bases[0] of
+     *                        could be at refStart == 0 if basesStartOnRef == 0, but it could just as easily be at
+     *                        10 (meaning bases doesn't fully span the reference), which would be indicated by basesStartOnRef == 10.
+     *                        It's not trivial to eliminate this parameter because it's tied up with the cigar
+     * @param basesToRefCigar the cigar that maps the bases to the reference genome
+     * @return a byte[] containing the bases covering this interval, or null if we would start or end within a deletion
+     */
+    public static byte[] getBasesCoveringRefInterval(final int refStart, final int refEnd, final byte[] bases, final int basesStartOnRef, final Cigar basesToRefCigar) {
+        if ( refStart < 0 || refEnd < refStart ) throw new IllegalArgumentException("Bad start " + refStart + " and/or stop " + refEnd);
+        if ( basesStartOnRef < 0 ) throw new IllegalArgumentException("BasesStartOnRef must be >= 0 but got " + basesStartOnRef);
+        if ( bases == null ) throw new IllegalArgumentException("Bases cannot be null");
+        if ( basesToRefCigar == null ) throw new IllegalArgumentException("basesToRefCigar cannot be null");
+        if ( bases.length != basesToRefCigar.getReadLength() ) throw new IllegalArgumentException("Mismatch in length between reference bases " + bases.length + " and cigar length " + basesToRefCigar);
+
+        int refPos = basesStartOnRef;
+        int basesPos = 0;
+        int basesStart = -1;
+        int basesStop = -1;
+        boolean done = false;
+
+        for ( int iii = 0; ! done && iii < basesToRefCigar.numCigarElements(); iii++ ) {
+            final CigarElement ce = basesToRefCigar.getCigarElement(iii);
+            switch ( ce.getOperator() ) {
+                case I:
+                    basesPos += ce.getLength();
+                    break;
+                case M: case X: case EQ:
+                    for ( int i = 0; i < ce.getLength(); i++ ) {
+                        if ( refPos == refStart )
+                            basesStart = basesPos;
+                        if ( refPos == refEnd ) {
+                            basesStop = basesPos;
+                            done = true;
+                            break;
+                        }
+                        refPos++;
+                        basesPos++;
+                    }
+                    break;
+                case D:
+                    for ( int i = 0; i < ce.getLength(); i++ ) {
+                        if ( refPos == refEnd || refPos == refStart ) {
+                            // if we ever reach a ref position that is either a start or an end, we fail
+                            return null;
+                        }
+                        refPos++;
+                    }
+                    break;
+                default:
+                    throw new IllegalStateException("Unsupported operator " + ce);
+            }
+        }
+
+        if ( basesStart == -1 || basesStop == -1 )
+            throw new IllegalStateException("Never found start " + basesStart + " or stop " + basesStop + " given cigar " + basesToRefCigar);
+
+        return Arrays.copyOfRange(bases, basesStart, basesStop + 1);
+    }
+
+    /**
+     * Get the number of bases at which refSeq and readSeq differ, given their alignment
+     *
+     * @param cigar the alignment of readSeq to refSeq
+     * @param refSeq the bases of the reference sequence
+     * @param readSeq the bases of the read sequence
+     * @return the number of bases that differ between refSeq and readSeq
+     */
+    public static int calcNumDifferentBases(final Cigar cigar, final byte[] refSeq, final byte[] readSeq) {
+        int refIndex = 0, readIdx = 0, delta = 0;
+
+        for (final CigarElement ce : cigar.getCigarElements()) {
+            final int elementLength = ce.getLength();
+            switch (ce.getOperator()) {
+                case X:case EQ:case M:
+                    for (int j = 0; j < elementLength; j++, refIndex++, readIdx++)
+                        delta += refSeq[refIndex] != readSeq[readIdx] ? 1 : 0;
+                    break;
+                case I:
+                    delta += elementLength;
+                case S:
+                    readIdx += elementLength;
+                    break;
+                case D:
+                    delta += elementLength;
+                case N:
+                    refIndex += elementLength;
+                    break;
+                case H:
+                case P:
+                    break;
+                default:
+                    throw new ReviewedStingException("The " + ce.getOperator() + " cigar element is not currently supported");
+            }
+        }
+
+        return delta;
+    }
+
     public static class MismatchCount {
         public int numMismatches = 0;
         public long mismatchQualities = 0;
@@ -453,8 +581,11 @@ public final class AlignmentUtils {
      */
     @Ensures({"result != null"})
     public static Cigar consolidateCigar( final Cigar c ) {
-        if( c == null ) { throw new IllegalArgumentException("Cigar cannot be null"); }
-        if( c.isEmpty() ) { return c; }
+        if ( c == null ) { throw new IllegalArgumentException("Cigar cannot be null"); }
+
+        // fast check to determine if there's anything worth doing before we create new Cigar and actually do some work
+        if ( ! needsConsolidation(c) )
+            return c;
 
         final Cigar returnCigar = new Cigar();
         int sumLength = 0;
@@ -473,11 +604,31 @@ public final class AlignmentUtils {
             lastElement = cur;
         }
 
-        if( sumLength > 0 ) {
+        if ( sumLength > 0 ) {
             returnCigar.add(new CigarElement(sumLength, lastElement.getOperator()));
         }
 
         return returnCigar;
+    }
+
+    /**
+     * Does the cigar C need to be consolidated?
+     *
+     * @param c a non-null cigar
+     * @return true if so
+     */
+    private static boolean needsConsolidation(final Cigar c) {
+        if ( c.numCigarElements() <= 1 )
+            return false; // fast path for empty or single cigar
+
+        CigarOperator lastOp = null;
+        for( final CigarElement cur : c.getCigarElements() ) {
+            if ( cur.getLength() == 0 || lastOp == cur.getOperator() )
+                return true;
+            lastOp = cur.getOperator();
+        }
+
+        return false;
     }
 
     /**
@@ -513,7 +664,7 @@ public final class AlignmentUtils {
         if ( numIndels == 0 )
             return cigar;
         if ( numIndels == 1 )
-            return leftAlignSingleIndel(cigar, refSeq, readSeq, refIndex, readIndex);
+            return leftAlignSingleIndel(cigar, refSeq, readSeq, refIndex, readIndex, true);
 
         // if we got here then there is more than 1 indel in the alignment
         if ( doNotThrowExceptionForMultipleIndels )
@@ -558,10 +709,11 @@ public final class AlignmentUtils {
      * @param readSeq   read sequence
      * @param refIndex  0-based alignment start position on ref
      * @param readIndex 0-based alignment start position on read
+     * @param cleanupCigar if true, we'll cleanup the resulting cigar element, removing 0 length elements and deletions from the first cigar position
      * @return a non-null cigar, in which the single indel is guaranteed to be placed at the leftmost possible position across a repeat (if any)
      */
     @Ensures("result != null")
-    public static Cigar leftAlignSingleIndel(Cigar cigar, final byte[] refSeq, final byte[] readSeq, final int refIndex, final int readIndex) {
+    public static Cigar leftAlignSingleIndel(Cigar cigar, final byte[] refSeq, final byte[] readSeq, final int refIndex, final int readIndex, final boolean cleanupCigar) {
         ensureLeftAlignmentHasGoodArguments(cigar, refSeq, readSeq, refIndex, readIndex);
 
         int indexOfIndel = -1;
@@ -600,7 +752,7 @@ public final class AlignmentUtils {
                 cigar = newCigar;
                 i = -1;
                 if (reachedEndOfRead)
-                    cigar = cleanUpCigar(cigar);
+                    cigar = cleanupCigar ? cleanUpCigar(cigar) : cigar;
             }
 
             if (reachedEndOfRead)
@@ -782,7 +934,7 @@ public final class AlignmentUtils {
      */
     public static Cigar trimCigarByBases(final Cigar cigar, final int start, final int end) {
         if ( start < 0 ) throw new IllegalArgumentException("Start must be >= 0 but got " + start);
-        if ( end < start ) throw new IllegalArgumentException("End " + end + " is < start start " + start);
+        if ( end < start ) throw new IllegalArgumentException("End " + end + " is < start = " + start);
         if ( end > cigar.getReadLength() ) throw new IllegalArgumentException("End is beyond the cigar's read length " + end + " for cigar " + cigar );
 
         final Cigar result = trimCigar(cigar, start, end, false);
@@ -810,7 +962,7 @@ public final class AlignmentUtils {
 
         int pos = 0;
         for ( final CigarElement elt : cigar.getCigarElements() ) {
-            if ( pos > end ) break;
+            if ( pos > end && (byReference || elt.getOperator() != CigarOperator.D) ) break;
 
             switch ( elt.getOperator() ) {
                 case D:

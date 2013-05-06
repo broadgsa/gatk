@@ -62,7 +62,7 @@ public class VariantsToBeagleUnphased extends RodWalker<Integer, Integer> {
     @Input(fullName="variants", shortName = "V", doc="Input VCF file", required=true)
     public RodBinding<VariantContext> variants;
 
-    @Output(doc="File to which BEAGLE unphased genotypes should be written",required=true)
+    @Output(doc="File to which BEAGLE unphased genotypes should be written")
     protected PrintStream  beagleWriter = null;
 
     @Argument(fullName = "bootstrap_fraction", shortName = "bs", doc = "Proportion of records to be used in bootstrap set", required = false)

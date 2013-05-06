@@ -44,17 +44,17 @@ import java.io.PrintStream;
  * Quality control for the reference fasta
  *
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * One reference file only.  And optionally -L intervals
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  *     If ok, nothing, else will throw an exception at the site where there's been a problem
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \

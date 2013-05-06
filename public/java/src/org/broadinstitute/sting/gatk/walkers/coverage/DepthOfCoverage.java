@@ -66,7 +66,7 @@ import java.util.*;
  * and/or percentage of bases covered to or beyond a threshold.
  * Additionally, reads and bases can be filtered by mapping or base quality score.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * One or more bam files (with proper headers) to be analyzed for coverage statistics
  * </p>
@@ -75,7 +75,7 @@ import java.util.*;
  * <p>
  * (for information about creating the REFSEQ Rod, please consult the RefSeqCodec documentation)
  *</p></p>
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * Tables pertaining to different coverage summaries. Suffix on the table files declares the contents:
  * </p><p>
@@ -98,7 +98,7 @@ import java.util.*;
  *  - _cumulative_coverage_proportions: proprotions of loci with >= X coverage, aggregated over all bases
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
@@ -117,7 +117,7 @@ import java.util.*;
 // todo -- alter logarithmic scaling to spread out bins more
 // todo -- allow for user to set linear binning (default is logarithmic)
 // todo -- formatting --> do something special for end bins in getQuantile(int[] foo), this gets mushed into the end+-1 bins for now
-@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_DATA, extraDocs = {CommandLineGATK.class} )
+@DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @By(DataSource.REFERENCE)
 @PartitionBy(PartitionType.NONE)
 @Downsample(by= DownsampleType.NONE, toCoverage=Integer.MAX_VALUE)
@@ -577,7 +577,8 @@ public class DepthOfCoverage extends LocusWalker<Map<DoCOutputType.Partition,Map
     private LocationAwareSeekableRODIterator initializeRefSeq() {
         RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
                                                       getToolkit().getGenomeLocParser(),
-                                                      getToolkit().getArguments().unsafe);
+                                                      getToolkit().getArguments().unsafe,
+                                                      getToolkit().getArguments().disableAutoIndexCreationAndLockingWhenReadingRods);
         RMDTrack refseq = builder.createInstanceOfTrack(RefSeqCodec.class,refSeqGeneList);
         return new SeekableRODIterator(refseq.getHeader(),refseq.getSequenceDictionary(),getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
                 getToolkit().getGenomeLocParser(),refseq.getIterator());

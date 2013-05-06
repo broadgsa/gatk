@@ -45,9 +45,42 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Counts the number of contiguous regions the walker traverses over. Slower than it needs to be, but
- * very useful since overlapping intervals get merged, so you can count the number of intervals the GATK merges down to.
- * This was its very first use.
+ * Count contiguous regions in an interval list.
+ *
+ * <p>When the GATK reads in intervals from an intervals list, any intervals that overlap each other get merged into
+ * a single interval spanning the original ones. For example, if you have the following intervals:
+ * <ul><li>
+ *     20:1-2000
+ * </li><li>
+ *     20:1500-3000
+ * </li></ul>
+ * They will be merged into a single interval:
+ * <ul><li>20:1-3000</li></ul>
+ *
+ * This tool allows you to check, for a given list of intervals, how many separate intervals the GATK will actually
+ * distinguish at runtime.
+ * </p>
+ *
+ * <h3>Input</h3>
+ * <p>
+ * One or more rod files containing intervals to check.
+ * </p>
+ *
+ * <h3>Output</h3>
+ * <p>
+ * Number of separate intervals identified by GATK after merging overlapping intervals.
+ * </p>
+ *
+ * You can use the -numOverlaps argument to find out how many cases you have of a specific number of overlaps.
+ *
+ * <h3>Example</h3>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -T CountIntervals \
+ *   -R ref.fasta \
+ *   -0 output.txt \
+ *   -check intervals.list
+ * </pre>
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 public class CountIntervals extends RefWalker<Long, Long> {

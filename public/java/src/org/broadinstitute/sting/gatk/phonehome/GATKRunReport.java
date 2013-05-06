@@ -79,15 +79,9 @@ public class GATKRunReport {
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy/MM/dd HH.mm.ss");
 
     /**
-     * number of milliseconds before the S3 put operation is timed-out:
-     */
-    private static final long S3_PUT_TIME_OUT = 30 * 1000;
-
-    /**
      * The root file system directory where we keep common report data
      */
     private final static File REPORT_DIR = new File("/humgen/gsa-hpprojects/GATK/reports");
-
 
     /**
      * The full path to the direct where submitted (and uncharacterized) report files are written
@@ -104,6 +98,17 @@ public class GATKRunReport {
      * our log
      */
     protected static final Logger logger = Logger.getLogger(GATKRunReport.class);
+
+    /**
+     * Default value for the number of milliseconds before an S3 put operation is timed-out.
+     * Can be overridden via a constructor argument.
+     */
+    private static final long S3_DEFAULT_PUT_TIME_OUT_IN_MILLISECONDS = 30 * 1000;
+
+    /**
+     * Number of milliseconds before an S3 put operation is timed-out.
+     */
+    private long s3PutTimeOutInMilliseconds = S3_DEFAULT_PUT_TIME_OUT_IN_MILLISECONDS;
 
     // -----------------------------------------------------------------
     // elements captured for the report
@@ -230,13 +235,31 @@ public class GATKRunReport {
     }
 
     /**
-     * Create a new RunReport and population all of the fields with values from the walker and engine
+     * Create a new RunReport and population all of the fields with values from the walker and engine.
+     * Allows the S3 put timeout to be explicitly set.
      *
      * @param walker the GATK walker that we ran
      * @param e the exception caused by running this walker, or null if we completed successfully
      * @param engine the GAE we used to run the walker, so we can fetch runtime, args, etc
+     * @param type the GATK phone home setting
+     * @param s3PutTimeOutInMilliseconds number of milliseconds to wait before timing out an S3 put operation
      */
-    public GATKRunReport(Walker<?,?> walker, Exception e, GenomeAnalysisEngine engine, PhoneHomeOption type) {
+    public GATKRunReport(final Walker<?,?> walker, final Exception e, final GenomeAnalysisEngine engine, final PhoneHomeOption type,
+                         final long s3PutTimeOutInMilliseconds) {
+        this(walker, e, engine, type);
+        this.s3PutTimeOutInMilliseconds = s3PutTimeOutInMilliseconds;
+    }
+
+    /**
+     * Create a new RunReport and population all of the fields with values from the walker and engine.
+     * Leaves the S3 put timeout set to the default value of S3_DEFAULT_PUT_TIME_OUT_IN_MILLISECONDS.
+     *
+     * @param walker the GATK walker that we ran
+     * @param e the exception caused by running this walker, or null if we completed successfully
+     * @param engine the GAE we used to run the walker, so we can fetch runtime, args, etc
+     * @param type the GATK phone home setting
+     */
+    public GATKRunReport(final Walker<?,?> walker, final Exception e, final GenomeAnalysisEngine engine, final PhoneHomeOption type) {
         if ( type == PhoneHomeOption.NO_ET )
             throw new ReviewedStingException("Trying to create a run report when type is NO_ET!");
 
@@ -563,7 +586,7 @@ public class GATKRunReport {
                         throw new IllegalStateException("We are throwing an exception for testing purposes");
                     case TIMEOUT:
                         try {
-                            Thread.sleep(S3_PUT_TIME_OUT * 100);
+                            Thread.sleep(s3PutTimeOutInMilliseconds * 100);
                         } catch ( InterruptedException e ) {
                             // supposed to be empty
                         }
@@ -625,7 +648,7 @@ public class GATKRunReport {
             s3thread.setName("S3Put-Thread");
             s3thread.start();
 
-            s3thread.join(S3_PUT_TIME_OUT);
+            s3thread.join(s3PutTimeOutInMilliseconds);
 
             if(s3thread.isAlive()){
                 s3thread.interrupt();

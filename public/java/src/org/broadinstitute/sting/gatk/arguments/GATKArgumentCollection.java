@@ -104,8 +104,9 @@ public class GATKArgumentCollection {
     @Argument(fullName = "nonDeterministicRandomSeed", shortName = "ndrs", doc = "Makes the GATK behave non deterministically, that is, the random numbers generated will be different in every run", required = false)
     public boolean nonDeterministicRandomSeed = false;
 
-    @Argument(fullName = "disableRandomization",doc="Completely eliminates randomization from nondeterministic methods. To be used mostly in the testing framework where dynamic parallelism can result in differing numbers of calls to the generator.")
-    public boolean disableRandomization = false;
+    @Hidden
+    @Argument(fullName = "disableDithering",doc="Completely eliminates randomized dithering from rank sum tests. To be used in the testing framework where dynamic parallelism can result in differing numbers of calls to the random generator.")
+    public boolean disableDithering = false;
 
     @Argument(fullName = "maxRuntime", shortName = "maxRuntime", doc="If provided, that GATK will stop execution cleanly as soon after maxRuntime has been exceeded, truncating the run but not exiting with a failure.  By default the value is interpreted in minutes, but this can be changed by maxRuntimeUnits", required = false)
     public long maxRuntime = GenomeAnalysisEngine.NO_RUNTIME_LIMIT;
@@ -206,7 +207,7 @@ public class GATKArgumentCollection {
      * Enables on-the-fly recalibrate of base qualities.  The covariates tables are produced by the BaseQualityScoreRecalibrator tool.
      * Please be aware that one should only run recalibration with the covariates file created on the same input bam(s).
      */
-    @Input(fullName="BQSR", shortName="BQSR", required=false, doc="The input covariates table file which enables on-the-fly base quality score recalibration")
+    @Input(fullName="BQSR", shortName="BQSR", required=false, doc="The input covariates table file which enables on-the-fly base quality score recalibration (intended for use with BaseRecalibrator and PrintReads)")
     public File BQSR_RECAL_FILE = null;
 
     /**
@@ -273,6 +274,17 @@ public class GATKArgumentCollection {
 
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations: nothing will be checked at runtime.  For expert users only who know what they are doing.  We do not support usage of this argument.", required = false)
     public ValidationExclusion.TYPE unsafe;
+
+    @Hidden
+    @Advanced
+    @Argument(fullName = "disable_auto_index_creation_and_locking_when_reading_rods", shortName = "disable_auto_index_creation_and_locking_when_reading_rods",
+              doc = "UNSAFE FOR GENERAL USE (FOR TEST SUITE USE ONLY). Disable both auto-generation of index files and index file locking " +
+                    "when reading VCFs and other rods and an index isn't present or is out-of-date. The file locking necessary for auto index " +
+                    "generation to work safely is prone to random failures/hangs on certain platforms, which makes it desirable to disable it " +
+                    "for situations like test suite runs where the indices are already known to exist, however this option is unsafe in general " +
+                    "because it allows reading from index files without first acquiring a lock.",
+              required = false)
+    public boolean disableAutoIndexCreationAndLockingWhenReadingRods = false;
 
     // --------------------------------------------------------------------------------------------------------------
     //

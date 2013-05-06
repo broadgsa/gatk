@@ -51,7 +51,7 @@ import java.util.*;
  * testing of the new (non-legacy) version of LocusIteratorByState
  */
 public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     protected LocusIteratorByState li;
 
     @Test(enabled = true)
@@ -361,7 +361,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
     // comprehensive LIBS/PileupElement tests //
     ////////////////////////////////////////////
 
-    @DataProvider(name = "LIBSTest")
+    @DataProvider(name = "MyLIBSTest")
     public Object[][] makeLIBSTest() {
         final List<Object[]> tests = new LinkedList<Object[]>();
 
@@ -377,7 +377,7 @@ public class LocusIteratorByStateUnitTest extends LocusIteratorByStateBaseTest {
 //                Arrays.asList(3));
     }
 
-    @Test(enabled = true && ! DEBUG, dataProvider = "LIBSTest")
+    @Test(enabled = ! DEBUG, dataProvider = "MyLIBSTest")
     public void testLIBS(LIBSTest params) {
         // create the iterator by state with the fake reads and fake records
         final GATKSAMRecord read = params.makeRead();

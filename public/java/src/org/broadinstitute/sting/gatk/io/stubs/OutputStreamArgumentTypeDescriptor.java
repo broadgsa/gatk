@@ -66,7 +66,7 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public boolean createsTypeDefault(ArgumentSource source) {
-        return source.isRequired();
+        return !source.isRequired() && source.defaultsToStdout();
     }
 
     @Override
@@ -76,7 +76,7 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source, Type type) {
-        if(!source.isRequired())
+        if(source.isRequired() || !source.defaultsToStdout())
             throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");
         OutputStreamStub stub = new OutputStreamStub(defaultOutputStream);
         engine.addOutput(stub);
@@ -90,7 +90,7 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
         // This parser has been passed a null filename and the GATK is not responsible for creating a type default for the object;
         // therefore, the user must have failed to specify a type default
-        if(fileName == null && !source.isRequired())
+        if(fileName == null && source.isRequired())
             throw new MissingArgumentValueException(definition);
 
         OutputStreamStub stub = new OutputStreamStub(new File(fileName));

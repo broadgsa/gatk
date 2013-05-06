@@ -39,6 +39,7 @@ import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.activeregion.*;
 import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
@@ -70,7 +71,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
     protected final static Logger logger = Logger.getLogger(TraversalEngine.class);
     protected final static boolean LOG_READ_CARRYING = false;
 
-    // set by the tranversal
+    // set by the traversal
     private boolean walkerHasPresetRegions = false;
     private int activeRegionExtension = -1;
     private int maxRegionSize = -1;
@@ -78,7 +79,8 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
 
     private final LinkedList<ActiveRegion> workQueue = new LinkedList<ActiveRegion>();
 
-    private LinkedList<GATKSAMRecord> myReads = new LinkedList<GATKSAMRecord>();
+    private TAROrderedReadCache myReads = null;
+
     private GenomeLoc spanOfLastReadSeen = null;
     private ActivityProfile activityProfile = null;
     int maxReadsInMemory = 0;
@@ -112,11 +114,15 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         activityProfile = new BandPassActivityProfile(engine.getGenomeLocParser(), engine.getIntervals(), BandPassActivityProfile.MAX_FILTER_SIZE, bandPassSigma);
 
         if ( walkerHasPresetRegions ) {
-            // we load all of the preset locations into the
+            // we load all of the preset locations into the workQueue
             for ( final GenomeLoc loc : this.walker.getPresetActiveRegions()) {
                 workQueue.add(new ActiveRegion(loc, null, true, engine.getGenomeLocParser(), getActiveRegionExtension()));
             }
         }
+
+        final int maxReadsAcrossSamples = annotation.maxReadsToHoldInMemoryPerSample() * SampleUtils.getSAMFileSamples(engine).size();
+        final int maxReadsToHoldInMemory = Math.min(maxReadsAcrossSamples, annotation.maxReadsToHoldTotal());
+        myReads = new TAROrderedReadCache(maxReadsToHoldInMemory);
     }
 
     // -------------------------------------------------------------------------------------
@@ -190,6 +196,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
      * @param read the read we want to test if it's already been seen in the last shard
      * @return true if read would have appeared in the last shard, false otherwise
      */
+    @Requires({"read != null"})
     private boolean appearedInLastShard(final GenomeLoc locOfLastReadAtTraversalStart, final GATKSAMRecord read) {
         if ( locOfLastReadAtTraversalStart == null )
             // we're in the first shard, so obviously the answer is no
@@ -256,7 +263,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             addIsActiveResult(walker, tracker, refContext, locus);
 
             maxReadsInMemory = Math.max(myReads.size(), maxReadsInMemory);
-            printProgress(locus.getLocation());
+            printProgress(location);
         }
 
         updateCumulativeMetrics(dataProvider.getShard());
@@ -285,6 +292,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
      *
      * @param read the last read we've seen during the traversal
      */
+    @Requires({"read != null"})
     protected void rememberLastReadLocation(final GATKSAMRecord read) {
         final GenomeLoc currentLocation = engine.getGenomeLocParser().createGenomeLoc(read);
         if ( spanOfLastReadSeen == null )
@@ -485,6 +493,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
                                    final AlignmentContext locus) {
         // must be called, even if we won't use the result, to satisfy walker contract
         final ActivityProfileState state = walker.isActive( tracker, refContext, locus );
+        if ( walker.forceActive) state.isActiveProb = 1.0;
         if ( ! walkerHasPresetRegions ) {
             activityProfile.add(state);
         }
@@ -519,27 +528,30 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
     }
 
     private T processActiveRegion(final ActiveRegion activeRegion, final T sum, final ActiveRegionWalker<M, T> walker) {
-        final Iterator<GATKSAMRecord> liveReads = myReads.iterator();
-        while ( liveReads.hasNext() ) {
+        final List<GATKSAMRecord> stillLive = new LinkedList<GATKSAMRecord>();
+        for ( final GATKSAMRecord read : myReads.popCurrentReads() ) {
             boolean killed = false;
-            final GATKSAMRecord read = liveReads.next();
             final GenomeLoc readLoc = this.engine.getGenomeLocParser().createGenomeLoc( read );
 
             if( activeRegion.getLocation().overlapsP( readLoc ) ) {
                 activeRegion.add(read);
 
                 if ( ! walker.wantsNonPrimaryReads() ) {
-                    liveReads.remove();
                     killed = true;
                 }
             } else if( walker.wantsExtendedReads() && activeRegion.getExtendedLoc().overlapsP( readLoc )) {
                 activeRegion.add( read );
             }
 
+            // if the read hasn't already been killed, check if it cannot occur in any more active regions, and maybe kill it
             if ( ! killed && readCannotOccurInAnyMoreActiveRegions(read, activeRegion) ) {
-                liveReads.remove();
+                killed = true;
             }
+
+            // keep track of all of the still live active regions
+            if ( ! killed ) stillLive.add(read);
         }
+        myReads.addAll(stillLive);
 
         if ( logger.isDebugEnabled() ) {
             logger.debug(">> Map call with " + activeRegion.getReads().size() + " " + (activeRegion.isActive() ? "active" : "inactive") + " reads @ " + activeRegion.getLocation() + " with full extent: " + activeRegion.getReadSpanLoc());

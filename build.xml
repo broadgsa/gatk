@@ -91,9 +91,8 @@
     <property name="key.dir" value="${public.dir}/keys" />
 
     <!-- Contracts for Java -->
-    <!-- By default, enabled only for test targets -->
-    <!-- To disable for test targets, run with -Duse.contracts=false -->
-    <!-- To enable for non-test targets, run with -Duse.contracts=true -->
+    <!-- Disabled by default -->
+    <!-- To enable, run with -Duse.contracts=true -->
     <property name="java.contracts.dir" value="${build.dir}/java/contracts" />
     <property name="contracts.version" value="1.0-r139" />
     <property name="cofoja.jar" value="${lib.dir}/cofoja-${contracts.version}.jar"/>
@@ -675,8 +674,9 @@
               <include name="org/broadinstitute/sting/utils/GenomeLocParser*.class"/>
               <include name="org/broadinstitute/sting/utils/GenomeLoc.class"/>
               <include name="org/broadinstitute/sting/utils/HasGenomeLocation.class"/>
-              <include name="org/broadinstitute/sting/utils/BaseUtils.class"/>
+              <include name="org/broadinstitute/sting/utils/BaseUtils*.class"/>
               <include name="org/broadinstitute/sting/utils/Utils.class"/>
+              <include name="org/broadinstitute/sting/utils/MRUCaching*.class"/>
               <include name="org/broadinstitute/sting/utils/exceptions/**/*.class"/>
               <include name="org/broadinstitute/sting/gatk/walkers/na12878kb/core/**/*.class"/>
               <include name="net/sf/picard/reference/FastaSequenceFile.class"/>
@@ -1203,8 +1203,8 @@
         </scalac>
     </target>
 
-    <!-- NOTE: contracts enabled for all tests -->
-    <target name="test.compile" depends="init.usecontracts,dist,test.java.compile,test.scala.compile" />
+    <!-- NOTE: contracts disabled for all tests now, since contracts don't work with Java 7 -->
+    <target name="test.compile" depends="dist,test.java.compile,test.scala.compile" />
 
 
     <!-- Run test macro -->
@@ -1315,6 +1315,7 @@
                 <fileset dir="${lib.dir}">
                     <include name="scala*.jar"/>
                     <include name="jna*.jar"/>
+                    <include name="cofoja*.jar"/>
                 </fileset>
             </path>
         </path>
@@ -1332,6 +1333,11 @@
             <pathelement location="${java.contracts.dir}" />
             <pathelement location="${java.test.classes}" />
             <pathelement location="${scala.test.classes}" />
+            <path>
+                <fileset dir="${lib.dir}">
+                    <include name="cofoja*.jar"/>
+                </fileset>
+            </path>
         </path>
         <property name="testng.classpath" value="queue.binary.release.tests.classpath" />
     </target>
@@ -1340,9 +1346,9 @@
     <target name="committests" depends="unittest,integrationtest,pipelinetest" />
 
     <!-- Order of the dependencies is significant in the *.release.tests targets -->
-    <target name="gatkfull.binary.release.tests" depends="init.usecontracts,package.gatk.full,init.testgatkjar,unittest,integrationtest" />
+    <target name="gatkfull.binary.release.tests" depends="package.gatk.full,init.testgatkjar,unittest,integrationtest" />
 
-    <target name="queuefull.binary.release.tests" depends="init.usecontracts,package.queue.full,init.testqueuejar,pipelinetest" />
+    <target name="queuefull.binary.release.tests" depends="package.queue.full,init.testqueuejar,pipelinetest" />
 
     <!-- Our four different test types: UnitTest, IntegrationTest, LargeScaleTest, PipelineTest -->
     <target name="unittest" depends="test.compile,test.init" description="Run unit tests">
@@ -1472,7 +1478,7 @@
 
         <property name="testng.classpath" value="testng.default.classpath" />
         <property name="test.maxmemory" value="${test.default.maxmemory}"/>
-        <property name="include.contracts" value="true" />
+        <property name="include.scala" value="true" />
 
         <run-test testtype="${single}" outputdir="${report}/${single}" runfailed="false"/>
     </target>

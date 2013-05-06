@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.sam;
 
 import com.google.java.contract.Ensures;
 import net.sf.samtools.*;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.recalibration.EventType;
@@ -52,6 +53,7 @@ import java.util.*;
 public class GATKSAMRecord extends BAMRecord {
     // ReduceReads specific attribute tags
     public static final String REDUCED_READ_CONSENSUS_TAG = "RR";                   // marks a synthetic read produced by the ReduceReads tool
+    public static final String REDUCED_READ_STRANDED_TAG = "RS";                    // marks a stranded synthetic read produced by the ReduceReads tool
     public static final String REDUCED_READ_ORIGINAL_ALIGNMENT_START_SHIFT = "OP";  // reads that are clipped may use this attribute to keep track of their original alignment start
     public static final String REDUCED_READ_ORIGINAL_ALIGNMENT_END_SHIFT = "OE";    // reads that are clipped may use this attribute to keep track of their original alignment end
 
@@ -68,11 +70,13 @@ public class GATKSAMRecord extends BAMRecord {
     // the SAMRecord data we're caching
     private String mReadString = null;
     private GATKSAMReadGroupRecord mReadGroup = null;
-    private byte[] reducedReadCounts = null;
+    private int[] reducedReadCounts = null;
     private final static int UNINITIALIZED = -1;
     private int softStart = UNINITIALIZED;
     private int softEnd = UNINITIALIZED;
     private Integer adapterBoundary = null;
+
+    private Boolean isStrandlessRead = null;
 
     // because some values can be null, we don't want to duplicate effort
     private boolean retrievedReadGroup = false;
@@ -140,6 +144,48 @@ public class GATKSAMRecord extends BAMRecord {
         Cigar cigar = new Cigar(cigarElements);
         return ArtificialSAMUtils.createArtificialRead(cigar);
     }
+
+    ///////////////////////////////////////////////////////////////////////////////
+    // *** support for reads without meaningful strand information            ***//
+    ///////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Does this read have a meaningful strandedness value?
+     *
+     * Some advanced types of reads, such as reads coming from merged fragments,
+     * don't have meaningful strandedness values, as they are composites of multiple
+     * other reads.  Strandless reads need to be handled specially by code that cares about
+     * stranded information, such as FS.
+     *
+     * @return true if this read doesn't have meaningful strand information
+     */
+    public boolean isStrandless() {
+        if ( isStrandlessRead == null ) {
+            isStrandlessRead = isReducedRead() && getCharacterAttribute(REDUCED_READ_STRANDED_TAG) == null;
+        }
+        return isStrandlessRead;
+    }
+
+    /**
+     * Set the strandless state of this read to isStrandless
+     * @param isStrandless true if this read doesn't have a meaningful strandedness value
+     */
+    public void setIsStrandless(final boolean isStrandless) {
+        this.isStrandlessRead = isStrandless;
+    }
+
+    @Override
+    public boolean getReadNegativeStrandFlag() {
+        return ! isStrandless() && super.getReadNegativeStrandFlag();
+    }
+
+    @Override
+    public void setReadNegativeStrandFlag(final boolean flag) {
+        if ( isStrandless() )
+            throw new IllegalStateException("Cannot set the strand of a strandless read");
+        super.setReadNegativeStrandFlag(flag);
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////
     // *** The following methods are overloaded to cache the appropriate data ***//
@@ -300,17 +346,31 @@ public class GATKSAMRecord extends BAMRecord {
     // *** ReduceReads functions                                              ***//
     ///////////////////////////////////////////////////////////////////////////////
 
-    public byte[] getReducedReadCounts() {
+    /**
+     * Get the counts of the bases in this reduced read
+     *
+     * NOTE that this is not the value of the REDUCED_READ_CONSENSUS_TAG, which
+     * is encoded in a special way.  This is the actual positive counts of the
+     * depth at each bases.  So for a RR with a tag of:
+     *
+     * [10, 5, -1, -5]
+     *
+     * this function returns
+     *
+     * [10, 15, 9, 5]
+     *
+     * as one might expect.
+     *
+     * @return a int[] holding the depth of the bases in this reduced read, or null if this isn't a reduced read
+     */
+    public int[] getReducedReadCounts() {
         if ( ! retrievedReduceReadCounts ) {
-            reducedReadCounts = getByteArrayAttribute(REDUCED_READ_CONSENSUS_TAG);
+            final byte[] tag = getByteArrayAttribute(REDUCED_READ_CONSENSUS_TAG);
+            if ( tag != null ) reducedReadCounts = decodeReduceReadCounts(tag);
             retrievedReduceReadCounts = true;
         }
 
         return reducedReadCounts;
-    }
-
-    public boolean isReducedRead() {
-        return getReducedReadCounts() != null;
     }
 
     /**
@@ -319,10 +379,146 @@ public class GATKSAMRecord extends BAMRecord {
      * @param i the read based coordinate inside the read
      * @return the number of bases corresponding to the i'th base of the reduced read
      */
-    public final byte getReducedCount(final int i) {
-        byte firstCount = getReducedReadCounts()[0];
-        byte offsetCount = getReducedReadCounts()[i];
-        return (i==0) ? firstCount : (byte) Math.min(firstCount + offsetCount, Byte.MAX_VALUE);
+    public final int getReducedCount(final int i) {
+        if ( !isReducedRead() )
+            throw new IllegalArgumentException("error trying to retrieve the reduced count from a read that is not reduced");
+        if ( i < 0 || i >= getReadBases().length )
+            throw new IllegalArgumentException("illegal offset used when retrieving reduced counts: " + i);
+
+        final int[] reducedCounts = getReducedReadCounts();
+        return reducedCounts[i];
+    }
+
+    /**
+     * Is this read a reduced read?
+     * @return true if yes
+     */
+    public boolean isReducedRead() {
+        return getReducedReadCounts() != null;
+    }
+
+    /**
+     * Set the reduced read counts tag for this record.
+     * Note that this method is slightly expensive as it converts to the correct reduced counts representation and sets the
+     * appropriate binary tag.  If you want to modify the reduced count in place without triggering the permanent conversion
+     * internally, use the #setReducedCount() method.
+     *
+     * @param counts the count array
+     */
+    public void setReducedReadCountsTag(final int[] counts) {
+        setAttribute(REDUCED_READ_CONSENSUS_TAG, encodeReduceReadCounts(counts));
+        retrievedReduceReadCounts = false;  // need to force new decode in case we had to handle precision problems with the counts
+    }
+
+    /**
+     * @see #setReducedReadCountsTag() and uses the currently stored values of the internal array.
+     * Useful if you've been using #setReducedCount() to modify the reduced count and now want to trigger the expensive conversion.
+     */
+    public void setReducedReadCountsTag() {
+        if ( !retrievedReduceReadCounts )
+            throw new IllegalStateException("Trying to write the reduced reads counts using an uninitialized internal array of counts");
+        setReducedReadCountsTag(reducedReadCounts);
+    }
+
+    /**
+     * Sets the reduced read count corresponding the i'th base of the reduced read.
+     *
+     * WARNING: does not actually write this value permanently to the binary tags for this read.  To trigger the conversion
+     *          and push that value into the read's binary tags, use #setReducedReadCountsTag().
+     *
+     * @param i      the read based coordinate inside the read
+     * @param count  the new count
+     */
+    public final void setReducedCount(final int i, final int count) {
+        if ( count < 0 )
+            throw new IllegalArgumentException("the reduced count cannot be set to a negative value");
+        if ( !isReducedRead() )
+            throw new IllegalArgumentException("error trying to set the reduced count for a read that is not reduced");
+        if ( i < 0 || i >= getReadBases().length )
+            throw new IllegalArgumentException("illegal offset used when setting the reduced count: " + i);
+
+        // force the initialization of the counts array if it hasn't happened yet
+        getReducedReadCounts()[i] = count;
+    }
+
+    /**
+     * Set the reduced read counts tag for this record to counts
+     *
+     * WARNING: does not actually write this value permanently to the binary tags for this read.  To trigger the conversion
+     *          and push that value into the read's binary tags, use #setReducedReadCountsTag().
+     *
+     * @param counts the count array
+     */
+    public void setReducedReadCounts(final int[] counts) {
+        if ( counts.length != getReadBases().length )
+            throw new IllegalArgumentException("Reduced counts length " + counts.length + " != bases length " + getReadBases().length);
+        retrievedReduceReadCounts = true;
+        reducedReadCounts = counts;
+    }
+
+    /**
+     * Sets the number of bases corresponding the i'th base of the reduced read.
+     *
+     * WARNING: does not actually write this value permanently to the binary tags for this read.  To trigger the conversion
+     *          and push that value into the read's binary tags, use #setReducedReadCountsTag().
+     *
+     * @param i                 the read based coordinate inside the read
+     * @param adjustmentFactor  how much to add/subtract to the current count
+     */
+    public final void adjustReducedCount(final int i, final int adjustmentFactor) {
+        if ( !isReducedRead() )
+            throw new IllegalArgumentException("error trying to set the reduced count for a read that is not reduced");
+        if ( i < 0 || i >= getReadBases().length )
+            throw new IllegalArgumentException("illegal offset used when setting the reduced count: " + i);
+
+        setReducedCount(i, getReducedReadCounts()[i] + adjustmentFactor);
+    }
+
+    /**
+     * Actually decode the consensus tag of a reduce read, returning a newly allocated
+     * set of values countsFromTag to be the real depth of cover at each base of the reduced read.
+     *
+     * for example, if the tag contains [10, 5, -1, -5], after running this function the
+     * byte[] will contain the true counts [10, 15, 9, 5].
+     *
+     * as one might expect.
+     *
+     * @param countsFromTag a non-null byte[] containing the tag encoded reduce reads counts
+     * @return a non-null int[] containing the true depth values for the vector
+     */
+    protected static int[] decodeReduceReadCounts(final byte[] countsFromTag) {
+        final int n = countsFromTag.length;
+        final int[] result = new int[n];
+        final int firstCount = countsFromTag[0] & 0xff; // unsigned byte
+        result[0] = firstCount;
+        for ( int i = 1; i < n; i++ ) {
+            final int offsetCount = countsFromTag[i] & 0xff; // unsigned byte
+            result[i] = (firstCount + offsetCount) % 256;
+        }
+
+        return result;
+    }
+
+    /**
+     * Converts int array from straight counts to the appropriate reduce reads representation in BAM (offset from first value)
+     *
+     * @param counts    the counts array
+     * @return non-null converted byte array
+     */
+    protected static byte[] encodeReduceReadCounts(final int[] counts) {
+        if ( counts.length == 0 )
+            throw new IllegalArgumentException("Trying to write a reduced read with a counts array of length 0");
+
+        final byte[] compressedCountsArray = new byte[counts.length];
+        final int firstCount = (int) MathUtils.bound(counts[0], 0, 255); // we want an unsigned byte capped at max byte representation
+        compressedCountsArray[0] = (byte)firstCount;
+        for ( int i = 1; i < counts.length; i++ ) {
+            final int count = (int) MathUtils.bound(counts[i], 0, 255);
+            final byte offset = (byte)(count - firstCount + (count >= firstCount ? 0 : 256)); // unsigned byte
+            compressedCountsArray[i] = offset;
+        }
+
+        return compressedCountsArray;
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -542,6 +738,7 @@ public class GATKSAMRecord extends BAMRecord {
         emptyRead.setCigarString("");
         emptyRead.setReadBases(new byte[0]);
         emptyRead.setBaseQualities(new byte[0]);
+        if ( read.isReducedRead() ) emptyRead.setReducedReadCounts(new int[0]);
 
         SAMReadGroupRecord samRG = read.getReadGroup();
         emptyRead.clearAttributes();
@@ -575,7 +772,7 @@ public class GATKSAMRecord extends BAMRecord {
     /**
      * A caching version of ReadUtils.getAdaptorBoundary()
      *
-     * @see ReadUtils.getAdaptorBoundary(SAMRecord) for more information about the meaning of this function
+     * see #ReadUtils.getAdaptorBoundary(SAMRecord) for more information about the meaning of this function
      *
      * WARNING -- this function caches a value depending on the inferred insert size and alignment starts
      * and stops of this read and its mate.  Changing these values in any way will invalidate the cached value.

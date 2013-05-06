@@ -43,24 +43,34 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Prints out counts of the number of reference ordered data objects encountered.
+ * Prints out counts of the number of reference ordered data objects encountered along the reference.
  *
+ * <p>CountRodsByRef is a RefWalker, and so traverses the data by position along the reference. It counts ROD
+ * elements (such as, but not limited to, variants) found at each position or within specific intervals if you use
+ * the -L argument (see CommandLineGATK).</p>
  *
- * <h2>Input</h2>
+ * <p>Note that this tool is different from the basic CountRods, which is a RODWalker, and so traverses the data by
+ * ROD. For example if the ROD passed to it is a VCF file, CountRods will simply count the variants in the file.</p>
+ *
+ * <p>Both these tools are different from CountVariants in that they are more generic (they can also count RODs that
+ * are not variants) and CountVariants is more detailed, in that it computes additional statistics (type of variants
+ * being indels vs. SNPs etc). </p>
+ *
+ * <h3>Input</h3>
  * <p>
  * One or more rod files.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * Number of rods seen.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
- *   -R ref.fasta \
  *   -T CountRODsByRef \
+ *   -R ref.fasta \
  *   -o output.txt \
  *   --rod input.vcf
  * </pre>

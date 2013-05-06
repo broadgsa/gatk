@@ -95,12 +95,9 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
     public void setUp() {
         String fileName = privateTestDir + "TabularDataTest.dat";
 
-        // check to see if we have an index, if so, delete it
-        File indexFileName = new File(privateTestDir + "TabularDataTest.dat.idx");
-        if (indexFileName.exists()) indexFileName.delete();  
-
         triplet = new RMDTriplet("tableTest","Table",fileName,RMDStorageType.FILE,new Tags());
-        builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null);
+        // disable auto-index creation/locking in the RMDTrackBuilder for tests
+        builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null,true);
     }
 
     @Test

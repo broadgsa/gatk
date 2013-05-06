@@ -25,16 +25,17 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
+import net.sf.samtools.Bin;
+import net.sf.samtools.GATKBin;
+import net.sf.samtools.GATKChunk;
+import net.sf.samtools.LinearIndex;
 import net.sf.samtools.seekablestream.SeekableBufferedStream;
 import net.sf.samtools.seekablestream.SeekableFileStream;
-
-import net.sf.samtools.*;
-
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -86,6 +87,7 @@ public class GATKBAMIndex {
 
     private SeekableFileStream fileStream;
     private SeekableBufferedStream bufferedStream;
+    private long fileLength;
 
     public GATKBAMIndex(final File file) {
         mFile = file;
@@ -307,6 +309,7 @@ public class GATKBAMIndex {
         try {
             fileStream = new SeekableFileStream(mFile);
             bufferedStream = new SeekableBufferedStream(fileStream,BUFFERED_STREAM_BUFFER_SIZE);
+            fileLength=bufferedStream.length();
         }
         catch (IOException exc) {
             throw new ReviewedStingException("Unable to open index file (" + exc.getMessage() +")" + mFile, exc);
@@ -317,6 +320,7 @@ public class GATKBAMIndex {
         try {
             bufferedStream.close();
             fileStream.close();
+            fileLength = -1;
         }
         catch (IOException exc) {
             throw new ReviewedStingException("Unable to close index file " + mFile, exc);
@@ -368,7 +372,7 @@ public class GATKBAMIndex {
             // We have a rigid expectation here to read in exactly the number of bytes we've limited
             // our buffer to -- if there isn't enough data in the file, the index
             // must be truncated or otherwise corrupt:
-            if(bytesRequested > bufferedStream.length() - bufferedStream.position()){
+            if(bytesRequested > fileLength - bufferedStream.position()){
                 throw new UserException.MalformedFile(mFile, String.format("Premature end-of-file while reading BAM index file %s. " +
                         "It's likely that this file is truncated or corrupt -- " +
                         "Please try re-indexing the corresponding BAM file.",

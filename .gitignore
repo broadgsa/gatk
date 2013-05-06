@@ -1,7 +1,6 @@
 /*.bam
 /*.bai
 /*.bed
-*.idx
 *~
 /*.vcf
 /*.txt

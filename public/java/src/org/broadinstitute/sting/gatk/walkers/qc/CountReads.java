@@ -44,17 +44,17 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  * --read-filter command line argument).  Simplest example of a read-backed analysis.
  *
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * One or more BAM files.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * Number of reads seen.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \

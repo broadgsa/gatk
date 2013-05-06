@@ -31,6 +31,8 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
+import java.util.Comparator;
+
 /**
  * Baseclass used to describe a read transformer like BAQ and BQSR
  *
@@ -64,6 +66,11 @@ abstract public class ReadTransformer {
     private boolean initialized = false;
 
     protected ReadTransformer() {}
+
+    /*
+     * @return the ordering constraint for the given read transformer
+     */
+    public OrderingConstraint getOrderingConstraint() { return OrderingConstraint.DO_NOT_CARE; }
 
     /**
      * Master initialization routine.  Called to setup a ReadTransform, using it's overloaded initializeSub routine.
@@ -165,5 +172,34 @@ abstract public class ReadTransformer {
          * the walker will deal with the calculation itself
          */
         HANDLED_IN_WALKER
+    }
+
+    /*
+     * This enum specifies the constraints that the given read transformer has relative to any other read transformers being used
+     */
+    public enum OrderingConstraint {
+        /*
+         * If 2 read transformers are both active and MUST_BE_FIRST, then an error will be generated
+         */
+        MUST_BE_FIRST,
+
+        /*
+         * No constraints on the ordering for this read transformer
+         */
+        DO_NOT_CARE,
+
+        /*
+         * If 2 read transformers are both active and MUST_BE_LAST, then an error will be generated
+         */
+        MUST_BE_LAST
+    }
+
+    public static class ReadTransformerComparator implements Comparator<ReadTransformer> {
+
+        public int compare(final ReadTransformer r1, final ReadTransformer r2) {
+            if ( r1.getOrderingConstraint() == r2.getOrderingConstraint() )
+                return 0;
+            return ( r1.getOrderingConstraint() == OrderingConstraint.MUST_BE_FIRST || r2.getOrderingConstraint() == OrderingConstraint.MUST_BE_LAST ) ? -1 : 1;
+        }
     }
 }

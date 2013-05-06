@@ -1,0 +1,3 @@
+<ivy-module version="1.0">
+    <info organisation="net.sf" module="picard" revision="1.90.1442" status="release" />
+</ivy-module>

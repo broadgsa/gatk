@@ -62,17 +62,17 @@ import java.util.*;
  * <p>
  * Note that there must be a Tribble feature/codec for the file format as well as an adaptor.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A variant file to filter.
  * </p>
  *
- * <h2>Output</h2>
+ * <h3>Output</h3>
  * <p>
  * A VCF file.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
@@ -87,7 +87,7 @@ import java.util.*;
 @Reference(window=@Window(start=-40,stop=40))
 public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which variants should be written")
     protected VariantContextWriter baseWriter = null;
     private VariantContextWriter vcfwriter; // needed because hapmap/dbsnp indel records move
 
@@ -193,7 +193,10 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
             if ( dbsnp == null )
                 throw new UserException.BadInput("No dbSNP rod was provided, but one is needed to decipher the correct indel alleles from the HapMap records");
 
-            RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),getToolkit().getGenomeLocParser(),getToolkit().getArguments().unsafe);
+            RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+                                                          getToolkit().getGenomeLocParser(),
+                                                          getToolkit().getArguments().unsafe,
+                                                          getToolkit().getArguments().disableAutoIndexCreationAndLockingWhenReadingRods);
             dbsnpIterator = builder.createInstanceOfTrack(VCFCodec.class, new File(dbsnp.dbsnp.getSource())).getIterator();
             // Note that we should really use some sort of seekable iterator here so that the search doesn't take forever
             // (but it's complicated because the hapmap location doesn't match the dbsnp location, so we don't know where to seek to)

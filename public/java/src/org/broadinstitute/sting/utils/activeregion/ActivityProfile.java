@@ -41,7 +41,7 @@ import java.util.*;
  * @since Date created
  */
 public class ActivityProfile {
-    private final static int MAX_PROB_PROPOGATION_DISTANCE = 50;
+    private final static int MAX_PROB_PROPAGATION_DISTANCE = 50;
     protected final static double ACTIVE_PROB_THRESHOLD = 0.002; // TODO: needs to be set-able by the walker author
 
     protected final List<ActivityProfileState> stateList;
@@ -98,7 +98,7 @@ public class ActivityProfile {
      */
     @Ensures("result >= 0")
     public int getMaxProbPropagationDistance() {
-        return MAX_PROB_PROPOGATION_DISTANCE;
+        return MAX_PROB_PROPAGATION_DISTANCE;
     }
 
     /**
@@ -210,7 +210,7 @@ public class ActivityProfile {
             contigLength = parser.getContigInfo(regionStartLoc.getContig()).getSequenceLength();
         } else {
             if ( regionStopLoc.getStart() != loc.getStart() - 1 )
-                throw new IllegalArgumentException("Bad add call to ActivityProfile: loc " + loc + " not immediate after last loc " + regionStopLoc );
+                throw new IllegalArgumentException("Bad add call to ActivityProfile: loc " + loc + " not immediately after last loc " + regionStopLoc );
             regionStopLoc = loc;
         }
 
@@ -239,7 +239,7 @@ public class ActivityProfile {
             throw new IllegalArgumentException("Must add state contiguous to existing states: adding " + stateToAdd);
 
         if ( position >= 0 ) {
-            // ignore states starting before this regions start
+            // ignore states starting before this region's start
             if ( position < size() ) {
                 stateList.get(position).isActiveProb += stateToAdd.isActiveProb;
             } else {
@@ -259,7 +259,7 @@ public class ActivityProfile {
      * Can be overridden by subclasses to transform states in any way
      *
      * There's no particular contract for the output states, except that they can never refer to states
-     * beyond the current end of the stateList unless the explictly include preceding states before
+     * beyond the current end of the stateList unless the explicitly include preceding states before
      * the reference.  So for example if the current state list is [1, 2, 3] this function could return
      * [1,2,3,4,5] but not [1,2,3,5].
      *
@@ -351,6 +351,12 @@ public class ActivityProfile {
     private ActiveRegion popNextReadyActiveRegion(final int activeRegionExtension, final int minRegionSize, final int maxRegionSize, final boolean forceConversion) {
         if ( stateList.isEmpty() )
             return null;
+
+        // If we are flushing the activity profile we need to trim off the excess states so that we don't create regions outside of our current processing interval
+        if( forceConversion ) {
+            final List<ActivityProfileState> statesToTrimAway = new ArrayList<ActivityProfileState>(stateList.subList(getSpan().size(), stateList.size()));
+            stateList.removeAll(statesToTrimAway);
+        }
 
         final ActivityProfileState first = stateList.get(0);
         final boolean isActiveRegion = first.isActiveProb > ACTIVE_PROB_THRESHOLD;

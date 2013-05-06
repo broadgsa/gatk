@@ -28,9 +28,15 @@ package org.broadinstitute.sting.utils.help;
 import com.sun.javadoc.FieldDoc;
 import com.sun.javadoc.PackageDoc;
 import com.sun.javadoc.ProgramElementDoc;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
 
 import java.lang.reflect.Field;
+import java.util.List;
 
 public class HelpUtils {
 
@@ -68,6 +74,29 @@ public class HelpUtils {
         return containingPackage.name().length() > 0 ?
                 String.format("%s.%s", containingPackage.name(), doc.name()) :
                 String.format("%s", doc.name());
+    }
+
+    /**
+     * Simple method to print a list of available annotations.
+     */
+    public static void listAnnotations() {
+        System.out.println("\nThis is a list of available Variant Annotations for use with tools such as UnifiedGenotyper, HaplotypeCaller and VariantAnnotator. Please see the Technical Documentation for more details about these annotations:");
+        System.out.println("http://www.broadinstitute.org/gatk/gatkdocs/");
+        System.out.println("\nStandard annotations in the list below are marked with a '*'.");
+        List<Class<? extends InfoFieldAnnotation>> infoAnnotationClasses = new PluginManager<InfoFieldAnnotation>(InfoFieldAnnotation.class).getPlugins();
+        System.out.println("\nAvailable annotations for the VCF INFO field:");
+        for (int i = 0; i < infoAnnotationClasses.size(); i++)
+            System.out.println("\t" + (StandardAnnotation.class.isAssignableFrom(infoAnnotationClasses.get(i)) ? "*" : "") + infoAnnotationClasses.get(i).getSimpleName());
+        System.out.println();
+        List<Class<? extends GenotypeAnnotation>> genotypeAnnotationClasses = new PluginManager<GenotypeAnnotation>(GenotypeAnnotation.class).getPlugins();
+        System.out.println("\nAvailable annotations for the VCF FORMAT field:");
+        for (int i = 0; i < genotypeAnnotationClasses.size(); i++)
+            System.out.println("\t" + (StandardAnnotation.class.isAssignableFrom(genotypeAnnotationClasses.get(i)) ? "*" : "") + genotypeAnnotationClasses.get(i).getSimpleName());
+        System.out.println();
+        System.out.println("\nAvailable classes/groups of annotations:");
+        for ( Class c : new PluginManager<AnnotationType>(AnnotationType.class).getInterfaces() )
+            System.out.println("\t" + c.getSimpleName());
+        System.out.println();
     }
 
 }

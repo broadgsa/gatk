@@ -49,11 +49,33 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Prints the alignment in something similar to the samtools pileup format.  Each line represents a genomic position,
+ * Emulates the samtools pileup command to print aligned reads
+ *
+ * <p>Prints the alignment in something similar to the samtools pileup format.  Each line represents a genomic position,
  * consisting of chromosome name, coordinate, reference base, read bases, and read qualities.
  *
- * Associated command:
+ * Emulated command:
  * samtools pileup [-f in.ref.fasta] [-t in.ref_list] [-l in.site_list] [-iscg] [-T theta] [-N nHap] [-r pairDiffRate] <in.alignment>
+ *
+ * <h3>Input</h3>
+ * <p>
+ * A BAM file and the interval to print.
+ * </p>
+ *
+ * <h3>Output</h3>
+ * <p>
+ * Formatted pileup-style alignment of reads.
+ * </p>
+ *
+ * <h3>Example</h3>
+ * <pre>
+ * java -Xmx2g -jar GenomeAnalysisTK.jar \
+ *   -T Pileup \
+ *   -R ref.fasta \
+ *   -I aligned_reads.bam \
+ *   -o output.txt
+ * </pre>
+ *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 public class Pileup extends LocusWalker<String, Integer> implements TreeReducible<Integer>, NanoSchedulable {
@@ -68,7 +90,7 @@ public class Pileup extends LocusWalker<String, Integer> implements TreeReducibl
      * and for each read in the pileup it has the read name, offset in the base string, read length, and read mapping quality.  These per
      * read items are delimited with an '@' character.
      */
-    @Argument(fullName="showVerbose",shortName="verbose",doc="Add an extra verbose section to the pileup output")
+    @Argument(fullName="showVerbose",shortName="verbose",doc="Add an extra verbose section to the pileup output", required=false)
     public boolean SHOW_VERBOSE = false;
 
     @Input(fullName="metadata",shortName="metadata",doc="Add these ROD bindings to the output Pileup", required=false)

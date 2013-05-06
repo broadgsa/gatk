@@ -60,12 +60,12 @@ import java.util.Set;
  *
  * If you are looking simply to test the adherence to the VCF specification, use --validationType NONE.
  *
- * <h2>Input</h2>
+ * <h3>Input</h3>
  * <p>
  * A variant set to validate.
  * </p>
  *
- * <h2>Examples</h2>
+ * <h3>Examples</h3>
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \

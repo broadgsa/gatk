@@ -149,7 +149,7 @@ public class ActiveRegion implements HasGenomeLocation {
 
     @Override
     public String toString() {
-        return "ActiveRegion "  + activeRegionLoc.toString() + " active?=" + isActive() + " nReads=" + reads.size() + " ";
+        return "ActiveRegion "  + activeRegionLoc.toString() + " active?=" + isActive() + " nReads=" + reads.size();
     }
 
     /**
@@ -374,6 +374,8 @@ public class ActiveRegion implements HasGenomeLocation {
      *
      * Note that the returned list may be empty, if this active region doesn't overlap the set at all
      *
+     * Note that the resulting regions are all empty, regardless of whether the current active region has reads
+     *
      * @param intervals a non-null set of intervals that are allowed
      * @return an ordered list of active region where each interval is contained within intervals
      */
@@ -383,14 +385,59 @@ public class ActiveRegion implements HasGenomeLocation {
         final List<ActiveRegion> clippedRegions = new LinkedList<ActiveRegion>();
 
         for ( final GenomeLoc overlapping : allOverlapping ) {
-            final GenomeLoc subLoc = getLocation().intersect(overlapping);
-            final int subStart = subLoc.getStart() - getLocation().getStart();
-            final int subEnd = subStart + subLoc.size();
-            final List<ActivityProfileState> subStates = supportingStates.isEmpty() ? supportingStates : supportingStates.subList(subStart, subEnd);
-            final ActiveRegion clipped = new ActiveRegion( subLoc, subStates, isActive, genomeLocParser, extension );
-            clippedRegions.add(clipped);
+            clippedRegions.add(trim(overlapping, extension));
         }
 
         return clippedRegions;
+    }
+
+    /**
+     * Trim this active to just the newExtent, producing a new active region without any reads that has only
+     * the extent of newExtend intersected with the current extent
+     * @param newExtent the new extend of the active region we want
+     * @param newExtension the extension size we want for the newly trimmed active region
+     * @return a non-null, empty active region
+     */
+    public ActiveRegion trim(final GenomeLoc newExtent, final int newExtension) {
+        if ( newExtent == null ) throw new IllegalArgumentException("Active region extent cannot be null");
+
+        final GenomeLoc subLoc = getLocation().intersect(newExtent);
+        final int subStart = subLoc.getStart() - getLocation().getStart();
+        final int subEnd = subStart + subLoc.size();
+        final List<ActivityProfileState> subStates = supportingStates.isEmpty() ? supportingStates : supportingStates.subList(subStart, subEnd);
+        return new ActiveRegion( subLoc, subStates, isActive, genomeLocParser, newExtension );
+    }
+
+    /**
+     * Trim this active to no more than the newExtent, producing a new active region without any reads that
+     * attempts to provide the best possible representation of this active region covering the newExtent.
+     *
+     * The challenge here is that newExtent may (1) be larger than can be represented by this active region
+     * + its original extension and (2) the extension must be symmetric on both sides.  This algorithm
+     * therefore determines how best to represent newExtent as a subset of the span of this
+     * region with a padding value that captures as much of the newExtent as possible.
+     *
+     * For example, suppose this active region is
+     *
+     * Active:    100-200 with extension of 50, so that the true span is 50-250
+     * NewExtent: 150-225 saying that we'd ideally like to just have bases 150-225
+     *
+     * Here we represent the active region as a active region from 150-200 with 25 bp of padding.
+     *
+     * The overall constraint is that the active region can never exceed the original active region, and
+     * the extension is chosen to maximize overlap with the desired region
+     *
+     * @param newExtent the new extend of the active region we want
+     * @return a non-null, empty active region
+     */
+    public ActiveRegion trim(final GenomeLoc newExtent) {
+        if ( newExtent == null ) throw new IllegalArgumentException("Active region extent cannot be null");
+
+        final GenomeLoc subActive = getLocation().intersect(newExtent);
+        final int requiredOnRight = Math.max(newExtent.getStop() - subActive.getStop(), 0);
+        final int requiredOnLeft = Math.max(subActive.getStart() - newExtent.getStart(), 0);
+        final int requiredExtension = Math.min(Math.max(requiredOnLeft, requiredOnRight), getExtension());
+
+        return new ActiveRegion( subActive, Collections.<ActivityProfileState>emptyList(), isActive, genomeLocParser, requiredExtension );
     }
 }
