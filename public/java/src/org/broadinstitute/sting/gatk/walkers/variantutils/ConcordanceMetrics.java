@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variant.GATKVariantContextUtils;
 import org.broadinstitute.variant.variantcontext.*;
 import org.broadinstitute.variant.vcf.VCFHeader;
@@ -81,8 +82,21 @@ public class ConcordanceMetrics {
         return Collections.unmodifiableMap(nrd);
     }
 
+    public Map<String,Double> getPerSampleOGC() {
+        Map<String,Double> ogc = new HashMap<String,Double>(perSampleGenotypeConcordance.size());
+        for ( Map.Entry<String,GenotypeConcordanceTable> sampleTable : perSampleGenotypeConcordance.entrySet() ) {
+            ogc.put(sampleTable.getKey(),calculateOGC(sampleTable.getValue()));
+        }
+
+        return Collections.unmodifiableMap(ogc);
+    }
+
     public Double getOverallNRD() {
         return calculateNRD(overallGenotypeConcordance);
+    }
+
+    public Double getOverallOGC() {
+        return calculateOGC(overallGenotypeConcordance);
     }
 
     public Map<String,Double> getPerSampleNRS() {
@@ -110,6 +124,11 @@ public class ConcordanceMetrics {
         for ( String sample : perSampleGenotypeConcordance.keySet() ) {
             Genotype evalGenotype = eval.getGenotype(sample);
             Genotype truthGenotype = truth.getGenotype(sample);
+            // ensure genotypes are either no-call ("."), missing (empty alleles), or diploid
+            if ( ( ! evalGenotype.isNoCall() && evalGenotype.getPloidy() != 2 && evalGenotype.getPloidy() > 0) ||
+                 ( ! truthGenotype.isNoCall() && truthGenotype.getPloidy() != 2 && truthGenotype.getPloidy() > 0) ) {
+                throw new UserException(String.format("Concordance Metrics is currently only implemented for DIPLOID genotypes, found eval ploidy: %d, comp ploidy: %d",evalGenotype.getPloidy(),truthGenotype.getPloidy()));
+            }
             perSampleGenotypeConcordance.get(sample).update(evalGenotype,truthGenotype,alleleTruth,truthRef);
             overallGenotypeConcordance.update(evalGenotype,truthGenotype,alleleTruth,truthRef);
         }
@@ -136,8 +155,30 @@ public class ConcordanceMetrics {
         return total == 0 ? 1.0 : 1.0 - ( (double) correct)/( (double) total);
     }
 
+    private static double calculateOGC(int[][] concordanceCounts) {
+        int correct = 0;
+        int total = 0;
+        correct += concordanceCounts[GenotypeType.HOM_REF.ordinal()][GenotypeType.HOM_REF.ordinal()];
+        correct += concordanceCounts[GenotypeType.HET.ordinal()][GenotypeType.HET.ordinal()];
+        correct += concordanceCounts[GenotypeType.HOM_VAR.ordinal()][GenotypeType.HOM_VAR.ordinal()];
+        total += correct;
+        total += concordanceCounts[GenotypeType.HOM_REF.ordinal()][GenotypeType.HET.ordinal()];
+        total += concordanceCounts[GenotypeType.HOM_REF.ordinal()][GenotypeType.HOM_VAR.ordinal()];
+        total += concordanceCounts[GenotypeType.HET.ordinal()][GenotypeType.HOM_REF.ordinal()];
+        total += concordanceCounts[GenotypeType.HET.ordinal()][GenotypeType.HOM_VAR.ordinal()];
+        total += concordanceCounts[GenotypeType.HOM_VAR.ordinal()][GenotypeType.HOM_REF.ordinal()];
+        total += concordanceCounts[GenotypeType.HOM_VAR.ordinal()][GenotypeType.HET.ordinal()];
+        // NRD is by definition incorrec/total = 1.0-correct/total
+        // note: if there are no observations (so the ratio is NaN), set this to 100%
+        return total == 0 ? 1.0 : ( (double) correct)/( (double) total);
+    }
+
     private static double calculateNRS(GenotypeConcordanceTable table) {
         return calculateNRS(table.getTable());
+    }
+
+    private static double calculateOGC(GenotypeConcordanceTable table) {
+        return calculateOGC(table.getTable());
     }
 
     private static double calculateNRS(int[][] concordanceCounts) {

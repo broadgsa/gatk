@@ -293,6 +293,7 @@ public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,Vari
             concordanceCompProportions.addColumn("Proportion","%.3f");
             concordanceCounts.addColumn("Count","%d");
             concordanceEvalProportions.addColumn("Proportion","%.3f");
+            concordanceSummary.addColumn("Overall_Genotype_Concordance","%.3f");
 
             for ( Map.Entry<String,ConcordanceMetrics.GenotypeConcordanceTable> entry : metrics.getPerSampleGenotypeConcordance().entrySet() ) {
                 ConcordanceMetrics.GenotypeConcordanceTable table = entry.getValue();
@@ -378,9 +379,13 @@ public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,Vari
             for ( Map.Entry<String,Double> nrdEntry : metrics.getPerSampleNRD().entrySet() ) {
                 concordanceSummary.set(nrdEntry.getKey(),"Non-Reference_Discrepancy",nrdEntry.getValue());
             }
+            for ( Map.Entry<String,Double> nrdEntry : metrics.getPerSampleOGC().entrySet() ) {
+                concordanceSummary.set(nrdEntry.getKey(),"Overall_Genotype_Concordance",nrdEntry.getValue());
+            }
             concordanceSummary.set("ALL_NRS_NRD","Sample","ALL");
             concordanceSummary.set("ALL_NRS_NRD","Non-Reference_Sensitivity",metrics.getOverallNRS());
             concordanceSummary.set("ALL_NRS_NRD","Non-Reference_Discrepancy",metrics.getOverallNRD());
+            concordanceSummary.set("ALL_NRS_NRD","Overall_Genotype_Concordance",metrics.getOverallOGC());
 
 
             for (ConcordanceMetrics.SiteConcordanceType type : ConcordanceMetrics.SiteConcordanceType.values() ) {
@@ -411,6 +416,7 @@ public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,Vari
             concordanceCounts.addColumn("Mismatching_Alleles","%d");
             concordanceSummary.addColumn("Non-Reference Sensitivity","%.3f");
             concordanceSummary.addColumn("Non-Reference Discrepancy","%.3f");
+            concordanceSummary.addColumn("Overall_Genotype_Concordance","%.3f");
             for (ConcordanceMetrics.SiteConcordanceType type : ConcordanceMetrics.SiteConcordanceType.values() ) {
                 siteConcordance.addColumn(type.toString(),"%d");
             }
@@ -463,9 +469,13 @@ public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,Vari
             for ( Map.Entry<String,Double> nrdEntry : metrics.getPerSampleNRD().entrySet() ) {
                 concordanceSummary.set(nrdEntry.getKey(),"Non-Reference Discrepancy",nrdEntry.getValue());
             }
+            for ( Map.Entry<String,Double> ogcEntry : metrics.getPerSampleOGC().entrySet() ) {
+                concordanceSummary.set(ogcEntry.getKey(),"Overall_Genotype_Concordance",ogcEntry.getValue());
+            }
             concordanceSummary.set("ALL","Sample","ALL");
             concordanceSummary.set("ALL","Non-Reference Sensitivity",metrics.getOverallNRS());
             concordanceSummary.set("ALL","Non-Reference Discrepancy",metrics.getOverallNRD());
+            concordanceSummary.set("ALL","Overall_Genotype_Concordance",metrics.getOverallOGC());
 
             for (ConcordanceMetrics.SiteConcordanceType type : ConcordanceMetrics.SiteConcordanceType.values() ) {
                 siteConcordance.set("Comparison",type.toString(),metrics.getOverallSiteConcordance().get(type));
