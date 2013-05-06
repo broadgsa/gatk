@@ -25,7 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -298,19 +301,19 @@ public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,Vari
                         String rowKey = String.format("%s_%s_%s",entry.getKey(),evalType.toString(),compType.toString());
                         concordanceCounts.set(rowKey,"Sample",entry.getKey());
                         concordanceCounts.set(rowKey,"Eval_Genotype",evalType.toString());
-                        concordanceCounts.set(rowKey,"Comp_Genotype",evalType.toString());
+                        concordanceCounts.set(rowKey,"Comp_Genotype",compType.toString());
                         int count = table.get(evalType, compType);
                         concordanceCounts.set(rowKey,"Count",count);
                         if ( evalType == GenotypeType.HET || evalType == GenotypeType.HOM_REF || evalType == GenotypeType.HOM_VAR) {
                             concordanceEvalProportions.set(rowKey,"Sample",entry.getKey());
                             concordanceEvalProportions.set(rowKey,"Eval_Genotype",evalType.toString());
-                            concordanceEvalProportions.set(rowKey,"Comp_Genotype",evalType.toString());
+                            concordanceEvalProportions.set(rowKey,"Comp_Genotype",compType.toString());
                             concordanceEvalProportions.set(rowKey,"Proportion",repairNaN(( (double) count)/table.getnEvalGenotypes(evalType)));
                         }
                         if ( compType == GenotypeType.HET || compType == GenotypeType.HOM_VAR || compType == GenotypeType.HOM_REF ) {
                             concordanceCompProportions.set(rowKey,"Sample",entry.getKey());
                             concordanceCompProportions.set(rowKey,"Eval_Genotype",evalType.toString());
-                            concordanceCompProportions.set(rowKey,"Comp_Genotype",evalType.toString());
+                            concordanceCompProportions.set(rowKey,"Comp_Genotype",compType.toString());
                             concordanceCompProportions.set(rowKey,"Proportion",repairNaN(( (double) count)/table.getnCompGenotypes(compType)));
                         }
                     }
@@ -337,19 +340,19 @@ public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,Vari
                     String rowKey = String.format("%s_%s_%s",sampleKey,evalType.toString(),compType.toString());
                     concordanceCounts.set(rowKey,"Sample",sampleKey);
                     concordanceCounts.set(rowKey,"Eval_Genotype",evalType.toString());
-                    concordanceCounts.set(rowKey,"Comp_Genotype",evalType.toString());
+                    concordanceCounts.set(rowKey,"Comp_Genotype",compType.toString());
                     int count = table.get(evalType, compType);
                     concordanceCounts.set(rowKey,"Count",count);
                     if ( evalType == GenotypeType.HET || evalType == GenotypeType.HOM_REF || evalType == GenotypeType.HOM_VAR) {
                         concordanceEvalProportions.set(rowKey,"Sample",sampleKey);
                         concordanceEvalProportions.set(rowKey,"Eval_Genotype",evalType.toString());
-                        concordanceEvalProportions.set(rowKey,"Comp_Genotype",evalType.toString());
+                        concordanceEvalProportions.set(rowKey,"Comp_Genotype",compType.toString());
                         concordanceEvalProportions.set(rowKey,"Proportion",repairNaN(( (double) count)/table.getnEvalGenotypes(evalType)));
                     }
                     if ( compType == GenotypeType.HET || compType == GenotypeType.HOM_VAR || compType == GenotypeType.HOM_REF ) {
                         concordanceCompProportions.set(rowKey,"Sample",sampleKey);
                         concordanceCompProportions.set(rowKey,"Eval_Genotype",evalType.toString());
-                        concordanceCompProportions.set(rowKey,"Comp_Genotype",evalType.toString());
+                        concordanceCompProportions.set(rowKey,"Comp_Genotype",compType.toString());
                         concordanceCompProportions.set(rowKey,"Proportion",repairNaN(( (double) count)/table.getnCompGenotypes(compType)));
                     }
                 }
