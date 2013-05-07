@@ -101,8 +101,6 @@ public class TraverseReadsNano<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,
         final Iterator<MapData> aggregatedInputs = aggregateMapData(dataProvider);
         final T result = nanoScheduler.execute(aggregatedInputs, myMap, sum, myReduce);
 
-        updateCumulativeMetrics(dataProvider.getShard());
-
         return result;
     }
 

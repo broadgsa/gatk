@@ -440,9 +440,8 @@ public class SAMDataSource {
      * @return Cumulative read metrics.
      */
     public ReadMetrics getCumulativeReadMetrics() {
-        synchronized(readMetrics) {
-            return readMetrics.clone();
-        }
+        // don't return a clone here because the engine uses a pointer to this object
+        return readMetrics;
     }
 
     /**
@@ -450,9 +449,7 @@ public class SAMDataSource {
      * @param readMetrics The 'incremental' read metrics, to be incorporated into the cumulative metrics.
      */
     public void incorporateReadMetrics(final ReadMetrics readMetrics) {
-        synchronized(this.readMetrics) {
-            this.readMetrics.incrementMetrics(readMetrics);
-        }
+        this.readMetrics.incrementMetrics(readMetrics);
     }
 
     public StingSAMIterator seek(Shard shard) {
@@ -548,7 +545,10 @@ public class SAMDataSource {
 
         MergingSamRecordIterator mergingIterator = readers.createMergingIterator(iteratorMap);
 
-        return applyDecoratingIterators(shard.getReadMetrics(),
+        // The readMetrics object being passed in should be that of this dataSource and NOT the shard: the dataSource's
+        // metrics is intended to keep track of the reads seen (and hence passed to the CountingFilteringIterator when
+        // we apply the decorators), whereas the shard's metrics is used to keep track the "records" seen.
+        return applyDecoratingIterators(readMetrics,
                 enableVerification,
                 readProperties.useOriginalBaseQualities(),
                 new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(mergingIterator)),

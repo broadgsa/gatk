@@ -259,8 +259,6 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
         final TraverseActiveRegionReduce myReduce = new TraverseActiveRegionReduce();
         final T result = nanoScheduler.execute(activeRegionIterator, myMap, sum, myReduce);
 
-        updateCumulativeMetrics(dataProvider.getShard());
-
         return result;
     }
 

@@ -41,7 +41,8 @@ import java.util.NoSuchElementException;
  * @author Mark DePristo
  */
 public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
-    private final ReadMetrics runtimeMetrics;
+    private final ReadMetrics globalRuntimeMetrics;
+    private final ReadMetrics privateRuntimeMetrics;
     private final Iterator<SAMRecord> iterator;
     private final Collection<ReadFilter> filters;
     private SAMRecord next = null;
@@ -54,7 +55,8 @@ public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
      * @param filters    the filter (which may be a FilterAggregator)
      */
     public CountingFilteringIterator(ReadMetrics metrics, Iterator<SAMRecord> iterator, Collection<ReadFilter> filters) {
-        this.runtimeMetrics = metrics;
+        this.globalRuntimeMetrics = metrics;
+        privateRuntimeMetrics = new ReadMetrics();
         this.iterator = iterator;
         this.filters = filters;
         next = getNextRecord();
@@ -95,6 +97,8 @@ public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
 
     public void close() {
         CloserUtil.close(iterator);
+        // update the global metrics with all the data we collected here
+        globalRuntimeMetrics.incrementMetrics(privateRuntimeMetrics);
     }
 
     /**
@@ -105,12 +109,15 @@ public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
     private SAMRecord getNextRecord() {
         while (iterator.hasNext()) {
             SAMRecord record = iterator.next();
-            runtimeMetrics.incrementNumReadsSeen();
+
+            // update only the private copy of the metrics so that we don't need to worry about race conditions
+            // that can arise when trying to update the global copy; it was agreed that this is the cleanest solution.
+            privateRuntimeMetrics.incrementNumReadsSeen();
 
             boolean filtered = false;
             for(SamRecordFilter filter: filters) {
                 if(filter.filterOut(record)) {
-                    runtimeMetrics.incrementFilter(filter);
+                    privateRuntimeMetrics.incrementFilter(filter);
                     filtered = true;
                     break;
                 }

@@ -25,10 +25,11 @@
 
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class CountReadsUnitTest {
+public class CountReadsUnitTest extends BaseTest {
 
     @Test
     public void testReadsDoNotOverflowInt() {
@@ -45,5 +46,6 @@ public class CountReadsUnitTest {
         }
 
         Assert.assertEquals(sum.longValue(), moreThanMaxInt);
+        Assert.assertTrue(sum.longValue() > (long) Integer.MAX_VALUE);
     }
 }
