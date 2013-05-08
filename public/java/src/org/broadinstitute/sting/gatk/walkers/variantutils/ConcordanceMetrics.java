@@ -168,7 +168,7 @@ public class ConcordanceMetrics {
         total += concordanceCounts[GenotypeType.HET.ordinal()][GenotypeType.HOM_VAR.ordinal()];
         total += concordanceCounts[GenotypeType.HOM_VAR.ordinal()][GenotypeType.HOM_REF.ordinal()];
         total += concordanceCounts[GenotypeType.HOM_VAR.ordinal()][GenotypeType.HET.ordinal()];
-        // NRD is by definition incorrec/total = 1.0-correct/total
+        // OGC is by definition correct/total
         // note: if there are no observations (so the ratio is NaN), set this to 100%
         return total == 0 ? 1.0 : ( (double) correct)/( (double) total);
     }

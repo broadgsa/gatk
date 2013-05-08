@@ -272,7 +272,7 @@ public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,Vari
         GATKReportTable concordanceCounts = new GATKReportTable("GenotypeConcordance_Counts","Per-sample concordance tables: comparison counts",2+GenotypeType.values().length*GenotypeType.values().length);
         GATKReportTable concordanceEvalProportions = new GATKReportTable("GenotypeConcordance_EvalProportions", "Per-sample concordance tables: proportions of genotypes called in eval",2+GenotypeType.values().length*GenotypeType.values().length);
         GATKReportTable concordanceCompProportions = new GATKReportTable("GenotypeConcordance_CompProportions", "Per-sample concordance tables: proportions of genotypes called in comp",2+GenotypeType.values().length*GenotypeType.values().length);
-        GATKReportTable concordanceSummary = new GATKReportTable("GenotypeConcordance_Summary","Per-sample summary statistics: NRS and NRD",2);
+        GATKReportTable concordanceSummary = new GATKReportTable("GenotypeConcordance_Summary","Per-sample summary statistics: NRS, NRD, and OGC",2);
         GATKReportTable siteConcordance = new GATKReportTable("SiteConcordance_Summary","Site-level summary statistics",ConcordanceMetrics.SiteConcordanceType.values().length);
         if ( moltenize ) {
             concordanceCompProportions.addColumn("Sample","%s");
@@ -379,8 +379,8 @@ public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,Vari
             for ( Map.Entry<String,Double> nrdEntry : metrics.getPerSampleNRD().entrySet() ) {
                 concordanceSummary.set(nrdEntry.getKey(),"Non-Reference_Discrepancy",nrdEntry.getValue());
             }
-            for ( Map.Entry<String,Double> nrdEntry : metrics.getPerSampleOGC().entrySet() ) {
-                concordanceSummary.set(nrdEntry.getKey(),"Overall_Genotype_Concordance",nrdEntry.getValue());
+            for ( Map.Entry<String,Double> ogcEntry : metrics.getPerSampleOGC().entrySet() ) {
+                concordanceSummary.set(ogcEntry.getKey(),"Overall_Genotype_Concordance",ogcEntry.getValue());
             }
             concordanceSummary.set("ALL_NRS_NRD","Sample","ALL");
             concordanceSummary.set("ALL_NRS_NRD","Non-Reference_Sensitivity",metrics.getOverallNRS());
