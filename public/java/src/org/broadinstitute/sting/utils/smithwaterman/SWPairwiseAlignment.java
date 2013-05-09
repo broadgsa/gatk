@@ -45,7 +45,7 @@ import java.util.*;
  * Date: Mar 23, 2009
  * Time: 1:54:54 PM
  */
-public final class SWPairwiseAlignment {
+public final class SWPairwiseAlignment implements SmithWaterman {
     private int alignment_offset; // offset of s2 w/respect to s1
     private Cigar alignmentCigar;
 
@@ -57,7 +57,7 @@ public final class SWPairwiseAlignment {
     private static final int CLIP = 3;
 
     protected static boolean cutoff = false;
-    private static boolean DO_SOFTCLIP = true;
+    private boolean doSoftClipping = true;
 
     /**
      * The SW scoring matrix, stored for debugging purposes if keepScoringMatrix is true
@@ -90,8 +90,21 @@ public final class SWPairwiseAlignment {
      * @param parameters the SW parameters to use
      */
     public SWPairwiseAlignment(byte[] seq1, byte[] seq2, Parameters parameters) {
-        this.parameters = parameters;
+        this(parameters);
         align(seq1,seq2);
+    }
+
+    /**
+     * Create a new SW pairwise aligner, without actually doing any alignment yet
+     *
+     * @param parameters the SW parameters to use
+     */
+    protected SWPairwiseAlignment(Parameters parameters) {
+        this.parameters = parameters;
+    }
+
+    protected void setDoSoftClipping(final boolean doSoftClipping) {
+        this.doSoftClipping = doSoftClipping;
     }
 
     /**
@@ -111,8 +124,10 @@ public final class SWPairwiseAlignment {
         this(seq1,seq2,SWParameterSet.ORIGINAL_DEFAULT);
     }
 
+    @Override
     public Cigar getCigar() { return alignmentCigar ; }
 
+    @Override
     public int getAlignmentStart2wrt1() { return alignment_offset; }
 
     public void align(final byte[] a, final byte[] b) {
@@ -265,7 +280,7 @@ public final class SWPairwiseAlignment {
 
         List<CigarElement> lce = new ArrayList<CigarElement>(5);
 
-        if ( segment_length > 0 && DO_SOFTCLIP ) {
+        if ( segment_length > 0 && doSoftClipping ) {
             lce.add(makeElement(CLIP, segment_length));
             segment_length = 0;
         }
@@ -316,7 +331,7 @@ public final class SWPairwiseAlignment {
         // last 3 bases of the read overlap with/align to the ref), the cigar will be still 5M if
         // DO_SOFTCLIP is false or 2S3M if DO_SOFTCLIP is true.
         // The consumers need to check for the alignment offset and deal with it properly.
-        if (DO_SOFTCLIP ) {
+        if (doSoftClipping ) {
             lce.add(makeElement(state, segment_length));
             if ( p2> 0 ) lce.add(makeElement(CLIP, p2));
             alignment_offset = p1 ;
@@ -360,7 +375,7 @@ public final class SWPairwiseAlignment {
 
         Cigar cigar = getCigar();
 
-        if ( ! DO_SOFTCLIP ) {
+        if ( ! doSoftClipping ) {
 
             // we need to go through all the hassle below only if we do not do softclipping;
             // otherwise offset is never negative

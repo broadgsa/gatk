@@ -33,8 +33,10 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -84,6 +86,30 @@ public class ReadClipperUnitTest extends BaseTest {
                 assertUnclippedLimits(read, clipRight);
             }
         }
+    }
+
+    @DataProvider(name = "ClippedReadLengthData")
+    public Object[][] makeClippedReadLengthData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        // this functionality can be adapted to provide input data for whatever you might want in your data
+        final int originalReadLength = 50;
+        for ( int nToClip = 1; nToClip < originalReadLength - 1; nToClip++ ) {
+            tests.add(new Object[]{originalReadLength, nToClip});
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "ClippedReadLengthData", enabled = true)
+    public void testHardClipReadLengthIsRight(final int originalReadLength, final int nToClip) {
+        GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(originalReadLength + "M");
+        read.getReadLength(); // provoke the caching of the read length
+        final int expectedReadLength = originalReadLength - nToClip;
+        GATKSAMRecord clipped = ReadClipper.hardClipByReadCoordinates(read, 0, nToClip - 1);
+        Assert.assertEquals(clipped.getReadLength(), expectedReadLength,
+                String.format("Clipped read length %d with cigar %s not equal to the expected read length %d after clipping %d bases from the left from a %d bp read with cigar %s",
+                        clipped.getReadLength(), clipped.getCigar(), expectedReadLength, nToClip, read.getReadLength(), read.getCigar()));
     }
 
     @Test(enabled = true)

@@ -438,7 +438,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         // note that start and stop are 0 based, but the stop is exclusive so we don't subtract 1
         out.printf("%s\t%d\t%d\t%s", loc.getContig(), loc.getStart() - 1, loc.getStop(), featureName);
         for ( final double value : values )
-            out.print(String.format("\t%.3f", value));
+            out.print(String.format("\t%.5f", value));
         out.println();
     }
 

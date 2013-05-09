@@ -29,6 +29,7 @@ import org.apache.commons.io.FileUtils;
 import org.broadinstitute.sting.utils.io.IOUtils;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -188,5 +189,31 @@ public class UtilsUnitTest extends BaseTest {
 
         final String sourceString = FileUtils.readFileToString(source);
         Assert.assertEquals(Utils.calcMD5(sourceString), sourceMD5);
+    }
+
+    @Test
+    public void testLongestCommonOps() {
+        for ( int prefixLen = 0; prefixLen < 20; prefixLen++ ) {
+            for ( int extraSeq1Len = 0; extraSeq1Len < 10; extraSeq1Len++ ) {
+                for ( int extraSeq2Len = 0; extraSeq2Len < 10; extraSeq2Len++ ) {
+                    for ( int max = 0; max < 50; max++ ) {
+                        final String prefix = Utils.dupString("A", prefixLen);
+                        final int expected = Math.min(prefixLen, max);
+
+                        {
+                            final String seq1 = prefix + Utils.dupString("C", extraSeq1Len);
+                            final String seq2 = prefix + Utils.dupString("G", extraSeq1Len);
+                            Assert.assertEquals(Utils.longestCommonPrefix(seq1.getBytes(), seq2.getBytes(), max), expected, "LongestCommonPrefix failed: seq1 " + seq1 + " seq2 " + seq2 + " max " + max);
+                        }
+
+                        {
+                            final String seq1 = Utils.dupString("C", extraSeq1Len) + prefix;
+                            final String seq2 = Utils.dupString("G", extraSeq1Len) + prefix;
+                            Assert.assertEquals(Utils.longestCommonSuffix(seq1.getBytes(), seq2.getBytes(), max), expected, "longestCommonSuffix failed: seq1 " + seq1 + " seq2 " + seq2 + " max " + max);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
