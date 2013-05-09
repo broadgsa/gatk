@@ -407,10 +407,10 @@ public class FilePointer {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("FilePointer:%n");
+        builder.append("FilePointer:\n");
         builder.append("\tlocations = {");
         builder.append(Utils.join(";",locations));
-        builder.append("}%n\tregions = %n");
+        builder.append("}\n\tregions = \n");
         for(Map.Entry<SAMReaderID,SAMFileSpan> entry: fileSpans.entrySet()) {
             builder.append(entry.getKey());
             builder.append("= {");
