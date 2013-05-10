@@ -113,7 +113,7 @@ object PipelineTest extends BaseTest with Logging {
   private def assertMatchingMD5s(name: String, fileMD5s: Traversable[(File, String)], parameterize: Boolean) {
     var failed = 0
     for ((file, expectedMD5) <- fileMD5s) {
-      val calculatedMD5 = md5DB.testFileMD5(name, file, expectedMD5, parameterize)
+      val calculatedMD5 = md5DB.testFileMD5(name, "", file, expectedMD5, parameterize).actualMD5
       if (!parameterize && expectedMD5 != "" && expectedMD5 != calculatedMD5)
         failed += 1
     }
