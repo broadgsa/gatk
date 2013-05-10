@@ -38,7 +38,7 @@ import java.util.Arrays;
  * User: rpoplin, carneiro
  * Date: 3/1/12
  */
-public final class Log10PairHMM extends PairHMM {
+public final class Log10PairHMM extends N2MemoryPairHMM {
     /**
      * Should we use exact log10 calculation (true), or an approximation (false)?
      */
