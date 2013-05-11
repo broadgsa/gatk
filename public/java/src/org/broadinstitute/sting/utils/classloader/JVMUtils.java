@@ -248,4 +248,62 @@ public class JVMUtils {
             interfaces.add(interfaceClass.getSimpleName());
         return Utils.join(", ", interfaces);
     }
+
+    /**
+     * Returns the Class that invoked the specified "callee" class by examining the runtime stack.
+     * The calling class is defined as the first class below the callee class on the stack.
+     *
+     * For example, given callee == MyClass and the following runtime stack:
+     *
+     * JVMUtils.getCallingClass(MyClass) <-- top
+     * MyClass.foo()
+     * MyClass.bar()
+     * OtherClass.foo()
+     * OtherClass.bar()
+     * etc.
+     *
+     * this method would return OtherClass, since its methods invoked the methods in MyClass.
+     *
+     * Considers only the occurrence of the callee class on the stack that is closest to the top
+     * (even if there are multiple, non-contiguous occurrences).
+     *
+     * @param callee Class object for the class whose calling class we want to locate
+     * @return Class object for the class that invoked the callee class, or null if
+     *         no calling class was found
+     * @throws IllegalArgumentException if the callee class is not found on the runtime stack
+     * @throws IllegalStateException if we get an error while trying to load the Class object for the calling
+     *                               class reported on the runtime stack
+     */
+    public static Class getCallingClass( final Class callee ) {
+        final StackTraceElement[] stackTrace = new Throwable().getStackTrace();
+        final String calleeClassName = callee.getName();
+
+        // Start examining the stack at the second-from-the-top position, to remove
+        // this method call (ie., the call to getCallingClass() itself) from consideration.
+        int stackTraceIndex = 1;
+
+        // Find the first occurrence of the callee on the runtime stack. Need to use String comparison
+        // unfortunately, due to limitations of the StackTraceElement class.
+        while ( stackTraceIndex < stackTrace.length && ! stackTrace[stackTraceIndex].getClassName().equals(calleeClassName) ) {
+            stackTraceIndex++;
+        }
+
+        // Make sure we actually found the callee class on the stack
+        if ( stackTraceIndex == stackTrace.length ) {
+            throw new IllegalArgumentException(String.format("Specified callee %s is not present on the call stack", callee.getSimpleName()));
+        }
+
+        // Now find the caller class, which will be the class below the callee on the stack
+        while ( stackTraceIndex < stackTrace.length && stackTrace[stackTraceIndex].getClassName().equals(calleeClassName) ) {
+            stackTraceIndex++;
+        }
+
+        try {
+            return stackTraceIndex < stackTrace.length ? Class.forName(stackTrace[stackTraceIndex].getClassName()) : null;
+        }
+        catch ( ClassNotFoundException e ) {
+            throw new IllegalStateException(String.format("Could not find caller class %s from the runtime stack in the classpath",
+                                                          stackTrace[stackTraceIndex].getClassName()));
+        }
+    }
 }
