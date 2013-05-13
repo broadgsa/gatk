@@ -789,4 +789,20 @@ public class Utils {
         }
         return end;
     }
+
+    /**
+     * Trim any number of bases from the front and/or back of an array
+     *
+     * @param seq                the sequence to trim
+     * @param trimFromFront      how much to trim from the front
+     * @param trimFromBack       how much to trim from the back
+     * @return a non-null array; can be the original array (i.e. not a copy)
+     */
+    public static byte[] trimArray(final byte[] seq, final int trimFromFront, final int trimFromBack) {
+        if ( trimFromFront + trimFromBack > seq.length )
+            throw new IllegalArgumentException("trimming total is larger than the original array");
+
+        // don't perform array copies if we need to copy everything anyways
+        return  ( trimFromFront == 0 && trimFromBack == 0 ) ? seq : Arrays.copyOfRange(seq, trimFromFront, seq.length - trimFromBack);
+    }
 }
