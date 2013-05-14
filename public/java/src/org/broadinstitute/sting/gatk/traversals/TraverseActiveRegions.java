@@ -291,6 +291,8 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
         }
         @Override
         public boolean hasNext() {
+            if ( engine.exceedsRuntimeLimit() ) // too much time has been dedicated to doing work, just stop
+                 return false;
             if ( ! readyActiveRegions.isEmpty() )
                 return true;
             if ( done )
