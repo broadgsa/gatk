@@ -570,9 +570,9 @@ public class GenomeAnalysisEngine {
                 if (readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
                     throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Active region walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
                 if(intervals == null)
-                    return readsDataSource.createShardIteratorOverMappedReads(new LocusShardBalancer());
+                    return readsDataSource.createShardIteratorOverMappedReads(new ActiveRegionShardBalancer());
                 else
-                    return readsDataSource.createShardIteratorOverIntervals(((ActiveRegionWalker)walker).extendIntervals(intervals, this.genomeLocParser, this.getReferenceDataSource().getReference()), new LocusShardBalancer());
+                    return readsDataSource.createShardIteratorOverIntervals(((ActiveRegionWalker)walker).extendIntervals(intervals, this.genomeLocParser, this.getReferenceDataSource().getReference()), new ActiveRegionShardBalancer());
             } 
             else if(walker instanceof ReadWalker || walker instanceof ReadPairWalker || walker instanceof DuplicateWalker) {
                 // Apply special validation to read pair walkers.

@@ -45,19 +45,43 @@ import java.util.*;
  * Date: Mar 23, 2009
  * Time: 1:54:54 PM
  */
-public final class SWPairwiseAlignment {
-    private int alignment_offset; // offset of s2 w/respect to s1
-    private Cigar alignmentCigar;
+public class SWPairwiseAlignment implements SmithWaterman {
 
-    private final Parameters parameters;
+    protected SWPairwiseAlignmentResult alignmentResult;
 
-    private static final int MSTATE = 0;
-    private static final int ISTATE = 1;
-    private static final int DSTATE = 2;
-    private static final int CLIP = 3;
+    protected final Parameters parameters;
+
+    /**
+     * The state of a trace step through the matrix
+     */
+    protected enum State {
+        MATCH,
+        INSERTION,
+        DELETION,
+        CLIP
+    }
+
+    /**
+     * What strategy should we use when the best path does not start/end at the corners of the matrix?
+     */
+    public enum OVERHANG_STRATEGY {
+        /*
+         * Add softclips for the overhangs
+         */
+        SOFTCLIP,
+        /*
+         * Treat the overhangs as proper insertions/deletions
+         */
+        INDEL,
+        /*
+         * Just ignore the overhangs
+         */
+        IGNORE
+    }
 
     protected static boolean cutoff = false;
-    private static boolean DO_SOFTCLIP = true;
+
+    protected OVERHANG_STRATEGY overhang_strategy = OVERHANG_STRATEGY.SOFTCLIP;
 
     /**
      * The SW scoring matrix, stored for debugging purposes if keepScoringMatrix is true
@@ -90,8 +114,17 @@ public final class SWPairwiseAlignment {
      * @param parameters the SW parameters to use
      */
     public SWPairwiseAlignment(byte[] seq1, byte[] seq2, Parameters parameters) {
-        this.parameters = parameters;
+        this(parameters);
         align(seq1,seq2);
+    }
+
+    /**
+     * Create a new SW pairwise aligner, without actually doing any alignment yet
+     *
+     * @param parameters the SW parameters to use
+     */
+    protected SWPairwiseAlignment(Parameters parameters) {
+        this.parameters = parameters;
     }
 
     /**
@@ -111,41 +144,94 @@ public final class SWPairwiseAlignment {
         this(seq1,seq2,SWParameterSet.ORIGINAL_DEFAULT);
     }
 
-    public Cigar getCigar() { return alignmentCigar ; }
+    @Override
+    public Cigar getCigar() { return alignmentResult.cigar ; }
 
-    public int getAlignmentStart2wrt1() { return alignment_offset; }
+    @Override
+    public int getAlignmentStart2wrt1() { return alignmentResult.alignment_offset; }
 
-    public void align(final byte[] a, final byte[] b) {
-        final int n = a.length;
-        final int m = b.length;
+    /**
+     * Aligns the alternate sequence to the reference sequence
+     *
+     * @param reference  ref sequence
+     * @param alternate  alt sequence
+     */
+    protected void align(final byte[] reference, final byte[] alternate) {
+        if ( reference == null || reference.length == 0 || alternate == null || alternate.length == 0 )
+            throw new IllegalArgumentException("Non-null, non-empty sequences are required for the Smith-Waterman calculation");
+
+        final int n = reference.length;
+        final int m = alternate.length;
         double [] sw = new double[(n+1)*(m+1)];
         if ( keepScoringMatrix ) SW = sw;
         int [] btrack = new int[(n+1)*(m+1)];
 
-        calculateMatrix(a, b, sw, btrack);
-        calculateCigar(n, m, sw, btrack); // length of the segment (continuous matches, insertions or deletions)
+        calculateMatrix(reference, alternate, sw, btrack);
+        alignmentResult = calculateCigar(n, m, sw, btrack, overhang_strategy); // length of the segment (continuous matches, insertions or deletions)
     }
 
+    /**
+     * Calculates the SW matrices for the given sequences
+     *
+     * @param reference  ref sequence
+     * @param alternate  alt sequence
+     * @param sw         the Smith-Waterman matrix to populate
+     * @param btrack     the back track matrix to populate
+     */
+    protected void calculateMatrix(final byte[] reference, final byte[] alternate, double[] sw, int[] btrack) {
+        calculateMatrix(reference, alternate, sw, btrack, overhang_strategy);
+    }
 
-    private void calculateMatrix(final byte[] a, final byte[] b, double [] sw, int [] btrack ) {
-        final int n = a.length+1;
-        final int m = b.length+1;
+    /**
+     * Calculates the SW matrices for the given sequences
+     *
+     * @param reference  ref sequence
+     * @param alternate  alt sequence
+     * @param sw         the Smith-Waterman matrix to populate
+     * @param btrack     the back track matrix to populate
+     * @param overhang_strategy    the strategy to use for dealing with overhangs
+     */
+    protected void calculateMatrix(final byte[] reference, final byte[] alternate, double[] sw, int[] btrack, final OVERHANG_STRATEGY overhang_strategy) {
+        if ( reference.length == 0 || alternate.length == 0 )
+            throw new IllegalArgumentException("Non-null, non-empty sequences are required for the Smith-Waterman calculation");
+
+        final int n = reference.length+1;
+        final int m = alternate.length+1;
 
         //final double MATRIX_MIN_CUTOFF=-1e100;   // never let matrix elements drop below this cutoff
         final double MATRIX_MIN_CUTOFF;   // never let matrix elements drop below this cutoff
         if ( cutoff ) MATRIX_MIN_CUTOFF = 0.0;
         else MATRIX_MIN_CUTOFF = -1e100;
 
-        double [] best_gap_v = new double[m+1];
-        Arrays.fill(best_gap_v,-1.0e40);
-        int [] gap_size_v = new int[m+1];
-        double [] best_gap_h = new double[n+1];
+        final double[] best_gap_v = new double[m+1];
+        Arrays.fill(best_gap_v, -1.0e40);
+        final int[] gap_size_v = new int[m+1];
+        final double[] best_gap_h = new double[n+1];
         Arrays.fill(best_gap_h,-1.0e40);
-        int [] gap_size_h = new int[n+1];
+        final int[] gap_size_h = new int[n+1];
+
+        // we need to initialize the SW matrix with gap penalties if we want to keep track of indels at the edges of alignments
+        if ( overhang_strategy == OVERHANG_STRATEGY.INDEL ) {
+            // initialize the first row
+            sw[1] = parameters.w_open;
+            double currentValue = parameters.w_open;
+            for ( int i = 2; i < m; i++ ) {
+                currentValue += parameters.w_extend;
+                sw[i] = currentValue;
+            }
+
+            // initialize the first column
+            sw[m] = parameters.w_open;
+            currentValue = parameters.w_open;
+            for ( int i = 2; i < n; i++ ) {
+                currentValue += parameters.w_extend;
+                sw[i*m] = currentValue;
+            }
+        }
 
         // build smith-waterman matrix and keep backtrack info:
         for ( int i = 1, row_offset_1 = 0 ; i < n ; i++ ) { // we do NOT update row_offset_1 here, see comment at the end of this outer loop
-            byte a_base = a[i-1]; // letter in a at the current pos
+            byte a_base = reference[i-1]; // letter in a at the current pos
 
             final int row_offset = row_offset_1 + m;
 
@@ -157,10 +243,10 @@ public final class SWPairwiseAlignment {
 
                 // data_offset_1 is linearized offset of element [i-1][j-1]
 
-                final byte b_base = b[j-1]; // letter in b at the current pos
+                final byte b_base = alternate[j-1]; // letter in b at the current pos
 
                 // in other words, step_diag = sw[i-1][j-1] + wd(a_base,b_base);
-                double step_diag = sw[data_offset_1] + wd(a_base,b_base);
+                final double step_diag = sw[data_offset_1] + wd(a_base,b_base);
 
                 // optimized "traversal" of all the matrix cells above the current one (i.e. traversing
                 // all 'step down' events that would end in the current cell. The optimized code
@@ -236,65 +322,92 @@ public final class SWPairwiseAlignment {
         }
     }
 
+    /*
+     * Class to store the result of calculating the CIGAR from the back track matrix
+     */
+    protected final class SWPairwiseAlignmentResult {
+        public final Cigar cigar;
+        public final int alignment_offset;
+        public SWPairwiseAlignmentResult(final Cigar cigar, final int alignment_offset) {
+            this.cigar = cigar;
+            this.alignment_offset = alignment_offset;
+        }
+    }
 
-    private void calculateCigar(int n, int m, double [] sw, int [] btrack) {
+    /**
+     * Calculates the CIGAR for the alignment from the back track matrix
+     *
+     * @param refLength            length of the reference sequence
+     * @param altLength            length of the alternate sequence
+     * @param sw                   the Smith-Waterman matrix to use
+     * @param btrack               the back track matrix to use
+     * @param overhang_strategy    the strategy to use for dealing with overhangs
+     * @return non-null SWPairwiseAlignmentResult object
+     */
+    protected SWPairwiseAlignmentResult calculateCigar(final int refLength, final int altLength, final double[] sw, final int[] btrack, final OVERHANG_STRATEGY overhang_strategy) {
         // p holds the position we start backtracking from; we will be assembling a cigar in the backwards order
         int p1 = 0, p2 = 0;
 
         double maxscore = Double.NEGATIVE_INFINITY; // sw scores are allowed to be negative
         int segment_length = 0; // length of the segment (continuous matches, insertions or deletions)
 
-        // look for largest score. we use >= combined with the traversal direction
-        // to ensure that if two scores are equal, the one closer to diagonal gets picked
-        for ( int i = 1, data_offset = m+1+m ; i < n+1 ; i++, data_offset += (m+1) ) {
-            // data_offset is the offset of [i][m]
-            if ( sw[data_offset] >= maxscore ) {
-                p1 = i; p2 = m ; maxscore = sw[data_offset];
+        // if we want to consider overhangs as legitimate operators, then just start from the corner of the matrix
+        if ( overhang_strategy == OVERHANG_STRATEGY.INDEL ) {
+            p1 = refLength;
+            p2 = altLength;
+        } else {
+            // look for largest score. we use >= combined with the traversal direction
+            // to ensure that if two scores are equal, the one closer to diagonal gets picked
+            for ( int i = 1, data_offset = altLength+1+altLength ; i < refLength+1 ; i++, data_offset += (altLength+1) ) {
+                // data_offset is the offset of [i][m]
+                if ( sw[data_offset] >= maxscore ) {
+                    p1 = i; p2 = altLength ; maxscore = sw[data_offset];
+                }
             }
-        }
 
-        for ( int j = 1, data_offset = n*(m+1)+1 ; j < m+1 ; j++, data_offset++ ) {
-            // data_offset is the offset of [n][j]
-            if ( sw[data_offset] > maxscore || sw[data_offset] == maxscore && Math.abs(n-j) < Math.abs(p1 - p2)) {
-                p1 = n;
-                p2 = j ;
-                maxscore = sw[data_offset];
-                segment_length = m - j ; // end of sequence 2 is overhanging; we will just record it as 'M' segment
+            for ( int j = 1, data_offset = refLength*(altLength+1)+1 ; j < altLength+1 ; j++, data_offset++ ) {
+                // data_offset is the offset of [n][j]
+                if ( sw[data_offset] > maxscore || sw[data_offset] == maxscore && Math.abs(refLength-j) < Math.abs(p1 - p2)) {
+                    p1 = refLength;
+                    p2 = j ;
+                    maxscore = sw[data_offset];
+                    segment_length = altLength - j ; // end of sequence 2 is overhanging; we will just record it as 'M' segment
+                }
             }
         }
 
         List<CigarElement> lce = new ArrayList<CigarElement>(5);
 
-        if ( segment_length > 0 && DO_SOFTCLIP ) {
-            lce.add(makeElement(CLIP, segment_length));
+        if ( segment_length > 0 && overhang_strategy == OVERHANG_STRATEGY.SOFTCLIP ) {
+            lce.add(makeElement(State.CLIP, segment_length));
             segment_length = 0;
         }
 
         // we will be placing all insertions and deletions into sequence b, so the states are named w/regard
         // to that sequence
 
-        int state = MSTATE;
+        State state = State.MATCH;
 
-        int data_offset = p1*(m+1)+p2;  // offset of element [p1][p2]
+        int data_offset = p1*(altLength+1)+p2;  // offset of element [p1][p2]
         do {
             int btr = btrack[data_offset];
 
-            int new_state;
+            State new_state;
             int step_length = 1;
 
             if ( btr > 0 ) {
-                new_state = DSTATE;
+                new_state = State.DELETION;
                 step_length = btr;
             } else if ( btr < 0 ) {
-                new_state = ISTATE;
+                new_state = State.INSERTION;
                 step_length = (-btr);
-            } else new_state = MSTATE; // and step_length =1, already set above
+            } else new_state = State.MATCH; // and step_length =1, already set above
 
             // move to next best location in the sw matrix:
             switch( new_state ) {
-                case MSTATE: data_offset -= (m+2); p1--; p2--; break; // move back along the diag in the sw matrix
-                case ISTATE: data_offset -= step_length; p2 -= step_length; break; // move left
-                case DSTATE: data_offset -= (m+1)*step_length; p1 -= step_length; break; // move up
+                case MATCH: data_offset -= (altLength+2); p1--; p2--; break; // move back along the diag in the sw matrix
+                case INSERTION: data_offset -= step_length; p2 -= step_length; break; // move left
+                case DELETION: data_offset -= (altLength+1)*step_length; p1 -= step_length; break; // move up
             }
 
             // now let's see if the state actually changed:
@@ -305,7 +418,7 @@ public final class SWPairwiseAlignment {
                 segment_length = step_length;
                 state = new_state;
             }
-//      next condition is equivalent to  while ( sw[p1][p2] != 0 ) (with modified p1 and/or p2:
+        // next condition is equivalent to  while ( sw[p1][p2] != 0 ) (with modified p1 and/or p2:
         } while ( p1 > 0 && p2 > 0 );
 
         // post-process the last segment we are still keeping;
@@ -316,28 +429,41 @@ public final class SWPairwiseAlignment {
         // last 3 bases of the read overlap with/align to the ref), the cigar will be still 5M if
         // DO_SOFTCLIP is false or 2S3M if DO_SOFTCLIP is true.
         // The consumers need to check for the alignment offset and deal with it properly.
-        if (DO_SOFTCLIP ) {
+        final int alignment_offset;
+        if ( overhang_strategy == OVERHANG_STRATEGY.SOFTCLIP ) {
             lce.add(makeElement(state, segment_length));
-            if ( p2> 0 ) lce.add(makeElement(CLIP, p2));
-            alignment_offset = p1 ;
-        } else {
+            if ( p2 > 0 ) lce.add(makeElement(State.CLIP, p2));
+            alignment_offset = p1;
+        } else if ( overhang_strategy == OVERHANG_STRATEGY.IGNORE ) {
             lce.add(makeElement(state, segment_length + p2));
             alignment_offset = p1 - p2;
+        } else {  // overhang_strategy == OVERHANG_STRATEGY.INDEL
+
+            // take care of the actual alignment
+            lce.add(makeElement(state, segment_length));
+
+            // take care of overhangs at the beginning of the alignment
+            if ( p1 > 0 )
+                lce.add(makeElement(State.DELETION, p1));
+            else if ( p2 > 0 )
+                lce.add(makeElement(State.INSERTION, p2));
+
+            alignment_offset = 0;
         }
 
         Collections.reverse(lce);
-        alignmentCigar = AlignmentUtils.consolidateCigar(new Cigar(lce));
+        return new SWPairwiseAlignmentResult(AlignmentUtils.consolidateCigar(new Cigar(lce)), alignment_offset);
     }
 
-    private CigarElement makeElement(int state, int segment_length) {
-        CigarOperator o = null;
-        switch(state) {
-            case MSTATE: o = CigarOperator.M; break;
-            case ISTATE: o = CigarOperator.I; break;
-            case DSTATE: o = CigarOperator.D; break;
-            case CLIP: o = CigarOperator.S; break;
+    protected CigarElement makeElement(final State state, final int length) {
+        CigarOperator op = null;
+        switch (state) {
+            case MATCH: op = CigarOperator.M; break;
+            case INSERTION: op = CigarOperator.I; break;
+            case DELETION: op = CigarOperator.D; break;
+            case CLIP: op = CigarOperator.S; break;
         }
-        return new CigarElement(segment_length,o);
+        return new CigarElement(length, op);
     }
 
     private double wd(byte x, byte y) {
@@ -360,7 +486,7 @@ public final class SWPairwiseAlignment {
 
         Cigar cigar = getCigar();
 
-        if ( ! DO_SOFTCLIP ) {
+        if ( overhang_strategy != OVERHANG_STRATEGY.SOFTCLIP ) {
 
             // we need to go through all the hassle below only if we do not do softclipping;
             // otherwise offset is never negative

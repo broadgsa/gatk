@@ -245,7 +245,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         } else if (walker instanceof ReadPairWalker) {
             return new TraverseReadPairs();
         } else if (walker instanceof ActiveRegionWalker) {
-            return new TraverseActiveRegions();
+            return new TraverseActiveRegions(threadAllocation.getNumCPUThreadsPerDataThread());
         } else {
             throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
         }
