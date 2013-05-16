@@ -52,6 +52,5 @@ class CollectGcBiasMetrics extends org.broadinstitute.sting.queue.function.JavaC
   override def commandLine = super.commandLine +
     required("SUMMARY_OUTPUT=" + output) +
     required("CHART_OUTPUT=" + output+".pdf") +
-    required("REFERENCE_SEQUENCE=" + reference) +
-    required("ASSUME_SORTED=true")
+    required("REFERENCE_SEQUENCE=" + reference)
 }
