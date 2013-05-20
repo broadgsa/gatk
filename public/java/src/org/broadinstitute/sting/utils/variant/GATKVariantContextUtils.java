@@ -697,6 +697,7 @@ public class GATKVariantContextUtils {
         int maxAC = -1;
         final Map<String, Object> attributesWithMaxAC = new LinkedHashMap<String, Object>();
         double log10PError = CommonInfo.NO_LOG10_PERROR;
+        boolean anyVCHadFiltersApplied = false;
         VariantContext vcWithMaxAC = null;
         GenotypesContext genotypes = GenotypesContext.create();
 
@@ -729,6 +730,7 @@ public class GATKVariantContextUtils {
                 log10PError =  vc.getLog10PError();
 
             filters.addAll(vc.getFilters());
+            anyVCHadFiltersApplied |= vc.filtersWereApplied();
 
             //
             // add attributes
@@ -841,7 +843,9 @@ public class GATKVariantContextUtils {
         builder.alleles(alleles);
         builder.genotypes(genotypes);
         builder.log10PError(log10PError);
-        builder.filters(filters.isEmpty() ? filters : new TreeSet<String>(filters));
+        if ( anyVCHadFiltersApplied ) {
+            builder.filters(filters.isEmpty() ? filters : new TreeSet<>(filters));
+        }
         builder.attributes(new TreeMap<String, Object>(mergeInfoWithMaxAC ? attributesWithMaxAC : attributes));
 
         // Trim the padded bases of all alleles if necessary
