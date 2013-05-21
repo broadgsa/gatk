@@ -42,13 +42,13 @@ import java.util.*;
  *   For each read, this holds underlying alleles represented by an aligned read, and corresponding relative likelihood.
  */
 public class PerReadAlleleLikelihoodMap {
-    protected final List<Allele> alleles;
-    protected final Map<GATKSAMRecord, Map<Allele, Double>> likelihoodReadMap;
+    /** A set of all of the allele, so we can efficiently determine if an allele is already present */
+    private final Set<Allele> allelesSet = new HashSet<>();
+    /** A list of the unique allele, as an ArrayList so we can call get(i) efficiently */
+    protected final List<Allele> alleles = new ArrayList<>();
+    protected final Map<GATKSAMRecord, Map<Allele, Double>> likelihoodReadMap = new LinkedHashMap<>();
 
-    public PerReadAlleleLikelihoodMap() {
-        likelihoodReadMap = new LinkedHashMap<GATKSAMRecord,Map<Allele,Double>>();
-        alleles = new ArrayList<Allele>();
-    }
+    public PerReadAlleleLikelihoodMap() { }
 
     /**
      * Add a new entry into the Read -> ( Allele -> Likelihood ) map of maps.
@@ -61,18 +61,20 @@ public class PerReadAlleleLikelihoodMap {
         if ( a == null ) throw new IllegalArgumentException("Cannot add a null allele to the allele likelihood map");
         if ( likelihood == null ) throw new IllegalArgumentException("Likelihood cannot be null");
         if ( likelihood > 0.0 ) throw new IllegalArgumentException("Likelihood must be negative (L = log(p))");
+
         Map<Allele,Double> likelihoodMap = likelihoodReadMap.get(read);
         if (likelihoodMap == null){
             // LinkedHashMap will ensure iterating through alleles will be in consistent order
-            likelihoodMap = new LinkedHashMap<Allele, Double>();
+            likelihoodMap = new LinkedHashMap<>();
         }
         likelihoodReadMap.put(read,likelihoodMap);
 
         likelihoodMap.put(a,likelihood);
 
-        if (!alleles.contains(a))
+        if (!allelesSet.contains(a)) {
+            allelesSet.add(a);
             alleles.add(a);
-
+        }
     }
 
     public ReadBackedPileup createPerAlleleDownsampledBasePileup(final ReadBackedPileup pileup, final double downsamplingFraction) {
@@ -165,6 +167,7 @@ public class PerReadAlleleLikelihoodMap {
     }
 
     public void clear() {
+        allelesSet.clear();
         alleles.clear();
         likelihoodReadMap.clear();
     }
