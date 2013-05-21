@@ -52,7 +52,6 @@ import javax.management.ObjectName;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -368,7 +367,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
             for ( final long countsByFilter : cumulativeMetrics.getCountsByFilter().values())
                 nSkippedReads += countsByFilter;
 
-            logger.info(String.format("%d reads were filtered out during traversal out of %d total (%.2f%%)",
+            logger.info(String.format("%d reads were filtered out during the traversal out of approximately %d total reads (%.2f%%)",
                     nSkippedReads,
                     cumulativeMetrics.getNumReadsSeen(),
                     100.0 * MathUtils.ratio(nSkippedReads, cumulativeMetrics.getNumReadsSeen())));
