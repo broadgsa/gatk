@@ -66,8 +66,8 @@ public class PerReadAlleleLikelihoodMap {
         if (likelihoodMap == null){
             // LinkedHashMap will ensure iterating through alleles will be in consistent order
             likelihoodMap = new LinkedHashMap<>();
+            likelihoodReadMap.put(read,likelihoodMap);
         }
-        likelihoodReadMap.put(read,likelihoodMap);
 
         likelihoodMap.put(a,likelihood);
 
