@@ -34,7 +34,6 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.reads.*;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.executive.WindowMaker;
@@ -263,6 +262,43 @@ public class ReadMetricsUnitTest extends BaseTest {
         Assert.assertEquals(engine.getCumulativeMetrics().getNumIterations(), contigs.size() * numReadsPerContig);
     }
 
+    @Test
+    public void testFilteredCounts() {
+        final GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
+        engine.setGenomeLocParser(genomeLocParser);
+
+        final Collection<SAMReaderID> samFiles = new ArrayList<>();
+        final SAMReaderID readerID = new SAMReaderID(testBAM, new Tags());
+        samFiles.add(readerID);
+
+        final List<ReadFilter> filters = new ArrayList<>();
+        filters.add(new EveryTenthReadFilter());
+
+        final SAMDataSource dataSource = new SAMDataSource(samFiles, new ThreadAllocation(), null, genomeLocParser,
+                false,
+                SAMFileReader.ValidationStringency.STRICT,
+                null,
+                null,
+                new ValidationExclusion(),
+                filters,
+                new ArrayList<ReadTransformer>(),
+                false, (byte)30, false, true);
+
+        engine.setReadsDataSource(dataSource);
+
+        final TraverseReadsNano traverseReadsNano = new TraverseReadsNano(1);
+        final DummyReadWalker walker = new DummyReadWalker();
+        traverseReadsNano.initialize(engine, walker, null);
+
+        for ( final Shard shard : dataSource.createShardIteratorOverAllReads(new ReadShardBalancer()) ) {
+            final ReadShardDataProvider dataProvider = new ReadShardDataProvider(shard, engine.getGenomeLocParser(), dataSource.seek(shard), reference, new ArrayList<ReferenceOrderedDataSource>());
+            traverseReadsNano.traverse(walker, dataProvider, 0);
+            dataProvider.close();
+        }
+
+        Assert.assertEquals((long)engine.getCumulativeMetrics().getCountsByFilter().get(EveryTenthReadFilter.class.getSimpleName()), contigs.size() * numReadsPerContig / 10);
+    }
+
     class DummyLocusWalker extends LocusWalker<Integer, Integer> {
         @Override
         public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -316,6 +352,21 @@ public class ReadMetricsUnitTest extends BaseTest {
         @Override
         public Integer reduce(Integer value, Integer sum) {
             return 0;
+        }
+    }
+
+    private final class EveryTenthReadFilter extends ReadFilter {
+
+        private int myCounter = 0;
+
+        @Override
+        public boolean filterOut(final SAMRecord record) {
+            if ( ++myCounter == 10 ) {
+                myCounter = 0;
+                return true;
+            }
+
+            return false;
         }
     }
 }

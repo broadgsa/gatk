@@ -31,9 +31,7 @@ import net.sf.samtools.util.CloseableIterator;
 import net.sf.samtools.util.CloserUtil;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 /**
  * Filtering Iterator which takes a filter and an iterator and iterates
@@ -44,8 +42,26 @@ public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
     private final ReadMetrics globalRuntimeMetrics;
     private final ReadMetrics privateRuntimeMetrics;
     private final Iterator<SAMRecord> iterator;
-    private final Collection<ReadFilter> filters;
+    private final List<CountingReadFilter> filters = new ArrayList<>();
     private SAMRecord next = null;
+
+    // wrapper around ReadFilters to count the number of filtered reads
+    private final class CountingReadFilter extends ReadFilter {
+        protected final ReadFilter readFilter;
+        protected long counter = 0L;
+
+        public CountingReadFilter(final ReadFilter readFilter) {
+            this.readFilter = readFilter;
+        }
+
+        @Override
+        public boolean filterOut(final SAMRecord record) {
+            final boolean result = readFilter.filterOut(record);
+            if ( result )
+                counter++;
+            return result;
+        }
+    }
 
     /**
      * Constructor
@@ -58,7 +74,8 @@ public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
         this.globalRuntimeMetrics = metrics;
         privateRuntimeMetrics = new ReadMetrics();
         this.iterator = iterator;
-        this.filters = filters;
+        for ( final ReadFilter filter : filters )
+            this.filters.add(new CountingReadFilter(filter));
         next = getNextRecord();
     }
 
@@ -97,8 +114,11 @@ public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
 
     public void close() {
         CloserUtil.close(iterator);
+
         // update the global metrics with all the data we collected here
         globalRuntimeMetrics.incrementMetrics(privateRuntimeMetrics);
+        for ( final CountingReadFilter filter : filters )
+            globalRuntimeMetrics.setFilterCount(filter.readFilter.getClass().getSimpleName(), filter.counter);
     }
 
     /**
@@ -117,7 +137,6 @@ public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
             boolean filtered = false;
             for(SamRecordFilter filter: filters) {
                 if(filter.filterOut(record)) {
-                    privateRuntimeMetrics.incrementFilter(filter);
                     filtered = true;
                     break;
                 }
