@@ -144,7 +144,7 @@ public class ActiveRegionUnitTest extends BaseTest {
     }
 
     @Test(enabled = !DEBUG, dataProvider = "ActiveRegionReads")
-    public void testActiveRegionReads(final GenomeLoc loc, final GATKSAMRecord read) {
+    public void testActiveRegionReads(final GenomeLoc loc, final GATKSAMRecord read) throws Exception {
         final GenomeLoc expectedSpan = loc.union(genomeLocParser.createGenomeLoc(read));
 
         final ActiveRegion region = new ActiveRegion(loc, null, true, genomeLocParser, 0);
@@ -176,19 +176,31 @@ public class ActiveRegionUnitTest extends BaseTest {
         Assert.assertEquals(region.getReadSpanLoc(), expectedSpan);
         Assert.assertTrue(region.equalExceptReads(region2));
 
-        region.removeAll(Collections.<GATKSAMRecord>emptyList());
+        region.removeAll(Collections.<GATKSAMRecord>emptySet());
         Assert.assertEquals(region.getReads(), Collections.singletonList(read));
         Assert.assertEquals(region.size(), 1);
         Assert.assertEquals(region.getExtendedLoc(), loc);
         Assert.assertEquals(region.getReadSpanLoc(), expectedSpan);
         Assert.assertTrue(region.equalExceptReads(region2));
 
-        region.removeAll(Collections.singletonList(read));
+        region.removeAll(Collections.singleton(read));
         Assert.assertEquals(region.getReads(), Collections.emptyList());
         Assert.assertEquals(region.size(), 0);
         Assert.assertEquals(region.getExtendedLoc(), loc);
         Assert.assertEquals(region.getReadSpanLoc(), loc);
         Assert.assertTrue(region.equalExceptReads(region2));
+
+        final GATKSAMRecord read2 = (GATKSAMRecord)read.clone();
+        read2.setReadName(read.getReadName() + ".clone");
+
+        for ( final GATKSAMRecord readToKeep : Arrays.asList(read, read2)) {
+            region.addAll(Arrays.asList(read, read2));
+            final GATKSAMRecord readToDiscard = readToKeep == read ? read2 : read;
+            region.removeAll(Collections.singleton(readToDiscard));
+            Assert.assertEquals(region.getReads(), Arrays.asList(readToKeep));
+            Assert.assertEquals(region.size(), 1);
+            Assert.assertEquals(region.getExtendedLoc(), loc);
+        }
     }
 
     // -----------------------------------------------------------------------------------------------

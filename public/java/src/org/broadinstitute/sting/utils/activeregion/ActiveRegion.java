@@ -336,13 +336,17 @@ public class ActiveRegion implements HasGenomeLocation {
 
     /**
      * Remove all of the reads in readsToRemove from this active region
-     * @param readsToRemove the collection of reads we want to remove
+     * @param readsToRemove the set of reads we want to remove
      */
-    public void removeAll( final Collection<GATKSAMRecord> readsToRemove ) {
-        reads.removeAll(readsToRemove);
+    public void removeAll( final Set<GATKSAMRecord> readsToRemove ) {
+        final Iterator<GATKSAMRecord> it = reads.iterator();
         spanIncludingReads = extendedLoc;
-        for ( final GATKSAMRecord read : reads ) {
-            spanIncludingReads = spanIncludingReads.union( genomeLocParser.createGenomeLoc(read) );
+        while ( it.hasNext() ) {
+            final GATKSAMRecord read = it.next();
+            if ( readsToRemove.contains(read) )
+                it.remove();
+            else
+                spanIncludingReads = spanIncludingReads.union( genomeLocParser.createGenomeLoc(read) );
         }
     }
 
