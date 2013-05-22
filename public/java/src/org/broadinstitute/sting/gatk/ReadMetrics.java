@@ -42,7 +42,7 @@ public class ReadMetrics implements Cloneable {
     private long nReads;
 
     // keep track of filtered records by filter type (class)
-    private Map<Class, Long> filterCounter = new HashMap<>();
+    private Map<String, Long> filterCounter = new HashMap<>();
 
     /**
      * Combines these metrics with a set of other metrics, storing the results in this class.
@@ -51,9 +51,9 @@ public class ReadMetrics implements Cloneable {
     public synchronized void incrementMetrics(ReadMetrics metrics) {
         nRecords += metrics.nRecords;
         nReads += metrics.nReads;
-        for(Map.Entry<Class,Long> counterEntry: metrics.filterCounter.entrySet()) {
-            Class counterType = counterEntry.getKey();
-            long newValue = (filterCounter.containsKey(counterType) ? filterCounter.get(counterType) : 0) + counterEntry.getValue();
+        for(Map.Entry<String, Long> counterEntry: metrics.filterCounter.entrySet()) {
+            final String counterType = counterEntry.getKey();
+            final long newValue = (filterCounter.containsKey(counterType) ? filterCounter.get(counterType) : 0) + counterEntry.getValue();
             filterCounter.put(counterType, newValue);
         }
     }
@@ -78,21 +78,12 @@ public class ReadMetrics implements Cloneable {
     }
 
 
-    public void incrementFilter(SamRecordFilter filter) {
-        long c = 0;
-        if ( filterCounter.containsKey(filter.getClass()) ) {
-            c = filterCounter.get(filter.getClass());
-        }
-
-        filterCounter.put(filter.getClass(), c + 1L);
+    public void setFilterCount(final String filter, final long count) {
+        filterCounter.put(filter, count);
     }
 
     public Map<String,Long> getCountsByFilter() {
-        final TreeMap<String, Long> sortedCounts = new TreeMap<>();
-        for(Map.Entry<Class,Long> counterEntry: filterCounter.entrySet()) {
-            sortedCounts.put(counterEntry.getKey().getSimpleName(),counterEntry.getValue());
-        }
-        return sortedCounts;
+        return new TreeMap<>(filterCounter);
     }
 
     /**
