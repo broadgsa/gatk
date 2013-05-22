@@ -55,17 +55,19 @@ public class MathUtils {
     private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / JACOBIAN_LOG_TABLE_STEP;
     private static final double MAX_JACOBIAN_TOLERANCE = 8.0;
     private static final int JACOBIAN_LOG_TABLE_SIZE = (int) (MAX_JACOBIAN_TOLERANCE / JACOBIAN_LOG_TABLE_STEP) + 1;
-    private static final int MAXN = 70000;
+    private static final int MAXN = 70_000;
     private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
 
     /**
      * The smallest log10 value we'll emit from normalizeFromLog10 and other functions
      * where the real-space value is 0.0.
      */
-    public final static double LOG10_P_OF_ZERO = -1000000.0;
-    public final static double FAIR_BINOMIAL_PROB_LOG10_0_5 = Math.log10(0.5);
-    private final static double NATURAL_LOG_OF_TEN = Math.log(10.0);
-    private final static double SQUARE_ROOT_OF_TWO_TIMES_PI = Math.sqrt(2.0 * Math.PI);
+    public static final double LOG10_P_OF_ZERO = -1000000.0;
+    public static final double FAIR_BINOMIAL_PROB_LOG10_0_5 = Math.log10(0.5);
+    public static final double LOG_ONE_HALF = -Math.log10(2.0);
+    public static final double LOG_ONE_THIRD = -Math.log10(3.0);
+    private static final double NATURAL_LOG_OF_TEN = Math.log(10.0);
+    private static final double SQUARE_ROOT_OF_TWO_TIMES_PI = Math.sqrt(2.0 * Math.PI);
 
     static {
         log10Cache = new double[LOG10_CACHE_SIZE];

@@ -46,7 +46,6 @@ public class Haplotype extends Allele {
     private EventMap eventMap = null;
     private Cigar cigar;
     private int alignmentStartHapwrtRef;
-    private Event artificialEvent = null;
     private double score = 0;
 
     /**
@@ -91,11 +90,6 @@ public class Haplotype extends Allele {
      */
     public Haplotype( final Allele allele ) {
         super(allele, true);
-    }
-
-    protected Haplotype( final byte[] bases, final Event artificialEvent ) {
-        this(bases, false);
-        this.artificialEvent = artificialEvent;
     }
 
     public Haplotype( final byte[] bases, final GenomeLoc loc ) {
@@ -189,7 +183,7 @@ public class Haplotype extends Allele {
     }
 
     /**
-     * Get the cigar for this haplotype.  Note that cigar is guarenteed to be consolidated
+     * Get the cigar for this haplotype.  Note that the cigar is guaranteed to be consolidated
      * in that multiple adjacent equal operates will have been merged
      * @return the cigar of this haplotype
      */
@@ -223,30 +217,6 @@ public class Haplotype extends Allele {
             throw new IllegalArgumentException("Read length " + length() + " not equal to the read length of the cigar " + cigar.getReadLength());
     }
 
-    public boolean isArtificialHaplotype() {
-        return artificialEvent != null;
-    }
-
-    public Event getArtificialEvent() {
-        return artificialEvent;
-    }
-
-    public Allele getArtificialRefAllele() {
-        return artificialEvent.ref;
-    }
-
-    public Allele getArtificialAltAllele() {
-        return artificialEvent.alt;
-    }
-
-    public int getArtificialAllelePosition() {
-        return artificialEvent.pos;
-    }
-
-    public void setArtificialEvent( final Event artificialEvent ) {
-        this.artificialEvent = artificialEvent;
-    }
-
     @Requires({"refInsertLocation >= 0"})
     public Haplotype insertAllele( final Allele refAllele, final Allele altAllele, final int refInsertLocation, final int genomicInsertLocation ) {
         // refInsertLocation is in ref haplotype offset coordinates NOT genomic coordinates
@@ -260,7 +230,7 @@ public class Haplotype extends Allele {
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(myBases, 0, haplotypeInsertLocation)); // bases before the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, altAllele.getBases()); // the alt allele of the variant
         newHaplotypeBases = ArrayUtils.addAll(newHaplotypeBases, ArrayUtils.subarray(myBases, haplotypeInsertLocation + refAllele.length(), myBases.length)); // bases after the variant
-        return new Haplotype(newHaplotypeBases, new Event(refAllele, altAllele, genomicInsertLocation));
+        return new Haplotype(newHaplotypeBases);
     }
 
     public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(final List<Allele> alleleList,
