@@ -131,6 +131,7 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
             final String root = "-T ErrorThrowing -R " + exampleFASTA;
             final String args = root + cfg.args + " -E " + cfg.expectedException.getSimpleName();
             WalkerTestSpec spec = new WalkerTestSpec(args, 0, cfg.expectedException);
+
             executeTest(cfg.toString(), spec);
         }
     }

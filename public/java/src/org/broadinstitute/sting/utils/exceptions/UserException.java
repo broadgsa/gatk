@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils.exceptions;
 
+import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
@@ -86,6 +87,19 @@ public class UserException extends ReviewedStingException {
             super(String.format("Malformed walker argument: %s",message));
         }
     }
+
+    public static class UnsupportedCigarOperatorException extends UserException {
+        public UnsupportedCigarOperatorException(final CigarOperator co, final SAMRecord read, final String message) {
+            super(String.format(
+                "Unsupported CIGAR operator %s in read %s at %s:%d. %s",
+                co,
+                read.getReadName(),
+                read.getReferenceName(),
+                read.getAlignmentStart(),
+                message));
+        }
+    }
+
 
     public static class MalformedGenomeLoc extends UserException {
         public MalformedGenomeLoc(String message, GenomeLoc loc) {

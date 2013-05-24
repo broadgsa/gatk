@@ -26,13 +26,10 @@
 package org.broadinstitute.sting.gatk.filters;
 
 import org.testng.Assert;
-import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
 
@@ -40,34 +37,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
 
-public class ReadGroupBlackListFilterUnitTest extends BaseTest {
-    private static final int READ_GROUP_COUNT = 5;
-    private static final String READ_GROUP_PREFIX = "ReadGroup";
-    private static final String SAMPLE_NAME_PREFIX = "Sample";
-    private static final String PLATFORM_PREFIX = "Platform";
-    private static final String PLATFORM_UNIT_PREFIX = "Lane";
-    private static SAMFileHeader header;
-
-    @BeforeClass
-    public void beforeClass() {
-        header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
-
-        List<String> readGroupIDs = new ArrayList<String>();
-        List<String> sampleNames = new ArrayList<String>();
-
-        for (int i = 1; i <= READ_GROUP_COUNT; i++) {
-            readGroupIDs.add(READ_GROUP_PREFIX + i);
-            sampleNames.add(SAMPLE_NAME_PREFIX + i);
-        }
-
-        ArtificialSAMUtils.createEnumeratedReadGroups(header, readGroupIDs, sampleNames);
-
-        for (int i = 1; i <= READ_GROUP_COUNT; i++) {
-            SAMReadGroupRecord groupRecord = header.getReadGroup(READ_GROUP_PREFIX + i);
-            groupRecord.setAttribute("PL", PLATFORM_PREFIX + (((i-1)%2)+1));
-            groupRecord.setAttribute("PU", PLATFORM_UNIT_PREFIX + (((i-1)%3)+1));
-        }
-    }
+public class ReadGroupBlackListFilterUnitTest extends ReadFilterTest {
 
     @Test(expectedExceptions=ReviewedStingException.class)
     public void testBadFilter() {
@@ -88,14 +58,14 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
 
     @Test
     public void testFilterReadGroup() {
-        SAMRecord filteredRecord = ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, 1, 20);
-        filteredRecord.setAttribute("RG", READ_GROUP_PREFIX + "1");
+        SAMRecord filteredRecord = ArtificialSAMUtils.createArtificialRead(getHeader(), "readUno", 0, 1, 20);
+        filteredRecord.setAttribute("RG", getReadGroupId(1));
 
-        SAMRecord unfilteredRecord = ArtificialSAMUtils.createArtificialRead(header, "readDos", 0, 2, 20);
-        unfilteredRecord.setAttribute("RG", READ_GROUP_PREFIX + "2");
+        SAMRecord unfilteredRecord = ArtificialSAMUtils.createArtificialRead(getHeader(), "readDos", 0, 2, 20);
+        unfilteredRecord.setAttribute("RG", getReadGroupId(2));
 
         List<String> filterList = new ArrayList<String>();
-        filterList.add("RG:" + READ_GROUP_PREFIX + "1");
+        filterList.add("RG:" + getReadGroupId(1));
 
         ReadGroupBlackListFilter filter = new ReadGroupBlackListFilter(filterList);
         Assert.assertTrue(filter.filterOut(filteredRecord));
@@ -104,14 +74,14 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
 
     @Test
     public void testFilterPlatformUnit() {
-        SAMRecord filteredRecord = ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, 1, 20);
-        filteredRecord.setAttribute("RG", READ_GROUP_PREFIX + "1");
+        SAMRecord filteredRecord = ArtificialSAMUtils.createArtificialRead(getHeader(), "readUno", 0, 1, 20);
+        filteredRecord.setAttribute("RG", getReadGroupId(1));
 
-        SAMRecord unfilteredRecord = ArtificialSAMUtils.createArtificialRead(header, "readDos", 0, 2, 20);
-        unfilteredRecord.setAttribute("RG", READ_GROUP_PREFIX + "2");
+        SAMRecord unfilteredRecord = ArtificialSAMUtils.createArtificialRead(getHeader(), "readDos", 0, 2, 20);
+        unfilteredRecord.setAttribute("RG", getReadGroupId(2));
 
         List<String> filterList = new ArrayList<String>();
-        filterList.add("PU:" + PLATFORM_UNIT_PREFIX + "1");
+        filterList.add("PU:" + getPlatformUnit(1));
 
         ReadGroupBlackListFilter filter = new ReadGroupBlackListFilter(filterList);
         Assert.assertTrue(filter.filterOut(filteredRecord));
@@ -123,18 +93,18 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
         int recordsPerGroup = 3;
         List<SAMRecord> records = new ArrayList<SAMRecord>();
         int alignmentStart = 0;
-        for (int x = 1; x <= READ_GROUP_COUNT; x++) {
-            SAMReadGroupRecord groupRecord = header.getReadGroup(READ_GROUP_PREFIX + x);
+        for (int x = 1; x <= getReadGroupCount(); x++) {
+            SAMReadGroupRecord groupRecord = getHeader().getReadGroup(getReadGroupId(x));
             for (int y = 1; y <= recordsPerGroup; y++) {
-                SAMRecord record = ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, ++alignmentStart, 20);
+                SAMRecord record = ArtificialSAMUtils.createArtificialRead(getHeader(), "readUno", 0, ++alignmentStart, 20);
                 record.setAttribute("RG", groupRecord.getReadGroupId());
                 records.add(record);
             }
         }
 
         List<String> filterList = new ArrayList<String>();
-        filterList.add("RG:" + READ_GROUP_PREFIX + "1");
-        filterList.add("RG:" + READ_GROUP_PREFIX + "3");
+        filterList.add("RG:" + getReadGroupId(1));
+        filterList.add("RG:" + getReadGroupId(3));
 
         ReadGroupBlackListFilter filter = new ReadGroupBlackListFilter(filterList);
         int filtered = 0;
@@ -153,7 +123,7 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
         }
 
         int filteredExpected = recordsPerGroup * 2;
-        int unfilteredExpected = recordsPerGroup * (READ_GROUP_COUNT - 2);
+        int unfilteredExpected = recordsPerGroup * (getReadGroupCount() - 2);
         Assert.assertEquals(filtered, filteredExpected, "Filtered");
         Assert.assertEquals(unfiltered, unfilteredExpected, "Uniltered");
     }
@@ -163,17 +133,17 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
         int recordsPerGroup = 3;
         List<SAMRecord> records = new ArrayList<SAMRecord>();
         int alignmentStart = 0;
-        for (int x = 1; x <= READ_GROUP_COUNT; x++) {
-            SAMReadGroupRecord groupRecord = header.getReadGroup(READ_GROUP_PREFIX + x);
+        for (int x = 1; x <= getReadGroupCount(); x++) {
+            SAMReadGroupRecord groupRecord = getHeader().getReadGroup(getReadGroupId(x));
             for (int y = 1; y <= recordsPerGroup; y++) {
-                SAMRecord record = ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, ++alignmentStart, 20);
+                SAMRecord record = ArtificialSAMUtils.createArtificialRead(getHeader(), "readUno", 0, ++alignmentStart, 20);
                 record.setAttribute("RG", groupRecord.getReadGroupId());
                 records.add(record);
             }
         }
 
         List<String> filterList = new ArrayList<String>();
-        filterList.add("PU:" + PLATFORM_UNIT_PREFIX + "1");
+        filterList.add("PU:" + getPlatformUnit(1));
 
         ReadGroupBlackListFilter filter = new ReadGroupBlackListFilter(filterList);
         int filtered = 0;
@@ -202,10 +172,10 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
         int recordsPerGroup = 3;
         List<SAMRecord> records = new ArrayList<SAMRecord>();
         int alignmentStart = 0;
-        for (int x = 1; x <= READ_GROUP_COUNT; x++) {
-            SAMReadGroupRecord groupRecord = header.getReadGroup(READ_GROUP_PREFIX + x);
+        for (int x = 1; x <= getReadGroupCount(); x++) {
+            SAMReadGroupRecord groupRecord = getHeader().getReadGroup(getReadGroupId(x));
             for (int y = 1; y <= recordsPerGroup; y++) {
-                SAMRecord record = ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, ++alignmentStart, 20);
+                SAMRecord record = ArtificialSAMUtils.createArtificialRead(getHeader(), "readUno", 0, ++alignmentStart, 20);
                 record.setAttribute("RG", groupRecord.getReadGroupId());
                 records.add(record);
             }
@@ -231,7 +201,7 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
         }
 
         int filteredExpected = recordsPerGroup * 2;
-        int unfilteredExpected = recordsPerGroup * (READ_GROUP_COUNT - 2);
+        int unfilteredExpected = recordsPerGroup * (getReadGroupCount() - 2);
         Assert.assertEquals(filtered, filteredExpected, "Filtered");
         Assert.assertEquals(unfiltered, unfilteredExpected, "Uniltered");
     }
@@ -241,10 +211,10 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
         int recordsPerGroup = 3;
         List<SAMRecord> records = new ArrayList<SAMRecord>();
         int alignmentStart = 0;
-        for (int x = 1; x <= READ_GROUP_COUNT; x++) {
-            SAMReadGroupRecord groupRecord = header.getReadGroup(READ_GROUP_PREFIX + x);
+        for (int x = 1; x <= getReadGroupCount(); x++) {
+            SAMReadGroupRecord groupRecord = getHeader().getReadGroup(getReadGroupId(x));
             for (int y = 1; y <= recordsPerGroup; y++) {
-                SAMRecord record = ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, ++alignmentStart, 20);
+                SAMRecord record = ArtificialSAMUtils.createArtificialRead(getHeader(), "readUno", 0, ++alignmentStart, 20);
                 record.setAttribute("RG", groupRecord.getReadGroupId());
                 records.add(record);
             }
@@ -270,7 +240,7 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
         }
 
         int filteredExpected = recordsPerGroup * 2;
-        int unfilteredExpected = recordsPerGroup * (READ_GROUP_COUNT - 2);
+        int unfilteredExpected = recordsPerGroup * (getReadGroupCount() - 2);
         Assert.assertEquals(filtered, filteredExpected, "Filtered");
         Assert.assertEquals(unfiltered, unfilteredExpected, "Uniltered");
     }
