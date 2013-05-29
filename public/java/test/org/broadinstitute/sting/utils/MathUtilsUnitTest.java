@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils;
 
+import cern.jet.random.Normal;
 import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -397,5 +398,21 @@ public class MathUtilsUnitTest extends BaseTest {
     public void testLogDotProduct() {
         Assert.assertEquals(MathUtils.logDotProduct(new double[]{-5.0,-3.0,2.0}, new double[]{6.0,7.0,8.0}),10.0,1e-3);
         Assert.assertEquals(MathUtils.logDotProduct(new double[]{-5.0}, new double[]{6.0}),1.0,1e-3);
+    }
+
+    @Test
+    public void testNormalDistribution() {
+        final double requiredPrecision = 1E-10;
+
+        final Normal n = new Normal(0.0, 1.0, null);
+        for( final double mu : new double[]{-5.0, -3.2, -1.5, 0.0, 1.2, 3.0, 5.8977} ) {
+            for( final double sigma : new double[]{1.2, 3.0, 5.8977} ) {
+                for( final double x : new double[]{-5.0, -3.2, -1.5, 0.0, 1.2, 3.0, 5.8977} ) {
+                    n.setState(mu, sigma);
+                    Assert.assertEquals(n.pdf(x), MathUtils.normalDistribution(mu, sigma, x), requiredPrecision);
+                    Assert.assertEquals(Math.log10(n.pdf(x)), MathUtils.normalDistributionLog10(mu, sigma, x), requiredPrecision);
+                }
+            }
+        }
     }
 }

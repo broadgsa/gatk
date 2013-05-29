@@ -450,7 +450,7 @@ public class ActivityProfileUnitTest extends BaseTest {
     private double[] makeGaussian(final int mean, final int range, final double sigma) {
         final double[] gauss = new double[range];
         for( int iii = 0; iii < range; iii++ ) {
-            gauss[iii] = MathUtils.NormalDistribution(mean, sigma, iii) + ActivityProfile.ACTIVE_PROB_THRESHOLD;
+            gauss[iii] = MathUtils.normalDistribution(mean, sigma, iii) + ActivityProfile.ACTIVE_PROB_THRESHOLD;
         }
         return gauss;
     }

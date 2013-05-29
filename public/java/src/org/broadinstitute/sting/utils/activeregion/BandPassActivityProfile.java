@@ -31,7 +31,6 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.MathUtils;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 
@@ -108,7 +107,7 @@ public class BandPassActivityProfile extends ActivityProfile {
         final int bandSize = 2 * filterSize + 1;
         final double[] kernel = new double[bandSize];
         for( int iii = 0; iii < bandSize; iii++ ) {
-            kernel[iii] = MathUtils.NormalDistribution(filterSize, sigma, iii);
+            kernel[iii] = MathUtils.normalDistribution(filterSize, sigma, iii);
         }
         return MathUtils.normalizeFromRealSpace(kernel);
     }

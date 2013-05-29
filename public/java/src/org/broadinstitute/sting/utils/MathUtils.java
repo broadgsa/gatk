@@ -63,6 +63,8 @@ public class MathUtils {
      */
     public final static double LOG10_P_OF_ZERO = -1000000.0;
     public final static double FAIR_BINOMIAL_PROB_LOG10_0_5 = Math.log10(0.5);
+    private final static double NATURAL_LOG_OF_TEN = Math.log(10.0);
+    private final static double SQUARE_ROOT_OF_TWO_TIMES_PI = Math.sqrt(2.0 * Math.PI);
 
     static {
         log10Cache = new double[LOG10_CACHE_SIZE];
@@ -301,10 +303,44 @@ public class MathUtils {
         return 1;
     }
 
-    public static double NormalDistribution(final double mean, final double sd, final double x) {
-        double a = 1.0 / (sd * Math.sqrt(2.0 * Math.PI));
-        double b = Math.exp(-1.0 * (Math.pow(x - mean, 2.0) / (2.0 * sd * sd)));
+    /**
+     * Calculate f(x) = Normal(x | mu = mean, sigma = sd)
+     * @param mean the desired mean of the Normal distribution
+     * @param sd the desired standard deviation of the Normal distribution
+     * @param x the value to evaluate
+     * @return a well-formed double
+     */
+    public static double normalDistribution(final double mean, final double sd, final double x) {
+        final double a = 1.0 / (sd * SQUARE_ROOT_OF_TWO_TIMES_PI);
+        final double b = Math.exp(-1.0 * (square(x - mean) / (2.0 * square(sd))));
         return a * b;
+    }
+
+    /**
+     * Calculate f(x) = log10 ( Normal(x | mu = mean, sigma = sd) )
+     * @param mean the desired mean of the Normal distribution
+     * @param sd the desired standard deviation of the Normal distribution
+     * @param x the value to evaluate
+     * @return a well-formed double
+     */
+
+    public static double normalDistributionLog10(final double mean, final double sd, final double x) {
+        if( sd < 0 )
+            throw new IllegalArgumentException("sd: Standard deviation of normal must be >0");
+        if ( ! wellFormedDouble(mean) || ! wellFormedDouble(sd) || ! wellFormedDouble(x) )
+            throw new IllegalArgumentException("mean, sd, or, x : Normal parameters must be well formatted (non-INF, non-NAN)");
+        final double a = -1.0 * Math.log10(sd * SQUARE_ROOT_OF_TWO_TIMES_PI);
+        final double b = -1.0 * (square(x - mean) / (2.0 * square(sd))) / NATURAL_LOG_OF_TEN;
+        return a + b;
+    }
+
+    /**
+     * Calculate f(x) = x^2
+     * @param x the value to square
+     * @return x * x
+     */
+    public static double square(final double x) {
+        return x * x;
     }
 
     /**
