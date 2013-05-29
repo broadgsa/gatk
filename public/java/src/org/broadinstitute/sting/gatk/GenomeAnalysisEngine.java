@@ -463,9 +463,8 @@ public class GenomeAnalysisEngine {
 
         DownsamplingMethod commandLineMethod = argCollection.getDownsamplingMethod();
         DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker);
-        DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker);
 
-        DownsamplingMethod method = commandLineMethod != null ? commandLineMethod : (walkerMethod != null ? walkerMethod : defaultMethod);
+        DownsamplingMethod method = commandLineMethod != null ? commandLineMethod : walkerMethod;
         method.checkCompatibilityWithWalker(walker);
         return method;
     }
