@@ -293,9 +293,11 @@ public class GenomeAnalysisEngine {
         // create the output streams
         initializeOutputStreams(microScheduler.getOutputTracker());
 
-        logger.info("Creating shard strategy for " + readsDataSource.getReaderIDs().size() + " BAM files");
+        // Initializing the shard iterator / BAM schedule might take some time, so let the user know vaguely what's going on
+        logger.info("Preparing for traversal" +
+                    (readsDataSource.getReaderIDs().size() > 0 ? String.format(" over %d BAM files", readsDataSource.getReaderIDs().size()) : ""));
         Iterable<Shard> shardStrategy = getShardStrategy(readsDataSource,microScheduler.getReference(),intervals);
-        logger.info("Done creating shard strategy");
+        logger.info("Done preparing for traversal");
 
         // execute the microscheduler, storing the results
         return microScheduler.execute(this.walker, shardStrategy);
