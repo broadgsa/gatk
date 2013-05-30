@@ -424,9 +424,9 @@ public class ReadUtils {
         // clipping the left tail and first base is insertion, go to the next read coordinate
         // with the same reference coordinate. Advance to the next cigar element, or to the
         // end of the read if there is no next element.
-        Pair<Boolean, CigarElement> firstElementIsInsertion = readStartsWithInsertion(cigar);
-        if (readCoord == 0 && tail == ClippingTail.LEFT_TAIL && firstElementIsInsertion.getFirst())
-            readCoord = Math.min(firstElementIsInsertion.getSecond().getLength(), cigar.getReadLength() - 1);
+        final CigarElement firstElementIsInsertion = readStartsWithInsertion(cigar);
+        if (readCoord == 0 && tail == ClippingTail.LEFT_TAIL && firstElementIsInsertion != null)
+            readCoord = Math.min(firstElementIsInsertion.getLength(), cigar.getReadLength() - 1);
 
         return readCoord;
     }
@@ -595,25 +595,28 @@ public class ReadUtils {
     }
 
     /**
-     * Checks if a read starts with an insertion. It looks beyond Hard and Soft clips
-     * if there are any.
-     *
-     * @param read
-     * @return A pair with the answer (true/false) and the element or null if it doesn't exist
+     * @see #readStartsWithInsertion(net.sf.samtools.Cigar, boolean) with ignoreClipOps set to true
      */
-    public static Pair<Boolean, CigarElement> readStartsWithInsertion(GATKSAMRecord read) {
-        return readStartsWithInsertion(read.getCigar());
+    public static CigarElement readStartsWithInsertion(final Cigar cigarForRead) {
+        return readStartsWithInsertion(cigarForRead, true);
     }
 
-    public static Pair<Boolean, CigarElement> readStartsWithInsertion(final Cigar cigar) {
-        for (CigarElement cigarElement : cigar.getCigarElements()) {
-            if (cigarElement.getOperator() == CigarOperator.INSERTION)
-                return new Pair<Boolean, CigarElement>(true, cigarElement);
+    /**
+     * Checks if a read starts with an insertion.
+     *
+     * @param cigarForRead    the CIGAR to evaluate
+     * @param ignoreClipOps   should we ignore S and H operators when evaluating whether an I operator is at the beginning?
+     * @return the element if it's a leading insertion or null otherwise
+     */
+    public static CigarElement readStartsWithInsertion(final Cigar cigarForRead, final boolean ignoreClipOps) {
+        for ( final CigarElement cigarElement : cigarForRead.getCigarElements() ) {
+            if ( cigarElement.getOperator() == CigarOperator.INSERTION )
+                return cigarElement;
 
-            else if (cigarElement.getOperator() != CigarOperator.HARD_CLIP && cigarElement.getOperator() != CigarOperator.SOFT_CLIP)
+            else if ( !ignoreClipOps || (cigarElement.getOperator() != CigarOperator.HARD_CLIP && cigarElement.getOperator() != CigarOperator.SOFT_CLIP) )
                 break;
         }
-        return new Pair<Boolean, CigarElement>(false, null);
+        return null;
     }
 
     /**
