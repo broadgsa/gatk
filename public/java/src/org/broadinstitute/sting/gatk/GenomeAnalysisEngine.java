@@ -344,11 +344,18 @@ public class GenomeAnalysisEngine {
      * @return A collection of available filters.
      */
     public Collection<ReadFilter> createFilters() {
-        final List<ReadFilter> filters = WalkerManager.getReadFilters(walker,this.getFilterManager());
+        final List<ReadFilter> filters = new LinkedList<>();
+
+        // First add the user requested filters
         if (this.getArguments().readGroupBlackList != null && this.getArguments().readGroupBlackList.size() > 0)
             filters.add(new ReadGroupBlackListFilter(this.getArguments().readGroupBlackList));
         for(final String filterName: this.getArguments().readFilters)
             filters.add(this.getFilterManager().createByName(filterName));
+
+        // now add the walker default filters.  This ordering is critical important if
+        // users need to apply filters that fix up reads that would be removed by default walker filters
+        filters.addAll(WalkerManager.getReadFilters(walker,this.getFilterManager()));
+
         return Collections.unmodifiableList(filters);
     }
 
