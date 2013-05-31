@@ -48,7 +48,7 @@ import java.util.List;
 public class ReadClipperUnitTest extends BaseTest {
 
     List<Cigar> cigarList;
-    int maximumCigarSize = 6;                                                                                           // 6 is the minimum necessary number to try all combinations of cigar types with guarantee of clipping an element with length = 2
+    int maximumCigarSize = 10;                                                                                           // 6 is the minimum necessary number to try all combinations of cigar types with guarantee of clipping an element with length = 2
 
     @BeforeClass
     public void init() {
@@ -389,6 +389,13 @@ public class ReadClipperUnitTest extends BaseTest {
             final int[] expectedReducedCounts = Arrays.copyOfRange(counts, i + 1, readLength - i - 1);
             Assert.assertEquals(clippedRead.getReducedReadCounts(), expectedReducedCounts);
         }
+    }
+
+    @Test(enabled = true)
+    public void testRevertEntirelySoftclippedReads() {
+        GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar("2H1S3H");
+        GATKSAMRecord clippedRead = ReadClipper.revertSoftClippedBases(read);
+        Assert.assertEquals(clippedRead.getAlignmentStart(), read.getSoftStart());
     }
 
 }
