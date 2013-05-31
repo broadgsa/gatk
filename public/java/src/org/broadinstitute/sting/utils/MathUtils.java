@@ -31,6 +31,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
+import java.lang.IllegalArgumentException;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -205,15 +206,16 @@ public class MathUtils {
     }
 
     /**
-     * Converts a real space array of probabilities into a log10 array
+     * Converts a real space array of numbers (typically probabilities) into a log10 array
      *
      * @param prRealSpace
      * @return
      */
     public static double[] toLog10(final double[] prRealSpace) {
         double[] log10s = new double[prRealSpace.length];
-        for (int i = 0; i < prRealSpace.length; i++)
+        for (int i = 0; i < prRealSpace.length; i++) {
             log10s[i] = Math.log10(prRealSpace[i]);
+        }
         return log10s;
     }
 
@@ -229,6 +231,9 @@ public class MathUtils {
             return maxValue;
 
         for (int i = start; i < finish; i++) {
+            if ( Double.isNaN(log10p[i]) || log10p[i] == Double.POSITIVE_INFINITY ) {
+                throw new IllegalArgumentException("log10p: Values must be non-infinite and non-NAN");
+            }
             sum += Math.pow(10.0, log10p[i] - maxValue);
         }
 
@@ -311,8 +316,12 @@ public class MathUtils {
      * @return a well-formed double
      */
     public static double normalDistribution(final double mean, final double sd, final double x) {
-        final double a = 1.0 / (sd * SQUARE_ROOT_OF_TWO_TIMES_PI);
-        final double b = Math.exp(-1.0 * (square(x - mean) / (2.0 * square(sd))));
+        if( sd < 0 )
+            throw new IllegalArgumentException("sd: Standard deviation of normal must be >0");
+        if ( ! wellFormedDouble(mean) || ! wellFormedDouble(sd) || ! wellFormedDouble(x) )
+            throw new IllegalArgumentException("mean, sd, or, x : Normal parameters must be well formatted (non-INF, non-NAN)");
+        double a = 1.0 / (sd * Math.sqrt(2.0 * Math.PI));
+        double b = Math.exp(-1.0 * (Math.pow(x - mean, 2.0) / (2.0 * sd * sd)));
         return a * b;
     }
 
@@ -359,6 +368,13 @@ public class MathUtils {
      * @see #binomialCoefficient(int, int) with log10 applied to result
      */
     public static double log10BinomialCoefficient(final int n, final int k) {
+        if ( n < 0 ) {
+            throw new IllegalArgumentException("n: Must have non-negative number of trials");
+        }
+        if ( k > n || k < 0 ) {
+            throw new IllegalArgumentException("k: Must have non-negative number of successes, and no more successes than number of trials");
+        }
+
         return log10Factorial(n) - log10Factorial(k) - log10Factorial(n - k);
     }
 
@@ -382,6 +398,8 @@ public class MathUtils {
      * @see #binomialProbability(int, int, double) with log10 applied to result
      */
     public static double log10BinomialProbability(final int n, final int k, final double log10p) {
+        if ( log10p > 1e-18 )
+            throw new IllegalArgumentException("log10p: Log-probability must be 0 or less");
         double log10OneMinusP = Math.log10(1 - Math.pow(10, log10p));
         return log10BinomialCoefficient(n, k) + log10p * k + log10OneMinusP * (n - k);
     }
@@ -441,10 +459,20 @@ public class MathUtils {
      * @return
      */
     public static double log10MultinomialCoefficient(final int n, final int[] k) {
+        if ( n < 0 )
+            throw new IllegalArgumentException("n: Must have non-negative number of trials");
         double denominator = 0.0;
+        int sum = 0;
         for (int x : k) {
+            if ( x < 0 )
+                throw new IllegalArgumentException("x element of k: Must have non-negative observations of group");
+            if ( x > n )
+                throw new IllegalArgumentException("x element of k, n: Group observations must be bounded by k");
             denominator += log10Factorial(x);
+            sum += x;
         }
+        if ( sum != n )
+            throw new IllegalArgumentException("k and n: Sum of observations in multinomial must sum to total number of trials");
         return log10Factorial(n) - denominator;
     }
 
@@ -459,9 +487,11 @@ public class MathUtils {
      */
     public static double log10MultinomialProbability(final int n, final int[] k, final double[] log10p) {
         if (log10p.length != k.length)
-            throw new UserException.BadArgumentValue("p and k", "Array of log10 probabilities must have the same size as the array of number of sucesses: " + log10p.length + ", " + k.length);
+            throw new IllegalArgumentException("p and k: Array of log10 probabilities must have the same size as the array of number of sucesses: " + log10p.length + ", " + k.length);
         double log10Prod = 0.0;
         for (int i = 0; i < log10p.length; i++) {
+            if ( log10p[i] > 1e-18 )
+                throw new IllegalArgumentException("log10p: Log-probability must be <= 0");
             log10Prod += log10p[i] * k[i];
         }
         return log10MultinomialCoefficient(n, k) + log10Prod;
@@ -504,7 +534,7 @@ public class MathUtils {
      */
     public static double multinomialProbability(final int[] k, final double[] p) {
         if (p.length != k.length)
-            throw new UserException.BadArgumentValue("p and k", "Array of log10 probabilities must have the same size as the array of number of sucesses: " + p.length + ", " + k.length);
+            throw new IllegalArgumentException("p and k: Array of log10 probabilities must have the same size as the array of number of sucesses: " + p.length + ", " + k.length);
 
         int n = 0;
         double[] log10P = new double[p.length];
