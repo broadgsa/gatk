@@ -174,4 +174,20 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
                 1, Arrays.asList("ecf27a776cdfc771defab1c5d19de9ab"));
         executeTest("testUserReadFilterAppliedBeforeWalker", spec);
     }
+
+    @Test
+    public void testNegativeCompress() {
+        testBadCompressArgument(-1);
+    }
+
+    @Test
+    public void testTooBigCompress() {
+        testBadCompressArgument(100);
+    }
+
+    private void testBadCompressArgument(final int compress) {
+        WalkerTestSpec spec = new WalkerTestSpec("-T PrintReads -R " + b37KGReference + " -I private/testdata/NA12878.1_10mb_2_10mb.bam -o %s -compress " + compress,
+                1, UserException.class);
+        executeTest("badCompress " + compress, spec);
+    }
 }

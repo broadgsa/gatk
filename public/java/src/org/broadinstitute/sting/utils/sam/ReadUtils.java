@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.util.*;
@@ -152,9 +153,16 @@ public class ReadUtils {
      * @return a SAMFileWriter with the compression level if it is a bam.
      */
     public static SAMFileWriter createSAMFileWriterWithCompression(SAMFileHeader header, boolean presorted, String file, int compression) {
+        validateCompressionLevel(compression);
         if (file.endsWith(".bam"))
             return new SAMFileWriterFactory().makeBAMWriter(header, presorted, new File(file), compression);
         return new SAMFileWriterFactory().makeSAMOrBAMWriter(header, presorted, new File(file));
+    }
+
+    public static int validateCompressionLevel(final int requestedCompressionLevel) {
+        if ( requestedCompressionLevel < 0 || requestedCompressionLevel > 9 )
+            throw new UserException.BadArgumentValue("compress", "Compression level must be 0-9 but got " + requestedCompressionLevel);
+        return requestedCompressionLevel;
     }
 
     /**
