@@ -39,7 +39,7 @@
 
     <!-- Build defaults: -->
     <property name="default.build.target" value="all" />       <!-- can be "all", "public" (public only), or "protected" (public + protected) -->
-    <property name="compile.scala.by.default" value="false" />  <!-- compile Scala by default? "true" or "false" -->
+    <property name="compile.scala.by.default" value="true" />  <!-- compile Scala by default? "true" or "false" -->
     <property name="use.contracts.by.default" value="false" /> <!-- should contracts be built by default? "true" or "false -->
 
     <!-- Top-level directories -->
