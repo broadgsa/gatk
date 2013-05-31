@@ -26,12 +26,20 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.ReadFilters;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.qc.ErrorThrowing;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.io.PrintStream;
 import java.util.Arrays;
 
 /**
@@ -125,5 +133,45 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
             WalkerTestSpec spec = new WalkerTestSpec(args, 0, cfg.expectedException);
             executeTest(cfg.toString(), spec);
         }
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test that read filters are being applied in the order we expect
+    //
+    // --------------------------------------------------------------------------------
+
+    @ReadFilters({MappingQualityUnavailableFilter.class})
+    public static class DummyReadWalkerWithMapqUnavailableFilter extends ReadWalker<Integer, Integer> {
+        @Output
+        PrintStream out;
+
+        @Override
+        public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) {
+            return 1;
+        }
+
+        @Override
+        public Integer reduceInit() {
+            return 0;
+        }
+
+        @Override
+        public Integer reduce(Integer value, Integer sum) {
+            return value + sum;
+        }
+
+        @Override
+        public void onTraversalDone(Integer result) {
+            out.println(result);
+        }
+    }
+
+    @Test(enabled = true)
+    public void testUserReadFilterAppliedBeforeWalker() {
+        WalkerTestSpec spec = new WalkerTestSpec("-R " + b37KGReference + " -I " + privateTestDir + "allMAPQ255.bam"
+                + " -T DummyReadWalkerWithMapqUnavailableFilter -o %s -L MT -rf ReassignMappingQuality",
+                1, Arrays.asList("ecf27a776cdfc771defab1c5d19de9ab"));
+        executeTest("testUserReadFilterAppliedBeforeWalker", spec);
     }
 }
