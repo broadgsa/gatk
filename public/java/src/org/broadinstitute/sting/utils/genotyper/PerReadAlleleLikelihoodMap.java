@@ -221,7 +221,7 @@ public class PerReadAlleleLikelihoodMap {
                     final int count = ReadUtils.getMeanRepresentativeReadCount(read);
                     final double likelihood_iii = entry.getValue().get(iii_allele);
                     final double likelihood_jjj = entry.getValue().get(jjj_allele);
-                    haplotypeLikelihood += count * (MathUtils.approximateLog10SumLog10(likelihood_iii, likelihood_jjj) + LOG_ONE_HALF);
+                    haplotypeLikelihood += count * (MathUtils.approximateLog10SumLog10(likelihood_iii, likelihood_jjj) + MathUtils.LOG_ONE_HALF);
 
                     // fast exit.  If this diploid pair is already worse than the max, just stop and look at the next pair
                     if ( haplotypeLikelihood < maxElement ) break;
@@ -241,7 +241,6 @@ public class PerReadAlleleLikelihoodMap {
 
         return new MostLikelyAllele(alleles.get(hap1), alleles.get(hap2), maxElement, maxElement);
     }
-    private static final double LOG_ONE_HALF = -Math.log10(2.0);
 
     /**
      * Given a map from alleles to likelihoods, find the allele with the largest likelihood.
