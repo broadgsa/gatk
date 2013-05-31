@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Stack;
 import java.util.Vector;
 
@@ -559,26 +560,34 @@ public class ClippingOp {
         return new CigarShift(cleanCigar, shiftFromStart, shiftFromEnd);
     }
 
+    /**
+     * Compute the offset of the first "real" position in the cigar on the genome
+     *
+     * This is defined as a first position after a run of Hs followed by a run of Ss
+     *
+     * @param cigar A non-null cigar
+     * @return the offset (from 0) of the first on-genome base
+     */
+    private int calcHardSoftOffset(final Cigar cigar) {
+        final List<CigarElement> elements = cigar.getCigarElements();
+
+        int size = 0;
+        int i = 0;
+        while ( i < elements.size() && elements.get(i).getOperator() == CigarOperator.HARD_CLIP ) {
+            size += elements.get(i).getLength();
+            i++;
+        }
+        while ( i < elements.size() && elements.get(i).getOperator() == CigarOperator.SOFT_CLIP ) {
+            size += elements.get(i).getLength();
+            i++;
+        }
+
+        return size;
+    }
+
     private int calculateAlignmentStartShift(Cigar oldCigar, Cigar newCigar) {
-        int newShift = 0;
-        int oldShift = 0;
-
-        boolean readHasStarted = false;  // if the new cigar is composed of S and H only, we have to traverse the entire old cigar to calculate the shift
-        for (CigarElement cigarElement : newCigar.getCigarElements()) {
-            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP || cigarElement.getOperator() == CigarOperator.SOFT_CLIP)
-                newShift += cigarElement.getLength();
-            else {
-                readHasStarted = true;
-                break;
-            }
-        }
-
-        for (CigarElement cigarElement : oldCigar.getCigarElements()) {
-            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP || cigarElement.getOperator() == CigarOperator.SOFT_CLIP)
-                oldShift += cigarElement.getLength();
-            else if (readHasStarted)
-                break;
-        }
+        final int newShift = calcHardSoftOffset(newCigar);
+        final int oldShift = calcHardSoftOffset(oldCigar);
         return newShift - oldShift;
     }
 
