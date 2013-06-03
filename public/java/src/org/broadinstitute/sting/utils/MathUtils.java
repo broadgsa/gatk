@@ -244,9 +244,6 @@ public class MathUtils {
 
     public static double sumLog10(final double[] log10values) {
         return Math.pow(10.0, log10sumLog10(log10values));
-        //        double s = 0.0;
-        //        for ( double v : log10values) s += Math.pow(10.0, v);
-        //        return s;
     }
 
     public static double log10sumLog10(final double[] log10values) {
@@ -859,10 +856,7 @@ public class MathUtils {
                 break;
             sum += x;
             i++;
-            //System.out.printf(" %d/%d", sum, i);
         }
-
-        //System.out.printf("Sum = %d, n = %d, maxI = %d, avg = %f%n", sum, i, maxI, (1.0 * sum) / i);
 
         return (1.0 * sum) / i;
     }
@@ -1359,7 +1353,7 @@ public class MathUtils {
     }
 
     /**
-     * Compute in a numerical correct way the quanity log10(1-x)
+     * Compute in a numerical correct way the quantity log10(1-x)
      *
      * Uses the approximation log10(1-x) = log10(1/x - 1) + log10(x) to avoid very quick underflow
      * in 1-x when x is very small
