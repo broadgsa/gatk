@@ -12,5 +12,5 @@ public interface BatchPairHMM {
 			 final byte[] deletionGOP,
 			 final byte[] overallGCP);
 
-    public double[] batchResult();
+    public double[] batchGetResult();
 }
