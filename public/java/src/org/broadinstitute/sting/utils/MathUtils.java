@@ -29,9 +29,8 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.lang.IllegalArgumentException;
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -417,9 +416,35 @@ public class MathUtils {
         return log10BinomialCoefficient(n, k) + (n * FAIR_BINOMIAL_PROB_LOG10_0_5);
     }
 
+    /** A memoization container for {@link #binomialCumulativeProbability(int, int, int)}.  Synchronized to accomodate multithreading. */
+    private static final Map<Long, Double> BINOMIAL_CUMULATIVE_PROBABILITY_MEMOIZATION_CACHE = 
+            Collections.synchronizedMap(new LRUCache<Long, Double>(10_000)); 
+    
+    /**
+     * Primitive integer-triplet bijection into long.  Returns null when the bijection function fails (in lieu of an exception), which will
+     * happen when: any value is negative or larger than a short.  This method is optimized for speed; it is not intended to serve as a 
+     * utility function.
+     */
+    @Nullable
+    static Long fastGenerateUniqueHashFromThreeIntegers(final int one, final int two, final int three) {
+        if (one < 0 || two < 0 || three < 0 || Short.MAX_VALUE < one || Short.MAX_VALUE < two || Short.MAX_VALUE < three) {
+            return null;
+        } else {
+            long result = 0;
+            result += (short) one;
+            result <<= 16;
+            result += (short) two;
+            result <<= 16;
+            result += (short) three;
+            return result;
+        }
+    }
+    
     /**
      * Performs the cumulative sum of binomial probabilities, where the probability calculation is done in log space.
      * Assumes that the probability of a successful hit is fair (i.e. 0.5).
+     * 
+     * This pure function is memoized because of its expensive BigDecimal calculations.
      *
      * @param n         number of attempts for the number of hits
      * @param k_start   start (inclusive) of the cumulant sum (over hits)
@@ -430,23 +455,41 @@ public class MathUtils {
         if ( k_end > n )
             throw new IllegalArgumentException(String.format("Value for k_end (%d) is greater than n (%d)", k_end, n));
 
-        double cumProb = 0.0;
-        double prevProb;
-        BigDecimal probCache = BigDecimal.ZERO;
-
-        for (int hits = k_start; hits <= k_end; hits++) {
-            prevProb = cumProb;
-            final double probability = binomialProbability(n, hits);
-            cumProb += probability;
-            if (probability > 0 && cumProb - prevProb < probability / 2) { // loss of precision
-                probCache = probCache.add(new BigDecimal(prevProb));
-                cumProb = 0.0;
-                hits--; // repeat loop
-                // prevProb changes at start of loop
-            }
+        // Fetch cached value, if applicable.
+        final Long memoizationKey = fastGenerateUniqueHashFromThreeIntegers(n, k_start, k_end);
+        final Double memoizationCacheResult;
+        if (memoizationKey != null) {
+            memoizationCacheResult = BINOMIAL_CUMULATIVE_PROBABILITY_MEMOIZATION_CACHE.get(memoizationKey);
+        } else {
+            memoizationCacheResult = null;
         }
 
-        return probCache.add(new BigDecimal(cumProb)).doubleValue();
+        final double result;
+        if (memoizationCacheResult != null) {
+            result = memoizationCacheResult;
+        } else {
+            double cumProb = 0.0;
+            double prevProb;
+            BigDecimal probCache = BigDecimal.ZERO;
+
+            for (int hits = k_start; hits <= k_end; hits++) {
+                prevProb = cumProb;
+                final double probability = binomialProbability(n, hits);
+                cumProb += probability;
+                if (probability > 0 && cumProb - prevProb < probability / 2) { // loss of precision
+                    probCache = probCache.add(new BigDecimal(prevProb));
+                    cumProb = 0.0;
+                    hits--; // repeat loop
+                    // prevProb changes at start of loop
+                }
+            }
+
+            result = probCache.add(new BigDecimal(cumProb)).doubleValue();
+            if (memoizationKey != null) {
+                BINOMIAL_CUMULATIVE_PROBABILITY_MEMOIZATION_CACHE.put(memoizationKey, result);
+            }
+        }
+        return result;
     }
 
     /**
