@@ -366,4 +366,12 @@ public class PerReadAlleleLikelihoodMap {
 
         return true;
     }
+
+    /**
+     * Get an unmodifiable set of the unique alleles in this PerReadAlleleLikelihoodMap
+     * @return a non-null unmodifiable map
+     */
+    public Set<Allele> getAllelesSet() {
+        return Collections.unmodifiableSet(allelesSet);
+    }
 }
