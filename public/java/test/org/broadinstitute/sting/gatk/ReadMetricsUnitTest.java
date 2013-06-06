@@ -256,7 +256,6 @@ public class ReadMetricsUnitTest extends BaseTest {
             }
             windowMaker.close();
         }
-        traverseActiveRegions.endTraversal(walker, 0);
 
         Assert.assertEquals(engine.getCumulativeMetrics().getNumReadsSeen(), contigs.size() * numReadsPerContig);
         Assert.assertEquals(engine.getCumulativeMetrics().getNumIterations(), contigs.size() * numReadsPerContig);

@@ -204,8 +204,10 @@ public class VariantAnnotatorEngine {
         return annotateDBs(tracker, annotated);
     }
 
-    public VariantContext annotateContext(final Map<String, PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap, VariantContext vc) {
-        Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
+    public VariantContext annotateContextForActiveRegion(final RefMetaDataTracker tracker,
+                                                         final Map<String, PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap,
+                                                         final VariantContext vc) {
+        final Map<String, Object> infoAnnotations = new LinkedHashMap<>(vc.getAttributes());
 
         // go through all the requested info annotationTypes
         for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
@@ -219,10 +221,13 @@ public class VariantAnnotatorEngine {
         }
 
         // generate a new annotated VC
-        VariantContextBuilder builder = new VariantContextBuilder(vc).attributes(infoAnnotations);
+        final VariantContextBuilder builder = new VariantContextBuilder(vc).attributes(infoAnnotations);
 
         // annotate genotypes, creating another new VC in the process
-        return builder.genotypes(annotateGenotypes(null, null, null, vc, perReadAlleleLikelihoodMap)).make();
+        final VariantContext annotated = builder.genotypes(annotateGenotypes(null, null, null, vc, perReadAlleleLikelihoodMap)).make();
+
+        // annotate db occurrences
+        return annotateDBs(tracker, annotated);
     }
 
     /**

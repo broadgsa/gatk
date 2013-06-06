@@ -122,7 +122,7 @@ public final class VariantOverlapAnnotator {
     /**
      * Add overlap attributes to vcToAnnotate against all overlapBindings in tracker
      *
-     * @see #annotateOverlap(java.util.List, , String, org.broadinstitute.variant.variantcontext.VariantContext)
+     * @see #annotateOverlap(java.util.List, String, org.broadinstitute.variant.variantcontext.VariantContext)
      * for more information
      *
      * @param tracker non-null tracker, which we will use to update the rsID of vcToAnnotate
@@ -130,12 +130,12 @@ public final class VariantOverlapAnnotator {
      * @param vcToAnnotate a variant context to annotate
      * @return a VariantContext (may be == to vcToAnnotate) with updated overlaps update fields value
      */
-    public VariantContext annotateOverlaps(final RefMetaDataTracker tracker, VariantContext vcToAnnotate) {
+    public VariantContext annotateOverlaps(final RefMetaDataTracker tracker, final VariantContext vcToAnnotate) {
         if ( overlapBindings.isEmpty() ) return vcToAnnotate;
 
         VariantContext annotated = vcToAnnotate;
         final GenomeLoc loc = getLoc(vcToAnnotate);
-        for ( Map.Entry<RodBinding<VariantContext>, String> overlapBinding : overlapBindings.entrySet() ) {
+        for ( final Map.Entry<RodBinding<VariantContext>, String> overlapBinding : overlapBindings.entrySet() ) {
             annotated = annotateOverlap(tracker.getValues(overlapBinding.getKey(), loc), overlapBinding.getValue(), vcToAnnotate);
         }
 
@@ -186,7 +186,7 @@ public final class VariantOverlapAnnotator {
         if ( rsIDSourceVCs == null ) throw new IllegalArgumentException("rsIDSourceVCs cannot be null");
         if ( vcToAnnotate == null ) throw new IllegalArgumentException("vcToAnnotate cannot be null");
 
-        for ( VariantContext vcComp : rsIDSourceVCs ) {
+        for ( final VariantContext vcComp : rsIDSourceVCs ) {
             if ( vcComp.isFiltered() ) continue; // don't process any failed VCs
 
             if ( ! vcComp.getChr().equals(vcToAnnotate.getChr()) || vcComp.getStart() != vcToAnnotate.getStart() )
