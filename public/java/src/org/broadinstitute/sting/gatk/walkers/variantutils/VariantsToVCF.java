@@ -39,6 +39,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.gatk.walkers.annotator.VariantOverlapAnnotator;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -112,24 +113,21 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
 
     // for dealing with indels in hapmap
     CloseableIterator<GATKFeature> dbsnpIterator = null;
+    VariantOverlapAnnotator variantOverlapAnnotator = null;
 
     public void initialize() {
         vcfwriter = VariantContextWriterFactory.sortOnTheFly(baseWriter, 40, false);
+        variantOverlapAnnotator = new VariantOverlapAnnotator(dbsnp.dbsnp, getToolkit().getGenomeLocParser());
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )
             return 0;
 
-        String rsID = dbsnp == null ? null : GATKVCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbsnp.dbsnp, context.getLocation()), VariantContext.Type.SNP);
-
         Collection<VariantContext> contexts = getVariantContexts(tracker, ref);
 
         for ( VariantContext vc : contexts ) {
             VariantContextBuilder builder = new VariantContextBuilder(vc);
-            if ( rsID != null && vc.emptyID() ) {
-                builder.id(rsID).make();
-            }
 
             // set the appropriate sample name if necessary
             if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(variants.getName()) ) {
@@ -137,7 +135,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 builder.genotypes(g);
             }
 
-            writeRecord(builder.make(), tracker, ref.getLocus());
+            final VariantContext withID = variantOverlapAnnotator.annotateRsID(tracker, builder.make());
+            writeRecord(withID, tracker, ref.getLocus());
         }
 
         return 1;

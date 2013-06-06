@@ -34,26 +34,23 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
-import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
-import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.variant.variantcontext.*;
+import org.broadinstitute.variant.vcf.*;
 
 import java.util.*;
 
 
 public class VariantAnnotatorEngine {
-
     private List<InfoFieldAnnotation> requestedInfoAnnotations = Collections.emptyList();
     private List<GenotypeAnnotation> requestedGenotypeAnnotations = Collections.emptyList();
-    private List<VAExpression> requestedExpressions = new ArrayList<VAExpression>();
+    private List<VAExpression> requestedExpressions = new ArrayList<>();
 
-    private final HashMap<RodBinding<VariantContext>, String> dbAnnotations = new HashMap<RodBinding<VariantContext>, String>();
     private final AnnotatorCompatible walker;
     private final GenomeAnalysisEngine toolkit;
 
-    private boolean requireStrictAlleleMatch = false;
+    VariantOverlapAnnotator variantOverlapAnnotator = null;
 
     protected static class VAExpression {
 
@@ -85,7 +82,7 @@ public class VariantAnnotatorEngine {
         requestedInfoAnnotations = AnnotationInterfaceManager.createAllInfoFieldAnnotations();
         requestedGenotypeAnnotations = AnnotationInterfaceManager.createAllGenotypeAnnotations();
         excludeAnnotations(annotationsToExclude);
-        initializeDBs();
+        initializeDBs(toolkit);
     }
 
     // use this constructor if you want to select specific annotations (and/or interfaces)
@@ -93,14 +90,7 @@ public class VariantAnnotatorEngine {
         this.walker = walker;
         this.toolkit = toolkit;
         initializeAnnotations(annotationGroupsToUse, annotationsToUse, annotationsToExclude);
-        initializeDBs();
-    }
-
-    // experimental constructor for active region traversal
-    public VariantAnnotatorEngine(GenomeAnalysisEngine toolkit) {
-        this.walker = null;
-        this.toolkit = toolkit;
-        requestedInfoAnnotations = AnnotationInterfaceManager.createInfoFieldAnnotations(Arrays.asList("ActiveRegionBasedAnnotation"), Collections.<String>emptyList());
+        initializeDBs(toolkit);
     }
 
     // select specific expressions to use
@@ -138,16 +128,19 @@ public class VariantAnnotatorEngine {
         requestedGenotypeAnnotations = tempRequestedGenotypeAnnotations;
     }
 
-    private void initializeDBs() {
-
+    private void initializeDBs(final GenomeAnalysisEngine engine) {
         // check to see whether comp rods were included
-        final RodBinding<VariantContext> dbsnp = walker.getDbsnpRodBinding();
-        if ( dbsnp != null &&  dbsnp.isBound() )
-            dbAnnotations.put(dbsnp, VCFConstants.DBSNP_KEY);
+        RodBinding<VariantContext> dbSNPBinding = walker.getDbsnpRodBinding();
+        if ( dbSNPBinding != null && ! dbSNPBinding.isBound() )
+            dbSNPBinding = null;
 
-        final List<RodBinding<VariantContext>> comps = walker.getCompRodBindings();
-        for ( RodBinding<VariantContext> rod : comps )
-            dbAnnotations.put(rod, rod.getName());
+        final Map<RodBinding<VariantContext>, String> overlapBindings = new LinkedHashMap<>();
+        for ( final RodBinding<VariantContext> b : walker.getCompRodBindings())
+            if ( b.isBound() ) overlapBindings.put(b, b.getName());
+        if ( dbSNPBinding != null && ! overlapBindings.keySet().contains(VCFConstants.DBSNP_KEY) )
+            overlapBindings.put(dbSNPBinding, VCFConstants.DBSNP_KEY); // add overlap detection with DBSNP by default
+
+        variantOverlapAnnotator = new VariantOverlapAnnotator(dbSNPBinding, overlapBindings, engine.getGenomeLocParser());
     }
 
     public void invokeAnnotationInitializationMethods( Set<VCFHeaderLine> headerLines ) {
@@ -161,14 +154,13 @@ public class VariantAnnotatorEngine {
     }
 
     public Set<VCFHeaderLine> getVCFAnnotationDescriptions() {
-
         Set<VCFHeaderLine> descriptions = new HashSet<VCFHeaderLine>();
 
         for ( InfoFieldAnnotation annotation : requestedInfoAnnotations )
             descriptions.addAll(annotation.getDescriptions());
         for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations )
             descriptions.addAll(annotation.getDescriptions());
-        for ( String db : dbAnnotations.values() ) {
+        for ( String db : variantOverlapAnnotator.getOverlapNames() ) {
             if ( VCFStandardHeaderLines.getInfoLine(db, false) != null )
                 descriptions.add(VCFStandardHeaderLines.getInfoLine(db));
             else
@@ -176,10 +168,6 @@ public class VariantAnnotatorEngine {
         }
 
         return descriptions;
-    }
-
-    public void setRequireStrictAlleleMatch( final boolean requireStrictAlleleMatch ) {
-        this.requireStrictAlleleMatch = requireStrictAlleleMatch;
     }
 
     public  VariantContext annotateContext(final RefMetaDataTracker tracker,
@@ -192,12 +180,9 @@ public class VariantAnnotatorEngine {
     public VariantContext annotateContext(final RefMetaDataTracker tracker,
                                           final ReferenceContext ref,
                                           final Map<String, AlignmentContext> stratifiedContexts,
-                                          VariantContext vc,
+                                          final VariantContext vc,
                                           final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
-
-        // annotate db occurrences
-        vc = annotateDBs(tracker, ref.getLocus(), vc, infoAnnotations);
 
         // annotate expressions where available
         annotateExpressions(tracker, ref.getLocus(), infoAnnotations);
@@ -213,7 +198,10 @@ public class VariantAnnotatorEngine {
         VariantContextBuilder builder = new VariantContextBuilder(vc).attributes(infoAnnotations);
 
         // annotate genotypes, creating another new VC in the process
-        return builder.genotypes(annotateGenotypes(tracker, ref, stratifiedContexts, vc, perReadAlleleLikelihoodMap)).make();
+        final VariantContext annotated = builder.genotypes(annotateGenotypes(tracker, ref, stratifiedContexts, vc, perReadAlleleLikelihoodMap)).make();
+
+        // annotate db occurrences
+        return annotateDBs(tracker, annotated);
     }
 
     public VariantContext annotateContext(final Map<String, PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap, VariantContext vc) {
@@ -241,66 +229,13 @@ public class VariantAnnotatorEngine {
      * Annotate the ID field and other DBs for the given Variant Context
      *
      * @param tracker  ref meta data tracker (cannot be null)
-     * @param loc      location of the vc
      * @param vc       variant context to annotate
-     * @return non-null annotated version of vc
-     */
-    @Requires({"tracker != null && loc != null && vc != null"})
-    @Ensures("result != null")
-    public VariantContext annotateDBs(final RefMetaDataTracker tracker, final GenomeLoc loc, VariantContext vc) {
-        final Map<String, Object> newInfoAnnotations = new HashMap<String, Object>(0);
-        vc = annotateDBs(tracker, loc, vc, newInfoAnnotations);
-
-        if ( !newInfoAnnotations.isEmpty() ) {
-            final VariantContextBuilder builder = new VariantContextBuilder(vc).attributes(newInfoAnnotations);
-            vc = builder.make();
-        }
-
-        return vc;
-    }
-
-    /**
-     * Annotate the ID field and other DBs for the given Variant Context
-     *
-     * @param tracker  ref meta data tracker (cannot be null)
-     * @param loc      location of the vc
-     * @param vc       variant context to annotate
-     * @param infoAnnotations  info annotation map to populate
      * @return non-null annotated version of vc
      */
     @Requires({"tracker != null && loc != null && vc != null && infoAnnotations != null"})
     @Ensures("result != null")
-    private VariantContext annotateDBs(final RefMetaDataTracker tracker, final GenomeLoc loc, VariantContext vc, final Map<String, Object> infoAnnotations) {
-        for ( Map.Entry<RodBinding<VariantContext>, String> dbSet : dbAnnotations.entrySet() ) {
-            if ( dbSet.getValue().equals(VCFConstants.DBSNP_KEY) ) {
-                final String rsID = GATKVCFUtils.rsIDOfFirstRealVariant(tracker.getValues(dbSet.getKey(), loc), vc.getType());
-                
-                // add the ID if appropriate
-                if ( rsID != null ) {
-                    // put the DB key into the INFO field
-                    infoAnnotations.put(VCFConstants.DBSNP_KEY, true);
-
-                    if ( vc.emptyID() ) {
-                        vc = new VariantContextBuilder(vc).id(rsID).make();
-                    } else if ( walker.alwaysAppendDbsnpId() && vc.getID().indexOf(rsID) == -1 ) {
-                        final String newRsID = vc.getID() + VCFConstants.ID_FIELD_SEPARATOR + rsID;
-                        vc = new VariantContextBuilder(vc).id(newRsID).make();
-                    }
-                }
-            } else {
-                boolean overlapsComp = false;
-                for ( VariantContext comp : tracker.getValues(dbSet.getKey(), loc) ) {
-                    if ( !comp.isFiltered() && ( !requireStrictAlleleMatch || comp.getAlleles().equals(vc.getAlleles()) ) ) {
-                        overlapsComp = true;
-                        break;
-                    }
-                }
-                if ( overlapsComp )
-                    infoAnnotations.put(dbSet.getValue(), overlapsComp);
-            }
-        }
-
-        return vc;
+    private VariantContext annotateDBs(final RefMetaDataTracker tracker, VariantContext vc) {
+        return variantOverlapAnnotator.annotateOverlaps(tracker, variantOverlapAnnotator.annotateRsID(tracker, vc));
     }
 
     private void annotateExpressions(final RefMetaDataTracker tracker, final GenomeLoc loc, final Map<String, Object> infoAnnotations) {
