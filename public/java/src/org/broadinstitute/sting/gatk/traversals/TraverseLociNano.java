@@ -179,7 +179,7 @@ public class TraverseLociNano<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,
             final ReferenceContext refContext = referenceView.getReferenceContext(location);
 
             // Iterate forward to get all reference ordered data covering this location
-            final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(location, refContext);
+            final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(location);
 
             numIterations++;
             return new MapData(locus, refContext,  tracker);

@@ -149,21 +149,6 @@ public class GATKVCFUtils {
         return VCFUtils.withUpdatedContigs(header, engine.getArguments().referenceFile, engine.getMasterSequenceDictionary());
     }
 
-    public static String rsIDOfFirstRealVariant(List<VariantContext> VCs, VariantContext.Type type) {
-        if ( VCs == null )
-            return null;
-
-        String rsID = null;
-        for ( VariantContext vc : VCs ) {
-            if ( vc.getType() == type ) {
-                rsID = vc.getID();
-                break;
-            }
-        }
-
-        return rsID;
-    }
-
     /**
      * Utility class to read all of the VC records from a file
      *

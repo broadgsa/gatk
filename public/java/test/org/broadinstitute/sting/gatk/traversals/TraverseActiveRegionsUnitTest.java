@@ -405,8 +405,6 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         for (LocusShardDataProvider dataProvider : createDataProviders(t, walker, intervals, bam))
             t.traverse(walker, dataProvider, 0);
 
-        t.endTraversal(walker, 0);
-
         return walker.mappedActiveRegions;
     }
 
