@@ -125,7 +125,14 @@ public class GATKArgumentCollection {
     @Argument(fullName = "downsample_to_fraction", shortName = "dfrac", doc = "Fraction [0.0-1.0] of reads to downsample to", required = false)
     public Double downsampleFraction = null;
 
-    @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to at any given locus; note that downsampled reads are randomly selected from all possible reads at a locus. For non-locus-based traversals (eg., ReadWalkers), this sets the maximum number of reads at each alignment start position.", required = false)
+    @Argument(fullName = "downsample_to_coverage", shortName = "dcov",
+              doc = "Coverage [integer] to downsample to. For locus-based traversals (eg., LocusWalkers and ActiveRegionWalkers)," +
+                    "this controls the maximum depth of coverage at each locus. For non-locus-based traversals (eg., ReadWalkers), " +
+                    "this controls the maximum number of reads sharing the same alignment start position. Note that the " +
+                    "coverage target is an approximate goal that is not guaranteed to be met exactly: the GATK's approach " +
+                    "to downsampling is based on even representation of reads from all alignment start positions, and the " +
+                    "downsampling algorithm will under some circumstances retain slightly more coverage than requested.",
+              required = false)
     public Integer downsampleCoverage = null;
 
     /**
