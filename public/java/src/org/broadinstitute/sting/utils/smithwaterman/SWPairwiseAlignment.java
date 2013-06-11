@@ -119,6 +119,21 @@ public class SWPairwiseAlignment implements SmithWaterman {
     }
 
     /**
+     * Create a new SW pairwise aligner
+     *
+     * After creating the object the two sequences are aligned with an internal call to align(seq1, seq2)
+     *
+     * @param seq1 the first sequence we want to align
+     * @param seq2 the second sequence we want to align
+     * @param strategy   the overhang strategy to use
+     */
+    public SWPairwiseAlignment(final byte[] seq1, final byte[] seq2, final OVERHANG_STRATEGY strategy) {
+        this(SWParameterSet.ORIGINAL_DEFAULT.parameters);
+        overhang_strategy = strategy;
+        align(seq1, seq2);
+    }
+
+    /**
      * Create a new SW pairwise aligner, without actually doing any alignment yet
      *
      * @param parameters the SW parameters to use
