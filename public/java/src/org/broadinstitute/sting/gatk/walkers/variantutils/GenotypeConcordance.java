@@ -67,8 +67,58 @@ import java.util.*;
  *
  *  <h3>Output</h3>
  *  Genotype Concordance writes a GATK report to the specified file (via -o) , consisting of multiple tables of counts
- *  and proportions. These tables may be optionally moltenized via the -moltenize argument.
+ *  and proportions. These tables may be optionally moltenized via the -moltenize argument. That is, the standard table
  *
+ *  Sample   NO_CALL_HOM_REF  NO_CALL_HET  NO_CALL_HOM_VAR   (...)
+ *  NA12878       0.003        0.001            0.000        (...)
+ *  NA12891       0.005        0.000            0.000        (...)
+ *
+ *  would instead be displayed
+ *
+ *  NA12878  NO_CALL_HOM_REF   0.003
+ *  NA12878  NO_CALL_HET       0.001
+ *  NA12878  NO_CALL_HOM_VAR   0.000
+ *  NA12891  NO_CALL_HOM_REF   0.005
+ *  NA12891  NO_CALL_HET       0.000
+ *  NA12891  NO_CALL_HOM_VAR   0.000
+ *  (...)
+ *
+ *
+ *  These tables are constructed on a per-sample basis, and include counts of eval vs comp genotype states, and the
+ *  number of times the alternate alleles between the eval and comp sample did not match up.
+ *
+ *  In addition, Genotype Concordance produces site-level allelic concordance. For strictly bi-allelic VCFs,
+ *  only the ALLELES_MATCH, EVAL_ONLY, TRUTH_ONLY fields will be populated, but where multi-allelic sites are involved
+ *  counts for EVAL_SUBSET_TRUTH and EVAL_SUPERSET_TRUTH will be generated.
+ *
+ *  For example, in the following situation
+ *    eval:  ref - A   alt - C
+ *    comp:  ref - A   alt - C,T
+ *  then the site is tabulated as EVAL_SUBSET_TRUTH. Were the situation reversed, it would be EVAL_SUPERSET_TRUTH.
+ *  However, in the case where eval has both C and T alternate alleles, both must be observed in the genotypes
+ *  (that is, there must be at least one of (0/1,1/1) and at least one of (0/2,1/2,2/2) in the genotype field). If
+ *  one of the alleles has no observations in the genotype fields of the eval, the site-level concordance is
+ *  tabulated as though that allele were not present in the record.
+ *
+ *  <h3>Monomorphic Records</h3>
+ *  A site which has an alternate allele, but which is monomorphic in samples, is treated as not having been
+ *  discovered, and will be recorded in the TRUTH_ONLY column (if a record exists in the comp VCF), or not at all
+ *  (if no record exists in the comp VCF).
+ *
+ *  That is, in the situation
+ *   eval:  ref - A   alt - C   genotypes - 0/0  0/0  0/0 ... 0/0
+ *   comp:  ref - A   alt - C   ...         0/0  0/0  ...
+ *  is equivalent to
+ *   eval:  ref - A   alt - .   genotypes - 0/0  0/0  0/0 ... 0/0
+ *   comp:  ref - A   alt - C   ...         0/0  0/0  ...
+ *
+ *  When a record is present in the comp VCF the *genotypes* for the monomorphic site will still be used to evaluate
+ *  per-sample genotype concordance counts.
+ *
+ *  <h3>Filtered Records</h3>
+ *  Filtered records are treated as though they were not present in the VCF, unless -ignoreSiteFilters is provided,
+ *  in which case all records are used. There is currently no way to assess concordance metrics on filtered sites
+ *  exclusively. SelectVariants can be used to extract filtered sites, and VariantFiltration used to un-filter them.
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class GenotypeConcordance extends RodWalker<List<Pair<VariantContext,VariantContext>>,ConcordanceMetrics> {
