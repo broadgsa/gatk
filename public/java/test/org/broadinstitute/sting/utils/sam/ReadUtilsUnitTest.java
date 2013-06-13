@@ -151,6 +151,31 @@ public class ReadUtilsUnitTest extends BaseTest {
         read.setReadNegativeStrandFlag(false);
         boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
+
+        // Test case 8: read doesn't have proper pair flag set
+        read = makeRead(fragmentSize, mateStart);
+        read.setReadPairedFlag(true);
+        read.setProperPairFlag(false);
+        Assert.assertEquals(get.getAdaptor(read), ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
+
+        // Test case 9: read and mate have same negative flag setting
+        for ( final boolean negFlag: Arrays.asList(true, false) ) {
+            read = makeRead(fragmentSize, mateStart);
+            read.setAlignmentStart(BEFORE);
+            read.setReadPairedFlag(true);
+            read.setProperPairFlag(true);
+            read.setReadNegativeStrandFlag(negFlag);
+            read.setMateNegativeStrandFlag(!negFlag);
+            Assert.assertTrue(get.getAdaptor(read) != ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY, "Get adaptor should have succeeded");
+
+            read = makeRead(fragmentSize, mateStart);
+            read.setAlignmentStart(BEFORE);
+            read.setReadPairedFlag(true);
+            read.setProperPairFlag(true);
+            read.setReadNegativeStrandFlag(negFlag);
+            read.setMateNegativeStrandFlag(negFlag);
+            Assert.assertEquals(get.getAdaptor(read), ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY, "Get adaptor should have failed for reads with bad alignment orientation");
+        }
     }
 
     @Test (enabled = true)

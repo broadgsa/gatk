@@ -1031,6 +1031,7 @@
         <delete dir="${staging.dir}"/>
         <delete dir="${dist.dir}"/>
         <delete dir="${pipelinetest.dir}"/>
+        <delete dir="${integration.tests.dir}"/>
     </target>
 
     <!-- Depend on this target if your target requires a clean working directory but you don't want to depend on clean directly -->
@@ -1043,6 +1044,7 @@
                 <available file="${staging.dir}" />
                 <available file="${dist.dir}" />
                 <available file="${pipelinetest.dir}" />
+                <available file="${integration.tests.dir}" />
                 <available file="${javadoc.dir}" />
                 <available file="${scaladoc.dir}" />
                 <available file="${gatkdocs.dir}" />
@@ -1078,6 +1080,7 @@
     <property name="scala.public.test.sources" value="${public.dir}/scala/test"/>
     <property name="scala.private.test.sources" value="${private.dir}/scala/test"/>
     <property name="scala.protected.test.sources" value="${protected.dir}/scala/test"/>
+    <property name="integration.tests.dir" value="integrationtests" />
     <property name="pipelinetest.dir" value="pipelinetests" />
     <property name="report" value="${build.dir}/report"/>
     <property name="iwww.report.dir" value="${user.home}/private_html/report"/>

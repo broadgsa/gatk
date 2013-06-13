@@ -149,6 +149,12 @@ public class ProgressMeter {
     private Position position = new Position(PositionStatus.STARTING);
     private long nTotalRecordsProcessed = 0;
 
+    /**
+     * The elapsed time in nanosecond, updated by the daemon thread, so that
+     * we don't pay any system call overhead to determine the the elapsed time.
+     */
+    private long elapsedTimeInNanosecondUpdatedByDaemon = 0;
+
     final ProgressMeterDaemon progressMeterDaemon;
 
     /**
@@ -224,6 +230,36 @@ public class ProgressMeter {
     public long getRuntimeInNanoseconds() {
         return timer.getElapsedTimeNano();
     }
+
+    /**
+     * This function is just like getRuntimeInNanoseconds but it doesn't actually query the
+     * system timer to determine the value, but rather uses a local variable in this meter
+     * that is updated by the daemon thread.  This means that the result is ridiculously imprecise
+     * for a nanosecond value (as it's only updated each pollingFrequency of the daemon) but
+     * it is free for clients to access, which can be critical when one wants to do tests like:
+     *
+     * for some work unit:
+     *   do unit if getRuntimeInNanosecondsUpdatedPeriodically < X
+     *
+     * and have this operation eventually timeout but don't want to pay the system call time to
+     * ensure that the loop exits as soon as the elapsed time exceeds X
+     *
+     * @return the current runtime in nanoseconds
+     */
+    @Ensures("result >= 0")
+    public long getRuntimeInNanosecondsUpdatedPeriodically() {
+        return elapsedTimeInNanosecondUpdatedByDaemon;
+    }
+
+    /**
+     * Update the period runtime variable to the current runtime in nanoseconds.  Should only
+     * be called by the daemon thread
+     */
+    protected void updateElapsedTimeInNanoseconds() {
+        elapsedTimeInNanosecondUpdatedByDaemon = getRuntimeInNanoseconds();
+    }
+
+
 
     /**
      * Utility routine that prints out process information (including timing) every N records or

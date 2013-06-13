@@ -26,13 +26,14 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class PileupWalkerIntegrationTest extends WalkerTest {
-    String gatkSpeedupArgs="-T Pileup -I " + validationDataLocation + "NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam "
-            + "-R " + hg19Reference + " -o %s ";
 
     @Test
     public void testGnarleyFHSPileup() {
@@ -73,25 +74,50 @@ public class PileupWalkerIntegrationTest extends WalkerTest {
     //testing speedup to GATKBAMIndex
 
 
-    @Test
-    public void  testPileupOnLargeBamChr20(){
-        WalkerTestSpec spec = new WalkerTestSpec(gatkSpeedupArgs + "-L 20:1-76,050", 1, Arrays.asList("8702701350de11a6d28204acefdc4775"));
-        executeTest("Testing single on big BAM at start of chromosome 20", spec);
+    @DataProvider(name="GATKBAMIndexTest")
+    public Object[][] makeMyDataProvider() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+        tests.add(new Object[]{"-L 20:1-76,050","8702701350de11a6d28204acefdc4775"});
+        tests.add(new Object[]{"-L 20:10,000,000-10,001,100","818cf5a8229efe6f89fc1cd8145ccbe3"});
+        tests.add(new Object[]{"-L 20:62,954,114-63,025,520","22471ea4a12e5139aef62bf8ff2a5b63"});
+        tests.add(new Object[]{"-L 20:1-76,050 -L 20:20,000,000-20,000,100 -L 20:40,000,000-40,000,100 -L 20:30,000,000-30,000,100 -L 20:50,000,000-50,000,100 -L 20:62,954,114-63,025,520 ","08d899ed7c5a76ef3947bf67338acda1"});
+        return tests.toArray(new Object[][]{});
     }
-    @Test
-    public void  testPileupOnLargeBamMid20(){
-        WalkerTestSpec spec = new WalkerTestSpec(gatkSpeedupArgs + "-L 20:10,000,000-10,001,100", 1, Arrays.asList("818cf5a8229efe6f89fc1cd8145ccbe3"));
-        executeTest("Testing single on big BAM somewhere in chromosome 20", spec);
+
+    @Test(dataProvider = "GATKBAMIndexTest")
+    public void testGATKBAMIndexSpeedup(final String intervals, final String md5){
+        final String gatkArgs="-T Pileup -I " + validationDataLocation + "NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam "
+                + "-R " + hg19Reference + " -o %s ";
+
+        WalkerTestSpec spec = new WalkerTestSpec(gatkArgs + intervals, 1, Arrays.asList(md5));
+        executeTest("Testing with intervals="+intervals, spec);
     }
+
+
+    /***********************/
+
+    // testing hidden option -outputInsertLength
+    private final static String SingleReadAligningOffChromosome1withInsertLengthMD5 = "279e2ec8832e540f47a6e2bdf4cef5ea";
     @Test
-    public void  testPileupOnLargeBamEnd20(){
-        WalkerTestSpec spec = new WalkerTestSpec(gatkSpeedupArgs + "-L 20:62,954,114-63,025,520", 1, Arrays.asList("22471ea4a12e5139aef62bf8ff2a5b63"));
-        executeTest("Testing single at end of chromosome 20", spec);
+    public void testSingleReadAligningOffChromosome1withInsertLength() {
+        String gatk_args = "-T Pileup "
+                + " -I " + privateTestDir + "readOffb37contig1.bam"
+                + " -R " + b37KGReference
+                + " -outputInsertLength"
+                + " -o %s";
+        WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 1, Arrays.asList(SingleReadAligningOffChromosome1withInsertLengthMD5));
+        executeTest("Testing single read spanning off chromosome 1 (with insert length)", spec);
     }
+
     @Test
-    public void  testPileupOnLargeBam20Many(){
-        WalkerTestSpec spec = new WalkerTestSpec(gatkSpeedupArgs + "-L 20:1-76,050 -L 20:20,000,000-20,000,100 -L 20:40,000,000-40,000,100 -L 20:30,000,000-30,000,100 -L 20:50,000,000-50,000,100 -L 20:62,954,114-63,025,520 ",
-                1, Arrays.asList("08d899ed7c5a76ef3947bf67338acda1"));
-        executeTest("Testing single on big BAM many places", spec);
+    public void testGnarleyFHSPileupwithInsertLength() {
+        String gatk_args = "-T Pileup -I " + validationDataLocation + "FHS_Pileup_Test.bam "
+                + "-R " + hg18Reference
+                + " -outputInsertLength"
+                +  " -L chr15:46,347,148 -o %s";
+        String expected_md5 = "53ced173768f3d4d90b8a8206e72eae5";
+        WalkerTestSpec spec = new WalkerTestSpec(gatk_args, 1, Arrays.asList(expected_md5));
+        executeTest("Testing the standard (no-indel) pileup on three merged FHS pools with 27 deletions in 969 bases (with insert length)", spec);
     }
+
 }

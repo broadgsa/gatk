@@ -84,10 +84,19 @@ public class ProgressMeterDaemonUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
+    @Test
+    public void testPeriodUpdateNano() {
+        final ProgressMeter meter = new TestingProgressMeter(10);
+        final long currentTime = meter.getRuntimeInNanoseconds();
+        meter.updateElapsedTimeInNanoseconds();
+        Assert.assertTrue( meter.getRuntimeInNanosecondsUpdatedPeriodically() > currentTime, "Updating the periodic runtime failed" );
+    }
+
     @Test(dataProvider = "PollingData", invocationCount = 10, successPercentage = 90)
     public void testProgressMeterDaemon(final long poll, final int ticks) throws InterruptedException {
         final TestingProgressMeter meter = new TestingProgressMeter(poll);
         final ProgressMeterDaemon daemon = meter.getProgressMeterDaemon();
+
         Assert.assertTrue(daemon.isDaemon());
 
         Assert.assertFalse(daemon.isDone());
@@ -106,5 +115,7 @@ public class ProgressMeterDaemonUnitTest extends BaseTest {
         final int tolerance = (int)Math.ceil(0.8 * meter.progressCalls.size());
         Assert.assertTrue(Math.abs(meter.progressCalls.size() - ticks) <= tolerance,
                 "Expected " + ticks + " progress calls from daemon thread, but got " + meter.progressCalls.size() + " and a tolerance of only " + tolerance);
+
+        Assert.assertTrue(meter.getRuntimeInNanosecondsUpdatedPeriodically() > 0, "Daemon should have updated our periodic runtime");
     }
 }

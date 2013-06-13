@@ -165,7 +165,7 @@ public class TraverseLociNano<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,
 
         @Override
         public boolean hasNext() {
-            return locusView.hasNext();
+            return locusView.hasNext() && ! engine.exceedsRuntimeLimit();
         }
 
         @Override

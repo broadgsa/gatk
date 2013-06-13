@@ -1,0 +1,3 @@
+<ivy-module version="1.0">
+    <info organisation="org.broadinstitute" module="variant" revision="1.91.1453" status="integration" />
+</ivy-module>
