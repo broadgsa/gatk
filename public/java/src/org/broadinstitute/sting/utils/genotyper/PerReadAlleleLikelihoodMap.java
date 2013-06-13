@@ -321,7 +321,7 @@ public class PerReadAlleleLikelihoodMap {
      * @return the list of reads removed from this map because they are poorly modelled
      */
     public List<GATKSAMRecord> filterPoorlyModelledReads(final double maxErrorRatePerBase) {
-        final List<GATKSAMRecord> removedReads = new LinkedList<GATKSAMRecord>();
+        final List<GATKSAMRecord> removedReads = new LinkedList<>();
         final Iterator<Map.Entry<GATKSAMRecord, Map<Allele, Double>>> it = likelihoodReadMap.entrySet().iterator();
         while ( it.hasNext() ) {
             final Map.Entry<GATKSAMRecord, Map<Allele, Double>> record = it.next();
@@ -356,8 +356,8 @@ public class PerReadAlleleLikelihoodMap {
      * @return true if none of the log10 likelihoods imply that the read truly originated from one of the haplotypes
      */
     protected boolean readIsPoorlyModelled(final GATKSAMRecord read, final Collection<Double> log10Likelihoods, final double maxErrorRatePerBase) {
-        final double maxErrorsForRead = Math.ceil(read.getReadLength() * maxErrorRatePerBase);
-        final double log10QualPerBase = -3.0;
+        final double maxErrorsForRead = Math.min(2.0, Math.ceil(read.getReadLength() * maxErrorRatePerBase));
+        final double log10QualPerBase = -4.0;
         final double log10MaxLikelihoodForTrueAllele = maxErrorsForRead * log10QualPerBase;
 
         for ( final double log10Likelihood : log10Likelihoods )
