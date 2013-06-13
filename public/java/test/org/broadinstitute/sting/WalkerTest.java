@@ -220,7 +220,7 @@ public class WalkerTest extends BaseTest {
             String args = this.args;
             if ( includeImplicitArgs ) {
                 args = args + (ENABLE_PHONE_HOME_FOR_TESTS ?
-                        String.format(" -et %s ", GATKRunReport.PhoneHomeOption.STANDARD) :
+                        String.format(" -et %s ", GATKRunReport.PhoneHomeOption.AWS) :
                         String.format(" -et %s -K %s ", GATKRunReport.PhoneHomeOption.NO_ET, gatkKeyFile));
                 if ( includeShadowBCF && GENERATE_SHADOW_BCF )
                     args = args + " --generateShadowBCF ";
