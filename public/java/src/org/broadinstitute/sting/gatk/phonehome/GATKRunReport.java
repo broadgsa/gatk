@@ -419,7 +419,7 @@ public class GATKRunReport {
      * @return true if and only if the common run report repository is available and online to receive reports
      */
     private boolean repositoryIsOnline() {
-        return REPORT_SENTINEL.exists();
+        return false; // REPORT_SENTINEL.exists();
     }
 
 
