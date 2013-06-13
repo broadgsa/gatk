@@ -352,7 +352,7 @@ public class GATKDoclet {
     private Class<? extends Object> getClassForClassDoc(ClassDoc doc) {
         try {
             // todo -- what do I need the ? extends Object to pass the compiler?
-            return (Class<? extends Object>) HelpUtils.getClassForDoc(doc);
+            return (Class<? extends Object>) DocletUtils.getClassForDoc(doc);
         } catch (ClassNotFoundException e) {
             //logger.warn("Couldn't find class for ClassDoc " + doc);
             // we got a classdoc for a class we can't find.  Maybe in a library or something
