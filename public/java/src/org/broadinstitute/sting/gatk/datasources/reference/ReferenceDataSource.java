@@ -68,8 +68,8 @@ public class ReferenceDataSource {
         final File indexFile = new File(fastaFile.getAbsolutePath() + ".fai");
 
         // determine the name for the dict file
-        final String fastaExt = fastaFile.getAbsolutePath().endsWith("fa") ? ".fa" : ".fasta";
-        final File dictFile = new File(fastaFile.getAbsolutePath().replace(fastaExt, ".dict"));
+        final String fastaExt = fastaFile.getAbsolutePath().endsWith("fa") ? "\\.fa$" : "\\.fasta$";
+        final File dictFile = new File(fastaFile.getAbsolutePath().replaceAll(fastaExt, ".dict"));
 
         // It's an error if either the fai or dict file does not exist. The user is now responsible
         // for creating these files.
