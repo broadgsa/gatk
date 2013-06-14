@@ -182,6 +182,11 @@ public class ArtificialBAMBuilder {
         try {
             final File file = File.createTempFile("tempBAM", ".bam");
             file.deleteOnExit();
+
+            // Register the bam index file for deletion on exit as well:
+            new File(file.getAbsolutePath().replace(".bam", ".bai")).deleteOnExit();
+            new File(file.getAbsolutePath() + ".bai").deleteOnExit();
+
             return makeBAMFile(file);
         } catch ( IOException e ) {
             throw new RuntimeException(e);

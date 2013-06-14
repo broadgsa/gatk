@@ -312,6 +312,10 @@ public class WalkerTest extends BaseTest {
         for (int i = 0; i < spec.nOutputFiles; i++) {
             String ext = spec.exts == null ? ".tmp" : "." + spec.exts.get(i);
             File fl = createTempFile(String.format("walktest.tmp_param.%d", i), ext);
+
+            // Mark corresponding *.idx for deletion on exit as well just in case an index is created for the temp file:
+            new File(fl.getAbsolutePath() + ".idx").deleteOnExit();
+
             tmpFiles.add(fl);
         }
 
