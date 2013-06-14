@@ -176,6 +176,7 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                     // Cut down on memory.
                     try {
                         File temp = File.createTempFile("VariantsToBPed_"+sample, ".tmp");
+                        temp.deleteOnExit();
                         printMap.put(sample,new PrintStream(temp));
                         tempFiles.put(sample,temp);
                     } catch (IOException e) {
