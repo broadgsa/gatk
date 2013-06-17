@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk;
 
+import net.sf.samtools.util.BlockCompressedInputStream;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.WalkerTest;
 import org.broadinstitute.sting.commandline.Output;
@@ -211,5 +212,19 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         final VCFHeaderLine versionLine = header.getMetaDataLine(VariantContextWriterStub.GATK_VERSION_KEY);
         Assert.assertNotNull(versionLine);
         Assert.assertEquals(versionLine.getValue(), CommandLineGATK.getVersionNumber());
+    }
+
+    @Test(enabled = true)
+    public void testCompressedVCFOutputWithNT() throws Exception {
+        WalkerTestSpec spec = new WalkerTestSpec("-T UnifiedGenotyper -R " + b37KGReference + " -I "
+                + privateTestDir + "PCRFree.2x250.Illumina.20_10_11.bam"
+                + " -o %s -L 20:10,000,000-10,100,000 -nt 4",
+                1, Arrays.asList("vcf.gz"), Arrays.asList(""));
+        final File vcf = executeTest("testCompressedVCFOutputWithNT", spec).first.get(0);
+        final AsciiLineReader reader = new AsciiLineReader(new BlockCompressedInputStream(vcf));
+        int nLines = 0;
+        while ( reader.readLine() != null )
+            nLines++;
+        Assert.assertTrue(nLines > 0);
     }
 }
