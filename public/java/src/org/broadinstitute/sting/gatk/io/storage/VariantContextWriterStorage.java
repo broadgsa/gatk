@@ -67,12 +67,16 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
     /**
      * Constructs an object which will write directly into the output file provided by the stub.
      * Intentionally delaying the writing of the header -- this should be filled in by the walker.
+     *
+     * Respecs the isCompressed() request in stub, so if isCompressed() is true then this
+     * will create a storage output that dumps output to a BlockCompressedOutputStream.
+     *
      * @param stub Stub to use when constructing the output file.
      */
     public VariantContextWriterStorage(VariantContextWriterStub stub)  {
         if ( stub.getOutputFile() != null ) {
             this.file = stub.getOutputFile();
-            writer = vcfWriterToFile(stub,stub.getOutputFile(),true);
+            writer = vcfWriterToFile(stub,stub.getOutputFile(),true,true);
         }
         else if ( stub.getOutputStream() != null ) {
             this.file = null;
@@ -86,13 +90,17 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
 
     /**
      * Constructs an object which will redirect into a different file.
+     *
+     * Note that this function does not respect the isCompressed() request from the stub, in order
+     * to ensure that tmp. files can be read back in by the Tribble system, and merged with the mergeInto function.
+     *
      * @param stub Stub to use when synthesizing file / header info.
      * @param tempFile File into which to direct the output data.
      */
     public VariantContextWriterStorage(VariantContextWriterStub stub, File tempFile) {
         //logger.debug("Creating temporary output file " + tempFile.getAbsolutePath() + " for VariantContext output.");
         this.file = tempFile;
-        this.writer = vcfWriterToFile(stub, file, false);
+        this.writer = vcfWriterToFile(stub, file, false, false);
         writer.writeHeader(stub.getVCFHeader());
     }
 
@@ -101,11 +109,19 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
      * @param stub Stub to use when constructing the output file.
      * @param file Target file into which to write VCF records.
      * @param indexOnTheFly true to index the file on the fly.  NOTE: will be forced to false for compressed files.
+     * @param allowCompressed if false, we won't compress the output, even if the stub requests it.  Critical
+     *                        for creating temp. output files that will be subsequently merged, as these do not
+     *                        support compressed output
      * @return A VCF writer for use with this class
      */
-    private VariantContextWriter vcfWriterToFile(VariantContextWriterStub stub, File file, boolean indexOnTheFly) {
+    private VariantContextWriter vcfWriterToFile(final VariantContextWriterStub stub,
+                                                 final File file,
+                                                 final boolean indexOnTheFly,
+                                                 final boolean allowCompressed) {
         try {
-            if ( stub.isCompressed() )
+            // we cannot merge compressed outputs, so don't compress if allowCompressed is false,
+            // which is the case when we have a temporary output file for later merging
+            if ( allowCompressed && stub.isCompressed() )
                 stream = new BlockCompressedOutputStream(file);
             else
                 stream = new PrintStream(new BufferedOutputStream(new FileOutputStream(file), BUFFER_SIZE));
