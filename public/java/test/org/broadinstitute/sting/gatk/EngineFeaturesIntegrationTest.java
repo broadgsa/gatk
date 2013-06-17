@@ -227,4 +227,32 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
             nLines++;
         Assert.assertTrue(nLines > 0);
     }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test that defaultBaseQualities actually works
+    //
+    // --------------------------------------------------------------------------------
+
+    public WalkerTestSpec testDefaultBaseQualities(final Integer value, final String md5) {
+        return new WalkerTestSpec("-T PrintReads -R " + b37KGReference + " -I " + privateTestDir + "/baseQualitiesToFix.bam -o %s"
+                + (value != null ? " --defaultBaseQualities " + value : ""),
+                1, Arrays.asList(md5));
+    }
+
+    @Test()
+    public void testDefaultBaseQualities20() {
+        executeTest("testDefaultBaseQualities20", testDefaultBaseQualities(20, "7d254a9d0ec59c66ee3e137f56f4c78f"));
+    }
+
+    @Test()
+    public void testDefaultBaseQualities30() {
+        executeTest("testDefaultBaseQualities30", testDefaultBaseQualities(30, "0f50def6cbbbd8ccd4739e2b3998e503"));
+    }
+
+    @Test(expectedExceptions = Exception.class)
+    public void testDefaultBaseQualitiesNoneProvided() {
+        executeTest("testDefaultBaseQualitiesNoneProvided", testDefaultBaseQualities(null, ""));
+    }
+
 }

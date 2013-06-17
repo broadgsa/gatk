@@ -234,7 +234,10 @@ public class MalformedReadFilter extends ReadFilter {
         else if (filterMismatchingBaseAndQuals)
             result = false;
         else
-            throw new UserException.MalformedBAM(read, String.format("BAM file has a read with mismatching number of bases and base qualities. Offender: %s [%d bases] [%d quals]", read.getReadName(), read.getReadLength(), read.getBaseQualities().length));
+            throw new UserException.MalformedBAM(read,
+                    String.format("BAM file has a read with mismatching number of bases and base qualities. Offender: %s [%d bases] [%d quals].%s",
+                            read.getReadName(), read.getReadLength(), read.getBaseQualities().length,
+                            read.getBaseQualities().length == 0 ? " You can use --defaultBaseQualities to assign a default base quality for all reads, but this can be dangerous in you don't know what you are doing." : ""));
 
         return result;
     }
