@@ -630,6 +630,10 @@ public class SAMDataSource {
         // *     (otherwise we will process something that we may end up throwing away)                   * //
         // ************************************************************************************************ //
 
+        if (useOriginalBaseQualities || defaultBaseQualities >= 0)
+            // only wrap if we are replacing the original qualities or using a default base quality
+            wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
+
         // Filters:
         wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
 
@@ -653,10 +657,6 @@ public class SAMDataSource {
         // verify the read ordering by applying a sort order iterator
         if (!noValidationOfReadOrder && enableVerification)
             wrappedIterator = new VerifyingSamIterator(wrappedIterator);
-
-        if (useOriginalBaseQualities || defaultBaseQualities >= 0)
-            // only wrap if we are replacing the original qualities or using a default base quality
-            wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
 
         // set up read transformers
         for ( final ReadTransformer readTransformer : readTransformers ) {
