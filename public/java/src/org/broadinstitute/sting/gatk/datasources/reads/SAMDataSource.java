@@ -625,16 +625,15 @@ public class SAMDataSource {
                                                         byte defaultBaseQualities,
                                                         boolean isLocusBasedTraversal ) {
 
-        // ************************************************************************************************ //
-        // *  NOTE: ALL FILTERING/DOWNSAMPLING SHOULD BE DONE BEFORE ANY ITERATORS THAT MODIFY THE READS! * //
-        // *     (otherwise we will process something that we may end up throwing away)                   * //
-        // ************************************************************************************************ //
+        // Always apply the ReadFormattingIterator before both ReadFilters and ReadTransformers. At a minimum,
+        // this will consolidate the cigar strings into canonical form. This has to be done before the read
+        // filtering, because not all read filters will behave correctly with things like zero-length cigar
+        // elements. If useOriginalBaseQualities is true or defaultBaseQualities >= 0, this iterator will also
+        // modify the base qualities.
+        wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
 
-        if (useOriginalBaseQualities || defaultBaseQualities >= 0)
-            // only wrap if we are replacing the original qualities or using a default base quality
-            wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
-
-        // Filters:
+        // Read Filters: these are applied BEFORE downsampling, so that we downsample within the set of reads
+        // that actually survive filtering. Otherwise we could get much less coverage than requested.
         wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
 
         // Downsampling:
@@ -658,7 +657,8 @@ public class SAMDataSource {
         if (!noValidationOfReadOrder && enableVerification)
             wrappedIterator = new VerifyingSamIterator(wrappedIterator);
 
-        // set up read transformers
+        // Read transformers: these are applied last, so that we don't bother transforming reads that get discarded
+        // by the read filters or downsampler.
         for ( final ReadTransformer readTransformer : readTransformers ) {
             if ( readTransformer.enabled() && readTransformer.getApplicationTime() == ReadTransformer.ApplicationTime.ON_INPUT )
                 wrappedIterator = new ReadTransformingIterator(wrappedIterator, readTransformer);

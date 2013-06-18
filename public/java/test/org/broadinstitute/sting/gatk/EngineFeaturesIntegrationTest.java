@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.gatk;
 
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.BlockCompressedInputStream;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.WalkerTest;
@@ -39,6 +41,7 @@ import org.broadinstitute.sting.gatk.walkers.qc.ErrorThrowing;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
 import org.broadinstitute.variant.vcf.VCFCodec;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.variant.vcf.VCFHeaderLine;
@@ -255,4 +258,23 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         executeTest("testDefaultBaseQualitiesNoneProvided", testDefaultBaseQualities(null, ""));
     }
 
+    @Test
+    public void testGATKEngineConsolidatesCigars() {
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T PrintReads" +
+                                                       " -R " + b37KGReference +
+                                                       " -I " + privateTestDir + "zero_length_cigar_elements.bam" +
+                                                       " -o %s",
+                                                       1, Arrays.asList(""));  // No MD5s; we only want to check the cigar
+
+        final File outputBam = executeTest("testGATKEngineConsolidatesCigars", spec).first.get(0);
+        final SAMFileReader reader = new SAMFileReader(outputBam);
+        reader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
+        reader.setSAMRecordFactory(new GATKSamRecordFactory());
+
+        final SAMRecord read = reader.iterator().next();
+        reader.close();
+
+        // Original cigar was 0M3M0M8M. Check that it's been consolidated after running through the GATK engine:
+        Assert.assertEquals(read.getCigarString(), "11M", "Cigar 0M3M0M8M not consolidated correctly by the engine");
+    }
 }
