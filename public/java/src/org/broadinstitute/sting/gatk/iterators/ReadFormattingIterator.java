@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 
 /**
  * An iterator which does post-processing of a read, including potentially wrapping
@@ -103,6 +104,10 @@ public class ReadFormattingIterator implements StingSAMIterator {
      */
     public SAMRecord next() {
         SAMRecord rec = wrappedIterator.next();
+
+        // Always consolidate the cigar string into canonical form, collapsing zero-length / repeated cigar elements.
+        // Downstream code (like LocusIteratorByState) cannot necessarily handle non-consolidated cigar strings.
+        rec.setCigar(AlignmentUtils.consolidateCigar(rec.getCigar()));
 
         // if we are using default quals, check if we need them, and add if necessary.
         // 1. we need if reads are lacking or have incomplete quality scores

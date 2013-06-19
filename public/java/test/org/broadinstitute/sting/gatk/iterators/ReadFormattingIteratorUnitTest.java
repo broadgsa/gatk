@@ -23,33 +23,28 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.gatk.walkers;
+package org.broadinstitute.sting.gatk.iterators;
 
-import org.broadinstitute.sting.WalkerTest;
+import net.sf.samtools.*;
+import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
 
-public class BAQIntegrationTest extends WalkerTest {
-    private final static String baseCommand = "-T PrintReads -R " + b36KGReference +
-            " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" +
-            " -o %s" +
-            " -L 1:10,000,000-10,100,000";
 
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // testing BAQ with SLX, 454, and SOLID data
-    //
-    // --------------------------------------------------------------------------------------------------------------
-    @Test
-    public void testPrintReadsNoBAQ() {
-        WalkerTestSpec spec = new WalkerTestSpec( baseCommand +" -baq OFF",  1, Arrays.asList("d1f74074e718c82810512bf40dbc7f72"));
-        executeTest(String.format("testPrintReadsNoBAQ"), spec);
-    }
+public class ReadFormattingIteratorUnitTest extends BaseTest {
 
     @Test
-    public void testPrintReadsRecalBAQ() {
-        WalkerTestSpec spec = new WalkerTestSpec( baseCommand +" -baq RECALCULATE",  1, Arrays.asList("96ec97cf92f1f660bd5244c6b44539b3"));
-        executeTest(String.format("testPrintReadsRecalBAQ"), spec);
+    public void testIteratorConsolidatesCigars() {
+        final Cigar unconsolidatedCigar = TextCigarCodec.getSingleton().decode("3M0M5M0M");
+        final SAMRecord unconsolidatedRead = ArtificialSAMUtils.createArtificialRead(unconsolidatedCigar);
+
+        final StingSAMIterator readIterator = StingSAMIteratorAdapter.adapt(Arrays.asList(unconsolidatedRead).iterator());
+        final ReadFormattingIterator formattingIterator = new ReadFormattingIterator(readIterator, false, (byte)-1);
+        final SAMRecord postIterationRead = formattingIterator.next();
+
+        Assert.assertEquals(postIterationRead.getCigarString(), "8M", "Cigar 3M0M5M0M not consolidated correctly by ReadFormattingIterator");
     }
 }
