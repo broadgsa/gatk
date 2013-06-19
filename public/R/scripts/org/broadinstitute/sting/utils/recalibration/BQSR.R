@@ -85,7 +85,7 @@ for(cov in levels(data$CovariateName)) {    # for each covariate in turn
       
       p <- ggplot(d, aes(x=CovariateValue,y=AverageReportedQuality,alpha=log10(Observations))) +
         xlab(paste(cov,"Covariate")) +
-        ylab("Mean Quality Score") + ylim(0,max(42,d$AverageReportedQuality));
+        ylab("Mean Quality Score") + ylim(0,max(42,d$AverageReportedQuality)) +
         blankTheme
       e <- p + geom_point(aes(color=Recalibration)) + scale_color_manual(values=c("BEFORE"="maroon1","AFTER"="blue","BQSR"="black")) + facet_grid(.~EventType) +
         opts(axis.text.x=theme_text(angle=90, hjust=0))

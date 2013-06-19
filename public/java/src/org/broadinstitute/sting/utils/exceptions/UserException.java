@@ -471,4 +471,10 @@ public class UserException extends ReviewedStingException {
             super(message,innerException);
         }
     }
+
+    public static class IncompatibleRecalibrationTableParameters extends UserException {
+        public IncompatibleRecalibrationTableParameters(String s) {
+            super(s);
+        }
+    }
 }
