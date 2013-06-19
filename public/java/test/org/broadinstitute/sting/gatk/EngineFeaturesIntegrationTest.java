@@ -27,13 +27,10 @@ package org.broadinstitute.sting.gatk;
 
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.BlockCompressedInputStream;
-import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.WalkerTest;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
-import org.broadinstitute.sting.gatk.io.stubs.VariantContextWriterStub;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -42,15 +39,11 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
-import org.broadinstitute.variant.vcf.VCFCodec;
-import org.broadinstitute.variant.vcf.VCFHeader;
-import org.broadinstitute.variant.vcf.VCFHeaderLine;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
 
@@ -202,33 +195,6 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec("-T PrintReads -R " + b37KGReference + " -I private/testdata/NA12878.1_10mb_2_10mb.bam -o %s -compress " + compress,
                 1, UserException.class);
         executeTest("badCompress " + compress, spec);
-    }
-
-    @Test(enabled = true)
-    public void testGATKVersionInVCF() throws Exception {
-        WalkerTestSpec spec = new WalkerTestSpec("-T UnifiedGenotyper -R " + b37KGReference + " -I "
-                + privateTestDir + "PCRFree.2x250.Illumina.20_10_11.bam"
-                + " -o %s -L 20:10,000,000",
-                1, Arrays.asList(""));
-        final File vcf = executeTest("testGATKVersionInVCF", spec).first.get(0);
-        final VCFHeader header = (VCFHeader)new VCFCodec().readHeader(new AsciiLineReader(new FileInputStream(vcf)));
-        final VCFHeaderLine versionLine = header.getMetaDataLine(VariantContextWriterStub.GATK_VERSION_KEY);
-        Assert.assertNotNull(versionLine);
-        Assert.assertEquals(versionLine.getValue(), CommandLineGATK.getVersionNumber());
-    }
-
-    @Test(enabled = true)
-    public void testCompressedVCFOutputWithNT() throws Exception {
-        WalkerTestSpec spec = new WalkerTestSpec("-T UnifiedGenotyper -R " + b37KGReference + " -I "
-                + privateTestDir + "PCRFree.2x250.Illumina.20_10_11.bam"
-                + " -o %s -L 20:10,000,000-10,100,000 -nt 4",
-                1, Arrays.asList("vcf.gz"), Arrays.asList(""));
-        final File vcf = executeTest("testCompressedVCFOutputWithNT", spec).first.get(0);
-        final AsciiLineReader reader = new AsciiLineReader(new BlockCompressedInputStream(vcf));
-        int nLines = 0;
-        while ( reader.readLine() != null )
-            nLines++;
-        Assert.assertTrue(nLines > 0);
     }
 
     // --------------------------------------------------------------------------------
