@@ -59,7 +59,7 @@ public class PerSampleReadStateManagerUnitTest extends LocusIteratorByStateBaseT
         }
 
         public void run() {
-            PerSampleReadStateManager perSampleReadStateManager = new PerSampleReadStateManager(LIBSDownsamplingInfo.NO_DOWNSAMPLING);
+            PerSampleReadStateManager perSampleReadStateManager = new PerSampleReadStateManager(LocusIteratorByState.NO_DOWNSAMPLING);
 
             makeReads();
 
