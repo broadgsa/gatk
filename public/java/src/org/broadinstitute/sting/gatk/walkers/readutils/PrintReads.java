@@ -96,7 +96,7 @@ import java.util.*;
  *   -T PrintReads \
  *   -o output.bam \
  *   -I input.bam \
- *   -ds 0.25
+ *   -dfrac 0.25
  * </pre>
  *
  */
@@ -124,12 +124,6 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
     @Argument(fullName = "number", shortName = "n", doc="Print the first n reads from the file, discarding the rest", required = false)
     int nReadsToPrint = -1;
 
-    /**
-     * Downsamples the bam file by the given ratio, printing only approximately the given percentage of reads. The downsampling is balanced (over the entire coverage)
-     */
-    @Argument(fullName = "downsample_coverage", shortName = "ds", doc="Downsample BAM to desired coverage", required = false)
-    public double downsampleRatio = 1.0;
-    
     /**
      * Only reads from samples listed in the provided file(s) will be included in the output.
      */
@@ -237,8 +231,7 @@ public class PrintReads extends ReadWalker<GATKSAMRecord, SAMFileWriter> impleme
             nReadsToPrint--;       // n > 0 means there are still reads to be printed.
         }
 
-        // if downsample option is turned off (= 1) then don't waste time  getting the next random number.
-        return (downsampleRatio == 1 || random.nextDouble() < downsampleRatio);
+        return true;
     }
 
     /**
