@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk;
 
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
+import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.WalkerTest;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -39,11 +40,16 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.variant.vcf.VCFCodec;
+import org.broadinstitute.variant.vcf.VCFHeader;
+import org.broadinstitute.variant.vcf.VCFHeaderLine;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
 
@@ -195,6 +201,54 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec("-T PrintReads -R " + b37KGReference + " -I private/testdata/NA12878.1_10mb_2_10mb.bam -o %s -compress " + compress,
                 1, UserException.class);
         executeTest("badCompress " + compress, spec);
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test that the VCF version key is what we expect
+    //
+    // --------------------------------------------------------------------------------
+    @Test(enabled = true)
+    public void testGATKVersionInVCF() throws Exception {
+        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -R " + b37KGReference +
+                " -V " + privateTestDir + "NA12878.WGS.b37.chr20.firstMB.vcf"
+                + " -o %s -L 20:61098",
+                1, Arrays.asList(""));
+        spec.disableShadowBCF();
+        final File vcf = executeTest("testGATKVersionInVCF", spec).first.get(0);
+        final VCFHeader header = (VCFHeader)new VCFCodec().readHeader(new AsciiLineReader(new FileInputStream(vcf)));
+        final VCFHeaderLine versionLine = header.getMetaDataLine(GATKVCFUtils.GATK_COMMAND_LINE_KEY);
+        Assert.assertNotNull(versionLine);
+        Assert.assertTrue(versionLine.toString().contains("SelectVariants"));
+    }
+
+    @Test(enabled = true)
+    public void testMultipleGATKVersionsInVCF() throws Exception {
+        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -R " + b37KGReference +
+                " -V " + privateTestDir + "gatkCommandLineInHeader.vcf"
+                + " -o %s",
+                1, Arrays.asList(""));
+        spec.disableShadowBCF();
+        final File vcf = executeTest("testMultipleGATKVersionsInVCF", spec).first.get(0);
+        final VCFHeader header = (VCFHeader)new VCFCodec().readHeader(new AsciiLineReader(new FileInputStream(vcf)));
+
+        boolean foundHC = false;
+        boolean foundSV = false;
+        for ( final VCFHeaderLine line : header.getMetaDataInInputOrder() ) {
+            if ( line.getKey().equals(GATKVCFUtils.GATK_COMMAND_LINE_KEY) ) {
+                if ( line.toString().contains("HaplotypeCaller") ) {
+                    Assert.assertFalse(foundHC);
+                    foundHC = true;
+                }
+                if ( line.toString().contains("SelectVariants") ) {
+                    Assert.assertFalse(foundSV);
+                    foundSV = true;
+                }
+            }
+        }
+
+        Assert.assertTrue(foundHC, "Didn't find HaplotypeCaller command line header field");
+        Assert.assertTrue(foundSV, "Didn't find SelectVariants command line header field");
     }
 
     // --------------------------------------------------------------------------------

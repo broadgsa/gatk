@@ -171,6 +171,14 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * The short name of the current GATK walker as a string
+     * @return a non-null String
+     */
+    public String getWalkerName() {
+        return getWalkerName(walker.getClass());
+    }
+
+    /**
      * A processed collection of SAM reader identifiers.
      */
     private Collection<SAMReaderID> samReaderIDs = Collections.emptyList();

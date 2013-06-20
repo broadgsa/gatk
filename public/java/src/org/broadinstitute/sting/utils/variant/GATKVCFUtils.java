@@ -30,10 +30,10 @@ import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.variant.bcf2.BCF2Codec;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.vcf.*;
 
@@ -51,6 +51,31 @@ public class GATKVCFUtils {
      * Constructor access disallowed...static utility methods only!
      */
     private GATKVCFUtils() { }
+
+    public final static String GATK_COMMAND_LINE_KEY = "GATKCommandLine";
+
+    /**
+     * Gets the appropriately formatted header for a VCF file describing this GATK run
+     *
+     * @param engine the GATK engine that holds the walker name, GATK version, and other information
+     * @param argumentSources contains information on the argument values provided to the GATK for converting to a
+     *                        command line string.  Should be provided from the data in the parsing engine.  Can be
+     *                        empty in which case the command line will be the empty string.
+     * @return VCF header line describing this run of the GATK.
+     */
+    public static VCFHeaderLine getCommandLineArgumentHeaderLine(final GenomeAnalysisEngine engine, final Collection<Object> argumentSources) {
+        if ( engine == null ) throw new IllegalArgumentException("engine cannot be null");
+        if ( argumentSources == null ) throw new IllegalArgumentException("argumentSources cannot be null");
+
+        final Map<String, String> attributes = new LinkedHashMap<>();
+        attributes.put("ID", engine.getWalkerName());
+        attributes.put("Version", CommandLineGATK.getVersionNumber());
+        final Date date = new Date();
+        attributes.put("Date", date.toString());
+        attributes.put("Epoch", Long.toString(date.getTime()));
+        attributes.put("CommandLineOptions", engine.createApproximateCommandLineArgumentString(argumentSources.toArray()));
+        return new VCFSimpleHeaderLine(GATK_COMMAND_LINE_KEY, attributes, Collections.<String>emptyList());
+    }
 
     public static <T extends Feature> Map<String, VCFHeader> getVCFHeadersFromRods(GenomeAnalysisEngine toolkit, List<RodBinding<T>> rodBindings) {
         // Collect the eval rod names
