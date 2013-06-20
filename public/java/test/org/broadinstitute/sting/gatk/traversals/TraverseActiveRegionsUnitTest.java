@@ -77,7 +77,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
     @DataProvider(name = "TraversalEngineProvider")
     public Object[][] makeTraversals() {
         final List<Object[]> traversals = new LinkedList<Object[]>();
-        traversals.add(new Object[]{new TraverseActiveRegions<Integer, Integer>()});
+        traversals.add(new Object[]{new TraverseActiveRegions<>()});
         return traversals.toArray(new Object[][]{});
     }
 
@@ -405,8 +405,6 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         for (LocusShardDataProvider dataProvider : createDataProviders(t, walker, intervals, bam))
             t.traverse(walker, dataProvider, 0);
 
-        t.endTraversal(walker, 0);
-
         return walker.mappedActiveRegions;
     }
 
@@ -490,7 +488,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
 
         traverseActiveRegions.initialize(engine, walker);
         List<LocusShardDataProvider> providers = new ArrayList<LocusShardDataProvider>();
-        for (Shard shard : dataSource.createShardIteratorOverIntervals(new GenomeLocSortedSet(genomeLocParser, intervals), new LocusShardBalancer())) {
+        for (Shard shard : dataSource.createShardIteratorOverIntervals(new GenomeLocSortedSet(genomeLocParser, intervals), new ActiveRegionShardBalancer())) {
             for (WindowMaker.WindowMakerIterator window : new WindowMaker(shard, genomeLocParser, dataSource.seek(shard), shard.getGenomeLocs(), samples)) {
                 providers.add(new LocusShardDataProvider(shard, shard.getReadProperties(), genomeLocParser, window.getLocus(), window, reference, new ArrayList<ReferenceOrderedDataSource>()));
             }
@@ -523,8 +521,8 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
 
         final int maxTests = Integer.MAX_VALUE;
         int nTests = 0;
-        for ( final int readLength : Arrays.asList(10, 100) ) {
-            for ( final int skips : Arrays.asList(0, 1, 10) ) {
+        for ( final int readLength : Arrays.asList(100) ) {
+            for ( final int skips : Arrays.asList(0, 10) ) {
                 for ( final int start : starts ) {
                     for ( final int nReadsPerLocus : Arrays.asList(1, 2) ) {
                         for ( final int nLoci : Arrays.asList(1, 1000) ) {
@@ -536,7 +534,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
                                 for ( final GenomeLocSortedSet activeRegions : enumerateActiveRegions(bamBuilder.getAlignmentStart(), bamBuilder.getAlignmentEnd())) {
                                     nTests++;
                                     if ( nTests < maxTests ) // && nTests == 1238 )
-                                        tests.add(new Object[]{nTests, activeRegions, readStates, bamBuilder});
+                                        tests.add(new Object[]{new TraverseActiveRegions<>(), nTests, activeRegions, readStates, bamBuilder});
                                 }
                             }
                         }
@@ -586,7 +584,7 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
 
 
     @Test(enabled = true && ! DEBUG, dataProvider = "CombinatorialARTTilingProvider")
-    public void testARTReadsInActiveRegions(final int id, final GenomeLocSortedSet activeRegions, final EnumSet<ActiveRegionReadState> readStates, final ArtificialBAMBuilder bamBuilder) {
+    public void testARTReadsInActiveRegions(final TraverseActiveRegions<Integer, Integer> traversal, final int id, final GenomeLocSortedSet activeRegions, final EnumSet<ActiveRegionReadState> readStates, final ArtificialBAMBuilder bamBuilder) {
         logger.warn("Running testARTReadsInActiveRegions id=" + id + " locs " + activeRegions + " against bam " + bamBuilder);
         final List<GenomeLoc> intervals = Arrays.asList(
                 genomeLocParser.createGenomeLoc("1", bamBuilder.getAlignmentStart(), bamBuilder.getAlignmentEnd())
@@ -595,7 +593,6 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
         final DummyActiveRegionWalker walker = new DummyActiveRegionWalker(activeRegions, false);
         walker.setStates(readStates);
 
-        final TraverseActiveRegions traversal = new TraverseActiveRegions<Integer, Integer>();
         final Map<GenomeLoc, ActiveRegion> activeRegionsMap = getActiveRegions(traversal, walker, intervals, bamBuilder.makeTemporarilyBAMFile());
 
         final Set<String> alreadySeenReads = new HashSet<String>(); // for use with the primary / non-primary
@@ -640,8 +637,8 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
     //
     // ---------------------------------------------------------------------------------------------------------
 
-    @Test(enabled = true && ! DEBUG)
-    public void ensureAllInsertionReadsAreInActiveRegions() {
+    @Test(dataProvider = "TraversalEngineProvider", enabled = true && ! DEBUG)
+    public void ensureAllInsertionReadsAreInActiveRegions(final TraverseActiveRegions<Integer, Integer> traversal) {
 
         final int readLength = 10;
         final int start = 20;
@@ -667,7 +664,6 @@ public class TraverseActiveRegionsUnitTest extends BaseTest {
 
         final DummyActiveRegionWalker walker = new DummyActiveRegionWalker(activeRegions, false);
 
-        final TraverseActiveRegions traversal = new TraverseActiveRegions<Integer, Integer>();
         final Map<GenomeLoc, ActiveRegion> activeRegionsMap = getActiveRegions(traversal, walker, intervals, bamBuilder.makeTemporarilyBAMFile());
 
         final ActiveRegion region = activeRegionsMap.values().iterator().next();

@@ -167,7 +167,7 @@ final class PerSampleReadStateManager implements Iterable<AlignmentStateMachine>
 
             // use returned List directly rather than make a copy, for efficiency's sake
             readStatesByAlignmentStart = flattenByAlignmentStart(levelingDownsampler.consumeFinalizedItems());
-            levelingDownsampler.reset();
+            levelingDownsampler.resetStats();
         }
 
         return nStatesAdded;

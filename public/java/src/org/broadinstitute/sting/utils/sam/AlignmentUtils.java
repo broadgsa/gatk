@@ -664,7 +664,7 @@ public final class AlignmentUtils {
         if ( numIndels == 0 )
             return cigar;
         if ( numIndels == 1 )
-            return leftAlignSingleIndel(cigar, refSeq, readSeq, refIndex, readIndex);
+            return leftAlignSingleIndel(cigar, refSeq, readSeq, refIndex, readIndex, true);
 
         // if we got here then there is more than 1 indel in the alignment
         if ( doNotThrowExceptionForMultipleIndels )
@@ -709,10 +709,11 @@ public final class AlignmentUtils {
      * @param readSeq   read sequence
      * @param refIndex  0-based alignment start position on ref
      * @param readIndex 0-based alignment start position on read
+     * @param cleanupCigar if true, we'll cleanup the resulting cigar element, removing 0 length elements and deletions from the first cigar position
      * @return a non-null cigar, in which the single indel is guaranteed to be placed at the leftmost possible position across a repeat (if any)
      */
     @Ensures("result != null")
-    public static Cigar leftAlignSingleIndel(Cigar cigar, final byte[] refSeq, final byte[] readSeq, final int refIndex, final int readIndex) {
+    public static Cigar leftAlignSingleIndel(Cigar cigar, final byte[] refSeq, final byte[] readSeq, final int refIndex, final int readIndex, final boolean cleanupCigar) {
         ensureLeftAlignmentHasGoodArguments(cigar, refSeq, readSeq, refIndex, readIndex);
 
         int indexOfIndel = -1;
@@ -751,7 +752,7 @@ public final class AlignmentUtils {
                 cigar = newCigar;
                 i = -1;
                 if (reachedEndOfRead)
-                    cigar = cleanUpCigar(cigar);
+                    cigar = cleanupCigar ? cleanUpCigar(cigar) : cigar;
             }
 
             if (reachedEndOfRead)
@@ -797,6 +798,23 @@ public final class AlignmentUtils {
         }
 
         return new Cigar(elements);
+    }
+
+    /**
+     * Removing a trailing deletion from the incoming cigar if present
+     *
+     * @param c the cigar we want to update
+     * @return a non-null Cigar
+     */
+    @Requires("c != null")
+    @Ensures("result != null")
+    public static Cigar removeTrailingDeletions(final Cigar c) {
+
+        final List<CigarElement> elements = c.getCigarElements();
+        if ( elements.get(elements.size() - 1).getOperator() != CigarOperator.D )
+            return c;
+
+        return new Cigar(elements.subList(0, elements.size() - 1));
     }
 
     /**
@@ -933,7 +951,7 @@ public final class AlignmentUtils {
      */
     public static Cigar trimCigarByBases(final Cigar cigar, final int start, final int end) {
         if ( start < 0 ) throw new IllegalArgumentException("Start must be >= 0 but got " + start);
-        if ( end < start ) throw new IllegalArgumentException("End " + end + " is < start start " + start);
+        if ( end < start ) throw new IllegalArgumentException("End " + end + " is < start = " + start);
         if ( end > cigar.getReadLength() ) throw new IllegalArgumentException("End is beyond the cigar's read length " + end + " for cigar " + cigar );
 
         final Cigar result = trimCigar(cigar, start, end, false);
@@ -961,7 +979,7 @@ public final class AlignmentUtils {
 
         int pos = 0;
         for ( final CigarElement elt : cigar.getCigarElements() ) {
-            if ( pos > end ) break;
+            if ( pos > end && (byReference || elt.getOperator() != CigarOperator.D) ) break;
 
             switch ( elt.getOperator() ) {
                 case D:

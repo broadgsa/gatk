@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
+import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMProgramRecord;
 import org.apache.log4j.Logger;
@@ -294,7 +295,7 @@ public class Utils {
      */
     public static String dupString(final String s, int nCopies) {
         if ( s == null || s.equals("") ) throw new IllegalArgumentException("Bad s " + s);
-        if ( nCopies < 1 ) throw new IllegalArgumentException("nCopies must be >= 1 but got " + nCopies);
+        if ( nCopies < 0 ) throw new IllegalArgumentException("nCopies must be >= 0 but got " + nCopies);
 
         final StringBuilder b = new StringBuilder();
         for ( int i = 0; i < nCopies; i++ )
@@ -683,6 +684,36 @@ public class Utils {
     }
 
     /**
+     * Adds element from an array into a collection.
+     *
+     * In the event of exception being throw due to some element, <code>dest</code> might have been modified by
+     * the successful addition of element before that one.
+     *
+     * @param dest the destination collection which cannot be <code>null</code> and should be able to accept
+     *             the input elements.
+     * @param elements the element to add to <code>dest</code>
+     * @param <T>  collection type element.
+     * @throws UnsupportedOperationException if the <tt>add</tt> operation
+     *         is not supported by <code>dest</code>.
+     * @throws ClassCastException if the class of any of the elements
+     *         prevents it from being added to <code>dest</code>.
+     * @throws NullPointerException if any of the elements is <code>null</code> and <code>dest</code>
+     *         does not permit <code>null</code> elements
+     * @throws IllegalArgumentException if some property of any of the elements
+     *         prevents it from being added to this collection
+     * @throws IllegalStateException if any of the elements cannot be added at this
+     *         time due to insertion restrictions.
+     * @return <code>true</code> if the collection was modified as a result.
+     */
+    public static <T> boolean addAll(Collection<T> dest, T ... elements) {
+        boolean result = false;
+        for (final T e : elements) {
+            result = dest.add(e) | result;
+        }
+        return result;
+    }
+
+    /**
      * Create a constant map that maps each value in values to itself
      */
     public static <T> Map<T, T> makeIdentityFunctionMap(Collection<T> values) {
@@ -747,5 +778,61 @@ public class Utils {
         if ( big == null ) throw new IllegalArgumentException("big cannot be null");
         if ( suffix == null ) throw new IllegalArgumentException("suffix cannot be null");
         return new String(big).endsWith(new String(suffix));
+    }
+
+    /**
+     * Get the length of the longest common prefix of seq1 and seq2
+     * @param seq1 non-null byte array
+     * @param seq2 non-null byte array
+     * @param maxLength the maximum allowed length to return
+     * @return the length of the longest common prefix of seq1 and seq2, >= 0
+     */
+    public static int longestCommonPrefix(final byte[] seq1, final byte[] seq2, final int maxLength) {
+        if ( seq1 == null ) throw new IllegalArgumentException("seq1 is null");
+        if ( seq2 == null ) throw new IllegalArgumentException("seq2 is null");
+        if ( maxLength < 0 ) throw new IllegalArgumentException("maxLength < 0 " + maxLength);
+
+        final int end = Math.min(seq1.length, Math.min(seq2.length, maxLength));
+        for ( int i = 0; i < end; i++ ) {
+            if ( seq1[i] != seq2[i] )
+                return i;
+        }
+        return end;
+    }
+
+    /**
+     * Get the length of the longest common suffix of seq1 and seq2
+     * @param seq1 non-null byte array
+     * @param seq2 non-null byte array
+     * @param maxLength the maximum allowed length to return
+     * @return the length of the longest common suffix of seq1 and seq2, >= 0
+     */
+    public static int longestCommonSuffix(final byte[] seq1, final byte[] seq2, final int maxLength) {
+        if ( seq1 == null ) throw new IllegalArgumentException("seq1 is null");
+        if ( seq2 == null ) throw new IllegalArgumentException("seq2 is null");
+        if ( maxLength < 0 ) throw new IllegalArgumentException("maxLength < 0 " + maxLength);
+
+        final int end = Math.min(seq1.length, Math.min(seq2.length, maxLength));
+        for ( int i = 0; i < end; i++ ) {
+            if ( seq1[seq1.length - i - 1] != seq2[seq2.length - i - 1] )
+                return i;
+        }
+        return end;
+    }
+
+    /**
+     * Trim any number of bases from the front and/or back of an array
+     *
+     * @param seq                the sequence to trim
+     * @param trimFromFront      how much to trim from the front
+     * @param trimFromBack       how much to trim from the back
+     * @return a non-null array; can be the original array (i.e. not a copy)
+     */
+    public static byte[] trimArray(final byte[] seq, final int trimFromFront, final int trimFromBack) {
+        if ( trimFromFront + trimFromBack > seq.length )
+            throw new IllegalArgumentException("trimming total is larger than the original array");
+
+        // don't perform array copies if we need to copy everything anyways
+        return  ( trimFromFront == 0 && trimFromBack == 0 ) ? seq : Arrays.copyOfRange(seq, trimFromFront, seq.length - trimFromBack);
     }
 }

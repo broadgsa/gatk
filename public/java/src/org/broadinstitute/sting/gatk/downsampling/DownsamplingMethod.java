@@ -61,20 +61,10 @@ public class DownsamplingMethod {
     public static final DownsampleType DEFAULT_DOWNSAMPLING_TYPE = DownsampleType.BY_SAMPLE;
 
     /**
-     * Default target coverage for locus-based traversals
+     * Don't allow dcov values below this threshold for locus-based traversals (ie., Locus
+     * and ActiveRegion walkers), as they can result in problematic downsampling artifacts
      */
-    public static final int DEFAULT_LOCUS_TRAVERSAL_DOWNSAMPLING_COVERAGE = 1000;
-
-    /**
-     * Default downsampling method for locus-based traversals
-     */
-    public static final DownsamplingMethod DEFAULT_LOCUS_TRAVERSAL_DOWNSAMPLING_METHOD =
-            new DownsamplingMethod(DEFAULT_DOWNSAMPLING_TYPE, DEFAULT_LOCUS_TRAVERSAL_DOWNSAMPLING_COVERAGE, null);
-
-    /**
-     * Default downsampling method for read-based traversals
-     */
-    public static final DownsamplingMethod DEFAULT_READ_TRAVERSAL_DOWNSAMPLING_METHOD = NONE;
+    public static final int MINIMUM_SAFE_COVERAGE_TARGET_FOR_LOCUS_BASED_TRAVERSALS = 200;
 
 
     public DownsamplingMethod( DownsampleType type, Integer toCoverage, Double toFraction ) {
@@ -118,6 +108,16 @@ public class DownsamplingMethod {
         if ( isLocusTraversal && type == DownsampleType.ALL_READS && toCoverage != null ) {
             throw new UserException("Downsampling to coverage with the ALL_READS method for locus-based traversals (eg., LocusWalkers) is not currently supported (though it is supported for ReadWalkers).");
         }
+
+        // For locus traversals, ensure that the dcov value (if present) is not problematically low
+        if ( isLocusTraversal && type != DownsampleType.NONE && toCoverage != null &&
+             toCoverage < MINIMUM_SAFE_COVERAGE_TARGET_FOR_LOCUS_BASED_TRAVERSALS ) {
+            throw new UserException(String.format("Locus-based traversals (ie., Locus and ActiveRegion walkers) require " +
+                                                  "a minimum -dcov value of %d when downsampling to coverage. Values less " +
+                                                  "than this can produce problematic downsampling artifacts while providing " +
+                                                  "only insignificant improvements in memory usage in most cases.",
+                                                  MINIMUM_SAFE_COVERAGE_TARGET_FOR_LOCUS_BASED_TRAVERSALS));
+        }
     }
 
     public String toString() {
@@ -138,14 +138,5 @@ public class DownsamplingMethod {
         }
 
         return builder.toString();
-    }
-
-    public static DownsamplingMethod getDefaultDownsamplingMethod( Walker walker ) {
-        if ( walker instanceof LocusWalker || walker instanceof ActiveRegionWalker ) {
-            return DEFAULT_LOCUS_TRAVERSAL_DOWNSAMPLING_METHOD;
-        }
-        else {
-            return DEFAULT_READ_TRAVERSAL_DOWNSAMPLING_METHOD;
-        }
     }
 }

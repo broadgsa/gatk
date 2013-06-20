@@ -26,19 +26,52 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.SimpleTimer;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
  *
  */
 public class MaxRuntimeIntegrationTest extends WalkerTest {
+    public static class SleepingWalker extends LocusWalker<Integer, Integer> {
+        @Output PrintStream out;
+
+        @Argument(fullName="sleepTime",shortName="sleepTime",doc="x", required=false)
+        public int sleepTime = 100;
+
+        @Override
+        public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+            try {Thread.sleep(sleepTime);} catch (InterruptedException e) {};
+            return 1;
+        }
+
+        @Override public Integer reduceInit() { return 0; }
+        @Override public Integer reduce(Integer value, Integer sum) { return sum + value; }
+
+        @Override
+        public void onTraversalDone(Integer result) {
+            out.println(result);
+        }
+    }
+
     private static final long STARTUP_TIME = TimeUnit.NANOSECONDS.convert(60, TimeUnit.SECONDS);
 
     private class MaxRuntimeTestProvider extends TestDataProvider {
@@ -83,5 +116,36 @@ public class MaxRuntimeIntegrationTest extends WalkerTest {
                 "Actual runtime " + TimeUnit.SECONDS.convert(actualRuntimeNano, TimeUnit.NANOSECONDS)
                         + " exceeded max. tolerated runtime " + TimeUnit.SECONDS.convert(cfg.expectedMaxRuntimeNano(), TimeUnit.NANOSECONDS)
                         + " given requested runtime " + cfg.maxRuntime + " " + cfg.unit);
+    }
+
+    @DataProvider(name = "SubshardProvider")
+    public Object[][] makeSubshardProvider() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        // this functionality can be adapted to provide input data for whatever you might want in your data
+        tests.add(new Object[]{10});
+        tests.add(new Object[]{100});
+        tests.add(new Object[]{500});
+        tests.add(new Object[]{1000});
+        tests.add(new Object[]{2000});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(enabled = true, dataProvider = "SubshardProvider", timeOut = 120 * 1000)
+    public void testSubshardTimeout(final int sleepTime) throws Exception {
+        final int maxRuntime = 5000;
+
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T SleepingWalker -R " + b37KGReference
+                        + " -I " + privateTestDir + "NA12878.100kb.BQSRv2.example.bam -o %s"
+                        + " -maxRuntime " + maxRuntime + " -maxRuntimeUnits MILLISECONDS -sleepTime " + sleepTime, 1,
+                Collections.singletonList(""));
+        final File result = executeTest("Subshard max runtime ", spec).getFirst().get(0);
+        final int cycle = Integer.valueOf(new BufferedReader(new FileReader(result)).readLine());
+
+        final int maxCycles = (int)Math.ceil((maxRuntime * 5) / sleepTime);
+        logger.warn(String.format("Max cycles %d saw %d in file %s with sleepTime %d and maxRuntime %d", maxCycles, cycle, result, sleepTime, maxRuntime));
+        Assert.assertTrue(cycle < maxCycles, "Too many cycles seen -- saw " + cycle + " in file " + result + " but max should have been " + maxCycles);
     }
 }

@@ -49,7 +49,7 @@ import java.util.regex.Pattern;
  *
  * <p>See <a href='http://snpeff.sourceforge.net/'>http://snpeff.sourceforge.net/</a> for more information on the SnpEff tool</p>.
  *
- * <p>For each variant, this tol chooses one of the effects of highest biological impact from the SnpEff
+ * <p>For each variant, this tool chooses one of the effects of highest biological impact from the SnpEff
  * output file (which must be provided on the command line via --snpEffFile filename.vcf),
  * and adds annotations on that effect.</p>
  *

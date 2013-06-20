@@ -32,14 +32,14 @@ import net.sf.samtools.SAMRecord;
  *
  * @author David Roazen
  */
-public interface ReadsDownsampler<T extends SAMRecord> extends Downsampler<T> {
+public abstract class ReadsDownsampler<T extends SAMRecord> extends Downsampler<T> {
 
     /**
      * Does this downsampler require that reads be fed to it in coordinate order?
      *
      * @return true if reads must be submitted to this downsampler in coordinate order, otherwise false
      */
-    public boolean requiresCoordinateSortOrder();
+    public abstract boolean requiresCoordinateSortOrder();
 
     /**
      * Tell this downsampler that no more reads located before the provided read (according to
@@ -52,5 +52,5 @@ public interface ReadsDownsampler<T extends SAMRecord> extends Downsampler<T> {
      * @param read the downsampler will assume that no reads located before this read will ever
      *             be submitted to it in the future
      */
-    public void signalNoMoreReadsBefore( T read );
+    public abstract void signalNoMoreReadsBefore( final T read );
 }

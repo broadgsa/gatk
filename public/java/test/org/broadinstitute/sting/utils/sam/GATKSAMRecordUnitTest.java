@@ -42,7 +42,7 @@ public class GATKSAMRecordUnitTest extends BaseTest {
     GATKSAMRecord read, reducedRead;
     final static String BASES = "ACTG";
     final static String QUALS = "!+5?";
-    final private static int[] REDUCED_READ_COUNTS = new int[]{10, 20, 30, 40, 1};
+    final private static int[] REDUCED_READ_COUNTS = new int[]{10, 20, 30, 40};
 
     @BeforeClass
     public void init() {
@@ -200,6 +200,7 @@ public class GATKSAMRecordUnitTest extends BaseTest {
 
     @Test
     public void testGetReducedCountsIsCorrect() {
+        reducedRead.setReducedReadCountsTag(REDUCED_READ_COUNTS);
         final int[] counts = reducedRead.getReducedReadCounts();
         Assert.assertNotSame(counts, reducedRead.getAttribute(GATKSAMRecord.REDUCED_READ_CONSENSUS_TAG));
         for ( int i = 0; i < counts.length; i++ )

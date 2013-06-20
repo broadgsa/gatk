@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.downsampling;
 
 import net.sf.samtools.SAMRecord;
 
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -39,25 +38,21 @@ import java.util.List;
  *
  * @author David Roazen
  */
-public class PassThroughDownsampler<T extends SAMRecord> implements ReadsDownsampler<T> {
+public class PassThroughDownsampler<T extends SAMRecord> extends ReadsDownsampler<T> {
 
     private LinkedList<T> selectedReads;
 
     public PassThroughDownsampler() {
-        clear();
+        clearItems();
     }
 
+    @Override
     public void submit( T newRead ) {
         // All reads pass-through, no reads get downsampled
         selectedReads.add(newRead);
     }
 
-    public void submit( Collection<T> newReads ) {
-        for ( T read : newReads ) {
-            submit(read);
-        }
-    }
-
+    @Override
     public boolean hasFinalizedItems() {
         return ! selectedReads.isEmpty();
     }
@@ -66,27 +61,27 @@ public class PassThroughDownsampler<T extends SAMRecord> implements ReadsDownsam
      * Note that this list is a linked list and so doesn't support fast random access
      * @return
      */
+    @Override
     public List<T> consumeFinalizedItems() {
         // pass by reference rather than make a copy, for speed
-        List<T> downsampledItems = selectedReads;
-        clear();
+        final List<T> downsampledItems = selectedReads;
+        clearItems();
         return downsampledItems;
     }
 
+    @Override
     public boolean hasPendingItems() {
         return false;
     }
 
+    @Override
     public T peekFinalized() {
         return selectedReads.isEmpty() ? null : selectedReads.getFirst();
     }
 
+    @Override
     public T peekPending() {
         return null;
-    }
-
-    public int getNumberOfDiscardedItems() {
-        return 0;
     }
 
     @Override
@@ -94,22 +89,22 @@ public class PassThroughDownsampler<T extends SAMRecord> implements ReadsDownsam
         return selectedReads.size();
     }
 
+    @Override
     public void signalEndOfInput() {
         // NO-OP
     }
 
-    public void clear() {
+    @Override
+    public void clearItems() {
         selectedReads = new LinkedList<T>();
     }
 
-    public void reset() {
-        // NO-OP
-    }
-
+    @Override
     public boolean requiresCoordinateSortOrder() {
         return false;
     }
 
+    @Override
     public void signalNoMoreReadsBefore( T read ) {
         // NO-OP
     }

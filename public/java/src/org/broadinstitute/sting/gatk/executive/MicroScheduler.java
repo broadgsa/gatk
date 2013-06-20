@@ -52,7 +52,6 @@ import javax.management.ObjectName;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -120,8 +119,6 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      */
     ThreadEfficiencyMonitor threadEfficiencyMonitor = null;
 
-    final ProgressMeter progressMeter;
-
     /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
      * selected walker.
@@ -146,8 +143,6 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
                 logger.warn(String.format("Number of requested GATK threads %d is more than the number of " +
                         "available processors on this machine %d", threadAllocation.getTotalNumThreads(),
                         Runtime.getRuntime().availableProcessors()));
-//            if ( threadAllocation.getNumDataThreads() > 1 && threadAllocation.getNumCPUThreadsPerDataThread() > 1)
-//                throw new UserException("The GATK currently doesn't support running with both -nt > 1 and -nct > 1");
         }
 
         if ( threadAllocation.getNumDataThreads() > 1 ) {
@@ -206,14 +201,14 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
             availableTraversalEngines.add(traversalEngine);
         }
 
-        // Create our progress meter
-        this.progressMeter = new ProgressMeter(progressLogFile,
+        // Create the progress meter, and register it with the analysis engine
+        engine.registerProgressMeter(new ProgressMeter(progressLogFile,
                 availableTraversalEngines.peek().getTraversalUnits(),
-                engine.getRegionsOfGenomeBeingProcessed());
+                engine.getRegionsOfGenomeBeingProcessed()));
 
         // Now that we have a progress meter, go through and initialize the traversal engines
         for ( final TraversalEngine traversalEngine : allCreatedTraversalEngines )
-            traversalEngine.initialize(engine, walker, progressMeter);
+            traversalEngine.initialize(engine, walker, engine.getProgressMeter());
 
         // JMX does not allow multiple instances with the same ObjectName to be registered with the same platform MXBean.
         // To get around this limitation and since we have no job identifier at this point, register a simple counter that
@@ -245,7 +240,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         } else if (walker instanceof ReadPairWalker) {
             return new TraverseReadPairs();
         } else if (walker instanceof ActiveRegionWalker) {
-            return new TraverseActiveRegions();
+            return new TraverseActiveRegions(threadAllocation.getNumCPUThreadsPerDataThread());
         } else {
             throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
         }
@@ -282,7 +277,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @return true if we should abort execution, or false otherwise
      */
     protected boolean abortExecution() {
-        final boolean abort = engine.exceedsRuntimeLimit(progressMeter.getRuntimeInNanoseconds(), TimeUnit.NANOSECONDS);
+        final boolean abort = engine.exceedsRuntimeLimit();
         if ( abort ) {
             final AutoFormattingTime aft = new AutoFormattingTime(engine.getRuntimeLimitInNanoseconds(), -1, 4);
             logger.info("Aborting execution (cleanly) because the runtime has exceeded the requested maximum " + aft);
@@ -308,7 +303,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * Currently only starts the progress meter timer running, but other start up activities could be incorporated
      */
     protected void startingExecution() {
-        progressMeter.start();
+        engine.getProgressMeter().start();
     }
 
     /**
@@ -330,7 +325,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * Must be called by subclasses when execute is done
      */
     protected void executionIsDone() {
-        progressMeter.notifyDone(engine.getCumulativeMetrics().getNumIterations());
+        engine.getProgressMeter().notifyDone(engine.getCumulativeMetrics().getNumIterations());
         printReadFilteringStats();
         shutdownTraversalEngines();
 
@@ -347,12 +342,6 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * pointers to the traversal engines
      */
     public synchronized void shutdownTraversalEngines() {
-        // no longer applicable because engines are allocated to keys now
-//        if ( availableTraversalEngines.size() != allCreatedTraversalEngines.size() )
-//            throw new IllegalStateException("Shutting down TraversalEngineCreator but not all engines " +
-//                    "have been returned.  Expected " + allCreatedTraversalEngines.size() + " but only " + availableTraversalEngines.size()
-//                    + " have been returned");
-
         for ( final TraversalEngine te : allCreatedTraversalEngines)
             te.shutdown();
 
@@ -378,7 +367,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
             for ( final long countsByFilter : cumulativeMetrics.getCountsByFilter().values())
                 nSkippedReads += countsByFilter;
 
-            logger.info(String.format("%d reads were filtered out during traversal out of %d total (%.2f%%)",
+            logger.info(String.format("%d reads were filtered out during the traversal out of approximately %d total reads (%.2f%%)",
                     nSkippedReads,
                     cumulativeMetrics.getNumReadsSeen(),
                     100.0 * MathUtils.ratio(nSkippedReads, cumulativeMetrics.getNumReadsSeen())));

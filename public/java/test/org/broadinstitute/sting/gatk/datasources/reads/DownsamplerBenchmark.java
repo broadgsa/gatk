@@ -26,7 +26,9 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
 import com.google.caliper.Param;
+import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.downsampling.DownsamplingMethod;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.qc.CountLoci;
 
 /**
@@ -86,7 +88,7 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
         },
         PER_SAMPLE {
             @Override
-            DownsamplingMethod create() { return DownsamplingMethod.getDefaultDownsamplingMethod(new CountLoci()); }
+            DownsamplingMethod create() { return WalkerManager.getDownsamplingMethod(LocusWalker.class); }
         };
         abstract DownsamplingMethod create();
     }

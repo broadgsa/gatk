@@ -35,11 +35,11 @@ import java.util.*;
  *
  * @author David Roazen
  */
-public class SimplePositionalDownsampler<T extends SAMRecord> implements ReadsDownsampler<T> {
+public class SimplePositionalDownsampler<T extends SAMRecord> extends ReadsDownsampler<T> {
 
-    private int targetCoverage;
+    private final int targetCoverage;
 
-    private ReservoirDownsampler<T> reservoir;
+    private final ReservoirDownsampler<T> reservoir;
 
     private int currentContigIndex;
 
@@ -51,65 +51,61 @@ public class SimplePositionalDownsampler<T extends SAMRecord> implements ReadsDo
 
     private ArrayList<T> finalizedReads;
 
-    private int numDiscardedItems;
 
     /**
      * Construct a SimplePositionalDownsampler
      *
      * @param targetCoverage Maximum number of reads that may share any given alignment start position
      */
-    public SimplePositionalDownsampler( int targetCoverage ) {
+    public SimplePositionalDownsampler( final int targetCoverage ) {
         this.targetCoverage = targetCoverage;
         reservoir = new ReservoirDownsampler<T>(targetCoverage);
         finalizedReads = new ArrayList<T>();
-        clear();
-        reset();
+        clearItems();
+        resetStats();
     }
 
-    public void submit( T newRead ) {
+    @Override
+    public void submit( final T newRead ) {
         updatePositionalState(newRead);
 
         if ( unmappedReadsReached ) {    // don't downsample the unmapped reads at the end of the stream
             finalizedReads.add(newRead);
         }
         else {
-            int reservoirPreviouslyDiscardedItems = reservoir.getNumberOfDiscardedItems();
+            final int reservoirPreviouslyDiscardedItems = reservoir.getNumberOfDiscardedItems();
+            // our reservoir downsampler will call doNotDiscardItem() for us to exclude items from elimination as appropriate
             reservoir.submit(newRead);
             numDiscardedItems += reservoir.getNumberOfDiscardedItems() - reservoirPreviouslyDiscardedItems;
         }
     }
 
-    public void submit( Collection<T> newReads ) {
-        for ( T read : newReads ) {
-            submit(read);
-        }
-    }
-
+    @Override
     public boolean hasFinalizedItems() {
         return finalizedReads.size() > 0;
     }
 
+    @Override
     public List<T> consumeFinalizedItems() {
         // pass by reference rather than make a copy, for speed
-        List<T> toReturn = finalizedReads;
+        final List<T> toReturn = finalizedReads;
         finalizedReads = new ArrayList<T>();
         return toReturn;
     }
 
+    @Override
     public boolean hasPendingItems() {
         return reservoir.hasFinalizedItems();
     }
 
+    @Override
     public T peekFinalized() {
         return finalizedReads.isEmpty() ? null : finalizedReads.get(0);
     }
 
+    @Override
     public T peekPending() {
         return reservoir.peekFinalized();
-    }
-
-    public int getNumberOfDiscardedItems() {
-        return numDiscardedItems;
     }
 
     @Override
@@ -117,31 +113,31 @@ public class SimplePositionalDownsampler<T extends SAMRecord> implements ReadsDo
         return finalizedReads.size() + reservoir.size();
     }
 
+    @Override
     public void signalEndOfInput() {
         finalizeReservoir();
     }
 
-    public void clear() {
-        reservoir.clear();
-        reservoir.reset();
+    @Override
+    public void clearItems() {
+        reservoir.clearItems();
+        reservoir.resetStats();
         finalizedReads.clear();
         positionEstablished = false;
         unmappedReadsReached = false;
     }
 
-    public void reset() {
-        numDiscardedItems = 0;
-    }
-
+    @Override
     public boolean requiresCoordinateSortOrder() {
         return true;
     }
 
-    public void signalNoMoreReadsBefore( T read ) {
+    @Override
+    public void signalNoMoreReadsBefore( final T read ) {
         updatePositionalState(read);
     }
 
-    private void updatePositionalState( T newRead ) {
+    private void updatePositionalState( final T newRead ) {
         if ( readIsPastCurrentPosition(newRead) ) {
             if ( reservoir.hasFinalizedItems() ) {
                 finalizeReservoir();
@@ -155,13 +151,13 @@ public class SimplePositionalDownsampler<T extends SAMRecord> implements ReadsDo
         }
     }
 
-    private void setCurrentPosition( T read ) {
+    private void setCurrentPosition( final T read ) {
         currentContigIndex = read.getReferenceIndex();
         currentAlignmentStart = read.getAlignmentStart();
         positionEstablished = true;
     }
 
-    private boolean readIsPastCurrentPosition( T read ) {
+    private boolean readIsPastCurrentPosition( final T read ) {
         return ! positionEstablished ||
                read.getReferenceIndex() > currentContigIndex ||
                read.getAlignmentStart() > currentAlignmentStart ||
@@ -170,6 +166,6 @@ public class SimplePositionalDownsampler<T extends SAMRecord> implements ReadsDo
 
     private void finalizeReservoir() {
         finalizedReads.addAll(reservoir.consumeFinalizedItems());
-        reservoir.reset();
+        reservoir.resetStats();
     }
 }

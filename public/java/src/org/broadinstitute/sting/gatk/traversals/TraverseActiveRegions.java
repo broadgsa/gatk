@@ -29,24 +29,32 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.providers.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ActiveRegionTraversalParameters;
 import org.broadinstitute.sting.gatk.walkers.ActiveRegionWalker;
-import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.activeregion.*;
+import org.broadinstitute.sting.utils.activeregion.ActiveRegion;
+import org.broadinstitute.sting.utils.activeregion.ActivityProfile;
+import org.broadinstitute.sting.utils.activeregion.ActivityProfileState;
+import org.broadinstitute.sting.utils.activeregion.BandPassActivityProfile;
+import org.broadinstitute.sting.utils.nanoScheduler.NSMapFunction;
+import org.broadinstitute.sting.utils.nanoScheduler.NSProgressFunction;
+import org.broadinstitute.sting.utils.nanoScheduler.NSReduceFunction;
+import org.broadinstitute.sting.utils.nanoScheduler.NanoScheduler;
 import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.io.PrintStream;
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Implement active region traversal
@@ -67,7 +75,8 @@ import java.util.*;
  *   variable spanOfLastReadSeen
  *
  */
-public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegionWalker<M,T>,LocusShardDataProvider> {
+public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegionWalker<M,T>,LocusShardDataProvider> {
+    private final static boolean DEBUG = false;
     protected final static Logger logger = Logger.getLogger(TraversalEngine.class);
     protected final static boolean LOG_READ_CARRYING = false;
 
@@ -81,10 +90,49 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
 
     private TAROrderedReadCache myReads = null;
 
+    private GenomeLoc lastRegionProcessed = null;
     private GenomeLoc spanOfLastReadSeen = null;
     private ActivityProfile activityProfile = null;
     int maxReadsInMemory = 0;
-    ActiveRegionWalker walker;
+    ActiveRegionWalker<M, T> walker;
+
+    final NanoScheduler<MapData, M, T> nanoScheduler;
+
+    /**
+     * Data to use in the ActiveRegionWalker.map function produced by the NanoScheduler input iterator
+     */
+    private static class MapData {
+        public ActiveRegion activeRegion;
+        public RefMetaDataTracker tracker;
+
+        private MapData(ActiveRegion activeRegion, RefMetaDataTracker tracker) {
+            this.activeRegion = activeRegion;
+            this.tracker = tracker;
+        }
+    }
+
+    /**
+     * Create a single threaded active region traverser
+     */
+    public TraverseActiveRegions() {
+        this(1);
+    }
+
+    /**
+     * Create an active region traverser that uses nThreads for getting its work done
+     * @param nThreads number of threads
+     */
+    public TraverseActiveRegions(final int nThreads) {
+        nanoScheduler = new NanoScheduler<>(nThreads);
+        nanoScheduler.setProgressFunction(new NSProgressFunction<MapData>() {
+            @Override
+            public void progress(MapData lastActiveRegion) {
+                if ( lastActiveRegion != null )
+                    // note, need to use getStopLocation so we don't give an interval to ProgressMeterDaemon
+                    printProgress(lastActiveRegion.activeRegion.getLocation().getStopLocation());
+            }
+        });
+    }
 
     /**
      * Have the debugging output streams been initialized already?
@@ -98,7 +146,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
     public void initialize(GenomeAnalysisEngine engine, Walker walker, ProgressMeter progressMeter) {
         super.initialize(engine, walker, progressMeter);
 
-        this.walker = (ActiveRegionWalker)walker;
+        this.walker = (ActiveRegionWalker<M,T>)walker;
         if ( this.walker.wantsExtendedReads() && ! this.walker.wantsNonPrimaryReads() ) {
             throw new IllegalArgumentException("Active region walker " + this.walker + " requested extended events but not " +
                     "non-primary reads, an inconsistent state.  Please modify the walker");
@@ -113,13 +161,6 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
 
         activityProfile = new BandPassActivityProfile(engine.getGenomeLocParser(), engine.getIntervals(), BandPassActivityProfile.MAX_FILTER_SIZE, bandPassSigma);
 
-        if ( walkerHasPresetRegions ) {
-            // we load all of the preset locations into the workQueue
-            for ( final GenomeLoc loc : this.walker.getPresetActiveRegions()) {
-                workQueue.add(new ActiveRegion(loc, null, true, engine.getGenomeLocParser(), getActiveRegionExtension()));
-            }
-        }
-
         final int maxReadsAcrossSamples = annotation.maxReadsToHoldInMemoryPerSample() * SampleUtils.getSAMFileSamples(engine).size();
         final int maxReadsToHoldInMemory = Math.min(maxReadsAcrossSamples, annotation.maxReadsToHoldTotal());
         myReads = new TAROrderedReadCache(maxReadsToHoldInMemory);
@@ -130,6 +171,24 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
     // Utility functions
     //
     // -------------------------------------------------------------------------------------
+
+    /**
+     * Load in the preset regions for contig into workQueue
+     *
+     * Should be called before starting to process work on contig
+     *
+     * Can only be called when walkerHasPresetRegions is true or an IllegalStateException will be thrown
+     *
+     * @param contig the contig we are about to process
+     */
+    protected void loadPresetRegionsForContigToWorkQueue(final String contig) {
+        if ( ! walkerHasPresetRegions ) throw new IllegalStateException("only appropriate to call when walker has preset regions");
+
+        final GenomeLoc contigSpan = engine.getGenomeLocParser().createOverEntireContig(contig);
+        for ( final GenomeLoc loc : this.walker.getPresetActiveRegions().getOverlapping(contigSpan) ) {
+            workQueue.add(new ActiveRegion(loc, null, true, engine.getGenomeLocParser(), getActiveRegionExtension()));
+        }
+    }
 
     protected int getActiveRegionExtension() {
         return activeRegionExtension;
@@ -161,16 +220,6 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
     protected boolean outsideEngineIntervals(final GenomeLoc loc) {
         return engine.getIntervals() != null && ! engine.getIntervals().overlaps(loc);
     }
-
-    protected ReferenceOrderedView getReferenceOrderedView(final ActiveRegionWalker<M, T> walker,
-                                                           final LocusShardDataProvider dataProvider,
-                                                           final LocusView locusView) {
-        if ( WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE_ORDERED_DATA )
-            return new ManagingReferenceOrderedView( dataProvider );
-        else
-            return (RodLocusView)locusView;
-    }
-
 
     // -------------------------------------------------------------------------------------
     //
@@ -217,66 +266,140 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         if ( LOG_READ_CARRYING || logger.isDebugEnabled() )
             logger.info(String.format("TraverseActiveRegions.traverse: Shard is %s", dataProvider));
 
-        final LocusView locusView = new AllLocusView(dataProvider);
-        final LocusReferenceView referenceView = new LocusReferenceView( walker, dataProvider );
-        final ReferenceOrderedView referenceOrderedDataView = getReferenceOrderedView(walker, dataProvider, locusView);
+        nanoScheduler.setDebug(false);
+        final Iterator<MapData> activeRegionIterator = new ActiveRegionIterator(dataProvider);
+        final TraverseActiveRegionMap myMap = new TraverseActiveRegionMap();
+        final TraverseActiveRegionReduce myReduce = new TraverseActiveRegionReduce();
+        final T result = nanoScheduler.execute(activeRegionIterator, myMap, sum, myReduce);
 
-        // We keep processing while the next reference location is within the interval
-        final GenomeLoc locOfLastReadAtTraversalStart = spanOfLastSeenRead();
-
-        while( locusView.hasNext() ) {
-            final AlignmentContext locus = locusView.next();
-            final GenomeLoc location = locus.getLocation();
-
-            rememberLastLocusLocation(location);
-
-            // get all of the new reads that appear in the current pileup, and them to our list of reads
-            // provided we haven't seen them before
-            final Collection<GATKSAMRecord> reads = locusView.getLIBS().transferReadsFromAllPreviousPileups();
-            for( final GATKSAMRecord read : reads ) {
-                if ( ! appearedInLastShard(locOfLastReadAtTraversalStart, read) ) {
-                    rememberLastReadLocation(read);
-                    myReads.add(read);
-                }
-            }
-
-            // skip this location -- it's not part of our engine intervals
-            if ( outsideEngineIntervals(location) )
-                continue;
-
-            // we've move across some interval boundary, restart profile
-            final boolean flushProfile = ! activityProfile.isEmpty()
-                    && ( activityProfile.getContigIndex() != location.getContigIndex()
-                       || location.getStart() != activityProfile.getStop() + 1);
-            sum = processActiveRegions(walker, sum, flushProfile, false);
-
-            dataProvider.getShard().getReadMetrics().incrementNumIterations();
-
-            // create reference context. Note that if we have a pileup of "extended events", the context will
-            // hold the (longest) stretch of deleted reference bases (if deletions are present in the pileup).
-            final ReferenceContext refContext = referenceView.getReferenceContext(location);
-
-            // Iterate forward to get all reference ordered data covering this location
-            final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation(), refContext);
-
-            // Call the walkers isActive function for this locus and add them to the list to be integrated later
-            addIsActiveResult(walker, tracker, refContext, locus);
-
-            maxReadsInMemory = Math.max(myReads.size(), maxReadsInMemory);
-            printProgress(location);
-        }
-
-        updateCumulativeMetrics(dataProvider.getShard());
-
-        return sum;
+        return result;
     }
 
-    /**
-     * Special function called in LinearMicroScheduler to empty out the work queue.
-     * Ugly for now but will be cleaned up when we push this functionality more into the engine
-     */
-    public T endTraversal(final Walker<M, T> walker, T sum) {
-        return processActiveRegions((ActiveRegionWalker<M, T>)walker, sum, true, true);
+    private class ActiveRegionIterator implements Iterator<MapData> {
+        private final LocusShardDataProvider dataProvider;
+        private LinkedList<MapData> readyActiveRegions = new LinkedList<>();
+        private boolean done = false;
+        private final LocusView locusView;
+        private final LocusReferenceView referenceView;
+        private final GenomeLoc locOfLastReadAtTraversalStart;
+        private final IntervalReferenceOrderedView referenceOrderedDataView;
+        private final GenomeLoc currentWindow;
+        private final boolean processRemainingActiveRegions;
+
+        public ActiveRegionIterator( final LocusShardDataProvider dataProvider ) {
+            this.dataProvider = dataProvider;
+            locusView = new AllLocusView(dataProvider);
+            referenceView = new LocusReferenceView( walker, dataProvider );
+
+            // The data shard may carry a number of locations to process (due to being indexed together).
+            // This value is just the interval we are processing within the entire provider
+            currentWindow = dataProvider.getLocus();
+            final int currentWindowPos = dataProvider.getShard().getGenomeLocs().indexOf(currentWindow);
+            if ( currentWindowPos == -1 ) throw new IllegalStateException("Data provider " + dataProvider + " didn't have our current window in it " + currentWindow);
+            processRemainingActiveRegions = currentWindowPos == dataProvider.getShard().getGenomeLocs().size() - 1;
+
+            // the rodSpan covers all of the bases in the activity profile, including all of the bases
+            // through the current window interval.  This is because we may issue a query to get data for an
+            // active region spanning before the current interval as far back as the start of the current profile,
+            // if we have pending work to do that finalizes in this interval.
+            final GenomeLoc rodSpan = activityProfile.getSpan() == null ? currentWindow : activityProfile.getSpan().endpointSpan(currentWindow);
+            if ( ! dataProvider.getShard().getLocation().containsP(rodSpan) ) throw new IllegalStateException("Rod span " + rodSpan + " isn't contained within the data shard " + dataProvider.getShard().getLocation() + ", meaning we wouldn't get all of the data we need");
+            referenceOrderedDataView = new IntervalReferenceOrderedView( dataProvider, rodSpan );
+
+            // We keep processing while the next reference location is within the interval
+            locOfLastReadAtTraversalStart = spanOfLastSeenRead();
+
+            // load in the workQueue the present regions that span the current contig, if it's different from the last one
+            if ( walkerHasPresetRegions && ( lastRegionProcessed == null || ! currentWindow.onSameContig(lastRegionProcessed)) ) {
+                loadPresetRegionsForContigToWorkQueue(currentWindow.getContig());
+            }
+
+            // remember the last region we processed for sanity checking later
+            lastRegionProcessed = currentWindow;
+        }
+
+        @Override public void remove() { throw new UnsupportedOperationException("Cannot remove from ActiveRegionIterator"); }
+
+        @Override
+        public MapData next() {
+            return readyActiveRegions.pop();
+        }
+        @Override
+        public boolean hasNext() {
+            if ( engine.exceedsRuntimeLimit() ) // too much time has been dedicated to doing work, just stop
+                 return false;
+            if ( ! readyActiveRegions.isEmpty() )
+                return true;
+            if ( done )
+                return false;
+            else {
+
+                while( locusView.hasNext() ) {
+                    final AlignmentContext locus = locusView.next();
+                    final GenomeLoc location = locus.getLocation();
+
+                    rememberLastLocusLocation(location);
+
+                    // get all of the new reads that appear in the current pileup, and them to our list of reads
+                    // provided we haven't seen them before
+                    final Collection<GATKSAMRecord> reads = locusView.getLIBS().transferReadsFromAllPreviousPileups();
+                    for( final GATKSAMRecord read : reads ) {
+                        // note that ActiveRegionShards span entire contigs, so this check is in some
+                        // sense no longer necessary, as any read that appeared in the last shard would now
+                        // by definition be on a different contig.  However, the logic here doesn't hurt anything
+                        // and makes us robust should we decided to provide shards that don't fully span
+                        // contigs at some point in the future
+                        if ( ! appearedInLastShard(locOfLastReadAtTraversalStart, read) ) {
+                            rememberLastReadLocation(read);
+                            myReads.add(read);
+                        }
+                    }
+
+                    // skip this location -- it's not part of our engine intervals
+                    if ( outsideEngineIntervals(location) )
+                        continue;
+
+                    // we've move across some interval boundary, restart profile
+                    final boolean flushProfile = ! activityProfile.isEmpty()
+                            && ( activityProfile.getContigIndex() != location.getContigIndex()
+                            || location.getStart() != activityProfile.getStop() + 1);
+                    final List<MapData> newActiveRegions = prepActiveRegionsForProcessing(walker, flushProfile, false, referenceOrderedDataView);
+
+                    dataProvider.getShard().getReadMetrics().incrementNumIterations();
+
+                    // create reference context. Note that if we have a pileup of "extended events", the context will
+                    // hold the (longest) stretch of deleted reference bases (if deletions are present in the pileup).
+                    final ReferenceContext refContext = referenceView.getReferenceContext(location);
+
+                    // Iterate forward to get all reference ordered data covering this location
+                    final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(locus.getLocation());
+
+                    // Call the walkers isActive function for this locus and add them to the list to be integrated later
+                    addIsActiveResult(walker, tracker, refContext, locus);
+
+                    maxReadsInMemory = Math.max(myReads.size(), maxReadsInMemory);
+                    printProgress(location);
+
+                    if ( ! newActiveRegions.isEmpty() ) {
+                        readyActiveRegions.addAll(newActiveRegions);
+                        if ( DEBUG )
+                            for ( final MapData region : newActiveRegions )
+                                logger.info("Adding region to queue for processing " + region.activeRegion);
+                        return true;
+                    }
+                }
+
+                if ( processRemainingActiveRegions ) {
+                    // we've run out of stuff to process, and since shards now span entire contig boundaries
+                    // we should finalized our regions.  This allows us to continue to use our referenceOrderedDataView
+                    // which would otherwise be shutdown.  Only followed when the microschedule says that we're
+                    // inside of the last window in the current shard
+                    readyActiveRegions.addAll(prepActiveRegionsForProcessing(walker, true, true, referenceOrderedDataView));
+                }
+
+                return ! readyActiveRegions.isEmpty();
+            }
+        }
     }
 
     // -------------------------------------------------------------------------------------
@@ -438,7 +561,7 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         // note that start and stop are 0 based, but the stop is exclusive so we don't subtract 1
         out.printf("%s\t%d\t%d\t%s", loc.getContig(), loc.getStart() - 1, loc.getStop(), featureName);
         for ( final double value : values )
-            out.print(String.format("\t%.3f", value));
+            out.print(String.format("\t%.5f", value));
         out.println();
     }
 
@@ -504,7 +627,10 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
      * add these blocks of work to the work queue
      * band-pass filter the list of isActive probabilities and turn into active regions
      */
-    private T processActiveRegions(final ActiveRegionWalker<M, T> walker, T sum, final boolean flushActivityProfile, final boolean forceAllRegionsToBeActive) {
+    private List<MapData> prepActiveRegionsForProcessing(final ActiveRegionWalker<M, T> walker,
+                                                              final boolean flushActivityProfile,
+                                                              final boolean forceAllRegionsToBeActive,
+                                                              final IntervalReferenceOrderedView referenceOrderedDataView) {
         if ( ! walkerHasPresetRegions ) {
             // We don't have preset regions, so we get our regions from the activity profile
             final Collection<ActiveRegion> activeRegions = activityProfile.popReadyActiveRegions(getActiveRegionExtension(), getMinRegionSize(), getMaxRegionSize(), flushActivityProfile);
@@ -513,22 +639,26 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
         }
 
         // Since we've traversed sufficiently past this point (or this contig!) in the workQueue we can unload those regions and process them
+        final LinkedList<MapData> readyRegions = new LinkedList<>();
         while( workQueue.peek() != null ) {
             final ActiveRegion activeRegion = workQueue.peek();
             if ( forceAllRegionsToBeActive || regionCompletelyWithinDeadZone(activeRegion) ) {
                 writeActivityProfile(activeRegion.getSupportingStates());
                 writeActiveRegion(activeRegion);
-                sum = processActiveRegion( workQueue.remove(), sum, walker );
+                readyRegions.add(prepActiveRegionForProcessing(workQueue.remove(), walker, referenceOrderedDataView));
             } else {
                 break;
             }
         }
 
-        return sum;
+        return readyRegions;
+
     }
 
-    private T processActiveRegion(final ActiveRegion activeRegion, final T sum, final ActiveRegionWalker<M, T> walker) {
-        final List<GATKSAMRecord> stillLive = new LinkedList<GATKSAMRecord>();
+    private MapData prepActiveRegionForProcessing(final ActiveRegion activeRegion,
+                                                  final ActiveRegionWalker<M, T> walker,
+                                                  final IntervalReferenceOrderedView referenceOrderedDataView) {
+        final List<GATKSAMRecord> stillLive = new LinkedList<>();
         for ( final GATKSAMRecord read : myReads.popCurrentReads() ) {
             boolean killed = false;
             final GenomeLoc readLoc = this.engine.getGenomeLocParser().createGenomeLoc( read );
@@ -561,7 +691,28 @@ public class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,ActiveRegio
             logger.info(String.format("Processing region %20s span=%3d active?=%5b with %4d reads.  Overall max reads carried is %s",
                     activeRegion.getLocation(), activeRegion.getLocation().size(), activeRegion.isActive(), activeRegion.size(), maxReadsInMemory));
 
-        final M x = walker.map(activeRegion, null);
-        return walker.reduce( x, sum );
+        // prepare the RefMetaDataTracker information
+        final GenomeLoc loc = activeRegion.getLocation();
+        // get all of the RODs that cover the active region (without extension)
+        final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataForInterval(loc);
+        // trim away all of the features that occurred before this location, as we will not need them in the future
+        referenceOrderedDataView.trimCurrentFeaturesToLoc(loc);
+
+        return new MapData(activeRegion, tracker);
+    }
+
+    private class TraverseActiveRegionMap implements NSMapFunction<MapData, M> {
+        @Override
+        public M apply(final MapData mapData) {
+            if ( DEBUG ) logger.info("Executing walker.map for " + mapData.activeRegion + " in thread " + Thread.currentThread().getName());
+            return walker.map(mapData.activeRegion, mapData.tracker);
+        }
+    }
+
+    private class TraverseActiveRegionReduce implements NSReduceFunction<M, T> {
+        @Override
+        public T apply(M one, T sum) {
+            return walker.reduce(one, sum);
+        }
     }
 }

@@ -35,29 +35,32 @@ import java.util.List;
  * @since Date created
  */
 public class MD5Mismatch extends Exception {
-    final List<String> actuals, expecteds;
+    final List<String> actuals, expecteds, diffEngineOutputs;
 
-    public MD5Mismatch(final String actual, final String expected) {
-        this(Collections.singletonList(actual), Collections.singletonList(expected));
+    public MD5Mismatch(final String actual, final String expected, final String diffEngineOutput) {
+        this(Collections.singletonList(actual), Collections.singletonList(expected), Collections.singletonList(diffEngineOutput));
     }
 
-    public MD5Mismatch(final List<String> actuals, final List<String> expecteds) {
-        super(formatMessage(actuals, expecteds));
+    public MD5Mismatch(final List<String> actuals, final List<String> expecteds, final List<String> diffEngineOutputs) {
+        super(formatMessage(actuals, expecteds, diffEngineOutputs));
         this.actuals = actuals;
         this.expecteds = expecteds;
+        this.diffEngineOutputs = diffEngineOutputs;
     }
 
     @Override
     public String toString() {
-        return formatMessage(actuals, expecteds);
+        return formatMessage(actuals, expecteds, diffEngineOutputs);
     }
 
-    private final static String formatMessage(final List<String> actuals, final List<String> expecteds) {
+    private static String formatMessage(final List<String> actuals, final List<String> expecteds, final List<String> diffEngineOutputs) {
         final StringBuilder b = new StringBuilder("MD5 mismatch: ");
         for ( int i = 0; i < actuals.size(); i++ ) {
-            if ( i > 1 ) b.append("\t\t\n");
+            if ( i >= 1 ) b.append("\t\t\n\n");
             b.append("actual ").append(actuals.get(i));
             b.append(" expected ").append(expecteds.get(i));
+            b.append("\nDiff Engine Output:\n");
+            b.append(diffEngineOutputs.get(i));
         }
         return b.toString();
     }

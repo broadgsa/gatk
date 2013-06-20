@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.sam;
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.*;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -35,6 +36,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.NGSPlatform;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.util.*;
@@ -47,6 +49,7 @@ import java.util.*;
  * @version 0.1
  */
 public class ReadUtils {
+    private final static Logger logger = Logger.getLogger(ReadUtils.class);
     
     private static final String OFFSET_OUT_OF_BOUNDS_EXCEPTION = "Offset cannot be greater than read length %d : %d";
     private static final String OFFSET_NOT_ZERO_EXCEPTION = "We ran past the end of the read and never found the offset, something went wrong!";
@@ -150,9 +153,16 @@ public class ReadUtils {
      * @return a SAMFileWriter with the compression level if it is a bam.
      */
     public static SAMFileWriter createSAMFileWriterWithCompression(SAMFileHeader header, boolean presorted, String file, int compression) {
+        validateCompressionLevel(compression);
         if (file.endsWith(".bam"))
             return new SAMFileWriterFactory().makeBAMWriter(header, presorted, new File(file), compression);
         return new SAMFileWriterFactory().makeSAMOrBAMWriter(header, presorted, new File(file));
+    }
+
+    public static int validateCompressionLevel(final int requestedCompressionLevel) {
+        if ( requestedCompressionLevel < 0 || requestedCompressionLevel > 9 )
+            throw new UserException.BadArgumentValue("compress", "Compression level must be 0-9 but got " + requestedCompressionLevel);
+        return requestedCompressionLevel;
     }
 
     /**
@@ -209,7 +219,16 @@ public class ReadUtils {
 
         if (insertSize == 0 || read.getReadUnmappedFlag())                // no adaptors in reads with mates in another chromosome or unmapped pairs
             return CANNOT_COMPUTE_ADAPTOR_BOUNDARY;
-        
+
+        if ( read.getReadPairedFlag() && read.getReadNegativeStrandFlag() == read.getMateNegativeStrandFlag() ) {
+            // note that the read.getProperPairFlag() is not reliably set, so many reads may have this tag but still be overlapping
+//            logger.info(String.format("Read %s start=%d end=%d insert=%d mateStart=%d readNeg=%b mateNeg=%b not properly paired, returning CANNOT_COMPUTE_ADAPTOR_BOUNDARY",
+//                    read.getReadName(), read.getAlignmentStart(), read.getAlignmentEnd(), insertSize, read.getMateAlignmentStart(),
+//                    read.getReadNegativeStrandFlag(), read.getMateNegativeStrandFlag()));
+            return CANNOT_COMPUTE_ADAPTOR_BOUNDARY;
+        }
+
+
         int adaptorBoundary;                                          // the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read)
         if (read.getReadNegativeStrandFlag())
             adaptorBoundary = read.getMateAlignmentStart() - 1;           // case 1 (see header)
@@ -218,7 +237,7 @@ public class ReadUtils {
 
         if ( (adaptorBoundary < read.getAlignmentStart() - MAXIMUM_ADAPTOR_LENGTH) || (adaptorBoundary > read.getAlignmentEnd() + MAXIMUM_ADAPTOR_LENGTH) )
             adaptorBoundary = CANNOT_COMPUTE_ADAPTOR_BOUNDARY;                                       // we are being conservative by not allowing the adaptor boundary to go beyond what we belive is the maximum size of an adaptor
-        
+
         return adaptorBoundary;
     }
     public static int CANNOT_COMPUTE_ADAPTOR_BOUNDARY = Integer.MIN_VALUE;
@@ -413,9 +432,9 @@ public class ReadUtils {
         // clipping the left tail and first base is insertion, go to the next read coordinate
         // with the same reference coordinate. Advance to the next cigar element, or to the
         // end of the read if there is no next element.
-        Pair<Boolean, CigarElement> firstElementIsInsertion = readStartsWithInsertion(cigar);
-        if (readCoord == 0 && tail == ClippingTail.LEFT_TAIL && firstElementIsInsertion.getFirst())
-            readCoord = Math.min(firstElementIsInsertion.getSecond().getLength(), cigar.getReadLength() - 1);
+        final CigarElement firstElementIsInsertion = readStartsWithInsertion(cigar);
+        if (readCoord == 0 && tail == ClippingTail.LEFT_TAIL && firstElementIsInsertion != null)
+            readCoord = Math.min(firstElementIsInsertion.getLength(), cigar.getReadLength() - 1);
 
         return readCoord;
     }
@@ -584,25 +603,28 @@ public class ReadUtils {
     }
 
     /**
-     * Checks if a read starts with an insertion. It looks beyond Hard and Soft clips
-     * if there are any.
-     *
-     * @param read
-     * @return A pair with the answer (true/false) and the element or null if it doesn't exist
+     * @see #readStartsWithInsertion(net.sf.samtools.Cigar, boolean) with ignoreClipOps set to true
      */
-    public static Pair<Boolean, CigarElement> readStartsWithInsertion(GATKSAMRecord read) {
-        return readStartsWithInsertion(read.getCigar());
+    public static CigarElement readStartsWithInsertion(final Cigar cigarForRead) {
+        return readStartsWithInsertion(cigarForRead, true);
     }
 
-    public static Pair<Boolean, CigarElement> readStartsWithInsertion(final Cigar cigar) {
-        for (CigarElement cigarElement : cigar.getCigarElements()) {
-            if (cigarElement.getOperator() == CigarOperator.INSERTION)
-                return new Pair<Boolean, CigarElement>(true, cigarElement);
+    /**
+     * Checks if a read starts with an insertion.
+     *
+     * @param cigarForRead    the CIGAR to evaluate
+     * @param ignoreClipOps   should we ignore S and H operators when evaluating whether an I operator is at the beginning?
+     * @return the element if it's a leading insertion or null otherwise
+     */
+    public static CigarElement readStartsWithInsertion(final Cigar cigarForRead, final boolean ignoreClipOps) {
+        for ( final CigarElement cigarElement : cigarForRead.getCigarElements() ) {
+            if ( cigarElement.getOperator() == CigarOperator.INSERTION )
+                return cigarElement;
 
-            else if (cigarElement.getOperator() != CigarOperator.HARD_CLIP && cigarElement.getOperator() != CigarOperator.SOFT_CLIP)
+            else if ( !ignoreClipOps || (cigarElement.getOperator() != CigarOperator.HARD_CLIP && cigarElement.getOperator() != CigarOperator.SOFT_CLIP) )
                 break;
         }
-        return new Pair<Boolean, CigarElement>(false, null);
+        return null;
     }
 
     /**

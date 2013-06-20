@@ -440,9 +440,8 @@ public class SAMDataSource {
      * @return Cumulative read metrics.
      */
     public ReadMetrics getCumulativeReadMetrics() {
-        synchronized(readMetrics) {
-            return readMetrics.clone();
-        }
+        // don't return a clone here because the engine uses a pointer to this object
+        return readMetrics;
     }
 
     /**
@@ -450,9 +449,7 @@ public class SAMDataSource {
      * @param readMetrics The 'incremental' read metrics, to be incorporated into the cumulative metrics.
      */
     public void incorporateReadMetrics(final ReadMetrics readMetrics) {
-        synchronized(this.readMetrics) {
-            this.readMetrics.incrementMetrics(readMetrics);
-        }
+        this.readMetrics.incrementMetrics(readMetrics);
     }
 
     public StingSAMIterator seek(Shard shard) {
@@ -548,7 +545,10 @@ public class SAMDataSource {
 
         MergingSamRecordIterator mergingIterator = readers.createMergingIterator(iteratorMap);
 
-        return applyDecoratingIterators(shard.getReadMetrics(),
+        // The readMetrics object being passed in should be that of this dataSource and NOT the shard: the dataSource's
+        // metrics is intended to keep track of the reads seen (and hence passed to the CountingFilteringIterator when
+        // we apply the decorators), whereas the shard's metrics is used to keep track the "records" seen.
+        return applyDecoratingIterators(readMetrics,
                 enableVerification,
                 readProperties.useOriginalBaseQualities(),
                 new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(mergingIterator)),
@@ -625,12 +625,15 @@ public class SAMDataSource {
                                                         byte defaultBaseQualities,
                                                         boolean isLocusBasedTraversal ) {
 
-        // ************************************************************************************************ //
-        // *  NOTE: ALL FILTERING/DOWNSAMPLING SHOULD BE DONE BEFORE ANY ITERATORS THAT MODIFY THE READS! * //
-        // *     (otherwise we will process something that we may end up throwing away)                   * //
-        // ************************************************************************************************ //
+        // Always apply the ReadFormattingIterator before both ReadFilters and ReadTransformers. At a minimum,
+        // this will consolidate the cigar strings into canonical form. This has to be done before the read
+        // filtering, because not all read filters will behave correctly with things like zero-length cigar
+        // elements. If useOriginalBaseQualities is true or defaultBaseQualities >= 0, this iterator will also
+        // modify the base qualities.
+        wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
 
-        // Filters:
+        // Read Filters: these are applied BEFORE downsampling, so that we downsample within the set of reads
+        // that actually survive filtering. Otherwise we could get much less coverage than requested.
         wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
 
         // Downsampling:
@@ -654,11 +657,8 @@ public class SAMDataSource {
         if (!noValidationOfReadOrder && enableVerification)
             wrappedIterator = new VerifyingSamIterator(wrappedIterator);
 
-        if (useOriginalBaseQualities || defaultBaseQualities >= 0)
-            // only wrap if we are replacing the original qualities or using a default base quality
-            wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
-
-        // set up read transformers
+        // Read transformers: these are applied last, so that we don't bother transforming reads that get discarded
+        // by the read filters or downsampler.
         for ( final ReadTransformer readTransformer : readTransformers ) {
             if ( readTransformer.enabled() && readTransformer.getApplicationTime() == ReadTransformer.ApplicationTime.ON_INPUT )
                 wrappedIterator = new ReadTransformingIterator(wrappedIterator, readTransformer);

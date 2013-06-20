@@ -792,7 +792,8 @@ public class AlignmentUtilsUnitTest {
         tests.add(new Object[]{"2M2D2I", 3, 3, "1I"});
         tests.add(new Object[]{"2M2D2I", 2, 2, "2D1I"});
         tests.add(new Object[]{"2M2D2I", 1, 2, "1M2D1I"});
-        tests.add(new Object[]{"2M2D2I", 1, 1, "1M"});
+        tests.add(new Object[]{"2M2D2I", 0, 1, "2M2D"});
+        tests.add(new Object[]{"2M2D2I", 1, 1, "1M2D"});
 
         return tests.toArray(new Object[][]{});
     }
@@ -1032,5 +1033,12 @@ public class AlignmentUtilsUnitTest {
         Assert.assertEquals(AlignmentUtils.startsOrEndsWithInsertionOrDeletion(TextCigarCodec.getSingleton().decode(cigar)), expected);
     }
 
+    @Test(dataProvider = "StartsOrEndsWithInsertionOrDeletionData", enabled = true)
+    public void testRemoveTrailingDeletions(final String cigar, final boolean expected) {
 
+        final Cigar originalCigar = TextCigarCodec.getSingleton().decode(cigar);
+        final Cigar newCigar = AlignmentUtils.removeTrailingDeletions(originalCigar);
+
+        Assert.assertEquals(originalCigar.equals(newCigar), !cigar.endsWith("D"));
+    }
 }

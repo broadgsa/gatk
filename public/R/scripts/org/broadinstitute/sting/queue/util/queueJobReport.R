@@ -3,6 +3,7 @@ library(ggplot2)
 library(gplots)
 library(tools)
 library(reshape)
+library(plyr)
 
 #
 # Standard command line switch.  Can we loaded interactively for development
@@ -14,7 +15,7 @@ if ( onCMDLine ) {
   inputFileName = args[1]
   outputPDF = args[2]
 } else {
-  inputFileName = "Q-26618@gsa4.jobreport.txt"
+  inputFileName = "~/Desktop/broadLocal/projects/pipelinePerformance/FullProcessingPipeline.jobreport.txt"
   #inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/Q-25718@node1149.jobreport.txt"
   #inputFileName = "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/rodPerformanceGoals/history/report.082711.txt"
   outputPDF = NA
@@ -35,13 +36,11 @@ allJobsFromReport <- function(report) {
 #
 # Creates segmentation plots of time (x) vs. job (y) with segments for the duration of the job
 #
-plotJobsGantt <- function(gatkReport, sortOverall, includeText) {
+plotJobsGantt <- function(gatkReport, sortOverall, title, includeText) {
   allJobs = allJobsFromReport(gatkReport)
   if ( sortOverall ) {
-    title = "All jobs, by analysis, by start time"
     allJobs = allJobs[order(allJobs$analysisName, allJobs$startTime, decreasing=T), ]
   } else {
-    title = "All jobs, sorted by start time"
     allJobs = allJobs[order(allJobs$startTime, decreasing=T), ]
   }
   allJobs$index = 1:nrow(allJobs)
@@ -54,11 +53,11 @@ plotJobsGantt <- function(gatkReport, sortOverall, includeText) {
   p <- p + theme_bw()
   p <- p + geom_segment(aes(xend=relDoneTime, yend=index), size=1, arrow=arrow(length = unit(0.1, "cm")))
   if ( includeText )
-    p <- p + geom_text(aes(x=relDoneTime, label=ganttName, hjust=-0.2), size=2)
-  p <- p + xlim(0, maxRelTime * 1.1)
+    p <- p + geom_text(aes(x=relStartTime, label=ganttName, hjust=0, vjust=-1), size=2)
+  p <- p + xlim(0, maxRelTime * 1.3)
   p <- p + xlab(paste("Start time, relative to first job", RUNTIME_UNITS))
   p <- p + ylab("Job number")
-  p <- p + opts(title=title)
+  p <- p + ggtitle(title)
   print(p)
 }
 
@@ -182,6 +181,27 @@ plotTimeByHost <- function(gatkReportData) {
   plotMe("Jittered points", geom_jitter)
 }
 
+mergeScattersForAnalysis <- function(table) {
+  #allJobs$ganttName = paste(allJobs$jobName, "@", allJobs$exechosts)
+  
+  ddply(table, .(analysisName, iteration), summarize,
+        jobName = analysisName[1],
+        exechosts = paste(length(exechosts), "hosts"),
+        formattedStartTime = "NA",
+        formattedDoneTime = "NA",
+        intermediate = intermediate[1],
+        startTime = min(startTime),
+        doneTime = min(startTime) + sum(runtime),
+        runtime = sum(runtime))
+}
+
+mergeScatters <- function(report) {
+  newReport = list()
+  for ( name in names(gatkReportData) ) {
+    newReport[[name]] = mergeScattersForAnalysis(gatkReportData[[name]])
+  }
+  newReport
+}
   
 # read the table
 gatkReportData <- gsa.read.gatkreport(inputFileName)
@@ -192,13 +212,24 @@ if ( ! is.na(outputPDF) ) {
   pdf(outputPDF, height=8.5, width=11)
 } 
 
-plotJobsGantt(gatkReportData, T, F)
-plotJobsGantt(gatkReportData, F, F)
+plotJobsGantt(gatkReportData, T, "All jobs, by analysis, by start time", F)
+plotJobsGantt(gatkReportData, F, "All jobs, sorted by start time", F)
 plotProgressByTime(gatkReportData)
+
+# plots summarizing overall costs, merging scattered counts
+merged.by.scatter = mergeScatters(gatkReportData) 
+plotJobsGantt(merged.by.scatter, F, "Jobs merged by scatter by start time", T)
+
+merged.as.df = do.call(rbind.data.frame, merged.by.scatter)[,c("analysisName", "runtime")]
+merged.as.df$percent = merged.as.df$runtime / sum(merged.as.df$runtime) * 100
+merged.as.df.formatted = data.frame(analysisName=merged.as.df$analysisName,runtime=prettyNum(merged.as.df$runtime), percent=prettyNum(merged.as.df$percent,digits=2))
+textplot(merged.as.df.formatted[order(merged.as.df$runtime),], show.rownames=F)
+title("Total runtime for each analysis")
+
 plotTimeByHost(gatkReportData)
 for ( group in gatkReportData ) {
-  print(group)
- plotGroup(group)
+  #print(group)
+  plotGroup(group)
 }
   
 if ( ! is.na(outputPDF) ) {

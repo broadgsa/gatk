@@ -130,7 +130,7 @@ public class GATKKeyIntegrationTest extends WalkerTest {
             { "corrupt_bad_isize_field.key",        UserException.UnreadableKeyException.class },
             { "corrupt_bad_crc.key",                UserException.UnreadableKeyException.class },
             { "corrupt_no_email_address.key",       UserException.UnreadableKeyException.class },
-            { "corrupt_no_sectional_delimiter.key", UserException.KeySignatureVerificationException.class },
+            { "corrupt_no_sectional_delimiter.key", UserException.UnreadableKeyException.class },
             { "corrupt_no_signature.key",           UserException.UnreadableKeyException.class },
             { "corrupt_bad_signature.key",          UserException.KeySignatureVerificationException.class },
             { "corrupt_non_gzipped_valid_key.key",  UserException.UnreadableKeyException.class }
