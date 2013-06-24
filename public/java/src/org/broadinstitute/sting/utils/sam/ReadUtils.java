@@ -613,15 +613,15 @@ public class ReadUtils {
      * Checks if a read starts with an insertion.
      *
      * @param cigarForRead    the CIGAR to evaluate
-     * @param ignoreClipOps   should we ignore S and H operators when evaluating whether an I operator is at the beginning?
+     * @param ignoreSoftClipOps   should we ignore S operators when evaluating whether an I operator is at the beginning?  Note that H operators are always ignored.
      * @return the element if it's a leading insertion or null otherwise
      */
-    public static CigarElement readStartsWithInsertion(final Cigar cigarForRead, final boolean ignoreClipOps) {
+    public static CigarElement readStartsWithInsertion(final Cigar cigarForRead, final boolean ignoreSoftClipOps) {
         for ( final CigarElement cigarElement : cigarForRead.getCigarElements() ) {
             if ( cigarElement.getOperator() == CigarOperator.INSERTION )
                 return cigarElement;
 
-            else if ( !ignoreClipOps || (cigarElement.getOperator() != CigarOperator.HARD_CLIP && cigarElement.getOperator() != CigarOperator.SOFT_CLIP) )
+            else if ( cigarElement.getOperator() != CigarOperator.HARD_CLIP && ( !ignoreSoftClipOps || cigarElement.getOperator() != CigarOperator.SOFT_CLIP) )
                 break;
         }
         return null;
