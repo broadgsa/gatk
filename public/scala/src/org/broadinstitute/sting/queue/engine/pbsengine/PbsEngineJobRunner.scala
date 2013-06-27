@@ -66,7 +66,7 @@ class PbsEngineJobRunner(session: Session, function: CommandLineFunction) extend
         logger.warn("Sending multicore job %s to farm without requesting appropriate number of cores (%d)".format(
           function.shortDescription, function.nCoresRequest.get))
       else
-        nativeSpec += " -l nodes=1:ppn=%d".format(function.qSettings.parallelEnvironmentName, function.nCoresRequest.get)
+        nativeSpec += " -l nodes=1:ppn=%d".format(function.nCoresRequest.get)
     }
 
     // Pass on any job resource requests
