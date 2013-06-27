@@ -45,11 +45,14 @@ object PipelineTest extends BaseTest with Logging {
   private val validationReportsDataLocation = "/humgen/gsa-hpprojects/GATK/validationreports/submitted/"
   private val md5DB = new MD5DB()
 
-  final val allJobRunners = {
-    val commandLinePluginManager = new CommandLinePluginManager
-    commandLinePluginManager.getPlugins.map(commandLinePluginManager.getName(_)).toSeq
-  }
+  /**
+   * All the job runners configured to run PipelineTests at The Broad.
+   */
+  final val allJobRunners = Seq("Lsf706", "GridEngine", "Shell")
 
+  /**
+   * The default job runners to run.
+   */
   final val defaultJobRunners = Seq("Lsf706", "GridEngine")
 
   /**
