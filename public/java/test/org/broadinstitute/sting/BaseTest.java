@@ -131,6 +131,8 @@ public abstract class BaseTest {
 
     public static final String exampleFASTA = publicTestDir + "exampleFASTA.fasta";
 
+    public static final boolean pipelineTestRunModeIsSet = System.getProperty("pipeline.run").equals("run");
+
     /** before the class starts up */
     static {
         // setup a basic log configuration

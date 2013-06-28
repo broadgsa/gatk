@@ -30,6 +30,7 @@ import com.sun.jna.ptr.IntByReference;
 import org.apache.commons.io.FileUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
@@ -43,7 +44,7 @@ import java.io.File;
 public class LibBatPipelineTest extends BaseTest {
     @BeforeClass
     public void initLibBat() {
-        Assert.assertFalse(LibBat.lsb_init("LibBatIntegrationTest") < 0, LibBat.lsb_sperror("lsb_init() failed"));
+        Assert.assertFalse(LibBat.lsb_init("LibBatPipelineTest") < 0, LibBat.lsb_sperror("lsb_init() failed"));
     }
 
     @Test
@@ -93,15 +94,19 @@ public class LibBatPipelineTest extends BaseTest {
 
     @Test
     public void testSubmitEcho() throws Exception {
+        if ( ! pipelineTestRunModeIsSet ) {
+            throw new SkipException("Skipping testSubmitEcho because we are in pipeline test dry run mode");
+        }
+
         String queue = "hour";
-        File outFile = tryCreateNetworkTempFile("LibBatIntegrationTest.out");
+        File outFile = tryCreateNetworkTempFile("LibBatPipelineTest.out");
 
         submit req = new submit();
 
         for (int i = 0; i < LibLsf.LSF_RLIM_NLIMITS; i++)
             req.rLimits[i] = LibLsf.DEFAULT_RLIMIT;
 
-        req.projectName = "LibBatIntegrationTest";
+        req.projectName = "LibBatPipelineTest";
         req.options |= LibBat.SUB_PROJECT_NAME;
 
         req.queue = queue;
