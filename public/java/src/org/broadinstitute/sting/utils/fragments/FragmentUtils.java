@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.fragments;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
+import net.sf.picard.util.QualityUtil;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
@@ -60,6 +61,11 @@ import java.util.*;
  * Time: 10:09 PM
  */
 public final class FragmentUtils {
+
+    public final static double DEFAULT_PCR_ERROR_RATE = 1e-4;
+    public final static int DEFAULT_PCR_ERROR_QUAL = QualityUtil.getPhredScoreFromErrorProbability(DEFAULT_PCR_ERROR_RATE);
+    public final static int HALF_OF_DEFAULT_PCR_ERROR_QUAL = DEFAULT_PCR_ERROR_QUAL / 2;
+
     protected final static byte MIN_QUAL_BAD_OVERLAP = 16;
     private FragmentUtils() {} // private constructor
 
@@ -187,6 +193,70 @@ public final class FragmentUtils {
     public static FragmentCollection<GATKSAMRecord> create(final List<GATKSAMRecord> reads) {
         if ( reads == null ) throw new IllegalArgumentException("Pileup cannot be null");
         return create(reads, reads.size(), SamRecordGetter);
+    }
+
+    public static void adjustQualsOfOverlappingPairedFragments( final List<GATKSAMRecord> overlappingPair ) {
+        if( overlappingPair.size() != 2 ) { throw new ReviewedStingException("Found overlapping pair with " + overlappingPair.size() + " reads, but expecting exactly 2."); }
+
+        final GATKSAMRecord firstRead = overlappingPair.get(0);
+        final GATKSAMRecord secondRead = overlappingPair.get(1);
+
+        if ( secondRead.getSoftStart() < firstRead.getSoftStart() ) {
+            adjustQualsOfOverlappingPairedFragments(secondRead, firstRead);
+        } else {
+            adjustQualsOfOverlappingPairedFragments(firstRead, secondRead);
+        }
+    }
+
+    /**
+     * Merge two overlapping reads from the same fragment into a single super read, if possible
+     *
+     * firstRead and secondRead must be part of the same fragment (though this isn't checked).  Looks
+     * at the bases and alignment, and tries its best to create a meaningful synthetic single super read
+     * that represents the entire sequenced fragment.
+     *
+     * Assumes that firstRead starts before secondRead (according to their soft clipped starts)
+     *
+     * @param clippedFirstRead the left most read
+     * @param clippedSecondRead the right most read
+     *
+     * @return a strandless merged read of first and second, or null if the algorithm cannot create a meaningful one
+     */
+    public static void adjustQualsOfOverlappingPairedFragments(final GATKSAMRecord clippedFirstRead, final GATKSAMRecord clippedSecondRead) {
+        if ( clippedFirstRead == null ) throw new IllegalArgumentException("clippedFirstRead cannot be null");
+        if ( clippedSecondRead == null ) throw new IllegalArgumentException("clippedSecondRead cannot be null");
+        if ( ! clippedFirstRead.getReadName().equals(clippedSecondRead.getReadName()) ) throw new IllegalArgumentException("attempting to merge two reads with different names " + clippedFirstRead + " and " + clippedSecondRead);
+
+        // don't adjust fragments that do not overlap
+        if ( clippedFirstRead.getAlignmentEnd() < clippedSecondRead.getAlignmentStart() || clippedFirstRead.getReferenceIndex() != clippedSecondRead.getReferenceIndex() )
+            return;
+
+        final Pair<Integer, Boolean> pair = ReadUtils.getReadCoordinateForReferenceCoordinate(clippedFirstRead, clippedSecondRead.getAlignmentStart());
+        final int firstReadStop = ( pair.getSecond() ? pair.getFirst() + 1 : pair.getFirst() );
+        final int numOverlappingBases = Math.min(clippedFirstRead.getReadLength() - firstReadStop, clippedSecondRead.getReadLength());
+
+        final byte[] firstReadBases = clippedFirstRead.getReadBases();
+        final byte[] firstReadQuals = clippedFirstRead.getBaseQualities();
+        final byte[] secondReadBases = clippedSecondRead.getReadBases();
+        final byte[] secondReadQuals = clippedSecondRead.getBaseQualities();
+
+        for ( int i = 0; i < numOverlappingBases; i++ ) {
+            final int firstReadIndex = firstReadStop + i;
+            final byte firstReadBase = firstReadBases[firstReadIndex];
+            final byte secondReadBase = secondReadBases[i];
+
+            if ( firstReadBase == secondReadBase ) {
+                firstReadQuals[firstReadIndex] = (byte) Math.min(firstReadQuals[firstReadIndex], HALF_OF_DEFAULT_PCR_ERROR_QUAL);
+                secondReadQuals[i] = (byte) Math.min(secondReadQuals[i], HALF_OF_DEFAULT_PCR_ERROR_QUAL);
+            } else {
+                // TODO -- use the proper statistical treatment of the quals from DiploidSNPGenotypeLikelihoods.java
+                firstReadQuals[firstReadIndex] = 0;
+                secondReadQuals[i] = 0;
+            }
+        }
+
+        clippedFirstRead.setBaseQualities(firstReadQuals);
+        clippedSecondRead.setBaseQualities(secondReadQuals);
     }
 
     public static List<GATKSAMRecord> mergeOverlappingPairedFragments( final List<GATKSAMRecord> overlappingPair ) {

@@ -224,7 +224,7 @@ public class FragmentUtilsUnitTest extends BaseTest {
     }
 
     @Test(enabled = !DEBUG, dataProvider = "MergeFragmentsTest")
-    public void testMergingTwoReads(final String name, final GATKSAMRecord read1, GATKSAMRecord read2, final GATKSAMRecord expectedMerged) {
+    public void testMergingTwoReads(final String name, final GATKSAMRecord read1, final GATKSAMRecord read2, final GATKSAMRecord expectedMerged) {
         final GATKSAMRecord actual = FragmentUtils.mergeOverlappingPairedFragments(read1, read2);
 
         if ( expectedMerged == null ) {
@@ -348,5 +348,43 @@ public class FragmentUtilsUnitTest extends BaseTest {
         read.setMateNegativeStrandFlag(! negStrand);
         read.setReadGroup(new GATKSAMReadGroupRecord("foo"));
         return read;
+    }
+
+
+    private static final byte highQuality = 30;
+    private static final byte overlappingQuality = 20;
+
+    @DataProvider(name = "AdjustFragmentsTest")
+    public Object[][] createAdjustFragmentsTest() throws Exception {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        final String leftFlank = "CCC";
+        final String rightFlank = "AAA";
+        final String allOverlappingBases = "ACGTACGTGGAACCTTAG";
+        for ( int overlapSize = 1; overlapSize < allOverlappingBases.length(); overlapSize++ ) {
+            final String overlappingBases = allOverlappingBases.substring(0, overlapSize);
+            final byte[] overlappingBaseQuals = new byte[overlapSize];
+            for ( int i = 0; i < overlapSize; i++ ) overlappingBaseQuals[i] = highQuality;
+            final GATKSAMRecord read1  = makeOverlappingRead(leftFlank, highQuality, overlappingBases, overlappingBaseQuals, "", highQuality, 1);
+            final GATKSAMRecord read2  = makeOverlappingRead("", highQuality, overlappingBases, overlappingBaseQuals, rightFlank, highQuality, leftFlank.length() + 1);
+            tests.add(new Object[]{read1, read2, overlapSize});
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(enabled = !DEBUG, dataProvider = "AdjustFragmentsTest")
+    public void testAdjustingTwoReads(final GATKSAMRecord read1, final GATKSAMRecord read2, final int overlapSize) {
+        FragmentUtils.adjustQualsOfOverlappingPairedFragments(read1, read2);
+
+        for ( int i = 0; i < read1.getReadLength() - overlapSize; i++ )
+            Assert.assertEquals(read1.getBaseQualities()[i], highQuality);
+        for ( int i = read1.getReadLength() - overlapSize; i < read1.getReadLength(); i++ )
+            Assert.assertEquals(read1.getBaseQualities()[i], overlappingQuality);
+
+        for ( int i = 0; i < overlapSize; i++ )
+            Assert.assertEquals(read2.getBaseQualities()[i], overlappingQuality);
+        for ( int i = overlapSize; i < read2.getReadLength(); i++ )
+            Assert.assertEquals(read2.getBaseQualities()[i], highQuality);
     }
 }
