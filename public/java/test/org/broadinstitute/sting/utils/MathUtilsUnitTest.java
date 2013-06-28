@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils;
 
+import cern.jet.random.Normal;
 import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -38,6 +39,35 @@ import java.util.*;
 public class MathUtilsUnitTest extends BaseTest {
     @BeforeClass
     public void init() {
+    }
+
+    /**
+     * Tests that we get unqiue values for the valid (non-null-producing) input space for {@link MathUtils#fastGenerateUniqueHashFromThreeIntegers(int, int, int)}.
+     */
+    @Test
+    public void testGenerateUniqueHashFromThreePositiveIntegers() {
+        logger.warn("Executing testGenerateUniqueHashFromThreePositiveIntegers");
+        
+        final Set<Long> observedLongs = new HashSet<Long>();
+        for (short i = 0; i < Byte.MAX_VALUE; i++) {
+            for (short j = 0; j < Byte.MAX_VALUE; j++) {
+                for (short k = 0; k < Byte.MAX_VALUE; k++) {
+                    final Long aLong = MathUtils.fastGenerateUniqueHashFromThreeIntegers(i, j, k);
+                    //System.out.println(String.format("%s, %s, %s: %s", i, j, k, aLong));
+                    Assert.assertTrue(observedLongs.add(aLong));
+                }
+            }
+        }
+
+        for (short i = Byte.MAX_VALUE; i <= Short.MAX_VALUE && i > 0; i += 128) {
+            for (short j = Byte.MAX_VALUE; j <= Short.MAX_VALUE && j > 0; j += 128) {
+                for (short k = Byte.MAX_VALUE; k <= Short.MAX_VALUE && k > 0; k += 128) {
+                    final Long aLong = MathUtils.fastGenerateUniqueHashFromThreeIntegers(i, j, k);
+                    // System.out.println(String.format("%s, %s, %s: %s", i, j, k, aLong));
+                    Assert.assertTrue(observedLongs.add(aLong));
+                }
+            }
+        }
     }
 
     /**
@@ -63,13 +93,15 @@ public class MathUtilsUnitTest extends BaseTest {
     public void testCumulativeBinomialProbability() {
         logger.warn("Executing testCumulativeBinomialProbability");
 
-        final int numTrials = 10;
-        for ( int i = 0; i < numTrials; i++ )
-            Assert.assertEquals(MathUtils.binomialCumulativeProbability(numTrials, i, i), MathUtils.binomialProbability(numTrials, i), 1e-10, String.format("k=%d, n=%d", i, numTrials));
-
-        Assert.assertEquals(MathUtils.binomialCumulativeProbability(10, 0, 2), 0.05468750, 1e-7);
-        Assert.assertEquals(MathUtils.binomialCumulativeProbability(10, 0, 5), 0.62304687, 1e-7);
-        Assert.assertEquals(MathUtils.binomialCumulativeProbability(10, 0, 10), 1.0, 1e-7);
+        for (int j = 0; j < 2; j++) { // Test memoizing functionality, as well.
+            final int numTrials = 10;
+            for ( int i = 0; i < numTrials; i++ )
+                Assert.assertEquals(MathUtils.binomialCumulativeProbability(numTrials, i, i), MathUtils.binomialProbability(numTrials, i), 1e-10, String.format("k=%d, n=%d", i, numTrials));
+    
+            Assert.assertEquals(MathUtils.binomialCumulativeProbability(10, 0, 2), 0.05468750, 1e-7);
+            Assert.assertEquals(MathUtils.binomialCumulativeProbability(10, 0, 5), 0.62304687, 1e-7);
+            Assert.assertEquals(MathUtils.binomialCumulativeProbability(10, 0, 10), 1.0, 1e-7);
+        }
     }
 
     /**
@@ -397,5 +429,21 @@ public class MathUtilsUnitTest extends BaseTest {
     public void testLogDotProduct() {
         Assert.assertEquals(MathUtils.logDotProduct(new double[]{-5.0,-3.0,2.0}, new double[]{6.0,7.0,8.0}),10.0,1e-3);
         Assert.assertEquals(MathUtils.logDotProduct(new double[]{-5.0}, new double[]{6.0}),1.0,1e-3);
+    }
+
+    @Test
+    public void testNormalDistribution() {
+        final double requiredPrecision = 1E-10;
+
+        final Normal n = new Normal(0.0, 1.0, null);
+        for( final double mu : new double[]{-5.0, -3.2, -1.5, 0.0, 1.2, 3.0, 5.8977} ) {
+            for( final double sigma : new double[]{1.2, 3.0, 5.8977} ) {
+                for( final double x : new double[]{-5.0, -3.2, -1.5, 0.0, 1.2, 3.0, 5.8977} ) {
+                    n.setState(mu, sigma);
+                    Assert.assertEquals(n.pdf(x), MathUtils.normalDistribution(mu, sigma, x), requiredPrecision);
+                    Assert.assertEquals(Math.log10(n.pdf(x)), MathUtils.normalDistributionLog10(mu, sigma, x), requiredPrecision);
+                }
+            }
+        }
     }
 }

@@ -25,13 +25,32 @@
 
 package org.broadinstitute.sting.gatk;
 
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
+import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.ReadFilters;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.qc.ErrorThrowing;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.sam.GATKSamRecordFactory;
+import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
+import org.broadinstitute.variant.vcf.VCFCodec;
+import org.broadinstitute.variant.vcf.VCFHeader;
+import org.broadinstitute.variant.vcf.VCFHeaderLine;
+import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.PrintStream;
 import java.util.Arrays;
 
 /**
@@ -123,7 +142,159 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
             final String root = "-T ErrorThrowing -R " + exampleFASTA;
             final String args = root + cfg.args + " -E " + cfg.expectedException.getSimpleName();
             WalkerTestSpec spec = new WalkerTestSpec(args, 0, cfg.expectedException);
+
             executeTest(cfg.toString(), spec);
         }
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test that read filters are being applied in the order we expect
+    //
+    // --------------------------------------------------------------------------------
+
+    @ReadFilters({MappingQualityUnavailableFilter.class})
+    public static class DummyReadWalkerWithMapqUnavailableFilter extends ReadWalker<Integer, Integer> {
+        @Output
+        PrintStream out;
+
+        @Override
+        public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) {
+            return 1;
+        }
+
+        @Override
+        public Integer reduceInit() {
+            return 0;
+        }
+
+        @Override
+        public Integer reduce(Integer value, Integer sum) {
+            return value + sum;
+        }
+
+        @Override
+        public void onTraversalDone(Integer result) {
+            out.println(result);
+        }
+    }
+
+    @Test(enabled = true)
+    public void testUserReadFilterAppliedBeforeWalker() {
+        WalkerTestSpec spec = new WalkerTestSpec("-R " + b37KGReference + " -I " + privateTestDir + "allMAPQ255.bam"
+                + " -T DummyReadWalkerWithMapqUnavailableFilter -o %s -L MT -rf ReassignMappingQuality",
+                1, Arrays.asList("ecf27a776cdfc771defab1c5d19de9ab"));
+        executeTest("testUserReadFilterAppliedBeforeWalker", spec);
+    }
+
+    @Test
+    public void testNegativeCompress() {
+        testBadCompressArgument(-1);
+    }
+
+    @Test
+    public void testTooBigCompress() {
+        testBadCompressArgument(100);
+    }
+
+    private void testBadCompressArgument(final int compress) {
+        WalkerTestSpec spec = new WalkerTestSpec("-T PrintReads -R " + b37KGReference + " -I private/testdata/NA12878.1_10mb_2_10mb.bam -o %s -compress " + compress,
+                1, UserException.class);
+        executeTest("badCompress " + compress, spec);
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test that the VCF version key is what we expect
+    //
+    // --------------------------------------------------------------------------------
+    @Test(enabled = true)
+    public void testGATKVersionInVCF() throws Exception {
+        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -R " + b37KGReference +
+                " -V " + privateTestDir + "NA12878.WGS.b37.chr20.firstMB.vcf"
+                + " -o %s -L 20:61098",
+                1, Arrays.asList(""));
+        spec.disableShadowBCF();
+        final File vcf = executeTest("testGATKVersionInVCF", spec).first.get(0);
+        final VCFHeader header = (VCFHeader)new VCFCodec().readHeader(new AsciiLineReader(new FileInputStream(vcf)));
+        final VCFHeaderLine versionLine = header.getMetaDataLine(GATKVCFUtils.GATK_COMMAND_LINE_KEY);
+        Assert.assertNotNull(versionLine);
+        Assert.assertTrue(versionLine.toString().contains("SelectVariants"));
+    }
+
+    @Test(enabled = true)
+    public void testMultipleGATKVersionsInVCF() throws Exception {
+        WalkerTestSpec spec = new WalkerTestSpec("-T SelectVariants -R " + b37KGReference +
+                " -V " + privateTestDir + "gatkCommandLineInHeader.vcf"
+                + " -o %s",
+                1, Arrays.asList(""));
+        spec.disableShadowBCF();
+        final File vcf = executeTest("testMultipleGATKVersionsInVCF", spec).first.get(0);
+        final VCFHeader header = (VCFHeader)new VCFCodec().readHeader(new AsciiLineReader(new FileInputStream(vcf)));
+
+        boolean foundHC = false;
+        boolean foundSV = false;
+        for ( final VCFHeaderLine line : header.getMetaDataInInputOrder() ) {
+            if ( line.getKey().equals(GATKVCFUtils.GATK_COMMAND_LINE_KEY) ) {
+                if ( line.toString().contains("HaplotypeCaller") ) {
+                    Assert.assertFalse(foundHC);
+                    foundHC = true;
+                }
+                if ( line.toString().contains("SelectVariants") ) {
+                    Assert.assertFalse(foundSV);
+                    foundSV = true;
+                }
+            }
+        }
+
+        Assert.assertTrue(foundHC, "Didn't find HaplotypeCaller command line header field");
+        Assert.assertTrue(foundSV, "Didn't find SelectVariants command line header field");
+    }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Test that defaultBaseQualities actually works
+    //
+    // --------------------------------------------------------------------------------
+
+    public WalkerTestSpec testDefaultBaseQualities(final Integer value, final String md5) {
+        return new WalkerTestSpec("-T PrintReads -R " + b37KGReference + " -I " + privateTestDir + "/baseQualitiesToFix.bam -o %s"
+                + (value != null ? " --defaultBaseQualities " + value : ""),
+                1, Arrays.asList(md5));
+    }
+
+    @Test()
+    public void testDefaultBaseQualities20() {
+        executeTest("testDefaultBaseQualities20", testDefaultBaseQualities(20, "7d254a9d0ec59c66ee3e137f56f4c78f"));
+    }
+
+    @Test()
+    public void testDefaultBaseQualities30() {
+        executeTest("testDefaultBaseQualities30", testDefaultBaseQualities(30, "0f50def6cbbbd8ccd4739e2b3998e503"));
+    }
+
+    @Test(expectedExceptions = Exception.class)
+    public void testDefaultBaseQualitiesNoneProvided() {
+        executeTest("testDefaultBaseQualitiesNoneProvided", testDefaultBaseQualities(null, ""));
+    }
+
+    @Test
+    public void testGATKEngineConsolidatesCigars() {
+        final WalkerTestSpec spec = new WalkerTestSpec(" -T PrintReads" +
+                                                       " -R " + b37KGReference +
+                                                       " -I " + privateTestDir + "zero_length_cigar_elements.bam" +
+                                                       " -o %s",
+                                                       1, Arrays.asList(""));  // No MD5s; we only want to check the cigar
+
+        final File outputBam = executeTest("testGATKEngineConsolidatesCigars", spec).first.get(0);
+        final SAMFileReader reader = new SAMFileReader(outputBam);
+        reader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
+        reader.setSAMRecordFactory(new GATKSamRecordFactory());
+
+        final SAMRecord read = reader.iterator().next();
+        reader.close();
+
+        // Original cigar was 0M3M0M8M. Check that it's been consolidated after running through the GATK engine:
+        Assert.assertEquals(read.getCigarString(), "11M", "Cigar 0M3M0M8M not consolidated correctly by the engine");
     }
 }

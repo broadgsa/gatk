@@ -66,11 +66,16 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_QC, extraDocs = {CommandLineGATK.class} )
 @Requires({DataSource.READS, DataSource.REFERENCE})
-public class CountReads extends ReadWalker<Integer, Integer> implements NanoSchedulable {
+public class CountReads extends ReadWalker<Integer, Long> implements NanoSchedulable {
     public Integer map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker tracker) {
         return 1;
     }
 
-    @Override public Integer reduceInit() { return 0; }
-    @Override public Integer reduce(Integer value, Integer sum) { return value + sum; }
+    @Override public Long reduceInit() { return 0L; }
+
+    public Long reduce(Integer value, Long sum) { return (long) value + sum; }
+
+    public void onTraversalDone(Long result) {
+        logger.info("CountReads counted " + result + " reads in the traversal");
+    }
 }

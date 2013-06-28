@@ -26,17 +26,15 @@
 package org.broadinstitute.sting.gatk.io.stubs;
 
 import net.sf.samtools.SAMSequenceDictionary;
-import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.variant.GATKVCFUtils;
-import org.broadinstitute.variant.vcf.VCFHeader;
-import org.broadinstitute.variant.vcf.VCFHeaderLine;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.writer.Options;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
+import org.broadinstitute.variant.vcf.VCFHeader;
+import org.broadinstitute.variant.vcf.VCFHeaderLine;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -225,11 +223,9 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
         if ( header.isWriteEngineHeaders() ) {
             // skip writing the command line header if requested
             if ( ! skipWritingCommandLineHeader && header.isWriteCommandLine() ) {
-                // Check for the command-line argument header line.  If not present, add it in.
-                final VCFHeaderLine commandLineArgHeaderLine = getCommandLineArgumentHeaderLine();
-                final boolean foundCommandLineHeaderLine = vcfHeader.getMetaDataLine(commandLineArgHeaderLine.getKey()) != null;
-                if ( ! foundCommandLineHeaderLine )
-                    vcfHeader.addMetaDataLine(commandLineArgHeaderLine);
+                // Always add the header line, as the current format allows multiple entries
+                final VCFHeaderLine commandLineArgHeaderLine = GATKVCFUtils.getCommandLineArgumentHeaderLine(engine, argumentSources);
+                vcfHeader.addMetaDataLine(commandLineArgHeaderLine);
             }
 
             if ( UPDATE_CONTIG_HEADERS )
@@ -274,14 +270,5 @@ public class VariantContextWriterStub implements Stub<VariantContextWriter>, Var
                 ! isCompressed() && // for non-compressed outputs
                 getOutputFile() != null && // that are going to disk
                 engine.getArguments().generateShadowBCF; // and we actually want to do it
-    }
-
-    /**
-     * Gets the appropriately formatted header for a VCF file
-     * @return VCF file header.
-     */
-    private VCFHeaderLine getCommandLineArgumentHeaderLine() {
-        CommandLineExecutable executable = JVMUtils.getObjectOfType(argumentSources,CommandLineExecutable.class);
-        return new VCFHeaderLine(executable.getAnalysisName(), "\"" + engine.createApproximateCommandLineArgumentString(argumentSources.toArray()) + "\"");
     }
 }

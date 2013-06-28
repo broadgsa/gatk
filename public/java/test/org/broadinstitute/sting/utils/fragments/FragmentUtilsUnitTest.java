@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.utils.fragments;
 
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.TextCigarCodec;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -295,5 +296,52 @@ public class FragmentUtilsUnitTest extends BaseTest {
 
         final GATKSAMRecord actual = FragmentUtils.mergeOverlappingPairedFragments(read1, read2);
         Assert.assertNull(actual);
+    }
+
+    @DataProvider(name = "MergeFragmentsOffContig")
+    public Object[][] makeMergeFragmentsOffContig() throws Exception {
+        List<Object[]> tests = new ArrayList<>();
+
+        for ( final int pre1 : Arrays.asList(0, 50)) {
+            for ( final int post1 : Arrays.asList(0, 50)) {
+                for ( final int pre2 : Arrays.asList(0, 50)) {
+                    for ( final int post2 : Arrays.asList(0, 50)) {
+                        tests.add(new Object[]{pre1, post1, pre2, post2});
+                    }
+                }
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "MergeFragmentsOffContig")
+    public void testMergeFragmentsOffContig(final int pre1, final int post1, final int pre2, final int post2) {
+        final int contigSize = 10;
+        final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 0, contigSize);
+
+        final GATKSAMRecord read1 = createReadOffContig(header, false, pre1, post1);
+        final GATKSAMRecord read2 = createReadOffContig(header, true, pre2, post2);
+
+        final GATKSAMRecord merged = FragmentUtils.mergeOverlappingPairedFragments(read1, read2);
+    }
+
+    private GATKSAMRecord createReadOffContig(final SAMFileHeader header, final boolean negStrand, final int pre, final int post) {
+        final int contigLen = header.getSequence(0).getSequenceLength();
+        final int readLen = pre + contigLen + post;
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read1", 0, 1, readLen);
+        read.setAlignmentStart(1);
+        read.setCigar(TextCigarCodec.getSingleton().decode(pre + "S" + contigLen + "M" + post + "S"));
+        read.setBaseQualities(Utils.dupBytes((byte) 30, readLen));
+        read.setReadBases(Utils.dupBytes((byte)'A', readLen));
+        read.setMappingQuality(60);
+        read.setMateAlignmentStart(1);
+        read.setProperPairFlag(true);
+        read.setReadPairedFlag(true);
+        read.setInferredInsertSize(30);
+        read.setReadNegativeStrandFlag(negStrand);
+        read.setMateNegativeStrandFlag(! negStrand);
+        read.setReadGroup(new GATKSAMReadGroupRecord("foo"));
+        return read;
     }
 }

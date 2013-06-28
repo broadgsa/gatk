@@ -76,7 +76,8 @@ public class ManagingReferenceOrderedView implements ReferenceOrderedView {
      * @param loc Locus at which to track.
      * @return A tracker containing information about this locus.
      */
-    public RefMetaDataTracker getReferenceOrderedDataAtLocus( GenomeLoc loc, ReferenceContext referenceContext ) {
+    @Override
+    public RefMetaDataTracker getReferenceOrderedDataAtLocus( GenomeLoc loc ) {
         if ( states.isEmpty() )
             return RefMetaDataTracker.EMPTY_TRACKER;
         else {

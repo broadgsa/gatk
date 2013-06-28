@@ -72,8 +72,6 @@ class IntervalOverlappingRODsFromStream {
     /**
      * Get the list of RODs overlapping loc from this stream of RODs.
      *
-     * Sequential calls to this function must obey the rule that loc2.getStart >= loc1.getStart
-     *
      * @param loc the interval to query
      * @return a non-null RODRecordList containing the overlapping RODs, which may be empty
      */
@@ -84,7 +82,6 @@ class IntervalOverlappingRODsFromStream {
         if ( lastQuery != null && loc.getStart() < lastQuery.getStart() )
             throw new IllegalArgumentException(String.format("BUG: query interval (%s) starts before the previous interval %s", loc, lastQuery));
 
-        trimCurrentFeaturesToLoc(loc);
         readOverlappingFutureFeatures(loc);
         return new RODRecordListImpl(name, subsetToOverlapping(loc, currentFeatures), loc);
     }
@@ -128,11 +125,14 @@ class IntervalOverlappingRODsFromStream {
     /**
      * Update function.  Remove all elements of currentFeatures that end before loc
      *
+     * Must be called by clients periodically when they know they they will never ask for data before
+     * loc, so that the running cache of RODs doesn't grow out of control.
+     *
      * @param loc the location to use
      */
     @Requires("loc != null")
     @Ensures("currentFeatures.size() <= old(currentFeatures.size())")
-    private void trimCurrentFeaturesToLoc(final GenomeLoc loc) {
+    public void trimCurrentFeaturesToLoc(final GenomeLoc loc) {
         final ListIterator<GATKFeature> it = currentFeatures.listIterator();
         while ( it.hasNext() ) {
             final GATKFeature feature = it.next();

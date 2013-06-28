@@ -90,7 +90,6 @@ public class TraverseReadPairs<M,T> extends TraversalEngine<M,T, ReadPairWalker<
                 pairs.clear();
                 pairs.add(read);
 
-                updateCumulativeMetrics(dataProvider.getShard());
                 printProgress(null);
             }
 

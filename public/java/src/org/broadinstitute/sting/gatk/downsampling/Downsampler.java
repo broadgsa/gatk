@@ -25,19 +25,27 @@
 
 package org.broadinstitute.sting.gatk.downsampling;
 
+import org.broadinstitute.sting.utils.locusiterator.AlignmentStateMachine;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+
 import java.util.Collection;
 import java.util.List;
 
 /**
  * The basic downsampler API, with no reads-specific operations.
  *
- * Downsamplers that extend this interface rather than the ReadsDownsampler interface can handle
+ * Downsamplers that extend this class rather than the ReadsDownsampler class can handle
  * any kind of item, however they cannot be wrapped within a DownsamplingReadsIterator or a
  * PerSampleDownsamplingReadsIterator.
  *
  * @author David Roazen
  */
-public interface Downsampler<T> {
+public abstract class Downsampler<T> {
+
+    /**
+     * Number of items discarded by this downsampler since the last call to resetStats()
+     */
+    protected int numDiscardedItems = 0;
 
     /**
      * Submit one item to the downsampler for consideration. Some downsamplers will be able to determine
@@ -46,7 +54,7 @@ public interface Downsampler<T> {
      *
      * @param item the individual item to submit to the downsampler for consideration
      */
-    public void submit( T item );
+    public abstract void submit( final T item );
 
     /**
      * Submit a collection of items to the downsampler for consideration. Should be equivalent to calling
@@ -54,21 +62,29 @@ public interface Downsampler<T> {
      *
      * @param items the collection of items to submit to the downsampler for consideration
      */
-    public void submit( Collection<T> items );
+    public void submit( final Collection<T> items ) {
+        if ( items == null ) {
+            throw new IllegalArgumentException("submitted items must not be null");
+        }
+
+        for ( final T item : items ) {
+            submit(item);
+        }
+    }
 
     /**
      * Are there items that have survived the downsampling process waiting to be retrieved?
      *
      * @return true if this downsampler has > 0 finalized items, otherwise false
      */
-    public boolean hasFinalizedItems();
+    public abstract boolean hasFinalizedItems();
 
     /**
      * Return (and *remove*) all items that have survived downsampling and are waiting to be retrieved.
      *
      * @return a list of all finalized items this downsampler contains, or an empty list if there are none
      */
-    public List<T> consumeFinalizedItems();
+    public abstract List<T> consumeFinalizedItems();
 
     /**
      * Are there items stored in this downsampler that it doesn't yet know whether they will
@@ -76,7 +92,7 @@ public interface Downsampler<T> {
      *
      * @return true if this downsampler has > 0 pending items, otherwise false
      */
-    public boolean hasPendingItems();
+    public abstract boolean hasPendingItems();
 
     /**
      * Peek at the first finalized item stored in this downsampler (or null if there are no finalized items)
@@ -84,7 +100,7 @@ public interface Downsampler<T> {
      * @return the first finalized item in this downsampler (the item is not removed from the downsampler by this call),
      *         or null if there are none
      */
-    public T peekFinalized();
+    public abstract T peekFinalized();
 
     /**
      * Peek at the first pending item stored in this downsampler (or null if there are no pending items)
@@ -92,7 +108,7 @@ public interface Downsampler<T> {
      * @return the first pending item stored in this downsampler (the item is not removed from the downsampler by this call),
      *         or null if there are none
      */
-    public T peekPending();
+    public abstract T peekPending();
 
     /**
      * Get the current number of items in this downsampler
@@ -103,7 +119,7 @@ public interface Downsampler<T> {
      *
      * @return a positive integer
      */
-    public int size();
+    public abstract int size();
 
     /**
      * Returns the number of items discarded (so far) during the downsampling process
@@ -111,21 +127,46 @@ public interface Downsampler<T> {
      * @return the number of items that have been submitted to this downsampler and discarded in the process of
      *         downsampling
      */
-    public int getNumberOfDiscardedItems();
+    public int getNumberOfDiscardedItems() {
+        return numDiscardedItems;
+    }
 
     /**
      * Used to tell the downsampler that no more items will be submitted to it, and that it should
      * finalize any pending items.
      */
-    public void signalEndOfInput();
+    public abstract void signalEndOfInput();
 
     /**
      * Empty the downsampler of all finalized/pending items
      */
-    public void clear();
+    public abstract void clearItems();
 
     /**
      * Reset stats in the downsampler such as the number of discarded items *without* clearing the downsampler of items
      */
-    public void reset();
+    public void resetStats() {
+        numDiscardedItems = 0;
+    }
+
+    /**
+     * Indicates whether an item should be excluded from elimination during downsampling. By default,
+     * all items representing reduced reads are excluded from downsampling, but individual downsamplers
+     * may override if they are able to handle reduced reads correctly. Downsamplers should check
+     * the return value of this method before discarding an item.
+     *
+     * @param item The item to test
+     * @return true if the item should not be subject to elimination during downsampling, otherwise false
+     */
+    protected boolean doNotDiscardItem( final Object item ) {
+        // Use getClass() rather than instanceof for performance reasons. Ugly but fast.
+        if ( item.getClass() == GATKSAMRecord.class ) {
+            return ((GATKSAMRecord)item).isReducedRead();
+        }
+        else if ( item.getClass() == AlignmentStateMachine.class ) {
+            return ((AlignmentStateMachine)item).isReducedRead();
+        }
+
+        return false;
+    }
 }

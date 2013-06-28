@@ -30,6 +30,7 @@ import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
@@ -132,9 +133,9 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
         if (writerFileName != null &&  writerFileName.asFile() != null ) {
             stub = new SAMFileWriterStub(engine, writerFileName.asFile());
 
-            if ( compressionLevel != null )
-                stub.setCompressionLevel(compressionLevel);
-            if ( indexOnTheFly )
+            if ( compressionLevel != null ) {
+                stub.setCompressionLevel(ReadUtils.validateCompressionLevel(compressionLevel));
+            } if ( indexOnTheFly )
                 stub.setIndexOnTheFly(indexOnTheFly);
             if ( generateMD5 )
                 stub.setGenerateMD5(generateMD5);

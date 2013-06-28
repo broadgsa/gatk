@@ -36,6 +36,8 @@ public class ValidationExclusion {
     // our validation options
 
     public enum TYPE {
+        ALLOW_N_CIGAR_READS,    // ignore the presence of N operators in CIGARs: do not blow up and process reads that contain one or more N operators.
+                                // This exclusion does not have effect on reads that get filtered {@see MalformedReadFilter}.
         ALLOW_UNINDEXED_BAM,        // allow bam files that do not have an index; we'll traverse them using monolithic shard
         ALLOW_UNSET_BAM_SORT_ORDER, // assume that the bam is sorted, even if the SO (sort-order) flag is not set
         NO_READ_ORDER_VERIFICATION, // do not validate that the reads are in order as we take them from the bam file

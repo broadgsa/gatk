@@ -40,37 +40,27 @@ public class ReadMetrics implements Cloneable {
     private long nRecords;
     // How many reads have we processed, along with those skipped for various reasons
     private long nReads;
-    private long nSkippedReads;
-    private long nUnmappedReads;
-    private long nNotPrimary;
-    private long nBadAlignments;
-    private long nSkippedIndels;
-    private long nDuplicates;
-    private Map<Class, Long> counter = new HashMap<Class, Long>();
+
+    // keep track of filtered records by filter type (class)
+    private Map<String, Long> filterCounter = new HashMap<>();
 
     /**
      * Combines these metrics with a set of other metrics, storing the results in this class.
      * @param metrics The metrics to fold into this class.
      */
-    public void incrementMetrics(ReadMetrics metrics) {
+    public synchronized void incrementMetrics(ReadMetrics metrics) {
         nRecords += metrics.nRecords;
         nReads += metrics.nReads;
-        nSkippedReads += metrics.nSkippedReads;
-        nUnmappedReads += metrics.nUnmappedReads;
-        nNotPrimary += metrics.nNotPrimary;
-        nBadAlignments += metrics.nBadAlignments;
-        nSkippedIndels += metrics.nSkippedIndels;
-        nDuplicates += metrics.nDuplicates;
-        for(Map.Entry<Class,Long> counterEntry: metrics.counter.entrySet()) {
-            Class counterType = counterEntry.getKey();
-            long newValue = (counter.containsKey(counterType) ? counter.get(counterType) : 0) + counterEntry.getValue();
-            counter.put(counterType,newValue);
+        for(Map.Entry<String, Long> counterEntry: metrics.filterCounter.entrySet()) {
+            final String counterType = counterEntry.getKey();
+            final long newValue = (filterCounter.containsKey(counterType) ? filterCounter.get(counterType) : 0) + counterEntry.getValue();
+            filterCounter.put(counterType, newValue);
         }
     }
 
     /**
      * Create a copy of the given read metrics.
-     * @return
+     * @return a non-null clone
      */
     public ReadMetrics clone() {
         ReadMetrics newMetrics;
@@ -82,33 +72,18 @@ public class ReadMetrics implements Cloneable {
         }
         newMetrics.nRecords = nRecords;
         newMetrics.nReads = nReads;
-        newMetrics.nSkippedReads = nSkippedReads;
-        newMetrics.nUnmappedReads = nUnmappedReads;
-        newMetrics.nNotPrimary = nNotPrimary;
-        newMetrics.nBadAlignments = nBadAlignments;
-        newMetrics.nSkippedIndels = nSkippedIndels;
-        newMetrics.nDuplicates = nDuplicates;
-        newMetrics.counter = new HashMap<Class,Long>(counter);
+        newMetrics.filterCounter = new HashMap<>(filterCounter);
 
         return newMetrics;
     }
 
 
-    public void incrementFilter(SamRecordFilter filter) {
-        long c = 0;
-        if ( counter.containsKey(filter.getClass()) ) {
-            c = counter.get(filter.getClass());
-        }
-
-        counter.put(filter.getClass(), c + 1L);
+    public void setFilterCount(final String filter, final long count) {
+        filterCounter.put(filter, count);
     }
 
     public Map<String,Long> getCountsByFilter() {
-        final TreeMap<String, Long> sortedCounts = new TreeMap<String, Long>();
-        for(Map.Entry<Class,Long> counterEntry: counter.entrySet()) {
-            sortedCounts.put(counterEntry.getKey().getSimpleName(),counterEntry.getValue());
-        }
-        return sortedCounts;
+        return new TreeMap<>(filterCounter);
     }
 
     /**
@@ -143,95 +118,4 @@ public class ReadMetrics implements Cloneable {
     public void incrementNumReadsSeen() {
         nReads++;
     }
-
-    /**
-     * Gets the cumulative number of reads skipped in the course of this run.
-     * @return Cumulative number of reads skipped in the course of this run.
-     */
-    public long getNumSkippedReads() {
-        return nSkippedReads;
-    }
-
-    /**
-     * Increments the cumulative number of reads skipped in the course of this run.
-     */
-    public void incrementNumSkippedReads() {
-        nSkippedReads++;
-    }
-
-    /**
-     * Gets the number of unmapped reads skipped in the course of this run.
-     * @return The number of unmapped reads skipped.
-     */
-    public long getNumUnmappedReads() {
-        return nUnmappedReads;
-    }
-
-    /**
-     * Increments the number of unmapped reads skipped in the course of this run.
-     */
-    public void incrementNumUnmappedReads() {
-        nUnmappedReads++;
-    }
-
-    /**
-     *
-     * @return
-     */
-    public long getNumNonPrimaryReads() {
-        return nNotPrimary;
-    }
-
-    /**
-     *
-     */
-    public void incrementNumNonPrimaryReads() {
-        nNotPrimary++;
-    }
-
-    /**
-     *
-     * @return
-     */
-    public long getNumBadAlignments() {
-        return nBadAlignments;
-    }
-
-    /**
-     *
-     */
-    public void incrementNumBadAlignments() {
-        nBadAlignments++;
-    }
-
-    /**
-     *
-     * @return
-     */
-    public long getNumSkippedIndels() {
-        return nSkippedIndels;
-    }
-
-    /**
-     *
-     */
-    public void incrementNumSkippedIndels() {
-        nSkippedIndels++;
-    }
-
-    /**
-     *
-     * @return
-     */
-    public long getNumDuplicates() {
-        return nDuplicates;
-    }
-
-    /**
-     *
-     */
-    public void incrementNumDuplicates() {
-        nDuplicates++;
-    }
-
 }

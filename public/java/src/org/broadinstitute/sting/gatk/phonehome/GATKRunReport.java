@@ -79,22 +79,6 @@ public class GATKRunReport {
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy/MM/dd HH.mm.ss");
 
     /**
-     * The root file system directory where we keep common report data
-     */
-    private final static File REPORT_DIR = new File("/humgen/gsa-hpprojects/GATK/reports");
-
-    /**
-     * The full path to the direct where submitted (and uncharacterized) report files are written
-     */
-    private final static File REPORT_SUBMIT_DIR = new File(REPORT_DIR.getAbsolutePath() + "/submitted");
-
-    /**
-     * Full path to the sentinel file that controls whether reports are written out.  If this file doesn't
-     * exist, no long will be written
-     */
-    private final static File REPORT_SENTINEL = new File(REPORT_DIR.getAbsolutePath() + "/ENABLE");
-
-    /**
      * our log
      */
     protected static final Logger logger = Logger.getLogger(GATKRunReport.class);
@@ -181,8 +165,6 @@ public class GATKRunReport {
     public enum PhoneHomeOption {
         /** Disable phone home */
         NO_ET,
-        /** Standard option.  Writes to local repository if it can be found, or S3 otherwise */
-        STANDARD,
         /** Forces the report to go to S3 */
         AWS,
         /** Force output to STDOUT.  For debugging only */
@@ -365,14 +347,9 @@ public class GATKRunReport {
         switch (type) {
             case NO_ET: // don't do anything
                 return false;
-            case STANDARD:
             case AWS:
-                if ( type == PhoneHomeOption.STANDARD && repositoryIsOnline() ) {
-                    return postReportToLocalDisk(getLocalReportFullPath()) != null;
-                } else {
-                    wentToAWS = true;
-                    return postReportToAWSS3() != null;
-                }
+                wentToAWS = true;
+                return postReportToAWSS3() != null;
             case STDOUT:
                 return postReportToStream(System.out);
             default:
@@ -401,50 +378,6 @@ public class GATKRunReport {
             return true;
         } catch (Exception e) {
             return false;
-        }
-    }
-
-    /**
-     * Get the full path as a file where we'll write this report to local disl
-     * @return a non-null File
-     */
-    @Ensures("result != null")
-    protected File getLocalReportFullPath() {
-        return new File(REPORT_SUBMIT_DIR, getReportFileName());
-    }
-
-    /**
-     * Is the local GATKRunReport repository available for writing reports?
-     *
-     * @return true if and only if the common run report repository is available and online to receive reports
-     */
-    private boolean repositoryIsOnline() {
-        return REPORT_SENTINEL.exists();
-    }
-
-
-    /**
-     * Main entry point to writing reports to disk.  Posts the XML report to the common GATK run report repository.
-     * If this process fails for any reason, all exceptions are handled and this routine merely prints a warning.
-     * That is, postReport() is guarenteed not to fail for any reason.
-     *
-     * @return the path where the file was written, or null if any failure occurred
-     */
-    @Requires("destination != null")
-    private File postReportToLocalDisk(final File destination) {
-        try {
-            final BufferedOutputStream out = new BufferedOutputStream(
-                    new GZIPOutputStream(
-                            new FileOutputStream(destination)));
-            postReportToStream(out);
-            out.close();
-            logger.debug("Wrote report to " + destination);
-            return destination;
-        } catch ( Exception e ) {
-            // we catch everything, and no matter what eat the error
-            exceptDuringRunReport("Couldn't read report file", e);
-            destination.delete();
-            return null;
         }
     }
 

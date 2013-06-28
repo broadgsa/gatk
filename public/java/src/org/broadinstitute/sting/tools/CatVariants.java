@@ -144,15 +144,13 @@ public class CatVariants extends CommandLineProgram {
         BasicConfigurator.configure();
         logger.setLevel(Level.INFO);
 
-        if ( ! refFile.getName().endsWith(".fasta")) {
-            throw new UserException("Reference file "+refFile+"name must end with .fasta");
+        final ReferenceSequenceFile ref;
+        try {
+            ref = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFile);
+        } catch ( Exception e ) {
+            throw new UserException("Couldn't load provided reference sequence file " + refFile, e);
         }
 
-        if ( ! refFile.exists() ) {
-            throw new UserException(String.format("Reference file %s does not exist", refFile.getAbsolutePath()));
-        }
-
-        // Comparator<Pair<Integer,FeatureReader<VariantContext>>> comparator = new PositionComparator();
         Comparator<Pair<Integer,File>> positionComparator = new PositionComparator();
 
 
@@ -203,8 +201,6 @@ public class CatVariants extends CommandLineProgram {
         if (!(outputFile.getName().endsWith(".vcf") || outputFile.getName().endsWith(".VCF"))){
             throw new UserException(String.format("Output file %s should be <name>.vcf", outputFile));
         }
-        ReferenceSequenceFile ref = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFile);
-
 
         FileOutputStream outputStream = new FileOutputStream(outputFile);
         EnumSet<Options> options = EnumSet.of(Options.INDEX_ON_THE_FLY);

@@ -28,8 +28,8 @@ package org.broadinstitute.sting.utils.clipping;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
+import net.sf.samtools.TextCigarCodec;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
@@ -38,13 +38,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
-/**
- * Created by IntelliJ IDEA.
- * User: roger
- * Date: 11/27/11
- * Time: 6:45 AM
- * To change this template use File | Settings | File Templates.
- */
 public class ReadClipperTestUtils {
     //Should contain all the utils needed for tests to mass produce
     //reads, cigars, and other needed classes
@@ -236,78 +229,6 @@ public class ReadClipperTestUtils {
     }
 
     public static Cigar cigarFromString(String cigarString) {
-        Cigar cigar = new Cigar();
-
-        boolean isNumber = false;
-        int number = 0;
-        for (int i = 0; i < cigarString.length(); i++) {
-            char x = cigarString.charAt(i);
-
-            if (x >= '0' && x <='9') {
-                if (isNumber) {
-                    number *= 10;
-                }
-                else {
-                    isNumber = true;
-                }
-                number += x - '0';
-            }
-
-            else {
-                CigarElement e;
-                switch (x) {
-                    case 'M':
-                    case 'm':
-                        e = new CigarElement(number, CigarOperator.M);
-                    break;
-
-                    case 'I':
-                    case 'i':
-                        e = new CigarElement(number, CigarOperator.I);
-                    break;
-
-                    case 'D':
-                    case 'd':
-                        e = new CigarElement(number, CigarOperator.D);
-                    break;
-
-                    case 'S':
-                    case 's':
-                        e = new CigarElement(number, CigarOperator.S);
-                    break;
-
-                    case 'N':
-                    case 'n':
-                        e = new CigarElement(number, CigarOperator.N);
-                    break;
-
-                    case 'H':
-                    case 'h':
-                        e = new CigarElement(number, CigarOperator.H);
-                    break;
-
-                    case 'P':
-                    case 'p':
-                        e = new CigarElement(number, CigarOperator.P);
-                    break;
-
-                    case '=':
-                        e = new CigarElement(number, CigarOperator.EQ);
-                    break;
-
-                    case 'X':
-                    case 'x':
-                        e = new CigarElement(number, CigarOperator.X);
-                    break;
-
-                    default:
-                        throw new ReviewedStingException("Unrecognized cigar operator: " + x + " (number: " + number + ")");
-                }
-                cigar.add(e);
-            }
-        }
-        return cigar;
+        return TextCigarCodec.getSingleton().decode(cigarString);
     }
-
-
 }

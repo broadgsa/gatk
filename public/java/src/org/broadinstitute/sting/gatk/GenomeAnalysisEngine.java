@@ -171,6 +171,14 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * The short name of the current GATK walker as a string
+     * @return a non-null String
+     */
+    public String getWalkerName() {
+        return getWalkerName(walker.getClass());
+    }
+
+    /**
      * A processed collection of SAM reader identifiers.
      */
     private Collection<SAMReaderID> samReaderIDs = Collections.emptyList();
@@ -293,9 +301,11 @@ public class GenomeAnalysisEngine {
         // create the output streams
         initializeOutputStreams(microScheduler.getOutputTracker());
 
-        logger.info("Creating shard strategy for " + readsDataSource.getReaderIDs().size() + " BAM files");
+        // Initializing the shard iterator / BAM schedule might take some time, so let the user know vaguely what's going on
+        logger.info("Preparing for traversal" +
+                    (readsDataSource.getReaderIDs().size() > 0 ? String.format(" over %d BAM files", readsDataSource.getReaderIDs().size()) : ""));
         Iterable<Shard> shardStrategy = getShardStrategy(readsDataSource,microScheduler.getReference(),intervals);
-        logger.info("Done creating shard strategy");
+        logger.info("Done preparing for traversal");
 
         // execute the microscheduler, storing the results
         return microScheduler.execute(this.walker, shardStrategy);
@@ -342,11 +352,18 @@ public class GenomeAnalysisEngine {
      * @return A collection of available filters.
      */
     public Collection<ReadFilter> createFilters() {
-        final List<ReadFilter> filters = WalkerManager.getReadFilters(walker,this.getFilterManager());
+        final List<ReadFilter> filters = new LinkedList<>();
+
+        // First add the user requested filters
         if (this.getArguments().readGroupBlackList != null && this.getArguments().readGroupBlackList.size() > 0)
             filters.add(new ReadGroupBlackListFilter(this.getArguments().readGroupBlackList));
         for(final String filterName: this.getArguments().readFilters)
             filters.add(this.getFilterManager().createByName(filterName));
+
+        // now add the walker default filters.  This ordering is critical important if
+        // users need to apply filters that fix up reads that would be removed by default walker filters
+        filters.addAll(WalkerManager.getReadFilters(walker,this.getFilterManager()));
+
         return Collections.unmodifiableList(filters);
     }
 
@@ -463,9 +480,8 @@ public class GenomeAnalysisEngine {
 
         DownsamplingMethod commandLineMethod = argCollection.getDownsamplingMethod();
         DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker);
-        DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker);
 
-        DownsamplingMethod method = commandLineMethod != null ? commandLineMethod : (walkerMethod != null ? walkerMethod : defaultMethod);
+        DownsamplingMethod method = commandLineMethod != null ? commandLineMethod : walkerMethod;
         method.checkCompatibilityWithWalker(walker);
         return method;
     }

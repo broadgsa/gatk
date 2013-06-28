@@ -180,9 +180,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
     @Argument(fullName="MendelViolationGenotypeQualityThreshold",shortName="mvq",required=false,doc="The genotype quality threshold in order to annotate mendelian violation ratio")
     public double minGenotypeQualityP = 0.0;
 
-    @Argument(fullName="requireStrictAlleleMatch", shortName="strict", doc="If provided only comp tracks that exactly match both reference and alternate alleles will be counted as concordant", required=false)
-    protected boolean requireStrictAlleleMatch = false;
-
     private VariantAnnotatorEngine engine;
 
     /**
@@ -204,7 +201,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
         else
             engine = new VariantAnnotatorEngine(annotationGroupsToUse, annotationsToUse, annotationsToExclude, this, getToolkit());
         engine.initializeExpressions(expressionsToUse);
-        engine.setRequireStrictAlleleMatch(requireStrictAlleleMatch);
 
         // setup the header fields
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones

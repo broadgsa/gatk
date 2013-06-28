@@ -40,8 +40,6 @@ import java.util.Arrays;
 public abstract class PairHMM {
     protected final static Logger logger = Logger.getLogger(PairHMM.class);
 
-    protected double[][] transition = null; // The transition probabilities cache
-    protected double[][] prior = null;      // The prior probabilities cache
     protected boolean constantsAreInitialized = false;
 
     protected byte[] previousHaplotypeBases;
@@ -52,12 +50,9 @@ public abstract class PairHMM {
         /* PairHMM as implemented for the UnifiedGenotyper. Uses log10 sum functions accurate to only 1E-4 */
         ORIGINAL,
         /* Optimized version of the PairHMM which caches per-read computations and operations in real space to avoid costly sums of log10'ed likelihoods */
-        LOGLESS_CACHING
+        LOGLESS_CACHING,
     }
 
-    protected double[][] matchMatrix = null;
-    protected double[][] insertionMatrix = null;
-    protected double[][] deletionMatrix = null;
     protected int maxHaplotypeLength, maxReadLength;
     protected int paddedMaxReadLength, paddedMaxHaplotypeLength;
     protected int paddedReadLength, paddedHaplotypeLength;
@@ -82,17 +77,11 @@ public abstract class PairHMM {
         paddedMaxReadLength = readMaxLength + 1;
         paddedMaxHaplotypeLength = haplotypeMaxLength + 1;
 
-        matchMatrix = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
-        insertionMatrix = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
-        deletionMatrix = new double[paddedMaxReadLength][paddedMaxHaplotypeLength];
-
         previousHaplotypeBases = null;
 
         constantsAreInitialized = false;
         initialized = true;
     }
-
-
 
     /**
      * Compute the total probability of read arising from haplotypeBases given base substitution, insertion, and deletion
@@ -152,44 +141,15 @@ public abstract class PairHMM {
      * To be overloaded by subclasses to actually do calculation for #computeReadLikelihoodGivenHaplotypeLog10
      */
     @Requires({"readBases.length == readQuals.length", "readBases.length == insertionGOP.length", "readBases.length == deletionGOP.length",
-               "readBases.length == overallGCP.length", "matchMatrix!=null", "insertionMatrix!=null", "deletionMatrix!=null"})
+            "readBases.length == overallGCP.length", "matchMatrix!=null", "insertionMatrix!=null", "deletionMatrix!=null"})
     protected abstract double subComputeReadLikelihoodGivenHaplotypeLog10( final byte[] haplotypeBases,
-                                                                        final byte[] readBases,
-                                                                        final byte[] readQuals,
-                                                                        final byte[] insertionGOP,
-                                                                        final byte[] deletionGOP,
-                                                                        final byte[] overallGCP,
-                                                                        final int hapStartIndex,
-                                                                        final boolean recacheReadValues );
-
-    /**
-     * Print out the core hmm matrices for debugging
-     */
-    protected void dumpMatrices() {
-        dumpMatrix("matchMetricArray", matchMatrix);
-        dumpMatrix("insertionMatrix", insertionMatrix);
-        dumpMatrix("deletionMatrix", deletionMatrix);
-    }
-
-    /**
-     * Print out in a human readable form the matrix for debugging
-     * @param name the name of this matrix
-     * @param matrix the matrix of values
-     */
-    @Requires({"name != null", "matrix != null"})
-    private void dumpMatrix(final String name, final double[][] matrix) {
-        System.out.printf("%s%n", name);
-        for ( int i = 0; i < matrix.length; i++) {
-            System.out.printf("\t%s[%d]", name, i);
-            for ( int j = 0; j < matrix[i].length; j++ ) {
-                if ( Double.isInfinite(matrix[i][j]) )
-                    System.out.printf(" %15s", String.format("%f", matrix[i][j]));
-                else
-                    System.out.printf(" % 15.5e", matrix[i][j]);
-            }
-            System.out.println();
-        }
-    }
+                                                                           final byte[] readBases,
+                                                                           final byte[] readQuals,
+                                                                           final byte[] insertionGOP,
+                                                                           final byte[] deletionGOP,
+                                                                           final byte[] overallGCP,
+                                                                           final int hapStartIndex,
+                                                                           final boolean recacheReadValues );
 
     /**
      * Compute the first position at which two haplotypes differ

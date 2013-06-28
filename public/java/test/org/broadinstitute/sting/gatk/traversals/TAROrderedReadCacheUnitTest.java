@@ -26,9 +26,11 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.sam.ArtificialBAMBuilder;
+import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -39,6 +41,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 public class TAROrderedReadCacheUnitTest extends BaseTest {
@@ -98,8 +101,53 @@ public class TAROrderedReadCacheUnitTest extends BaseTest {
         Assert.assertEquals(cache.getNumDiscarded(), 0, "should have reset stats");
         Assert.assertEquals(cacheReads.size(), nExpectedToKeep, "should have 1 read for every read we expected to keep");
 
+        verifySortednessOfReads(cacheReads);
+    }
+
+    @Test
+    public void testReadCacheWithReducedReads() {
+        final List<GATKSAMRecord> reads = new ArrayList<GATKSAMRecord>();
+        final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000000);
+        final int[] baseCounts = { 10, 10, 10, 10, 10 };
+
+        for ( int i = 1; i <= 100; i++ ) {
+            reads.add(ArtificialSAMUtils.createArtificialReducedRead(header, "foo", 0, i, 5, baseCounts));
+            reads.add(ArtificialSAMUtils.createArtificialRead(header, "foo", 0, i, 5));
+        }
+
+        final TAROrderedReadCache cache = new TAROrderedReadCache(50);
+
+        cache.addAll(reads);
+
+        // Our cache should have kept all of the reduced reads (which are retained unconditionally and do not count
+        // towards the capacity limit), and discarded half of the 100 non-reduced reads due to the cache capacity
+        // limit of 50.
+        Assert.assertEquals(cache.size(), 150, "wrong number of reads in the cache at the end");
+        Assert.assertEquals(cache.getNumDiscarded(), 50, "wrong number of reads discarded from the cache");
+
+        final List<GATKSAMRecord> cacheReads = cache.popCurrentReads();
+
+        int numReducedReadsRetained = 0;
+        int numNormalReadsRetained = 0;
+
+        for ( GATKSAMRecord read : cacheReads ) {
+            if ( read.isReducedRead() ) {
+                numReducedReadsRetained++;
+            }
+            else {
+                numNormalReadsRetained++;
+            }
+        }
+
+        Assert.assertEquals(numReducedReadsRetained, 100, "wrong number of reduced reads retained in the cache");
+        Assert.assertEquals(numNormalReadsRetained, 50, "wrong number of non-reduced reads retained in the cache");
+
+        verifySortednessOfReads(cacheReads);
+    }
+
+    private void verifySortednessOfReads( final List<GATKSAMRecord> reads) {
         int lastStart = -1;
-        for ( final GATKSAMRecord read : cacheReads ) {
+        for ( GATKSAMRecord read : reads ) {
             Assert.assertTrue(lastStart <= read.getAlignmentStart(), "Reads should be sorted but weren't.  Found read with start " + read.getAlignmentStart() + " while last was " + lastStart);
             lastStart = read.getAlignmentStart();
         }

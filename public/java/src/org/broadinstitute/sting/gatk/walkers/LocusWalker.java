@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.gatk.filters.DuplicateReadFilter;
 import org.broadinstitute.sting.gatk.filters.FailsVendorQualityCheckFilter;
 import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentFilter;
@@ -44,6 +45,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 @Requires({DataSource.READS,DataSource.REFERENCE})
 @PartitionBy(PartitionType.LOCUS)
 @ReadFilters({UnmappedReadFilter.class,NotPrimaryAlignmentFilter.class,DuplicateReadFilter.class,FailsVendorQualityCheckFilter.class})
+@Downsample(by = DownsampleType.BY_SAMPLE, toCoverage = 1000)
 @RemoveProgramRecords
 public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?

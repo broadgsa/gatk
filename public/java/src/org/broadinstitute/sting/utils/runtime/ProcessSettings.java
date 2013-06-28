@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.utils.runtime;
 
-import com.sun.corba.se.spi.orbutil.fsm.Input;
 
 import java.io.File;
 import java.util.Map;

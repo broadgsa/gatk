@@ -801,6 +801,23 @@ public final class AlignmentUtils {
     }
 
     /**
+     * Removing a trailing deletion from the incoming cigar if present
+     *
+     * @param c the cigar we want to update
+     * @return a non-null Cigar
+     */
+    @Requires("c != null")
+    @Ensures("result != null")
+    public static Cigar removeTrailingDeletions(final Cigar c) {
+
+        final List<CigarElement> elements = c.getCigarElements();
+        if ( elements.get(elements.size() - 1).getOperator() != CigarOperator.D )
+            return c;
+
+        return new Cigar(elements.subList(0, elements.size() - 1));
+    }
+
+    /**
      * Move the indel in a given cigar string one base to the left
      *
      * @param cigar          original cigar

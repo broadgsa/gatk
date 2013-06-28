@@ -42,13 +42,13 @@ import java.util.*;
  *   For each read, this holds underlying alleles represented by an aligned read, and corresponding relative likelihood.
  */
 public class PerReadAlleleLikelihoodMap {
-    protected final List<Allele> alleles;
-    protected final Map<GATKSAMRecord, Map<Allele, Double>> likelihoodReadMap;
+    /** A set of all of the allele, so we can efficiently determine if an allele is already present */
+    private final Set<Allele> allelesSet = new HashSet<>();
+    /** A list of the unique allele, as an ArrayList so we can call get(i) efficiently */
+    protected final List<Allele> alleles = new ArrayList<>();
+    protected final Map<GATKSAMRecord, Map<Allele, Double>> likelihoodReadMap = new LinkedHashMap<>();
 
-    public PerReadAlleleLikelihoodMap() {
-        likelihoodReadMap = new LinkedHashMap<GATKSAMRecord,Map<Allele,Double>>();
-        alleles = new ArrayList<Allele>();
-    }
+    public PerReadAlleleLikelihoodMap() { }
 
     /**
      * Add a new entry into the Read -> ( Allele -> Likelihood ) map of maps.
@@ -61,18 +61,20 @@ public class PerReadAlleleLikelihoodMap {
         if ( a == null ) throw new IllegalArgumentException("Cannot add a null allele to the allele likelihood map");
         if ( likelihood == null ) throw new IllegalArgumentException("Likelihood cannot be null");
         if ( likelihood > 0.0 ) throw new IllegalArgumentException("Likelihood must be negative (L = log(p))");
+
         Map<Allele,Double> likelihoodMap = likelihoodReadMap.get(read);
         if (likelihoodMap == null){
             // LinkedHashMap will ensure iterating through alleles will be in consistent order
-            likelihoodMap = new LinkedHashMap<Allele, Double>();
+            likelihoodMap = new LinkedHashMap<>();
+            likelihoodReadMap.put(read,likelihoodMap);
         }
-        likelihoodReadMap.put(read,likelihoodMap);
 
         likelihoodMap.put(a,likelihood);
 
-        if (!alleles.contains(a))
+        if (!allelesSet.contains(a)) {
+            allelesSet.add(a);
             alleles.add(a);
-
+        }
     }
 
     public ReadBackedPileup createPerAlleleDownsampledBasePileup(final ReadBackedPileup pileup, final double downsamplingFraction) {
@@ -165,6 +167,7 @@ public class PerReadAlleleLikelihoodMap {
     }
 
     public void clear() {
+        allelesSet.clear();
         alleles.clear();
         likelihoodReadMap.clear();
     }
@@ -218,7 +221,7 @@ public class PerReadAlleleLikelihoodMap {
                     final int count = ReadUtils.getMeanRepresentativeReadCount(read);
                     final double likelihood_iii = entry.getValue().get(iii_allele);
                     final double likelihood_jjj = entry.getValue().get(jjj_allele);
-                    haplotypeLikelihood += count * (MathUtils.approximateLog10SumLog10(likelihood_iii, likelihood_jjj) + LOG_ONE_HALF);
+                    haplotypeLikelihood += count * (MathUtils.approximateLog10SumLog10(likelihood_iii, likelihood_jjj) + MathUtils.LOG_ONE_HALF);
 
                     // fast exit.  If this diploid pair is already worse than the max, just stop and look at the next pair
                     if ( haplotypeLikelihood < maxElement ) break;
@@ -238,7 +241,6 @@ public class PerReadAlleleLikelihoodMap {
 
         return new MostLikelyAllele(alleles.get(hap1), alleles.get(hap2), maxElement, maxElement);
     }
-    private static final double LOG_ONE_HALF = -Math.log10(2.0);
 
     /**
      * Given a map from alleles to likelihoods, find the allele with the largest likelihood.
@@ -319,7 +321,7 @@ public class PerReadAlleleLikelihoodMap {
      * @return the list of reads removed from this map because they are poorly modelled
      */
     public List<GATKSAMRecord> filterPoorlyModelledReads(final double maxErrorRatePerBase) {
-        final List<GATKSAMRecord> removedReads = new LinkedList<GATKSAMRecord>();
+        final List<GATKSAMRecord> removedReads = new LinkedList<>();
         final Iterator<Map.Entry<GATKSAMRecord, Map<Allele, Double>>> it = likelihoodReadMap.entrySet().iterator();
         while ( it.hasNext() ) {
             final Map.Entry<GATKSAMRecord, Map<Allele, Double>> record = it.next();
@@ -354,8 +356,8 @@ public class PerReadAlleleLikelihoodMap {
      * @return true if none of the log10 likelihoods imply that the read truly originated from one of the haplotypes
      */
     protected boolean readIsPoorlyModelled(final GATKSAMRecord read, final Collection<Double> log10Likelihoods, final double maxErrorRatePerBase) {
-        final double maxErrorsForRead = Math.ceil(read.getReadLength() * maxErrorRatePerBase);
-        final double log10QualPerBase = -3.0;
+        final double maxErrorsForRead = Math.min(2.0, Math.ceil(read.getReadLength() * maxErrorRatePerBase));
+        final double log10QualPerBase = -4.0;
         final double log10MaxLikelihoodForTrueAllele = maxErrorsForRead * log10QualPerBase;
 
         for ( final double log10Likelihood : log10Likelihoods )
@@ -363,5 +365,13 @@ public class PerReadAlleleLikelihoodMap {
                 return false;
 
         return true;
+    }
+
+    /**
+     * Get an unmodifiable set of the unique alleles in this PerReadAlleleLikelihoodMap
+     * @return a non-null unmodifiable map
+     */
+    public Set<Allele> getAllelesSet() {
+        return Collections.unmodifiableSet(allelesSet);
     }
 }

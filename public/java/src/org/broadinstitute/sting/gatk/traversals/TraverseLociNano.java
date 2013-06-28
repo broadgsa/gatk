@@ -92,7 +92,6 @@ public class TraverseLociNano<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,
             final TraverseResults<T> result = traverse( walker, locusView, referenceView, referenceOrderedDataView, sum );
             sum = result.reduceResult;
             dataProvider.getShard().getReadMetrics().incrementNumIterations(result.numIterations);
-            updateCumulativeMetrics(dataProvider.getShard());
         }
 
         // We have a final map call to execute here to clean up the skipped based from the
@@ -180,7 +179,7 @@ public class TraverseLociNano<M,T> extends TraversalEngine<M,T,LocusWalker<M,T>,
             final ReferenceContext refContext = referenceView.getReferenceContext(location);
 
             // Iterate forward to get all reference ordered data covering this location
-            final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(location, refContext);
+            final RefMetaDataTracker tracker = referenceOrderedDataView.getReferenceOrderedDataAtLocus(location);
 
             numIterations++;
             return new MapData(locus, refContext,  tracker);

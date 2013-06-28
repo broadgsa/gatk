@@ -129,6 +129,9 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
     private final double MIN_PROB_ERROR = 0.000001;
     private final double MAX_GENOTYPE_QUALITY = -6.0;
 
+    private final static String BEAGLE_MONO_FILTER_STRING = "BGL_SET_TO_MONOMORPHIC";
+    private final static String ORIGINAL_ALT_ALLELE_INFO_KEY = "OriginalAltAllele";
+
     public void initialize() {
 
         // setup the header fields
@@ -138,10 +141,8 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
         hInfo.add(new VCFFormatHeaderLine("OG",1, VCFHeaderLineType.String, "Original Genotype input to Beagle"));
         hInfo.add(new VCFInfoHeaderLine("R2", 1, VCFHeaderLineType.Float, "r2 Value reported by Beagle on each site"));
         hInfo.add(new VCFInfoHeaderLine("NumGenotypesChanged", 1, VCFHeaderLineType.Integer, "The number of genotypes changed by Beagle"));
-        hInfo.add(new VCFFilterHeaderLine("BGL_RM_WAS_A", "This 'A' site was set to monomorphic by Beagle"));
-        hInfo.add(new VCFFilterHeaderLine("BGL_RM_WAS_C", "This 'C' site was set to monomorphic by Beagle"));
-        hInfo.add(new VCFFilterHeaderLine("BGL_RM_WAS_G", "This 'G' site was set to monomorphic by Beagle"));
-        hInfo.add(new VCFFilterHeaderLine("BGL_RM_WAS_T", "This 'T' site was set to monomorphic by Beagle"));
+        hInfo.add(new VCFInfoHeaderLine(ORIGINAL_ALT_ALLELE_INFO_KEY, 1, VCFHeaderLineType.String, "The original alt allele for a site set to monomorphic by Beagle"));
+        hInfo.add(new VCFFilterHeaderLine(BEAGLE_MONO_FILTER_STRING, "This site was set to monomorphic by Beagle"));
 
         if ( comp.isBound() ) {
             hInfo.add(new VCFInfoHeaderLine("ACH", 1, VCFHeaderLineType.Integer, "Allele Count from Comparison ROD at this site"));
@@ -335,9 +336,8 @@ public class BeagleOutputToVCF extends RodWalker<Integer, Integer> {
 
         final VariantContextBuilder builder = new VariantContextBuilder(vc_input).source("outputvcf").genotypes(genotypes);
         if ( ! ( beagleVarCounts > 0 || DONT_FILTER_MONOMORPHIC_SITES ) ) {
-            Set<String> removedFilters = vc_input.filtersWereApplied() ? new HashSet<String>(vc_input.getFilters()) : new HashSet<String>(1);
-            removedFilters.add(String.format("BGL_RM_WAS_%s",vc_input.getAlternateAllele(0)));
-            builder.alleles(new HashSet<Allele>(Arrays.asList(vc_input.getReference()))).filters(removedFilters);
+            builder.attribute(ORIGINAL_ALT_ALLELE_INFO_KEY, vc_input.getAlternateAllele(0));
+            builder.alleles(Collections.singleton(vc_input.getReference())).filter(BEAGLE_MONO_FILTER_STRING);
         }
 
         // re-compute chromosome counts

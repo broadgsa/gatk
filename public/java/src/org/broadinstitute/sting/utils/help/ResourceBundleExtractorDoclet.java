@@ -108,7 +108,7 @@ public class ResourceBundleExtractorDoclet {
             if(isRequiredJavadocMissing(currentClass) && isWalker(currentClass))
                 undocumentedWalkers.add(currentClass.name());
 
-            renderHelpText(HelpUtils.getClassName(currentClass),currentClass);
+            renderHelpText(DocletUtils.getClassName(currentClass),currentClass);
         }
 
         for(PackageDoc currentPackage: packages)
@@ -173,7 +173,7 @@ public class ResourceBundleExtractorDoclet {
      * @return True if the class of the given name is a walker.  False otherwise.
      */
     protected static boolean isWalker(ClassDoc classDoc) {
-        return HelpUtils.assignableToClass(classDoc, Walker.class, true);
+        return DocletUtils.assignableToClass(classDoc, Walker.class, true);
     }
 
     /**

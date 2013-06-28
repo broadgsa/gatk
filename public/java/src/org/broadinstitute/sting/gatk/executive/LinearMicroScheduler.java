@@ -37,7 +37,6 @@ import org.broadinstitute.sting.gatk.io.DirectOutputTracker;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
-import org.broadinstitute.sting.gatk.traversals.TraverseActiveRegions;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
@@ -114,12 +113,6 @@ public class LinearMicroScheduler extends MicroScheduler {
             done = walker.isDone();
         }
 
-        // Special function call to empty out the work queue. Ugly for now but will be cleaned up when we eventually push this functionality more into the engine
-        if( traversalEngine instanceof TraverseActiveRegions) {
-            final Object result = ((TraverseActiveRegions) traversalEngine).endTraversal(walker, accumulator.getReduceInit());
-            accumulator.accumulate(null, result); // Assumes only used with StandardAccumulator
-        }
-                
         Object result = accumulator.finishTraversal();
 
         outputTracker.close();
