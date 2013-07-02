@@ -33,8 +33,6 @@ package org.broadinstitute.sting.utils.locusiterator;
  * Time: 1:26 PM
  */
 class LIBSDownsamplingInfo {
-    public final static LIBSDownsamplingInfo NO_DOWNSAMPLING = new LIBSDownsamplingInfo(false, -1);
-
     final private boolean performDownsampling;
     final private int toCoverage;
 

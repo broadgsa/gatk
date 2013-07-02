@@ -253,17 +253,22 @@ public class FragmentUtilsUnitTest extends BaseTest {
         final GATKSAMRecord expectedMerged = makeOverlappingRead("", 30, common, commonQuals, "", 30, 10);
         read1.setCigarString("4S" + common.length() + "M");
         read1.setProperPairFlag(true);
+        read1.setReadPairedFlag(true);
         read1.setFirstOfPairFlag(true);
         read1.setReadNegativeStrandFlag(true);
-        read1.setMateAlignmentStart(10);
+        read1.setMateNegativeStrandFlag(false);
+        read1.setMateAlignmentStart(read2.getAlignmentStart());
         read2.setCigarString(common.length() + "M4S");
         read2.setProperPairFlag(true);
+        read2.setReadPairedFlag(true);
         read2.setFirstOfPairFlag(false);
         read2.setReadNegativeStrandFlag(false);
+        read2.setMateNegativeStrandFlag(true);
+        read2.setMateAlignmentStart(read1.getAlignmentStart());
 
         final int insertSize = common.length() - 1;
-        read1.setInferredInsertSize(insertSize);
-        read2.setInferredInsertSize(-insertSize);
+        read1.setInferredInsertSize(-insertSize);
+        read2.setInferredInsertSize(insertSize);
 
         final GATKSAMRecord actual = FragmentUtils.mergeOverlappingPairedFragments(read1, read2);
         Assert.assertEquals(actual.getCigarString(), expectedMerged.getCigarString());

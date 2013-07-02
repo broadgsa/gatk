@@ -560,24 +560,21 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     /**
      * return a new genome loc, with an incremented position
      *
-     * @param loc the old location
-     *
      * @return a newly allocated GenomeLoc as loc but with start == loc.getStart() + 1
      */
-    public GenomeLoc incPos(GenomeLoc loc) {
-        return incPos(loc, 1);
+    public GenomeLoc incPos() {
+        return incPos(1);
     }
 
     /**
      * return a new genome loc, with an incremented position
      *
-     * @param loc the old location
      * @param by  how much to move the start and stop by
      *
      * @return a newly allocated GenomeLoc as loc but with start == loc.getStart() + by
      */
-    public GenomeLoc incPos(GenomeLoc loc, int by) {
-        return new GenomeLoc(loc.getContig(), loc.getContigIndex(), loc.start + by, loc.stop + by);
+    public GenomeLoc incPos(int by) {
+        return new GenomeLoc(getContig(), getContigIndex(), start + by, stop + by);
     }
 
     /**

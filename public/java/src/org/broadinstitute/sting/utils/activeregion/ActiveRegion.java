@@ -147,6 +147,13 @@ public class ActiveRegion implements HasGenomeLocation {
         }
     }
 
+    /**
+     * Simple interface to create an active region that isActive without any profile state
+     */
+    public ActiveRegion( final GenomeLoc activeRegionLoc, final GenomeLocParser genomeLocParser, final int extension ) {
+        this(activeRegionLoc, Collections.<ActivityProfileState>emptyList(), true, genomeLocParser, extension);
+    }
+
     @Override
     public String toString() {
         return "ActiveRegion "  + activeRegionLoc.toString() + " active?=" + isActive() + " nReads=" + reads.size();

@@ -131,6 +131,9 @@ public abstract class BaseTest {
 
     public static final String exampleFASTA = publicTestDir + "exampleFASTA.fasta";
 
+    public final static String NA12878_PCRFREE = privateTestDir + "PCRFree.2x250.Illumina.20_10_11.bam";
+    public final static String NA12878_WEx = privateTestDir + "CEUTrio.HiSeq.WEx.b37_decoy.NA12878.20_10_11mb.bam";
+
     public static final boolean pipelineTestRunModeIsSet = System.getProperty("pipeline.run").equals("run");
 
     /** before the class starts up */
