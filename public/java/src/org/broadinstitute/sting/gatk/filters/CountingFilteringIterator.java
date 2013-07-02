@@ -115,10 +115,10 @@ public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
     public void close() {
         CloserUtil.close(iterator);
 
+        for ( final CountingReadFilter filter : filters )
+            privateRuntimeMetrics.setFilterCount(filter.readFilter.getClass().getSimpleName(), filter.counter);
         // update the global metrics with all the data we collected here
         globalRuntimeMetrics.incrementMetrics(privateRuntimeMetrics);
-        for ( final CountingReadFilter filter : filters )
-            globalRuntimeMetrics.setFilterCount(filter.readFilter.getClass().getSimpleName(), filter.counter);
     }
 
     /**
