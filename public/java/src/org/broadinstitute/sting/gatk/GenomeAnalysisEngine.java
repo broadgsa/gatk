@@ -62,9 +62,11 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
 import org.broadinstitute.sting.utils.recalibration.BQSRArgumentSet;
+import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -854,6 +856,10 @@ public class GenomeAnalysisEngine {
 
         final boolean keepReadsInLIBS = walker instanceof ActiveRegionWalker;
 
+        final Map<SAMReaderID, String> sampleRenameMap = argCollection.sampleRenameMappingFile != null ?
+                                                         loadSampleRenameMap(argCollection.sampleRenameMappingFile) :
+                                                         null;
+
         return new SAMDataSource(
                 samReaderIDs,
                 threadAllocation,
@@ -869,8 +875,62 @@ public class GenomeAnalysisEngine {
                 includeReadsWithDeletionAtLoci(),
                 argCollection.defaultBaseQualities,
                 removeProgramRecords,
-                keepReadsInLIBS);
+                keepReadsInLIBS,
+                sampleRenameMap);
     }
+
+    /**
+     * Loads a user-provided sample rename map file for use in on-the-fly sample renaming into an in-memory
+     * HashMap. This file must consist of lines with two whitespace-separated fields:
+     *
+     * absolute_path_to_bam_file    new_sample_name
+     *
+     * The engine will verify that each bam file contains reads from only one sample when the on-the-fly sample
+     * renaming feature is being used.
+     *
+     * @param sampleRenameMapFile sample rename map file from which to load data
+     * @return a HashMap containing the contents of the map file, with the keys being the bam file paths and
+     *         the values being the new sample names.
+     */
+    protected Map<SAMReaderID, String> loadSampleRenameMap( final File sampleRenameMapFile ) {
+        logger.info("Renaming samples from BAM files on-the-fly using mapping file " + sampleRenameMapFile.getAbsolutePath());
+
+        final Map<SAMReaderID, String> sampleRenameMap = new HashMap<>((int)sampleRenameMapFile.length() / 50);
+
+        try {
+            for ( final String line : new XReadLines(sampleRenameMapFile) ) {
+                final String[] tokens = line.split("\\s+");
+
+                if ( tokens.length != 2 ) {
+                    throw new UserException.MalformedFile(sampleRenameMapFile,
+                                                          String.format("Encountered a line with %s fields instead of the required 2 fields. Line was: %s",
+                                                                        tokens.length, line));
+                }
+
+                final File bamFile = new File(tokens[0]);
+                final String newSampleName = tokens[1];
+
+                if ( ! bamFile.isAbsolute() ) {
+                    throw new UserException.MalformedFile(sampleRenameMapFile, "Bam file path not absolute at line: " + line);
+                }
+
+                final SAMReaderID bamID = new SAMReaderID(bamFile, new Tags());
+
+                if ( sampleRenameMap.containsKey(bamID) ) {
+                    throw new UserException.MalformedFile(sampleRenameMapFile,
+                                                          String.format("Bam file %s appears more than once", bamFile.getAbsolutePath()));
+                }
+
+                sampleRenameMap.put(bamID, newSampleName);
+            }
+        }
+        catch ( FileNotFoundException e ) {
+            throw new UserException.CouldNotReadInputFile(sampleRenameMapFile, e);
+        }
+
+        return sampleRenameMap;
+    }
+
 
     /**
      * Opens a reference sequence file paired with an index.  Only public for testing purposes

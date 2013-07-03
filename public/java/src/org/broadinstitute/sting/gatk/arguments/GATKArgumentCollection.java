@@ -281,6 +281,15 @@ public class GATKArgumentCollection {
     @Argument(fullName = "keep_program_records", shortName = "kpr", doc = "Should we override the Walker's default and keep program records from the SAM header", required = false)
     public boolean keepProgramRecords = false;
 
+    @Advanced
+    @Argument(fullName = "sample_rename_mapping_file", shortName = "sample_rename_mapping_file",
+              doc = "Rename sample IDs on-the-fly at runtime using the provided mapping file. This option requires that " +
+                    "each BAM file listed in the mapping file have only a single sample specified in its header (though there " +
+                    "may be multiple read groups for that sample). Each line of the mapping file must contain the absolute path " +
+                    "to a BAM file, followed by whitespace, followed by the new sample name for that BAM file.",
+              required = false)
+    public File sampleRenameMappingFile = null;
+
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations: nothing will be checked at runtime.  For expert users only who know what they are doing.  We do not support usage of this argument.", required = false)
     public ValidationExclusion.TYPE unsafe;
 
