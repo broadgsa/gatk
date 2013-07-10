@@ -49,7 +49,7 @@ import java.util.*;
 /**
  * @author depristo
  */
-public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
+public class IntervalReferenceOrderedViewUnitTest extends BaseTest {
     private static int startingChr = 1;
     private static int endingChr = 2;
     private static int readCount = 100;
@@ -285,7 +285,7 @@ public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
 
         Collections.sort(intervals);
         final GenomeLoc span = span(intervals);
-        final ReadBasedReferenceOrderedView view = new ReadBasedReferenceOrderedView(genomeLocParser, span, names, iterators);
+        final IntervalReferenceOrderedView view = new IntervalReferenceOrderedView(genomeLocParser, span, names, iterators);
 
         if ( testStateless ) {
             // test each tracker is well formed, as each is created

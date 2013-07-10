@@ -29,6 +29,7 @@ import net.sf.samtools.SAMSequenceDictionary;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.downsampling.DownsampleType;
 import org.broadinstitute.sting.gatk.filters.MalformedReadFilter;
 import org.broadinstitute.sting.gatk.iterators.ReadTransformer;
 import org.broadinstitute.sting.gatk.samples.Sample;
@@ -50,6 +51,7 @@ import java.util.List;
  */
 @ReadFilters(MalformedReadFilter.class)
 @PartitionBy(PartitionType.NONE)
+@Downsample(by = DownsampleType.NONE)
 @BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = ReadTransformer.ApplicationTime.ON_INPUT)
 @BQSRMode(ApplicationTime = ReadTransformer.ApplicationTime.ON_INPUT)
 @DocumentedGATKFeature(groupName = "Uncategorized", extraDocs = {CommandLineGATK.class})

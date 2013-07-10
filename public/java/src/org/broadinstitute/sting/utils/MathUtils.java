@@ -29,8 +29,8 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -54,15 +54,19 @@ public class MathUtils {
     private static final double JACOBIAN_LOG_TABLE_INV_STEP = 1.0 / JACOBIAN_LOG_TABLE_STEP;
     private static final double MAX_JACOBIAN_TOLERANCE = 8.0;
     private static final int JACOBIAN_LOG_TABLE_SIZE = (int) (MAX_JACOBIAN_TOLERANCE / JACOBIAN_LOG_TABLE_STEP) + 1;
-    private static final int MAXN = 70000;
+    private static final int MAXN = 70_000;
     private static final int LOG10_CACHE_SIZE = 4 * MAXN;  // we need to be able to go up to 2*(2N) when calculating some of the coefficients
 
     /**
      * The smallest log10 value we'll emit from normalizeFromLog10 and other functions
      * where the real-space value is 0.0.
      */
-    public final static double LOG10_P_OF_ZERO = -1000000.0;
-    public final static double FAIR_BINOMIAL_PROB_LOG10_0_5 = Math.log10(0.5);
+    public static final double LOG10_P_OF_ZERO = -1000000.0;
+    public static final double FAIR_BINOMIAL_PROB_LOG10_0_5 = Math.log10(0.5);
+    public static final double LOG_ONE_HALF = -Math.log10(2.0);
+    public static final double LOG_ONE_THIRD = -Math.log10(3.0);
+    private static final double NATURAL_LOG_OF_TEN = Math.log(10.0);
+    private static final double SQUARE_ROOT_OF_TWO_TIMES_PI = Math.sqrt(2.0 * Math.PI);
 
     static {
         log10Cache = new double[LOG10_CACHE_SIZE];
@@ -203,15 +207,16 @@ public class MathUtils {
     }
 
     /**
-     * Converts a real space array of probabilities into a log10 array
+     * Converts a real space array of numbers (typically probabilities) into a log10 array
      *
      * @param prRealSpace
      * @return
      */
     public static double[] toLog10(final double[] prRealSpace) {
         double[] log10s = new double[prRealSpace.length];
-        for (int i = 0; i < prRealSpace.length; i++)
+        for (int i = 0; i < prRealSpace.length; i++) {
             log10s[i] = Math.log10(prRealSpace[i]);
+        }
         return log10s;
     }
 
@@ -227,6 +232,9 @@ public class MathUtils {
             return maxValue;
 
         for (int i = start; i < finish; i++) {
+            if ( Double.isNaN(log10p[i]) || log10p[i] == Double.POSITIVE_INFINITY ) {
+                throw new IllegalArgumentException("log10p: Values must be non-infinite and non-NAN");
+            }
             sum += Math.pow(10.0, log10p[i] - maxValue);
         }
 
@@ -235,9 +243,6 @@ public class MathUtils {
 
     public static double sumLog10(final double[] log10values) {
         return Math.pow(10.0, log10sumLog10(log10values));
-        //        double s = 0.0;
-        //        for ( double v : log10values) s += Math.pow(10.0, v);
-        //        return s;
     }
 
     public static double log10sumLog10(final double[] log10values) {
@@ -301,10 +306,48 @@ public class MathUtils {
         return 1;
     }
 
-    public static double NormalDistribution(final double mean, final double sd, final double x) {
+    /**
+     * Calculate f(x) = Normal(x | mu = mean, sigma = sd)
+     * @param mean the desired mean of the Normal distribution
+     * @param sd the desired standard deviation of the Normal distribution
+     * @param x the value to evaluate
+     * @return a well-formed double
+     */
+    public static double normalDistribution(final double mean, final double sd, final double x) {
+        if( sd < 0 )
+            throw new IllegalArgumentException("sd: Standard deviation of normal must be >0");
+        if ( ! wellFormedDouble(mean) || ! wellFormedDouble(sd) || ! wellFormedDouble(x) )
+            throw new IllegalArgumentException("mean, sd, or, x : Normal parameters must be well formatted (non-INF, non-NAN)");
         double a = 1.0 / (sd * Math.sqrt(2.0 * Math.PI));
         double b = Math.exp(-1.0 * (Math.pow(x - mean, 2.0) / (2.0 * sd * sd)));
         return a * b;
+    }
+
+    /**
+     * Calculate f(x) = log10 ( Normal(x | mu = mean, sigma = sd) )
+     * @param mean the desired mean of the Normal distribution
+     * @param sd the desired standard deviation of the Normal distribution
+     * @param x the value to evaluate
+     * @return a well-formed double
+     */
+
+    public static double normalDistributionLog10(final double mean, final double sd, final double x) {
+        if( sd < 0 )
+            throw new IllegalArgumentException("sd: Standard deviation of normal must be >0");
+        if ( ! wellFormedDouble(mean) || ! wellFormedDouble(sd) || ! wellFormedDouble(x) )
+            throw new IllegalArgumentException("mean, sd, or, x : Normal parameters must be well formatted (non-INF, non-NAN)");
+        final double a = -1.0 * Math.log10(sd * SQUARE_ROOT_OF_TWO_TIMES_PI);
+        final double b = -1.0 * (square(x - mean) / (2.0 * square(sd))) / NATURAL_LOG_OF_TEN;
+        return a + b;
+    }
+
+    /**
+     * Calculate f(x) = x^2
+     * @param x the value to square
+     * @return x * x
+     */
+    public static double square(final double x) {
+        return x * x;
     }
 
     /**
@@ -323,6 +366,13 @@ public class MathUtils {
      * @see #binomialCoefficient(int, int) with log10 applied to result
      */
     public static double log10BinomialCoefficient(final int n, final int k) {
+        if ( n < 0 ) {
+            throw new IllegalArgumentException("n: Must have non-negative number of trials");
+        }
+        if ( k > n || k < 0 ) {
+            throw new IllegalArgumentException("k: Must have non-negative number of successes, and no more successes than number of trials");
+        }
+
         return log10Factorial(n) - log10Factorial(k) - log10Factorial(n - k);
     }
 
@@ -346,6 +396,8 @@ public class MathUtils {
      * @see #binomialProbability(int, int, double) with log10 applied to result
      */
     public static double log10BinomialProbability(final int n, final int k, final double log10p) {
+        if ( log10p > 1e-18 )
+            throw new IllegalArgumentException("log10p: Log-probability must be 0 or less");
         double log10OneMinusP = Math.log10(1 - Math.pow(10, log10p));
         return log10BinomialCoefficient(n, k) + log10p * k + log10OneMinusP * (n - k);
     }
@@ -364,9 +416,35 @@ public class MathUtils {
         return log10BinomialCoefficient(n, k) + (n * FAIR_BINOMIAL_PROB_LOG10_0_5);
     }
 
+    /** A memoization container for {@link #binomialCumulativeProbability(int, int, int)}.  Synchronized to accomodate multithreading. */
+    private static final Map<Long, Double> BINOMIAL_CUMULATIVE_PROBABILITY_MEMOIZATION_CACHE = 
+            Collections.synchronizedMap(new LRUCache<Long, Double>(10_000)); 
+    
+    /**
+     * Primitive integer-triplet bijection into long.  Returns null when the bijection function fails (in lieu of an exception), which will
+     * happen when: any value is negative or larger than a short.  This method is optimized for speed; it is not intended to serve as a 
+     * utility function.
+     */
+    @Nullable
+    static Long fastGenerateUniqueHashFromThreeIntegers(final int one, final int two, final int three) {
+        if (one < 0 || two < 0 || three < 0 || Short.MAX_VALUE < one || Short.MAX_VALUE < two || Short.MAX_VALUE < three) {
+            return null;
+        } else {
+            long result = 0;
+            result += (short) one;
+            result <<= 16;
+            result += (short) two;
+            result <<= 16;
+            result += (short) three;
+            return result;
+        }
+    }
+    
     /**
      * Performs the cumulative sum of binomial probabilities, where the probability calculation is done in log space.
      * Assumes that the probability of a successful hit is fair (i.e. 0.5).
+     * 
+     * This pure function is memoized because of its expensive BigDecimal calculations.
      *
      * @param n         number of attempts for the number of hits
      * @param k_start   start (inclusive) of the cumulant sum (over hits)
@@ -377,23 +455,41 @@ public class MathUtils {
         if ( k_end > n )
             throw new IllegalArgumentException(String.format("Value for k_end (%d) is greater than n (%d)", k_end, n));
 
-        double cumProb = 0.0;
-        double prevProb;
-        BigDecimal probCache = BigDecimal.ZERO;
-
-        for (int hits = k_start; hits <= k_end; hits++) {
-            prevProb = cumProb;
-            final double probability = binomialProbability(n, hits);
-            cumProb += probability;
-            if (probability > 0 && cumProb - prevProb < probability / 2) { // loss of precision
-                probCache = probCache.add(new BigDecimal(prevProb));
-                cumProb = 0.0;
-                hits--; // repeat loop
-                // prevProb changes at start of loop
-            }
+        // Fetch cached value, if applicable.
+        final Long memoizationKey = fastGenerateUniqueHashFromThreeIntegers(n, k_start, k_end);
+        final Double memoizationCacheResult;
+        if (memoizationKey != null) {
+            memoizationCacheResult = BINOMIAL_CUMULATIVE_PROBABILITY_MEMOIZATION_CACHE.get(memoizationKey);
+        } else {
+            memoizationCacheResult = null;
         }
 
-        return probCache.add(new BigDecimal(cumProb)).doubleValue();
+        final double result;
+        if (memoizationCacheResult != null) {
+            result = memoizationCacheResult;
+        } else {
+            double cumProb = 0.0;
+            double prevProb;
+            BigDecimal probCache = BigDecimal.ZERO;
+
+            for (int hits = k_start; hits <= k_end; hits++) {
+                prevProb = cumProb;
+                final double probability = binomialProbability(n, hits);
+                cumProb += probability;
+                if (probability > 0 && cumProb - prevProb < probability / 2) { // loss of precision
+                    probCache = probCache.add(new BigDecimal(prevProb));
+                    cumProb = 0.0;
+                    hits--; // repeat loop
+                    // prevProb changes at start of loop
+                }
+            }
+
+            result = probCache.add(new BigDecimal(cumProb)).doubleValue();
+            if (memoizationKey != null) {
+                BINOMIAL_CUMULATIVE_PROBABILITY_MEMOIZATION_CACHE.put(memoizationKey, result);
+            }
+        }
+        return result;
     }
 
     /**
@@ -405,10 +501,20 @@ public class MathUtils {
      * @return
      */
     public static double log10MultinomialCoefficient(final int n, final int[] k) {
+        if ( n < 0 )
+            throw new IllegalArgumentException("n: Must have non-negative number of trials");
         double denominator = 0.0;
+        int sum = 0;
         for (int x : k) {
+            if ( x < 0 )
+                throw new IllegalArgumentException("x element of k: Must have non-negative observations of group");
+            if ( x > n )
+                throw new IllegalArgumentException("x element of k, n: Group observations must be bounded by k");
             denominator += log10Factorial(x);
+            sum += x;
         }
+        if ( sum != n )
+            throw new IllegalArgumentException("k and n: Sum of observations in multinomial must sum to total number of trials");
         return log10Factorial(n) - denominator;
     }
 
@@ -423,9 +529,11 @@ public class MathUtils {
      */
     public static double log10MultinomialProbability(final int n, final int[] k, final double[] log10p) {
         if (log10p.length != k.length)
-            throw new UserException.BadArgumentValue("p and k", "Array of log10 probabilities must have the same size as the array of number of sucesses: " + log10p.length + ", " + k.length);
+            throw new IllegalArgumentException("p and k: Array of log10 probabilities must have the same size as the array of number of sucesses: " + log10p.length + ", " + k.length);
         double log10Prod = 0.0;
         for (int i = 0; i < log10p.length; i++) {
+            if ( log10p[i] > 1e-18 )
+                throw new IllegalArgumentException("log10p: Log-probability must be <= 0");
             log10Prod += log10p[i] * k[i];
         }
         return log10MultinomialCoefficient(n, k) + log10Prod;
@@ -468,7 +576,7 @@ public class MathUtils {
      */
     public static double multinomialProbability(final int[] k, final double[] p) {
         if (p.length != k.length)
-            throw new UserException.BadArgumentValue("p and k", "Array of log10 probabilities must have the same size as the array of number of sucesses: " + p.length + ", " + k.length);
+            throw new IllegalArgumentException("p and k: Array of log10 probabilities must have the same size as the array of number of sucesses: " + p.length + ", " + k.length);
 
         int n = 0;
         double[] log10P = new double[p.length];
@@ -723,6 +831,36 @@ public class MathUtils {
         return array[minElementIndex(array)];
     }
 
+    /**
+     * Compute the min element of a List<Integer>
+     * @param array a non-empty list of integer
+     * @return the min
+     */
+    public static int arrayMin(final List<Integer> array) {
+        if ( array == null || array.isEmpty() ) throw new IllegalArgumentException("Array must be non-null and non-empty");
+        int min = array.get(0);
+        for ( final int i : array )
+            if ( i < min ) min = i;
+        return min;
+    }
+
+    /**
+     * Compute the median element of the array of integers
+     * @param array a list of integers
+     * @return the median element
+     */
+    public static int median(final List<Integer> array) {
+        if ( array == null ) throw new IllegalArgumentException("Array must be non-null");
+        final int size = array.size();
+        if ( size == 0 ) throw new IllegalArgumentException("Array cannot have size 0");
+        else if ( size == 1 ) return array.get(0);
+        else {
+            final ArrayList<Integer> sorted = new ArrayList<>(array);
+            Collections.sort(sorted);
+            return sorted.get(size / 2);
+        }
+    }
+
     public static int minElementIndex(final double[] array) {
         if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");
@@ -791,10 +929,7 @@ public class MathUtils {
                 break;
             sum += x;
             i++;
-            //System.out.printf(" %d/%d", sum, i);
         }
-
-        //System.out.printf("Sum = %d, n = %d, maxI = %d, avg = %f%n", sum, i, maxI, (1.0 * sum) / i);
 
         return (1.0 * sum) / i;
     }
@@ -1291,7 +1426,7 @@ public class MathUtils {
     }
 
     /**
-     * Compute in a numerical correct way the quanity log10(1-x)
+     * Compute in a numerical correct way the quantity log10(1-x)
      *
      * Uses the approximation log10(1-x) = log10(1/x - 1) + log10(x) to avoid very quick underflow
      * in 1-x when x is very small

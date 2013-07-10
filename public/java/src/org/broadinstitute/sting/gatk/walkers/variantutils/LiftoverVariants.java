@@ -54,7 +54,11 @@ import java.io.File;
 import java.util.*;
 
 /**
- * Lifts a VCF file over from one build to another.  Note that the resulting VCF could be mis-sorted.
+ * Lifts a VCF file over from one build to another.
+ *
+ * Important note: the resulting VCF is not guaranteed to be valid according to the official specification.  The file could
+ * possibly be mis-sorted and the header may not be complete.  LiftoverVariants is intended to be the first of two processing steps
+ * for the liftover; the second step, FilterLiftedVariants, will produce a valid well-behaved VCF file.
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class LiftoverVariants extends RodWalker<Integer, Integer> {
@@ -62,7 +66,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
     @ArgumentCollection
     protected StandardVariantContextInputArgumentCollection variantCollection = new StandardVariantContextInputArgumentCollection();
 
-    @Output(doc="File to which variants should be written")
+    @Output(doc="File to which variants should be written", required=true, defaultToStdout=false)
     protected File file = null;
     protected VariantContextWriter writer = null;
 

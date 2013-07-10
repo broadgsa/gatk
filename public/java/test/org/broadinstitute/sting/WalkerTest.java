@@ -220,7 +220,7 @@ public class WalkerTest extends BaseTest {
             String args = this.args;
             if ( includeImplicitArgs ) {
                 args = args + (ENABLE_PHONE_HOME_FOR_TESTS ?
-                        String.format(" -et %s ", GATKRunReport.PhoneHomeOption.STANDARD) :
+                        String.format(" -et %s ", GATKRunReport.PhoneHomeOption.AWS) :
                         String.format(" -et %s -K %s ", GATKRunReport.PhoneHomeOption.NO_ET, gatkKeyFile));
                 if ( includeShadowBCF && GENERATE_SHADOW_BCF )
                     args = args + " --generateShadowBCF ";
@@ -312,6 +312,10 @@ public class WalkerTest extends BaseTest {
         for (int i = 0; i < spec.nOutputFiles; i++) {
             String ext = spec.exts == null ? ".tmp" : "." + spec.exts.get(i);
             File fl = createTempFile(String.format("walktest.tmp_param.%d", i), ext);
+
+            // Mark corresponding *.idx for deletion on exit as well just in case an index is created for the temp file:
+            new File(fl.getAbsolutePath() + ".idx").deleteOnExit();
+
             tmpFiles.add(fl);
         }
 

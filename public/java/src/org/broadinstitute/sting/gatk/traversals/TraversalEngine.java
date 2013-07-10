@@ -103,15 +103,6 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     /**
      * Update the cumulative traversal metrics according to the data in this shard
      *
-     * @param shard a non-null shard
-     */
-    public void updateCumulativeMetrics(final Shard shard) {
-        updateCumulativeMetrics(shard.getReadMetrics());
-    }
-
-    /**
-     * Update the cumulative traversal metrics according to the data in this shard
-     *
      * @param singleTraverseMetrics read metrics object containing the information about a single shard's worth
      *                              of data processing
      */

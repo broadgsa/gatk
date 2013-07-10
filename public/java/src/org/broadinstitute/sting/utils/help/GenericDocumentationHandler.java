@@ -68,7 +68,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     @Override
     public boolean includeInDocs(ClassDoc doc) {
         try {
-            Class type = HelpUtils.getClassForDoc(doc);
+            Class type = DocletUtils.getClassForDoc(doc);
             boolean hidden = !getDoclet().showHiddenFeatures() && type.isAnnotationPresent(Hidden.class);
             return !hidden && JVMUtils.isConcrete(type);
         } catch (ClassNotFoundException e) {
@@ -157,7 +157,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         root.put("arguments", args);
         try {
             // loop over all of the arguments according to the parsing engine
-            for (final ArgumentSource argumentSource : parsingEngine.extractArgumentSources(HelpUtils.getClassForDoc(toProcess.classDoc))) {
+            for (final ArgumentSource argumentSource : parsingEngine.extractArgumentSources(DocletUtils.getClassForDoc(toProcess.classDoc))) {
                 // todo -- why can you have multiple ones?
                 ArgumentDefinition argDef = argumentSource.createArgumentDefinitions().get(0);
                 FieldDoc fieldDoc = getFieldDoc(toProcess.classDoc, argumentSource.field.getName());
@@ -663,7 +663,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             if (fieldDoc.name().equals(name))
                 return fieldDoc;
 
-            Field field = HelpUtils.getFieldForFieldDoc(fieldDoc);
+            Field field = DocletUtils.getFieldForFieldDoc(fieldDoc);
             if (field == null)
                 throw new RuntimeException("Could not find the field corresponding to " + fieldDoc + ", presumably because the field is inaccessible");
             if (field.isAnnotationPresent(ArgumentCollection.class)) {

@@ -35,6 +35,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Stack;
 import java.util.Vector;
 
@@ -193,9 +194,17 @@ public class ClippingOp {
             unclippedCigar.add(new CigarElement(matchesCount, CigarOperator.MATCH_OR_MISMATCH));
 
         unclipped.setCigar(unclippedCigar);
-        unclipped.setAlignmentStart(read.getAlignmentStart() + calculateAlignmentStartShift(read.getCigar(), unclippedCigar));
+        final int newStart = read.getAlignmentStart() + calculateAlignmentStartShift(read.getCigar(), unclippedCigar);
+        unclipped.setAlignmentStart(newStart);
 
-        return unclipped;
+        if ( newStart <= 0 ) {
+            // if the start of the unclipped read occurs before the contig,
+            // we must hard clip away the bases since we cannot represent reads with
+            // negative or 0 alignment start values in the SAMRecord (e.g., 0 means unaligned)
+            return hardClip(unclipped, 0, - newStart);
+        } else {
+            return unclipped;
+        }
     }
 
     /**
@@ -334,14 +343,30 @@ public class ClippingOp {
         return newCigar;
     }
 
-    @Requires({"start <= stop", "start == 0 || stop == read.getReadLength() - 1"})
+    /**
+     * Hard clip bases from read, from start to stop in base coordinates
+     *
+     * If start == 0, then we will clip from the front of the read, otherwise we clip
+     * from the right.  If start == 0 and stop == 10, this would clip out the first
+     * 10 bases of the read.
+     *
+     * Note that this function works with reads with negative alignment starts, in order to
+     * allow us to hardClip reads that have had their soft clips reverted and so might have
+     * negative alignment starts
+     *
+     * Works properly with reduced reads and insertion/deletion base qualities
+     *
+     * @param read a non-null read
+     * @param start a start >= 0 and < read.length
+     * @param stop a stop >= 0 and < read.length.
+     * @return a cloned version of read that has been properly trimmed down
+     */
     private GATKSAMRecord hardClip(GATKSAMRecord read, int start, int stop) {
         final int firstBaseAfterSoftClips = read.getAlignmentStart() - read.getSoftStart();
         final int lastBaseBeforeSoftClips = read.getSoftEnd() - read.getSoftStart();
 
         if (start == firstBaseAfterSoftClips && stop == lastBaseBeforeSoftClips)                                        // note that if the read has no soft clips, these constants will be 0 and read length - 1 (beauty of math).
             return GATKSAMRecord.emptyRead(read);
-
 
         // If the read is unmapped there is no Cigar string and neither should we create a new cigar string
         CigarShift cigarShift = (read.getReadUnmappedFlag()) ? new CigarShift(new Cigar(), 0, 0) : hardClipCigar(read.getCigar(), start, stop);
@@ -356,7 +381,7 @@ public class ClippingOp {
         System.arraycopy(read.getReadBases(), copyStart, newBases, 0, newLength);
         System.arraycopy(read.getBaseQualities(), copyStart, newQuals, 0, newLength);
 
-        GATKSAMRecord hardClippedRead;
+        final GATKSAMRecord hardClippedRead;
         try {
             hardClippedRead = (GATKSAMRecord) read.clone();
         } catch (CloneNotSupportedException e) {
@@ -559,26 +584,34 @@ public class ClippingOp {
         return new CigarShift(cleanCigar, shiftFromStart, shiftFromEnd);
     }
 
+    /**
+     * Compute the offset of the first "real" position in the cigar on the genome
+     *
+     * This is defined as a first position after a run of Hs followed by a run of Ss
+     *
+     * @param cigar A non-null cigar
+     * @return the offset (from 0) of the first on-genome base
+     */
+    private int calcHardSoftOffset(final Cigar cigar) {
+        final List<CigarElement> elements = cigar.getCigarElements();
+
+        int size = 0;
+        int i = 0;
+        while ( i < elements.size() && elements.get(i).getOperator() == CigarOperator.HARD_CLIP ) {
+            size += elements.get(i).getLength();
+            i++;
+        }
+        while ( i < elements.size() && elements.get(i).getOperator() == CigarOperator.SOFT_CLIP ) {
+            size += elements.get(i).getLength();
+            i++;
+        }
+
+        return size;
+    }
+
     private int calculateAlignmentStartShift(Cigar oldCigar, Cigar newCigar) {
-        int newShift = 0;
-        int oldShift = 0;
-
-        boolean readHasStarted = false;  // if the new cigar is composed of S and H only, we have to traverse the entire old cigar to calculate the shift
-        for (CigarElement cigarElement : newCigar.getCigarElements()) {
-            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP || cigarElement.getOperator() == CigarOperator.SOFT_CLIP)
-                newShift += cigarElement.getLength();
-            else {
-                readHasStarted = true;
-                break;
-            }
-        }
-
-        for (CigarElement cigarElement : oldCigar.getCigarElements()) {
-            if (cigarElement.getOperator() == CigarOperator.HARD_CLIP || cigarElement.getOperator() == CigarOperator.SOFT_CLIP)
-                oldShift += cigarElement.getLength();
-            else if (readHasStarted)
-                break;
-        }
+        final int newShift = calcHardSoftOffset(newCigar);
+        final int oldShift = calcHardSoftOffset(oldCigar);
         return newShift - oldShift;
     }
 

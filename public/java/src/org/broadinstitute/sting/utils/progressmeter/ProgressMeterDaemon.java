@@ -100,6 +100,7 @@ public final class ProgressMeterDaemon extends Thread {
     public void run() {
         while (! done) {
             meter.printProgress(false);
+            meter.updateElapsedTimeInNanoseconds();
             try {
                 Thread.sleep(getPollFrequencyMilliseconds());
             } catch (InterruptedException e) {

@@ -46,16 +46,17 @@ import java.util.List;
  * Date: 9/28/11
  */
 public class ReadClipperUnitTest extends BaseTest {
+    private final static boolean DEBUG = false;
 
     List<Cigar> cigarList;
-    int maximumCigarSize = 6;                                                                                           // 6 is the minimum necessary number to try all combinations of cigar types with guarantee of clipping an element with length = 2
+    int maximumCigarSize = 10;                                                                                           // 6 is the minimum necessary number to try all combinations of cigar types with guarantee of clipping an element with length = 2
 
     @BeforeClass
     public void init() {
         cigarList = ReadClipperTestUtils.generateCigarList(maximumCigarSize);
     }
 
-    @Test(enabled = true)
+    @Test(enabled = !DEBUG)
     public void testHardClipBothEndsByReferenceCoordinates() {
         for (Cigar cigar : cigarList) {
             GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
@@ -71,7 +72,7 @@ public class ReadClipperUnitTest extends BaseTest {
         }
     }
 
-    @Test(enabled = true)
+    @Test(enabled = !DEBUG)
     public void testHardClipByReadCoordinates() {
         for (Cigar cigar : cigarList) {
             GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
@@ -101,7 +102,7 @@ public class ReadClipperUnitTest extends BaseTest {
         return tests.toArray(new Object[][]{});
     }
 
-    @Test(dataProvider = "ClippedReadLengthData", enabled = true)
+    @Test(dataProvider = "ClippedReadLengthData", enabled = !DEBUG)
     public void testHardClipReadLengthIsRight(final int originalReadLength, final int nToClip) {
         GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(originalReadLength + "M");
         read.getReadLength(); // provoke the caching of the read length
@@ -112,7 +113,7 @@ public class ReadClipperUnitTest extends BaseTest {
                         clipped.getReadLength(), clipped.getCigar(), expectedReadLength, nToClip, read.getReadLength(), read.getCigar()));
     }
 
-    @Test(enabled = true)
+    @Test(enabled = !DEBUG)
     public void testHardClipByReferenceCoordinates() {
         for (Cigar cigar : cigarList) {
             GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
@@ -135,7 +136,7 @@ public class ReadClipperUnitTest extends BaseTest {
         }
     }
 
-    @Test(enabled = true)
+    @Test(enabled = !DEBUG)
     public void testHardClipByReferenceCoordinatesLeftTail() {
         for (Cigar cigar : cigarList) {
             GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
@@ -154,7 +155,7 @@ public class ReadClipperUnitTest extends BaseTest {
         }
     }
 
-    @Test(enabled = true)
+    @Test(enabled = !DEBUG)
     public void testHardClipByReferenceCoordinatesRightTail() {
         for (Cigar cigar : cigarList) {
             GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
@@ -172,7 +173,7 @@ public class ReadClipperUnitTest extends BaseTest {
         }
     }
 
-    @Test(enabled = true)
+    @Test(enabled = !DEBUG)
     public void testHardClipLowQualEnds() {
         final byte LOW_QUAL = 2;
         final byte HIGH_QUAL = 30;
@@ -216,7 +217,7 @@ public class ReadClipperUnitTest extends BaseTest {
         }
     }
 
-    @Test(enabled = true)
+    @Test(enabled = !DEBUG)
     public void testHardClipSoftClippedBases() {
         for (Cigar cigar : cigarList) {
             GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
@@ -251,7 +252,7 @@ public class ReadClipperUnitTest extends BaseTest {
         }
     }
 
-    @Test(enabled = true)
+    @Test(enabled = !DEBUG)
     public void testRevertSoftClippedBases() {
         for (Cigar cigar : cigarList) {
             final int leadingSoftClips = leadingCigarElementLength(cigar, CigarOperator.SOFT_CLIP);
@@ -273,7 +274,7 @@ public class ReadClipperUnitTest extends BaseTest {
         }
     }
 
-    @Test(enabled = true)
+    @Test(enabled = !DEBUG)
     public void testRevertSoftClippedBasesWithThreshold() {
         for (Cigar cigar : cigarList) {
             final int leadingSoftClips = leadingCigarElementLength(cigar, CigarOperator.SOFT_CLIP);
@@ -292,6 +293,40 @@ public class ReadClipperUnitTest extends BaseTest {
         }
     }
 
+    @DataProvider(name = "RevertSoftClipsBeforeContig")
+    public Object[][] makeRevertSoftClipsBeforeContig() {
+        List<Object[]> tests = new ArrayList<>();
+
+        // this functionality can be adapted to provide input data for whatever you might want in your data
+        for ( int softStart : Arrays.asList(-10, -1, 0) ) {
+            for ( int alignmentStart : Arrays.asList(1, 10) ) {
+                tests.add(new Object[]{softStart, alignmentStart});
+            }
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(enabled = true, dataProvider = "RevertSoftClipsBeforeContig")
+    public void testRevertSoftClippedBasesBeforeStartOfContig(final int softStart, final int alignmentStart) {
+        final int nMatches = 10;
+        final int nSoft = -1 * (softStart - alignmentStart);
+        final String cigar = nSoft + "S" + nMatches + "M";
+        final GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar(cigar);
+        read.setAlignmentStart(alignmentStart);
+
+        Assert.assertEquals(read.getSoftStart(), softStart);
+        Assert.assertEquals(read.getAlignmentStart(), alignmentStart);
+        Assert.assertEquals(read.getCigarString(), cigar);
+
+        final GATKSAMRecord reverted = ReadClipper.revertSoftClippedBases(read);
+
+        final int expectedAlignmentStart = 1;
+        final String expectedCigar = (1 - softStart) + "H" + read.getAlignmentEnd() + "M";
+        Assert.assertEquals(reverted.getSoftStart(), expectedAlignmentStart);
+        Assert.assertEquals(reverted.getAlignmentStart(), expectedAlignmentStart);
+        Assert.assertEquals(reverted.getCigarString(), expectedCigar);
+    }
 
     private void assertNoLowQualBases(GATKSAMRecord read, byte low_qual) {
         if (!read.isEmpty()) {
@@ -375,7 +410,7 @@ public class ReadClipperUnitTest extends BaseTest {
 
     }
 
-    @Test(enabled = true)
+    @Test(enabled = !DEBUG)
     public void testHardClipReducedRead() {
         GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar("10M");
         final int[] counts = new int[read.getReadLength()];
@@ -389,6 +424,13 @@ public class ReadClipperUnitTest extends BaseTest {
             final int[] expectedReducedCounts = Arrays.copyOfRange(counts, i + 1, readLength - i - 1);
             Assert.assertEquals(clippedRead.getReducedReadCounts(), expectedReducedCounts);
         }
+    }
+
+    @Test(enabled = !DEBUG)
+    public void testRevertEntirelySoftclippedReads() {
+        GATKSAMRecord read = ReadClipperTestUtils.makeReadFromCigar("2H1S3H");
+        GATKSAMRecord clippedRead = ReadClipper.revertSoftClippedBases(read);
+        Assert.assertEquals(clippedRead.getAlignmentStart(), read.getSoftStart());
     }
 
 }

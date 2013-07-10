@@ -66,6 +66,8 @@ public class ReadUtilsUnitTest extends BaseTest {
         final byte[] quals = {30, 30, 30, 30, 30, 30, 30, 30};
         final String cigar = "8M";
         GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(bases, quals, cigar);
+        read.setProperPairFlag(true);
+        read.setReadPairedFlag(true);
         read.setMateAlignmentStart(mateStart);
         read.setInferredInsertSize(fragmentSize);
         return read;
@@ -85,6 +87,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         myStart = BEFORE;
         read.setAlignmentStart(myStart);
         read.setReadNegativeStrandFlag(false);
+        read.setMateNegativeStrandFlag(true);
         boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, myStart + fragmentSize + 1);
 
@@ -93,6 +96,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         myStart = AFTER;
         read.setAlignmentStart(myStart);
         read.setReadNegativeStrandFlag(false);
+        read.setMateNegativeStrandFlag(true);
         boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, myStart + fragmentSize + 1);
 
@@ -101,6 +105,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         myStart = AFTER;
         read.setAlignmentStart(myStart);
         read.setReadNegativeStrandFlag(true);
+        read.setMateNegativeStrandFlag(false);
         boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, mateStart - 1);
 
@@ -109,6 +114,7 @@ public class ReadUtilsUnitTest extends BaseTest {
         myStart = BEFORE;
         read.setAlignmentStart(myStart);
         read.setReadNegativeStrandFlag(true);
+        read.setMateNegativeStrandFlag(false);
         boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, mateStart - 1);
 
@@ -116,9 +122,11 @@ public class ReadUtilsUnitTest extends BaseTest {
         read = makeRead(fragmentSize, mateStart);
         read.setInferredInsertSize(0);
         read.setReadNegativeStrandFlag(true);
+        read.setMateNegativeStrandFlag(false);
         boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
         read.setReadNegativeStrandFlag(false);
+        read.setMateNegativeStrandFlag(true);
         boundary = get.getAdaptor(read);
         Assert.assertEquals(boundary, ReadUtils.CANNOT_COMPUTE_ADAPTOR_BOUNDARY);
         read.setInferredInsertSize(10);
@@ -225,5 +233,92 @@ public class ReadUtilsUnitTest extends BaseTest {
 
         final int result = ReadUtils.getReadCoordinateForReferenceCoordinateUpToEndOfRead(read, 9392, ReadUtils.ClippingTail.LEFT_TAIL);
         Assert.assertEquals(result, 3);
+    }
+
+    @DataProvider(name = "HasWellDefinedFragmentSizeData")
+    public Object[][] makeHasWellDefinedFragmentSizeData() throws Exception {
+        final List<Object[]> tests = new LinkedList<Object[]>();
+
+        // setup a basic read that will work
+        final SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader();
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read1", 0, 10, 10);
+        read.setReadPairedFlag(true);
+        read.setProperPairFlag(true);
+        read.setReadUnmappedFlag(false);
+        read.setMateUnmappedFlag(false);
+        read.setAlignmentStart(100);
+        read.setCigarString("50M");
+        read.setMateAlignmentStart(130);
+        read.setInferredInsertSize(80);
+        read.setFirstOfPairFlag(true);
+        read.setReadNegativeStrandFlag(false);
+        read.setMateNegativeStrandFlag(true);
+
+        tests.add( new Object[]{ "basic case", read.clone(), true });
+
+        {
+            final GATKSAMRecord bad1 = (GATKSAMRecord)read.clone();
+            bad1.setReadPairedFlag(false);
+            tests.add( new Object[]{ "not paired", bad1, false });
+        }
+
+        {
+            final GATKSAMRecord bad = (GATKSAMRecord)read.clone();
+            bad.setProperPairFlag(false);
+            // we currently don't require the proper pair flag to be set
+            tests.add( new Object[]{ "not proper pair", bad, true });
+//            tests.add( new Object[]{ "not proper pair", bad, false });
+        }
+
+        {
+            final GATKSAMRecord bad = (GATKSAMRecord)read.clone();
+            bad.setReadUnmappedFlag(true);
+            tests.add( new Object[]{ "read is unmapped", bad, false });
+        }
+
+        {
+            final GATKSAMRecord bad = (GATKSAMRecord)read.clone();
+            bad.setMateUnmappedFlag(true);
+            tests.add( new Object[]{ "mate is unmapped", bad, false });
+        }
+
+        {
+            final GATKSAMRecord bad = (GATKSAMRecord)read.clone();
+            bad.setMateNegativeStrandFlag(false);
+            tests.add( new Object[]{ "read and mate both on positive strand", bad, false });
+        }
+
+        {
+            final GATKSAMRecord bad = (GATKSAMRecord)read.clone();
+            bad.setReadNegativeStrandFlag(true);
+            tests.add( new Object[]{ "read and mate both on negative strand", bad, false });
+        }
+
+        {
+            final GATKSAMRecord bad = (GATKSAMRecord)read.clone();
+            bad.setInferredInsertSize(0);
+            tests.add( new Object[]{ "insert size is 0", bad, false });
+        }
+
+        {
+            final GATKSAMRecord bad = (GATKSAMRecord)read.clone();
+            bad.setAlignmentStart(1000);
+            tests.add( new Object[]{ "positve read starts after mate end", bad, false });
+        }
+
+        {
+            final GATKSAMRecord bad = (GATKSAMRecord)read.clone();
+            bad.setReadNegativeStrandFlag(true);
+            bad.setMateNegativeStrandFlag(false);
+            bad.setMateAlignmentStart(1000);
+            tests.add( new Object[]{ "negative strand read ends before mate starts", bad, false });
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "HasWellDefinedFragmentSizeData")
+    private void testHasWellDefinedFragmentSize(final String name, final GATKSAMRecord read, final boolean expected) {
+        Assert.assertEquals(ReadUtils.hasWellDefinedFragmentSize(read), expected);
     }
 }

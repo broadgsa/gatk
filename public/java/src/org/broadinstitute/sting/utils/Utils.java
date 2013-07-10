@@ -684,6 +684,36 @@ public class Utils {
     }
 
     /**
+     * Adds element from an array into a collection.
+     *
+     * In the event of exception being throw due to some element, <code>dest</code> might have been modified by
+     * the successful addition of element before that one.
+     *
+     * @param dest the destination collection which cannot be <code>null</code> and should be able to accept
+     *             the input elements.
+     * @param elements the element to add to <code>dest</code>
+     * @param <T>  collection type element.
+     * @throws UnsupportedOperationException if the <tt>add</tt> operation
+     *         is not supported by <code>dest</code>.
+     * @throws ClassCastException if the class of any of the elements
+     *         prevents it from being added to <code>dest</code>.
+     * @throws NullPointerException if any of the elements is <code>null</code> and <code>dest</code>
+     *         does not permit <code>null</code> elements
+     * @throws IllegalArgumentException if some property of any of the elements
+     *         prevents it from being added to this collection
+     * @throws IllegalStateException if any of the elements cannot be added at this
+     *         time due to insertion restrictions.
+     * @return <code>true</code> if the collection was modified as a result.
+     */
+    public static <T> boolean addAll(Collection<T> dest, T ... elements) {
+        boolean result = false;
+        for (final T e : elements) {
+            result = dest.add(e) | result;
+        }
+        return result;
+    }
+
+    /**
      * Create a constant map that maps each value in values to itself
      */
     public static <T> Map<T, T> makeIdentityFunctionMap(Collection<T> values) {

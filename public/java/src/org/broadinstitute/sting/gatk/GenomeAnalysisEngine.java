@@ -60,6 +60,7 @@ import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
+import org.broadinstitute.sting.utils.progressmeter.ProgressMeter;
 import org.broadinstitute.sting.utils.recalibration.BQSRArgumentSet;
 import org.broadinstitute.sting.utils.threading.ThreadEfficiencyMonitor;
 
@@ -170,6 +171,14 @@ public class GenomeAnalysisEngine {
     }
 
     /**
+     * The short name of the current GATK walker as a string
+     * @return a non-null String
+     */
+    public String getWalkerName() {
+        return getWalkerName(walker.getClass());
+    }
+
+    /**
      * A processed collection of SAM reader identifiers.
      */
     private Collection<SAMReaderID> samReaderIDs = Collections.emptyList();
@@ -195,12 +204,23 @@ public class GenomeAnalysisEngine {
     private ThreadEfficiencyMonitor threadEfficiencyMonitor = null;
 
     /**
+     * The global progress meter we are using to track our progress through the genome
+     */
+    private ProgressMeter progressMeter = null;
+
+    /**
      * Set the reference metadata files to use for this traversal.
      * @param referenceMetaDataFiles Collection of files and descriptors over which to traverse.
      */
     public void setReferenceMetaDataFiles(Collection<RMDTriplet> referenceMetaDataFiles) {
         this.referenceMetaDataFiles = referenceMetaDataFiles;
     }
+
+    /**
+     * The maximum runtime of this engine, in nanoseconds, set during engine initialization
+     * from the GATKArgumentCollection command line value
+     */
+    private long runtimeLimitInNanoseconds = -1;
 
     /**
      *  Static random number generator and seed.
@@ -252,6 +272,9 @@ public class GenomeAnalysisEngine {
         if (args.BQSR_RECAL_FILE != null)
             setBaseRecalibration(args);
 
+        // setup the runtime limits
+        setupRuntimeLimits(args);
+
         // Determine how the threads should be divided between CPU vs. IO.
         determineThreadAllocation();
 
@@ -278,9 +301,11 @@ public class GenomeAnalysisEngine {
         // create the output streams
         initializeOutputStreams(microScheduler.getOutputTracker());
 
-        logger.info("Creating shard strategy for " + readsDataSource.getReaderIDs().size() + " BAM files");
+        // Initializing the shard iterator / BAM schedule might take some time, so let the user know vaguely what's going on
+        logger.info("Preparing for traversal" +
+                    (readsDataSource.getReaderIDs().size() > 0 ? String.format(" over %d BAM files", readsDataSource.getReaderIDs().size()) : ""));
         Iterable<Shard> shardStrategy = getShardStrategy(readsDataSource,microScheduler.getReference(),intervals);
-        logger.info("Done creating shard strategy");
+        logger.info("Done preparing for traversal");
 
         // execute the microscheduler, storing the results
         return microScheduler.execute(this.walker, shardStrategy);
@@ -327,11 +352,18 @@ public class GenomeAnalysisEngine {
      * @return A collection of available filters.
      */
     public Collection<ReadFilter> createFilters() {
-        final List<ReadFilter> filters = WalkerManager.getReadFilters(walker,this.getFilterManager());
+        final List<ReadFilter> filters = new LinkedList<>();
+
+        // First add the user requested filters
         if (this.getArguments().readGroupBlackList != null && this.getArguments().readGroupBlackList.size() > 0)
             filters.add(new ReadGroupBlackListFilter(this.getArguments().readGroupBlackList));
         for(final String filterName: this.getArguments().readFilters)
             filters.add(this.getFilterManager().createByName(filterName));
+
+        // now add the walker default filters.  This ordering is critical important if
+        // users need to apply filters that fix up reads that would be removed by default walker filters
+        filters.addAll(WalkerManager.getReadFilters(walker,this.getFilterManager()));
+
         return Collections.unmodifiableList(filters);
     }
 
@@ -448,9 +480,8 @@ public class GenomeAnalysisEngine {
 
         DownsamplingMethod commandLineMethod = argCollection.getDownsamplingMethod();
         DownsamplingMethod walkerMethod = WalkerManager.getDownsamplingMethod(walker);
-        DownsamplingMethod defaultMethod = DownsamplingMethod.getDefaultDownsamplingMethod(walker);
 
-        DownsamplingMethod method = commandLineMethod != null ? commandLineMethod : (walkerMethod != null ? walkerMethod : defaultMethod);
+        DownsamplingMethod method = commandLineMethod != null ? commandLineMethod : walkerMethod;
         method.checkCompatibilityWithWalker(walker);
         return method;
     }
@@ -1067,22 +1098,52 @@ public class GenomeAnalysisEngine {
         return CommandLineUtils.createApproximateCommandLineArgumentString(parsingEngine,argumentProviders);
     }
 
+    // -------------------------------------------------------------------------------------
+    //
+    // code for working with progress meter
+    //
+    // -------------------------------------------------------------------------------------
+
+    /**
+     * Register the global progress meter with this engine
+     *
+     * Calling this function more than once will result in an IllegalStateException
+     *
+     * @param meter a non-null progress meter
+     */
+    public void registerProgressMeter(final ProgressMeter meter) {
+        if ( meter == null ) throw new IllegalArgumentException("Meter cannot be null");
+        if ( progressMeter != null ) throw new IllegalStateException("Progress meter already set");
+
+        progressMeter = meter;
+    }
+
+    /**
+     * Get the progress meter being used by this engine.  May be null if no meter has been registered yet
+     * @return a potentially null pointer to the progress meter
+     */
+    public ProgressMeter getProgressMeter() {
+        return progressMeter;
+    }
+
     /**
      * Does the current runtime in unit exceed the runtime limit, if one has been provided?
      *
-     * @param runtime the runtime of this GATK instance in minutes
-     * @param unit the time unit of runtime
      * @return false if not limit was requested or if runtime <= the limit, true otherwise
      */
-    public boolean exceedsRuntimeLimit(final long runtime, final TimeUnit unit) {
+    public boolean exceedsRuntimeLimit() {
+        if ( progressMeter == null )
+            // not yet initialized or not set because of testing
+            return false;
+
+        final long runtime = progressMeter.getRuntimeInNanosecondsUpdatedPeriodically();
         if ( runtime < 0 ) throw new IllegalArgumentException("runtime must be >= 0 but got " + runtime);
 
         if ( getArguments().maxRuntime == NO_RUNTIME_LIMIT )
             return false;
         else {
-            final long actualRuntimeNano = TimeUnit.NANOSECONDS.convert(runtime, unit);
             final long maxRuntimeNano = getRuntimeLimitInNanoseconds();
-            return actualRuntimeNano > maxRuntimeNano;
+            return runtime > maxRuntimeNano;
         }
     }
 
@@ -1090,9 +1151,22 @@ public class GenomeAnalysisEngine {
      * @return the runtime limit in nanoseconds, or -1 if no limit was specified
      */
     public long getRuntimeLimitInNanoseconds() {
-        if ( getArguments().maxRuntime == NO_RUNTIME_LIMIT )
-            return -1;
-        else
-            return TimeUnit.NANOSECONDS.convert(getArguments().maxRuntime, getArguments().maxRuntimeUnits);
+        return runtimeLimitInNanoseconds;
+    }
+
+    /**
+     * Setup the runtime limits for this engine, updating the runtimeLimitInNanoseconds
+     * as appropriate
+     *
+     * @param args the GATKArgumentCollection to retrieve our runtime limits from
+     */
+    private void setupRuntimeLimits(final GATKArgumentCollection args) {
+        if ( args.maxRuntime == NO_RUNTIME_LIMIT )
+            runtimeLimitInNanoseconds = -1;
+        else if (args.maxRuntime < 0 )
+            throw new UserException.BadArgumentValue("maxRuntime", "must be >= 0 or == -1 (meaning no limit) but received negative value " + args.maxRuntime);
+        else {
+            runtimeLimitInNanoseconds = TimeUnit.NANOSECONDS.convert(args.maxRuntime, args.maxRuntimeUnits);
+        }
     }
 }

@@ -30,7 +30,9 @@ import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
 import org.broadinstitute.sting.BaseTest
 
 class ExampleRetryMemoryLimitPipelineTest {
-  @Test(timeOut=36000000)
+
+  // This test is currently disabled due to unexplained intermittent failures (see GSA-943)
+  @Test(timeOut=36000000,enabled = false)
   def testRetryMemoryLimit() {
     val spec = new PipelineTestSpec
     spec.name = "RetryMemoryLimit"

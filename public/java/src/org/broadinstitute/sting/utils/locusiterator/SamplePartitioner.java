@@ -164,8 +164,8 @@ class SamplePartitioner<T extends SAMRecord> {
     @Ensures("doneSubmittingReads == false")
     public void reset() {
         for ( final Downsampler<T> downsampler : readsBySample.values() ) {
-            downsampler.clear();
-            downsampler.reset();
+            downsampler.clearItems();
+            downsampler.resetStats();
         }
         doneSubmittingReads = false;
     }

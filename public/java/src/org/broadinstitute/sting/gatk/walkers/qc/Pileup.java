@@ -26,10 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
 import org.broad.tribble.Feature;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.RodBinding;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -96,6 +93,10 @@ public class Pileup extends LocusWalker<String, Integer> implements TreeReducibl
     @Input(fullName="metadata",shortName="metadata",doc="Add these ROD bindings to the output Pileup", required=false)
     public List<RodBinding<Feature>> rods = Collections.emptyList();
 
+    @Hidden
+    @Argument(fullName="outputInsertLength",shortName = "outputInsertLength",doc="Add a column which contains the length of the insert each base comes from.",required=false)
+    public boolean outputInsertLength=false;
+
     @Override
     public String map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         final String rods = getReferenceOrderedData( tracker );
@@ -104,6 +105,8 @@ public class Pileup extends LocusWalker<String, Integer> implements TreeReducibl
 
         final StringBuilder s = new StringBuilder();
         s.append(String.format("%s %s", basePileup.getPileupString((char)ref.getBase()), rods));
+        if ( outputInsertLength )
+            s.append(" ").append(insertLengthOutput(basePileup));
         if ( SHOW_VERBOSE )
             s.append(" ").append(createVerboseOutput(basePileup));
         s.append("\n");
@@ -143,6 +146,18 @@ public class Pileup extends LocusWalker<String, Integer> implements TreeReducibl
 
         return rodString;
     }
+    private static String insertLengthOutput(final ReadBackedPileup pileup) {
+
+        Integer[] insertSizes=new Integer[pileup.depthOfCoverage()];
+
+        int i=0;
+        for ( PileupElement p : pileup ) {
+            insertSizes[i]=p.getRead().getInferredInsertSize();
+            ++i;
+        }
+        return Utils.join(",",insertSizes);
+    }
+
 
     private static String createVerboseOutput(final ReadBackedPileup pileup) {
         final StringBuilder sb = new StringBuilder();

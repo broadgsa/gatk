@@ -69,8 +69,8 @@ public class GATKArgumentCollection {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate? STANDARD is the default, can be NO_ET so nothing is posted to the run repository. Please see " + UserException.PHONE_HOME_DOCS_URL + " for details.", required = false)
-    public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.STANDARD;
+    @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate? AWS is the default, can be NO_ET so nothing is posted to the run repository. Please see " + UserException.PHONE_HOME_DOCS_URL + " for details.", required = false)
+    public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.AWS;
 
     @Argument(fullName = "gatk_key", shortName = "K", doc="GATK Key file. Required if running with -et NO_ET. Please see " + UserException.PHONE_HOME_DOCS_URL + " for details.", required = false)
     public File gatkKeyFile = null;
@@ -125,7 +125,16 @@ public class GATKArgumentCollection {
     @Argument(fullName = "downsample_to_fraction", shortName = "dfrac", doc = "Fraction [0.0-1.0] of reads to downsample to", required = false)
     public Double downsampleFraction = null;
 
-    @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to at any given locus; note that downsampled reads are randomly selected from all possible reads at a locus. For non-locus-based traversals (eg., ReadWalkers), this sets the maximum number of reads at each alignment start position.", required = false)
+    @Argument(fullName = "downsample_to_coverage", shortName = "dcov",
+              doc = "Coverage [integer] to downsample to. For locus-based traversals (eg., LocusWalkers and ActiveRegionWalkers)," +
+                    "this controls the maximum depth of coverage at each locus. For non-locus-based traversals (eg., ReadWalkers), " +
+                    "this controls the maximum number of reads sharing the same alignment start position. Note that this downsampling " +
+                    "option does NOT produce an unbiased random sampling from all available reads at each locus: instead, the primary goal of " +
+                    "the to-coverage downsampler is to maintain an even representation of reads from all alignment start positions " +
+                    "when removing excess coverage. For a true across-the-board unbiased random sampling of reads, use -dfrac instead. " +
+                    "Also note that the coverage target is an approximate goal that is not guaranteed to be met exactly: the downsampling " +
+                    "algorithm will under some circumstances retain slightly more coverage than requested.",
+              required = false)
     public Integer downsampleCoverage = null;
 
     /**
@@ -180,6 +189,12 @@ public class GATKArgumentCollection {
     @Argument(fullName = "allow_potentially_misencoded_quality_scores", shortName="allowPotentiallyMisencodedQuals", doc="Do not fail when encountering base qualities that are too high and that seemingly indicate a problem with the base quality encoding of the BAM file", required = false)
     public boolean ALLOW_POTENTIALLY_MISENCODED_QUALS = false;
 
+    @Argument(fullName="useOriginalQualities", shortName = "OQ", doc = "If set, use the original base quality scores from the OQ tag when present instead of the standard scores", required=false)
+    public Boolean useOriginalBaseQualities = false;
+
+    @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
+    public byte defaultBaseQualities = -1;
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // performance log arguments
@@ -193,9 +208,6 @@ public class GATKArgumentCollection {
      */
     @Argument(fullName = "performanceLog", shortName="PF", doc="If provided, a GATK runtime performance log will be written to this file", required = false)
     public File performanceLog = null;
-
-    @Argument(fullName="useOriginalQualities", shortName = "OQ", doc = "If set, use the original base quality scores from the OQ tag when present instead of the standard scores", required=false)
-    public Boolean useOriginalBaseQualities = false;
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -259,9 +271,6 @@ public class GATKArgumentCollection {
     // Other utility arguments
     //
     // --------------------------------------------------------------------------------------------------------------
-
-    @Argument(fullName="defaultBaseQualities", shortName = "DBQ", doc = "If reads are missing some or all base quality scores, this value will be used for all base quality scores", required=false)
-    public byte defaultBaseQualities = -1;
 
     @Argument(fullName = "validation_strictness", shortName = "S", doc = "How strict should we be with validation", required = false)
     public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;

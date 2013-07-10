@@ -32,6 +32,7 @@ import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.reads.*;
+import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.resourcemanagement.ThreadAllocation;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.qc.CountReads;
@@ -47,6 +48,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.testng.Assert.fail;
@@ -146,18 +148,18 @@ public class TraverseReadsUnitTest extends BaseTest {
                 fail("Shard == null");
             }
 
-            ReadShardDataProvider dataProvider = new ReadShardDataProvider(shard,genomeLocParser,dataSource.seek(shard),null,null);
+            ReadShardDataProvider dataProvider = new ReadShardDataProvider(shard,genomeLocParser,dataSource.seek(shard),null, Collections.<ReferenceOrderedDataSource>emptyList());
             accumulator = traversalEngine.traverse(countReadWalker, dataProvider, accumulator);
             dataProvider.close();
         }
 
         countReadWalker.onTraversalDone(accumulator);
 
-        if (!(accumulator instanceof Integer)) {
-            fail("Count read walker should return an interger.");
+        if (!(accumulator instanceof Long)) {
+            fail("Count read walker should return a Long.");
         }
-        if (((Integer) accumulator) != 10000) {
-            fail("there should be 10000 mapped reads in the index file, there was " + ((Integer) accumulator));
+        if (!accumulator.equals(new Long(10000))) {
+            fail("there should be 10000 mapped reads in the index file, there was " + (accumulator));
         }
     }
 

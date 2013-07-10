@@ -177,7 +177,9 @@ public class ReadShardBalancer extends ShardBalancer {
                 currentContigFilePointer = null;
                 List<FilePointer> nextContigFilePointers = new ArrayList<FilePointer>();
 
-                logger.info("Loading BAM index data for next contig");
+                if ( filePointers.hasNext() ) {
+                    logger.info("Loading BAM index data");
+                }
 
                 while ( filePointers.hasNext() ) {
 
@@ -215,8 +217,8 @@ public class ReadShardBalancer extends ShardBalancer {
                 }
 
                 if ( currentContigFilePointer != null ) {
-                    logger.info("Done loading BAM index data for next contig");
-                    logger.debug(String.format("Next contig FilePointer: %s", currentContigFilePointer));
+                    logger.info("Done loading BAM index data");
+                    logger.debug(String.format("Next FilePointer: %s", currentContigFilePointer));
                 }
             }
 

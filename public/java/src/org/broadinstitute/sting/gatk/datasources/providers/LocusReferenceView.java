@@ -176,13 +176,13 @@ public class LocusReferenceView extends ReferenceView {
 
     /**
      * Gets the reference context associated with this particular point or extended interval on the genome.
-     * @param genomeLoc Region for which to retrieve the base(s). If region spans beyond contig end or beoynd current bounds, it will be trimmed down.
+     * @param genomeLoc Region for which to retrieve the base(s). If region spans beyond contig end or beyond current bounds, it will be trimmed down.
      * @return The base at the position represented by this genomeLoc.
      */
     public ReferenceContext getReferenceContext( GenomeLoc genomeLoc ) {
         //validateLocation( genomeLoc );
 
-        GenomeLoc window = genomeLocParser.createGenomeLoc( genomeLoc.getContig(), bounds.getContigIndex(),
+        GenomeLoc window = genomeLocParser.createGenomeLoc( genomeLoc.getContig(), genomeLoc.getContigIndex(),
                 getWindowStart(genomeLoc), getWindowStop(genomeLoc) );
 
         int refStart = -1;
