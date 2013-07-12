@@ -32,6 +32,8 @@ import org.broadinstitute.sting.utils.QualityUtils;
 
 import java.util.Arrays;
 
+import static java.lang.Math.log10;
+
 /**
  * Util class for performing the pair HMM for local alignment. Figure 4.3 in Durbin 1998 book.
  *
@@ -50,6 +52,9 @@ public final class Log10PairHMM extends N2MemoryPairHMM {
     private static final int insertionToInsertion = 3;
     private static final int matchToDeletion = 4;
     private static final int deletionToDeletion = 5;
+
+    // we divide e by 3 because the observed base could have come from any of the non-observed alleles
+    protected final static double log10_3 = log10(3.0);
 
     /**
      * Create an uninitialized PairHMM
@@ -148,7 +153,7 @@ public final class Log10PairHMM extends N2MemoryPairHMM {
             for (int j = startIndex; j < haplotypeBases.length; j++) {
                 final byte y = haplotypeBases[j];
                 prior[i+1][j+1] = ( x == y || x == (byte) 'N' || y == (byte) 'N' ?
-                        QualityUtils.qualToProbLog10(qual) : QualityUtils.qualToErrorProbLog10(qual) );
+                        QualityUtils.qualToProbLog10(qual) : (QualityUtils.qualToErrorProbLog10(qual) - (doNotUseTristateCorrection ? 0.0 : log10_3)) );
             }
         }
     }
