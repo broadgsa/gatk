@@ -34,6 +34,7 @@ import com.sun.jna.ptr.PointerByReference;
 import org.apache.commons.io.FileUtils;
 import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -87,22 +88,26 @@ public class LibDrmaaPipelineTest extends BaseTest {
 
     @Test(dependsOnMethods = { "testDrmaa" })
     public void testSubmitEcho() throws Exception {
+        if ( ! pipelineTestRunModeIsSet ) {
+            throw new SkipException("Skipping testSubmitEcho because we are in pipeline test dry run mode");
+        }
+
         if (implementation.contains("LSF")) {
             System.err.println("    *********************************************************");
             System.err.println("   ***********************************************************");
             System.err.println("   ****                                                   ****");
-            System.err.println("  ****  Skipping LibDrmaaIntegrationTest.testSubmitEcho()  ****");
+            System.err.println("  ****  Skipping LibDrmaaPipelineTest.testSubmitEcho()     ****");
             System.err.println("  ****     Are you using the dotkit .combined_LSF_SGE?     ****");
             System.err.println("   ****                                                   ****");
             System.err.println("   ***********************************************************");
             System.err.println("    *********************************************************");
-            return;
+            throw new SkipException("Skipping testSubmitEcho because correct DRMAA implementation not found");
         }
 
         Memory error = new Memory(LibDrmaa.DRMAA_ERROR_STRING_BUFFER);
         int errnum;
 
-        File outFile = tryCreateNetworkTempFile("LibDrmaaIntegrationTest.out");
+        File outFile = tryCreateNetworkTempFile("LibDrmaaPipelineTest.out");
 
         errnum = LibDrmaa.drmaa_init(null, error, LibDrmaa.DRMAA_ERROR_STRING_BUFFER_LEN);
 

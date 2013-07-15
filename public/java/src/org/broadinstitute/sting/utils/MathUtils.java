@@ -831,6 +831,36 @@ public class MathUtils {
         return array[minElementIndex(array)];
     }
 
+    /**
+     * Compute the min element of a List<Integer>
+     * @param array a non-empty list of integer
+     * @return the min
+     */
+    public static int arrayMin(final List<Integer> array) {
+        if ( array == null || array.isEmpty() ) throw new IllegalArgumentException("Array must be non-null and non-empty");
+        int min = array.get(0);
+        for ( final int i : array )
+            if ( i < min ) min = i;
+        return min;
+    }
+
+    /**
+     * Compute the median element of the array of integers
+     * @param array a list of integers
+     * @return the median element
+     */
+    public static int median(final List<Integer> array) {
+        if ( array == null ) throw new IllegalArgumentException("Array must be non-null");
+        final int size = array.size();
+        if ( size == 0 ) throw new IllegalArgumentException("Array cannot have size 0");
+        else if ( size == 1 ) return array.get(0);
+        else {
+            final ArrayList<Integer> sorted = new ArrayList<>(array);
+            Collections.sort(sorted);
+            return sorted.get(size / 2);
+        }
+    }
+
     public static int minElementIndex(final double[] array) {
         if (array == null || array.length == 0)
             throw new IllegalArgumentException("Array cannot be null!");

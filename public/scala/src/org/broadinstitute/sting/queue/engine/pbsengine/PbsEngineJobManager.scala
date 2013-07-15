@@ -23,29 +23,11 @@
 * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-package org.broadinstitute.sting.utils.locusiterator;
+package org.broadinstitute.sting.queue.engine.pbsengine
 
-/**
- * Simple wrapper about the information LIBS needs about downsampling
- *
- * User: depristo
- * Date: 1/5/13
- * Time: 1:26 PM
- */
-class LIBSDownsamplingInfo {
-    final private boolean performDownsampling;
-    final private int toCoverage;
+import org.broadinstitute.sting.queue.function.CommandLineFunction
+import org.broadinstitute.sting.queue.engine.drmaa.DrmaaJobManager
 
-    public LIBSDownsamplingInfo(boolean performDownsampling, int toCoverage) {
-        this.performDownsampling = performDownsampling;
-        this.toCoverage = toCoverage;
-    }
-
-    public boolean isPerformDownsampling() {
-        return performDownsampling;
-    }
-
-    public int getToCoverage() {
-        return toCoverage;
-    }
+class PbsEngineJobManager extends DrmaaJobManager {
+  override def create(function: CommandLineFunction) = new PbsEngineJobRunner(session, function)
 }

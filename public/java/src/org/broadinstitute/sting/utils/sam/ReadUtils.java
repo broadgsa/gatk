@@ -30,10 +30,7 @@ import com.google.java.contract.Requires;
 import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.NGSPlatform;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -214,33 +211,51 @@ public class ReadUtils {
      * CANNOT_COMPUTE_ADAPTOR_BOUNDARY if the read is unmapped or the mate is mapped to another contig.
      */
     public static int getAdaptorBoundary(final SAMRecord read) {
-        final int MAXIMUM_ADAPTOR_LENGTH = 8;
-        final int insertSize = Math.abs(read.getInferredInsertSize());    // the inferred insert size can be negative if the mate is mapped before the read (so we take the absolute value)
-
-        if (insertSize == 0 || read.getReadUnmappedFlag())                // no adaptors in reads with mates in another chromosome or unmapped pairs
+        if ( ! hasWellDefinedFragmentSize(read) ) {
             return CANNOT_COMPUTE_ADAPTOR_BOUNDARY;
-
-        if ( read.getReadPairedFlag() && read.getReadNegativeStrandFlag() == read.getMateNegativeStrandFlag() ) {
-            // note that the read.getProperPairFlag() is not reliably set, so many reads may have this tag but still be overlapping
-//            logger.info(String.format("Read %s start=%d end=%d insert=%d mateStart=%d readNeg=%b mateNeg=%b not properly paired, returning CANNOT_COMPUTE_ADAPTOR_BOUNDARY",
-//                    read.getReadName(), read.getAlignmentStart(), read.getAlignmentEnd(), insertSize, read.getMateAlignmentStart(),
-//                    read.getReadNegativeStrandFlag(), read.getMateNegativeStrandFlag()));
-            return CANNOT_COMPUTE_ADAPTOR_BOUNDARY;
+        } else if ( read.getReadNegativeStrandFlag() ) {
+            return read.getMateAlignmentStart() - 1;           // case 1 (see header)
+        } else {
+            final int insertSize = Math.abs(read.getInferredInsertSize());    // the inferred insert size can be negative if the mate is mapped before the read (so we take the absolute value)
+            return read.getAlignmentStart() + insertSize + 1;  // case 2 (see header)
         }
-
-
-        int adaptorBoundary;                                          // the reference coordinate for the adaptor boundary (effectively the first base IN the adaptor, closest to the read)
-        if (read.getReadNegativeStrandFlag())
-            adaptorBoundary = read.getMateAlignmentStart() - 1;           // case 1 (see header)
-        else
-            adaptorBoundary = read.getAlignmentStart() + insertSize + 1;  // case 2 (see header)
-
-        if ( (adaptorBoundary < read.getAlignmentStart() - MAXIMUM_ADAPTOR_LENGTH) || (adaptorBoundary > read.getAlignmentEnd() + MAXIMUM_ADAPTOR_LENGTH) )
-            adaptorBoundary = CANNOT_COMPUTE_ADAPTOR_BOUNDARY;                                       // we are being conservative by not allowing the adaptor boundary to go beyond what we belive is the maximum size of an adaptor
-
-        return adaptorBoundary;
     }
+
     public static int CANNOT_COMPUTE_ADAPTOR_BOUNDARY = Integer.MIN_VALUE;
+
+    /**
+     * Can the adaptor sequence of read be reliably removed from the read based on the alignment of
+     * read and its mate?
+     *
+     * @param read the read to check
+     * @return true if it can, false otherwise
+     */
+    public static boolean hasWellDefinedFragmentSize(final SAMRecord read) {
+        if ( read.getInferredInsertSize() == 0 )
+            // no adaptors in reads with mates in another chromosome or unmapped pairs
+            return false;
+        if ( ! read.getReadPairedFlag() )
+            // only reads that are paired can be adaptor trimmed
+            return false;
+        if ( read.getReadUnmappedFlag() || read.getMateUnmappedFlag() )
+            // only reads when both reads are mapped can be trimmed
+            return false;
+//        if ( ! read.getProperPairFlag() )
+//            // note this flag isn't always set properly in BAMs, can will stop us from eliminating some proper pairs
+//            // reads that aren't part of a proper pair (i.e., have strange alignments) can't be trimmed
+//            return false;
+        if ( read.getReadNegativeStrandFlag() == read.getMateNegativeStrandFlag() )
+            // sanity check on getProperPairFlag to ensure that read1 and read2 aren't on the same strand
+            return false;
+
+        if ( read.getReadNegativeStrandFlag() ) {
+            // we're on the negative strand, so our read runs right to left
+            return read.getAlignmentEnd() > read.getMateAlignmentStart();
+        } else {
+            // we're on the positive strand, so our mate should be to our right (his start + insert size should be past our start)
+            return read.getAlignmentStart() <= read.getMateAlignmentStart() + read.getInferredInsertSize();
+        }
+    }
 
     /**
      * is the read a 454 read?

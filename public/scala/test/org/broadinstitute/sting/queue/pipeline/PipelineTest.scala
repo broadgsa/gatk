@@ -45,13 +45,14 @@ object PipelineTest extends BaseTest with Logging {
   private val validationReportsDataLocation = "/humgen/gsa-hpprojects/GATK/validationreports/submitted/"
   private val md5DB = new MD5DB()
 
-  final val run = System.getProperty("pipeline.run") == "run"
+  /**
+   * All the job runners configured to run PipelineTests at The Broad.
+   */
+  final val allJobRunners = Seq("Lsf706", "GridEngine", "Shell")
 
-  final val allJobRunners = {
-    val commandLinePluginManager = new CommandLinePluginManager
-    commandLinePluginManager.getPlugins.map(commandLinePluginManager.getName(_)).toSeq
-  }
-
+  /**
+   * The default job runners to run.
+   */
   final val defaultJobRunners = Seq("Lsf706", "GridEngine")
 
   /**
@@ -100,7 +101,7 @@ object PipelineTest extends BaseTest with Logging {
       Assert.fail("PipelineTestSpec.name is null")
     println(Utils.dupString('-', 80));
     executeTest(name, pipelineTest.args, pipelineTest.jobQueue, pipelineTest.expectedException, jobRunner)
-    if (run) {
+    if (BaseTest.pipelineTestRunModeIsSet) {
       assertMatchingMD5s(name, pipelineTest.fileMD5s.map{case (file, md5) => new File(runDir(name, jobRunner), file) -> md5}, pipelineTest.parameterize)
       if (pipelineTest.evalSpec != null)
         validateEval(name, pipelineTest.evalSpec, jobRunner)
@@ -169,7 +170,7 @@ object PipelineTest extends BaseTest with Logging {
     if (jobQueue != null)
       command = Utils.appendArray(command, "-jobQueue", jobQueue)
 
-    if (run)
+    if (BaseTest.pipelineTestRunModeIsSet)
       command = Utils.appendArray(command, "-run")
 
     // run the executable

@@ -44,6 +44,10 @@ abstract class N2MemoryPairHMM extends PairHMM {
     protected double[][] insertionMatrix = null;
     protected double[][] deletionMatrix = null;
 
+    // only used for debugging purposes
+    protected boolean doNotUseTristateCorrection = false;
+    protected void doNotUseTristateCorrection() { doNotUseTristateCorrection = true; }
+
     /**
      * Initialize this PairHMM, making it suitable to run against a read and haplotype with given lengths
      *
