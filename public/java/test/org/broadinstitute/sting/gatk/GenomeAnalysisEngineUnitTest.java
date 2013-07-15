@@ -52,7 +52,7 @@ import java.util.List;
  */
 public class GenomeAnalysisEngineUnitTest extends BaseTest {
 
-    @Test(expectedExceptions=ArgumentException.class)
+    @Test(expectedExceptions=UserException.class)
     public void testDuplicateSamFileHandlingSingleDuplicate() throws Exception {
         GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
 
@@ -64,7 +64,7 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
         testEngine.checkForDuplicateSamFiles();
     }
 
-    @Test(expectedExceptions=ArgumentException.class)
+    @Test(expectedExceptions=UserException.class)
     public void testDuplicateSamFileHandlingMultipleDuplicates() throws Exception {
         GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
 
@@ -73,6 +73,20 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
         samFiles.add(new SAMReaderID(new File("public/testdata/exampleNORG.bam"), new Tags()));
         samFiles.add(new SAMReaderID(new File("public/testdata/exampleBAM.bam"),  new Tags()));
         samFiles.add(new SAMReaderID(new File("public/testdata/exampleNORG.bam"), new Tags()));
+
+        testEngine.setSAMFileIDs(samFiles);
+        testEngine.checkForDuplicateSamFiles();
+    }
+
+    @Test(expectedExceptions=UserException.class)
+    public void testDuplicateSamFileHandlingAbsoluteVsRelativePath() {
+        GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
+
+        final File relativePathToBAMFile = new File("public/testdata/exampleBAM.bam");
+        final File absolutePathToBAMFile = new File(relativePathToBAMFile.getAbsolutePath());
+        Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();
+        samFiles.add(new SAMReaderID(relativePathToBAMFile, new Tags()));
+        samFiles.add(new SAMReaderID(absolutePathToBAMFile, new Tags()));
 
         testEngine.setSAMFileIDs(samFiles);
         testEngine.checkForDuplicateSamFiles();
