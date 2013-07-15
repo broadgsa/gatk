@@ -530,8 +530,8 @@ public class GenomeAnalysisEngine {
         }
 
         if ( duplicateSamFiles.size() > 0 ) {
-            throw new ArgumentException("The following BAM files appear multiple times in the list of input files: " +
-                                        duplicateSamFiles + " BAM files may be specified at most once.");
+            throw new UserException("The following BAM files appear multiple times in the list of input files: " +
+                                    duplicateSamFiles + " BAM files may be specified at most once.");
         }
     }
 
