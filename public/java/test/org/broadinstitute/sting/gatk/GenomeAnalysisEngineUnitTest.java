@@ -42,10 +42,9 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.*;
 
 /**
  * Tests selected functionality in the GenomeAnalysisEngine class
@@ -104,6 +103,64 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
         testEngine.validateSuppliedIntervals();
     }
 
+    @Test
+    public void testLoadWellFormedSampleRenameMapFile() throws IOException {
+        final File mapFile = createTestSampleRenameMapFile(Arrays.asList("/foo/bar/first.bam    newSample1",
+                                                                         "/foo/bar/second.bam        newSample2",
+                                                                         "/foo/bar2/third.bam newSample3"));
+        final GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
+        final Map<SAMReaderID, String> renameMap = engine.loadSampleRenameMap(mapFile);
+
+        Assert.assertEquals(renameMap.size(), 3, "Sample rename map was wrong size after loading from file");
+
+        final Iterator<String> expectedResultsIterator = Arrays.asList("/foo/bar/first.bam", "newSample1", "/foo/bar/second.bam", "newSample2", "/foo/bar2/third.bam", "newSample3").iterator();
+        while ( expectedResultsIterator.hasNext() ) {
+            final String expectedKey = expectedResultsIterator.next();
+            final String expectedValue = expectedResultsIterator.next();
+
+            Assert.assertNotNull(renameMap.get(new SAMReaderID(expectedKey, new Tags())), String.format("Entry for %s not found in sample rename map", expectedKey));
+            Assert.assertEquals(renameMap.get(new SAMReaderID(expectedKey, new Tags())), expectedValue, "Wrong value in sample rename map for " + expectedKey);
+        }
+    }
+
+    @DataProvider(name = "MalformedSampleRenameMapFileDataProvider")
+    public Object[][] generateMalformedSampleRenameMapFiles() throws IOException {
+        final List<Object[]> tests = new ArrayList<Object[]>();
+
+        tests.add(new Object[]{"testLoadSampleRenameMapFileNonExistentFile",
+                               new File("/foo/bar/nonexistent")});
+        tests.add(new Object[]{"testLoadSampleRenameMapFileMalformedLine1",
+                               createTestSampleRenameMapFile(Arrays.asList("/path/to/foo.bam"))});
+        tests.add(new Object[]{"testLoadSampleRenameMapFileMalformedLine2",
+                               createTestSampleRenameMapFile(Arrays.asList("/path/to/foo.bam newSample extraField"))});
+        tests.add(new Object[]{"testLoadSampleRenameMapFileNonAbsoluteBamPath",
+                               createTestSampleRenameMapFile(Arrays.asList("relative/path/to/foo.bam newSample"))});
+        tests.add(new Object[]{"testLoadSampleRenameMapFileDuplicateBamPath",
+                               createTestSampleRenameMapFile(Arrays.asList("/path/to/dupe.bam newSample1",
+                                                                           "/path/to/dupe.bam newSample2"))});
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "MalformedSampleRenameMapFileDataProvider", expectedExceptions = UserException.class)
+    public void testLoadMalformedSampleRenameMapFile( final String testName, final File mapFile ) {
+        logger.info("Executing test " + testName);
+
+        final GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
+        final Map<SAMReaderID, String> renameMap = engine.loadSampleRenameMap(mapFile);
+    }
+
+    private File createTestSampleRenameMapFile( final List<String> contents ) throws IOException {
+        final File mapFile = createTempFile("TestSampleRenameMapFile", ".tmp");
+        final PrintWriter writer = new PrintWriter(mapFile);
+
+        for ( final String line : contents ) {
+            writer.println(line);
+        }
+        writer.close();
+
+        return mapFile;
+    }
 
     ///////////////////////////////////////////////////
     // Test the ReadTransformer ordering enforcement //
