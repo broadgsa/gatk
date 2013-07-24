@@ -969,11 +969,11 @@ public class ReadBackedPileupImpl implements ReadBackedPileup {
      * @return
      */
     @Override
-    public byte[] getMappingQuals() {
-        byte[] v = new byte[getNumberOfElements()];
+    public int[] getMappingQuals() {
+        final int[] v = new int[getNumberOfElements()];
         int pos = 0;
-        for (PileupElement pile : pileupElementTracker) {
-            v[pos++] = (byte) pile.getRead().getMappingQuality();
+        for ( final PileupElement pile : pileupElementTracker ) {
+            v[pos++] = pile.getRead().getMappingQuality();
         }
         return v;
     }
