@@ -270,7 +270,7 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * Get an array of the mapping qualities
      * @return
      */
-    public byte[] getMappingQuals();
+    public int[] getMappingQuals();
 
     /**
      * Returns a new ReadBackedPileup that is sorted by start coordinate of the reads.
