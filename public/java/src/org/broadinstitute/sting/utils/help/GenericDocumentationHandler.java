@@ -1,6 +1,6 @@
 /*
 * Copyright (c) 2012 The Broad Institute
-* 
+*
 * Permission is hereby granted, free of charge, to any person
 * obtaining a copy of this software and associated documentation
 * files (the "Software"), to deal in the Software without
@@ -9,10 +9,10 @@
 * copies of the Software, and to permit persons to whom the
 * Software is furnished to do so, subject to the following
 * conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be
 * included in all copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
 * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -37,6 +37,8 @@ import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -295,6 +297,8 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             // Get annotation info (what type of annotation, standard etc.)
             final HashSet<String> annotInfo = getAnnotInfo(myClass, new HashSet<String>());
             root.put("annotinfo", StringUtils.join(annotInfo, ", "));
+            // Get annotation field (whether it goes in INFO or FORMAT)
+            root.put("annotfield", getAnnotField(myClass));
             // Get walker type if applicable
             root.put("walkertype", getWalkerType(myClass));
             // Get partition type if applicable
@@ -316,6 +320,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             // put empty items to avoid blowups
             root.put("parallel", new HashSet<String>());
             root.put("annotinfo", "");
+            root.put("annotfield", "");
             root.put("walkertype", "");
             root.put("partitiontype", "");
             root.put("readfilters", new HashSet<HashMap<String, Object>>());
@@ -357,6 +362,27 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
             return parallelOptions;
         }
         return getParallelism(mySuperClass, parallelOptions);
+    }
+
+    /**
+     * Utility function that looks up whether the annotation goes in INFO or FORMAT field.
+     *
+     * @param myClass the class to query for the interfaces
+     * @return a String specifying the annotation field
+     */
+    private final String getAnnotField(Class myClass) {
+        //
+        // Look up superclasses recursively until we find either
+        // GenotypeAnnotation or InfoFieldAnnotation
+        final Class mySuperClass = myClass.getSuperclass();
+        if (mySuperClass == InfoFieldAnnotation.class) {
+            return "INFO (variant-level)";
+        } else if (mySuperClass == GenotypeAnnotation.class) {
+            return "FORMAT (sample genotype-level)";
+        } else if (mySuperClass.getSimpleName().equals("Object")) {
+            return "";
+        }
+        return getAnnotField(mySuperClass);
     }
 
     /**
