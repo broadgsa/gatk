@@ -46,6 +46,7 @@ public class DeprecatedToolChecks {
         deprecatedGATKWalkers.put("TableRecalibration", "2.0 (use PrintReads with -BQSR instead; see documentation for usage)");
         deprecatedGATKWalkers.put("AlignmentWalker", "2.2 (no replacement)");
         deprecatedGATKWalkers.put("CountBestAlignments", "2.2 (no replacement)");
+        deprecatedGATKWalkers.put("SomaticIndelDetector", "2.0 (replaced by the standalone tool Indelocator; see Cancer Tools documentation)");
     }
 
     // Mapping from walker name to major version number where the walker first disappeared and optional replacement options
