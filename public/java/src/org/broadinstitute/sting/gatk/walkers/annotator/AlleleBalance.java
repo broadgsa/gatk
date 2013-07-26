@@ -46,7 +46,12 @@ import java.util.Map;
 
 
 /**
- * The allele balance (fraction of ref bases over ref + alt bases) across all biallelic het-called samples
+ * Allele balance across all samples
+ *
+ * <p>The allele balance is the fraction of ref bases over ref + alt bases.</p>
+ *
+ * <h3>Caveats</h3>
+ * <p>Note that this annotation will only work properly for biallelic samples that are called as heterozygous.</p>
  */
 public class AlleleBalance extends InfoFieldAnnotation {
 

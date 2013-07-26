@@ -102,7 +102,7 @@ import java.util.*;
  * <pre>
  * java -Xmx2g -jar GenomeAnalysisTK.jar \
  *   -R ref.fasta \
- *   -T Coverage \
+ *   -T DepthOfCoverage \
  *   -o file_name_base \
  *   -I input_bams.list
  *   [-geneList refSeq.sorted.txt] \

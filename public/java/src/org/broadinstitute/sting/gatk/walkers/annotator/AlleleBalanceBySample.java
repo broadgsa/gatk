@@ -51,7 +51,7 @@ import java.util.List;
  * <p>The allele balance is the fraction of ref bases over ref + alt bases.</p>
  *
  * <h3>Caveats</h3>
- * <p>Note that this annotation will only work properly for biallelic het-called samples.</p>
+ * <p>Note that this annotation will only work properly for biallelic samples that are called as heterozygous.</p>
  * <h4>This is an experimental annotation. As such, it is unsupported; we do not make any guarantees that it will work properly, and you use it at your own risk.</h4>
  */
 public class AlleleBalanceBySample extends GenotypeAnnotation implements ExperimentalAnnotation {
