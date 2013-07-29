@@ -69,12 +69,15 @@ import java.util.*;
  *  Genotype Concordance writes a GATK report to the specified file (via -o) , consisting of multiple tables of counts
  *  and proportions. These tables may be optionally moltenized via the -moltenize argument. That is, the standard table
  *
+ *  <pre>
  *  Sample   NO_CALL_HOM_REF  NO_CALL_HET  NO_CALL_HOM_VAR   (...)
  *  NA12878       0.003        0.001            0.000        (...)
  *  NA12891       0.005        0.000            0.000        (...)
+ *  </pre>
  *
  *  would instead be displayed
  *
+ * <pre>
  *  NA12878  NO_CALL_HOM_REF   0.003
  *  NA12878  NO_CALL_HET       0.001
  *  NA12878  NO_CALL_HOM_VAR   0.000
@@ -82,6 +85,7 @@ import java.util.*;
  *  NA12891  NO_CALL_HET       0.000
  *  NA12891  NO_CALL_HOM_VAR   0.000
  *  (...)
+ *  </pre>
  *
  *
  *  These tables are constructed on a per-sample basis, and include counts of eval vs comp genotype states, and the
@@ -92,8 +96,10 @@ import java.util.*;
  *  counts for EVAL_SUBSET_TRUTH and EVAL_SUPERSET_TRUTH will be generated.
  *
  *  For example, in the following situation
+ *  <pre>
  *    eval:  ref - A   alt - C
  *    comp:  ref - A   alt - C,T
+ *  </pre>
  *  then the site is tabulated as EVAL_SUBSET_TRUTH. Were the situation reversed, it would be EVAL_SUPERSET_TRUTH.
  *  However, in the case where eval has both C and T alternate alleles, both must be observed in the genotypes
  *  (that is, there must be at least one of (0/1,1/1) and at least one of (0/2,1/2,2/2) in the genotype field). If
@@ -106,11 +112,15 @@ import java.util.*;
  *  (if no record exists in the comp VCF).
  *
  *  That is, in the situation
+ *  <pre>
  *   eval:  ref - A   alt - C   genotypes - 0/0  0/0  0/0 ... 0/0
  *   comp:  ref - A   alt - C   ...         0/0  0/0  ...
+ *  </pre>
  *  is equivalent to
+ *  <pre>
  *   eval:  ref - A   alt - .   genotypes - 0/0  0/0  0/0 ... 0/0
  *   comp:  ref - A   alt - C   ...         0/0  0/0  ...
+ *  </pre>
  *
  *  When a record is present in the comp VCF the *genotypes* for the monomorphic site will still be used to evaluate
  *  per-sample genotype concordance counts.
