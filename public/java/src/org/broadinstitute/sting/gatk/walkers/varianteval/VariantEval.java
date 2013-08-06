@@ -114,6 +114,12 @@ import java.util.*;
  *   [--comp comp.vcf]
  * </pre>
  *
+ * <h3>Caveat</h3>
+ *
+ * <p>Some stratifications and evaluators are incompatible with each other due to their respective memory requirements, such as AlleleCount and VariantSummary, or Sample and VariantSummary.
+ * If you specify such a combination, the program will output an error message and ask you to disable one of these options.
+ * We do not currently provide an exhaustive list of incompatible combinations, so we recommend trying out combinations that you are interested in on a dummy command line, to rapidly ascertain whether it will work or not.</p>
+ *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=-50, stop=50))

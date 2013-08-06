@@ -332,9 +332,9 @@ public class GATKArgumentCollection {
     public int numberOfIOThreads = 0;
 
     /**
-     * Enable GATK to monitor its own threading efficiency, at a itsy-bitsy tiny
+     * Enable GATK to monitor its own threading efficiency, at an itsy-bitsy tiny
      * cost (< 0.1%) in runtime because of turning on the JavaBean.  This is largely for
-     * debugging purposes.
+     * debugging purposes. Note that this argument is not compatible with -nt, it only works with -nct.
      */
     @Argument(fullName = "monitorThreadEfficiency", shortName = "mte", doc = "Enable GATK threading efficiency monitoring", required = false)
     public Boolean monitorThreadEfficiency = false;

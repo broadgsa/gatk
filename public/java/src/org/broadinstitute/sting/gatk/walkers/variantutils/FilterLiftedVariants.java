@@ -46,6 +46,13 @@ import java.util.*;
 
 /**
  * Filters a lifted-over VCF file for ref bases that have been changed.
+ *
+ * "Lifting over" variants means adjusting variant calls from one reference to another. Specifically, the process adjusts the position of the call to match the corresponding position on the target reference.
+ * For example, if you have variants called from reads aligned to the hg19 reference, and you want to compare them to calls made based on the b37 reference, you need to liftover one of the callsets to the other reference.
+ *
+ * FilteredLiftedVariants is intended to be the second of two processing steps for the liftover process. The first step is to run LiftoverVariants on your VCF file.
+ * The second step is to run FilterLiftedVariants on the output of LiftoverVariants. This will produce valid well-behaved VCF files, where you'll see that the contig names in the header have all been correctly replaced.
+ *
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 @Reference(window=@Window(start=0,stop=100))
