@@ -225,10 +225,20 @@ public class FeatureManager  {
         docs.append(String.format(format, nameHeader, featureHeader, docHeader));
         for ( final FeatureDescriptor descriptor : featureDescriptors ) {
             if ( requiredFeatureType.isAssignableFrom(descriptor.getFeatureClass()) ) {
-                String oneDoc = String.format(format,
-                        descriptor.getName(),
-                        descriptor.getSimpleFeatureName(),
-                        GATKDocUtils.helpLinksToGATKDocs(descriptor.getCodecClass()));
+                final String DocURL = GATKDocUtils.helpLinksToGATKDocs(descriptor.getCodecClass());
+                final String oneDoc;
+                if ( DocURL.contains("_sting_") ) {
+                    oneDoc = String.format(format,
+                            descriptor.getName(),
+                            descriptor.getSimpleFeatureName(),
+                            DocURL);
+                } else {
+                    oneDoc = String.format(format,
+                            descriptor.getName(),
+                            descriptor.getSimpleFeatureName(),
+                            "(this is an external codec and is not documented within GATK)");
+                }
+
                 docs.append(oneDoc);
             }
         }
