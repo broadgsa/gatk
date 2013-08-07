@@ -29,7 +29,8 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecordIterator;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -154,7 +155,7 @@ public final class LocusIteratorByState extends LocusIterator {
      * @param reader a non-null reader
      * @param it an iterator from reader that has the reads we want to use to create ReadBackPileups
      */
-    public LocusIteratorByState(final SAMFileReader reader, final SAMRecordIterator it) {
+    public LocusIteratorByState(final SAMFileReader reader, final CloseableIterator<SAMRecord> it) {
         this(new GATKSAMIterator(it),
                 new LIBSDownsamplingInfo(false, 0),
                 true,
