@@ -164,6 +164,9 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
     @Argument(fullName="minimalVCF", shortName="minimalVCF", doc="If true, then the output VCF will contain no INFO or genotype FORMAT fields", required=false)
     public boolean minimalVCF = false;
 
+    @Argument(fullName="excludeNonVariants", shortName="env", doc="Don't include loci found to be non-variant after the combining procedure", required=false)
+    public boolean EXCLUDE_NON_VARIANTS = false;
+
     /**
      * Set to 'null' if you don't want the set field emitted.
      */
@@ -171,7 +174,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
     public String SET_KEY = "set";
 
     /**
-     * This option allows the user to perform a simple merge (concatenation) to combine the VCFs, drastically reducing the runtime..
+     * This option allows the user to perform a simple merge (concatenation) to combine the VCFs, drastically reducing the runtime.
      */
     @Argument(fullName="assumeIdenticalSamples", shortName="assumeIdenticalSamples", doc="If true, assume input VCFs have identical sample sets and disjoint calls", required=false)
     public boolean ASSUME_IDENTICAL_SAMPLES = false;
@@ -187,6 +190,9 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
 
     @Argument(fullName="mergeInfoWithMaxAC", shortName="mergeInfoWithMaxAC", doc="If true, when VCF records overlap the info field is taken from the one with the max AC instead of only taking the fields which are identical across the overlapping records.", required=false)
     public boolean MERGE_INFO_WITH_MAX_AC = false;
+
+    @Argument(fullName="combineAnnotations", shortName="combineAnnotations", doc="If true, combine the annotation values in some straightforward manner assuming the input callsets are i.i.d.", required=false)
+    public boolean COMBINE_ANNOTATIONS = false;
 
     private List<String> priority = null;
 
@@ -238,7 +244,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             throw new UserException.MissingArgument("rod_priority_list", "Priority string must be provided if you want to prioritize genotypes");
 
         if ( PRIORITY_STRING != null){
-            priority = new ArrayList<String>(Arrays.asList(PRIORITY_STRING.split(",")));
+            priority = new ArrayList<>(Arrays.asList(PRIORITY_STRING.split(",")));
             if ( rodNames.size() != priority.size() )
                 throw new UserException.BadArgumentValue("rod_priority_list", "The priority list must contain exactly one rod binding per ROD provided to the GATK: rodNames=" + rodNames + " priority=" + priority);
 
@@ -252,13 +258,16 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         if ( tracker == null ) // RodWalkers can make funky map calls
             return 0;
 
-        Set<String> rodNames = SampleUtils.getRodNamesWithVCFHeader(getToolkit(), null);
+        final Set<String> rodNames = SampleUtils.getRodNamesWithVCFHeader(getToolkit(), null);
         // get all of the vcf rods at this locus
         // Need to provide reference bases to simpleMerge starting at current locus
         Collection<VariantContext> vcs = tracker.getValues(variants, context.getLocation());
+        Collection<VariantContext> potentialRefVCs = tracker.getValues(variants);
+        potentialRefVCs.removeAll(vcs);
 
         if ( sitesOnlyVCF ) {
             vcs = VariantContextUtils.sitesOnlyVariantContexts(vcs);
+            potentialRefVCs = VariantContextUtils.sitesOnlyVariantContexts(potentialRefVCs);
         }
 
         if ( ASSUME_IDENTICAL_SAMPLES ) {
@@ -270,7 +279,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         }
 
         int numFilteredRecords = 0;
-        for (VariantContext vc : vcs) {
+        for (final VariantContext vc : vcs) {
             if (vc.filtersWereApplied() && vc.isFiltered())
                 numFilteredRecords++;
         }
@@ -278,16 +287,16 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         if (minimumN > 1 && (vcs.size() - numFilteredRecords < minimumN))
             return 0;
 
-        List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
+        final List<VariantContext> mergedVCs = new ArrayList<>();
 
         if (multipleAllelesMergeType == GATKVariantContextUtils.MultipleAllelesMergeType.BY_TYPE) {
-            Map<VariantContext.Type, List<VariantContext>> VCsByType = GATKVariantContextUtils.separateVariantContextsByType(vcs);
+            final Map<VariantContext.Type, List<VariantContext>> VCsByType = GATKVariantContextUtils.separateVariantContextsByType(vcs);
 
             // TODO -- clean this up in a refactoring
             // merge NO_VARIATION into another type of variant (based on the ordering in VariantContext.Type)
             if ( VCsByType.containsKey(VariantContext.Type.NO_VARIATION) && VCsByType.size() > 1 ) {
                 final List<VariantContext> refs = VCsByType.remove(VariantContext.Type.NO_VARIATION);
-                for ( VariantContext.Type type : VariantContext.Type.values() ) {
+                for ( final VariantContext.Type type : VariantContext.Type.values() ) {
                     if ( VCsByType.containsKey(type) ) {
                         VCsByType.get(type).addAll(refs);
                         break;
@@ -296,23 +305,27 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             }
 
             // iterate over the types so that it's deterministic
-            for (VariantContext.Type type : VariantContext.Type.values()) {
-                if (VCsByType.containsKey(type))
-                    mergedVCs.add(GATKVariantContextUtils.simpleMerge(VCsByType.get(type),
-                            priority, rodNames.size(), filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
-                            SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
+            for (final VariantContext.Type type : VariantContext.Type.values()) {
+                // make sure that it is a variant or in case it is not, that we want to include the sites with no variants
+                if (!EXCLUDE_NON_VARIANTS || !type.equals(VariantContext.Type.NO_VARIATION)) {
+                    if (VCsByType.containsKey(type)) {
+                        mergedVCs.add(GATKVariantContextUtils.simpleMerge(VCsByType.get(type), potentialRefVCs,
+                                priority, rodNames.size(), filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                                SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC, COMBINE_ANNOTATIONS));
+                    }
+                }
             }
         }
         else if (multipleAllelesMergeType == GATKVariantContextUtils.MultipleAllelesMergeType.MIX_TYPES) {
-            mergedVCs.add(GATKVariantContextUtils.simpleMerge(vcs,
+            mergedVCs.add(GATKVariantContextUtils.simpleMerge(vcs, potentialRefVCs,
                     priority, rodNames.size(), filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
-                    SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
+                    SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC, COMBINE_ANNOTATIONS));
         }
         else {
             logger.warn("Ignoring all records at site " + ref.getLocus());
         }
 
-        for ( VariantContext mergedVC : mergedVCs ) {
+        for ( final VariantContext mergedVC : mergedVCs ) {
             // only operate at the start of events
             if ( mergedVC == null )
                 continue;
@@ -320,9 +333,12 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
             final VariantContextBuilder builder = new VariantContextBuilder(mergedVC);
             // re-compute chromosome counts
             VariantContextUtils.calculateChromosomeCounts(builder, false);
+
             if ( minimalVCF )
                 GATKVariantContextUtils.pruneVariantContext(builder, Arrays.asList(SET_KEY));
-            vcfWriter.add(builder.make());
+            final VariantContext vc = builder.make();
+            if( !EXCLUDE_NON_VARIANTS || vc.isPolymorphicInSamples() )
+                vcfWriter.add(builder.make());
         }
 
         return vcs.isEmpty() ? 0 : 1;

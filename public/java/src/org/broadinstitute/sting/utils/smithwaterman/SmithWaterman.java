@@ -30,7 +30,7 @@ import net.sf.samtools.Cigar;
 /**
  * Generic interface for SmithWaterman calculations
  *
- * This interface allows clients to use a generic SmithWaterman variable, without propogating the specific
+ * This interface allows clients to use a generic SmithWaterman variable, without propagating the specific
  * implementation of SmithWaterman throughout their code:
  *
  * SmithWaterman sw = new SpecificSmithWatermanImplementation(ref, read, params)

@@ -86,7 +86,7 @@ public final class TraverseActiveRegions<M, T> extends TraversalEngine<M,T,Activ
     private int maxRegionSize = -1;
     private int minRegionSize = -1;
 
-    private final LinkedList<ActiveRegion> workQueue = new LinkedList<ActiveRegion>();
+    private final LinkedList<ActiveRegion> workQueue = new LinkedList<>();
 
     private TAROrderedReadCache myReads = null;
 

@@ -500,7 +500,7 @@ public class MathUtilsUnitTest extends BaseTest {
 
     @DataProvider(name = "MedianData")
     public Object[][] makeMedianData() {
-        List<Object[]> tests = new ArrayList<Object[]>();
+        final List<Object[]> tests = new ArrayList<>();
 
         // this functionality can be adapted to provide input data for whatever you might want in your data
         tests.add(new Object[]{Arrays.asList(10), 10});
@@ -510,12 +510,16 @@ public class MathUtilsUnitTest extends BaseTest {
             tests.add(new Object[]{values, 1});
         }
 
+        for ( final List<Double> values : Utils.makePermutations(Arrays.asList(1.1,2.1,-3.1), 3, false) ) {
+            tests.add(new Object[]{values, 1.1});
+        }
+
         return tests.toArray(new Object[][]{});
     }
 
     @Test(dataProvider = "MedianData")
-    public void testMedian(final List<Integer> values, final int expected) {
-        final int actual = MathUtils.median(values);
+    public void testMedian(final List<Comparable> values, final Comparable expected) {
+        final Comparable actual = MathUtils.median(values);
         Assert.assertEquals(actual, expected, "Failed with " + values);
     }
 }

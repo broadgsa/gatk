@@ -107,7 +107,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
         private MergeAllelesTest(List<Allele>... arg) {
             super(MergeAllelesTest.class);
-            LinkedList<List<Allele>> all = new LinkedList<List<Allele>>(Arrays.asList(arg));
+            LinkedList<List<Allele>> all = new LinkedList<>(Arrays.asList(arg));
             expected = all.pollLast();
             inputs = all;
         }
@@ -185,7 +185,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         final VariantContext merged = GATKVariantContextUtils.simpleMerge(
                 inputs, priority,
                 GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, false, false, "set", false, false);
+                GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, false, false, "set", false, false, false);
 
         Assert.assertEquals(merged.getAlleles(), cfg.expected);
     }
@@ -243,7 +243,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         final VariantContext merged = GATKVariantContextUtils.simpleMerge(
                 inputs, null,
                 GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                GATKVariantContextUtils.GenotypeMergeType.UNSORTED, false, false, "set", false, false);
+                GATKVariantContextUtils.GenotypeMergeType.UNSORTED, false, false, "set", false, false, false);
         Assert.assertEquals(merged.getID(), cfg.expected);
     }
 
@@ -358,7 +358,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
     public void testMergeFiltered(MergeFilteredTest cfg) {
         final List<String> priority = vcs2priority(cfg.inputs);
         final VariantContext merged = GATKVariantContextUtils.simpleMerge(
-                cfg.inputs, priority, cfg.type, GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, true, false, "set", false, false);
+                cfg.inputs, priority, cfg.type, GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, true, false, "set", false, false, false);
 
         // test alleles are equal
         Assert.assertEquals(merged.getAlleles(), cfg.expected.getAlleles());
@@ -485,7 +485,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
     public void testMergeGenotypes(MergeGenotypesTest cfg) {
         final VariantContext merged = GATKVariantContextUtils.simpleMerge(
                 cfg.inputs, cfg.priority, GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, true, false, "set", false, false);
+                GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, true, false, "set", false, false, false);
 
         // test alleles are equal
         Assert.assertEquals(merged.getAlleles(), cfg.expected.getAlleles());
@@ -526,10 +526,10 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
         final VariantContext merged = GATKVariantContextUtils.simpleMerge(
                 Arrays.asList(vc1, vc2), null, GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                GATKVariantContextUtils.GenotypeMergeType.UNIQUIFY, false, false, "set", false, false);
+                GATKVariantContextUtils.GenotypeMergeType.UNIQUIFY, false, false, "set", false, false, false);
 
         // test genotypes
-        Assert.assertEquals(merged.getSampleNames(), new HashSet<String>(Arrays.asList("s1.1", "s1.2")));
+        Assert.assertEquals(merged.getSampleNames(), new HashSet<>(Arrays.asList("s1.1", "s1.2")));
     }
 
 // TODO: remove after testing
@@ -540,7 +540,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 //
 //        final VariantContext merged = VariantContextUtils.simpleMerge(
 //                Arrays.asList(vc1, vc2), null, VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-//                VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE, false, false, "set", false, false);
+//                VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE, false, false, "set", false, false, false);
 //    }
 
     // --------------------------------------------------------------------------------
@@ -559,7 +559,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
                 final VariantContext merged = GATKVariantContextUtils.simpleMerge(
                         Arrays.asList(vc1, vc2), priority, GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
-                        GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, annotate, false, set, false, false);
+                        GATKVariantContextUtils.GenotypeMergeType.PRIORITIZE, annotate, false, set, false, false, false);
 
                 if ( annotate )
                     Assert.assertEquals(merged.getAttribute(set), GATKVariantContextUtils.MERGE_INTERSECTION);
@@ -570,7 +570,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
     }
 
     private static final List<String> vcs2priority(final Collection<VariantContext> vcs) {
-        final List<String> priority = new ArrayList<String>();
+        final List<String> priority = new ArrayList<>();
 
         for ( final VariantContext vc : vcs ) {
             priority.add(vc.getSource());
@@ -997,7 +997,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
     @DataProvider(name = "PrimitiveAlleleSplittingData")
     public Object[][] makePrimitiveAlleleSplittingData() {
-        List<Object[]> tests = new ArrayList<Object[]>();
+        List<Object[]> tests = new ArrayList<>();
 
         // no split
         tests.add(new Object[]{"A", "C", 0, null});
@@ -1039,6 +1039,26 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         }
     }
 
+    @Test(enabled = !DEBUG)
+    public void testFillInNonRefSymbolicAlleles() {
+        final int start = 10;
+        final String ref = "A";
+        final String alt = "C";
+        final VariantContext vcAlt = GATKVariantContextUtils.makeFromAlleles("test", "20", start, Arrays.asList(ref, alt));
+        final VariantContext vcRef = GATKVariantContextUtils.makeFromAlleles("test", "20", start, Arrays.asList(ref, "<"+GATKVariantContextUtils.NON_REF_SYMBOLIC_ALLELE_NAME+">"));
+
+        List<VariantContext> VCs = Arrays.asList(vcAlt, vcRef);
+        VCs = GATKVariantContextUtils.fillInNonRefSymbolicAlleles(VCs, Collections.<VariantContext>emptyList());
+
+        // make sure the non ref symbolic alleles have all been filled in with the appropriate alternate allele
+        for( final VariantContext vc : VCs ) {
+            Assert.assertTrue(vc.getAlternateAlleles().size() == 1);
+            Assert.assertTrue(vc.getAlternateAllele(0).isNonReference());
+            Assert.assertTrue(!vc.getReference().isSymbolic());
+            Assert.assertTrue(!vc.getAlternateAllele(0).isSymbolic());
+        }
+    }
+
     // --------------------------------------------------------------------------------
     //
     // test allele remapping
@@ -1047,7 +1067,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
 
     @DataProvider(name = "AlleleRemappingData")
     public Object[][] makeAlleleRemappingData() {
-        List<Object[]> tests = new ArrayList<Object[]>();
+        List<Object[]> tests = new ArrayList<>();
 
         final Allele originalBase1 = Allele.create((byte)'A');
         final Allele originalBase2 = Allele.create((byte)'T');
@@ -1055,7 +1075,7 @@ public class GATKVariantContextUtilsUnitTest extends BaseTest {
         for ( final byte base1 : BaseUtils.BASES ) {
             for ( final byte base2 : BaseUtils.BASES ) {
                 for ( final int numGenotypes : Arrays.asList(0, 1, 2, 5) ) {
-                    Map<Allele, Allele> map = new HashMap<Allele, Allele>(2);
+                    Map<Allele, Allele> map = new HashMap<>(2);
                     map.put(originalBase1, Allele.create(base1));
                     map.put(originalBase2, Allele.create(base2));
 

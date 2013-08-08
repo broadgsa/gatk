@@ -845,17 +845,29 @@ public class MathUtils {
     }
 
     /**
-     * Compute the median element of the array of integers
+     * Compute the median element of the list of integers
      * @param array a list of integers
      * @return the median element
      */
-    public static int median(final List<Integer> array) {
+    public static <T extends Comparable<? super T>> T median(final List<T> array) {
+         /* TODO -- from Valentin
+        the current implementation is not the usual median when the input is of even length. More concretely it returns the ith element of the list where i = floor(input.size() / 2).
+
+        But actually that is not the "usual" definition of a median, as it is supposed to return the average of the two middle values when the sample length is an even number (i.e. median(1,2,3,4,5,6) == 3.5). [Sources: R and wikipedia]
+
+        My suggestion for a solution is then:
+
+        unify median and medianDoubles to public static <T extends Number> T median(Collection<T>)
+        check on null elements and throw an exception if there are any or perhaps return a null; documented in the javadoc.
+        relocate, rename and refactor MathUtils.median(X) to Utils.ithElement(X,X.size()/2)
+        In addition, the current median implementation sorts the whole input list witch is O(n log n). However find out the ith element (thus calculate the median) can be done in O(n)
+        */
         if ( array == null ) throw new IllegalArgumentException("Array must be non-null");
         final int size = array.size();
         if ( size == 0 ) throw new IllegalArgumentException("Array cannot have size 0");
         else if ( size == 1 ) return array.get(0);
         else {
-            final ArrayList<Integer> sorted = new ArrayList<>(array);
+            final ArrayList<T> sorted = new ArrayList<>(array);
             Collections.sort(sorted);
             return sorted.get(size / 2);
         }
@@ -1405,7 +1417,7 @@ public class MathUtils {
      * @return
      */
     public static List<Integer> log10LinearRange(final int start, final int stop, final double eps) {
-        final LinkedList<Integer> values = new LinkedList<Integer>();
+        final LinkedList<Integer> values = new LinkedList<>();
         final double log10range = Math.log10(stop - start);
 
         if ( start == 0 )
