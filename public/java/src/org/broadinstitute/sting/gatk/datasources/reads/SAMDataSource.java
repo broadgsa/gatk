@@ -352,6 +352,14 @@ public class SAMDataSource {
         resourcePool.releaseReaders(readers);
     }
 
+    public void close() {
+        SAMReaders readers = resourcePool.getAvailableReaders();
+        for(SAMReaderID readerID: readerIDs) {
+            SAMFileReader reader = readers.getReader(readerID);
+            reader.close();
+        }
+    }
+
     /**
      * Returns Reads data structure containing information about the reads data sources placed in this pool as well as
      * information about how they are downsampled, sorted, and filtered
