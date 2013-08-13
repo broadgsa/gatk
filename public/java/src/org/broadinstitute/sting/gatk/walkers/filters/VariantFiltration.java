@@ -89,6 +89,8 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
     /**
      * Any variant which overlaps entries from the provided mask rod will be filtered. If the user wants logic to be reversed,
      * i.e. filter variants that do not overlap with provided mask, then argument -filterNotInMask can be used.
+     * Note that it is up to the user to adapt the name of the mask to make it clear that the reverse logic was used
+     * (e.g. if masking against Hapmap, use -maskName=hapmap for the normal masking and -maskName=not_hapmap for the reverse masking).
      */
     @Input(fullName="mask", shortName="mask", doc="Input ROD mask", required=false)
     public RodBinding<Feature> mask;
@@ -138,6 +140,13 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="maskExtension", shortName="maskExtend", doc="How many bases beyond records from a provided 'mask' rod should variants be filtered", required=false)
     protected Integer MASK_EXTEND = 0;
+
+    /**
+     * When using the -mask argument, the maskName will be annotated in the variant record.
+     * Note that when using the -filterNotInMask argument to reverse the masking logic,
+     * it is up to the user to adapt the name of the mask to make it clear that the reverse logic was used
+     * (e.g. if masking against Hapmap, use -maskName=hapmap for the normal masking and -maskName=not_hapmap for the reverse masking).
+     */
     @Argument(fullName="maskName", shortName="maskName", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call", required=false)
     protected String MASK_NAME = "Mask";
 
@@ -145,6 +154,8 @@ public class VariantFiltration extends RodWalker<Integer, Integer> {
      * By default, if the -mask argument is used, any variant falling in a mask will be filtered.
      * If this argument is used, logic is reversed, and variants falling outside a given mask will be filtered.
      * Use case is, for example, if we have an interval list or BED file with "good" sites.
+     * Note that it is up to the user to adapt the name of the mask to make it clear that the reverse logic was used
+     * (e.g. if masking against Hapmap, use -maskName=hapmap for the normal masking and -maskName=not_hapmap for the reverse masking).
      */
     @Argument(fullName="filterNotInMask", shortName="filterNotInMask", doc="Filter records NOT in given input mask.", required=false)
     protected boolean filterRecordsNotInMask = false;

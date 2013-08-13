@@ -56,9 +56,14 @@ import java.util.*;
 /**
  * Lifts a VCF file over from one build to another.
  *
- * Important note: the resulting VCF is not guaranteed to be valid according to the official specification.  The file could
- * possibly be mis-sorted and the header may not be complete.  LiftoverVariants is intended to be the first of two processing steps
- * for the liftover; the second step, FilterLiftedVariants, will produce a valid well-behaved VCF file.
+ * "Lifting over" variants means adjusting variant calls from one reference to another. Specifically, the process adjusts the position of the call to match the corresponding position on the target reference.
+ * For example, if you have variants called from reads aligned to the hg19 reference, and you want to compare them to calls made based on the b37 reference, you need to liftover one of the callsets to the other reference.
+ *
+ * LiftoverVariants is intended to be the first of two processing steps for the liftover process.
+ * The second step is to run FilterLiftedVariants on the output of LiftoverVariants. This will produce valid well-behaved VCF files, where you'll see that the contig names in the header have all been correctly replaced.
+ *
+ * To be clear, the VCF resulting from the LiftoverVariants run is not guaranteed to be valid according to the official specification.  The file could
+ * possibly be mis-sorted and the header may not be complete. That is why you need to run FilterLiftedVariants on it.
  */
 @DocumentedGATKFeature( groupName = HelpConstants.DOCS_CAT_VARMANIP, extraDocs = {CommandLineGATK.class} )
 public class LiftoverVariants extends RodWalker<Integer, Integer> {

@@ -92,7 +92,7 @@ public class CountRODs extends RodWalker<CountRODs.Datum, Pair<ExpandingArrayLis
     /**
      * One or more input rod files
      */
-    @Input(fullName="rod", shortName = "rod", doc="Input VCF file(s)", required=false)
+    @Input(fullName="rod", shortName = "rod", doc="Input VCF file(s)", required=true)
     public List<RodBinding<Feature>> rods = Collections.emptyList();
 
     @Argument(fullName = "verbose", shortName = "v", doc="If true, this tool will print out detailed information about the rods it finds and locations", required = false)
