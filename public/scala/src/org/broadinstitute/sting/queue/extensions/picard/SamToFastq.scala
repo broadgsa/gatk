@@ -81,6 +81,9 @@ class SamToFastq extends org.broadinstitute.sting.queue.function.JavaCommandLine
   @Argument(shortName = "inpa", fullName = "include_non_primary_alignments", required = false, doc = "If true, include non-primary alignments in the output. Support of non-primary alignments in SamToFastq is not comprehensive, so there may be exceptions if this is set to true and there are paired reads with non-primary alignments.")
   var includeNonPrimaryAlignments: Boolean = false
 
+  @Argument(shortName = "il", fullName = "interleave", required = false, doc = "Will generate an interleaved fastq if paired, each line will have /1 or /2 to describe which end it came from")
+  var interleave: Boolean = false
+
   override def inputBams = input
   override def outputBam = null
   this.sortOrder = null
@@ -98,5 +101,7 @@ class SamToFastq extends org.broadinstitute.sting.queue.function.JavaCommandLine
                              conditional(readOneMaxBasesToWrite >= 0, "READ1_MAX_BASES_TO_WRITE=" + readOneMaxBasesToWrite) +
                              conditional(readTwoTrim >= 0, "READ2_TRIM=" + readTwoTrim) +
                              conditional(readTwoMaxBasesToWrite >= 0, "READ2_MAX_BASES_TO_WRITE=" + readTwoMaxBasesToWrite) +
-                             conditional(includeNonPrimaryAlignments, "INCLUDE_NON_PRIMARY_ALIGNMENTS=" + includeNonPrimaryAlignments)
+                             conditional(includeNonPrimaryAlignments, "INCLUDE_NON_PRIMARY_ALIGNMENTS=" + includeNonPrimaryAlignments) +
+                             conditional(interleave, "INTERLEAVE=" + interleave)
+
 }
