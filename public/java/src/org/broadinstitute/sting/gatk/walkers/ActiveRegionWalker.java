@@ -83,6 +83,7 @@ public abstract class ActiveRegionWalker<MapType, ReduceType> extends Walker<Map
     @Output(fullName="activeRegionOut", shortName="ARO", doc="Output the active region to this IGV formatted file", required = false, defaultToStdout = false)
     public PrintStream activeRegionOutStream = null;
 
+    @Advanced
     @Input(fullName="activeRegionIn", shortName="AR", doc="Use this interval list file as the active regions to process", required = false)
     protected List<IntervalBinding<Feature>> activeRegionBindings = null;
 
