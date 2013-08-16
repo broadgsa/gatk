@@ -197,7 +197,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         if (argumentSource.isRequired()) return "required";
         else if (argumentSource.isAdvanced()) return "advanced";
         else if (argumentSource.isHidden()) return "hidden";
-        else if (argumentSource.isDeprecated()) return "depreciated";
+        else if (argumentSource.isDeprecated()) return "deprecated";
         else return "optional";
     }
 
@@ -242,7 +242,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         args.put("optional", new ArrayList<Map<String, Object>>());
         args.put("advanced", new ArrayList<Map<String, Object>>());
         args.put("hidden", new ArrayList<Map<String, Object>>());
-        args.put("depreciated", new ArrayList<Map<String, Object>>());
+        args.put("deprecated", new ArrayList<Map<String, Object>>());
         return args;
     }
 
@@ -843,7 +843,7 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
         // general attributes
         List<String> attributes = new ArrayList<String>();
         if (def.required) attributes.add("required");
-        if (source.isDeprecated()) attributes.add("depreciated");
+        if (source.isDeprecated()) attributes.add("deprecated");
         if (attributes.size() > 0)
             root.put("attributes", Utils.join(", ", attributes));
 
