@@ -124,7 +124,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
     /**
      * -GF NAME can be any binding in the FORMAT field (e.g., GQ, PL).
-     * Note this argument accepts any number of inputs.  So -F GQ -F PL is allowed.
+     * Note this argument accepts any number of inputs.  So -GF GQ -GF PL is allowed.
      */
     @Argument(fullName="genotypeFields", shortName="GF", doc="The name of each genotype field to capture for output in the table", required=false)
     public List<String> genotypeFieldsToTake = new ArrayList<String>();
@@ -448,10 +448,6 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("NSAMPLES", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getNSamples()); } });
         getters.put("NCALLED", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getNSamples() - vc.getNoCallCount()); } });
         getters.put("MULTI-ALLELIC", new Getter() { public String get(VariantContext vc) { return Boolean.toString(vc.getAlternateAlleles().size() > 1); } });
-        getters.put("GQ", new Getter() { public String get(VariantContext vc) {
-            if ( vc.getNSamples() > 1 ) throw new UserException("Cannot get GQ values for multi-sample VCF");
-            return String.format("%.2f", -10 * vc.getGenotype(0).getLog10PError());
-        }});
     }
     
     private static Object splitAltAlleles(VariantContext vc) {
