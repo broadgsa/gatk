@@ -194,11 +194,26 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     @Requires("argumentSource != null")
     @Ensures("result != null")
     private String docKindOfArg(ArgumentSource argumentSource) {
-        if (argumentSource.isRequired()) return "required";
-        else if (argumentSource.isAdvanced()) return "advanced";
+        if (argumentSource.isRequired()) {
+            if (argumentSource.isInput()) return "required_in";
+            else if (argumentSource.isOutput()) return "required_out";
+            else if (argumentSource.isFlag()) return "required_flag";
+            else return "required_param";
+            }
+        else if (argumentSource.isAdvanced()) {
+            if (argumentSource.isInput()) return "advanced_in";
+            else if (argumentSource.isOutput()) return "advanced_out";
+            else if (argumentSource.isFlag()) return "advanced_flag";
+            else return "advanced_param";
+        }
         else if (argumentSource.isHidden()) return "hidden";
         else if (argumentSource.isDeprecated()) return "deprecated";
-        else return "optional";
+        else {
+            if (argumentSource.isInput()) return "optional_in";
+            else if (argumentSource.isOutput()) return "optional_out";
+            else if (argumentSource.isFlag()) return "optional_flag";
+            else return "optional_param";
+        }
     }
 
     /**
@@ -238,9 +253,18 @@ public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     private Map<String, List<Map<String, Object>>> createArgumentMap() {
         Map<String, List<Map<String, Object>>> args = new HashMap<String, List<Map<String, Object>>>();
         args.put("all", new ArrayList<Map<String, Object>>());
-        args.put("required", new ArrayList<Map<String, Object>>());
-        args.put("optional", new ArrayList<Map<String, Object>>());
-        args.put("advanced", new ArrayList<Map<String, Object>>());
+        args.put("required_in", new ArrayList<Map<String, Object>>());
+        args.put("required_out", new ArrayList<Map<String, Object>>());
+        args.put("required_param", new ArrayList<Map<String, Object>>());
+        args.put("required_flag", new ArrayList<Map<String, Object>>());
+        args.put("optional_in", new ArrayList<Map<String, Object>>());
+        args.put("optional_out", new ArrayList<Map<String, Object>>());
+        args.put("optional_param", new ArrayList<Map<String, Object>>());
+        args.put("optional_flag", new ArrayList<Map<String, Object>>());
+        args.put("advanced_in", new ArrayList<Map<String, Object>>());
+        args.put("advanced_out", new ArrayList<Map<String, Object>>());
+        args.put("advanced_param", new ArrayList<Map<String, Object>>());
+        args.put("advanced_flag", new ArrayList<Map<String, Object>>());
         args.put("hidden", new ArrayList<Map<String, Object>>());
         args.put("deprecated", new ArrayList<Map<String, Object>>());
         return args;
