@@ -34,7 +34,7 @@ import java.io.IOException;
 /**
  * Feature reader with additional test utilities. The iterators can be checked to see if they are closed.
  */
-public class TestFeatureReader extends TribbleIndexedFeatureReader<Feature> {
+public class TestFeatureReader extends TribbleIndexedFeatureReader<Feature, Object> {
     public TestFeatureReader(String featurePath, FeatureCodec codec) throws IOException {
         super(featurePath, codec, true);
     }

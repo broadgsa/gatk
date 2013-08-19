@@ -28,9 +28,7 @@ package org.broadinstitute.sting.utils.codecs.hapmap;
 import org.broad.tribble.AsciiFeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
 import org.broad.tribble.annotation.Strand;
-import org.broad.tribble.readers.AsciiLineReader;
-import org.broad.tribble.readers.LineReader;
-import org.broad.tribble.readers.PositionalBufferedStream;
+import org.broad.tribble.readers.LineIterator;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -112,18 +110,16 @@ public class RawHapMapCodec extends AsciiFeatureCodec<RawHapMapFeature> {
                 headerLine);
     }
 
-    public Object readHeader(LineReader reader) {
-        try {
-            headerLine = reader.readLine();
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Unable to read a line from the line reader");
-        }
+    @Override
+    public Object readActualHeader(final LineIterator lineIterator) {
+        this.headerLine = lineIterator.next();
         return headerLine;
     }
 
     @Override
-    public FeatureCodecHeader readHeader(final PositionalBufferedStream stream) throws IOException {
-        final AsciiLineReader br = new AsciiLineReader(stream);
-        return new FeatureCodecHeader(readHeader(br), br.getPosition());
+    public FeatureCodecHeader readHeader(final LineIterator lineIterator) throws IOException {
+        final String header = (String) readActualHeader(lineIterator);
+        // TODO: This approach may cause issues with files formatted with \r\n-style line-endings.
+        return new FeatureCodecHeader(header, header.length() + 1);
     }
 }
