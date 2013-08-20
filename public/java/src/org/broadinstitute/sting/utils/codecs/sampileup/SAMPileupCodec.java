@@ -26,8 +26,8 @@
 package org.broadinstitute.sting.utils.codecs.sampileup;
 
 import org.broad.tribble.AsciiFeatureCodec;
-import org.broad.tribble.Feature;
 import org.broad.tribble.exception.CodecLineParsingException;
+import org.broad.tribble.readers.LineIterator;
 import org.broad.tribble.util.ParsingUtils;
 
 import java.util.ArrayList;
@@ -161,6 +161,12 @@ public class SAMPileupCodec extends AsciiFeatureCodec<SAMPileupFeature> {
         }
 
         return feature;
+    }
+
+    @Override
+    public Object readActualHeader(LineIterator lineIterator) {
+        // No header for this format
+        return null;
     }
 
     private void parseIndels(String genotype,SAMPileupFeature feature) {

@@ -30,6 +30,8 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.spi.LoggingEvent;
+import org.broad.tribble.readers.LineIterator;
+import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.crypt.CryptUtils;
@@ -450,8 +452,8 @@ public abstract class BaseTest {
     }
 
     public static void assertVCFandBCFFilesAreTheSame(final File vcfFile, final File bcfFile) throws IOException {
-        final Pair<VCFHeader, GATKVCFUtils.VCIterable> vcfData = GATKVCFUtils.readAllVCs(vcfFile, new VCFCodec());
-        final Pair<VCFHeader, GATKVCFUtils.VCIterable> bcfData = GATKVCFUtils.readAllVCs(bcfFile, new BCF2Codec());
+        final Pair<VCFHeader, GATKVCFUtils.VCIterable<LineIterator>> vcfData = GATKVCFUtils.readAllVCs(vcfFile, new VCFCodec());
+        final Pair<VCFHeader, GATKVCFUtils.VCIterable<PositionalBufferedStream>> bcfData = GATKVCFUtils.readAllVCs(bcfFile, new BCF2Codec());
         assertVCFHeadersAreEqual(bcfData.getFirst(), vcfData.getFirst());
         assertVariantContextStreamsAreEqual(bcfData.getSecond(), vcfData.getSecond());
     }

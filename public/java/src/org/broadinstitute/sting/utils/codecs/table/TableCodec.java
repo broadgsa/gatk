@@ -26,14 +26,14 @@
 package org.broadinstitute.sting.utils.codecs.table;
 
 import org.broad.tribble.AsciiFeatureCodec;
-import org.broad.tribble.readers.LineReader;
+import org.broad.tribble.readers.LineIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * Reads tab deliminated tabular text files
@@ -97,30 +97,29 @@ public class TableCodec extends AsciiFeatureCodec<TableFeature> implements Refer
         String[] split = line.split(delimiterRegex);
         if (split.length < 1)
             throw new IllegalArgumentException("TableCodec line = " + line + " doesn't appear to be a valid table format");
-        return new TableFeature(genomeLocParser.parseGenomeLoc(split[0]),Arrays.asList(split),header);
+        return new TableFeature(genomeLocParser.parseGenomeLoc(split[0]),Arrays.asList(split), header);
     }
 
     @Override
-    public Object readHeader(LineReader reader) {
-        String line = "";
-        try {
-            boolean isFirst = true;
-            while ((line = reader.readLine()) != null) {
-                if ( isFirst && ! line.startsWith(headerDelimiter) && ! line.startsWith(commentDelimiter)) {
-                    throw new UserException.MalformedFile("TableCodec file does not have a header");
-                }
-		isFirst &= line.startsWith(commentDelimiter);
-                if (line.startsWith(headerDelimiter)) {
-                    if (header.size() > 0) throw new IllegalStateException("Input table file seems to have two header lines.  The second is = " + line);
-                    String spl[] = line.split(delimiterRegex);
-                    for (String s : spl) header.add(s);
-                    return header;
-                } else if (!line.startsWith(commentDelimiter)) {
-                    break;
-                }
+    public Object readActualHeader(final LineIterator reader) {
+        boolean isFirst = true;
+        while (reader.hasNext()) {
+            final String line = reader.peek(); // Peek to avoid reading non-header data
+            if ( isFirst && ! line.startsWith(headerDelimiter) && ! line.startsWith(commentDelimiter)) {
+                throw new UserException.MalformedFile("TableCodec file does not have a header");
             }
-        } catch (IOException e) {
-            throw new UserException.MalformedFile("unable to parse header from TableCodec file",e);
+            isFirst &= line.startsWith(commentDelimiter);
+            if (line.startsWith(headerDelimiter)) {
+                reader.next(); // "Commit" the peek
+                if (header.size() > 0) throw new IllegalStateException("Input table file seems to have two header lines.  The second is = " + line);
+                final String spl[] = line.split(delimiterRegex);
+                Collections.addAll(header, spl);
+                return header;
+            } else if (line.startsWith(commentDelimiter)) {
+                reader.next(); // "Commit" the peek
+            } else {
+                break;
+            }
         }
         return header;
     }

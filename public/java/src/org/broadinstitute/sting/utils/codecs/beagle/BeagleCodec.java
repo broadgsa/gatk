@@ -51,9 +51,8 @@ package org.broadinstitute.sting.utils.codecs.beagle;
 
 
 import org.broad.tribble.AsciiFeatureCodec;
-import org.broad.tribble.Feature;
 import org.broad.tribble.exception.CodecLineParsingException;
-import org.broad.tribble.readers.LineReader;
+import org.broad.tribble.readers.LineIterator;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -131,8 +130,8 @@ public class BeagleCodec extends AsciiFeatureCodec<BeagleFeature> implements Ref
         this.genomeLocParser =  genomeLocParser;
     }
 
-    public Object readHeader(LineReader reader)
-    {
+    @Override
+    public Object readActualHeader(LineIterator reader) {
         int[] lineCounter = new int[1];
         try {
             header = readHeader(reader, lineCounter);
@@ -181,14 +180,14 @@ public class BeagleCodec extends AsciiFeatureCodec<BeagleFeature> implements Ref
         return header;
     }
 
-    private static String[] readHeader(final LineReader source, int[] lineCounter) throws IOException {
+    private static String[] readHeader(final LineIterator source, int[] lineCounter) throws IOException {
 
         String[] header = null;
         int numLines = 0;
 
         //find the 1st line that's non-empty and not a comment
-        String line;
-        while( (line = source.readLine()) != null ) {
+        while(source.hasNext()) {
+            final String line = source.next();
             numLines++;
             if ( line.trim().isEmpty() ) {
                 continue;

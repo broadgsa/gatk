@@ -31,6 +31,7 @@ package org.broadinstitute.sting.utils.activeregion;
 
 import net.sf.picard.reference.ReferenceSequenceFile;
 import org.apache.commons.lang.ArrayUtils;
+import org.broad.tribble.readers.LineIterator;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -48,7 +49,10 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 
 public class BandPassActivityProfileUnitTest extends BaseTest {
@@ -261,7 +265,7 @@ public class BandPassActivityProfileUnitTest extends BaseTest {
 
         final File file = new File(path);
         final VCFCodec codec = new VCFCodec();
-        final Pair<VCFHeader, GATKVCFUtils.VCIterable> reader = GATKVCFUtils.readAllVCs(file, codec);
+        final Pair<VCFHeader, GATKVCFUtils.VCIterable<LineIterator>> reader = GATKVCFUtils.readAllVCs(file, codec);
 
         final List<ActiveRegion> incRegions = new ArrayList<ActiveRegion>();
         final BandPassActivityProfile incProfile = new BandPassActivityProfile(genomeLocParser, null);

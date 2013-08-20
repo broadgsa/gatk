@@ -105,7 +105,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
         public void run(T vc);
     }
 
-    private <T extends Feature> void runBenchmark(FeatureCodec<T> codec, FunctionToBenchmark<T> func) {
+    private <T extends Feature> void runBenchmark(FeatureCodec codec, FunctionToBenchmark<T> func) {
         // TODO -- update for new Tribble interface
 //        try {
 //            InputStream is = new ByteArrayInputStream(INPUT_STRING.getBytes());
@@ -129,7 +129,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
     public void timeV14(int rep) {
         for ( int i = 0; i < rep; i++ ) {
             FunctionToBenchmark<VariantContext> func = getV14FunctionToBenchmark();
-            FeatureCodec<VariantContext> codec = new VCFCodec();
+            final VCFCodec codec = new VCFCodec();
             runBenchmark(codec, func);
         }
     }

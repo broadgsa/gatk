@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.variant;
 import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureCodecHeader;
+import org.broad.tribble.readers.LineIterator;
 import org.broad.tribble.readers.PositionalBufferedStream;
 import org.broadinstitute.sting.commandline.RodBinding;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
@@ -177,31 +178,26 @@ public class GATKVCFUtils {
     /**
      * Utility class to read all of the VC records from a file
      *
-     * @param source
+     * @param file
      * @param codec
      * @return
      * @throws IOException
      */
-    public final static Pair<VCFHeader, VCIterable> readAllVCs( final File source, final FeatureCodec<VariantContext> codec ) throws IOException {
+    public final static <SOURCE> Pair<VCFHeader, VCIterable<SOURCE>> readAllVCs( final File file, final FeatureCodec<VariantContext, SOURCE> codec) throws IOException {
         // read in the features
-        PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(source));
-        FeatureCodecHeader header = codec.readHeader(pbs);
-        pbs.close();
-
-        pbs = new PositionalBufferedStream(new FileInputStream(source));
-        pbs.skip(header.getHeaderEnd());
-
+        SOURCE source = codec.makeSourceFromStream(new FileInputStream(file));
+        FeatureCodecHeader header = codec.readHeader(source);
         final VCFHeader vcfHeader = (VCFHeader)header.getHeaderValue();
-        return new Pair<VCFHeader, VCIterable>(vcfHeader, new VCIterable(pbs, codec, vcfHeader));
+        return new Pair<>(vcfHeader, new VCIterable<>(source, codec, vcfHeader));
     }
 
-    public static class VCIterable implements Iterable<VariantContext>, Iterator<VariantContext> {
-        final PositionalBufferedStream pbs;
-        final FeatureCodec<VariantContext> codec;
+    public static class VCIterable<SOURCE> implements Iterable<VariantContext>, Iterator<VariantContext> {
+        final SOURCE source;
+        final FeatureCodec<VariantContext, SOURCE> codec;
         final VCFHeader header;
 
-        private VCIterable(final PositionalBufferedStream pbs, final FeatureCodec<VariantContext> codec, final VCFHeader header) {
-            this.pbs = pbs;
+        private VCIterable(final SOURCE source, final FeatureCodec<VariantContext, SOURCE> codec, final VCFHeader header) {
+            this.source = source;
             this.codec = codec;
             this.header = header;
         }
@@ -213,17 +209,13 @@ public class GATKVCFUtils {
 
         @Override
         public boolean hasNext() {
-            try {
-                return ! pbs.isDone();
-            } catch ( IOException e ) {
-                throw new RuntimeException(e);
-            }
+            return ! codec.isDone(source);
         }
 
         @Override
         public VariantContext next() {
             try {
-                final VariantContext vc = codec.decode(pbs);
+                final VariantContext vc = codec.decode(source);
                 return vc == null ? null : vc.fullyDecode(header, false);
             } catch ( IOException e ) {
                 throw new RuntimeException(e);
@@ -249,20 +241,19 @@ public class GATKVCFUtils {
         final List<VariantContext> vcs = new ArrayList<VariantContext>();
         final VCFCodec codec = new VCFCodec();
         PositionalBufferedStream pbs = new PositionalBufferedStream(new FileInputStream(source));
-        FeatureCodecHeader header = codec.readHeader(pbs);
-        pbs.close();
+        final LineIterator vcfSource = codec.makeSourceFromStream(pbs);
+        try {
+            final VCFHeader vcfHeader = (VCFHeader) codec.readActualHeader(vcfSource);
 
-        pbs = new PositionalBufferedStream(new FileInputStream(source));
-        pbs.skip(header.getHeaderEnd());
+            while (vcfSource.hasNext()) {
+                final VariantContext vc = codec.decode(vcfSource);
+                if ( vc != null )
+                    vcs.add(vc);
+            }
 
-        final VCFHeader vcfHeader = (VCFHeader)header.getHeaderValue();
-
-        while ( ! pbs.isDone() ) {
-            final VariantContext vc = codec.decode(pbs);
-            if ( vc != null )
-                vcs.add(vc);
+            return new Pair<VCFHeader, List<VariantContext>>(vcfHeader, vcs);
+        } finally {
+            codec.close(vcfSource);
         }
-
-        return new Pair<VCFHeader, List<VariantContext>>(vcfHeader, vcs);
     }
 }

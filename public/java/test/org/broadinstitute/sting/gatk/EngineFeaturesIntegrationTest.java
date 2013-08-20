@@ -28,11 +28,9 @@ package org.broadinstitute.sting.gatk;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
-import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.WalkerTest;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -48,7 +46,6 @@ import org.broadinstitute.variant.vcf.VCFCodec;
 import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.variant.vcf.VCFHeaderLine;
 import org.testng.Assert;
-import org.testng.TestException;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -218,7 +215,8 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
                 1, Arrays.asList(""));
         spec.disableShadowBCF();
         final File vcf = executeTest("testGATKVersionInVCF", spec).first.get(0);
-        final VCFHeader header = (VCFHeader)new VCFCodec().readHeader(new AsciiLineReader(new FileInputStream(vcf)));
+        final VCFCodec codec = new VCFCodec();
+        final VCFHeader header = (VCFHeader) codec.readActualHeader(codec.makeSourceFromStream(new FileInputStream(vcf)));
         final VCFHeaderLine versionLine = header.getMetaDataLine(GATKVCFUtils.GATK_COMMAND_LINE_KEY);
         Assert.assertNotNull(versionLine);
         Assert.assertTrue(versionLine.toString().contains("SelectVariants"));
@@ -232,7 +230,8 @@ public class EngineFeaturesIntegrationTest extends WalkerTest {
                 1, Arrays.asList(""));
         spec.disableShadowBCF();
         final File vcf = executeTest("testMultipleGATKVersionsInVCF", spec).first.get(0);
-        final VCFHeader header = (VCFHeader)new VCFCodec().readHeader(new AsciiLineReader(new FileInputStream(vcf)));
+        final VCFCodec codec = new VCFCodec();
+        final VCFHeader header = (VCFHeader) codec.readActualHeader(codec.makeSourceFromStream(new FileInputStream(vcf)));
 
         boolean foundHC = false;
         boolean foundSV = false;
