@@ -73,7 +73,7 @@ object QScriptUtils {
   /**
    * Check if there are multiple samples in a BAM file
    */
-  def hasMultipleSamples(readGroups: java.util.List[SAMReadGroupRecord]): Boolean = {
+  def hasMultipleSamples(readGroups: Seq[SAMReadGroupRecord]): Boolean = {
     var sample: String = ""
     for (r <- readGroups) {
       if (sample.isEmpty)
