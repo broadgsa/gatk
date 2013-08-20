@@ -79,8 +79,23 @@ object QScriptUtils {
       if (sample.isEmpty)
         sample = r.getSample
       else if (sample != r.getSample)
-          return true;
+          return true
     }
     false
+  }
+
+  /**
+   * Returns all distinct samples in the BAM file
+   *
+   * @param bam the bam file
+   * @return    a set with all distinct samples (in no particular order)
+   */
+  def getSamplesFromBAM(bam: File) : Set[String] = {
+    val reader = new SAMFileReader(bam)
+    var samples: Set[String] = Set()
+    for (rg <- reader.getFileHeader.getReadGroups) {
+      samples += rg.getSample
+    }
+    samples
   }
 }
