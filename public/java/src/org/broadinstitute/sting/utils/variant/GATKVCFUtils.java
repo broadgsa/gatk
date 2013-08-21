@@ -75,7 +75,7 @@ public class GATKVCFUtils {
         attributes.put("Date", date.toString());
         attributes.put("Epoch", Long.toString(date.getTime()));
         attributes.put("CommandLineOptions", engine.createApproximateCommandLineArgumentString(argumentSources.toArray()));
-        return new VCFSimpleHeaderLine(GATK_COMMAND_LINE_KEY, attributes, Collections.<String>emptyList());
+        return new VCFSimpleHeaderLine(GATK_COMMAND_LINE_KEY, attributes);
     }
 
     public static <T extends Feature> Map<String, VCFHeader> getVCFHeadersFromRods(GenomeAnalysisEngine toolkit, List<RodBinding<T>> rodBindings) {
