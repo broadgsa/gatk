@@ -71,10 +71,10 @@ import java.util.zip.GZIPOutputStream;
  * @since 2010
  */
 public class GATKRunReport {
-    protected static final String REPORT_BUCKET_NAME = "GATK_Run_Reports";
-    protected static final String TEST_REPORT_BUCKET_NAME = "GATK_Run_Reports_Test";
-    protected final static String AWS_ACCESS_KEY_MD5 = "43433e5488d60788042ed5de3dcf9b0a";
-    protected final static String AWS_SECRET_KEY_MD5 = "0aa28b227ecacbdc9d2d5e8d82b10d32";
+    protected static final String REPORT_BUCKET_NAME = "broad.gsa.gatk.run.reports";
+    protected static final String TEST_REPORT_BUCKET_NAME = "broad.gsa.gatk.run.reports.test";
+    protected final static String AWS_ACCESS_KEY_MD5 = "34d4a26eb2062b3f06e833b28f9a38c6";
+    protected final static String AWS_SECRET_KEY_MD5 = "83f2332eec99ef1d7425d5dc5d4b514a";
 
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy/MM/dd HH.mm.ss");
 
@@ -525,7 +525,7 @@ public class GATKRunReport {
                         }
                         break;
                     case NORMAL:
-                        // IAM GATK user credentials -- only right is to PutObject into GATK_Run_Report bucket
+                        // IAM GATK user credentials -- only right is to PutObject into broad.gsa.gatk.run.reports bucket
                         final S3Service s3Service = initializeAWSService(getAWSUploadAccessKey(), getAWSUploadSecretKey());
 
                         // Create an S3Object based on a file, with Content-Length set automatically and
