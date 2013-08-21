@@ -160,6 +160,22 @@ public class ArgumentSource {
     }
 
     /**
+     * Is the given argument an output.
+     * @return True if so. False otherwise.
+     */
+    public boolean isOutput() {
+        return field.isAnnotationPresent(Output.class);
+    }
+
+    /**
+     * Is the given argument an input.
+     * @return True if so. False otherwise.
+     */
+    public boolean isInput() {
+        return field.isAnnotationPresent(Input.class);
+    }
+
+    /**
      * Is this command-line argument dependent on some primitive argument types?
      * @return True if this command-line argument depends on other arguments; false otherwise.
      */

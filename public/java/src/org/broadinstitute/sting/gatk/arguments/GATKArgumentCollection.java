@@ -128,10 +128,12 @@ public class GATKArgumentCollection {
     @Argument(fullName = "downsample_to_coverage", shortName = "dcov",
               doc = "Coverage [integer] to downsample to. For locus-based traversals (eg., LocusWalkers and ActiveRegionWalkers)," +
                     "this controls the maximum depth of coverage at each locus. For non-locus-based traversals (eg., ReadWalkers), " +
-                    "this controls the maximum number of reads sharing the same alignment start position. Note that the " +
-                    "coverage target is an approximate goal that is not guaranteed to be met exactly: the GATK's approach " +
-                    "to downsampling is based on even representation of reads from all alignment start positions, and the " +
-                    "downsampling algorithm will under some circumstances retain slightly more coverage than requested.",
+                    "this controls the maximum number of reads sharing the same alignment start position. Note that this downsampling " +
+                    "option does NOT produce an unbiased random sampling from all available reads at each locus: instead, the primary goal of " +
+                    "the to-coverage downsampler is to maintain an even representation of reads from all alignment start positions " +
+                    "when removing excess coverage. For a true across-the-board unbiased random sampling of reads, use -dfrac instead. " +
+                    "Also note that the coverage target is an approximate goal that is not guaranteed to be met exactly: the downsampling " +
+                    "algorithm will under some circumstances retain slightly more coverage than requested.",
               required = false)
     public Integer downsampleCoverage = null;
 
@@ -279,6 +281,15 @@ public class GATKArgumentCollection {
     @Argument(fullName = "keep_program_records", shortName = "kpr", doc = "Should we override the Walker's default and keep program records from the SAM header", required = false)
     public boolean keepProgramRecords = false;
 
+    @Advanced
+    @Argument(fullName = "sample_rename_mapping_file", shortName = "sample_rename_mapping_file",
+              doc = "Rename sample IDs on-the-fly at runtime using the provided mapping file. This option requires that " +
+                    "each BAM file listed in the mapping file have only a single sample specified in its header (though there " +
+                    "may be multiple read groups for that sample). Each line of the mapping file must contain the absolute path " +
+                    "to a BAM file, followed by whitespace, followed by the new sample name for that BAM file.",
+              required = false)
+    public File sampleRenameMappingFile = null;
+
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations: nothing will be checked at runtime.  For expert users only who know what they are doing.  We do not support usage of this argument.", required = false)
     public ValidationExclusion.TYPE unsafe;
 
@@ -321,9 +332,9 @@ public class GATKArgumentCollection {
     public int numberOfIOThreads = 0;
 
     /**
-     * Enable GATK to monitor its own threading efficiency, at a itsy-bitsy tiny
+     * Enable GATK to monitor its own threading efficiency, at an itsy-bitsy tiny
      * cost (< 0.1%) in runtime because of turning on the JavaBean.  This is largely for
-     * debugging purposes.
+     * debugging purposes. Note that this argument is not compatible with -nt, it only works with -nct.
      */
     @Argument(fullName = "monitorThreadEfficiency", shortName = "mte", doc = "Enable GATK threading efficiency monitoring", required = false)
     public Boolean monitorThreadEfficiency = false;

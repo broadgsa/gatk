@@ -84,7 +84,8 @@ import java.io.PrintStream;
  * <p/>
  * <h3>Examples</h3>
  * <pre>
- *     -T CallableLociWalker \
+ *  java -jar GenomeAnalysisTK.jar \
+ *     -T CallableLoci \
  *     -I my.bam \
  *     -summary my.summary \
  *     -o my.bed

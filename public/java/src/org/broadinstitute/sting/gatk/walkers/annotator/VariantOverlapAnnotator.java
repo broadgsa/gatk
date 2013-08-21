@@ -136,7 +136,7 @@ public final class VariantOverlapAnnotator {
         VariantContext annotated = vcToAnnotate;
         final GenomeLoc loc = getLoc(vcToAnnotate);
         for ( final Map.Entry<RodBinding<VariantContext>, String> overlapBinding : overlapBindings.entrySet() ) {
-            annotated = annotateOverlap(tracker.getValues(overlapBinding.getKey(), loc), overlapBinding.getValue(), vcToAnnotate);
+            annotated = annotateOverlap(tracker.getValues(overlapBinding.getKey(), loc), overlapBinding.getValue(), annotated);
         }
 
         return annotated;

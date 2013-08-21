@@ -158,7 +158,7 @@ public class ReadMetricsUnitTest extends BaseTest {
                 new ValidationExclusion(),
                 new ArrayList<ReadFilter>(),
                 new ArrayList<ReadTransformer>(),
-                false, (byte)30, false, true);
+                false, (byte)30, false, true, null);
 
         engine.setReadsDataSource(dataSource);
 
@@ -193,7 +193,7 @@ public class ReadMetricsUnitTest extends BaseTest {
                 new ValidationExclusion(),
                 new ArrayList<ReadFilter>(),
                 new ArrayList<ReadTransformer>(),
-                false, (byte)30, false, true);
+                false, (byte)30, false, true, null);
 
         engine.setReadsDataSource(dataSource);
         final Set<String> samples = SampleUtils.getSAMFileSamples(dataSource.getHeader());
@@ -234,7 +234,7 @@ public class ReadMetricsUnitTest extends BaseTest {
                 new ValidationExclusion(),
                 new ArrayList<ReadFilter>(),
                 new ArrayList<ReadTransformer>(),
-                false, (byte)30, false, true);
+                false, (byte)30, false, true, null);
 
         engine.setReadsDataSource(dataSource);
         final Set<String> samples = SampleUtils.getSAMFileSamples(dataSource.getHeader());
@@ -281,7 +281,7 @@ public class ReadMetricsUnitTest extends BaseTest {
                 new ValidationExclusion(),
                 filters,
                 new ArrayList<ReadTransformer>(),
-                false, (byte)30, false, true);
+                false, (byte)30, false, true, null);
 
         engine.setReadsDataSource(dataSource);
 

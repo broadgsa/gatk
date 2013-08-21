@@ -29,6 +29,7 @@ import org.apache.commons.io.FileUtils;
 import org.broadinstitute.sting.BaseTest;
 import org.ggf.drmaa.*;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -51,19 +52,23 @@ public class JnaSessionPipelineTest extends BaseTest {
 
     @Test(dependsOnMethods = { "testDrmaa" })
     public void testSubmitEcho() throws Exception {
+        if ( ! pipelineTestRunModeIsSet ) {
+            throw new SkipException("Skipping testSubmitEcho because we are in pipeline test dry run mode");
+        }
+
         if (implementation.contains("LSF")) {
             System.err.println("    ***********************************************************");
             System.err.println("   *************************************************************");
             System.err.println("   ****                                                     ****");
-            System.err.println("  ****  Skipping JnaSessionIntegrationTest.testSubmitEcho()  ****");
+            System.err.println("  ****  Skipping JnaSessionPipelineTest.testSubmitEcho()     ****");
             System.err.println("  ****      Are you using the dotkit .combined_LSF_SGE?      ****");
             System.err.println("   ****                                                     ****");
             System.err.println("   *************************************************************");
             System.err.println("    ***********************************************************");
-            return;
+            throw new SkipException("Skipping testSubmitEcho because correct DRMAA implementation not found");
         }
 
-        File outFile = tryCreateNetworkTempFile("JnaSessionIntegrationTest.out");
+        File outFile = tryCreateNetworkTempFile("JnaSessionPipelineTest.out");
         Session session = factory.getSession();
         session.init(null);
         try {

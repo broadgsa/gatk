@@ -26,9 +26,11 @@
 package org.broadinstitute.sting.utils;
 
 import cern.jet.random.Normal;
+import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.*;
@@ -47,7 +49,7 @@ public class MathUtilsUnitTest extends BaseTest {
     @Test
     public void testGenerateUniqueHashFromThreePositiveIntegers() {
         logger.warn("Executing testGenerateUniqueHashFromThreePositiveIntegers");
-        
+
         final Set<Long> observedLongs = new HashSet<Long>();
         for (short i = 0; i < Byte.MAX_VALUE; i++) {
             for (short j = 0; j < Byte.MAX_VALUE; j++) {
@@ -97,7 +99,7 @@ public class MathUtilsUnitTest extends BaseTest {
             final int numTrials = 10;
             for ( int i = 0; i < numTrials; i++ )
                 Assert.assertEquals(MathUtils.binomialCumulativeProbability(numTrials, i, i), MathUtils.binomialProbability(numTrials, i), 1e-10, String.format("k=%d, n=%d", i, numTrials));
-    
+
             Assert.assertEquals(MathUtils.binomialCumulativeProbability(10, 0, 2), 0.05468750, 1e-7);
             Assert.assertEquals(MathUtils.binomialCumulativeProbability(10, 0, 5), 0.62304687, 1e-7);
             Assert.assertEquals(MathUtils.binomialCumulativeProbability(10, 0, 10), 1.0, 1e-7);
@@ -271,7 +273,7 @@ public class MathUtilsUnitTest extends BaseTest {
 
     @Test
     public void testApproximateLog10SumLog10() {
-        
+
         final double requiredPrecision = 1E-4;
 
         Assert.assertEquals(MathUtils.approximateLog10SumLog10(new double[] {0.0}), 0.0, requiredPrecision);
@@ -445,5 +447,75 @@ public class MathUtilsUnitTest extends BaseTest {
                 }
             }
         }
+    }
+
+    @DataProvider(name = "ArrayMinData")
+    public Object[][] makeArrayMinData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        // this functionality can be adapted to provide input data for whatever you might want in your data
+        tests.add(new Object[]{Arrays.asList(10), 10});
+        tests.add(new Object[]{Arrays.asList(-10), -10});
+
+        for ( final List<Integer> values : Utils.makePermutations(Arrays.asList(1,2,3), 3, false) ) {
+            tests.add(new Object[]{values, 1});
+        }
+
+        for ( final List<Integer> values : Utils.makePermutations(Arrays.asList(1,2,-3), 3, false) ) {
+            tests.add(new Object[]{values, -3});
+        }
+
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "ArrayMinData")
+    public void testArrayMinList(final List<Integer> values, final int expected) {
+        final int actual = MathUtils.arrayMin(values);
+        Assert.assertEquals(actual, expected, "Failed with " + values);
+    }
+
+    @Test(dataProvider = "ArrayMinData")
+    public void testArrayMinIntArray(final List<Integer> values, final int expected) {
+        final int[] asArray = ArrayUtils.toPrimitive(values.toArray(new Integer[values.size()]));
+        final int actual = MathUtils.arrayMin(asArray);
+        Assert.assertEquals(actual, expected, "Failed with " + values);
+    }
+
+    @Test(dataProvider = "ArrayMinData")
+    public void testArrayMinByteArray(final List<Integer> values, final int expected) {
+        final byte[] asArray = new byte[values.size()];
+        for ( int i = 0; i < values.size(); i++ ) asArray[i] = (byte)(values.get(i) & 0xFF);
+        final byte actual = MathUtils.arrayMin(asArray);
+        Assert.assertEquals(actual, (byte)(expected & 0xFF), "Failed with " + values);
+    }
+
+    @Test(dataProvider = "ArrayMinData")
+    public void testArrayMinDoubleArray(final List<Integer> values, final int expected) {
+        final double[] asArray = new double[values.size()];
+        for ( int i = 0; i < values.size(); i++ ) asArray[i] = (double)(values.get(i));
+        final double actual = MathUtils.arrayMin(asArray);
+        Assert.assertEquals(actual, (double)expected, "Failed with " + values);
+    }
+
+    @DataProvider(name = "MedianData")
+    public Object[][] makeMedianData() {
+        List<Object[]> tests = new ArrayList<Object[]>();
+
+        // this functionality can be adapted to provide input data for whatever you might want in your data
+        tests.add(new Object[]{Arrays.asList(10), 10});
+        tests.add(new Object[]{Arrays.asList(1, 10), 10});
+
+        for ( final List<Integer> values : Utils.makePermutations(Arrays.asList(1,2,-3), 3, false) ) {
+            tests.add(new Object[]{values, 1});
+        }
+
+        return tests.toArray(new Object[][]{});
+    }
+
+    @Test(dataProvider = "MedianData")
+    public void testMedian(final List<Integer> values, final int expected) {
+        final int actual = MathUtils.median(values);
+        Assert.assertEquals(actual, expected, "Failed with " + values);
     }
 }

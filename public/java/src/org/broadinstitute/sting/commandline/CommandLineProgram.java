@@ -246,7 +246,7 @@ public abstract class CommandLineProgram {
             }
         }
         catch (ArgumentException e) {
-            clp.parser.printHelp(clp.getApplicationDetails());
+            //clp.parser.printHelp(clp.getApplicationDetails());
             // Rethrow the exception to exit with an error.
             throw e;
         }
@@ -370,8 +370,8 @@ public abstract class CommandLineProgram {
         errorPrintf("------------------------------------------------------------------------------------------%n");
         errorPrintf("A GATK RUNTIME ERROR has occurred (version %s):%n", CommandLineGATK.getVersionNumber());
         errorPrintf("%n");
-        errorPrintf("Please check the documentation guide to see if this is a known problem%n");
-        errorPrintf("If not, please post the error, with stack trace, to the GATK forum%n");
+        errorPrintf("This might be a bug. Please check the documentation guide to see if this is a known problem.%n");
+        errorPrintf("If not, please post the error message, with stack trace, to the GATK forum.%n");
         printDocumentationReference();
         if ( msg == null ) // some exceptions don't have detailed messages
             msg = "Code exception (see stack trace for error itself)";
@@ -387,11 +387,16 @@ public abstract class CommandLineProgram {
 
         errorPrintf("------------------------------------------------------------------------------------------%n");
         errorPrintf("A USER ERROR has occurred (version %s): %n", CommandLineGATK.getVersionNumber());
-        errorPrintf("The invalid arguments or inputs must be corrected before the GATK can proceed%n");
-        errorPrintf("Please do not post this error to the GATK forum%n");
         errorPrintf("%n");
-        errorPrintf("See the documentation (rerun with -h) for this tool to view allowable command-line arguments.%n");
+        errorPrintf("This means that one or more arguments or inputs in your command are incorrect.%n");
+        errorPrintf("The error message below tells you what is the problem.%n");
+        errorPrintf("%n");
+        errorPrintf("If the problem is an invalid argument, please check the online documentation guide%n");
+        errorPrintf("(or rerun your command with --help) to view allowable command-line arguments for this tool.%n");
+        errorPrintf("%n");
         printDocumentationReference();
+        errorPrintf("%n");
+        errorPrintf("Please do NOT post this error to the GATK forum unless you have really tried to fix it yourself.%n");
         errorPrintf("%n");
         errorPrintf("MESSAGE: %s%n", e.getMessage().trim());
         errorPrintf("------------------------------------------------------------------------------------------%n");
@@ -404,13 +409,16 @@ public abstract class CommandLineProgram {
 
         errorPrintf("------------------------------------------------------------------------------------------%n");
         errorPrintf("A BAM ERROR has occurred (version %s): %n", CommandLineGATK.getVersionNumber());
-        errorPrintf("The invalid inputs must be corrected before the GATK can proceed%n");
-        errorPrintf("Please do not post this error to the GATK forum until you have followed the instructions below%n");
         errorPrintf("%n");
-        errorPrintf("Please make sure that your BAM file is well-formed by running Picard's validator on it%n");
-        errorPrintf("(see http://picard.sourceforge.net/command-line-overview.shtml#ValidateSamFile for details)%n");
-        errorPrintf("Also, please ensure that your BAM index is not corrupted: delete the current one and regenerate it with 'samtools index'%n");
+        errorPrintf("This means that there is something wrong with the BAM file(s) you provided.%n");
+        errorPrintf("The error message below tells you what is the problem.%n");
+        errorPrintf("%n");
         printDocumentationReference();
+        errorPrintf("%n");
+        errorPrintf("Please do NOT post this error to the GATK forum until you have followed these instructions:%n");
+        errorPrintf("- Make sure that your BAM file is well-formed by running Picard's validator on it%n");
+        errorPrintf("(see http://picard.sourceforge.net/command-line-overview.shtml#ValidateSamFile for details)%n");
+        errorPrintf("- Ensure that your BAM index is not corrupted: delete the current one and regenerate it with 'samtools index'%n");
         errorPrintf("%n");
         errorPrintf("MESSAGE: %s%n", t.getMessage().trim());
         errorPrintf("------------------------------------------------------------------------------------------%n");

@@ -296,7 +296,6 @@ public class ReadBackedPileupUnitTest {
         testRBPCounts(pileup, new RBPCountTest(params.nReads + 2, params.nMapq0 + 1, params.nDeletions + 1));
     }
 
-
     private void testRBPCounts(final ReadBackedPileup rbp, RBPCountTest expected) {
         for ( int cycles = 0; cycles < 3; cycles++ ) {
             // multiple cycles to make sure caching is working
@@ -305,5 +304,25 @@ public class ReadBackedPileupUnitTest {
             Assert.assertEquals(rbp.getNumberOfDeletions(), expected.nDeletions);
             Assert.assertEquals(rbp.getNumberOfMappingQualityZeroReads(), expected.nMapq0);
         }
+    }
+
+    @Test
+    public void testRBPMappingQuals() {
+
+        // create a read with high MQ
+        final GATKSAMRecord read = ArtificialSAMUtils.createArtificialRead(header, "read", 0, 1, 10);
+        read.setReadBases(Utils.dupBytes((byte) 'A', 10));
+        read.setBaseQualities(Utils.dupBytes((byte) 30, 10));
+        read.setCigarString("10M");
+        read.setMappingQuality(200); // set a MQ higher than max signed byte
+
+        // now create the RBP
+        final List<PileupElement> elts = new LinkedList<>();
+        elts.add(new PileupElement(read, 0, read.getCigar().getCigarElement(0), 0, 0));
+        final Map<String, ReadBackedPileupImpl> pileupsBySample = new HashMap<>();
+        pileupsBySample.put("foo", new ReadBackedPileupImpl(loc, elts));
+        final ReadBackedPileup pileup = new ReadBackedPileupImpl(loc, pileupsBySample);
+
+        Assert.assertEquals(pileup.getMappingQuals()[0], 200);
     }
 }

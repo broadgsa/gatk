@@ -28,17 +28,18 @@ package org.broadinstitute.sting.gatk.io.storage;
 import net.sf.samtools.util.BlockCompressedOutputStream;
 import org.apache.log4j.Logger;
 import org.broad.tribble.AbstractFeatureReader;
+import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broadinstitute.sting.gatk.io.stubs.VariantContextWriterStub;
 import org.broadinstitute.sting.gatk.refdata.tracks.FeatureManager;
-import org.broadinstitute.variant.bcf2.BCF2Utils;
-import org.broadinstitute.variant.vcf.VCFHeader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.variant.bcf2.BCF2Utils;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.writer.Options;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriterFactory;
+import org.broadinstitute.variant.vcf.VCFHeader;
 
 import java.io.*;
 import java.util.Arrays;
@@ -205,12 +206,11 @@ public class VariantContextWriterStorage implements Storage<VariantContextWriter
             if ( fd == null )
                 throw new UserException.LocalParallelizationProblem(file);
 
-            final FeatureCodec<VariantContext> codec = fd.getCodec();
-            final AbstractFeatureReader<VariantContext> source =
-                    AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), codec, false);
-            
-            for ( final VariantContext vc : source.iterator() ) {
-                target.writer.add(vc);
+            final FeatureCodec codec = fd.getCodec();
+            final AbstractFeatureReader<Feature, ?> source = AbstractFeatureReader.getFeatureReader(file.getAbsolutePath(), codec, false);
+
+            for ( final Feature vc : source.iterator() ) {
+                target.writer.add((VariantContext) vc);
             }
 
             source.close();

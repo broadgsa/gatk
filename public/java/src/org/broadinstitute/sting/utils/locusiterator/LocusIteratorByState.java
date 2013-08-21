@@ -29,7 +29,8 @@ import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecordIterator;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.CloseableIterator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -71,6 +72,9 @@ import java.util.*;
  * a stream of unique, sorted reads
  */
 public final class LocusIteratorByState extends LocusIterator {
+    /** Indicates that we shouldn't do any downsampling */
+    public final static LIBSDownsamplingInfo NO_DOWNSAMPLING = new LIBSDownsamplingInfo(false, -1);
+
     /**
      * our log, which we want to capture anything from this class
      */
@@ -151,7 +155,7 @@ public final class LocusIteratorByState extends LocusIterator {
      * @param reader a non-null reader
      * @param it an iterator from reader that has the reads we want to use to create ReadBackPileups
      */
-    public LocusIteratorByState(final SAMFileReader reader, final SAMRecordIterator it) {
+    public LocusIteratorByState(final SAMFileReader reader, final CloseableIterator<SAMRecord> it) {
         this(new GATKSAMIterator(it),
                 new LIBSDownsamplingInfo(false, 0),
                 true,
@@ -174,12 +178,12 @@ public final class LocusIteratorByState extends LocusIterator {
      * @param maintainUniqueReadsList if true, we will keep the unique reads from off the samIterator and make them
      *                                available via the transferReadsFromAllPreviousPileups interface
      */
-    protected LocusIteratorByState(final Iterator<GATKSAMRecord> samIterator,
-                                   final LIBSDownsamplingInfo downsamplingInfo,
-                                   final boolean includeReadsWithDeletionAtLoci,
-                                   final GenomeLocParser genomeLocParser,
-                                   final Collection<String> samples,
-                                   final boolean maintainUniqueReadsList) {
+    public LocusIteratorByState(final Iterator<GATKSAMRecord> samIterator,
+                                final LIBSDownsamplingInfo downsamplingInfo,
+                                final boolean includeReadsWithDeletionAtLoci,
+                                final GenomeLocParser genomeLocParser,
+                                final Collection<String> samples,
+                                final boolean maintainUniqueReadsList) {
         if ( samIterator == null ) throw new IllegalArgumentException("samIterator cannot be null");
         if ( downsamplingInfo == null ) throw new IllegalArgumentException("downsamplingInfo cannot be null");
         if ( genomeLocParser == null ) throw new IllegalArgumentException("genomeLocParser cannot be null");
@@ -252,9 +256,15 @@ public final class LocusIteratorByState extends LocusIterator {
      * Will return null if cannot reach position (because we run out of data in the locus)
      *
      * @param position the start position of the AlignmentContext we want back
+     * @param stopAtFirstNonEmptySiteAfterPosition if true, we will stop as soon as we find a context with data with
+     *                                             position >= position, otherwise we will return a null value
+     *                                             and consume the data for the next position.  This means that without
+     *                                             specifying this value the LIBS will be in an indeterminate state
+     *                                             after calling this function, and should be reconstructed from scratch
+     *                                             for subsequent use
      * @return a AlignmentContext at position, or null if this isn't possible
      */
-    public AlignmentContext advanceToLocus(final int position) {
+    public AlignmentContext advanceToLocus(final int position, final boolean stopAtFirstNonEmptySiteAfterPosition) {
         while ( hasNext() ) {
             final AlignmentContext context = next();
 
@@ -262,8 +272,11 @@ public final class LocusIteratorByState extends LocusIterator {
                 // we ran out of data
                 return null;
 
-            if ( context.getPosition() == position)
+            if ( context.getPosition() == position )
                 return context;
+
+            if ( context.getPosition() > position)
+                return stopAtFirstNonEmptySiteAfterPosition ? context : null;
         }
 
         return null;

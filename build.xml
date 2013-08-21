@@ -22,6 +22,7 @@
   ~ OTHER DEALINGS IN THE SOFTWARE.
   -->
 
+<!-- To get a list of the major build targets, run "ant -p" -->
 <project name="Sting" default="dist" basedir="."
          xmlns:artifact="antlib:org.apache.maven.artifact.ant"
          xmlns:ivy="antlib:org.apache.ivy.ant">
@@ -291,7 +292,7 @@
         <property name="init.resolve.done" value="true"/>
     </target>
 
-    <target name="resolve" depends="init.resolve,init" description="locate and download library dependencies">
+    <target name="resolve" depends="init.resolve,init" description="Locate and download library dependencies">
         <property name="ivy.conf" value="default"/>
         <ivy:retrieve file="ivy.xml" conf="${ivy.conf}" />
         <!-- Remove old versions of ivy jars AFTER the ivy:retrieve has been class loaded. -->
@@ -465,7 +466,7 @@
         </subant>
     </target>
 
-    <target name="gatk.compile.source" depends="gatk.compile.internal.source,gatk.compile.external.source" description="Compile the GATK source" />
+    <target name="gatk.compile.source" depends="gatk.compile.internal.source,gatk.compile.external.source" />
 
     <target name="gatk.contracts" depends="gatk.compile.source" if="include.contracts">
         <javac fork="true" memoryMaximumSize="512m" destdir="${java.contracts.dir}" debug="true" debuglevel="lines,vars,source" tempdir="${java.io.tmpdir}" >
@@ -502,7 +503,7 @@
     </target>
 
     <!-- NOTE: Extracting help first to avoid "Unable to load help text.  Help output will be sparse." warning message. -->
-    <target name="queue-extensions.generate" depends="gatk.compile,extracthelp,init.queue-extensions.generate" unless="uptodate.queue-extensions.generate" description="generate GATK modules for Queue">
+    <target name="queue-extensions.generate" depends="gatk.compile,extracthelp,init.queue-extensions.generate" unless="uptodate.queue-extensions.generate">
         <mkdir dir="${queue-extensions.source.dir}"/>
         <echo>Generating Queue GATK extensions...</echo>
         <java fork="true" failonerror="true" classname="org.broadinstitute.sting.queue.extensions.gatk.GATKExtensionsGenerator" >
@@ -520,7 +521,7 @@
         </touch>
     </target>
 
-    <target name="init.scala.compile" depends="resolve" description="Initializes the scala ant tasks from scala-compiler.jar">
+    <target name="init.scala.compile" depends="resolve">
         <path id="scala.classpath">
             <fileset dir="${lib.dir}">
                 <include name="scala-compiler-*.jar"/>
@@ -595,8 +596,7 @@
         </condition>
     </target>
 
-    <target name="extracthelp" depends="init.extracthelp" unless="uptodate.extracthelp"
-	        description="Extract help key/value pair file from the JavaDoc tags.">
+    <target name="extracthelp" depends="init.extracthelp" unless="uptodate.extracthelp">
         <path id="doclet.classpath">
             <path refid="external.dependencies" />
             <pathelement location="${java.classes}" />
@@ -687,7 +687,7 @@
         </jar>
     </target>
 
-    <target name="gatk.jar" depends="gatk.compile, init.jar, R.script.stage" description="generate the GATK distribution">
+    <target name="gatk.jar" depends="gatk.compile, init.jar, R.script.stage">
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar">
             <path refid="gatk.resources"/>
             <fileset dir="${java.contracts.dir}" />
@@ -786,20 +786,20 @@
     <!-- Top-Level Build Targets                                                          -->
     <!-- ******************************************************************************** -->
 
-    <target name="dist" depends="sting.manifests" />
+    <target name="dist" depends="sting.manifests" description="Build the GATK and Queue" />
 
-    <target name="gatk" depends="init.javaonly, sting.manifests" />
+    <target name="gatk" depends="init.javaonly, sting.manifests" description="Build the GATK only" />
 
     <target name="queue" depends="dist" />  <!-- Obsolete target. Now just an alias for dist -->
 
-    <target name="scala" depends="scala.jar" description="build the scala directory" />
+    <target name="scala" depends="scala.jar" />
 
 
     <!-- ******************************************************************************** -->
     <!-- GATKDocs                                                                          -->
     <!-- ******************************************************************************** -->
 
-    <target name="gatkdocs" depends="gatk.compile" description="Extract help key/value pair file from the JavaDoc tags.">
+    <target name="gatkdocs" depends="gatk.compile" description="Generate GATK HTML documentation">
         <path id="doclet.classpath">
             <path refid="external.dependencies" />
             <pathelement location="${java.classes}" />
@@ -831,7 +831,7 @@
         <mkdir dir="${javadoc.dir}" />
     </target>
 
-    <target name="javadoc" depends="init.javadoc,resolve">
+    <target name="javadoc" depends="init.javadoc,resolve" description="Generate Javadoc">
         <javadoc destdir="${javadoc.dir}" classpathref="external.dependencies">
             <fileset refid="java.source.files" />
             <sourcepath path="${external.dir}" />
@@ -849,7 +849,7 @@
 
     <!-- NOTE: the scaladoc target requires that the environment variable ANT_OPTS has been set to "-Xmx1G" -->
 
-    <target name="scaladoc" depends="resolve,queue-extensions.generate,init.scala.compile,scala.compile,init.scaladoc">
+    <target name="scaladoc" depends="resolve,queue-extensions.generate,init.scala.compile,scala.compile,init.scaladoc" description="Generate Scaladoc">
         <scaladoc srcdir="${basedir}" destdir="${scaladoc.dir}" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
             <patternset refid="scala.source.files.pattern" />
             <include name="${queue-extensions.source.dir}/**/*.scala" />
@@ -887,8 +887,29 @@
         <fail message="No executable defined. Call a more specific packaging/release target, or define an executable manually" if="no.executable.defined" />
     </target>
 
+    <target name="require.bcel">
+        <fileset id="bcel.jar" dir="${user.home}/.ant/lib">
+            <include name="bcel-*.jar" />
+        </fileset>
+        <pathconvert refid="bcel.jar" property="bcel.jar.installed" setonempty="false" />
+
+        <fileset id="ant.bcel.jar" dir="${user.home}/.ant/lib">
+            <include name="ant-apache-bcel-*.jar" />
+        </fileset>
+        <pathconvert refid="ant.bcel.jar" property="ant.bcel.jar.installed" setonempty="false" />
+
+        <condition property="bcel.installed">
+            <and>
+                <isset property="bcel.jar.installed" />
+                <isset property="ant.bcel.jar.installed" />
+            </and>
+        </condition>
+        <fail unless="bcel.installed"
+              message="Required bcel libraries for GATK packaging not installed in ${user.home}/.ant/lib/${line.separator}The bcel jar can be found in the lib directory of a GATK clone after compiling, and the ant-apache-bcel jar can be downloaded from here: http://repo1.maven.org/maven2/ant/ant-apache-bcel/1.6.5/ant-apache-bcel-1.6.5.jar${line.separator}Please copy these two jar files to ${user.home}/.ant/lib/" />
+    </target>
+
     <!-- Unzip all classes from their current locations and assemble them in a staging directory -->
-    <target name="stage" description="stage files for distribution">
+    <target name="stage">
         <mkdir dir="${staging.dir}"/>
         <!--
             HACK: Create the edu directory before EDU on case-insensitive mac filesystems.
@@ -910,7 +931,7 @@
 
 
     <!-- Build a package consisting of all supporting files. Don't call this target directly. Call one of the specific packaging targets below -->
-    <target name="package" depends="require.clean,dist,stage,require.executable" description="bundle up an executable for distribution">
+    <target name="package" depends="require.clean,require.bcel,dist,stage,require.executable">
       <mkdir dir="${package.output.dir}" />
       <xslt destdir="${package.output.dir}" style="${package.xml.dir}/CreatePackager.xsl" useImplicitFileset="false">
           <flattenmapper/>
@@ -927,17 +948,17 @@
     <!-- Package specific versions of the GATK/Queue. ALWAYS do an ant clean before invoking these! -->
 
     <!-- GATK "full" == public + protected, ie., the standard binary release of the GATK  -->
-    <target name="package.gatk.full" depends="init.executable.gatkfull,package" />
+    <target name="package.gatk.full" depends="init.executable.gatkfull,package" description="Create a standalone GATK jar with public and protected code" />
 
     <!-- GATK "all" == public + protected + private. Should never be publicly released -->
-    <target name="package.gatk.all" depends="init.executable.gatkall,package" />
+    <target name="package.gatk.all" depends="init.executable.gatkall,package" description="Create a standalone GATK jar with public, protected, and private code" />
 
-    <target name="package.queue.full" depends="init.executable.queuefull,package" />
+    <target name="package.queue.full" depends="init.executable.queuefull,package" description="Create a standalone Queue jar with public and protected code" />
 
-    <target name="package.queue.all" depends="init.executable.queueall,package" />
+    <target name="package.queue.all" depends="init.executable.queueall,package" description="Create a standalone Queue jar with public, protected, and private code" />
 
     <!-- Release a build. Don't call this target directly. Call one of the specific release targets below -->
-    <target name="release" depends="require.executable" description="release a build, putting each file in a location specified by the package">
+    <target name="release" depends="require.executable">
         <ant antfile="${package.output.dir}/${executable}.xml" target="release" />
     </target>
 
@@ -973,7 +994,7 @@
     </target>
 
     <!-- Maven install a package consisting of all supporting files. Don't call this target directly. Call one of the specific packaging targets below -->
-    <target name="mvninstall" depends="package" description="maven install a package into .m2/repository">
+    <target name="mvninstall" depends="package">
         <property name="mvn.build.version" value="0.0.2" />
         <!--
         We should use the build version or better yet a git tag version, but tags are currently missing. Alternatively how do we then depend on the LATEST?
@@ -1024,7 +1045,7 @@
       </exec>
     </target>
 
-    <target name="clean" description="clean up" depends="clean.javadoc,clean.scaladoc,clean.gatkdocs,clean.clover">
+    <target name="clean" description="Clean up old build-related directories" depends="clean.javadoc,clean.scaladoc,clean.gatkdocs,clean.clover">
         <delete dir="${build.dir}"/>
         <delete dir="${lib.dir}"/>
         <delete dir="${contract.dump.dir}"/>
@@ -1059,7 +1080,7 @@
     <!-- ******************************************************************************** -->
 
     <!-- Build gsalib R module -->
-    <target name="gsalib">
+    <target name="gsalib" description="Build the gsalib R module">
       <exec executable="R" failonerror="true">
         <arg line="R CMD INSTALL --preclean ${R.public.src.dir}/${R.package.path}/gsalib" />
       </exec>
@@ -1346,7 +1367,7 @@
     </target>
 
 
-    <target name="committests" depends="unittest,integrationtest,pipelinetest" />
+    <target name="committests" depends="unittest,integrationtest,pipelinetest" description="Run unit tests, integration tests, and do a dry-run of the pipeline tests" />
 
     <!-- Order of the dependencies is significant in the *.release.tests targets -->
     <target name="gatkfull.binary.release.tests" depends="package.gatk.full,init.testgatkjar,unittest,integrationtest" />
@@ -1378,7 +1399,7 @@
         <run-test testtype="${ptype}" outputdir="${report}/${ptype}" runfailed="false"/>
     </target>
 
-    <target name="pipelinetest" depends="test.compile,test.init" description="Run pipeline tests">
+    <target name="pipelinetest" depends="test.compile,test.init" description="Dry-run pipeline tests">
         <condition property="pipetype" value="*PipelineTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>
@@ -1412,7 +1433,7 @@
 
     <!-- Fast test target that cuts major corners for speed. Requires that a full build has been done first. Java-only, single test class only -->
     <!-- Usage: ant fasttest -Dsingle=TestClass -->
-    <target name="fasttest" depends="init.javaonly,init">
+    <target name="fasttest" depends="init.javaonly,init" description="Quickly run a single test">
 	<property name="test.maxmemory" value="${test.default.maxmemory}"/>
         <condition property="not.clean">
             <and>

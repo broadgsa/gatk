@@ -95,7 +95,7 @@ public abstract class PairHMM {
      *
      * @param haplotypeBases the full sequence (in standard SAM encoding) of the haplotype, must be >= than read bases in length
      * @param readBases the bases (in standard encoding) of the read, must be <= haplotype bases in length
-     * @param readQuals the phred-scaled per base substitition quality scores of read.  Must be the same length as readBases
+     * @param readQuals the phred-scaled per base substitution quality scores of read.  Must be the same length as readBases
      * @param insertionGOP the phred-scaled per base insertion quality scores of read.  Must be the same length as readBases
      * @param deletionGOP the phred-scaled per base deletion quality scores of read.  Must be the same length as readBases
      * @param overallGCP the phred-scaled gap continuation penalties scores of read.  Must be the same length as readBases
