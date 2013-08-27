@@ -526,6 +526,7 @@
             <fileset dir="${lib.dir}">
                 <include name="scala-compiler-*.jar"/>
                 <include name="scala-library-*.jar"/>
+                <include name="scala-reflect-*.jar"/>
             </fileset>
         </path>
         <taskdef resource="scala/tools/ant/antlib.xml">

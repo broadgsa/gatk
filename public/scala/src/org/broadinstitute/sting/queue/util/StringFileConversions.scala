@@ -77,21 +77,6 @@ object StringFileConversions {
     })
   }
 
-  implicit def stringsAsFiles(x: Set[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable] with Serializable]): Set[File] = {
-    x.map(_ match {
-      case string: String => stringAsFile(string)
-      case file: File => file
-      case null => null
-    })
-  }
-
-  implicit def filesAsStrings(x: Set[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable] with Serializable]): Set[String] = {
-    x.map(_ match {
-      case file: File => fileAsString(file)
-      case string: String => string
-      case null => null
-    })
-  }
 }
 
 /**
@@ -124,11 +109,4 @@ trait StringFileConversions {
     StringFileConversions.filesAsStringsList(x)
   }
 
-  implicit def stringsAsFiles(x: Set[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable] with Serializable]): Set[File] = {
-    StringFileConversions.stringsAsFiles(x)
-  }
-
-  implicit def filesAsStrings(x: Set[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable] with Serializable]): Set[String] = {
-    StringFileConversions.filesAsStrings(x)
-  }
 }
