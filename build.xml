@@ -538,7 +538,7 @@
     <target name="scala.compile" depends="init,resolve,gatk.compile,queue-extensions.generate,init.scala.compile" if="include.scala">
         <mkdir dir="${scala.classes}"/>
         <echo>Building Scala...</echo>
-        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.classes}" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
+        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.classes}" classpathref="scala.dependencies" deprecation="yes" unchecked="yes" addparams="-feature">
             <src refid="scala.source.path" />
             <src path="${queue-extensions.source.dir}" />
             <include name="**/*.scala" />
@@ -1219,7 +1219,7 @@
 
     <target name="test.scala.compile" depends="test.java.compile,scala.compile" if="include.scala">
         <echo message="Scala: Compiling test cases!"/>
-        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.test.classes}" deprecation="yes" unchecked="yes">
+        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.test.classes}" deprecation="yes" unchecked="yes" addparams="-feature">
 	        <src refid="scala.test.source.path" />
             <classpath>
                 <path refid="build.results"/>

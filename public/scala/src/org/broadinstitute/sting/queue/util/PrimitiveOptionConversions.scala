@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.queue.util
 
+import scala.language.implicitConversions
+
 /**
  * An importable object that provides automatic primitive to option conversion.
  */

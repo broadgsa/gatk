@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.queue.util
 
 import java.io.{Serializable, File}
+import scala.language.implicitConversions
 
 /**
  * Converts String to/from File

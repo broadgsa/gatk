@@ -49,7 +49,7 @@ object Retry extends Logging {
         result = f()
         success = true
       } catch {
-        case e => {
+        case e: Exception=> {
           count += 1
           if (count < tries) {
             val minutes = wait(count-1)

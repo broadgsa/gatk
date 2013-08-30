@@ -160,7 +160,7 @@ class DrmaaJobRunner(val session: Session, val function: CommandLineFunction) ex
           // resource of the designated queue to SIGTERM
           session.control(jobId, Session.TERMINATE)
         } catch {
-          case e =>
+          case e: Exception =>
             logger.error("Unable to kill job " + jobId, e)
         }
       }

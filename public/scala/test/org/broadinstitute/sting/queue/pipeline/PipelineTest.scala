@@ -182,7 +182,7 @@ object PipelineTest extends BaseTest with Logging {
       println("Executing test %s with Queue arguments: %s".format(name, Utils.join(" ",command)))
       CommandLineProgram.start(instance, command)
     } catch {
-      case e =>
+      case e: Exception =>
         gotAnException = true
         if (expectedException != null) {
           // we expect an exception
@@ -224,7 +224,7 @@ object PipelineTest extends BaseTest with Logging {
         try {
           commandLine.shutdown()
         } catch {
-          case _ => /* ignore */
+          case _: Throwable => /* ignore */
         })
     }
   })
