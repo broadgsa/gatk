@@ -305,7 +305,7 @@ public class ClipReads extends ReadWalker<ClipReads.ReadClipperWithData, ClipRea
      */
     public ReadClipperWithData map(ReferenceContext ref, GATKSAMRecord read, RefMetaDataTracker metaDataTracker) {
         if ( onlyDoRead == null || read.getReadName().equals(onlyDoRead) ) {
-            if ( clippingRepresentation == ClippingRepresentation.HARDCLIP_BASES )
+            if ( clippingRepresentation == ClippingRepresentation.HARDCLIP_BASES || clippingRepresentation == ClippingRepresentation.REVERT_SOFTCLIPPED_BASES )
                 read = ReadClipper.revertSoftClippedBases(read);
             ReadClipperWithData clipper = new ReadClipperWithData(read, sequencesToClip);
 
