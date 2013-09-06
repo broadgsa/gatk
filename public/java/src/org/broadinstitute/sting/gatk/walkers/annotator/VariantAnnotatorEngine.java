@@ -58,15 +58,15 @@ public class VariantAnnotatorEngine {
         public RodBinding<VariantContext> binding;
 
         public VAExpression(String fullExpression, List<RodBinding<VariantContext>> bindings) {
-            int indexOfDot = fullExpression.lastIndexOf(".");
+            final int indexOfDot = fullExpression.lastIndexOf(".");
             if ( indexOfDot == -1 )
                 throw new UserException.BadArgumentValue(fullExpression, "it should be in rodname.value format");
 
             fullName = fullExpression;
             fieldName = fullExpression.substring(indexOfDot+1);
 
-            String bindingName = fullExpression.substring(0, indexOfDot);
-            for ( RodBinding<VariantContext> rod : bindings ) {
+            final String bindingName = fullExpression.substring(0, indexOfDot);
+            for ( final RodBinding<VariantContext> rod : bindings ) {
                 if ( rod.getName().equals(bindingName) ) {
                     binding = rod;
                     break;
@@ -96,7 +96,7 @@ public class VariantAnnotatorEngine {
     // select specific expressions to use
     public void initializeExpressions(Set<String> expressionsToUse) {
         // set up the expressions
-        for ( String expression : expressionsToUse )
+        for ( final String expression : expressionsToUse )
             requestedExpressions.add(new VAExpression(expression, walker.getResourceRodBindings()));
     }
 
@@ -113,15 +113,15 @@ public class VariantAnnotatorEngine {
         if ( annotationsToExclude.size() == 0 )
             return;
 
-        List<InfoFieldAnnotation> tempRequestedInfoAnnotations = new ArrayList<InfoFieldAnnotation>(requestedInfoAnnotations.size());
-        for ( InfoFieldAnnotation annotation : requestedInfoAnnotations ) {
+        final List<InfoFieldAnnotation> tempRequestedInfoAnnotations = new ArrayList<>(requestedInfoAnnotations.size());
+        for ( final InfoFieldAnnotation annotation : requestedInfoAnnotations ) {
             if ( !annotationsToExclude.contains(annotation.getClass().getSimpleName()) )
                 tempRequestedInfoAnnotations.add(annotation);
         }
         requestedInfoAnnotations = tempRequestedInfoAnnotations;
 
-        List<GenotypeAnnotation> tempRequestedGenotypeAnnotations = new ArrayList<GenotypeAnnotation>(requestedGenotypeAnnotations.size());
-        for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
+        final List<GenotypeAnnotation> tempRequestedGenotypeAnnotations = new ArrayList<>(requestedGenotypeAnnotations.size());
+        for ( final GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
             if ( !annotationsToExclude.contains(annotation.getClass().getSimpleName()) )
                 tempRequestedGenotypeAnnotations.add(annotation);
         }
@@ -143,24 +143,24 @@ public class VariantAnnotatorEngine {
         variantOverlapAnnotator = new VariantOverlapAnnotator(dbSNPBinding, overlapBindings, engine.getGenomeLocParser());
     }
 
-    public void invokeAnnotationInitializationMethods( Set<VCFHeaderLine> headerLines ) {
-        for ( VariantAnnotatorAnnotation annotation : requestedInfoAnnotations ) {
+    public void invokeAnnotationInitializationMethods( final Set<VCFHeaderLine> headerLines ) {
+        for ( final VariantAnnotatorAnnotation annotation : requestedInfoAnnotations ) {
             annotation.initialize(walker, toolkit, headerLines);
         }
 
-        for ( VariantAnnotatorAnnotation annotation : requestedGenotypeAnnotations ) {
+        for ( final VariantAnnotatorAnnotation annotation : requestedGenotypeAnnotations ) {
             annotation.initialize(walker, toolkit, headerLines);
         }
     }
 
     public Set<VCFHeaderLine> getVCFAnnotationDescriptions() {
-        Set<VCFHeaderLine> descriptions = new HashSet<VCFHeaderLine>();
+        final Set<VCFHeaderLine> descriptions = new HashSet<>();
 
-        for ( InfoFieldAnnotation annotation : requestedInfoAnnotations )
+        for ( final InfoFieldAnnotation annotation : requestedInfoAnnotations )
             descriptions.addAll(annotation.getDescriptions());
-        for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations )
+        for ( final GenotypeAnnotation annotation : requestedGenotypeAnnotations )
             descriptions.addAll(annotation.getDescriptions());
-        for ( String db : variantOverlapAnnotator.getOverlapNames() ) {
+        for ( final String db : variantOverlapAnnotator.getOverlapNames() ) {
             if ( VCFStandardHeaderLines.getInfoLine(db, false) != null )
                 descriptions.add(VCFStandardHeaderLines.getInfoLine(db));
             else
@@ -170,10 +170,10 @@ public class VariantAnnotatorEngine {
         return descriptions;
     }
 
-    public  VariantContext annotateContext(final RefMetaDataTracker tracker,
-                                           final ReferenceContext ref,
-                                           final Map<String, AlignmentContext> stratifiedContexts,
-                                           VariantContext vc) {
+    public VariantContext annotateContext(final RefMetaDataTracker tracker,
+                                          final ReferenceContext ref,
+                                          final Map<String, AlignmentContext> stratifiedContexts,
+                                          final VariantContext vc) {
         return annotateContext(tracker, ref, stratifiedContexts, vc, null);
     }
 
@@ -182,20 +182,20 @@ public class VariantAnnotatorEngine {
                                           final Map<String, AlignmentContext> stratifiedContexts,
                                           final VariantContext vc,
                                           final Map<String,PerReadAlleleLikelihoodMap> perReadAlleleLikelihoodMap) {
-        Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
+        final Map<String, Object> infoAnnotations = new LinkedHashMap<>(vc.getAttributes());
 
         // annotate expressions where available
         annotateExpressions(tracker, ref.getLocus(), infoAnnotations);
 
         // go through all the requested info annotationTypes
-        for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
-            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, walker, ref, stratifiedContexts, vc, perReadAlleleLikelihoodMap);
+        for ( final InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
+            final Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, walker, ref, stratifiedContexts, vc, perReadAlleleLikelihoodMap);
             if ( annotationsFromCurrentType != null )
                 infoAnnotations.putAll(annotationsFromCurrentType);
         }
 
         // generate a new annotated VC
-        VariantContextBuilder builder = new VariantContextBuilder(vc).attributes(infoAnnotations);
+        final VariantContextBuilder builder = new VariantContextBuilder(vc).attributes(infoAnnotations);
 
         // annotate genotypes, creating another new VC in the process
         final VariantContext annotated = builder.genotypes(annotateGenotypes(tracker, ref, stratifiedContexts, vc, perReadAlleleLikelihoodMap)).make();
@@ -210,11 +210,11 @@ public class VariantAnnotatorEngine {
         final Map<String, Object> infoAnnotations = new LinkedHashMap<>(vc.getAttributes());
 
         // go through all the requested info annotationTypes
-        for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
+        for ( final InfoFieldAnnotation annotationType : requestedInfoAnnotations ) {
             if ( !(annotationType instanceof ActiveRegionBasedAnnotation) )
                 continue;
 
-            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(perReadAlleleLikelihoodMap, vc);
+            final Map<String, Object> annotationsFromCurrentType = annotationType.annotate(perReadAlleleLikelihoodMap, vc);
             if ( annotationsFromCurrentType != null ) {
                 infoAnnotations.putAll(annotationsFromCurrentType);
             }
@@ -244,12 +244,12 @@ public class VariantAnnotatorEngine {
     }
 
     private void annotateExpressions(final RefMetaDataTracker tracker, final GenomeLoc loc, final Map<String, Object> infoAnnotations) {
-        for ( VAExpression expression : requestedExpressions ) {
-            Collection<VariantContext> VCs = tracker.getValues(expression.binding, loc);
+        for ( final VAExpression expression : requestedExpressions ) {
+            final Collection<VariantContext> VCs = tracker.getValues(expression.binding, loc);
             if ( VCs.size() == 0 )
                 continue;
 
-            VariantContext vc = VCs.iterator().next();
+            final VariantContext vc = VCs.iterator().next();
             // special-case the ID field
             if ( expression.fieldName.equals("ID") ) {
                 if ( vc.hasID() )

@@ -147,7 +147,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
                     Set<String> samples;
                     public void run(final VariantContext vc) {
                         if ( samples == null )
-                            samples = new HashSet<String>(new ArrayList<String>(vc.getSampleNames()).subList(0, nSamplesToTake));
+                            samples = new HashSet<>(new ArrayList<>(vc.getSampleNames()).subList(0, nSamplesToTake));
                         VariantContext sub = vc.subContextFromSamples(samples);
                         sub.getNSamples();
                     }
@@ -176,7 +176,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
                     Set<String> samples;
                     public void run(final VariantContext vc) {
                         if ( samples == null )
-                            samples = new HashSet<String>(new ArrayList<String>(vc.getSampleNames()).subList(0, nSamplesToTake));
+                            samples = new HashSet<>(new ArrayList<>(vc.getSampleNames()).subList(0, nSamplesToTake));
                         vc.getGenotypes(samples).size();
                     }
                 };
@@ -221,7 +221,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
             case MERGE:
                 return new FunctionToBenchmark<VariantContext>() {
                     public void run(final VariantContext vc) {
-                        List<VariantContext> toMerge = new ArrayList<VariantContext>();
+                        List<VariantContext> toMerge = new ArrayList<>();
 
                         for ( int i = 0; i < dupsToMerge; i++ ) {
                             GenotypesContext gc = GenotypesContext.create(vc.getNSamples());
@@ -234,7 +234,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
                         GATKVariantContextUtils.simpleMerge(toMerge, null,
                                 GATKVariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
                                 GATKVariantContextUtils.GenotypeMergeType.UNSORTED,
-                                true, false, "set", false, true);
+                                true, false, "set", false, true, false);
                     }
                 };
 
@@ -363,7 +363,7 @@ public class VariantContextBenchmark extends SimpleBenchmark {
 //                                toMerge, null,
 //                                org.broadinstitute.variant.variantcontext.v13.VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED,
 //                                org.broadinstitute.variant.variantcontext.v13.VariantContextUtils.GenotypeMergeType.UNSORTED,
-//                                true, false, "set", false, true);
+//                                true, false, "set", false, true, false);
 //                    }
 //                };
 //

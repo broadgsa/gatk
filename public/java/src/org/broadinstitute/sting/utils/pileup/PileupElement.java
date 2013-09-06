@@ -46,7 +46,7 @@ import java.util.List;
  * Time: 8:54:05 AM
  */
 public class PileupElement implements Comparable<PileupElement> {
-    private final static LinkedList<CigarElement> EMPTY_LINKED_LIST = new LinkedList<CigarElement>();
+    private final static LinkedList<CigarElement> EMPTY_LINKED_LIST = new LinkedList<>();
 
     private final static EnumSet<CigarOperator> ON_GENOME_OPERATORS =
             EnumSet.of(CigarOperator.M, CigarOperator.EQ, CigarOperator.X, CigarOperator.D);
