@@ -44,7 +44,6 @@ import org.broadinstitute.variant.vcf.*;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
 import org.broadinstitute.variant.variantcontext.VariantContext;
 import org.broadinstitute.variant.variantcontext.writer.VariantContextWriter;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 import java.util.*;
 
@@ -156,7 +155,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> implements Ann
      * If multiple records in the rod overlap the given position, one is chosen arbitrarily.
      */
     @Argument(fullName="expression", shortName="E", doc="One or more specific expressions to apply to variant calls; see documentation for more details", required=false)
-    protected Set<String> expressionsToUse = new ObjectOpenHashSet();
+    protected Set<String> expressionsToUse = new HashSet();
 
     /**
      * Note that the -XL argument can be used along with this one to exclude annotations.

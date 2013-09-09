@@ -25,9 +25,6 @@
 
 package org.broadinstitute.sting.utils;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-
 import java.util.*;
 
 /**
@@ -39,7 +36,7 @@ import java.util.*;
 public class DeprecatedToolChecks {
 
     // Mapping from walker name to major version number where the walker first disappeared and optional replacement options
-    private static Object2ObjectMap deprecatedGATKWalkers = new Object2ObjectOpenHashMap();
+    private static HashMap deprecatedGATKWalkers = new HashMap();
     static {
         // Indicate recommended replacement in parentheses if applicable
         deprecatedGATKWalkers.put("CountCovariates", "2.0 (use BaseRecalibrator instead; see documentation for usage)");
@@ -50,7 +47,7 @@ public class DeprecatedToolChecks {
     }
 
     // Mapping from walker name to major version number where the walker first disappeared and optional replacement options
-    private static Object2ObjectMap deprecatedGATKAnnotations = new Object2ObjectOpenHashMap();
+    private static HashMap deprecatedGATKAnnotations = new HashMap<>();
     static {
         // Same comments as for walkers
         deprecatedGATKAnnotations.put("DepthOfCoverage", "2.4 (renamed to Coverage)");

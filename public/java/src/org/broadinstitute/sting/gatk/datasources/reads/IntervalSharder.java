@@ -62,6 +62,9 @@ public class IntervalSharder implements Iterator<FilePointer> {
         wrappedIterator = new PeekableIterator<FilePointer>(scheduler);
         this.parser = parser;
     }
+    public void close() {
+      wrappedIterator.close();
+    }
 
     public boolean hasNext() {
         return wrappedIterator.hasNext();

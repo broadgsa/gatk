@@ -247,6 +247,14 @@ public class BAMScheduler implements Iterator<FilePointer> {
     private PeekableIterator<BAMScheduleEntry> bamScheduleIterator = null;
 
     /**
+     * Clean up underlying BAMSchedule file handles.
+     */
+    public void close() {
+        if(bamScheduleIterator != null)
+            bamScheduleIterator.close();
+    }
+
+    /**
      * Get the next overlapping tree of bins associated with the given BAM file.
      * @param currentLocus The actual locus for which to check overlap.
      * @return The next schedule entry overlapping with the given list of loci.
