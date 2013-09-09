@@ -101,7 +101,8 @@ public final class Log10PairHMM extends N2MemoryPairHMM {
                                                                final byte[] deletionGOP,
                                                                final byte[] overallGCP,
                                                                final int hapStartIndex,
-                                                               final boolean recacheReadValues ) {
+                                                               final boolean recacheReadValues,
+                                                               final int nextHapStartIndex) {
 
         if (previousHaplotypeBases == null || previousHaplotypeBases.length != haplotypeBases.length) {
             // set the initial value (free deletions in the beginning) for the first row in the deletion matrix

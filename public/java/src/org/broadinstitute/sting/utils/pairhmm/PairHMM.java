@@ -43,6 +43,7 @@ public abstract class PairHMM {
     protected boolean constantsAreInitialized = false;
 
     protected byte[] previousHaplotypeBases;
+    protected int hapStartIndex;
 
     public enum HMM_IMPLEMENTATION {
         /* Very slow implementation which uses very accurate log10 sum functions. Only meant to be used as a reference test implementation */
@@ -51,12 +52,18 @@ public abstract class PairHMM {
         ORIGINAL,
         /* Optimized version of the PairHMM which caches per-read computations and operations in real space to avoid costly sums of log10'ed likelihoods */
         LOGLESS_CACHING,
+        /* Logless caching PairHMM that stores computations in 1D arrays instead of matrices, and which proceeds diagonally over the (read x haplotype) intersection matrix */
+        ARRAY_LOGLESS
     }
 
     protected int maxHaplotypeLength, maxReadLength;
     protected int paddedMaxReadLength, paddedMaxHaplotypeLength;
     protected int paddedReadLength, paddedHaplotypeLength;
     private boolean initialized = false;
+
+    // only used for debugging purposes
+    protected boolean doNotUseTristateCorrection = false;
+    protected void doNotUseTristateCorrection() { doNotUseTristateCorrection = true; }
 
     /**
      * Initialize this PairHMM, making it suitable to run against a read and haplotype with given lengths
@@ -109,7 +116,8 @@ public abstract class PairHMM {
                                                                   final byte[] insertionGOP,
                                                                   final byte[] deletionGOP,
                                                                   final byte[] overallGCP,
-                                                                  final boolean recacheReadValues ) {
+                                                                  final boolean recacheReadValues,
+                                                                  final byte[] nextHaploytpeBases) {
         if ( ! initialized ) throw new IllegalStateException("Must call initialize before calling computeReadLikelihoodGivenHaplotypeLog10");
         if ( haplotypeBases == null ) throw new IllegalArgumentException("haplotypeBases cannot be null");
         if ( haplotypeBases.length > maxHaplotypeLength ) throw new IllegalArgumentException("Haplotype bases is too long, got " + haplotypeBases.length + " but max is " + maxHaplotypeLength);
@@ -123,9 +131,13 @@ public abstract class PairHMM {
         paddedReadLength = readBases.length + 1;
         paddedHaplotypeLength = haplotypeBases.length + 1;
 
-        final int hapStartIndex =  (previousHaplotypeBases == null || haplotypeBases.length != previousHaplotypeBases.length || recacheReadValues) ? 0 : findFirstPositionWhereHaplotypesDiffer(haplotypeBases, previousHaplotypeBases);
+        hapStartIndex =  (recacheReadValues) ? 0 : hapStartIndex;
 
-        double result = subComputeReadLikelihoodGivenHaplotypeLog10(haplotypeBases, readBases, readQuals, insertionGOP, deletionGOP, overallGCP, hapStartIndex, recacheReadValues);
+        // Pre-compute the difference between the current haplotype and the next one to be run
+        // Looking ahead is necessary for the ArrayLoglessPairHMM implementation
+        final int nextHapStartIndex =  (nextHaploytpeBases == null || haplotypeBases.length != nextHaploytpeBases.length) ? 0 : findFirstPositionWhereHaplotypesDiffer(haplotypeBases, nextHaploytpeBases);
+
+        double result = subComputeReadLikelihoodGivenHaplotypeLog10(haplotypeBases, readBases, readQuals, insertionGOP, deletionGOP, overallGCP, hapStartIndex, recacheReadValues, nextHapStartIndex);
 
         if ( ! MathUtils.goodLog10Probability(result) )
             throw new IllegalStateException("PairHMM Log Probability cannot be greater than 0: " + String.format("haplotype: %s, read: %s, result: %f", Arrays.toString(haplotypeBases), Arrays.toString(readBases), result));
@@ -133,6 +145,10 @@ public abstract class PairHMM {
         // Warning: Careful if using the PairHMM in parallel! (this update has to be taken care of).
         // Warning: This assumes no downstream modification of the haplotype bases (saves us from copying the array). It is okay for the haplotype caller and the Unified Genotyper.
         previousHaplotypeBases = haplotypeBases;
+
+        // For the next iteration, the hapStartIndex for the next haploytpe becomes the index for the current haplotype
+        // The array implementation has to look ahead to the next haplotype to store caching info. It cannot do this if nextHapStart is before hapStart
+        hapStartIndex = (nextHapStartIndex < hapStartIndex) ? 0: nextHapStartIndex;
 
         return result;
     }
@@ -149,7 +165,8 @@ public abstract class PairHMM {
                                                                            final byte[] deletionGOP,
                                                                            final byte[] overallGCP,
                                                                            final int hapStartIndex,
-                                                                           final boolean recacheReadValues );
+                                                                           final boolean recacheReadValues,
+                                                                           final int nextHapStartIndex);
 
     /**
      * Compute the first position at which two haplotypes differ
