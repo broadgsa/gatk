@@ -43,4 +43,7 @@ public abstract class ShardBalancer implements Iterable<Shard> {
         this.filePointers = new PeekableIterator<FilePointer>(filePointers);
         this.parser = parser;
     }
+    public void close() {
+      this.filePointers.close();
+    }
 }
