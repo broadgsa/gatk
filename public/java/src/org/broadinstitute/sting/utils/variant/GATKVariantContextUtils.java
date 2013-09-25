@@ -891,7 +891,11 @@ public class GATKVariantContextUtils {
                     }
                     try {
                         final String stringValue = value.toString();
-                        values.add(stringValue.contains(".") ? Double.parseDouble(stringValue) : Integer.parseInt(stringValue));
+                        // Branch to avoid unintentional, implicit type conversions that occur with the ? operator.
+                        if (stringValue.contains("."))
+                            values.add(Double.parseDouble(stringValue));
+                        else 
+                            values.add(Integer.parseInt(stringValue));
                     } catch (NumberFormatException e) {
                         badAnnotation = true;
                     }
