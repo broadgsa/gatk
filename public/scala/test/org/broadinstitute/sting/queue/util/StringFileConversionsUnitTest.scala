@@ -88,44 +88,6 @@ class StringFileConversionsUnitTest {
   }
 
   @Test
-  def testStringToFileSet() {
-    var files = Set(new File("foo"))
-    files += "bar"
-    Assert.assertEquals(files, Set(new File("foo"), new File("bar")))
-
-    files = Set(new File("foo"))
-    files += null.asInstanceOf[String]
-    Assert.assertEquals(files, Set(new File("foo"), null))
-
-    files = Set[File](null)
-    files += "foo"
-    Assert.assertEquals(files, Set(new File("foo"), null))
-
-    files = Set[File](null)
-    files += null.asInstanceOf[String]
-    Assert.assertEquals(files, Set(null))
-  }
-
-  @Test
-  def testFileToStringSet() {
-    var strings = Set("foo")
-    strings += new File("bar")
-    Assert.assertEquals(strings, Set("foo", "bar"))
-
-    strings = Set("foo")
-    strings += null.asInstanceOf[File]
-    Assert.assertEquals(strings, Set("foo", null))
-
-    strings = Set[String](null)
-    strings += new File("foo")
-    Assert.assertEquals(strings, Set("foo", null))
-
-    strings = Set[String](null)
-    strings += null.asInstanceOf[File]
-    Assert.assertEquals(strings, Set(null))
-  }
-
-  @Test
   def testStringListToFileList() {
     var files = Seq(new File("foo"))
     files ++= Seq("bar")
@@ -163,41 +125,4 @@ class StringFileConversionsUnitTest {
     Assert.assertEquals(strings, Seq(null, null))
   }
 
-  @Test
-  def testStringSetToFileSet() {
-    var files = Set(new File("foo"))
-    files ++= Set("bar")
-    Assert.assertEquals(files, Set(new File("foo"), new File("bar")))
-
-    files = Set(new File("foo"))
-    files ++= Set[String](null)
-    Assert.assertEquals(files, Set(new File("foo"), null))
-
-    files = Set[File](null)
-    files ++= Set("foo")
-    Assert.assertEquals(files, Set(new File("foo"), null))
-
-    files = Set[File](null)
-    files ++= Set[String](null)
-    Assert.assertEquals(files, Set(null))
-  }
-
-  @Test
-  def testFileSetToStringSet() {
-    var strings = Set("foo")
-    strings ++= Set(new File("bar"))
-    Assert.assertEquals(strings, Set("foo", "bar"))
-
-    strings = Set("foo")
-    strings ++= Set[File](null)
-    Assert.assertEquals(strings, Set("foo", null))
-
-    strings = Set[String](null)
-    strings ++= Set(new File("foo"))
-    Assert.assertEquals(strings, Set("foo", null))
-
-    strings = Set[String](null)
-    strings ++= Set[File](null)
-    Assert.assertEquals(strings, Set(null))
-  }
 }

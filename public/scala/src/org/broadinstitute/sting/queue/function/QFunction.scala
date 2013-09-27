@@ -32,6 +32,7 @@ import org.broadinstitute.sting.queue.{QException, QSettings}
 import java.lang.IllegalStateException
 import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.utils.io.IOUtils
+import scala.language.reflectiveCalls
 
 /**
  * The base interface for all functions in Queue.

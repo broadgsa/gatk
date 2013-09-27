@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.queue.util
 
 import org.apache.commons.mail.{MultiPartEmail, EmailAttachment}
-import java.io.{FileReader, File}
+import java.io.{IOException, FileReader, File}
 import javax.mail.internet.InternetAddress
 import scala.collection.JavaConversions._
 
@@ -105,7 +105,7 @@ class EmailMessage extends Logging {
     try {
       Retry.attempt(() => send(settings), .5)
     } catch {
-      case e => logger.error("Error sending message: %n%s".format(this.toString), e)
+      case e: RetryException=> logger.error("Error sending message: %n%s".format(this.toString), e)
     }
   }
 

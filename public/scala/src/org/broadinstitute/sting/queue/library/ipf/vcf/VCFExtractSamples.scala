@@ -39,7 +39,7 @@ class VCFExtractSamples(inVCF: File, outVCF: File, samples: List[String]) extend
   @Argument(doc="The samples to extract from the VCF") var extractSamples : List[String] = samples
 
   var out : PrintWriter = _
-  var columns : List[Int] = 0 to 8 toList
+  var columns : List[Int] = (0 to 8).toList
 
   def run = {
     out = new PrintWriter(new PrintStream(outputVCF))

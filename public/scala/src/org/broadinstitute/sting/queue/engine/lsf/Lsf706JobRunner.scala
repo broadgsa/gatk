@@ -361,7 +361,7 @@ object Lsf706JobRunner extends Logging {
           if (LibBat.lsb_signaljob(runner.jobId, SIGTERM) < 0)
             logger.error(LibBat.lsb_sperror("Unable to kill job " + runner.jobId))
         } catch {
-          case e =>
+          case e: Exception=>
             logger.error("Unable to kill job " + runner.jobId, e)
         }
       }
