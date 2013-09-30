@@ -235,8 +235,6 @@ public class CombineVariants extends RodWalker<Integer, Integer> implements Tree
         vcfWriter.writeHeader(vcfHeader);
     }
 
-
-
     private void validateAnnotateUnionArguments() {
         Set<String> rodNames = SampleUtils.getRodNamesWithVCFHeader(getToolkit(), null);
 
