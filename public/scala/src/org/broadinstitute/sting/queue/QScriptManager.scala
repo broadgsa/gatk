@@ -36,6 +36,7 @@ import org.apache.log4j.Level
 import org.broadinstitute.sting.queue.util.TextFormatUtils._
 import org.broadinstitute.sting.utils.classloader.JVMUtils
 import scala.reflect.internal.util.{FakePos, NoPosition, Position, StringOps}
+import org.broadinstitute.sting.utils.exceptions.UserException
 
 /**
  * Plugin manager for QScripts which loads QScripts into the current class loader.
@@ -46,6 +47,11 @@ class QScriptManager() extends Logging {
    * Heavily based on scala/src/compiler/scala/tools/ant/Scalac.scala
    */
   def loadScripts(scripts: Seq[File], tempDir: File) {
+    // Make sure the scripts actually exist.
+    scripts.foreach{
+        file => if( !file.exists()) throw new UserException.CouldNotReadInputFile(file, "it does not exist.")
+    }
+
     if (scripts.size > 0) {
       val settings = new Settings((error: String) => logger.error(error))
       settings.deprecation.value = true
