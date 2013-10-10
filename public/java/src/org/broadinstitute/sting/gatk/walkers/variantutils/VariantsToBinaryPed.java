@@ -81,8 +81,9 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
      * wherein unknown parents needn't be specified. The columns are the individual ID, and a list of key-value pairs.
      * </p><p>
      * Regardless of which file is specified, the walker will output a .fam file alongside the bed file. If the
-     * command line has "-md [name].fam", the fam file will simply be copied. However, if a metadata file of the
-     * alternate format is passed by "-md [name].txt", the walker will construct a formatted .fam file from the data.
+     * command line has "-md [name].fam", the fam file will be subset and reordered to match the sample content and ordering
+     * of the VCF. However, if a metadata file of the alternate format is passed by "-md [name].txt", the walker will
+     * construct a formatted .fam file from the data.
      * </p>
      */
     @Input(shortName="m",fullName = "metaData",required=true,doc="Sample metadata file. You may specify a .fam file " +
@@ -170,6 +171,13 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                     if ( ! sampleMetaValues.containsKey(sample) ) {
                         throw new UserException("No metadata provided for sample "+sample);
                     }
+                    Map<String,String> mVals = sampleMetaValues.get(sample);
+                    String fid = mVals.containsKey("fid") ? mVals.get("fid") : String.format("dummy_%d",++dummyID);
+                    String pid = mVals.containsKey("dad") ? mVals.get("dad") : String.format("dummy_%d",++dummyID);
+                    String mid = mVals.containsKey("mom") ? mVals.get("mom") : String.format("dummy_%d",++dummyID);
+                    String sex = mVals.containsKey("sex") ? mVals.get("sex") : "3";
+                    String pheno = mVals.containsKey("phenotype") ? mVals.get("phenotype") : "-1";
+                    outFam.printf("%s\t%s\t%s\t%s\t%s\t%s%n",fid,sample,pid,mid,sex,pheno);
                 }
                 if ( mode == OutputMode.INDIVIDUAL_MAJOR ) {
                     // only need to instantiate the files and buffers if in individual major.
@@ -469,7 +477,6 @@ public class VariantsToBinaryPed extends RodWalker<Integer,Integer> {
                     values.put("sex",sex);
                     values.put("phenotype",pheno);
                     metaValues.put(sid,values);
-                    outFam.printf("%s%n",line);
                 }
             } else {
                 for ( String line : new XReadLines(metaDataFile) ) {
