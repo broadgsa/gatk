@@ -129,19 +129,18 @@ public class GATKArgumentCollection {
     public Double downsampleFraction = null;
 
     /**
-     * For locus-based traversals (eg., LocusWalkers and ActiveRegionWalkers), downsample_to_coverage controls the
-     * maximum depth of coverage at each locus. For non-locus-based traversals (eg., ReadWalkers), this controls the
-     * maximum number of reads sharing the same alignment start position. Note that for ReadWalkers, since -dcov controls
-     * the maximum number of reads sharing the same alignment start position, you will typically need to use much lower
-     * dcov values than you would with LocusWalkers to see an effect. Note also that this downsampling option does NOT
-     * produce an unbiased random sampling from all available reads at each locus: instead, the primary goal of the
+     * For locus-based traversals (LocusWalkers and ActiveRegionWalkers), downsample_to_coverage controls the
+     * maximum depth of coverage at each locus. For read-based traversals (ReadWalkers), it controls the
+     * maximum number of reads sharing the same alignment start position. For ReadWalkers you will typically need to use
+     * much lower dcov values than you would with LocusWalkers to see an effect. Note that this downsampling option does
+     * not produce an unbiased random sampling from all available reads at each locus: instead, the primary goal of the
      * to-coverage downsampler is to maintain an even representation of reads from all alignment start positions when
-     * removing excess coverage. For a true across-the-board unbiased random sampling of reads, use -dfrac instead. Also
-     * note that the coverage target is an approximate goal that is not guaranteed to be met exactly: the downsampling
-     * algorithm will under some circumstances retain slightly more coverage than requested.
+     * removing excess coverage. For a truly unbiased random sampling of reads, use -dfrac instead. Also note
+     * that the coverage target is an approximate goal that is not guaranteed to be met exactly: the downsampling
+     * algorithm will under some circumstances retain slightly more or less coverage than requested.
      */
     @Argument(fullName = "downsample_to_coverage", shortName = "dcov",
-              doc = "Coverage [integer] to downsample to",
+              doc = "Coverage [integer] to downsample to per locus (for locus walkers) or per alignment start position (for read walkers)",
               required = false)
     public Integer downsampleCoverage = null;
 
