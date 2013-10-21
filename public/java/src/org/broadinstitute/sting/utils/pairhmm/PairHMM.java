@@ -28,9 +28,14 @@ package org.broadinstitute.sting.utils.pairhmm;
 import com.google.java.contract.Requires;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.genotyper.PerReadAlleleLikelihoodMap;
+import org.broadinstitute.sting.utils.haplotype.Haplotype;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.variant.variantcontext.Allele;
 
 import java.util.Arrays;
-
+import java.util.List;
+import java.util.Map;
 /**
  * Util class for performing the pair HMM for local alignment. Figure 4.3 in Durbin 1998 book.
  *
@@ -59,7 +64,7 @@ public abstract class PairHMM {
     protected int maxHaplotypeLength, maxReadLength;
     protected int paddedMaxReadLength, paddedMaxHaplotypeLength;
     protected int paddedReadLength, paddedHaplotypeLength;
-    private boolean initialized = false;
+    protected boolean initialized = false;
 
     // only used for debugging purposes
     protected boolean doNotUseTristateCorrection = false;
@@ -73,7 +78,7 @@ public abstract class PairHMM {
      * @param haplotypeMaxLength the max length of haplotypes we want to use with this PairHMM
      * @param readMaxLength the max length of reads we want to use with this PairHMM
      */
-    public void initialize( final int readMaxLength, final int haplotypeMaxLength ) {
+    protected void initialize( final int readMaxLength, final int haplotypeMaxLength ) {
         if ( readMaxLength <= 0 ) throw new IllegalArgumentException("READ_MAX_LENGTH must be > 0 but got " + readMaxLength);
         if ( haplotypeMaxLength <= 0 ) throw new IllegalArgumentException("HAPLOTYPE_MAX_LENGTH must be > 0 but got " + haplotypeMaxLength);
 
@@ -88,6 +93,79 @@ public abstract class PairHMM {
 
         constantsAreInitialized = false;
         initialized = true;
+    }
+
+    protected int findMaxReadLength(final List<GATKSAMRecord> reads) {
+        int listMaxReadLength = 0;
+        for(GATKSAMRecord read : reads){
+            final int readLength = read.getReadLength();
+            if( readLength > listMaxReadLength ) { listMaxReadLength = readLength; }
+        }
+        return listMaxReadLength;
+    }
+
+    protected int findMaxHaplotypeLength(final Map<Allele, Haplotype> haplotypeMap) {
+        int listMaxHaplotypeLength = 0;
+        for( final Allele a: haplotypeMap.keySet() ) {
+            final Haplotype h = haplotypeMap.get(a);
+            final int haplotypeLength = h.getBases().length;
+            if( haplotypeLength > listMaxHaplotypeLength ) { listMaxHaplotypeLength = haplotypeLength; }
+        }
+        return listMaxHaplotypeLength;
+    }
+
+    /**
+     *  Given a list of reads and haplotypes, for every read compute the total probability of said read arising from
+     *  each haplotype given base substitution, insertion, and deletion probabilities.
+     *
+     * @param reads the list of reads
+     * @param alleleHaplotypeMap the list of haplotypes
+     * @param GCPArrayMap Each read is associated with an array containing the gap continuation penalties for use in the model. Length of each GCP-array must match that of its read.
+     * @return a PerReadAlleleLikelihoodMap containing each read, haplotype-allele, and the log10 probability of
+     *          said read coming from the said haplotype under the provided error model
+     */
+    public PerReadAlleleLikelihoodMap computeLikelihoods(final List<GATKSAMRecord> reads, final Map<Allele, Haplotype> alleleHaplotypeMap, final Map<GATKSAMRecord, byte[]> GCPArrayMap) {
+
+        // (re)initialize the pairHMM only if necessary
+        final int readMaxLength = findMaxReadLength(reads);
+        final int haplotypeMaxLength = findMaxHaplotypeLength(alleleHaplotypeMap);
+        if (!initialized || readMaxLength > maxReadLength || haplotypeMaxLength > maxHaplotypeLength) { initialize(readMaxLength, haplotypeMaxLength); }
+
+        final PerReadAlleleLikelihoodMap likelihoodMap = new PerReadAlleleLikelihoodMap();
+        for(GATKSAMRecord read : reads){
+            final byte[] readBases = read.getReadBases();
+            final byte[] readQuals = read.getBaseQualities();
+            final byte[] readInsQuals = read.getBaseInsertionQualities();
+            final byte[] readDelQuals = read.getBaseDeletionQualities();
+            final byte[] overallGCP = GCPArrayMap.get(read);
+
+            // peak at the next haplotype in the list (necessary to get nextHaplotypeBases, which is required for caching in the array implementation)
+            byte[] currentHaplotypeBases = null;
+            boolean isFirstHaplotype = true;
+            Allele currentAllele = null;
+            double log10l;
+            for (final Allele allele : alleleHaplotypeMap.keySet()){
+                final Haplotype haplotype = alleleHaplotypeMap.get(allele);
+                final byte[] nextHaplotypeBases = haplotype.getBases();
+                if (currentHaplotypeBases != null) {
+                     log10l = computeReadLikelihoodGivenHaplotypeLog10(currentHaplotypeBases,
+                            readBases, readQuals, readInsQuals, readDelQuals, overallGCP, isFirstHaplotype, nextHaplotypeBases);
+                    likelihoodMap.add(read, currentAllele, log10l);
+                }
+                // update the current haplotype
+                currentHaplotypeBases = nextHaplotypeBases;
+                currentAllele = allele;
+            }
+            // process the final haplotype
+            if (currentHaplotypeBases != null) {
+
+                // there is no next haplotype, so pass null for nextHaplotypeBases.
+                log10l = computeReadLikelihoodGivenHaplotypeLog10(currentHaplotypeBases,
+                        readBases, readQuals, readInsQuals, readDelQuals, overallGCP, isFirstHaplotype, null);
+                likelihoodMap.add(read, currentAllele, log10l);
+            }
+        }
+        return likelihoodMap;
     }
 
     /**
@@ -110,7 +188,7 @@ public abstract class PairHMM {
      *                          parameters are the same, and only the haplotype bases are changing underneath us
      * @return the log10 probability of read coming from the haplotype under the provided error model
      */
-    public final double computeReadLikelihoodGivenHaplotypeLog10( final byte[] haplotypeBases,
+    protected final double computeReadLikelihoodGivenHaplotypeLog10( final byte[] haplotypeBases,
                                                                   final byte[] readBases,
                                                                   final byte[] readQuals,
                                                                   final byte[] insertionGOP,
@@ -118,6 +196,7 @@ public abstract class PairHMM {
                                                                   final byte[] overallGCP,
                                                                   final boolean recacheReadValues,
                                                                   final byte[] nextHaploytpeBases) {
+
         if ( ! initialized ) throw new IllegalStateException("Must call initialize before calling computeReadLikelihoodGivenHaplotypeLog10");
         if ( haplotypeBases == null ) throw new IllegalArgumentException("haplotypeBases cannot be null");
         if ( haplotypeBases.length > maxHaplotypeLength ) throw new IllegalArgumentException("Haplotype bases is too long, got " + haplotypeBases.length + " but max is " + maxHaplotypeLength);
