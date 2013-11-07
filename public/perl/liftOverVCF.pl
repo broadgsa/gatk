@@ -36,7 +36,7 @@ my $unsorted_vcf = "$tmp_prefix.unsorted.vcf";
 
 # lift over the file
 print "Lifting over the vcf...";
-my $cmd = "java -jar $gatk/dist/GenomeAnalysisTK.jar -T LiftoverVariants -R $oldRef.fasta -V:variant $in -o $unsorted_vcf -chain $chain -dict $newRef.dict";
+my $cmd = "java -jar $gatk/dist/GenomeAnalysisTK.jar -T LiftoverVariants -R $oldRef.fasta -V:variant $in -o $unsorted_vcf -chain $chain -dict $newRef.dict -U LENIENT_VCF_PROCESSING";
 if ($recordOriginalLocation) {
   $cmd .= " -recordOriginalLocation";
 }
@@ -66,7 +66,7 @@ system($cmd) == 0 or quit("The sorting step failed.  Please correct the necessar
 
 # Filter the VCF for bad records
 print "\nFixing/removing bad records...\n";
-$cmd = "java -jar $gatk/dist/GenomeAnalysisTK.jar -T FilterLiftedVariants -R $newRef.fasta -V:variant $sorted_vcf -o $out";
+$cmd = "java -jar $gatk/dist/GenomeAnalysisTK.jar -T FilterLiftedVariants -R $newRef.fasta -V:variant $sorted_vcf -o $out -U LENIENT_VCF_PROCESSING";
 system($cmd) == 0 or quit("The filtering step failed.  Please correct the necessary errors before retrying.");
 
 # clean up
